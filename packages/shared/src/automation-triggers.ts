@@ -175,6 +175,45 @@ const githubAssignmentEvent = z.object({
 	assignee: triggerScopeSchema,
 });
 
+export const gitlabTriggerEventValues = [
+	"merge_request.opened",
+	"merge_request.draft_opened",
+	"merge_request.pushed",
+	"merge_request.merged",
+	"merge_request.approved",
+	"merge_request.unapproved",
+	"merge_request.label_change",
+	"note.added",
+	"push",
+	"issue.opened",
+	"pipeline.success",
+	"pipeline.failed",
+	"pipeline.canceled",
+] as const;
+export type GitlabTriggerEvent = (typeof gitlabTriggerEventValues)[number];
+
+export function gitlabEventFilters(event: GitlabTriggerEvent) {
+	return {
+		branches:
+			event.startsWith("merge_request.") ||
+			event === "push" ||
+			event.startsWith("pipeline."),
+		labels:
+			event.startsWith("merge_request.") ||
+			event === "issue.opened" ||
+			event === "note.added",
+	};
+}
+
+export const gitlabTriggerConfigSchema = z.object({
+	kind: z.literal("gitlab"),
+	event: z.enum(gitlabTriggerEventValues),
+	projects: triggerScopeSchema,
+	branches: triggerScopeSchema,
+	labels: triggerScopeSchema,
+	includeForks: z.literal(false).default(false),
+});
+
 export const githubTriggerConfigSchema = z.union([
 	githubSimpleEvent,
 	githubCommentEvent,
@@ -367,6 +406,7 @@ export const draftTriggerSchema = z.object({
 		scheduleTriggerConfigSchema,
 		webhookTriggerConfigSchema,
 		githubTriggerConfigSchema,
+		gitlabTriggerConfigSchema,
 		slackTriggerConfigSchema,
 		linearTriggerConfigSchema,
 		sentryTriggerConfigSchema,
@@ -382,6 +422,7 @@ export const TRIGGER_KIND_CONNECTOR: Record<string, string | null> = {
 	schedule: null,
 	webhook: null,
 	github: null,
+	gitlab: "gitlab",
 	slack: "slack",
 	linear: "linear",
 	sentry: "sentry",
@@ -485,6 +526,7 @@ const REQUIREMENTS: Partial<
 		person("subjectAuthor"),
 		person("assignee"),
 	],
+	gitlab: [{ field: "projects", noun: "project" }],
 	slack: [
 		{
 			field: "channels",
@@ -557,7 +599,16 @@ export function describeTriggerProblems(
 			const scope = (config as Record<string, unknown>)[rule.field] as
 				| TriggerScope
 				| undefined;
-			if (scope === undefined || !isEmptyScope(scope)) continue;
+			if (
+				scope === undefined ||
+				(!isEmptyScope(scope) &&
+					!(
+						config.kind === "gitlab" &&
+						rule.field === "projects" &&
+						scope.mode !== "list"
+					))
+			)
+				continue;
 			problems.push({
 				index,
 				field: rule.field,
@@ -584,6 +635,21 @@ export function describeTriggerProblems(
 							values: { noun: rule.noun },
 						}),
 			});
+		}
+
+		if (config.kind === "gitlab") {
+			const filters = gitlabEventFilters(config.event);
+			for (const field of ["branches", "labels"] as const) {
+				if (!filters[field] && config[field].mode !== "any") {
+					problems.push({
+						index,
+						field,
+						message: i18n._(
+							msg({ message: "That filter is not supported for this event." }),
+						),
+					});
+				}
+			}
 		}
 
 		// A schedule's rule is about its recurrence, not a scope, so it stays code.

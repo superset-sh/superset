@@ -12,6 +12,7 @@ type ResolveCallbackOptions<Name extends string> = {
 	denied?: string;
 	/** The cookie `beginOAuthFlow` bound this flow's state to. */
 	cookie: StateCookie;
+	requireAdmin?: boolean;
 	/**
 	 * For a flow the provider answers with no state of ours (an app install):
 	 * the cookie is then the only copy, so holding it *is* the binding.
@@ -82,7 +83,12 @@ export async function resolveCallback<Name extends string>(
 	const { organizationId, userId } = stateData;
 
 	const membership = await findOrgMembership({ userId, organizationId });
-	if (!membership) {
+	if (
+		!membership ||
+		(options.requireAdmin &&
+			membership.role !== "admin" &&
+			membership.role !== "owner")
+	) {
 		console.error("[integrations] callback membership verification failed:", {
 			organizationId,
 			userId,

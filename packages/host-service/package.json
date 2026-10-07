@@ -115,6 +115,7 @@
 		"@types/mime-types": "3.0.1",
 		"@types/node": "24.12.0",
 		"@types/semver": "7.7.1",
+		"@typescript/typescript6": "6.0.2",
 		"bun-types": "1.4.2",
 		"drizzle-kit": "0.31.8",
 		"tsx": "4.21.0",

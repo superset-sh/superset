@@ -40,6 +40,7 @@ import {
 	hostServiceUrl,
 } from "@/lib/host-service/client";
 import { posthog } from "@/lib/posthog";
+import { gitlabPullRequestFromUrl } from "@/lib/pull-request-links";
 import { useVoiceActive } from "@/lib/voice/voiceStore";
 import {
 	getHostTerminalsQueryKey,
@@ -838,6 +839,33 @@ export function WorkspaceScreen() {
 			router.push({
 				pathname: "/workspace/[id]/pull-requests",
 				params: { id },
+			});
+			return;
+		}
+		const nativeRow = pullRequests[0];
+		if (nativeRow?.provider === "gitlab") {
+			const native =
+				nativeRow.expectedUrl &&
+				gitlabPullRequestFromUrl(nativeRow.expectedUrl);
+			if (
+				!native ||
+				native.expectedUrl !== nativeRow.expectedUrl ||
+				native.host !== nativeRow.host ||
+				native.owner !== nativeRow.repoOwner ||
+				native.repo !== nativeRow.repoName ||
+				native.pullNumber !== nativeRow.prNumber
+			)
+				return;
+			router.push({
+				pathname: "/workspace/[id]/pull-request/[pullRequestId]",
+				params: {
+					id,
+					pullRequestId: String(native.pullNumber),
+					owner: native.owner,
+					repo: native.repo,
+					provider: "gitlab",
+					expectedUrl: native.expectedUrl,
+				},
 			});
 			return;
 		}

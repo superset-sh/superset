@@ -8,9 +8,11 @@ import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { env } from "@/env";
+import { OptionalSignInButtons } from "../../components/OptionalSignInButtons";
 
 export default function SignUpPage() {
 	const { t } = useLingui();
+	const [isLoadingOptional, setIsLoadingOptional] = useState(false);
 	const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
 	const [isLoadingGithub, setIsLoadingGithub] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -55,7 +57,7 @@ export default function SignUpPage() {
 		}
 	};
 
-	const isLoading = isLoadingGoogle || isLoadingGithub;
+	const isLoading = isLoadingOptional || isLoadingGoogle || isLoadingGithub;
 
 	return (
 		<div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
@@ -97,6 +99,12 @@ export default function SignUpPage() {
 						<Trans>Sign up with Google</Trans>
 					)}
 				</Button>
+				<OptionalSignInButtons
+					callbackURL={env.NEXT_PUBLIC_WEB_URL}
+					disabled={isLoading}
+					onPending={setIsLoadingOptional}
+					onError={setError}
+				/>
 				<p className="text-muted-foreground px-8 text-center text-sm">
 					<Trans>
 						By clicking continue, you agree to our{" "}

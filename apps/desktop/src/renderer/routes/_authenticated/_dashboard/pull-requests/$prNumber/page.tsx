@@ -55,6 +55,13 @@ function PullRequestDetailPage() {
 				}
 			/>
 			<PullRequestDetailHeader
+				key={JSON.stringify([
+					detail.data?.url,
+					search.repo,
+					prNumber,
+					detail.projectId,
+					hostUrl,
+				])}
 				projectId={detail.projectId}
 				hostId={hostId}
 				hostUrl={hostUrl}

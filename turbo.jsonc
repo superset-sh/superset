@@ -2,6 +2,8 @@
 	"$schema": "https://turbo.build/schema.json",
 	"ui": "tui",
 	"globalEnv": [
+		"NEXT_PUBLIC_AUTH_PROVIDERS",
+		"EXPO_PUBLIC_AUTH_PROVIDERS",
 		"DATABASE_URL",
 		"DATABASE_URL_UNPOOLED",
 		"USERCONTENT_URL",
@@ -18,6 +20,14 @@
 		"KV_REST_API_TOKEN"
 	],
 	"globalPassThroughEnv": [
+		"GITLAB_CLIENT_ID",
+		"GITLAB_CLIENT_SECRET",
+		"GITLAB_OAUTH_CLIENT_ID",
+		"GITLAB_OAUTH_CLIENT_SECRET",
+		"GITLAB_ISSUER",
+		"GITLAB_WEBHOOK_ORIGIN",
+		"GITLAB_SANDBOX_OIDC_ISSUER",
+		"GITLAB_SANDBOX_PROXY_URL",
 		"NODE_ENV",
 		"CI",
 		"VERCEL",

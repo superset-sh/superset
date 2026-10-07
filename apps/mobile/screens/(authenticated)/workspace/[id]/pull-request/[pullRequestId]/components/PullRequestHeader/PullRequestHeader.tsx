@@ -20,10 +20,12 @@ export function PullRequestHeader({
 	pullRequest,
 	queued,
 	onOpenFiles,
+	diffStatsComplete = true,
 }: {
 	pullRequest: PullRequest;
 	queued?: boolean;
 	onOpenFiles?: () => void;
+	diffStatsComplete?: boolean;
 }) {
 	const { t } = useLingui();
 	const status =
@@ -40,30 +42,32 @@ export function PullRequestHeader({
 				>
 					{i18n._(status.label)}
 				</Text>
-				<Pressable
-					accessibilityLabel={t({
-						message: "View files changed",
-					})}
-					accessibilityRole={onOpenFiles ? "button" : undefined}
-					className="flex-row items-center gap-1.5 active:opacity-60"
-					disabled={!onOpenFiles}
-					onPress={onOpenFiles}
-				>
-					<Text className="text-green-500 font-semibold text-[13px]">
-						+{pullRequest.additions}
-					</Text>
-					<Text className="text-red-500 font-semibold text-[13px]">
-						−{pullRequest.deletions}
-					</Text>
-					<Text className="text-muted-foreground text-[13px]">
-						·{" "}
-						<Plural
-							value={pullRequest.changedFiles}
-							one="# File"
-							other="# Files"
-						/>
-					</Text>
-				</Pressable>
+				{diffStatsComplete ? (
+					<Pressable
+						accessibilityLabel={t({
+							message: "View files changed",
+						})}
+						accessibilityRole={onOpenFiles ? "button" : undefined}
+						className="flex-row items-center gap-1.5 active:opacity-60"
+						disabled={!onOpenFiles}
+						onPress={onOpenFiles}
+					>
+						<Text className="text-green-500 font-semibold text-[13px]">
+							+{pullRequest.additions}
+						</Text>
+						<Text className="text-red-500 font-semibold text-[13px]">
+							−{pullRequest.deletions}
+						</Text>
+						<Text className="text-muted-foreground text-[13px]">
+							·{" "}
+							<Plural
+								value={pullRequest.changedFiles}
+								one="# File"
+								other="# Files"
+							/>
+						</Text>
+					</Pressable>
+				) : null}
 			</View>
 			<Text
 				className="font-semibold text-[19px] leading-[25px] tracking-[-0.3px]"

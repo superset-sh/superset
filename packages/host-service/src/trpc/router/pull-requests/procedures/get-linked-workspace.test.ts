@@ -2,6 +2,9 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import { projects, pullRequests } from "../../../../db/schema";
 import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
 import type { HostServiceContext } from "../../../../types";
 import { createCallerFactory, router } from "../../../index";
@@ -13,7 +16,10 @@ import {
 	seedLinkedPullRequest,
 	UNLINKED_PR_NUMBER,
 } from "../shared/test-db";
-import { getLinkedWorkspace } from "./get-linked-workspace";
+import {
+	createGetLinkedWorkspace,
+	getLinkedWorkspace,
+} from "./get-linked-workspace";
 
 const tempDirs: string[] = [];
 afterAll(() => {
@@ -81,4 +87,78 @@ describe("pullRequests.getLinkedWorkspace", () => {
 			}),
 		).toEqual({ workspaceId: null });
 	});
+});
+
+test("missing native checkout retains only the project repository and expected URL link", async () => {
+	const missing = async () => {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			cause: new Error("Fixture missing checkout"),
+		});
+	};
+	const caller = createCallerFactory(
+		router({ getLinkedWorkspace: createGetLinkedWorkspace(missing, missing) }),
+	);
+	const db = createTestDb();
+	const nativeCaller = caller({
+		db,
+		isAuthenticated: true,
+		organizationId: "fixture",
+	} as unknown as HostServiceContext);
+	seedLinkedPullRequest(db, "/nonexistent/native-checkout");
+	const repoUrl = "https://gitlab.com/team/sub/repo";
+	const expected = {
+		provider: "gitlab" as const,
+		projectId: PROJECT_ID,
+		host: "gitlab.com",
+		owner: "team/sub",
+		repo: "repo",
+		pullNumber: PR_NUMBER,
+		expectedUrl: `${repoUrl}/-/merge_requests/${PR_NUMBER}`,
+	};
+	db.update(projects).set({ repoProvider: "gitlab", repoUrl }).run();
+	db.update(pullRequests)
+		.set({
+			repoProvider: "gitlab",
+			repoHost: expected.host,
+			repoOwner: expected.owner,
+			repoName: expected.repo,
+			url: expected.expectedUrl,
+		})
+		.where(eq(pullRequests.id, "pr-42"))
+		.run();
+	expect(
+		await nativeCaller.getLinkedWorkspace({
+			projectId: PROJECT_ID,
+			prNumber: PR_NUMBER,
+		}),
+	).toEqual({ workspaceId: "ws-newer" });
+	expect(
+		await nativeCaller.getLinkedWorkspace({
+			projectId: PROJECT_ID,
+			prNumber: PR_NUMBER,
+			expectedPullRequest: expected,
+		}),
+	).toEqual({ workspaceId: "ws-newer", validatedPullRequest: expected });
+	db.update(pullRequests)
+		.set({ repoHost: "foreign.test" })
+		.where(eq(pullRequests.id, "pr-42"))
+		.run();
+	expect(
+		await nativeCaller.getLinkedWorkspace({
+			projectId: PROJECT_ID,
+			prNumber: PR_NUMBER,
+		}),
+	).toEqual({ workspaceId: null });
+	await expect(
+		nativeCaller.getLinkedWorkspace({
+			projectId: PROJECT_ID,
+			prNumber: PR_NUMBER,
+			expectedPullRequest: {
+				...expected,
+				host: "foreign.test",
+				expectedUrl: "https://foreign.test/team/sub/repo/-/merge_requests/42",
+			},
+		}),
+	).rejects.toMatchObject({ code: "BAD_REQUEST" });
 });

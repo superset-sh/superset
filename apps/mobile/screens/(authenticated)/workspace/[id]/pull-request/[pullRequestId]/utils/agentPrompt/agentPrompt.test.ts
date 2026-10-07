@@ -3,7 +3,7 @@ import type {
 	PullRequestCheck,
 	PullRequestDetail,
 } from "../../../../utils/pullRequest/types";
-import { agentPrompt } from "./agentPrompt";
+import { agentPrompt, gitlabAgentPrompt } from "./agentPrompt";
 
 function check(overrides: Partial<PullRequestCheck> = {}): PullRequestCheck {
 	return {
@@ -119,4 +119,30 @@ describe("agentPrompt", () => {
 			"Reviewers left feedback on PR #42 (https://github.com/superset-sh/superset/pull/42). Address the requested changes and unresolved review comments, then push your fixes.",
 		);
 	});
+});
+
+const nativePrompt = gitlabAgentPrompt;
+test("native MR prompt keeps full URL and bounded quoted check data", () => {
+	const native = {
+		...detail([
+			check({ name: 'CI"\nHostile', conclusion: "FAILURE" }),
+			...Array.from({ length: 11 }, (_, i) =>
+				check({ name: `job-${i}`, conclusion: "FAILURE" }),
+			),
+		]),
+		provider: "gitlab",
+		pullRequest: {
+			...detail().pullRequest,
+			url: "https://git.example:8443/Group/Sub/Repo/-/merge_requests/42",
+		},
+	};
+	expect(nativePrompt("ask-resolve-conflicts", native)).toBe(
+		"MR #42 (https://git.example:8443/Group/Sub/Repo/-/merge_requests/42) has merge conflicts with main. Resolve them on this branch and push the result.",
+	);
+	const prompt = nativePrompt("ask-fix-checks", native);
+	expect(prompt).toContain(`"CI' Hostile"`);
+	expect(prompt).not.toContain("\n");
+	expect(prompt).toContain("and 2 more.");
+	expect(prompt).not.toContain("job-9");
+	expect(nativePrompt("ask-address-comments", native)).toContain("MR #42");
 });

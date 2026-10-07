@@ -3,7 +3,17 @@ import type { SimpleGit, SimpleGitOptions } from "simple-git";
 /** Whether `host` had no credential at all, or one GitHub refused. */
 export type CredentialProblem = "missing" | "rejected";
 
+export type GitLabApiRequest = (
+	path: string,
+	init: RequestInit,
+) => Promise<Response>;
+
 export interface GitCredentialProvider {
+	getGitLabRequest?(repo: {
+		host: string;
+		owner: string;
+		name: string;
+	}): GitLabApiRequest | undefined;
 	getCredentials(
 		remoteUrl: string | null,
 	): Promise<{ env: Record<string, string> }>;

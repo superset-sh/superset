@@ -113,6 +113,7 @@ const TRIGGER_KIND_REQUIRED_PLAN: Partial<
 > = {
 	schedule: AUTOMATIONS_REQUIRED_PLAN,
 	github: "pro",
+	gitlab: "pro",
 	slack: "pro",
 	linear: "pro",
 	sentry: "pro",

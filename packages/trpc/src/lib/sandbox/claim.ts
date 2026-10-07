@@ -21,6 +21,11 @@ import { env } from "../../env";
 import { resolveAgentCredentialEnv } from "../../router/agent-credential";
 import { resolveEnvironment } from "../../router/environment/resolve-environment";
 import { githubUserConnectionFor, githubUserTokenFor } from "../github-user";
+import { resolveGitlabSandboxProxyConfig } from "../gitlab/proxy-config";
+import {
+	assertNoGitlabSandboxBinding,
+	resolveGitlabSandboxClaim,
+} from "../gitlab/sandbox-claim";
 import { sandboxHostSecretFor } from "./access";
 import { deriveSandboxCredentials, gitAuthorFor } from "./credentials";
 import { creatorPlugins } from "./plugins";
@@ -60,6 +65,25 @@ export async function buildSandboxClaim(args: {
 	repositories: SandboxRepository[];
 	agentCredentialDigest: string;
 }> {
+	args = { ...args, row: { ...args.row } };
+	const gitlab = await resolveGitlabSandboxClaim(args);
+	const gitlabProxy = gitlab
+		? resolveGitlabSandboxProxyConfig({
+				GITLAB_SANDBOX_OIDC_ISSUER: env.GITLAB_SANDBOX_OIDC_ISSUER,
+				GITLAB_SANDBOX_PROXY_URL: env.GITLAB_SANDBOX_PROXY_URL,
+				NEXT_PUBLIC_API_URL: env.NEXT_PUBLIC_API_URL,
+				VERCEL_SANDBOX_TOKEN: env.VERCEL_SANDBOX_TOKEN,
+				VERCEL_SANDBOX_TEAM_ID: env.VERCEL_SANDBOX_TEAM_ID,
+				VERCEL_SANDBOX_PROJECT_ID: env.VERCEL_SANDBOX_PROJECT_ID,
+			})
+		: null;
+	if (
+		gitlab &&
+		(!gitlabProxy ||
+			new URL(gitlabProxy.forwardURL).hostname ===
+				new URL(gitlab.origin).hostname)
+	)
+		throw new Error("GitLab sandbox claim is unavailable");
 	const [environment, userAgentEnv] = await Promise.all([
 		resolveEnvironment(args.row.environmentId, args.row.organizationId),
 		args.row.createdByUserId
@@ -67,46 +91,76 @@ export async function buildSandboxClaim(args: {
 			: Promise.resolve({}),
 	]);
 	if (!environment) throw new Error("Environment not found");
-	const checkouts = await workspaceRepositories({
-		cloudWorkspaceId: args.row.id,
-		hooksRepositoryId: environment.hooksRepositoryId,
-		primaryBranch: args.row.baseBranch,
-		workingBranch: args.row.branch,
-	});
-	const creator = args.row.createdByUserId;
-	const [userToken, githubAccount, creatorUser] = creator
-		? await Promise.all([
-				githubUserTokenFor(creator),
-				githubUserConnectionFor(creator),
-				db.query.users.findFirst({
-					where: eq(users.id, creator),
-					columns: { name: true, email: true },
-				}),
-			])
-		: [null, null, undefined];
-	const plugins = await creatorPlugins(creator);
-	// The creator's own token when they have connected GitHub: pushes and pull
-	// requests are theirs. The App's installation token otherwise.
-	const token =
-		userToken ??
-		(await installationTokenFor(checkouts.map((entry) => entry.repository)));
-	const hooksCheckout = checkouts.find((entry) => entry.hooks) ?? checkouts[0];
-	const repoHooks =
-		args.withRepoHooks && hooksCheckout
-			? await readRepoHooks({
-					repo: hooksCheckout.repository,
-					branch: hooksCheckout.baseBranch,
+	const plugins = await creatorPlugins(args.row.createdByUserId);
+	const { repositories, repoHooks, token, gitAuthor } = gitlab
+		? {
+				repositories: [gitlab.repository],
+				repoHooks: gitlab.repoHooks,
+				token: null,
+				gitAuthor: gitlab.author,
+			}
+		: await (async () => {
+				const checkouts = await workspaceRepositories({
+					cloudWorkspaceId: args.row.id,
+					hooksRepositoryId: environment.hooksRepositoryId,
+					primaryBranch: args.row.baseBranch,
+					workingBranch: args.row.branch,
+				});
+				const creator = args.row.createdByUserId;
+				const [userToken, githubAccount, creatorUser] = creator
+					? await Promise.all([
+							githubUserTokenFor(creator),
+							githubUserConnectionFor(creator),
+							db.query.users.findFirst({
+								where: eq(users.id, creator),
+								columns: { name: true, email: true },
+							}),
+						])
+					: [null, null, undefined];
+				// The creator's own token when they have connected GitHub: pushes and pull
+				// requests are theirs. The App's installation token otherwise.
+				const token =
+					userToken ??
+					(await installationTokenFor(
+						checkouts.map((entry) => entry.repository),
+					));
+				const hooksCheckout =
+					checkouts.find((entry) => entry.hooks) ?? checkouts[0];
+				const repoHooks =
+					args.withRepoHooks && hooksCheckout
+						? await readRepoHooks({
+								repo: hooksCheckout.repository,
+								branch: hooksCheckout.baseBranch,
+								token,
+							})
+						: null;
+				const repositories = toSandboxRepositories(checkouts);
+
+				return {
+					repositories,
+					repoHooks,
 					token,
-				})
-			: null;
-	const repositories = toSandboxRepositories(checkouts);
+					gitAuthor: gitAuthorFor({
+						github: githubAccount
+							? {
+									id: githubAccount.githubUserId,
+									login: githubAccount.login,
+									name: githubAccount.name,
+								}
+							: null,
+						user: creatorUser ?? SUPERSET_GIT_AUTHOR,
+					}),
+				};
+			})();
 
 	const identity: SandboxIdentity = {
 		SUPERSET_SANDBOX_CONTRACT: String(SANDBOX_CONTRACT_VERSION) as "1",
 		SUPERSET_API_URL: env.NEXT_PUBLIC_API_URL,
 		SUPERSET_SANDBOX_WORKSPACE_ID: args.row.id,
 		SUPERSET_SANDBOX_ORGANIZATION_ID: args.row.organizationId,
-		...(creator ? { SUPERSET_SANDBOX_CREATOR_USER_ID: creator } : {}),
+		...(args.row.createdByUserId
+			? { SUPERSET_SANDBOX_CREATOR_USER_ID: args.row.createdByUserId }
+			: {}),
 		SUPERSET_SANDBOX_REPOSITORIES: JSON.stringify(repositories),
 		SUPERSET_SANDBOX_PLUGINS: JSON.stringify(plugins),
 		SUPERSET_SANDBOX_IMAGE_TAG: environment.sourceRef,
@@ -128,21 +182,26 @@ export async function buildSandboxClaim(args: {
 		environmentEnv: environment.envs,
 		userAgentEnv,
 		githubToken: token,
-		gitAuthor: gitAuthorFor({
-			github: githubAccount
-				? {
-						id: githubAccount.githubUserId,
-						login: githubAccount.login,
-						name: githubAccount.name,
-					}
-				: null,
-			user: creatorUser ?? SUPERSET_GIT_AUTHOR,
-		}),
+		gitAuthor,
+		...(gitlab && gitlabProxy
+			? {
+					gitlabForward: {
+						origin: gitlab.origin,
+						forwardURL: gitlabProxy.forwardURL,
+					},
+				}
+			: {}),
 	});
+	const hostSecret = await sandboxHostSecretFor(args.row.id);
+	if (gitlab) await gitlab.recheck();
+	else await assertNoGitlabSandboxBinding(args.row.id);
 	return {
 		claim: {
+			...(gitlab
+				? { requireFreshPolicy: true as const, recheckPolicy: gitlab.recheck }
+				: {}),
 			identity,
-			hostSecret: await sandboxHostSecretFor(args.row.id),
+			hostSecret,
 			managedEnv,
 			networkPolicy,
 			ports: repoHooks?.ports,

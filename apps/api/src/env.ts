@@ -1,5 +1,6 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
+import { gitlabWebhookOriginSchema } from "./lib/gitlabWebhookOrigin";
 
 export const env = createEnv({
 	shared: {
@@ -14,6 +15,12 @@ export const env = createEnv({
 		GOOGLE_CLIENT_SECRET: z.string().min(1),
 		GH_CLIENT_ID: z.string().min(1),
 		GH_CLIENT_SECRET: z.string().min(1),
+		GITLAB_OAUTH_CLIENT_ID: z.string().min(1).optional(),
+		GITLAB_OAUTH_CLIENT_SECRET: z.string().min(1).optional(),
+		GITLAB_SANDBOX_OIDC_ISSUER: z.string().optional(),
+		GITLAB_SANDBOX_PROXY_URL: z.string().optional(),
+		GITLAB_ISSUER: z.string().url().optional(),
+		GITLAB_WEBHOOK_ORIGIN: gitlabWebhookOriginSchema,
 		// Gmail push: the Pub/Sub topic `users.watch` publishes to, and the
 		// shared secret the push subscription appends to our URL. Absent means
 		// Gmail triggers are configured but never watched.

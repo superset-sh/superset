@@ -78,9 +78,7 @@ export function ShipControl({
 	const showCreatePr = !needsCommit && canCreatePr;
 	if (!needsCommit && !showCreatePr && !needsPush) return null;
 
-	const noCommitsTooltip = t({
-		message: "No commits to open a pull request from",
-	});
+	const noCommitsTooltip = actions.noCommitsLabel;
 
 	// enabled: on the hover so a disabled button stays hoverable (pointer
 	// events are kept alive for the native title tooltip) without lighting up.
@@ -172,7 +170,7 @@ export function ShipControl({
 										}}
 									>
 										<VscGitPullRequestCreate className="size-3.5" />
-										<Trans>Create PR</Trans>
+										{actions.createLabel}
 									</DropdownMenuItem>
 								)}
 							</DropdownMenuContent>
@@ -205,7 +203,7 @@ export function ShipControl({
 									) : (
 										<VscGitPullRequestCreate className="size-3.5" />
 									)}
-									<Trans>Create PR</Trans>
+									{actions.createLabel}
 								</button>
 							) : (
 								<button

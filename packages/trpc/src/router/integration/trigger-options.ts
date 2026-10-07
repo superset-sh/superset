@@ -2,6 +2,7 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
 import { githubTriggerOptions } from "./github/trigger-options";
+import { gitlabTriggerOptions } from "./gitlab/trigger-options";
 import { googleTriggerOptions } from "./google/trigger-options";
 import { linearTriggerOptions } from "./linear/trigger-options";
 import { microsoftTeamsTriggerOptions } from "./microsoft-teams/trigger-options";
@@ -50,6 +51,7 @@ export const triggerOptionSources: Record<
 	Record<string, TriggerOptionSource>
 > = {
 	github: githubTriggerOptions,
+	gitlab: gitlabTriggerOptions,
 	linear: linearTriggerOptions,
 	sentry: sentryTriggerOptions,
 	microsoftTeams: microsoftTeamsTriggerOptions,
@@ -87,6 +89,7 @@ export const triggerOptionsRouter = {
 					try {
 						return [key, await source(context)] as const;
 					} catch (error) {
+						if (input.group === "gitlab") throw error;
 						console.error(
 							`[integration.triggerOptions] ${input.group}.${key} failed:`,
 							error,

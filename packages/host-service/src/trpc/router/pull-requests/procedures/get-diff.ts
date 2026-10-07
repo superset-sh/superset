@@ -1,24 +1,32 @@
 import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 import { protectedProcedure } from "../../../index";
-import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
 import { fetchPullRequestDiff } from "../shared/fetch-pull-request-diff";
+import { contentTargetSchema, resolveContentTarget } from "./content-target";
+import { gitLabDiff } from "./gitlab-project";
 
 export const getDiff = protectedProcedure
-	.input(
-		z.object({ projectId: z.string(), prNumber: z.number().int().positive() }),
-	)
+	.input(contentTargetSchema)
 	.query(async ({ ctx, input }) => {
+		let native = input.provider === "gitlab" || !!input.expectedPullRequest;
 		try {
-			const repo = await resolveGithubRepo(ctx, input.projectId);
+			const target = await resolveContentTarget(ctx, input);
+			native = target.provider === "gitlab";
+			if (target.provider === "gitlab")
+				return {
+					patch: await gitLabDiff(target.repo, target.client, input.prNumber),
+				};
 			return await fetchPullRequestDiff(
-				`${repo.owner}/${repo.name}`,
+				`${target.repo.owner}/${target.repo.name}`,
 				input.prNumber,
 			);
-		} catch (err) {
+		} catch (error) {
 			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: `Failed to fetch diff for PR #${input.prNumber}: ${err instanceof Error ? err.message : String(err)}`,
+				code:
+					native && error instanceof TRPCError
+						? error.code
+						: "INTERNAL_SERVER_ERROR",
+				message: `Failed to fetch diff for PR #${input.prNumber}: ${error instanceof Error ? error.message : String(error)}`,
+				cause: error,
 			});
 		}
 	});

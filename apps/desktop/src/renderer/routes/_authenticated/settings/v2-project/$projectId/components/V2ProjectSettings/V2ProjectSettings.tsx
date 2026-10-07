@@ -155,7 +155,9 @@ export function V2ProjectSettings({
 	const projectIcon = hostProject ? hostProject.icon : project.icon;
 	const iconUrl = resolveProjectIconUrl({
 		icon: projectIcon,
-		repoOwner: project.repoOwner,
+		repoOwner: hostProject ? hostProject.repoOwner : project.repoOwner,
+		repoProvider: hostProject ? hostProject.repoProvider : project.repoProvider,
+		repoUrl: hostProject ? hostProject.repoUrl : project.repoUrl,
 	});
 	// Accent color follows the same per-host precedence as the icon.
 	const projectColor = hostProject ? hostProject.color : project.color;

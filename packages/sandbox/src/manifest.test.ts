@@ -186,3 +186,47 @@ describe("deriveStepVersions", () => {
 		);
 	});
 });
+
+test("glab installs as an executable asset without changing unrelated step versions", () => {
+	const f = fixture();
+	const glab: Assets[string] = {
+		sha256: "b".repeat(64),
+		suffix: "",
+		dest: "/usr/local/bin/glab",
+		mode: "0755",
+		version: "1.109.0",
+	};
+	const steps = [
+		{ name: "one", assets: ["thing"], after: [], inputs: [], salt: "" },
+	];
+	const original = deriveStepVersions({
+		steps,
+		assets: f.assets,
+		tools: walkRootfs(f.rootfs),
+		stepsDir: f.steps,
+	});
+	const assets = { ...f.assets, glab };
+	const license = join(f.rootfs, "usr/local/share/licenses/glab/LICENSE");
+	mkdirSync(join(f.rootfs, "usr/local/share/licenses/glab"), {
+		recursive: true,
+	});
+	writeFileSync(license, "OWNED_NOTICE_FIXTURE\n");
+	expect(
+		deriveStepVersions({
+			steps,
+			assets,
+			tools: walkRootfs(f.rootfs),
+			stepsDir: f.steps,
+		}),
+	).toEqual(original);
+	expect(renderAssetsTsv({ glab })).toBe(
+		`0755\t${"b".repeat(64)}\t\t${Buffer.from("/usr/local/bin/glab").toString("base64")}\n`,
+	);
+	expect(
+		walkRootfs(f.rootfs).some(
+			(row) =>
+				row.dest === "/usr/local/share/licenses/glab/LICENSE" &&
+				row.mode === "0644",
+		),
+	).toBe(true);
+});

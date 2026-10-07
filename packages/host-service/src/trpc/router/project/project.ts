@@ -1,4 +1,6 @@
+import { rm } from "node:fs/promises";
 import { basename, resolve as resolvePath } from "node:path";
+import { parseGitRemote } from "@superset/shared/git-remote";
 import {
 	type ParsedGitHubRemote,
 	parseGitHubRemote,
@@ -28,6 +30,7 @@ import {
 	getAllTagFolderSettings,
 	upsertTagFolderSetting,
 } from "../../../tag-folders";
+import type { HostServiceContext } from "../../../types";
 import { updateLocalWorkspace } from "../../../workspaces/local-workspace-store";
 import { machineOnlyProcedure, protectedProcedure, router } from "../../index";
 import {
@@ -41,20 +44,59 @@ import {
 	createFromEmpty,
 	createFromImportLocal,
 	createFromTemplate,
+	prepareProjectRepository,
 } from "./handlers";
 import { listLiveLocalWorkspaces } from "./utils/create-local-workspace";
 import { getGitHubRemotes } from "./utils/git-remote";
 import { listGitHubRepositories } from "./utils/github-repositories";
+import {
+	gitlabRepositoryInputSchema,
+	listGitLabRepositories,
+	listGitLabRepositoriesForHost,
+} from "./utils/gitlab-repositories";
 import { persistLocalProject } from "./utils/persist-project";
 import {
 	adoptLocalRepo,
 	cloneRepoInto,
 	type ResolvedRepo,
 	resolveLocalRepo,
+	resolveMatchingNativeRepo,
 	resolveMatchingSlug,
 	tryRevParseGitRoot,
 	validateDirectoryPath,
 } from "./utils/resolve-repo";
+
+function nativeSetupAlreadyCurrent(
+	ctx: HostServiceContext,
+	projectId: string,
+	repoPath: string,
+	allowRelocate: boolean,
+): boolean {
+	const owner = ctx.db
+		.select({ id: projects.id })
+		.from(projects)
+		.where(eq(projects.repoPath, repoPath))
+		.get();
+	if (owner && owner.id !== projectId) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message:
+				"Repository is already set up as another project on this device.",
+		});
+	}
+	const current = ctx.db
+		.select({ repoPath: projects.repoPath })
+		.from(projects)
+		.where(eq(projects.id, projectId))
+		.get();
+	if (current && current.repoPath !== repoPath && !allowRelocate) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: `Project is already set up on this device at ${current.repoPath}. Remove it first to re-import at a different location.`,
+		});
+	}
+	return current?.repoPath === repoPath;
+}
 
 // Icons are downscaled to a small square PNG data-URI client-side; this caps
 // the stored/broadcast value (it rides in project.list and project:changed).
@@ -80,6 +122,14 @@ export const projectRouter = router({
 	listGitHubRepositories: machineOnlyProcedure.query(() =>
 		listGitHubRepositories(),
 	),
+	listGitLabRepositories: machineOnlyProcedure.query(({ ctx }) =>
+		listGitLabRepositories(ctx.credentials),
+	),
+	listGitLabRepositoriesForHost: machineOnlyProcedure
+		.input(gitlabRepositoryInputSchema)
+		.query(({ ctx, input }) =>
+			listGitLabRepositoriesForHost(ctx.credentials, input),
+		),
 
 	list: protectedProcedure.query(({ ctx }) => {
 		const tagSettingsByProject = new Map<string, TagSettingSnapshot[]>();
@@ -108,6 +158,7 @@ export const projectRouter = router({
 				repoOwner: row.repoOwner,
 				repoName: row.repoName,
 				repoUrl: row.repoUrl,
+				repoProvider: row.repoProvider,
 				worktreeBaseDir: row.worktreeBaseDir,
 				icon: row.icon,
 				color: row.color,
@@ -226,6 +277,7 @@ export const projectRouter = router({
 				repoOwner: row.repoOwner,
 				repoName: row.repoName,
 				repoUrl: row.repoUrl,
+				repoProvider: row.repoProvider,
 				worktreeBaseDir: row.worktreeBaseDir,
 				branchPrefixMode: row.branchPrefixMode,
 				branchPrefixCustom: row.branchPrefixCustom,
@@ -756,6 +808,48 @@ export const projectRouter = router({
 								"Project has no linked GitHub repository — cannot clone. Import an existing local folder instead.",
 						});
 					}
+					const native = !parseGitHubRemote(origin.repoCloneUrl)
+						? parseGitRemote(origin.repoCloneUrl)
+						: null;
+					if (native) {
+						const resolved = await cloneRepoInto(
+							origin.repoCloneUrl,
+							input.mode.parentDir,
+							ctx.credentials,
+						);
+						try {
+							const prepared = await prepareProjectRepository(ctx, resolved);
+							if (
+								nativeSetupAlreadyCurrent(
+									ctx,
+									input.projectId,
+									resolved.repoPath,
+									false,
+								)
+							)
+								return { repoPath: resolved.repoPath };
+							persistLocalProject(ctx, input.projectId, prepared, {
+								name: origin.name,
+							});
+							return { repoPath: resolved.repoPath };
+						} catch (error) {
+							try {
+								const owner = ctx.db
+									.select({ id: projects.id })
+									.from(projects)
+									.where(eq(projects.repoPath, resolved.repoPath))
+									.get();
+								if (!owner)
+									await rm(resolved.repoPath, { recursive: true, force: true });
+							} catch (cleanupError) {
+								console.warn("[project.setup] clone rollback failed", {
+									repoPath: resolved.repoPath,
+									cleanupError,
+								});
+							}
+							throw error;
+						}
+					}
 					const expectedParsed = parseGitHubRemote(origin.repoCloneUrl);
 					if (!expectedParsed) {
 						throw new TRPCError({
@@ -778,17 +872,27 @@ export const projectRouter = router({
 				case "import": {
 					let resolved: ResolvedRepo;
 					if (origin.repoCloneUrl) {
-						const parsed = parseGitHubRemote(origin.repoCloneUrl);
-						if (!parsed) {
-							throw new TRPCError({
-								code: "BAD_REQUEST",
-								message: `Could not parse GitHub remote from ${origin.repoCloneUrl}`,
-							});
+						const native = !parseGitHubRemote(origin.repoCloneUrl)
+							? parseGitRemote(origin.repoCloneUrl)
+							: null;
+						if (native) {
+							resolved = await resolveMatchingNativeRepo(
+								input.mode.repoPath,
+								native,
+							);
+						} else {
+							const parsed = parseGitHubRemote(origin.repoCloneUrl);
+							if (!parsed) {
+								throw new TRPCError({
+									code: "BAD_REQUEST",
+									message: `Could not parse GitHub remote from ${origin.repoCloneUrl}`,
+								});
+							}
+							resolved = await resolveMatchingSlug(
+								input.mode.repoPath,
+								`${parsed.owner}/${parsed.name}`,
+							);
 						}
-						resolved = await resolveMatchingSlug(
-							input.mode.repoPath,
-							`${parsed.owner}/${parsed.name}`,
-						);
 					} else {
 						resolved = await adoptLocalRepo(input.mode.repoPath);
 					}
@@ -818,6 +922,18 @@ export const projectRouter = router({
 						};
 					}
 
+					if (resolved.identity) {
+						resolved = await prepareProjectRepository(ctx, resolved);
+						if (
+							nativeSetupAlreadyCurrent(
+								ctx,
+								input.projectId,
+								resolved.repoPath,
+								allowRelocate,
+							)
+						)
+							return { repoPath: resolved.repoPath };
+					}
 					persistLocalProject(ctx, input.projectId, resolved, {
 						name: origin.name,
 					});

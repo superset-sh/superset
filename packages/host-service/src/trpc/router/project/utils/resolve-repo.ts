@@ -4,12 +4,17 @@ import { existsSync, mkdirSync, statSync } from "node:fs";
 // walk.
 import { rm } from "node:fs/promises";
 import { join, resolve as resolvePath } from "node:path";
+import { type ParsedRemote, parseGitRemote } from "@superset/shared/git-remote";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
+import { repositoryIdentityKey } from "@superset/shared/repo-identity";
 import { TRPCError } from "@trpc/server";
 import type { GitCredentialProvider } from "../../../../runtime/git";
 import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
+import { getHostWorkerPool } from "../../../../workers/host-worker-pool";
+import { gitResolveRepositoryTask } from "../../../../workers/tasks/git";
 import {
 	findMatchingRemote,
+	findMatchingRepoRemote,
 	getGitHubRemotes,
 	type ParsedGitHubRemote,
 } from "./git-remote";
@@ -27,6 +32,7 @@ export interface ResolvedRepo {
 	repoPath: string;
 	remoteName: string | null;
 	parsed: ParsedGitHubRemote | null;
+	identity?: ParsedRemote & { remoteName: string };
 }
 
 export interface ResolvedGitHubRepo extends ResolvedRepo {
@@ -245,7 +251,24 @@ async function resolveRemotesFor(gitRoot: string): Promise<ResolvedRepo> {
 		return { repoPath: gitRoot, remoteName: "origin", parsed: originParsed };
 	}
 	const first = remotes.entries().next().value;
-	if (!first) return { repoPath: gitRoot, remoteName: null, parsed: null };
+	if (!first) {
+		const inspected = await getHostWorkerPool().run(gitResolveRepositoryTask, {
+			repoPath: gitRoot,
+		});
+		const nativeRemotes = new Map(inspected.remotes);
+		const selected = nativeRemotes.has("origin")
+			? (["origin", nativeRemotes.get("origin")] as const)
+			: nativeRemotes.entries().next().value;
+		const identity = selected?.[1];
+		return {
+			repoPath: gitRoot,
+			remoteName: null,
+			parsed: null,
+			...(identity && selected
+				? { identity: { ...identity, remoteName: selected[0] } }
+				: {}),
+		};
+	}
 	const [firstName, firstParsed] = first;
 	return { repoPath: gitRoot, remoteName: firstName, parsed: firstParsed };
 }
@@ -357,6 +380,37 @@ export async function resolveMatchingSlug(
 	return { repoPath: gitRoot, remoteName, parsed };
 }
 
+export async function resolveMatchingNativeRepo(
+	repoPath: string,
+	expected: ParsedRemote,
+): Promise<ResolvedRepo> {
+	validateDirectoryPath(repoPath, "Path");
+	const gitRoot = await revParseGitRoot(repoPath);
+	await ensureNotUnborn(gitRoot);
+	const inspected = await getHostWorkerPool().run(gitResolveRepositoryTask, {
+		repoPath: gitRoot,
+		repoUrl: expected.url,
+	});
+	const remoteName = findMatchingRepoRemote(inspected.remotes, expected);
+	const identity = inspected.remotes.find(
+		([name, remote]) =>
+			name === remoteName &&
+			repositoryIdentityKey(remote) === repositoryIdentityKey(expected),
+	)?.[1];
+	if (!remoteName || !identity) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "No remote matches the requested repository authority and path.",
+		});
+	}
+	return {
+		repoPath: gitRoot,
+		parsed: null,
+		remoteName: null,
+		identity: { ...identity, remoteName },
+	};
+}
+
 /**
  * Empty git repo at `<parentDir>/<dirName>`: atomic mkdir (fails on EEXIST,
  * so we never blow away someone else's directory), `git init`, initial
@@ -460,9 +514,9 @@ function deriveCloneDirectoryName(repoCloneUrl: string): string {
 
 /**
  * Clones a repo into `<parentDir>/<repoName>` and returns the resolved repo.
- * GitHub URLs are post-clone verified against the original slug; non-GitHub
- * URLs and local paths are accepted and resolved as local-only projects
- * unless the cloned repo happens to have a parseable GitHub remote.
+ * GitHub URLs are post-clone verified against the original slug. Other
+ * network URLs require the exact repository authority and path. Local paths
+ * retain the original adoption behavior.
  */
 export async function cloneRepoInto(
 	repoCloneUrl: string,
@@ -470,6 +524,19 @@ export async function cloneRepoInto(
 	credentials?: GitCredentialProvider,
 	signal?: AbortSignal,
 ): Promise<ResolvedRepo> {
+	const nativeUrl = parseGitRemote(repoCloneUrl);
+	if (
+		!nativeUrl &&
+		((/^[a-z][a-z0-9+.-]*:\/\//i.test(repoCloneUrl) &&
+			!repoCloneUrl.startsWith("file://")) ||
+			(/^[^/:\s]+:/.test(repoCloneUrl) &&
+				!/^[A-Za-z]:[\\/]/.test(repoCloneUrl)))
+	)
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"Unsupported repository URL: expected a host and namespace/project path",
+		});
 	const parsedUrl = parseGitHubRemote(repoCloneUrl);
 	const expectedSlug = parsedUrl
 		? `${parsedUrl.owner}/${parsedUrl.name}`
@@ -503,6 +570,8 @@ export async function cloneRepoInto(
 		if (expectedSlug) {
 			return await resolveMatchingSlug(targetPath, expectedSlug);
 		}
+		const native = parseGitRemote(repoCloneUrl);
+		if (native) return await resolveMatchingNativeRepo(targetPath, native);
 		return await adoptLocalRepo(targetPath);
 	} catch (err) {
 		await rollbackTargetDir(targetPath);

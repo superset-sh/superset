@@ -16,18 +16,24 @@ import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { after, before, describe, test } from "node:test";
+import { after, before, describe, mock, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { Server } from "@superset/pty-daemon";
+import { buildPromptCommandString } from "@superset/shared/agent-prompt-launch";
 import { createDb, type HostDb } from "../db/index.ts";
 import { projects, workspaces } from "../db/schema.ts";
-import { disposeDaemonClient } from "./daemon-client-singleton.ts";
+import {
+	disposeDaemonClient,
+	getDaemonClient,
+} from "./daemon-client-singleton.ts";
 import { initTerminalBaseEnv } from "./env.ts";
 import {
 	__resetSessionsForTesting,
+	createInitialCommandDelivery,
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
 	snapshotSession,
+	writeFramedInputToSession,
 } from "./terminal.ts";
 import { __setAccountShellForTesting } from "./user-shell.ts";
 
@@ -240,3 +246,293 @@ async function waitFor(predicate: () => boolean, ms: number): Promise<void> {
 		await new Promise((r) => setTimeout(r, 25));
 	}
 }
+
+for (const scenario of ["denied", "after-text", "accepted"] as const) {
+	test(`bound initial command actual native ${scenario}`, async () => {
+		const terminalId = `e2e-bound-${randomUUID().slice(0, 8)}`;
+		const sentinel = path.join(TEST_HOME, `bound-${terminalId}`);
+		let valid = true;
+		const delivery = createInitialCommandDelivery(async () =>
+			scenario === "denied" ? null : { isValid: () => valid },
+		);
+		const session = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			initialCommand: `printf submitted > "${sentinel}" # ${"z".repeat(600)}`,
+			...{ initialDelivery: delivery },
+		});
+		assert.ok(!("error" in session));
+		if ("error" in session) return;
+		const writes: string[] = [];
+		const originalWrite = session.pty.writeOrThrow.bind(session.pty);
+		session.pty.writeOrThrow = (data) => {
+			writes.push(data);
+			originalWrite(data);
+			if (scenario === "after-text" && data !== "\r" && data !== "\x15")
+				valid = false;
+		};
+		try {
+			await new Promise((resolve) => setTimeout(resolve, 2500));
+			assert.equal(fs.existsSync(sentinel), scenario === "accepted");
+			assert.equal(writes.includes("\r"), scenario === "accepted");
+			let result: Awaited<typeof delivery.settled> | undefined;
+			void delivery.settled.then((value) => {
+				result = value;
+			});
+			await new Promise((resolve) => setImmediate(resolve));
+			assert.ok(
+				result,
+				"bound outcome must settle without guessing from workspace existence",
+			);
+			assert.equal("success" in result, scenario === "accepted");
+			if ("error" in result)
+				assert.equal(
+					result.inputStaged,
+					scenario === "after-text" ? true : undefined,
+				);
+			assert.deepEqual(
+				fs
+					.readdirSync(os.tmpdir())
+					.filter((f) => f.startsWith(`superset-launch-${terminalId}`)),
+				[],
+			);
+		} finally {
+			await disposeSessionAndWait(terminalId, db);
+		}
+	});
+}
+
+for (const scenario of ["no-command", "already-queued"] as const) {
+	test(`bound initial command settles refusal for ${scenario}`, async () => {
+		const terminalId = `e2e-reuse-${randomUUID().slice(0, 8)}`;
+		if (scenario === "already-queued") {
+			await createTerminalSessionInternal({
+				terminalId,
+				workspaceId,
+				db,
+				initialCommand: "true",
+			});
+		}
+		const delivery = createInitialCommandDelivery(async () => ({
+			isValid: () => true,
+		}));
+		try {
+			await createTerminalSessionInternal({
+				terminalId,
+				workspaceId,
+				db,
+				...{ initialDelivery: delivery },
+				...(scenario === "already-queued"
+					? { initialCommand: "printf must-not-replay" }
+					: {}),
+			});
+			let result: Awaited<typeof delivery.settled> | undefined;
+			void delivery.settled.then((value) => {
+				result = value;
+			});
+			await new Promise((resolve) => setTimeout(resolve, 50));
+			assert.ok(result, "refused initial delivery must settle promptly");
+			assert.ok("error" in result);
+		} finally {
+			await disposeSessionAndWait(terminalId, db);
+		}
+	});
+}
+
+test("bound initial delivery reserves the existing send chain before asynchronous acquisition", async () => {
+	const terminalId = `e2e-serial-${randomUUID().slice(0, 8)}`;
+	const gate = Promise.withResolvers<{ isValid(): boolean }>();
+	let acquired = false;
+	const delivery = createInitialCommandDelivery(() => {
+		acquired = true;
+		return gate.promise;
+	});
+	const session = await createTerminalSessionInternal({
+		terminalId,
+		workspaceId,
+		db,
+		initialCommand: "printf initial",
+		initialDelivery: delivery,
+	});
+	assert.ok(!("error" in session));
+	if ("error" in session) return;
+	session.shellReadyState = "ready";
+	const writes: string[] = [];
+	const daemon = await getDaemonClient();
+	const input = mock.method(daemon, "input", (_id: string, bytes: Buffer) => {
+		writes.push(bytes.toString("utf8"));
+	});
+	try {
+		await waitFor(() => acquired, 5000);
+		const followUp = writeFramedInputToSession({
+			terminalId,
+			workspaceId,
+			db,
+			text: "follow-up",
+			submit: true,
+		});
+		await new Promise((resolve) => setTimeout(resolve, 300));
+		assert.deepEqual(
+			writes,
+			[],
+			"a queued follow-up cannot type during bound initial acquisition",
+		);
+		gate.resolve({ isValid: () => true });
+		assert.ok("success" in (await delivery.settled));
+		assert.ok("success" in (await followUp));
+		assert.deepEqual(writes, ["printf initial", "\r", "follow-up", "\r"]);
+	} finally {
+		gate.resolve({ isValid: () => false });
+		input.mock.restore();
+		await disposeSessionAndWait(terminalId, db);
+	}
+});
+
+test("bound staging failure refuses instead of typing an oversized command", async () => {
+	const terminalId = `e2e-bound-stage-${randomUUID().slice(0, 8)}`;
+	const sentinel = path.join(TEST_HOME, `failed-stage-${terminalId}`);
+	const oldTmpdir = process.env.TMPDIR;
+	process.env.TMPDIR = path.join(TEST_HOME, "missing", "nested");
+	const delivery = createInitialCommandDelivery(async () => ({
+		isValid: () => true,
+	}));
+	try {
+		const session = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			initialCommand: `printf must-not-run > "${sentinel}" # ${"z".repeat(600)}`,
+			initialDelivery: delivery,
+		});
+		assert.ok(!("error" in session));
+		const outcome = await delivery.settled;
+		assert.ok("error" in outcome);
+		assert.equal(fs.existsSync(sentinel), false);
+	} finally {
+		if (oldTmpdir === undefined) delete process.env.TMPDIR;
+		else process.env.TMPDIR = oldTmpdir;
+		await disposeSessionAndWait(terminalId, db);
+	}
+});
+
+test("closed bound acquisition cannot write when its late callback returns", async () => {
+	const terminalId = `e2e-late-${randomUUID().slice(0, 8)}`;
+	const gate = Promise.withResolvers<{ isValid(): boolean }>();
+	let acquired = false;
+	const delivery = createInitialCommandDelivery(() => {
+		acquired = true;
+		return gate.promise;
+	});
+	const session = await createTerminalSessionInternal({
+		terminalId,
+		workspaceId,
+		db,
+		initialCommand: "printf late",
+		initialDelivery: delivery,
+	});
+	assert.ok(!("error" in session));
+	if ("error" in session) return;
+	const daemon = await getDaemonClient();
+	const writes: string[] = [];
+	const input = mock.method(daemon, "input", (_id: string, bytes: Buffer) => {
+		writes.push(bytes.toString());
+	});
+	try {
+		await waitFor(() => acquired, 5000);
+		delivery.refuse();
+		assert.ok("error" in (await delivery.settled));
+		gate.resolve({ isValid: () => true });
+		await new Promise((resolve) => setTimeout(resolve, 500));
+		assert.deepEqual(writes, []);
+	} finally {
+		gate.resolve({ isValid: () => false });
+		input.mock.restore();
+		await disposeSessionAndWait(terminalId, db);
+	}
+});
+
+test("bound adoption refuses a new command without replaying prior success", async () => {
+	const terminalId = `e2e-adopt-bound-${randomUUID().slice(0, 8)}`;
+	const sentinel = path.join(TEST_HOME, `adopt-${terminalId}`);
+	await createTerminalSessionInternal({ terminalId, workspaceId, db });
+	__resetSessionsForTesting();
+	const delivery = createInitialCommandDelivery(async () => ({
+		isValid: () => true,
+	}));
+	try {
+		const session = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			initialCommand: `printf replay > "${sentinel}"`,
+			initialDelivery: delivery,
+		});
+		assert.ok(!("error" in session));
+		assert.ok("error" in (await delivery.settled));
+		await new Promise((resolve) => setTimeout(resolve, 500));
+		assert.equal(fs.existsSync(sentinel), false);
+	} finally {
+		await disposeSessionAndWait(terminalId, db);
+	}
+});
+
+test("bound fish prompt refusal removes all request-owned staging before settlement", async (t) => {
+	const fish = (process.env.PATH ?? "")
+		.split(path.delimiter)
+		.map((dir) => path.join(dir, "fish"))
+		.find((file) => fs.existsSync(file));
+	if (!fish) {
+		t.skip("fish is not installed");
+		return;
+	}
+	__setAccountShellForTesting(fish);
+	const terminalId = `e2e-fish-bound-${randomUUID().slice(0, 8)}`;
+	const sentinel = path.join(TEST_HOME, `fish-${terminalId}`);
+	const shim = path.join(TEST_HOME, `fish-shim-${terminalId}`);
+	fs.writeFileSync(shim, `#!/bin/sh\nprintf '%s' "$1" > '${sentinel}'\n`, {
+		mode: 0o700,
+	});
+	let valid = true;
+	const delivery = createInitialCommandDelivery(async () => ({
+		isValid: () => valid,
+	}));
+	try {
+		const session = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			initialCommand: buildPromptCommandString({
+				command: shim,
+				transport: "argv",
+				prompt: "owned multiline\nprompt",
+				randomId: terminalId,
+			}),
+			initialDelivery: delivery,
+		});
+		assert.ok(!("error" in session));
+		if ("error" in session) return;
+		const write = session.pty.writeOrThrow.bind(session.pty);
+		session.pty.writeOrThrow = (data) => {
+			write(data);
+			if (data !== "\r" && data !== "\x15") valid = false;
+		};
+		const outcome = await delivery.settled;
+		assert.ok("error" in outcome);
+		assert.equal(outcome.inputStaged, true);
+		assert.equal(fs.existsSync(sentinel), false);
+		assert.deepEqual(
+			fs
+				.readdirSync(os.tmpdir())
+				.filter(
+					(file) =>
+						file.startsWith(`superset-launch-prompt-${terminalId}`) ||
+						file.startsWith(`superset-launch-${terminalId}`),
+				),
+			[],
+		);
+	} finally {
+		__setAccountShellForTesting("/bin/sh");
+		await disposeSessionAndWait(terminalId, db);
+	}
+});

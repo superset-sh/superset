@@ -8,14 +8,16 @@ import {
 	type CloudAgentLaunch,
 	readCloudAgentLaunch,
 } from "@superset/shared/cloud-agent-launch";
+import { parseGitRemote } from "@superset/shared/git-remote";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import {
 	SANDBOX_PATHS,
 	type SandboxRepository,
 	sandboxCheckoutDir,
 	sandboxRepositoriesSchema,
+	sandboxRepositorySchema,
 } from "@superset/shared/sandbox-contract";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import type { HostDb } from "../../db";
 import { projects, workspaces } from "../../db/schema";
 import { runAgentInWorkspace } from "../../trpc/router/agents/agents";
@@ -382,60 +384,130 @@ export function runSandboxSelfSeed(
 	const root = identity.workspaceRoot;
 	const now = Date.now();
 	identity.repositories.forEach((repo, index) => {
+		const gitlab =
+			repo.provider === "gitlab"
+				? parseGitRemote(sandboxRepositorySchema.parse(repo).url)
+				: null;
+		const github = gitlab ? null : parseGitHubRemote(repo.url);
+		const repositoryIdentity = gitlab
+			? {
+					repoProvider: "gitlab",
+					repoOwner: gitlab.owner,
+					repoName: gitlab.name,
+					repoUrl: gitlab.url,
+					remoteName: "origin",
+				}
+			: github
+				? {
+						repoProvider: github.provider,
+						repoOwner: github.owner,
+						repoName: github.name,
+						repoUrl: github.url,
+						remoteName: "origin",
+					}
+				: {};
 		const id =
 			index === 0
 				? identity.workspaceId
 				: sandboxRepositoryWorkspaceId(identity.workspaceId, repo.path);
-		const parsed = parseGitHubRemote(repo.url);
-		const repoFields = parsed
-			? {
-					repoProvider: parsed.provider,
-					repoOwner: parsed.owner,
-					repoName: parsed.name,
-					repoUrl: parsed.url,
-					remoteName: "origin",
+		const seed = () => {
+			const existing = db
+				.select({ projectId: workspaces.projectId })
+				.from(workspaces)
+				.where(eq(workspaces.id, id))
+				.get();
+			if (existing) {
+				if (gitlab) {
+					const workspace = db
+						.select()
+						.from(workspaces)
+						.where(eq(workspaces.id, id))
+						.get();
+					const project = workspace?.projectId
+						? db
+								.select()
+								.from(projects)
+								.where(eq(projects.id, workspace.projectId))
+								.get()
+						: undefined;
+					const checkout = sandboxCheckoutDir(root, repo.path);
+					if (
+						!workspace ||
+						!project ||
+						workspace.archivedAt !== null ||
+						workspace.type !== "local" ||
+						workspace.worktreePath !== checkout ||
+						project.deletedAt !== null ||
+						project.repoPath !== checkout ||
+						db
+							.select({ id: workspaces.id })
+							.from(workspaces)
+							.where(
+								and(
+									eq(workspaces.projectId, project.id),
+									ne(workspaces.id, id),
+								),
+							)
+							.get() ||
+						Object.entries(repositoryIdentity).some(([key, value]) => {
+							const current = project[key as keyof typeof repositoryIdentity];
+							return (
+								current !== null &&
+								current !== value &&
+								!(key === "repoUrl" && current === repo.url)
+							);
+						})
+					)
+						throw new Error(
+							"GitLab sandbox repository identity is unavailable",
+						);
+					const missingIdentity = Object.fromEntries(
+						Object.entries(repositoryIdentity).filter(
+							([key]) =>
+								project[key as keyof typeof repositoryIdentity] === null,
+						),
+					) as Partial<typeof repositoryIdentity>;
+					if (Object.keys(missingIdentity).length)
+						db.update(projects)
+							.set(missingIdentity)
+							.where(eq(projects.id, project.id))
+							.run();
+				} else if (github && existing.projectId) {
+					db.update(projects)
+						.set({ ...repositoryIdentity, updatedAt: now })
+						.where(eq(projects.id, existing.projectId))
+						.run();
 				}
-			: {};
-		const existing = db
-			.select({ projectId: workspaces.projectId })
-			.from(workspaces)
-			.where(eq(workspaces.id, id))
-			.get();
-		if (existing) {
-			// Boxes seeded before the repo identity was recorded.
-			if (parsed && existing.projectId) {
-				db.update(projects)
-					.set({ ...repoFields, updatedAt: now })
-					.where(eq(projects.id, existing.projectId))
-					.run();
+				return;
 			}
-			return;
-		}
-		const projectId = crypto.randomUUID();
-		const worktreePath = sandboxCheckoutDir(root, repo.path);
-		db.insert(projects)
-			.values({
-				id: projectId,
-				repoPath: worktreePath,
-				name: index === 0 ? identity.projectName : repo.path,
-				...repoFields,
-				createdAt: now,
-				updatedAt: now,
-			})
-			.run();
-		// type='local' because the checkout *is* the repo here — there is no
-		// base repo it was branched from.
-		db.insert(workspaces)
-			.values({
-				id,
-				projectId,
-				worktreePath,
-				branch: repo.branch,
-				name: index === 0 ? identity.workspaceName : repo.path,
-				type: "local",
-				createdAt: now,
-				updatedAt: now,
-			})
-			.run();
+			const projectId = crypto.randomUUID();
+			const worktreePath = sandboxCheckoutDir(root, repo.path);
+			db.insert(projects)
+				.values({
+					...repositoryIdentity,
+					id: projectId,
+					repoPath: worktreePath,
+					name: index === 0 ? identity.projectName : repo.path,
+					createdAt: now,
+					updatedAt: now,
+				})
+				.run();
+			// type='local' because the checkout *is* the repo here — there is no
+			// base repo it was branched from.
+			db.insert(workspaces)
+				.values({
+					id,
+					projectId,
+					worktreePath,
+					branch: repo.branch,
+					name: index === 0 ? identity.workspaceName : repo.path,
+					type: "local",
+					createdAt: now,
+					updatedAt: now,
+				})
+				.run();
+		};
+		if (gitlab) db.transaction(seed);
+		else seed();
 	});
 }

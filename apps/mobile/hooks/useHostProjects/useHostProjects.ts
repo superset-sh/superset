@@ -1,3 +1,4 @@
+import { parseGitRemote } from "@superset/shared/git-remote";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import type { WorkspacesHost } from "@/hooks/useHostWorkspaces";
@@ -13,6 +14,8 @@ export interface HostProjectItem {
 	iconUrl: string | null;
 	repoOwner: string | null;
 	repoName: string | null;
+	repoUrl: string | null;
+	repoProvider?: string | null;
 }
 
 const PROJECTS_REFETCH_INTERVAL_MS = 30_000;
@@ -26,16 +29,24 @@ export function toHostProjectItem(
 	row: Partial<HostProjectRow> & { id: string; repoPath: string },
 ): HostProjectItem {
 	const repoOwner = row.repoOwner ?? null;
-	// Custom local-first icon wins; fall back to the GitHub owner avatar.
+	const githubIdentity =
+		(!row.repoProvider || row.repoProvider === "github") &&
+		(!row.repoUrl || parseGitRemote(row.repoUrl)?.provider === "github");
 	const iconUrl =
-		row.icon ??
-		(repoOwner ? `https://github.com/${repoOwner}.png?size=64` : null);
+		row.icon === "none"
+			? null
+			: (row.icon ??
+				(githubIdentity && repoOwner
+					? `https://github.com/${repoOwner}.png?size=64`
+					: null));
 	return {
 		id: row.id,
 		name: row.name || row.repoPath.split(/[\\/]/).pop() || row.id,
 		iconUrl,
 		repoOwner,
 		repoName: row.repoName ?? null,
+		repoUrl: row.repoUrl ?? null,
+		repoProvider: row.repoProvider ?? null,
 	};
 }
 

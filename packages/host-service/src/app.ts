@@ -175,6 +175,8 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	const resolveGitEnv = createGitEnvResolver(providers.credentials);
 	const pullRequestRuntime = new PullRequestRuntimeManager({
 		db,
+		getGitLabToken: (host) => providers.credentials.getToken(host),
+		getGitLabRequest: (repo) => providers.credentials.getGitLabRequest?.(repo),
 		execGh,
 		git,
 		github,

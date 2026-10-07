@@ -1,10 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure } from "../../../index";
+import { actionRejectionError } from "../../github/github";
+import { resolveGitLabThread } from "./gitlab-project";
 
 const setThreadResolutionInputSchema = z.object({
 	threadId: z.string(),
 	resolved: z.boolean(),
+	projectId: z.string().optional(),
+	prNumber: z.number().int().positive().optional(),
 });
 
 // GitHub review-thread IDs are globally unique, so this needs no
@@ -14,6 +18,18 @@ const setThreadResolutionInputSchema = z.object({
 export const setThreadResolution = protectedProcedure
 	.input(setThreadResolutionInputSchema)
 	.mutation(async ({ ctx, input }) => {
+		if (input.threadId.startsWith("gitlab:")) {
+			const { client } = await resolveGitLabThread(ctx, input);
+			try {
+				await client.setReviewThreadResolution(input.threadId, input.resolved);
+			} catch (error) {
+				throw actionRejectionError(
+					error,
+					"GitLab refused the thread resolution.",
+				);
+			}
+			return { threadId: input.threadId, isResolved: input.resolved };
+		}
 		const octokit = await ctx.github();
 		const mutation = input.resolved
 			? `mutation($threadId: ID!) {

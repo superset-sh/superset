@@ -54,6 +54,7 @@ import {
 	resolveSessionOrganizationState,
 	type SessionOrganizationContext,
 } from "./lib/resolve-session-organization-state";
+import { getGitlabProvider } from "./optional-providers";
 import { stripeClient } from "./stripe";
 import {
 	countBillableSeats,
@@ -292,6 +293,7 @@ export const auth = betterAuth({
 		autoSignIn: true,
 	},
 	socialProviders: {
+		...getGitlabProvider(env),
 		github: {
 			clientId: env.GH_CLIENT_ID,
 			clientSecret: env.GH_CLIENT_SECRET,

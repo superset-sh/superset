@@ -1,6 +1,6 @@
 import { runWithPostCheckoutHookTolerance } from "@superset/shared/git-hook-tolerance";
 import { TRPCError } from "@trpc/server";
-import type { GitClient } from "./types";
+import type { GitCommandRunner } from "./types";
 
 /**
  * Cone-mode sparse checkout for new worktrees.
@@ -130,7 +130,7 @@ export function serializeSparseCheckoutPaths(paths: string[]): string | null {
  * keeps full control over `-b`, `--track`, and the start point.
  */
 export async function addWorktreeWithSparseCheckout(args: {
-	git: GitClient;
+	git: GitCommandRunner;
 	worktreeArgs: string[];
 	worktreePath: string;
 	sparsePaths: string[];

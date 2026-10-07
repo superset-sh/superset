@@ -1,4 +1,5 @@
 import type { Octokit, RestEndpointMethodTypes } from "@octokit/rest";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
 	isGithubNotFoundError,
@@ -13,6 +14,11 @@ import type {
 	ChecksStatus,
 	PullRequestCheck,
 } from "../../../../runtime/pull-requests/utils/pull-request-mappers";
+import {
+	GitLabSearchFilterError,
+	validateGitLabSearchAuthor,
+} from "../../../../runtime/repo-providers/gitlab/gitlab-search";
+import type { HostServiceContext } from "../../../../types";
 import { protectedProcedure } from "../../../index";
 import {
 	normalizePullRequestChecks,
@@ -32,6 +38,12 @@ import {
 	projectIdForSearchItem,
 	resolveProjectRepos,
 } from "../shared/github-search";
+import {
+	createGitLabSearchClient,
+	gitLabSearchError,
+	resolveSearchTargets,
+	selectSearchTargetsForQuery,
+} from "../shared/gitlab-search-caller";
 import {
 	type ResolvedGithubRepo,
 	resolveGithubRepo,
@@ -128,7 +140,7 @@ const VIEWER_RELATIONSHIP_QUALIFIERS: Record<ViewerRelationship, string> = {
 	authored: "author:@me",
 };
 
-const searchPullRequestsInputSchema = githubSearchInputSchema
+const githubPullRequestsInputSchema = githubSearchInputSchema
 	.extend({
 		author: z
 			.string()
@@ -151,6 +163,28 @@ const searchPullRequestsInputSchema = githubSearchInputSchema
 			path: ["viewerRelationship"],
 		},
 	);
+
+const searchPullRequestsInputSchema = githubPullRequestsInputSchema.safeExtend({
+	author: z
+		.string()
+		.transform((value) => value.split(","))
+		.pipe(z.array(z.string().trim().min(1).max(257)).min(1).max(20))
+		.optional(),
+});
+
+function githubAuthors(author: string[] | undefined): string[] | undefined {
+	try {
+		return author?.map((value) => githubAuthorSchema.parse(value));
+	} catch (cause) {
+		if (cause instanceof z.ZodError)
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: cause.message,
+				cause,
+			});
+		throw cause;
+	}
+}
 
 function emptyPullRequestsPage(page: number): PullRequestsPage {
 	return {
@@ -982,9 +1016,11 @@ async function enrichPageWithChecks(
 	}));
 }
 
-export const searchPullRequests = protectedProcedure
-	.input(searchPullRequestsInputSchema)
-	.query(async ({ ctx, input }): Promise<PullRequestsPage> => {
+function searchPullRequestsGitHub(
+	ctx: HostServiceContext,
+	input: z.infer<typeof githubPullRequestsInputSchema>,
+): Promise<PullRequestsPage> {
+	const run = async (): Promise<PullRequestsPage> => {
 		const projectIds = input.projectIds ?? [input.projectId];
 		const projectRepos: ProjectRepo[] = await resolveProjectRepos(
 			projectIds,
@@ -1248,4 +1284,112 @@ export const searchPullRequests = protectedProcedure
 			);
 			throw githubRequestError(err, ctx.credentials);
 		}
+	};
+	return run();
+}
+
+export const searchPullRequests = protectedProcedure
+	.input(searchPullRequestsInputSchema)
+	.query(async ({ ctx, input }): Promise<PullRequestsPage> => {
+		const targets = await resolveSearchTargets(
+			ctx,
+			input.projectIds ?? [input.projectId],
+			input.projectIds !== undefined,
+		);
+		const selection = selectSearchTargetsForQuery(
+			input.query?.trim() ?? "",
+			targets,
+			"pull",
+		);
+		if (selection.repoMismatch)
+			return {
+				pullRequests: [],
+				totalCount: 0,
+				hasNextPage: false,
+				page: input.page ?? 1,
+				repoMismatch: selection.repoMismatch,
+			};
+
+		const selectedGithub = selection.targets.some(
+			(target) => target.repo.provider === "github",
+		);
+		const author =
+			selectedGithub ||
+			!targets.some((target) => target.repo.provider === "gitlab")
+				? githubAuthors(input.author)
+				: input.author;
+		if (!targets.some((target) => target.repo.provider === "gitlab"))
+			return searchPullRequestsGitHub(ctx, { ...input, author });
+		if (selection.targets.some((target) => target.repo.provider === "gitlab")) {
+			try {
+				input.author?.forEach(validateGitLabSearchAuthor);
+			} catch (cause) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						cause instanceof Error ? cause.message : "Invalid GitLab author",
+					cause,
+				});
+			}
+		}
+
+		const githubTargets = selection.targets.filter(
+			(target) => target.repo.provider === "github",
+		);
+		const firstGithubTarget = githubTargets[0];
+		const pages: PullRequestsPage[] = await Promise.all([
+			...(firstGithubTarget
+				? [
+						searchPullRequestsGitHub(ctx, {
+							...input,
+							author,
+							projectId: firstGithubTarget.projectId,
+							projectIds: githubTargets.map((target) => target.projectId),
+							query: selection.query,
+						}),
+					]
+				: []),
+			...selection.targets
+				.filter((target) => target.repo.provider === "gitlab")
+				.map(async ({ projectId, repo }) => {
+					try {
+						const client = await createGitLabSearchClient(ctx, repo);
+						const native = await client.searchPullRequests(repo, {
+							text: selection.query,
+							includeClosed: input.includeClosed,
+							page: input.page,
+							limit: input.limit,
+							mergedOnly: input.mergedOnly,
+							gitlab: {
+								author: input.author,
+								review: input.review,
+								viewerRelationship: input.viewerRelationship,
+							},
+						});
+						return {
+							...native,
+							pullRequests: native.pullRequests.map((row) => ({
+								...row,
+								projectId,
+							})),
+						};
+					} catch (error) {
+						if (error instanceof GitLabSearchFilterError)
+							throw new TRPCError({
+								code: "PRECONDITION_FAILED",
+								message: error.message,
+								cause: error,
+							});
+						throw gitLabSearchError(error, repo);
+					}
+				}),
+		]);
+		return {
+			pullRequests: mergeByUpdatedAtDesc(
+				pages.map((result) => result.pullRequests),
+			),
+			totalCount: pages.reduce((total, result) => total + result.totalCount, 0),
+			hasNextPage: pages.some((result) => result.hasNextPage),
+			page: input.page ?? 1,
+		};
 	});

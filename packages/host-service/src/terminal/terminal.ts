@@ -1148,7 +1148,79 @@ async function getOrAdoptSession({
 	}
 }
 
+type AcquireTerminalDelivery = () => Promise<{ isValid(): boolean } | null>;
+
+export interface InitialCommandDelivery {
+	readonly settled: Promise<{ success: true } | TerminalSessionError>;
+	readonly acquireDelivery: AcquireTerminalDelivery;
+	isClosed(): boolean;
+	markInputStaged(): void;
+	setCleanup(cleanup: () => Promise<void>): void;
+	submitted(): void;
+	refuse(error?: TerminalSessionError): void;
+}
+
+export function createInitialCommandDelivery(
+	acquireDelivery: AcquireTerminalDelivery,
+): InitialCommandDelivery {
+	const result = Promise.withResolvers<
+		{ success: true } | TerminalSessionError
+	>();
+	let closed = false;
+	let inputStaged: true | undefined;
+	let cleanup = async () => {};
+	const handle: InitialCommandDelivery = {
+		settled: result.promise,
+		acquireDelivery,
+		isClosed: () => closed,
+		markInputStaged: () => {
+			inputStaged = true;
+		},
+		setCleanup: (next) => {
+			cleanup = next;
+		},
+		submitted() {
+			if (closed) return;
+			closed = true;
+			clearTimeout(timer);
+			result.resolve({ success: true });
+		},
+		refuse(
+			error = {
+				kind: "SESSION_NOT_ACTIVE",
+				error: "Terminal input target is no longer current",
+			},
+		) {
+			if (closed) return;
+			closed = true;
+			clearTimeout(timer);
+			void cleanup().then(
+				() =>
+					result.resolve({ ...error, ...(inputStaged ? { inputStaged } : {}) }),
+				(failure) =>
+					result.resolve({
+						...error,
+						inputStaged,
+						error: `${error.error}; staged launch cleanup failed: ${failure instanceof Error ? failure.message : String(failure)}`,
+					}),
+			);
+		},
+	};
+	const timer = setTimeout(
+		() =>
+			handle.refuse({
+				kind: "SESSION_NOT_ACTIVE",
+				error: "Initial terminal delivery was not confirmed within 25 seconds",
+			}),
+		25_000,
+	);
+	timer.unref?.();
+	return handle;
+}
+
 interface SessionMessageInput {
+	awaitReplay?: boolean;
+	acquireDelivery?: AcquireTerminalDelivery;
 	terminalId: string;
 	workspaceId: string;
 	text: string;
@@ -1226,6 +1298,8 @@ async function writeSessionMessage(
 		signal,
 		db,
 		eventBus,
+		acquireDelivery: acquireInputDelivery,
+		awaitReplay,
 	}: SessionMessageInput,
 	agent?: AgentMessageTarget,
 ): Promise<{ success: true } | TerminalSessionError> {
@@ -1255,11 +1329,14 @@ async function writeSessionMessage(
 			if (session.exited) {
 				return { kind: "SESSION_EXITED", error: "Terminal session has exited" };
 			}
-			const permit = await agent?.acquireDelivery?.();
+			const acquireDelivery = acquireInputDelivery ?? agent?.acquireDelivery;
+			if (acquireInputDelivery || awaitReplay)
+				await session.adoptionReplaySettled;
+			const permit = await acquireDelivery?.();
 			const targetIsCurrent = () =>
 				!signal?.aborted &&
 				(!agent || isCurrentAgent(agent)) &&
-				(!agent?.acquireDelivery || permit?.isValid() === true);
+				(!acquireDelivery || permit?.isValid() === true);
 			if (session.exited || !targetIsCurrent()) {
 				return {
 					kind: "SESSION_NOT_ACTIVE",
@@ -1272,7 +1349,9 @@ async function writeSessionMessage(
 					? `\x1b[200~${message}\x1b[201~`
 					: message;
 			const write = (data: string) =>
-				agent ? session.pty.writeOrThrow(data) : session.pty.write(data);
+				agent || acquireDelivery
+					? session.pty.writeOrThrow(data)
+					: session.pty.write(data);
 			let inputStaged: true | undefined;
 			try {
 				if (!submit) {
@@ -2348,11 +2427,24 @@ function waitForOutputQuiescence(
  * timer. A failed write means the session is gone — treat it as defunct and
  * abort the launch quietly.
  */
-function tryTypeToPty(session: TerminalSession, data: string): boolean {
+function tryTypeToPty(
+	session: TerminalSession,
+	data: string,
+	delivery?: InitialCommandDelivery,
+): boolean {
 	try {
-		session.pty.write(data);
+		if (delivery) {
+			if (delivery.isClosed()) return false;
+			if (data !== "\r") delivery.markInputStaged();
+			session.pty.writeOrThrow(data);
+			if (data === "\r") delivery.submitted();
+		} else session.pty.write(data);
 		return true;
-	} catch {
+	} catch (error) {
+		delivery?.refuse({
+			kind: "SESSION_NOT_ACTIVE",
+			error: error instanceof Error ? error.message : "Terminal input failed",
+		});
 		return false;
 	}
 }
@@ -2377,18 +2469,19 @@ async function typeInitialCommandVerifyingEcho(
 	probe: string,
 	dropStagedFiles: () => void,
 	isDefunct: () => boolean,
+	delivery?: InitialCommandDelivery,
 ): Promise<void> {
 	for (let attempt = 0; attempt <= GRACE_ECHO_MAX_RETYPES; attempt++) {
 		if (isDefunct()) return dropStagedFiles();
-		if (attempt > 0 && !tryTypeToPty(session, "\x15")) {
+		if (attempt > 0 && !tryTypeToPty(session, "\x15", delivery)) {
 			return dropStagedFiles();
 		}
-		if (!tryTypeToPty(session, typedText)) return dropStagedFiles();
+		if (!tryTypeToPty(session, typedText, delivery)) return dropStagedFiles();
 		if (await waitForCommandEcho(session, probe, GRACE_ECHO_WINDOW_MS)) break;
 	}
 	await new Promise((r) => setTimeout(r, INITIAL_COMMAND_ENTER_DELAY_MS));
 	if (isDefunct()) return dropStagedFiles();
-	if (!tryTypeToPty(session, "\r")) dropStagedFiles();
+	if (!tryTypeToPty(session, "\r", delivery)) dropStagedFiles();
 }
 
 /**
@@ -2422,6 +2515,7 @@ async function typeInitialCommandUngated(
 	probe: string | null,
 	dropStagedFiles: () => void,
 	isDefunct: () => boolean,
+	delivery?: InitialCommandDelivery,
 ): Promise<void> {
 	const expectedRemainder = probe
 		? Buffer.from(typedText, "utf8").toString("latin1").slice(probe.length)
@@ -2437,10 +2531,10 @@ async function typeInitialCommandUngated(
 		// Ctrl-U after the re-quiesce, not before it — sent earlier, the same
 		// startup reader that ate the command swallows the kill char too and
 		// the retype appends to the leftover line.
-		if (attempt > 0 && !tryTypeToPty(session, "\x15")) {
+		if (attempt > 0 && !tryTypeToPty(session, "\x15", delivery)) {
 			return dropStagedFiles();
 		}
-		if (!tryTypeToPty(session, typedText)) return dropStagedFiles();
+		if (!tryTypeToPty(session, typedText, delivery)) return dropStagedFiles();
 		if (!probe) break;
 		const verified = await waitForCommandEcho(
 			session,
@@ -2453,13 +2547,13 @@ async function typeInitialCommandUngated(
 		);
 		if (verified) {
 			if (isDefunct()) return dropStagedFiles();
-			if (!tryTypeToPty(session, "\r")) dropStagedFiles();
+			if (!tryTypeToPty(session, "\r", delivery)) dropStagedFiles();
 			return;
 		}
 	}
 	await new Promise((r) => setTimeout(r, INITIAL_COMMAND_ENTER_DELAY_MS));
 	if (isDefunct()) return dropStagedFiles();
-	if (!tryTypeToPty(session, "\r")) dropStagedFiles();
+	if (!tryTypeToPty(session, "\r", delivery)) dropStagedFiles();
 }
 
 /**
@@ -2517,8 +2611,23 @@ const FISH_PROMPT_STAGE_FAILED_NOTICE = new TextEncoder().encode(
 function queueInitialCommand(
 	session: TerminalSession,
 	initialCommand: string,
+	delivery?: InitialCommandDelivery,
 ): void {
-	if (session.initialCommandQueued || session.exited) return;
+	if (session.initialCommandQueued || session.exited || delivery?.isClosed()) {
+		delivery?.refuse({
+			kind: "SESSION_NOT_ACTIVE",
+			error: "Initial command was not accepted by this terminal",
+		});
+		return;
+	}
+	const previous = session.followUpWriteChain ?? Promise.resolve();
+	if (delivery)
+		session.followUpWriteChain = previous
+			.then(() => delivery.settled)
+			.then(
+				() => undefined,
+				() => undefined,
+			);
 	session.initialCommandQueued = true;
 	const commandText = initialCommand.replace(/[\r\n]+$/, "");
 	// Marker-backed shells can run interactive startup hooks that read or flush
@@ -2530,103 +2639,152 @@ function queueInitialCommand(
 	// Dispose paths that never see onExit (daemon callbacks are unsubscribed
 	// first) leave `exited` false and a non-pending readyState untouched —
 	// only the registry reliably says the session is gone.
-	const isDefunct = () =>
-		session.exited ||
-		session.shellReadyState === "cancelled" ||
-		sessions.get(session.terminalId) !== session;
-	void session.shellReadyPromise.then(() => {
-		if (isDefunct()) return;
-		const stagedPaths: string[] = [];
-		// Enter never sent — a staged script/prompt file won't run or be
-		// consumed, so it can't self-delete.
-		const dropStagedFiles = () => {
-			for (const staged of stagedPaths) {
-				void rm(staged, { force: true }).catch(() => {});
+	let permit: Awaited<ReturnType<AcquireTerminalDelivery>>;
+	const isDefunct = () => {
+		const invalid =
+			session.exited ||
+			session.shellReadyState === "cancelled" ||
+			sessions.get(session.terminalId) !== session ||
+			(delivery && (delivery.isClosed() || permit?.isValid() !== true));
+		if (invalid) delivery?.refuse();
+		return !!invalid;
+	};
+	void session.shellReadyPromise
+		.then(async () => {
+			if (delivery) {
+				await previous;
+				await session.adoptionReplaySettled;
+				if (delivery.isClosed()) return;
+				permit = await delivery.acquireDelivery();
 			}
-		};
-		// fish can't parse the heredoc prompt transport — swap it for the
-		// staged-file equivalent before any typing decisions are made. When
-		// staging fails there is no fish-parseable fallback; typing the bash
-		// heredoc guarantees a parse error, so surface the failure and stop.
-		let effectiveCommand = commandText;
-		if (session.launchShellName === "fish") {
-			const parsedTransport = parsePromptHeredocCommand(commandText);
-			if (parsedTransport) {
-				const fishStaged = stageFishPromptTransport(session, parsedTransport);
-				if (!fishStaged) {
-					deliverOutput(session, FISH_PROMPT_STAGE_FAILED_NOTICE);
+			if (isDefunct()) return;
+			const stagedPaths: string[] = [];
+			// Enter never sent — a staged script/prompt file won't run or be
+			// consumed, so it can't self-delete.
+			if (delivery)
+				delivery.setCleanup(async () => {
+					const removed = await Promise.allSettled(
+						stagedPaths.map((staged) => rm(staged, { force: true })),
+					);
+					const failed = removed.find((result) => result.status === "rejected");
+					if (failed?.status === "rejected") throw failed.reason;
+				});
+			const dropStagedFiles = () => {
+				if (delivery) {
+					delivery.refuse();
 					return;
 				}
-				effectiveCommand = fishStaged.commandText;
-				stagedPaths.push(fishStaged.promptPath);
+				for (const staged of stagedPaths) {
+					void rm(staged, { force: true }).catch(() => {});
+				}
+			};
+			// fish can't parse the heredoc prompt transport — swap it for the
+			// staged-file equivalent before any typing decisions are made. When
+			// staging fails there is no fish-parseable fallback; typing the bash
+			// heredoc guarantees a parse error, so surface the failure and stop.
+			let effectiveCommand = commandText;
+			if (session.launchShellName === "fish") {
+				const parsedTransport = parsePromptHeredocCommand(commandText);
+				if (parsedTransport) {
+					const fishStaged = stageFishPromptTransport(session, parsedTransport);
+					if (!fishStaged) {
+						delivery?.refuse({
+							kind: "SESSION_NOT_ACTIVE",
+							error: "Failed to stage initial command",
+						});
+						deliverOutput(session, FISH_PROMPT_STAGE_FAILED_NOTICE);
+						return;
+					}
+					effectiveCommand = fishStaged.commandText;
+					stagedPaths.push(fishStaged.promptPath);
+				}
 			}
-		}
-		// Even after the marker, the TTY is still in canonical mode (the marker
-		// fires from precmd, before the line editor takes over), so whatever we
-		// type here rides the kernel's MAX_CANON line limit. Long commands go
-		// to disk; only a short source line is typed.
-		let typedText = effectiveCommand;
-		if (
-			Buffer.byteLength(effectiveCommand, "utf8") >
-			MAX_TYPED_INITIAL_COMMAND_BYTES
-		) {
-			const staged = stageInitialCommandScript(session, effectiveCommand);
-			if (staged) {
-				typedText = staged.typedLine;
-				stagedPaths.push(staged.scriptPath);
+			// Even after the marker, the TTY is still in canonical mode (the marker
+			// fires from precmd, before the line editor takes over), so whatever we
+			// type here rides the kernel's MAX_CANON line limit. Long commands go
+			// to disk; only a short source line is typed.
+			let typedText = effectiveCommand;
+			if (
+				Buffer.byteLength(effectiveCommand, "utf8") >
+				MAX_TYPED_INITIAL_COMMAND_BYTES
+			) {
+				const staged = stageInitialCommandScript(session, effectiveCommand);
+				if (staged) {
+					typedText = staged.typedLine;
+					stagedPaths.push(staged.scriptPath);
+				} else if (delivery) {
+					delivery.refuse({
+						kind: "SESSION_NOT_ACTIVE",
+						error: "Failed to stage initial command",
+					});
+					return;
+				}
 			}
-		}
-		// A grace-window timeout typed on learned evidence alone — no marker, no
-		// observed prompt — so startup may still be reading stdin. That path
-		// must verify its own echo instead of trusting the write.
-		if (
-			session.shellReadyState === "timed_out" &&
-			session.usedMissingMarkerGrace
-		) {
-			const probe = commandEchoProbe(typedText);
-			if (probe) {
-				void typeInitialCommandVerifyingEcho(
+			// A grace-window timeout typed on learned evidence alone — no marker, no
+			// observed prompt — so startup may still be reading stdin. That path
+			// must verify its own echo instead of trusting the write.
+			if (
+				session.shellReadyState === "timed_out" &&
+				session.usedMissingMarkerGrace
+			) {
+				const probe = commandEchoProbe(typedText);
+				if (probe) {
+					const typing = typeInitialCommandVerifyingEcho(
+						session,
+						typedText,
+						probe,
+						dropStagedFiles,
+						isDefunct,
+						delivery,
+					);
+					if (delivery) await typing;
+					return;
+				}
+			}
+			// No marker was ever expected for this launch (unwrapped bash, sh/ksh,
+			// nushell): quiesce, type, and echo-verify instead of typing blind into
+			// whatever the startup is doing to stdin. A null probe only skips the
+			// echo verification — the quiescence wait still applies.
+			if (session.shellReadyState === "unsupported") {
+				const typing = typeInitialCommandUngated(
 					session,
 					typedText,
-					probe,
+					commandEchoProbe(typedText),
 					dropStagedFiles,
 					isDefunct,
+					delivery,
 				);
+				if (delivery) await typing;
 				return;
 			}
-		}
-		// No marker was ever expected for this launch (unwrapped bash, sh/ksh,
-		// nushell): quiesce, type, and echo-verify instead of typing blind into
-		// whatever the startup is doing to stdin. A null probe only skips the
-		// echo verification — the quiescence wait still applies.
-		if (session.shellReadyState === "unsupported") {
-			void typeInitialCommandUngated(
-				session,
-				typedText,
-				commandEchoProbe(typedText),
-				dropStagedFiles,
-				isDefunct,
-			);
-			return;
-		}
-		// The OSC 133;A marker fires from precmd, which runs BEFORE the line
-		// editor starts reading input. Plugin init in that gap (vi-mode,
-		// syntax-highlighting) can flush the PTY input queue mid-read, eating a
-		// trailing newline sent in the same write: the command text survives in
-		// the editor's buffer but never executes. Send Enter as its own delayed
-		// write — and as `\r`, what a real Enter key sends, bound to accept-line
-		// in every keymap — so it lands after the init storm. One Enter total,
-		// so a double-run is impossible.
-		if (!tryTypeToPty(session, typedText)) {
-			dropStagedFiles();
-			return;
-		}
-		setTimeout(() => {
-			if (isDefunct() || !tryTypeToPty(session, "\r")) {
+			// The OSC 133;A marker fires from precmd, which runs BEFORE the line
+			// editor starts reading input. Plugin init in that gap (vi-mode,
+			// syntax-highlighting) can flush the PTY input queue mid-read, eating a
+			// trailing newline sent in the same write: the command text survives in
+			// the editor's buffer but never executes. Send Enter as its own delayed
+			// write — and as `\r`, what a real Enter key sends, bound to accept-line
+			// in every keymap — so it lands after the init storm. One Enter total,
+			// so a double-run is impossible.
+			if (!tryTypeToPty(session, typedText, delivery)) {
 				dropStagedFiles();
+				return;
 			}
-		}, INITIAL_COMMAND_ENTER_DELAY_MS);
-	});
+			setTimeout(() => {
+				if (isDefunct() || !tryTypeToPty(session, "\r", delivery)) {
+					dropStagedFiles();
+				}
+			}, INITIAL_COMMAND_ENTER_DELAY_MS);
+		})
+		.catch((error) => {
+			if (!delivery) throw error;
+			delivery.refuse({
+				kind: "SESSION_NOT_ACTIVE",
+				error:
+					error instanceof Error
+						? error.message
+						: "Initial terminal delivery failed",
+			});
+		});
 }
 
 interface DaemonCloseResult {
@@ -2901,6 +3059,7 @@ export async function disposeSessionsByWorktreePath(
 }
 
 interface CreateTerminalSessionOptions {
+	initialDelivery?: InitialCommandDelivery;
 	terminalId: string;
 	workspaceId: string;
 	themeType?: "dark" | "light";
@@ -2976,15 +3135,41 @@ export function createTerminalSessionInternal(
 			getPendingTerminalWorkspaceId(options.terminalId),
 		requestedWorkspaceId: options.workspaceId,
 	});
-	if (mismatchError)
+	if (mismatchError) {
+		options.initialDelivery?.refuse({
+			kind: "SESSION_WRONG_WORKSPACE",
+			error: mismatchError,
+		});
 		return Promise.resolve({
 			kind: "SESSION_WRONG_WORKSPACE",
 			error: mismatchError,
 		});
-	return lifecycleOperations.run(
+	}
+	const operation = lifecycleOperations.run(
 		options.terminalId,
 		() => createTerminalSessionUnlocked(options),
 		record ? undefined : options.workspaceId,
+	);
+	if (!options.initialDelivery) return operation;
+	const delivery = options.initialDelivery;
+	return operation.then(
+		(result) => {
+			if ("error" in result) delivery.refuse(result);
+			else if (!options.initialCommand)
+				delivery.refuse({
+					kind: "SESSION_NOT_ACTIVE",
+					error: "No initial command was requested",
+				});
+			return result;
+		},
+		(error) => {
+			delivery.refuse({
+				kind: "SESSION_NOT_ACTIVE",
+				error:
+					error instanceof Error ? error.message : "Terminal creation failed",
+			});
+			throw error;
+		},
 	);
 }
 
@@ -3002,6 +3187,7 @@ async function createTerminalSessionUnlocked({
 	rows: requestedRows,
 	adoptOnly = false,
 	restoredNotice = false,
+	initialDelivery,
 }: CreateTerminalSessionOptions): Promise<
 	TerminalSession | CreateSessionError
 > {
@@ -3026,7 +3212,8 @@ async function createTerminalSessionUnlocked({
 			return { kind: "SESSION_WRONG_WORKSPACE", error: mismatchError };
 
 		if (listed) existing.listed = true;
-		if (initialCommand) queueInitialCommand(existing, initialCommand);
+		if (initialCommand)
+			queueInitialCommand(existing, initialCommand, initialDelivery);
 		return existing;
 	}
 
@@ -3481,7 +3668,7 @@ async function createTerminalSessionUnlocked({
 			: Promise.resolve();
 
 	if (initialCommand) {
-		queueInitialCommand(session, initialCommand);
+		queueInitialCommand(session, initialCommand, initialDelivery);
 	}
 
 	return session;

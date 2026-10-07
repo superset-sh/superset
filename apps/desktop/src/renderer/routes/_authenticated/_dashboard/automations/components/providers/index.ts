@@ -1,5 +1,6 @@
 import type { TriggerConfigInput } from "@superset/shared/automation-triggers";
 import { githubProvider } from "./github/github";
+import { gitlabProvider } from "./gitlab/gitlab";
 import { gmailProvider } from "./google/gmail";
 import { linearProvider } from "./linear/linear";
 import { microsoftTeamsProvider } from "./microsoftTeams/microsoftTeams";
@@ -35,6 +36,7 @@ export const TRIGGER_PROVIDERS: TriggerProvider[] = [
 	webhookProvider as TriggerProvider,
 	notionProvider as TriggerProvider,
 	gmailProvider as TriggerProvider,
+	gitlabProvider as TriggerProvider,
 ];
 
 const byKind = new Map(TRIGGER_PROVIDERS.map((p) => [p.kind, p]));

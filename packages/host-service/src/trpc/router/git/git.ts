@@ -24,7 +24,16 @@ import { getLocalWorkspace } from "../../../workspaces/local-workspace-store";
 import { cancelAndWaitWorkspaceTitleCommit } from "../../../workspaces/workspace-title-jobs";
 import { protectedProcedure, queryProcedure, router } from "../../index";
 import { rethrowWorkerTaskAbort } from "../../worker-abort";
+import { actionRejectionError } from "../github/github";
+import { invalidateGitLabReads } from "../pull-requests/procedures/gitlab-project";
 import { resolveGithubRepo } from "../workspace-creation/shared/project-helpers";
+import {
+	gitLabDiscussion,
+	gitLabJobId,
+	gitLabJobLogs,
+	gitLabWorkspaceContext,
+	replyToGitLabThread,
+} from "./gitlab-actions";
 import type {
 	ChangedFile,
 	CheckConclusionState,
@@ -1010,6 +1019,14 @@ export const gitRouter = router({
 
 			return {
 				number: pr.prNumber,
+				...(pr.repoProvider === "gitlab"
+					? {
+							provider: "gitlab" as const,
+							host: pr.repoHost,
+							projectId: pr.projectId,
+							reviewStateJson: pr.reviewStateJson ?? null,
+						}
+					: {}),
 				url: pr.url,
 				title: pr.title,
 				body: null as string | null,
@@ -1048,6 +1065,54 @@ export const gitRouter = router({
 					code: "INTERNAL_SERVER_ERROR",
 					message: `Pull request ${workspace.pullRequestId} not found in database`,
 				});
+			}
+
+			if (pr.repoProvider === "gitlab") {
+				try {
+					gitLabJobId(
+						{ host: pr.repoHost, owner: pr.repoOwner, name: pr.repoName },
+						input.detailsUrl,
+					);
+				} catch (error) {
+					let known = false;
+					try {
+						const checks: unknown = JSON.parse(pr.checksJson ?? "[]");
+						known =
+							Array.isArray(checks) &&
+							checks.some(
+								(check) =>
+									typeof check === "object" &&
+									check !== null &&
+									"url" in check &&
+									check.url === input.detailsUrl,
+							);
+					} catch {
+						known = false;
+					}
+					if (
+						!known ||
+						new URL(input.detailsUrl).origin !== `https://${pr.repoHost}`
+					)
+						throw error;
+				}
+				const action = await gitLabWorkspaceContext(
+					ctx,
+					workspace.projectId,
+					pr,
+				);
+				try {
+					return await gitLabJobLogs(
+						ctx,
+						action,
+						input.detailsUrl,
+						pr.prNumber,
+					);
+				} catch (error) {
+					throw actionRejectionError(
+						error,
+						"GitLab refused the job log download.",
+					);
+				}
 			}
 
 			// GitHub Actions check details URLs look like
@@ -1101,6 +1166,22 @@ export const gitRouter = router({
 					code: "INTERNAL_SERVER_ERROR",
 					message: `Pull request ${workspace.pullRequestId} not found in database`,
 				});
+			}
+
+			if (pr.repoProvider === "gitlab") {
+				const action = await gitLabWorkspaceContext(
+					ctx,
+					workspace.projectId,
+					pr,
+				);
+				try {
+					return await action.client.fetchReviewThreads(
+						action.repo,
+						pr.prNumber,
+					);
+				} catch (error) {
+					throw actionRejectionError(error, "GitLab refused the review query.");
+				}
 			}
 
 			// Session workspaces (null projectId) have no GitHub remote.
@@ -1198,6 +1279,41 @@ export const gitRouter = router({
 				});
 			}
 
+			const linked = workspace.pullRequestId
+				? ctx.db.query.pullRequests
+						.findFirst({ where: eq(pullRequests.id, workspace.pullRequestId) })
+						.sync()
+				: undefined;
+			if (linked?.repoProvider === "gitlab") {
+				gitLabDiscussion(
+					{
+						host: linked.repoHost,
+						owner: linked.repoOwner,
+						name: linked.repoName,
+					},
+					input.threadId,
+					linked.prNumber,
+				);
+				const action = await gitLabWorkspaceContext(
+					ctx,
+					workspace.projectId,
+					linked,
+				);
+				try {
+					await action.client.setReviewThreadResolution(
+						input.threadId,
+						input.resolved,
+					);
+				} catch (error) {
+					throw actionRejectionError(
+						error,
+						"GitLab refused the review resolution.",
+					);
+				}
+				invalidateGitLabReads(action.repo, linked.prNumber);
+				return { threadId: input.threadId, isResolved: input.resolved };
+			}
+
 			const octokit = await ctx.github();
 			const mutation = input.resolved
 				? `mutation($threadId: ID!) {
@@ -1232,6 +1348,7 @@ export const gitRouter = router({
 			z.object({
 				workspaceId: z.string(),
 				commentId: z.number().int().positive(),
+				threadId: z.string().optional(),
 				body: z.string().trim().min(1),
 			}),
 		)
@@ -1254,6 +1371,34 @@ export const gitRouter = router({
 					code: "INTERNAL_SERVER_ERROR",
 					message: `Pull request ${workspace.pullRequestId} not found in database`,
 				});
+			}
+
+			if (pr.repoProvider === "gitlab") {
+				if (!input.threadId)
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "GitLab review reply requires thread context",
+					});
+				gitLabDiscussion(
+					{ host: pr.repoHost, owner: pr.repoOwner, name: pr.repoName },
+					input.threadId,
+					pr.prNumber,
+				);
+				const action = await gitLabWorkspaceContext(
+					ctx,
+					workspace.projectId,
+					pr,
+				);
+				try {
+					return await replyToGitLabThread(ctx, action, {
+						threadId: input.threadId,
+						commentId: input.commentId,
+						body: input.body,
+						number: pr.prNumber,
+					});
+				} catch (error) {
+					throw actionRejectionError(error, "GitLab refused the review reply.");
+				}
 			}
 
 			// The PR row already names the repo the PR lives in, so there's no

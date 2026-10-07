@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { pullRequestFromUrl } from "./pullRequestLinks";
+import {
+	gitlabPullRequestFromUrl,
+	pullRequestFromUrl,
+} from "./pullRequestLinks";
 
 describe("pullRequestFromUrl", () => {
 	test("reads owner, repo and number from a pull request link", () => {
@@ -46,3 +49,49 @@ describe("pullRequestFromUrl", () => {
 		expect(pullRequestFromUrl("")).toBe(null);
 	});
 });
+
+const nativeUrl = "https://git.example:8443/Group/Sub/Repo/-/merge_requests/17";
+test("native nested case and port survive browser suffix canonicalization", () => {
+	for (const suffix of [
+		"",
+		"/",
+		"?diff=split",
+		"#note_9",
+		"/?diff=split#note_9",
+	]) {
+		expect(gitlabPullRequestFromUrl(nativeUrl + suffix)).toEqual({
+			provider: "gitlab",
+			host: "git.example:8443",
+			owner: "Group/Sub",
+			repo: "Repo",
+			pullNumber: 17,
+			expectedUrl: nativeUrl,
+		});
+	}
+});
+for (const value of [
+	`${nativeUrl}/diffs`,
+	`${nativeUrl}//`,
+	nativeUrl.replace("Group", "%2e%2e"),
+	nativeUrl.replace("Sub", "%252f"),
+	nativeUrl.replace("git.example", "%67it.example"),
+	nativeUrl.replace("git.example", "@git.example"),
+	nativeUrl.replace("17", "9007199254740993"),
+	nativeUrl.replace("17", "017"),
+	nativeUrl.replace("https:", "http:"),
+	nativeUrl.replace("git.example:8443", "github.com"),
+]) {
+	test(`native ambiguous identity refuses ${value}`, () =>
+		expect(gitlabPullRequestFromUrl(value)).toBeNull());
+}
+test("native percent encoding returns decoded identity and preserves escaped URL", () =>
+	expect(
+		gitlabPullRequestFromUrl(nativeUrl.replace("Group", "%47roup")),
+	).toEqual({
+		provider: "gitlab",
+		host: "git.example:8443",
+		owner: "Group/Sub",
+		repo: "Repo",
+		pullNumber: 17,
+		expectedUrl: nativeUrl.replace("Group", "%47roup"),
+	}));

@@ -1,5 +1,9 @@
 import { db } from "@superset/db/client";
-import { connections, type IntegrationConfig } from "@superset/db/schema";
+import {
+	connections,
+	type IntegrationConfig,
+	type SelectConnection,
+} from "@superset/db/schema";
 import { withConnectionLock } from "@superset/db/utils";
 import { eq } from "drizzle-orm";
 import {
@@ -61,11 +65,20 @@ export async function withRefreshedToken(
 	opts: {
 		exchange: TokenExchange;
 		revokedWhen?: (error: unknown) => string | null;
+		acceptConnection?: (
+			connection: Pick<
+				SelectConnection,
+				"organizationId" | "connector" | "ownerKind" | "state"
+			>,
+		) => boolean;
 	},
 ): Promise<RefreshedToken> {
 	return withConnectionLock(connectionId, async (tx) => {
 		const [row] = await tx
 			.select({
+				organizationId: connections.organizationId,
+				connector: connections.connector,
+				ownerKind: connections.ownerKind,
 				accessToken: connections.accessToken,
 				refreshToken: connections.refreshToken,
 				tokenExpiresAt: connections.tokenExpiresAt,
@@ -77,6 +90,8 @@ export async function withRefreshedToken(
 			.limit(1);
 
 		if (!row || row.disconnectedAt) return { disconnected: true };
+		if (opts.acceptConnection && !opts.acceptConnection(row))
+			return { disconnected: true };
 
 		const accessToken = await decryptSecret(row.accessToken);
 		if (

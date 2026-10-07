@@ -7,18 +7,24 @@ import type {
 } from "@pierre/diffs";
 import { CodeView, type CodeViewHandle } from "@pierre/diffs/react";
 import { FileTree as PierreFileTree, useFileTree } from "@pierre/trees/react";
+import type { AppRouter } from "@superset/host-service";
 import { errorMessage } from "@superset/i18n/errors";
 import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import type { PullRequestDiff } from "@superset/shared/pull-request-diff";
 import { toast } from "@superset/ui/sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { inferRouterInputs } from "@trpc/server";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	type AgentPromptFileSide,
 	formatAgentPromptWithFileContext,
 } from "renderer/hooks/host-service/useSendToTerminalAgent";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
-import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
+import {
+	isSamePullRequest,
+	type PullRequestRef,
+	pullRequestRefFromUrl,
+} from "renderer/lib/github/pullRequestRef";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import {
 	createPierreTreeStyle,
@@ -40,7 +46,12 @@ import { PullRequestCommentThread } from "./components/PullRequestCommentThread"
 import { fetchPullRequestDiff } from "./utils/fetchPullRequestDiff";
 import { parsePullRequestPatch } from "./utils/parsePullRequestPatch";
 
+type ExpectedPullRequest = NonNullable<
+	inferRouterInputs<AppRouter>["pullRequests"]["getLinkedWorkspace"]["expectedPullRequest"]
+>;
+
 interface PullRequestCodeTabProps {
+	expectedRef?: PullRequestRef;
 	projectId: string | null;
 	prNumber: number;
 	prUrl: string;
@@ -180,8 +191,46 @@ export function PullRequestCodeTab({
 	prUrl,
 	hostUrl,
 	hostId,
+	expectedRef,
 }: PullRequestCodeTabProps) {
 	const { t } = useLingui();
+	const parsedRef = useMemo(() => pullRequestRefFromUrl(prUrl), [prUrl]);
+	const isGitlab =
+		expectedRef?.provider === "gitlab" ||
+		parsedRef?.provider === "gitlab" ||
+		(!parsedRef && prUrl.includes("/-/merge_requests/"));
+	const expectedPullRequest: ExpectedPullRequest | undefined = useMemo(() => {
+		if (
+			!isGitlab ||
+			!projectId ||
+			!parsedRef?.host ||
+			parsedRef.provider !== "gitlab" ||
+			parsedRef.number !== prNumber ||
+			(expectedRef && !isSamePullRequest(expectedRef, parsedRef))
+		)
+			return undefined;
+		const parts = parsedRef.repoFullName.split("/");
+		const repo = parts.pop();
+		if (!repo || !parts.length) return undefined;
+		const expectedUrl = `https://${parsedRef.host}/${[...parts, repo].map(encodeURIComponent).join("/")}/-/merge_requests/${prNumber}`;
+		if (new URL(prUrl).search || new URL(prUrl).hash) return undefined;
+		return {
+			provider: "gitlab",
+			projectId,
+			host: parsedRef.host,
+			owner: parts.join("/"),
+			repo,
+			pullNumber: prNumber,
+			expectedUrl,
+		};
+	}, [isGitlab, prUrl, prNumber, projectId, expectedRef, parsedRef]);
+	const bindingKey = isGitlab
+		? JSON.stringify([hostUrl, expectedPullRequest ?? prUrl])
+		: undefined;
+	const currentBindingKey = useRef(bindingKey);
+	currentBindingKey.current = bindingKey;
+	const identityKey = isGitlab ? [bindingKey] : [];
+
 	// Card look (rounded header/body pairs, gap between files, PR-row
 	// additions/deletions colors, app background instead of the terminal
 	// theme's) comes from the shared card theme hook — the same one the
@@ -296,14 +345,18 @@ export function PullRequestCodeTab({
 			projectId,
 			hostUrl,
 			prNumber,
+			...identityKey,
 		],
 		queryFn: () =>
 			fetchPullRequestDiff({
 				projectId,
 				hostUrl,
 				prNumber,
-				repoFullName,
-				organizationId,
+				repoFullName: isGitlab ? null : repoFullName,
+				organizationId: isGitlab ? null : organizationId,
+				expectedRef: isGitlab
+					? (expectedRef ?? parsedRef ?? undefined)
+					: undefined,
 			}),
 		staleTime: 30_000,
 		gcTime: 10 * 60_000,
@@ -314,6 +367,7 @@ export function PullRequestCodeTab({
 		projectId,
 		hostUrl,
 		prNumber,
+		...identityKey,
 	];
 	const { data: threadsData, dataUpdatedAt: threadsUpdatedAt } = useQuery({
 		queryKey: threadsQueryKey,
@@ -371,6 +425,15 @@ export function PullRequestCodeTab({
 	const setThreadResolution = useMutation({
 		mutationFn: async (input: { threadId: string; resolved: boolean }) => {
 			const client = getHostServiceClientByUrl(hostUrl);
+			if (input.threadId.startsWith("gitlab:")) {
+				if (!projectId)
+					throw new Error("No project available to update a thread");
+				return client.pullRequests.setThreadResolution.mutate({
+					...input,
+					projectId,
+					prNumber,
+				});
+			}
 			return client.pullRequests.setThreadResolution.mutate(input);
 		},
 		onMutate: (input) => {
@@ -401,7 +464,11 @@ export function PullRequestCodeTab({
 		ReadonlySet<number>
 	>(new Set());
 	const replyToThread = useMutation({
-		mutationFn: async (input: { commentId: number; body: string }) => {
+		mutationFn: async (input: {
+			commentId: number;
+			body: string;
+			threadId?: string;
+		}) => {
 			if (!projectId)
 				throw new Error("No project available to reply to a thread");
 			const client = getHostServiceClientByUrl(hostUrl);
@@ -440,6 +507,7 @@ export function PullRequestCodeTab({
 		projectId,
 		hostUrl,
 		prNumber,
+		...identityKey,
 	];
 	const { data: linkedWorkspaceData } = useQuery({
 		queryKey: linkedWorkspaceQueryKey,
@@ -447,9 +515,12 @@ export function PullRequestCodeTab({
 		queryFn: async () => {
 			if (!projectId) return { workspaceId: null };
 			const client = getHostServiceClientByUrl(hostUrl);
+			if (isGitlab && !expectedPullRequest)
+				throw new Error(t({ message: "Pull request not found." }));
 			return client.pullRequests.getLinkedWorkspace.query({
 				projectId,
 				prNumber,
+				...(expectedPullRequest ? { expectedPullRequest } : {}),
 			});
 		},
 		staleTime: 30_000,
@@ -468,12 +539,29 @@ export function PullRequestCodeTab({
 	const sendCommentToAgent = useMutation({
 		mutationFn: async (input: {
 			comment: string;
+			bindingKey?: string;
 			target: AgentTarget;
 			path: string;
 			startLine: number;
 			endLine: number;
 			side: AgentPromptFileSide;
 		}) => {
+			if (isGitlab || input.bindingKey !== undefined) {
+				const ack =
+					linkedWorkspaceData && "validatedPullRequest" in linkedWorkspaceData
+						? linkedWorkspaceData.validatedPullRequest
+						: undefined;
+				if (
+					!expectedPullRequest ||
+					input.bindingKey !== bindingKey ||
+					currentBindingKey.current !== bindingKey ||
+					!ack ||
+					Object.entries(expectedPullRequest).some(
+						([key, value]) => Reflect.get(ack, key) !== value,
+					)
+				)
+					throw new Error(t({ message: "Pull request not found." }));
+			}
 			const text = formatAgentPromptWithFileContext({
 				comment: input.comment,
 				file: {
@@ -494,6 +582,7 @@ export function PullRequestCodeTab({
 					terminalId: input.target.terminalId,
 					text: sanitizePromptForPty(text).trimEnd(),
 					submit: true,
+					...(expectedPullRequest ? { expectedPullRequest } : {}),
 				});
 				return;
 			}
@@ -504,6 +593,7 @@ export function PullRequestCodeTab({
 					workspaceId: linkedWorkspaceId,
 					agent: input.target.configId,
 					prompt: text,
+					...(expectedPullRequest ? { expectedPullRequest } : {}),
 				});
 				return;
 			}
@@ -517,6 +607,7 @@ export function PullRequestCodeTab({
 					id: crypto.randomUUID(),
 					projectId,
 					pr: prNumber,
+					...(expectedPullRequest ? { expectedPullRequest } : {}),
 					agents: [{ agent: input.target.configId, prompt: text }],
 				},
 			});
@@ -975,6 +1066,7 @@ export function PullRequestCodeTab({
 										onSubmit={async ({ comment, target }) => {
 											await sendCommentToAgent.mutateAsync({
 												comment,
+												...(isGitlab ? { bindingKey } : {}),
 												target,
 												path: metadata.path,
 												startLine: metadata.startLine,
@@ -991,6 +1083,7 @@ export function PullRequestCodeTab({
 									metadata.threadId;
 							return (
 								<PullRequestCommentThread
+									provider={isGitlab ? "gitlab" : "github"}
 									isResolved={metadata.isResolved}
 									isOutdated={metadata.isOutdated}
 									url={metadata.url}
@@ -1007,7 +1100,13 @@ export function PullRequestCodeTab({
 									onReply={(body) => {
 										const commentId = metadata.replyToCommentId;
 										if (!commentId) return false;
-										replyToThread.mutate({ commentId, body });
+										replyToThread.mutate({
+											commentId,
+											body,
+											...(metadata.threadId.startsWith("gitlab:")
+												? { threadId: metadata.threadId }
+												: {}),
+										});
 										return true;
 									}}
 									isReplyPending={

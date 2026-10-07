@@ -23,9 +23,7 @@ export function usePullRequestPaneIntentOpener({
 		if (pendingIntent?.workspaceId !== workspaceId) return;
 		const intent = usePullRequestPaneIntent.getState().consume(workspaceId);
 		if (!intent) return;
-		openPullRequestPane({
-			repoFullName: intent.repoFullName,
-			number: intent.number,
-		});
+		const { workspaceId: _workspaceId, ...ref } = intent;
+		openPullRequestPane(ref);
 	}, [pendingIntent, workspaceId, isLayoutReady, openPullRequestPane]);
 }

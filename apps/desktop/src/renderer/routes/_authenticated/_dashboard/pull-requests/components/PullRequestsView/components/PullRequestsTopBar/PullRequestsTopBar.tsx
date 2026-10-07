@@ -10,6 +10,7 @@ import type { ProjectQueryTarget } from "renderer/routes/_authenticated/_dashboa
 import { PullRequestDetailToggle } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestDetailToggle";
 import { usePullRequestsSplitViewStore } from "renderer/routes/_authenticated/_dashboard/pull-requests/stores/pullRequestsSplitViewStore";
 import type { PullRequestReviewFilter } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/pullRequestReviewFilter";
+import type { PullRequestSearchSelection } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/pullRequestReviewFilter/pullRequestReviewFilter";
 import { AuthorFilter } from "./components/AuthorFilter";
 import { ReviewFilter } from "./components/ReviewFilter";
 
@@ -21,6 +22,7 @@ interface PullRequestsTopBarProps {
 	projectFilters: string[];
 	onProjectFiltersChange: (projectIds: string[]) => void;
 	projectTargets: ProjectQueryTarget[];
+	searchSelection?: PullRequestSearchSelection;
 	authorFilter: string | null;
 	onAuthorFilterChange: (author: string | null) => void;
 	reviewFilter: PullRequestReviewFilter | null;
@@ -35,6 +37,7 @@ export function PullRequestsTopBar({
 	projectFilters,
 	onProjectFiltersChange,
 	projectTargets,
+	searchSelection,
 	authorFilter,
 	onAuthorFilterChange,
 	reviewFilter,
@@ -178,6 +181,7 @@ export function PullRequestsTopBar({
 								value={authorFilter}
 								onChange={onAuthorFilterChange}
 								projectTargets={projectTargets}
+								searchSelection={searchSelection}
 							/>
 						</div>
 						<div className="flex items-center justify-between gap-2">
@@ -185,6 +189,7 @@ export function PullRequestsTopBar({
 								<Trans>Reviews</Trans>
 							</span>
 							<ReviewFilter
+								searchSelection={searchSelection}
 								value={reviewFilter}
 								onChange={onReviewFilterChange}
 							/>

@@ -3,6 +3,7 @@ import { dirname } from "node:path";
 import { runMigrations } from "@superset/shared/sqlite-migrations";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
+import { applyRepoSchema } from "./repo-schema.ts";
 import * as schema from "./schema.ts";
 
 export type HostDb = ReturnType<typeof createDb>;
@@ -64,6 +65,7 @@ export function createDb(dbPath: string, migrationsFolder: string) {
 	// and, earlier, no cloud_synced_at/archived_at column.
 	// Let a failed migration throw — never serve a half-migrated DB.
 	runMigrations(db, migrationsFolder);
+	applyRepoSchema(sqlite);
 	const after = violationCountsByConstraint(sqlite);
 	const introduced = [...after.entries()].filter(
 		([constraint, count]) => count > (before.get(constraint) ?? 0),

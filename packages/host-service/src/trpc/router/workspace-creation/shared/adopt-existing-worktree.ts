@@ -15,7 +15,7 @@ import {
 import { gitConfigWrite } from "../../git/utils/config-write";
 import { requireLocalProject } from "./local-project";
 import { requireIndependentWorktree } from "./require-independent-worktree";
-import type { GitClient } from "./types";
+import type { GitCommandRunner } from "./types";
 import { normalizeWorktreePath } from "./worktree-list";
 
 // Workspaces have no cloud mirror since local-first (#5731); the host's own
@@ -24,7 +24,7 @@ export type AdoptedWorkspace = CloudShapedWorkspace;
 
 export interface AdoptExistingWorktreeArgs {
 	ctx: HostServiceContext;
-	git: GitClient;
+	git: GitCommandRunner;
 	projectId: string;
 	branch: string;
 	worktreePath: string;
@@ -267,12 +267,12 @@ function deleteLocalWorkspaceConflicts(
 }
 
 async function recordBaseBranch(
-	git: GitClient,
+	git: GitCommandRunner,
 	branch: string,
 	baseBranch: string | undefined,
 ): Promise<void> {
 	if (!baseBranch) return;
-	await gitConfigWrite(git as Parameters<typeof gitConfigWrite>[0], [
+	await gitConfigWrite(git, [
 		"config",
 		`branch.${branch}.base`,
 		baseBranch,
@@ -282,4 +282,5 @@ async function recordBaseBranch(
 			err,
 		);
 	});
+	git.assertHealthy?.();
 }

@@ -14,6 +14,7 @@ export type StateCookie = { readonly name: string; readonly path: string };
  */
 export const STATE_COOKIES = {
 	github: { name: "github_oauth_state", path: "/api/github" },
+	gitlab: { name: "gitlab_oauth_state", path: "/api/gitlab" },
 	google: { name: "google_oauth_state", path: "/api/integrations/google" },
 	linear: { name: "linear_oauth_state", path: "/api/integrations/linear" },
 	notion: { name: "notion_oauth_state", path: "/api/integrations/notion" },

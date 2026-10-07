@@ -10,7 +10,7 @@ import { Skeleton } from "@superset/ui/skeleton";
 import { useFeatureFlagPayload } from "posthog-js/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BsMicrosoftTeams } from "react-icons/bs";
-import { FaGithub, FaGoogle, FaSlack } from "react-icons/fa";
+import { FaGithub, FaGitlab, FaGoogle, FaSlack } from "react-icons/fa";
 import { HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
 import { SiLinear, SiNotion, SiSentry } from "react-icons/si";
 import {
@@ -45,6 +45,7 @@ interface GithubInstallation {
 
 const INTEGRATION_ICONS: Record<IntegrationProvider, React.ReactNode> = {
 	linear: <SiLinear className="size-5" />,
+	gitlab: <FaGitlab className="size-5" />,
 	github: <FaGithub className="size-5" />,
 	slack: <FaSlack className="size-5" />,
 	notion: <SiNotion className="size-5" />,
@@ -60,6 +61,8 @@ const PRO_GATED: Partial<Record<IntegrationProvider, GatedFeature>> = {
 
 interface ProviderState {
 	isConnected: boolean;
+	needsReauth?: boolean;
+	loadFailed?: boolean;
 	connectedOrgName?: string | null;
 	isLoading: boolean;
 }
@@ -87,6 +90,15 @@ export function IntegrationsSettings({
 			{ organizationId: activeOrganizationId ?? "" },
 			{ enabled: !!activeOrganizationId },
 		);
+
+	const {
+		data: connectionStatus,
+		isPending: isGitlabPending,
+		isError: isGitlabError,
+	} = cloudTrpc.integration.connectionStatus.useQuery(
+		{ organizationId: activeOrganizationId ?? "" },
+		{ enabled: !!activeOrganizationId },
+	);
 
 	// Google is per member, not per org, so the caller's own connection rather
 	// than whichever row integration.list happens to return first.
@@ -154,6 +166,17 @@ export function IntegrationsSettings({
 			isConnected: !!linearConnection && !linearConnection.needsReconnect,
 			connectedOrgName: linearConnection?.externalOrgName,
 			isLoading: isLinearPending,
+		},
+		gitlab: {
+			isConnected:
+				connectionStatus?.gitlab?.connected === true &&
+				!connectionStatus.gitlab.needsReauth &&
+				!isGitlabError,
+			needsReauth: connectionStatus?.gitlab?.needsReauth,
+			loadFailed: isGitlabError,
+			connectedOrgName: integrations?.find((row) => row.provider === "gitlab")
+				?.externalOrgName,
+			isLoading: isGitlabPending,
 		},
 		github: {
 			isConnected: !!githubInstallation && !githubInstallation.suspended,
@@ -230,7 +253,12 @@ export function IntegrationsSettings({
 					if (!isItemVisible(itemId, visibleItems)) return null;
 					const state = providerStates[integration.provider];
 					const gate = PRO_GATED[integration.provider];
-					const openWeb = () => handleOpenWeb(integration.webPath);
+					const openWeb = () =>
+						handleOpenWeb(
+							integration.provider === "gitlab"
+								? `${integration.webPath}?organizationId=${encodeURIComponent(activeOrganizationId)}`
+								: integration.webPath,
+						);
 					return (
 						<IntegrationRow
 							key={integration.provider}
@@ -240,6 +268,8 @@ export function IntegrationsSettings({
 							description={integration.description()}
 							icon={INTEGRATION_ICONS[integration.provider]}
 							isConnected={state.isConnected}
+							needsReauth={state.needsReauth}
+							loadFailed={state.loadFailed}
 							connectedOrgName={state.connectedOrgName}
 							isLoading={state.isLoading}
 							showProBadge={!!gate && planReady && !hasAccess(gate)}
@@ -259,6 +289,8 @@ export function IntegrationsSettings({
 }
 
 interface IntegrationRowProps {
+	needsReauth?: boolean;
+	loadFailed?: boolean;
 	name: React.ReactNode;
 	description: string;
 	icon: React.ReactNode;
@@ -270,6 +302,8 @@ interface IntegrationRowProps {
 }
 
 function IntegrationRow({
+	needsReauth = false,
+	loadFailed = false,
 	name,
 	description,
 	icon,
@@ -281,6 +315,10 @@ function IntegrationRow({
 }: IntegrationRowProps) {
 	const status = isLoading ? (
 		<Skeleton className="h-4 w-24" />
+	) : loadFailed ? (
+		<span className="text-xs text-muted-foreground">
+			<Trans>Could not load connection status.</Trans>
+		</span>
 	) : (
 		<div className="flex items-center gap-1.5">
 			<span
@@ -291,7 +329,9 @@ function IntegrationRow({
 				}
 			/>
 			<span className="text-xs text-muted-foreground">
-				{isConnected ? (
+				{needsReauth ? (
+					<Trans>Reconnect required</Trans>
+				) : isConnected ? (
 					connectedOrgName ? (
 						<Trans>Connected to {connectedOrgName}</Trans>
 					) : (
@@ -333,7 +373,13 @@ function IntegrationRow({
 					className="gap-2"
 				>
 					<HiOutlineArrowTopRightOnSquare className="size-4" />
-					{isConnected ? <Trans>Manage</Trans> : <Trans>Connect</Trans>}
+					{needsReauth ? (
+						<Trans>Reconnect</Trans>
+					) : isConnected || loadFailed ? (
+						<Trans>Manage</Trans>
+					) : (
+						<Trans>Connect</Trans>
+					)}
 				</Button>
 			</div>
 		</div>

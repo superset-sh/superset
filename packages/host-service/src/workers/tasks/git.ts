@@ -1,3 +1,7 @@
+import { randomUUID } from "node:crypto";
+import { realpath, stat } from "node:fs/promises";
+import { isAbsolute, parse, relative, sep } from "node:path";
+import { type ParsedRemote, parseGitRemote } from "@superset/shared/git-remote";
 // git/* worker tasks. Handlers build their own SimpleGit — the worker spawns
 // the git subprocesses itself, so stdout draining AND parsing leave the
 // host-service event loop. Credential env is resolved in-process (it needs
@@ -36,6 +40,7 @@ import type { GitStatusSnapshotComputation } from "../../trpc/router/git/utils/g
 import { getGitStatusSnapshot } from "../../trpc/router/git/utils/git-status.ts";
 import type { GitStatusPartial } from "../../trpc/router/git/utils/git-status-partial/index.ts";
 import { getGitStatusPartial } from "../../trpc/router/git/utils/git-status-partial/index.ts";
+import { getAllRepoRemotes } from "../../trpc/router/project/utils/git-remote.ts";
 import { addBranchWorktree } from "../../trpc/router/workspace-creation/shared/add-branch-worktree.ts";
 import { listWorktreeBranches } from "../../trpc/router/workspace-creation/shared/branch-search.ts";
 import { enablePushAutoSetupRemote } from "../../trpc/router/workspace-creation/shared/git-config.ts";
@@ -681,7 +686,207 @@ export const gitRestoreWorktreeTask = defineWorkerTask<
 	},
 });
 
+export interface GitStorageIdentity {
+	commonDir: string;
+	device: number;
+	inode: number;
+}
+async function physicalGitDirectory(
+	cwd: string,
+	operand: string,
+): Promise<string> {
+	const root = parse(operand).root;
+	let current = root ? await realpath(root) : cwd;
+	for (const part of operand
+		.slice(root.length)
+		.split(process.platform === "win32" ? /[\\/]/ : /\//)) {
+		if (part && part !== ".")
+			current = await realpath(`${current}${sep}${part}`);
+	}
+	return current;
+}
+async function readGitStorageIdentity(
+	git: ReturnType<typeof createUserSimpleGit>,
+	repoPath: string,
+	prefix?: string[],
+): Promise<GitStorageIdentity> {
+	const common = (
+		await (prefix
+			? git.raw([...prefix, "rev-parse", "--git-common-dir"])
+			: git.revparse(["--git-common-dir"]))
+	).trim();
+	if (!common) throw new Error("Missing Git common directory");
+	const commonDir = await physicalGitDirectory(
+		await realpath(repoPath),
+		common,
+	);
+	const info = await stat(commonDir);
+	if (!info.isDirectory()) throw new Error("Invalid Git common directory");
+	return { commonDir, device: info.dev, inode: info.ino };
+}
+export const gitResolveRepositoryTask = defineWorkerTask<
+	{
+		repoPath: string;
+		repoUrl?: string | null;
+		includeStorage?: boolean;
+		gitEnv?: GitTaskEnv;
+	},
+	{
+		repoPath: string;
+		remotes: Array<[string, ParsedRemote]>;
+		storage?: GitStorageIdentity;
+	}
+>({
+	type: "git/resolveRepository",
+	handler: async ({ repoPath, repoUrl, includeStorage, gitEnv }) => {
+		let git = createUserSimpleGit(repoPath, { env: gitEnv });
+		const root = (await git.revparse(["--show-toplevel"])).trim();
+		git = createUserSimpleGit(root, { env: gitEnv });
+		return {
+			repoPath: root,
+			remotes: await getAllRepoRemotes(git, repoUrl),
+			...(includeStorage
+				? { storage: await readGitStorageIdentity(git, root) }
+				: {}),
+		};
+	},
+});
+export const gitConfirmNoPlatformRemotesTask = defineWorkerTask<
+	{ repoPath: string },
+	{ repoPath: string; noPlatformRemote: boolean }
+>({
+	type: "git/confirmNoPlatformRemotes",
+	handler: async ({ repoPath }) => {
+		const root = (
+			await createUserSimpleGit(repoPath).revparse(["--show-toplevel"])
+		).trim();
+		if (!root) throw new Error("Missing Git checkout root");
+		const key = `remote.superset-inspection-${randomUUID()}.url`;
+		const value = "SUPERSET_REMOTE_INSPECTION_SENTINEL";
+		const output = await createUserSimpleGit(root).raw([
+			"-c",
+			`${key}=${value}`,
+			"config",
+			"--null",
+			"--get-regexp",
+			String.raw`^remote\..*\.url$`,
+		]);
+		if (!output.endsWith("\0"))
+			throw new Error("Incomplete Git remote inspection");
+		let sentinelCount = 0;
+		let noPlatformRemote = true;
+		for (const record of output.slice(0, -1).split("\0")) {
+			const separator = record.indexOf("\n");
+			const name = record.slice(0, separator);
+			if (separator < 0 || !/^remote\.(.+)\.url$/.test(name))
+				throw new Error("Invalid Git remote inspection");
+			const url = record.slice(separator + 1);
+			if (name === key) {
+				if (url !== value)
+					throw new Error("Invalid Git remote inspection sentinel");
+				sentinelCount++;
+			} else if (parseGitRemote(url)) noPlatformRemote = false;
+		}
+		if (sentinelCount !== 1)
+			throw new Error("Missing Git remote inspection sentinel");
+		return { repoPath: root, noPlatformRemote };
+	},
+});
+export const gitGitlabPushHeadTask = defineWorkerTask<
+	{
+		worktreePath: string;
+		branch: string;
+		remoteName: string;
+		gitEnv?: GitTaskEnv;
+	},
+	{ pushUrl: string }
+>({
+	type: "git/gitlabPushHead",
+	handler: async ({ worktreePath, branch, remoteName, gitEnv }) => {
+		const git = createUserSimpleGit(worktreePath, { env: gitEnv });
+		const config = async (key: string) =>
+			(await git.raw(["config", key]).catch(() => "")).trim();
+		const remote =
+			(await config(`branch.${branch}.pushRemote`)) ||
+			(await config("remote.pushDefault")) ||
+			(await config(`branch.${branch}.remote`)) ||
+			((await git.getRemotes()).some((remote) => remote.name === "origin")
+				? "origin"
+				: remoteName);
+		return {
+			pushUrl: await git
+				.raw(["remote", "get-url", "--push", remote])
+				.catch(() => ""),
+		};
+	},
+});
+export const gitGitlabRawTask = defineWorkerTask<
+	{
+		repoPath: string;
+		storage: GitStorageIdentity;
+		argv: string[];
+		gitEnv?: GitTaskEnv;
+	},
+	string
+>({
+	type: "git/gitlabRaw",
+	execution: "worker-only-nonreplay",
+	mutationScope: ({ storage }) => storage.commonDir,
+	handler: async ({ repoPath, storage, argv, gitEnv }) => {
+		const git = createUserSimpleGit(repoPath, { env: gitEnv });
+		const root = (await git.revparse(["--show-toplevel"])).trim();
+		let effectiveCwd = await realpath(repoPath);
+		if ((await realpath(root)) !== effectiveCwd)
+			throw new Error("Git checkout root changed");
+		const current = await readGitStorageIdentity(git, root);
+		if (
+			current.commonDir !== storage.commonDir ||
+			current.device !== storage.device ||
+			current.inode !== storage.inode
+		)
+			throw new Error("Git common storage changed");
+		let commandIndex = 0;
+		while (argv[commandIndex] === "-C" || argv[commandIndex] === "-c") {
+			const option = argv[commandIndex],
+				value = argv[commandIndex + 1];
+			if (typeof value !== "string" || (option === "-c" && !value))
+				throw new Error("Malformed Git command prefix");
+			if (option === "-C" && value)
+				effectiveCwd = await physicalGitDirectory(effectiveCwd, value);
+			commandIndex += 2;
+		}
+		const command = argv[commandIndex];
+		if (!command || command.startsWith("-"))
+			throw new Error("Unsupported Git command prefix");
+		if (commandIndex) {
+			const prefix = argv.slice(0, commandIndex);
+			const effectiveRoot = await realpath(
+				(await git.raw([...prefix, "rev-parse", "--show-toplevel"])).trim(),
+			);
+			const rootRelative = relative(effectiveRoot, effectiveCwd);
+			if (
+				isAbsolute(rootRelative) ||
+				rootRelative === ".." ||
+				rootRelative.startsWith(`..${sep}`)
+			)
+				throw new Error("Git effective checkout root changed");
+			const effective = await readGitStorageIdentity(git, effectiveCwd, prefix);
+			if (
+				effective.commonDir !== storage.commonDir ||
+				effective.device !== storage.device ||
+				effective.inode !== storage.inode
+			)
+				throw new Error("Git effective common storage changed");
+		}
+		return git.raw(argv);
+	},
+});
+
 export const gitTasks = [
+	gitResolveRepositoryTask,
+	gitConfirmNoPlatformRemotesTask,
+	gitGitlabPushHeadTask,
+	gitGitlabRawTask,
 	gitStatusSnapshotTask,
 	gitStatusPartialTask,
 	gitFetchBaseRefTask,

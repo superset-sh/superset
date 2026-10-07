@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { selectCloudEnvironment } from "./cloud-environments";
+import {
+	selectCloudEnvironment,
+	startableCloudEnvironments,
+} from "./cloud-environments";
 
 const withRepos = (id: string, name: string) => ({
 	id,
@@ -15,6 +18,15 @@ const empty = {
 	id: "33333333-3333-4333-8333-333333333333",
 	name: "Empty",
 	repositories: [],
+};
+const gitlab = {
+	id: "44444444-4444-4444-8444-444444444444",
+	name: "GitLab",
+	repositories: [],
+	gitlabProject: {
+		cloneUrl: "https://git.example/Group/Sub/Repo.git",
+		pathWithNamespace: "Group/Sub/Repo",
+	},
 };
 
 describe("selectCloudEnvironment", () => {
@@ -33,5 +45,27 @@ describe("selectCloudEnvironment", () => {
 
 	test("nothing requested picks none among several", () => {
 		expect(selectCloudEnvironment([kiet, satya], undefined)).toBeUndefined();
+	});
+
+	test("a sole GitLab project is startable without GitHub repositories", () => {
+		expect(selectCloudEnvironment([empty, gitlab], undefined)).toBe(gitlab);
+	});
+
+	test("does not guess between GitHub and GitLab environments", () => {
+		expect(selectCloudEnvironment([kiet, gitlab], undefined)).toBeUndefined();
+	});
+
+	test("filters empty provider bindings and preserves the original environment objects", () => {
+		const unavailable = { ...empty, gitlabProject: null };
+		expect(startableCloudEnvironments([unavailable, gitlab, kiet])).toEqual([
+			gitlab,
+			kiet,
+		]);
+		expect(startableCloudEnvironments([gitlab])[0]).toBe(gitlab);
+	});
+
+	test("explicit GitLab selection still matches only the id", () => {
+		expect(selectCloudEnvironment([gitlab], gitlab.id)).toBe(gitlab);
+		expect(selectCloudEnvironment([gitlab], gitlab.name)).toBeUndefined();
 	});
 });

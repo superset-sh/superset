@@ -2,15 +2,18 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Stack, useRouter } from "expo-router";
 import { Layers } from "lucide-react-native";
+import { useEffect, useRef } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
+import { useSession } from "@/lib/auth/client";
 import { posthog } from "@/lib/posthog";
 import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
 import { useCloudCreateSelection } from "@/screens/(authenticated)/(home)/hooks/useCloudCreateSelection";
+import { GitlabEnvironmentProjects } from "./components/GitlabEnvironmentProjects";
 
 /**
  * Picks which environment the next cloud workspace is created in — the image
@@ -27,7 +30,32 @@ export function EnvironmentPickerScreen() {
 
 	const { environmentsQuery, environments, environment } =
 		useCloudCreateSelection();
+	const currentEnvironments = useRef(environments);
+	currentEnvironments.current =
+		environmentsQuery.isError || environmentsQuery.isPending
+			? []
+			: environments;
 	const selectedId = environment?.id ?? null;
+	const { data: session } = useSession();
+	const org = session?.session?.activeOrganizationId ?? null;
+	const key = JSON.stringify([org, selectedId]);
+	const latest = useRef<string | null>(key);
+	latest.current = key;
+	const live = useRef(true);
+	useEffect(() => {
+		live.current = true;
+		latest.current = key;
+		return () => {
+			live.current = false;
+			latest.current = null;
+		};
+	}, [key]);
+	const selectNative = (id: string) => {
+		if (environmentsQuery.isError || !live.current || key !== latest.current)
+			return;
+		setEnvironmentId(id);
+		router.back();
+	};
 
 	let notice: string | null = null;
 	let retry: (() => void) | null = null;
@@ -42,6 +70,17 @@ export function EnvironmentPickerScreen() {
 				message: "No environments available",
 			});
 		}
+	}
+
+	if (
+		environmentsQuery.isError &&
+		environments.some((row) => row.gitlabProject)
+	) {
+		notice = t({ message: "Could not load environments" });
+		retry = () => {
+			if (live.current && key === latest.current)
+				void environmentsQuery.refetch();
+		};
 	}
 
 	return (
@@ -78,36 +117,59 @@ export function EnvironmentPickerScreen() {
 					) : null}
 				</View>
 			) : null}
-			{notice === null &&
-				environments.map((environment) => (
-					<Pressable
-						key={environment.id}
-						onPress={() => {
-							setEnvironmentId(environment.id);
-							posthog.capture("new_session_environment_selected", {
-								environment_id: environment.id,
-							});
-							router.back();
-						}}
-						className="flex-row items-center gap-2.5 py-2.5"
-						ph-label="new-session-environment-row"
+			{environments.map((environment) => (
+				<Pressable
+					key={environment.id}
+					disabled={Boolean(
+						environment.gitlabProject && environmentsQuery.isError,
+					)}
+					accessibilityState={{
+						disabled: Boolean(
+							environment.gitlabProject && environmentsQuery.isError,
+						),
+					}}
+					onPress={() => {
+						if (
+							environment.gitlabProject &&
+							(environmentsQuery.isError ||
+								!live.current ||
+								key !== latest.current ||
+								!currentEnvironments.current.some(
+									(row) =>
+										row.id === environment.id &&
+										row.organizationId === org &&
+										JSON.stringify(row.gitlabProject) ===
+											JSON.stringify(environment.gitlabProject),
+								))
+						)
+							return;
+						setEnvironmentId(environment.id);
+						posthog.capture("new_session_environment_selected", {
+							environment_id: environment.id,
+						});
+						router.back();
+					}}
+					className="flex-row items-center gap-2.5 py-2.5"
+					ph-label="new-session-environment-row"
+				>
+					<Layers size={18} color={theme.mutedForeground} />
+					<Text
+						className="flex-1 text-sm font-medium"
+						style={{ color: theme.foreground }}
 					>
-						<Layers size={18} color={theme.mutedForeground} />
-						<Text
-							className="flex-1 text-sm font-medium"
-							style={{ color: theme.foreground }}
-						>
-							{environment.name}
+						{environment.name}
+					</Text>
+					{environment.gitlabProject ? (
+						<Text className="max-w-[45%] shrink text-xs text-muted-foreground">
+							{environment.gitlabProject.pathWithNamespace}
 						</Text>
-						{environment.id === selectedId ? (
-							<Ionicons
-								name="checkmark-circle"
-								size={18}
-								color={theme.primary}
-							/>
-						) : null}
-					</Pressable>
-				))}
+					) : null}
+					{environment.id === selectedId ? (
+						<Ionicons name="checkmark-circle" size={18} color={theme.primary} />
+					) : null}
+				</Pressable>
+			))}
+			<GitlabEnvironmentProjects onSelect={selectNative} />
 		</ScrollView>
 	);
 }

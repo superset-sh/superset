@@ -17,6 +17,7 @@ import {
 	SquarePlus,
 } from "lucide-react";
 import { LuArrowUpRight, LuCheck } from "react-icons/lu";
+import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import { getMarkdownPreviewText } from "renderer/utils/markdownPreview";
 import type { CommentPaneData, DiffFocusSide } from "../../../../types";
 import type { NormalizedComment } from "../../types";
@@ -42,6 +43,9 @@ export function CommentRow({
 	onOpenInDiff,
 }: CommentRowProps) {
 	const { t } = useLingui();
+	const isGitlab = comment.url
+		? pullRequestRefFromUrl(comment.url)?.provider === "gitlab"
+		: false;
 	const createdAt = comment.createdAt ? new Date(comment.createdAt) : null;
 	const age =
 		createdAt && Number.isFinite(createdAt.getTime())
@@ -136,9 +140,11 @@ export function CommentRow({
 						rel="noopener noreferrer"
 						onClick={(e) => e.stopPropagation()}
 						className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-						aria-label={t({
-							message: "Open comment on GitHub",
-						})}
+						aria-label={
+							isGitlab
+								? t({ message: "Open in GitLab" })
+								: t({ message: "Open comment on GitHub" })
+						}
 					>
 						<LuArrowUpRight className="size-3" />
 					</a>
@@ -221,7 +227,11 @@ export function CommentRow({
 								onSelect={() => window.open(comment.url, "_blank", "noopener")}
 							>
 								<ExternalLink />
-								<Trans>Open on GitHub</Trans>
+								{isGitlab ? (
+									<Trans>Open in GitLab</Trans>
+								) : (
+									<Trans>Open on GitHub</Trans>
+								)}
 							</DropdownMenuItem>
 						) : null}
 					</DropdownMenuContent>

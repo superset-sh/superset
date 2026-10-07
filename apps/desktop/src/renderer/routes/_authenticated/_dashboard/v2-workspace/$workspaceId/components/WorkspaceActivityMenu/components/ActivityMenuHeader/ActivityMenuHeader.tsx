@@ -28,6 +28,7 @@ interface ActivityMenuHeaderProps {
 	canCommit: boolean;
 	canPush: boolean;
 	canCreatePr: boolean;
+	createLabel: string;
 	hasCommitsAhead: boolean;
 	isBusy: boolean;
 	onOpenView: (view: ShipView) => void;
@@ -40,6 +41,7 @@ export function ActivityMenuHeader({
 	canCommit,
 	canPush,
 	canCreatePr,
+	createLabel,
 	hasCommitsAhead,
 	isBusy,
 	onOpenView,
@@ -139,7 +141,7 @@ export function ActivityMenuHeader({
 								}}
 							>
 								<VscGitPullRequestCreate className="size-4" />
-								<Trans>Create PR</Trans>
+								{createLabel}
 							</DropdownMenuItem>
 						)}
 					</DropdownMenuContent>

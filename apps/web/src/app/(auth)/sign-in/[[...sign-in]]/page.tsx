@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { env } from "@/env";
+import { OptionalSignInButtons } from "../../components/OptionalSignInButtons";
 
 const LAST_USED_METHOD_KEY = "superset-last-auth-method";
 const ERROR_CODE = /^[A-Za-z0-9_-]{1,64}$/;
@@ -53,6 +54,7 @@ export default function SignInPage() {
 			? callbackErrorParam
 			: null;
 
+	const [isLoadingOptional, setIsLoadingOptional] = useState(false);
 	const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
 	const [isLoadingGithub, setIsLoadingGithub] = useState(false);
 	const [error, setError] = useState<string | null>(() => {
@@ -153,7 +155,8 @@ export default function SignInPage() {
 		}
 	};
 
-	const isLoading = isLoadingGoogle || isLoadingGithub || isLoadingDev;
+	const isLoading =
+		isLoadingOptional || isLoadingGoogle || isLoadingGithub || isLoadingDev;
 
 	const lastUsedBadge = (
 		<span className="bg-muted text-muted-foreground absolute right-3 rounded-full px-2 py-0.5 text-xs">
@@ -218,6 +221,12 @@ export default function SignInPage() {
 					)}
 					{lastUsedMethod === "google" && lastUsedBadge}
 				</Button>
+				<OptionalSignInButtons
+					callbackURL={callbackURL}
+					disabled={isLoading}
+					onPending={setIsLoadingOptional}
+					onError={setError}
+				/>
 				<p className="text-muted-foreground px-8 text-center text-sm">
 					<Trans>
 						By clicking continue, you agree to our{" "}

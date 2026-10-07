@@ -14,6 +14,10 @@ import { WorkItemDetailState } from "renderer/routes/_authenticated/_dashboard/c
 import { useProjectHost } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectHost";
 import { parsePositiveIntegerParam } from "renderer/routes/_authenticated/_dashboard/utils/parsePositiveIntegerParam";
 import {
+	linkedIssueFromGitLab,
+	parseGitLabIssueUrl,
+} from "renderer/routes/_authenticated/utils/linkedIssueFromGitLab";
+import {
 	type LinkedIssue,
 	useNewWorkspaceDraftStore,
 } from "renderer/stores/new-workspace-draft";
@@ -33,6 +37,11 @@ function IssueDetailPage() {
 	const search = TasksLayoutRoute.useSearch();
 	const navigate = useNavigate();
 	const projectId = search.project ?? null;
+	const expectedIssueUrl = search.issueUrl;
+	const expectedIssue =
+		expectedIssueUrl === undefined
+			? null
+			: parseGitLabIssueUrl(expectedIssueUrl);
 	const {
 		hostId,
 		isReady: areProjectsReady,
@@ -70,16 +79,51 @@ function IssueDetailPage() {
 	);
 
 	const { data, isLoading, error, refetch } = useQuery({
-		queryKey: ["issue-detail", projectId, hostUrl, issueNumber],
+		queryKey:
+			expectedIssueUrl === undefined
+				? ["issue-detail", projectId, hostUrl, issueNumber]
+				: ["issue-detail", projectId, hostUrl, issueNumber, expectedIssueUrl],
 		queryFn: async () => {
 			if (!hostUrl || !projectId || issueNumber === null) return null;
 			const client = getHostServiceClientByUrl(hostUrl);
+			if (expectedIssueUrl !== undefined) {
+				const fail = () =>
+					new Error(
+						t({ message: "GitLab issue content could not be verified" }),
+					);
+				if (!expectedIssue || expectedIssue.issueNumber !== issueNumber)
+					throw fail();
+				const result = await client.issues.getContent.query({
+					projectId,
+					issueNumber,
+					expectedIssueUrl: expectedIssue.expectedIssueUrl,
+				});
+				const actual = parseGitLabIssueUrl(result.url);
+				if (
+					!("provider" in result) ||
+					result.provider !== "gitlab" ||
+					result.expectedIssueUrl !== expectedIssue.expectedIssueUrl ||
+					result.number !== issueNumber ||
+					actual?.host !== expectedIssue.host ||
+					actual?.owner !== expectedIssue.owner ||
+					actual?.repo !== expectedIssue.repo ||
+					actual?.issueNumber !== issueNumber
+				)
+					throw fail();
+				return result;
+			}
 			return client.issues.getContent.query({
 				projectId,
 				issueNumber,
 			});
 		},
-		enabled: !!hostUrl && !!project && !!projectId && issueNumber !== null,
+		enabled:
+			!!hostUrl &&
+			!!project &&
+			!!projectId &&
+			issueNumber !== null &&
+			(expectedIssueUrl === undefined ||
+				(!!expectedIssue && expectedIssue.issueNumber === issueNumber)),
 		staleTime: 30_000,
 		gcTime: 10 * 60_000,
 	});
@@ -88,8 +132,30 @@ function IssueDetailPage() {
 		navigate({ to: "/tasks", search: backSearch });
 	};
 
+	const isGitLab =
+		expectedIssueUrl !== undefined ||
+		(!!data && "provider" in data && data.provider === "gitlab");
 	const handleAddToWorkspace = () => {
 		if (!projectId || !hostId || !data) return;
+		if (isGitLab) {
+			if (!hostUrl || !("provider" in data) || data.provider !== "gitlab")
+				return;
+			const linked = linkedIssueFromGitLab({
+				projectId,
+				hostId,
+				hostUrl,
+				issueNumber: data.number,
+				title: data.title,
+				url: data.url,
+				state: data.state,
+			});
+			if (!linked) return;
+			resetDraft();
+			selectProject(projectId);
+			updateDraft({ hostId, linkedIssues: [linked] });
+			openNewWorkspace(projectId);
+			return;
+		}
 		const linkedIssue: LinkedIssue = {
 			slug: `gh-${data.number}`,
 			title: data.title,
@@ -111,17 +177,45 @@ function IssueDetailPage() {
 		<WorkItemDetailHeader
 			itemLabel={`#${data?.number ?? issueNumber ?? "—"}`}
 			icon={<StateIcon className={`size-4 shrink-0 ${stateIconClass}`} />}
-			backLabel={t({
-				message: "Back to GitHub issues",
-			})}
-			externalLabel={t({
-				message: "Open issue in GitHub",
-			})}
+			backLabel={
+				isGitLab
+					? t({ message: "Back to GitLab issues" })
+					: t({ message: "Back to GitHub issues" })
+			}
+			externalLabel={
+				isGitLab
+					? t({ message: "Open issue in GitLab" })
+					: t({ message: "Open issue in GitHub" })
+			}
 			url={data?.url ?? null}
 			onBack={handleBack}
-			onAddToWorkspace={data ? handleAddToWorkspace : null}
+			onAddToWorkspace={
+				isGitLab
+					? data &&
+						!error &&
+						(expectedIssueUrl === undefined || !!expectedIssue)
+						? handleAddToWorkspace
+						: null
+					: data
+						? handleAddToWorkspace
+						: null
+			}
 		/>
 	);
+
+	if (
+		expectedIssueUrl !== undefined &&
+		(!expectedIssue || expectedIssue.issueNumber !== issueNumber)
+	)
+		return (
+			<div className="flex min-h-0 flex-1 flex-col">
+				{header}
+				<WorkItemDetailState
+					message={t({ message: "GitLab issue content could not be verified" })}
+					isError
+				/>
+			</div>
+		);
 
 	if (issueNumber === null) {
 		return (
@@ -142,10 +236,17 @@ function IssueDetailPage() {
 			<div className="flex min-h-0 flex-1 flex-col">
 				{header}
 				<WorkItemDetailState
-					message={t({
-						message:
-							"Choose a project from GitHub issues before opening an issue.",
-					})}
+					message={
+						isGitLab
+							? t({
+									message:
+										"Choose a project from GitLab issues before opening an issue.",
+								})
+							: t({
+									message:
+										"Choose a project from GitHub issues before opening an issue.",
+								})
+					}
 				/>
 			</div>
 		);

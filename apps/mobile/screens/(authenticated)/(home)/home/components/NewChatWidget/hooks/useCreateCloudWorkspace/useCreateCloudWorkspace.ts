@@ -2,6 +2,7 @@ import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
+import { useEffect, useRef } from "react";
 import { Alert } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import type { CloudWorkspaceRow } from "@/hooks/useCloudWorkspaces";
@@ -10,9 +11,16 @@ import { useSession } from "@/lib/auth/client";
 import { errorCopy, transportFailureKind } from "@/lib/errors";
 import { posthog } from "@/lib/posthog";
 import { apiClient } from "@/lib/trpc/client";
+import {
+	type CloudGitlabSelection,
+	cloudGitlabSelectionError,
+	cloudGitlabSelectionKey,
+	useCloudCreateSelection,
+} from "@/screens/(authenticated)/(home)/hooks/useCloudCreateSelection/useCloudCreateSelection";
 import { useAppReviewStore } from "@/screens/(authenticated)/stores/appReviewStore";
 
 interface CreateCloudWorkspaceArgs {
+	gitlab?: CloudGitlabSelection;
 	/** Null means the repo's default branch, resolved by the branch query. */
 	branch: string | null;
 	/** Null when no environment exists yet; create cannot proceed without one. */
@@ -39,8 +47,22 @@ export function useCreateCloudWorkspace() {
 	const { data: session } = useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
 
-	return useMutation({
+	const selection = useCloudCreateSelection();
+	const nativeKey = cloudGitlabSelectionKey(selection.gitlab);
+	const latest = useRef(nativeKey);
+	latest.current = nativeKey;
+	const live = useRef(true);
+	useEffect(() => {
+		live.current = true;
+		latest.current = nativeKey;
+		return () => {
+			live.current = false;
+			latest.current = null;
+		};
+	}, [nativeKey]);
+	const mutation = useMutation({
 		mutationFn: async ({
+			gitlab,
 			branch,
 			environmentId,
 			agent,
@@ -49,6 +71,33 @@ export function useCreateCloudWorkspace() {
 			message,
 			attachmentFileIds,
 		}: CreateCloudWorkspaceArgs) => {
+			if (!gitlab && selection.isGitlab) throw cloudGitlabSelectionError();
+			if (gitlab) {
+				const key = cloudGitlabSelectionKey(gitlab);
+				if (
+					!live.current ||
+					!key ||
+					key !== latest.current ||
+					gitlab.organizationId !== organizationId ||
+					gitlab.environmentId !== environmentId
+				)
+					throw cloudGitlabSelectionError();
+				const launchAgent = agent && message.text.trim() ? agent : undefined;
+				const row = await apiClient.cloudWorkspace.create.mutate({
+					organizationId: gitlab.organizationId,
+					environmentId: gitlab.environmentId,
+					gitlabCloneUrl: gitlab.cloneUrl,
+					prompt: message.text.trim() || undefined,
+					branch: branch ?? undefined,
+					agent: launchAgent,
+					model: launchAgent ? (model ?? undefined) : undefined,
+					effort: launchAgent ? (effort ?? undefined) : undefined,
+					...(launchAgent && attachmentFileIds.length > 0
+						? { attachmentFileIds }
+						: {}),
+				});
+				return row;
+			}
 			if (!organizationId) throw new Error("No active organization");
 			if (!environmentId) {
 				throw new Error(
@@ -75,7 +124,7 @@ export function useCreateCloudWorkspace() {
 		},
 		onSuccess: (
 			row: CloudWorkspaceRow,
-			{ branch, agent, model, effort, message },
+			{ branch, agent, model, effort, message, gitlab },
 		) => {
 			// The API emits `workspace_created`; this is only the client asking.
 			posthog.capture("workspace_create_requested", {
@@ -92,14 +141,27 @@ export function useCreateCloudWorkspace() {
 			// Seed the list before navigating: the workspace screen decides
 			// between "provisioning" and "not found" off this cache, and even
 			// one refetch round trip is long enough to flash the wrong one.
-			const key = getCloudWorkspacesQueryKey(organizationId);
+			const key = getCloudWorkspacesQueryKey(
+				gitlab?.organizationId ?? organizationId,
+			);
 			queryClient.setQueryData<CloudWorkspaceRow[] | undefined>(key, (rows) =>
-				rows ? [row, ...rows] : [row],
+				rows
+					? [row, ...rows.filter((existing) => existing.id !== row.id)]
+					: [row],
 			);
 			void queryClient.invalidateQueries({ queryKey: key });
-			router.push(`/(authenticated)/workspace/${row.id}`);
+			if (
+				live.current &&
+				(!gitlab || cloudGitlabSelectionKey(gitlab) === latest.current)
+			)
+				router.push(`/(authenticated)/workspace/${row.id}`);
 		},
-		onError: (error, { branch }) => {
+		onError: (error, { branch, gitlab }) => {
+			if (
+				gitlab &&
+				(!live.current || cloudGitlabSelectionKey(gitlab) !== latest.current)
+			)
+				return;
 			posthog.capture("workspace_create_failed", {
 				organization_id: organizationId,
 				host_kind: "cloud",
@@ -118,4 +180,19 @@ export function useCreateCloudWorkspace() {
 			);
 		},
 	});
+	const capture = (args: CreateCloudWorkspaceArgs) =>
+		args.gitlab
+			? Object.freeze({ ...args, gitlab: Object.freeze({ ...args.gitlab }) })
+			: args;
+	return {
+		...mutation,
+		mutateAsync: (
+			args: CreateCloudWorkspaceArgs,
+			options?: Parameters<typeof mutation.mutateAsync>[1],
+		) => mutation.mutateAsync(capture(args), options),
+		mutate: (
+			args: CreateCloudWorkspaceArgs,
+			options?: Parameters<typeof mutation.mutate>[1],
+		) => mutation.mutate(capture(args), options),
+	};
 }

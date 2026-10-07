@@ -144,4 +144,59 @@ describe("openPullRequestPaneInStore", () => {
 			number: 42,
 		});
 	});
+
+	it("retains a hosted GitLab ref when creating its pane", () => {
+		const store = createWorkspaceStore<PaneViewerData>({
+			initialState: workspaceState(),
+		});
+		const ref = {
+			repoFullName: "team/sub/repo",
+			number: 7,
+			provider: "gitlab" as const,
+			host: "gl.example:8443",
+		};
+		openPullRequestPaneInStore(store, ref);
+		expect(paneData(store)).toEqual(ref);
+	});
+
+	it("keeps the exact pane data when reopening the same GitLab instance", () => {
+		const ref = {
+			repoFullName: "team/sub/repo",
+			number: 7,
+			provider: "gitlab" as const,
+			host: "gl.example",
+		};
+		const store = createWorkspaceStore<PaneViewerData>({
+			initialState: workspaceState({
+				tabId: "tab-2",
+				paneId: "pr-pane",
+				data: ref,
+			}),
+		});
+		const before = paneData(store);
+		openPullRequestPaneInStore(store, ref);
+		expect(paneData(store)).toBe(before);
+	});
+
+	it.each([
+		"other.example",
+		"gl.example:8443",
+	])("retargets the pane to hosted identity %s", (host) => {
+		const ref = {
+			repoFullName: "team/sub/repo",
+			number: 7,
+			provider: "gitlab" as const,
+			host: "gl.example",
+		};
+		const store = createWorkspaceStore<PaneViewerData>({
+			initialState: workspaceState({
+				tabId: "tab-2",
+				paneId: "pr-pane",
+				data: ref,
+			}),
+		});
+		openPullRequestPaneInStore(store, { ...ref, host });
+		expect(paneData(store)).toEqual({ ...ref, host });
+		expect(findPullRequestPanes(store)).toHaveLength(1);
+	});
 });

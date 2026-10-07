@@ -1,1 +1,5 @@
-export { type PullRequestLink, pullRequestFromUrl } from "./pullRequestLinks";
+export {
+	gitlabPullRequestFromUrl,
+	type PullRequestLink,
+	pullRequestFromUrl,
+} from "./pullRequestLinks";

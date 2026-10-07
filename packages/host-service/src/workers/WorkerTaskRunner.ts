@@ -24,6 +24,14 @@ export class WorkerTaskError extends Error {
 	}
 }
 
+export class WorkerTaskIndeterminateError extends WorkerTaskError {
+	constructor(cause: unknown) {
+		super(cause instanceof Error ? cause.message : String(cause));
+		this.name = "WorkerTaskIndeterminateError";
+		this.cause = cause;
+	}
+}
+
 /** Why the runner gave up on a task on purpose; none of these is a worker
  * failure. Kept as a field rather than read back out of the message so the
  * tRPC boundary never has to match on our own wording. */
@@ -50,6 +58,9 @@ interface WorkerTaskOptions {
 	dedupeKey?: string;
 	timeoutMs?: number;
 	signal?: AbortSignal;
+	quarantineDispatchedFailures?: boolean;
+	onIndeterminate?: (error: WorkerTaskIndeterminateError) => void;
+	beforeDispatch?: () => void;
 	strategy?: QueueStrategy;
 }
 
@@ -88,6 +99,10 @@ interface QueuedTask {
 	abortSignal?: AbortSignal;
 	abortHandler?: () => void;
 	timeoutMs: number;
+	quarantineDispatchedFailures?: boolean;
+	onIndeterminate?: (error: WorkerTaskIndeterminateError) => void;
+	beforeDispatch?: () => void;
+	dispatched?: boolean;
 	timeoutHandle?: NodeJS.Timeout;
 	slotId?: number;
 	/** Last phase the handler reported, if it reports any. */
@@ -174,6 +189,9 @@ export class WorkerTaskRunner {
 				generation,
 				abortSignal: options?.signal,
 				timeoutMs,
+				quarantineDispatchedFailures: options?.quarantineDispatchedFailures,
+				onIndeterminate: options?.onIndeterminate,
+				beforeDispatch: options?.beforeDispatch,
 			};
 
 			if (task.abortSignal) {
@@ -226,6 +244,7 @@ export class WorkerTaskRunner {
 			this.rejectTask(
 				taskId,
 				new WorkerTaskAbortedError("disposed", "Worker runner disposed"),
+				true,
 			);
 		}
 		this.queue.length = 0;
@@ -236,6 +255,7 @@ export class WorkerTaskRunner {
 				this.rejectTask(
 					slot.activeTaskId,
 					new WorkerTaskAbortedError("disposed", "Worker runner disposed"),
+					true,
 				);
 			}
 			exits.push(
@@ -323,6 +343,12 @@ export class WorkerTaskRunner {
 						continue;
 					}
 
+					try {
+						task.beforeDispatch?.();
+					} catch (error) {
+						this.rejectTask(task.taskId, error);
+						continue;
+					}
 					this.clearIdleTimer(slot);
 					slot.activeTaskId = task.taskId;
 					task.slotId = slot.id;
@@ -337,6 +363,10 @@ export class WorkerTaskRunner {
 						payload: task.payload,
 					};
 					try {
+						if (task.quarantineDispatchedFailures) {
+							request.payload = structuredClone(task.payload);
+							task.dispatched = true;
+						}
 						slot.worker.postMessage(request);
 					} catch (error) {
 						// Non-cloneable payload: reject THIS task and free the slot —
@@ -347,6 +377,7 @@ export class WorkerTaskRunner {
 							new WorkerTaskError(
 								`postMessage failed for task "${task.taskType}": ${(error as Error).message}`,
 							),
+							true,
 						);
 					}
 				}
@@ -509,6 +540,7 @@ export class WorkerTaskRunner {
 			new WorkerTaskError(
 				`[${this.name}] Task "${task.taskType}" timed out after ${task.timeoutMs}ms${phaseSuffix}`,
 			),
+			true,
 		);
 
 		if (task.slotId) {
@@ -527,7 +559,7 @@ export class WorkerTaskRunner {
 		const task = this.tasks.get(taskId);
 		if (!task) return;
 
-		this.rejectTask(taskId, new WorkerTaskAbortedError("cancelled"));
+		this.rejectTask(taskId, new WorkerTaskAbortedError("cancelled"), true);
 
 		if (task.slotId) {
 			const slot = this.workerSlots.get(task.slotId);
@@ -550,7 +582,7 @@ export class WorkerTaskRunner {
 		this.workerSlots.delete(slot.id);
 
 		if (activeTaskId) {
-			this.rejectTask(activeTaskId, error);
+			this.rejectTask(activeTaskId, error, true);
 		}
 
 		if (!this.disposed && this.hasOutstandingWork()) {
@@ -586,7 +618,11 @@ export class WorkerTaskRunner {
 		task.resolve(result);
 	}
 
-	private rejectTask(taskId: string, reason: unknown): void {
+	private rejectTask(
+		taskId: string,
+		reason: unknown,
+		infrastructure = false,
+	): void {
 		const task = this.tasks.get(taskId);
 		if (!task) return;
 
@@ -600,8 +636,14 @@ export class WorkerTaskRunner {
 			slot.activeTaskId = null;
 		}
 
+		const failure =
+			infrastructure && task.quarantineDispatchedFailures && task.dispatched
+				? new WorkerTaskIndeterminateError(reason)
+				: reason;
+		if (failure instanceof WorkerTaskIndeterminateError)
+			task.onIndeterminate?.(failure);
 		this.cleanupTask(task);
-		task.reject(reason);
+		task.reject(failure);
 	}
 
 	private cleanupTask(task: QueuedTask): void {
@@ -634,7 +676,21 @@ export class WorkerTaskRunner {
 		}
 		let deficit = this.queue.length - idle;
 		while (deficit > 0 && this.getActiveSlotCount() < this.concurrency) {
-			this.spawnWorker();
+			try {
+				this.spawnWorker();
+			} catch (error) {
+				let removedStrictTask = false;
+				for (const taskId of [...this.queue]) {
+					const task = this.tasks.get(taskId);
+					if (task?.quarantineDispatchedFailures && !task.dispatched) {
+						this.rejectTask(taskId, error);
+						removedStrictTask = true;
+					}
+				}
+				if (!removedStrictTask) throw error;
+				for (const taskId of [...this.queue]) this.rejectTask(taskId, error);
+				return;
+			}
 			deficit -= 1;
 		}
 	}

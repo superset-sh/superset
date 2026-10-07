@@ -1,5 +1,8 @@
 import { execFile } from "node:child_process";
-import { unlink } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { mkdir, mkdtemp, rm, unlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import type {
 	CredentialProblem,
@@ -10,6 +13,11 @@ import { writeTempAskpass } from "../askpass";
 import { localCredentialRemedy, type TokenSource } from "./credential-remedy";
 
 const TOKEN_CACHE_TTL_MS = 5 * 60 * 1000;
+const GITLAB_TOKEN_VARIABLES = [
+	"GITLAB_TOKEN",
+	"GITLAB_ACCESS_TOKEN",
+	"OAUTH_TOKEN",
+] as const;
 
 const execFileAsync = promisify(execFile);
 
@@ -69,6 +77,7 @@ export class LocalGitCredentialProvider implements GitCredentialProvider {
 		return localCredentialRemedy(
 			problem,
 			this.cachedTokenByHost.get(host)?.source ?? null,
+			host,
 		);
 	}
 
@@ -101,12 +110,15 @@ export class LocalGitCredentialProvider implements GitCredentialProvider {
 
 		const viaGit = await this.fetchTokenViaGitCredential(host);
 		if (viaGit)
-			return { token: viaGit, source: sourceOf(viaGit, env, "git-credential") };
-		if (host !== "github.com") return null;
+			return {
+				token: viaGit,
+				source: sourceOf(viaGit, env, "git-credential", host),
+			};
+		if (host !== "github.com") return this.fetchTokenViaGlabCli(host, env);
 
 		const viaGh = await this.fetchTokenViaGhCli();
 		if (!viaGh) return null;
-		return { token: viaGh, source: sourceOf(viaGh, env, "gh-cli") };
+		return { token: viaGh, source: sourceOf(viaGh, env, "gh-cli", host) };
 	}
 
 	private async askpassFor(token: string): Promise<string> {
@@ -147,6 +159,82 @@ export class LocalGitCredentialProvider implements GitCredentialProvider {
 		});
 	}
 
+	private async fetchTokenViaGlabCli(
+		host: string,
+		env: Record<string, string>,
+	): Promise<Omit<ResolvedToken, "expiresAt"> | null> {
+		const envHost = normalizeGitLabHost(
+			env.GITLAB_HOST || env.GITLAB_URI || env.GL_HOST || "gitlab.com",
+		);
+		if (host === envHost) {
+			for (const name of GITLAB_TOKEN_VARIABLES) {
+				if (env[name]) {
+					const token = validGitLabToken(env[name]);
+					return token ? { token, source: `env:${name}` } : null;
+				}
+			}
+		}
+
+		const glabEnv: Record<string, string> = {
+			...env,
+			GLAB_SHOW_WHATS_NEW: "false",
+			GLAB_SEND_TELEMETRY: "false",
+			GLAB_CHECK_UPDATE: "false",
+			CHECK_UPDATE: "false",
+		};
+		if (glabEnv.GLAB_CONFIG_DIR)
+			glabEnv.GLAB_CONFIG_DIR = resolve(glabEnv.GLAB_CONFIG_DIR);
+		for (const name of GITLAB_TOKEN_VARIABLES) delete glabEnv[name];
+		for (const name of Object.keys(glabEnv))
+			if (name.startsWith("GIT_")) delete glabEnv[name];
+		let directory: string | undefined;
+		try {
+			directory = await mkdtemp(join(tmpdir(), "superset-glab-"));
+			const gitDir = join(directory, ".git");
+			await Promise.all([
+				mkdir(join(gitDir, "objects"), { recursive: true, mode: 0o700 }),
+				mkdir(join(gitDir, "refs"), { recursive: true, mode: 0o700 }),
+				mkdir(join(gitDir, "glab-cli"), { recursive: true, mode: 0o700 }),
+			]);
+			const fallback = randomUUID();
+			await Promise.all([
+				writeFile(join(directory, "gitconfig"), "", { mode: 0o600 }),
+				writeFile(join(gitDir, "HEAD"), "ref: refs/heads/main\n", {
+					mode: 0o600,
+				}),
+				writeFile(
+					join(gitDir, "glab-cli", "config.yml"),
+					`token: ${fallback}\n`,
+					{ mode: 0o600 },
+				),
+			]);
+			// glab resolves host/keyring first, then this private local fallback.
+			const { stdout } = await execFileAsync(
+				"glab",
+				["config", "get", "token", "--host", host],
+				{
+					timeout: 10_000,
+					cwd: directory,
+					env: {
+						...glabEnv,
+						GIT_DIR: gitDir,
+						GIT_COMMON_DIR: gitDir,
+						GIT_WORK_TREE: directory,
+						GIT_CONFIG_NOSYSTEM: "1",
+						GIT_CONFIG_GLOBAL: join(directory, "gitconfig"),
+					},
+				},
+			);
+			const token = validGitLabToken(stdout.trim());
+			return token && token !== fallback ? { token, source: "glab-cli" } : null;
+		} catch {
+			return null;
+		} finally {
+			if (directory)
+				await rm(directory, { recursive: true, force: true }).catch(() => {});
+		}
+	}
+
 	private async fetchTokenViaGhCli(): Promise<string | null> {
 		const env = await this.envResolver();
 		try {
@@ -172,9 +260,16 @@ function sourceOf(
 	token: string,
 	env: Record<string, string>,
 	storedSource: TokenSource,
+	host: string,
 ): TokenSource {
-	if (token === env.GH_TOKEN) return "env:GH_TOKEN";
-	if (token === env.GITHUB_TOKEN) return "env:GITHUB_TOKEN";
+	if (host === "github.com") {
+		if (token === env.GH_TOKEN) return "env:GH_TOKEN";
+		if (token === env.GITHUB_TOKEN) return "env:GITHUB_TOKEN";
+	} else {
+		for (const name of GITLAB_TOKEN_VARIABLES) {
+			if (token === env[name]) return `env:${name}`;
+		}
+	}
 	return storedSource;
 }
 
@@ -186,4 +281,28 @@ function httpsHost(remoteUrl: string | null): string | null {
 	} catch {
 		return null;
 	}
+}
+
+function normalizeGitLabHost(value: string): string | null {
+	if (/\s/.test(value)) return null;
+	try {
+		const url = new URL(value.includes("://") ? value : `https://${value}`);
+		return (url.protocol === "https:" || url.protocol === "http:") &&
+			!url.username &&
+			!url.password
+			? url.host
+			: null;
+	} catch {
+		return null;
+	}
+}
+
+function validGitLabToken(value: string | null | undefined): string | null {
+	if (
+		!value ||
+		!/^[A-Za-z0-9_.=-]+$/.test(value) ||
+		/^(usage|help|glab)$/i.test(value)
+	)
+		return null;
+	return value;
 }

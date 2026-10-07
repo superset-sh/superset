@@ -1,6 +1,7 @@
 import path from "node:path";
 import { SUPPORTED_LOCALES } from "@superset/i18n/locales";
 import { IOS_APP } from "@superset/shared/constants";
+import { mobileAuthProviders } from "@superset/shared/optional-auth-providers";
 import { config } from "dotenv";
 import type { ConfigContext } from "expo/config";
 import { withIosAccentColor } from "./config-plugins/withIosAccentColor";
@@ -18,6 +19,10 @@ const webUrl = new URL(
 );
 const associatedDomains =
 	webUrl.protocol === "https:" ? [`applinks:${webUrl.hostname}`] : undefined;
+
+const usesAppleSignIn = mobileAuthProviders(
+	process.env.EXPO_PUBLIC_AUTH_PROVIDERS,
+).includes("apple");
 
 const SIGNED_BUILD_PROFILES = ["preview", "production"];
 const signedUpdates = process.env.MOBILE_SIGNED_UPDATES === "1";
@@ -61,7 +66,7 @@ export default ({ config }: ConfigContext) => ({
 		},
 		bundleIdentifier: IOS_APP.BUNDLE_ID,
 		...(associatedDomains && { associatedDomains }),
-		usesAppleSignIn: true,
+		usesAppleSignIn,
 		infoPlist: {
 			"UISupportedInterfaceOrientations~ipad": [
 				"UIInterfaceOrientationPortrait",

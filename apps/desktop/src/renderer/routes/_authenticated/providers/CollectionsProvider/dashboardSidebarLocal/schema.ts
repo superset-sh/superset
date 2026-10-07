@@ -675,6 +675,8 @@ export type WorkspacesCreateAnyInput =
 	| WorkspacesCreateSessionInput;
 
 export const failedWorkspaceCreateSchema = z.object({
+	retryBlocked: z.boolean().optional(),
+	recoveryWorkspaceId: z.string().optional(),
 	id: z.string().uuid(),
 	hostId: z.string(),
 	input: z.custom<WorkspacesCreateAnyInput>(),

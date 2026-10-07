@@ -51,3 +51,46 @@ function quotedCheckName(check: { name: string }): string {
 		.slice(0, MAX_CHECK_NAME_LENGTH);
 	return `"${cleaned}"`;
 }
+
+export function gitlabAgentPrompt(
+	action: AgentActionId,
+	{
+		pullRequest,
+		checks,
+	}: Pick<
+		import("../../hooks/gitlabActionTarget").GitlabPullRequestDetail,
+		"pullRequest" | "checks"
+	>,
+): string {
+	const pr = `MR #${pullRequest.number} (${pullRequest.url})`;
+	switch (action) {
+		case "ask-resolve-conflicts":
+			return `${pr} has merge conflicts with ${pullRequest.baseBranch}. Resolve them on this branch and push the result.`;
+		case "ask-fix-checks": {
+			const failing = checks
+				.filter(
+					(check) =>
+						check.status === "COMPLETED" &&
+						check.conclusion !== null &&
+						![
+							"SUCCESS",
+							"NEUTRAL",
+							"SKIPPED",
+							"CANCELLED",
+							"ACTION_REQUIRED",
+							"STALE",
+						].includes(check.conclusion),
+				)
+				.map(quotedCheckName);
+			const named = failing.slice(0, MAX_NAMED_CHECKS);
+			const more = failing.length - named.length;
+			const which =
+				named.length > 0
+					? ` Failing: ${named.join(", ")}${more > 0 ? ` and ${more} more` : ""}.`
+					: "";
+			return `Checks are failing on ${pr}.${which} Find out why, fix the code, and push the fix to this branch.`;
+		}
+		case "ask-address-comments":
+			return `Reviewers left feedback on ${pr}. Address the requested changes and unresolved review comments, then push your fixes.`;
+	}
+}

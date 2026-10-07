@@ -29,6 +29,7 @@ interface Comment {
 }
 
 interface PullRequestCommentThreadProps {
+	provider?: "github" | "gitlab";
 	isResolved: boolean;
 	isOutdated?: boolean;
 	url?: string;
@@ -52,6 +53,7 @@ interface PullRequestCommentThreadProps {
 // directly and don't necessarily have a workspace linked to it. The reply
 // box is the shared ReviewThreadReplyComposer; only the dispatch differs.
 export function PullRequestCommentThread({
+	provider = "github",
 	isResolved,
 	isOutdated,
 	url,
@@ -199,9 +201,11 @@ export function PullRequestCommentThread({
 							rel="noreferrer"
 							onClick={(e) => e.stopPropagation()}
 							className="shrink-0 text-muted-foreground hover:text-foreground"
-							aria-label={t({
-								message: "Open on GitHub",
-							})}
+							aria-label={
+								provider === "gitlab"
+									? t({ message: "Open in browser" })
+									: t({ message: "Open on GitHub" })
+							}
 						>
 							<LuExternalLink className="size-3" />
 						</a>

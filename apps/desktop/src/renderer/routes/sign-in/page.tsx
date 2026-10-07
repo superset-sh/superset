@@ -5,6 +5,7 @@ import {
 	DEV_NAME,
 	DEV_PASSWORD,
 } from "@superset/shared/dev-credentials";
+import { optionalAuthProviders } from "@superset/shared/optional-auth-providers";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
@@ -219,6 +220,20 @@ function SignInPage() {
 							<Trans>Continue with Google</Trans>
 							{lastUsedMethod === "google" && lastUsedBadge}
 						</Button>
+						{optionalAuthProviders(env.NEXT_PUBLIC_AUTH_PROVIDERS).map(
+							(provider) => (
+								<Button
+									key={provider}
+									variant="outline"
+									size="lg"
+									onClick={() => signIn(provider)}
+									className="w-full gap-3"
+									disabled={signInMutation.isPending}
+								>
+									<Trans>Continue with GitLab</Trans>
+								</Button>
+							),
+						)}
 					</div>
 
 					<p className="mt-8 text-xs text-muted-foreground/70 text-center max-w-xs">

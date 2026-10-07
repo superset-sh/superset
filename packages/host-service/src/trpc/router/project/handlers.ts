@@ -1,10 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { rm } from "node:fs/promises";
+import { repositoryIdentityKey } from "@superset/shared/repo-identity";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { projects } from "../../../db/schema";
 import { restoreProject } from "../../../projects/project-deletion";
+import { detectRepoProvider } from "../../../runtime/repo-providers/detect-repo-provider";
 import type { HostServiceContext } from "../../../types";
+import { getHostWorkerPool } from "../../../workers/host-worker-pool";
+import { gitResolveRepositoryTask } from "../../../workers/tasks/git";
 import { persistLocalProject } from "./utils/persist-project";
 import {
 	adoptLocalRepo,
@@ -15,6 +19,36 @@ import {
 	type ResolvedRepo,
 	tryRevParseGitRoot,
 } from "./utils/resolve-repo";
+
+export async function prepareProjectRepository(
+	ctx: HostServiceContext,
+	resolved: ResolvedRepo,
+): Promise<ResolvedRepo> {
+	const identity = resolved.identity;
+	if (!identity) return resolved;
+	const provider = await detectRepoProvider(identity, {
+		getGitLabToken: (host) => ctx.credentials.getToken(host),
+	});
+	const inspected = await getHostWorkerPool().run(gitResolveRepositoryTask, {
+		repoPath: resolved.repoPath,
+	});
+	const current = new Map(inspected.remotes).get(identity.remoteName);
+	if (
+		inspected.repoPath !== resolved.repoPath ||
+		!current ||
+		repositoryIdentityKey(current) !== repositoryIdentityKey(identity)
+	) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"The selected repository remote changed. Retry with its current authority and path.",
+		});
+	}
+	return {
+		...resolved,
+		identity: { ...identity, provider: provider ?? "unknown" },
+	};
+}
 
 function dirNameForEmpty(name: string): string {
 	const slug = name
@@ -55,11 +89,28 @@ async function persistFromResolved(
 		name: string;
 		resolved: ResolvedRepo;
 		cleanupRepoPathOnFailure: boolean;
+		reuseExistingNativePath?: boolean;
 	},
 ): Promise<CreateResult> {
 	const projectId = randomUUID();
 	try {
-		persistLocalProject(ctx, projectId, args.resolved, { name: args.name });
+		const resolved = args.resolved.identity
+			? await prepareProjectRepository(ctx, args.resolved)
+			: args.resolved;
+		if (resolved.identity && args.reuseExistingNativePath) {
+			const current = ctx.db.query.projects
+				.findFirst({ where: eq(projects.repoPath, resolved.repoPath) })
+				.sync();
+			if (current) {
+				restoreProject(ctx, current.id);
+				return {
+					projectId: current.id,
+					repoPath: resolved.repoPath,
+					created: false,
+				};
+			}
+		}
+		persistLocalProject(ctx, projectId, resolved, { name: args.name });
 	} catch (err) {
 		if (args.cleanupRepoPathOnFailure) {
 			try {
@@ -137,6 +188,7 @@ export async function createFromImportLocal(
 		resolved,
 		// User pointed us at an existing folder; never rm it.
 		cleanupRepoPathOnFailure: false,
+		reuseExistingNativePath: true,
 	});
 }
 

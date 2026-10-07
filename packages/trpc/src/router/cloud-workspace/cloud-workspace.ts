@@ -18,6 +18,7 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, desc, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
+import { listGitlabCheckouts } from "../../lib/gitlab/checkout";
 import { nudge } from "../../lib/realtime";
 import {
 	deleteSandbox,
@@ -41,6 +42,7 @@ import {
 	visibleTo,
 } from "./access";
 import { recordCloudWorkspaceActivity } from "./activity";
+import { gitlabOptionsRouter } from "./gitlab-options";
 import { nextSandboxNameFor } from "./provision";
 import { queueReap } from "./reap";
 import { cloudWorkspaceRecordRouter } from "./record";
@@ -180,6 +182,7 @@ async function loadPresence(organizationId: string, workspaceIds: string[]) {
 
 export const cloudWorkspaceRouter = {
 	...cloudWorkspaceRecordRouter,
+	...gitlabOptionsRouter,
 
 	/**
 	 * Whether this account may use cloud workspaces. Clients decide their
@@ -290,11 +293,30 @@ export const cloudWorkspaceRouter = {
 				);
 				if (primary) primaryByWorkspace.set(workspaceId, primary.id);
 			}
-			return rows.map(({ hooksRepositoryId: _hooks, ...row }) => ({
+			const githubRows = rows.map(({ hooksRepositoryId: _hooks, ...row }) => ({
 				...row,
 				primary:
 					primaryByWorkspace.get(row.cloudWorkspaceId) === row.repositoryId,
 			}));
+			const gitlabRows = await listGitlabCheckouts(
+				input.organizationId,
+				ctx.userId,
+			);
+			const githubWorkspaces = new Set(
+				githubRows.map((row) => row.cloudWorkspaceId),
+			);
+			return [
+				...githubRows,
+				...gitlabRows
+					.filter((row) => !githubWorkspaces.has(row.cloudWorkspaceId))
+					.map((row) => ({
+						cloudWorkspaceId: row.cloudWorkspaceId,
+						repositoryId: row.cloudWorkspaceId,
+						fullName: row.pathWithNamespace,
+						path: ".",
+						primary: true,
+					})),
+			];
 		}),
 
 	listBranches: jwtProcedure
@@ -346,6 +368,7 @@ export const cloudWorkspaceRouter = {
 				typedPrompt: z.string().max(20000).optional(),
 				/** Tasks the composer linked; each must be in this organization. */
 				taskIds: z.array(z.string().uuid()).max(10).optional(),
+				gitlabCloneUrl: z.string().url().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -367,6 +390,7 @@ export const cloudWorkspaceRouter = {
 				name: input.name,
 				prompt: input.prompt,
 				branch: input.branch,
+				gitlabCloneUrl: input.gitlabCloneUrl,
 				typedPrompt: input.typedPrompt,
 				taskIds: input.taskIds,
 				attachmentFileIds: input.attachmentFileIds,

@@ -18,10 +18,13 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { linkedIssueFromGitLab } from "renderer/routes/_authenticated/utils/linkedIssueFromGitLab";
 import {
 	IssueIcon,
 	type IssueState,
 } from "renderer/screens/main/components/IssueIcon/IssueIcon";
+import type { GitLabIssueReference } from "renderer/stores/new-workspace-draft";
 
 const MAX_RESULTS = 30;
 
@@ -29,6 +32,7 @@ const normalizeIssueState = (state: string): IssueState =>
 	state.toLowerCase() === "closed" ? "closed" : "open";
 
 export interface SelectedIssue {
+	gitlab?: GitLabIssueReference;
 	issueNumber: number;
 	title: string;
 	url: string;
@@ -57,6 +61,8 @@ export function GitHubIssueLinkCommand({
 	const showClosedId = useId();
 	const debouncedQuery = useDebouncedValue(searchQuery, 300);
 	const hostUrl = useHostUrl(hostId);
+	const { machineId } = useLocalHostService();
+	const servingHostId = hostId ?? machineId;
 
 	const trimmedQuery = searchQuery.trim();
 	const debouncedTrimmed = debouncedQuery.trim();
@@ -110,6 +116,33 @@ export function GitHubIssueLinkCommand({
 			: isFetching;
 
 	const handleSelect = (issue: (typeof searchResults)[number]) => {
+		if (issue.url.includes("/-/issues/")) {
+			const linked =
+				projectId && servingHostId && hostUrl && issue.projectId === projectId
+					? linkedIssueFromGitLab({
+							...issue,
+							projectId,
+							hostId: servingHostId,
+							hostUrl,
+						})
+					: null;
+			if (!linked?.gitlab) {
+				toast.error(
+					t({ message: "GitLab issue content could not be verified" }),
+				);
+				return;
+			}
+			onSelect({
+				issueNumber: issue.issueNumber,
+				title: issue.title,
+				url: linked.url ?? issue.url,
+				state: issue.state,
+				gitlab: linked.gitlab,
+			});
+			setSearchQuery("");
+			setOpen(false);
+			return;
+		}
 		onSelect({
 			issueNumber: issue.issueNumber,
 			title: issue.title,

@@ -1,8 +1,8 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { useQuery } from "@tanstack/react-query";
-import { useFeatureFlag } from "posthog-react-native";
 import { useMemo } from "react";
 import { useSession } from "@/lib/auth/client";
+import { useFeatureFlag } from "@/lib/posthog";
 import { apiClient } from "@/lib/trpc/client";
 
 /** Each cloud workspace's primary repository, `owner/name`, by cloud workspace id. */

@@ -20,6 +20,7 @@ import {
 	WORKER_CRASH_ERROR_NAME,
 	WorkerTaskAbortedError,
 	WorkerTaskError,
+	WorkerTaskIndeterminateError,
 	type WorkerTaskOptions,
 	WorkerTaskRunner,
 } from "./WorkerTaskRunner.ts";
@@ -137,6 +138,56 @@ export function resolveHostWorkerScriptPath(): string | null {
 	return null;
 }
 
+interface MutationWaiter {
+	resolve: (lease: MutationScopeLease) => void;
+	reject: (error: unknown) => void;
+	signal?: AbortSignal;
+	abort?: () => void;
+}
+interface MutationScopeState {
+	leased: boolean;
+	waiters: MutationWaiter[];
+	quarantine?: WorkerTaskIndeterminateError;
+}
+export interface MutationScopeLease {
+	release: () => void;
+}
+const mutationScopes = new Map<string, MutationScopeState>();
+
+function grantMutationLease(
+	scope: string,
+	state: MutationScopeState,
+): MutationScopeLease {
+	state.leased = true;
+	let released = false;
+	return {
+		release: () => {
+			if (released || state.quarantine) return;
+			released = true;
+			const next = state.waiters.shift();
+			if (next) {
+				if (next.abort) next.signal?.removeEventListener("abort", next.abort);
+				next.resolve(grantMutationLease(scope, state));
+			} else {
+				state.leased = false;
+				mutationScopes.delete(scope);
+			}
+		},
+	};
+}
+function quarantineMutationScope(
+	scope: string,
+	error: WorkerTaskIndeterminateError,
+): void {
+	const state = mutationScopes.get(scope) ?? { leased: true, waiters: [] };
+	state.quarantine ??= error;
+	mutationScopes.set(scope, state);
+	for (const waiter of state.waiters.splice(0)) {
+		if (waiter.abort) waiter.signal?.removeEventListener("abort", waiter.abort);
+		waiter.reject(state.quarantine);
+	}
+}
+
 export class HostWorkerPool {
 	private runner: WorkerTaskRunner | null = null;
 	private inlineOnly = false;
@@ -192,6 +243,42 @@ export class HostWorkerPool {
 		return this.runner;
 	}
 
+	assertMutationScopeHealthy(scope: string): void {
+		const error = mutationScopes.get(scope)?.quarantine;
+		if (error) throw error;
+	}
+
+	acquireMutationScope(
+		scope: string,
+		signal?: AbortSignal,
+	): Promise<MutationScopeLease> {
+		if (!scope)
+			return Promise.reject(new Error("Missing Git mutation storage identity"));
+		try {
+			this.assertMutationScopeHealthy(scope);
+		} catch (error) {
+			return Promise.reject(error);
+		}
+		if (signal?.aborted)
+			return Promise.reject(new WorkerTaskAbortedError("cancelled"));
+		const state = mutationScopes.get(scope) ?? { leased: false, waiters: [] };
+		mutationScopes.set(scope, state);
+		if (!state.leased) return Promise.resolve(grantMutationLease(scope, state));
+		return new Promise((resolve, reject) => {
+			const waiter: MutationWaiter = { resolve, reject, signal };
+			if (signal) {
+				waiter.abort = () => {
+					const index = state.waiters.indexOf(waiter);
+					if (index !== -1) state.waiters.splice(index, 1);
+					if (waiter.abort) signal.removeEventListener("abort", waiter.abort);
+					reject(new WorkerTaskAbortedError("cancelled"));
+				};
+				signal.addEventListener("abort", waiter.abort, { once: true });
+			}
+			state.waiters.push(waiter);
+		});
+	}
+
 	async run<TInput, TResult>(
 		def: WorkerTaskDefinition<TInput, TResult>,
 		input: TInput,
@@ -214,6 +301,31 @@ export class HostWorkerPool {
 		input: TInput,
 		options?: WorkerTaskOptions,
 	): Promise<TResult> {
+		if (def.execution === "worker-only-nonreplay") {
+			const scope = def.mutationScope?.(input);
+			if (!scope) throw new Error("Missing strict Git mutation storage scope");
+			this.assertMutationScopeHealthy(scope);
+			if (
+				options?.dedupeKey ||
+				(options?.strategy && options.strategy !== "fifo")
+			)
+				throw new Error("Strict Git mutations cannot be deduplicated");
+			const runner = this.getRunner();
+			if (!runner)
+				throw new WorkerTaskError("Git mutation worker is unavailable");
+			try {
+				return await runner.runTask<TResult>(def.type, input, {
+					...options,
+					quarantineDispatchedFailures: true,
+					beforeDispatch: () => this.assertMutationScopeHealthy(scope),
+					onIndeterminate: (error) => quarantineMutationScope(scope, error),
+				});
+			} catch (error) {
+				if (error instanceof WorkerTaskIndeterminateError)
+					quarantineMutationScope(scope, error);
+				throw error;
+			}
+		}
 		const runner = this.getRunner();
 		if (!runner) return this.runInline(def, input, options);
 

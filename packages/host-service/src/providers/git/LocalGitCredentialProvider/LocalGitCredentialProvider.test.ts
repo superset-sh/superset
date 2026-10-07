@@ -31,12 +31,13 @@ printf 'password=stored-credential\\n'
 
 const tempDirs: string[] = [];
 
-function stubPath(gitStub: string): string {
+function stubPath(gitStub: string, glabStub?: string): string {
 	const dir = mkdtempSync(join(tmpdir(), "superset-cred-stub-"));
 	tempDirs.push(dir);
 	for (const [name, body] of [
 		["gh", GH_STUB],
 		["git", gitStub],
+		...(glabStub ? [["glab", glabStub]] : []),
 	]) {
 		const path = join(dir, name as string);
 		writeFileSync(path, body as string);
@@ -45,8 +46,12 @@ function stubPath(gitStub: string): string {
 	return dir;
 }
 
-function providerWith(env: Record<string, string>, gitStub = GIT_STUB) {
-	const dir = stubPath(gitStub);
+function providerWith(
+	env: Record<string, string>,
+	gitStub = GIT_STUB,
+	glabStub?: string,
+) {
+	const dir = stubPath(gitStub, glabStub);
 	return new LocalGitCredentialProvider(async () => ({
 		PATH: dir,
 		...env,
@@ -146,5 +151,185 @@ describe("LocalGitCredentialProvider token sources", () => {
 				"gh auth login",
 			);
 		});
+	});
+});
+
+const GLAB_STUB = `#!/bin/sh
+if [ "$1 $2" != "config get" ]; then exit 1; fi
+case "$3" in
+  host) printf '%s\\n' "\${STORED_HOST:-gitlab.com}" ;;
+  token)
+    if [ -n "$GITLAB_TOKEN" ]; then printf '%s\\n' "$GITLAB_TOKEN"; exit 0; fi
+    if [ -n "$GITLAB_ACCESS_TOKEN" ]; then printf '%s\\n' "$GITLAB_ACCESS_TOKEN"; exit 0; fi
+    if [ -n "$OAUTH_TOKEN" ]; then printf '%s\\n' "$OAUTH_TOKEN"; exit 0; fi
+    case "$5" in
+      first.example) printf 'first-token\\n' ;;
+      second.example:8443) printf 'second-token\\n' ;;
+      *)
+        if [ -n "$GIT_DIR" ] && [ -f "$GIT_DIR/glab-cli/config.yml" ]; then
+          IFS= read -r sentinel < "$GIT_DIR/glab-cli/config.yml"
+          printf '%s\\n' "\${sentinel#token: }"
+        else printf '%s\\n' "$ROOT_TOKEN"; fi ;;
+
+    esac ;;
+  *) exit 1 ;;
+esac
+`;
+
+describe("LocalGitCredentialProvider GitLab host scope", () => {
+	test("resolves separate stored tokens without replaying unscoped environment tokens", async () => {
+		const provider = providerWith(
+			{ GITLAB_TOKEN: "unscoped-token" },
+			GIT_STUB,
+			GLAB_STUB,
+		);
+		expect(await provider.getToken("first.example")).toBe("first-token");
+		expect(await provider.getToken("second.example:8443")).toBe("second-token");
+		expect(await provider.getToken("unknown.example")).toBeNull();
+		expect(provider.credentialRemedy("first.example", "rejected")).toContain(
+			"glab auth login --hostname first.example",
+		);
+	});
+
+	test("uses a GitLab environment token only for its normalized host and port", async () => {
+		const provider = providerWith(
+			{
+				GITLAB_TOKEN: "scoped-token",
+				GITLAB_HOST: "https://SECOND.example:8443/",
+			},
+			GIT_STUB,
+			GLAB_STUB,
+		);
+		expect(await provider.getToken("second.example:8443")).toBe("scoped-token");
+		expect(await provider.getToken("first.example")).toBe("first-token");
+		expect(await provider.getToken("second.example")).toBeNull();
+		expect(
+			provider.credentialRemedy("second.example:8443", "rejected"),
+		).toContain("GITLAB_TOKEN");
+	});
+
+	test("uses an unscoped GitLab environment token only on gitlab.com", async () => {
+		const provider = providerWith(
+			{ GITLAB_ACCESS_TOKEN: "default-token" },
+			GIT_STUB,
+			GLAB_STUB,
+		);
+		expect(await provider.getToken("gitlab.com")).toBe("default-token");
+		expect(await provider.getToken("first.example")).toBe("first-token");
+	});
+
+	test("rejects a root config token even on the configured default host", async () => {
+		const provider = providerWith(
+			{
+				ROOT_TOKEN: "global-token",
+				STORED_HOST: "https://DEFAULT.example:8443/",
+			},
+			GIT_STUB,
+			GLAB_STUB,
+		);
+		expect(await provider.getToken("default.example:8443")).toBeNull();
+		expect(await provider.getToken("unknown.example")).toBeNull();
+		expect(await provider.getToken("gitlab.com")).toBeNull();
+	});
+
+	test("does not use glab on GitHub or replace a configured git credential helper", async () => {
+		const provider = providerWith(
+			{ GITLAB_TOKEN: "lab-token" },
+			GIT_HELPER_REPLAYS_ENV_STUB,
+			GLAB_STUB,
+		);
+		expect(await provider.getToken("first.example")).toBe("stored-credential");
+		expect(provider.credentialRemedy("first.example", "rejected")).toContain(
+			"saved first.example credential",
+		);
+	});
+
+	test("non-GitHub missing credentials name the requested host", () => {
+		const provider = providerWith({});
+		expect(
+			provider.credentialRemedy("second.example:8443", "missing"),
+		).toContain("second.example:8443");
+		expect(
+			provider.credentialRemedy("second.example:8443", "missing"),
+		).not.toContain("GitHub");
+	});
+
+	test.each([
+		"USAGE\\n  glab config get <key>\\n",
+		"one-token\\ntwo-token\\n",
+		"Usage",
+		"token with spaces",
+		"",
+	])("rejects malformed CLI token output: %s", async (output) => {
+		const provider = providerWith(
+			{},
+			GIT_STUB,
+			`#!/bin/sh\nif [ "$3" = "token" ]; then printf '${output}'; else printf 'gitlab.com\\n'; fi\n`,
+		);
+		expect(await provider.getToken("gitlab.com")).toBeNull();
+	});
+
+	test("rejects failed native glab lookup", async () => {
+		const provider = providerWith({}, GIT_STUB, `#!/bin/sh\nexit 1\n`);
+		expect(await provider.getToken("first.example")).toBeNull();
+	});
+	test("uses GL_HOST and GitLab token variable precedence", async () => {
+		const provider = providerWith(
+			{
+				GL_HOST: "second.example:8443",
+				GITLAB_TOKEN: "preferred-token",
+				GITLAB_ACCESS_TOKEN: "access-token",
+				OAUTH_TOKEN: "oauth-token",
+			},
+			GIT_STUB,
+			GLAB_STUB,
+		);
+		expect(await provider.getToken("second.example:8443")).toBe(
+			"preferred-token",
+		);
+	});
+
+	test.each([
+		"https://user:pass@second.example:8443",
+		"second.example:8443 with spaces",
+		"file://second.example:8443",
+	])("rejects unsafe environment host scope: %s", async (GITLAB_HOST) => {
+		const provider = providerWith(
+			{ GITLAB_HOST, GITLAB_TOKEN: "env-token" },
+			GIT_STUB,
+			GLAB_STUB,
+		);
+		expect(await provider.getToken("second.example:8443")).toBe("second-token");
+		expect(await provider.getToken("unknown.example")).toBeNull();
+	});
+	test.each([
+		"GITLAB_TOKEN",
+		"GITLAB_ACCESS_TOKEN",
+		"OAUTH_TOKEN",
+	])("names %s when a configured helper replays that environment token", async (name) => {
+		const provider = providerWith(
+			{ [name]: "helper-env-token" },
+			`#!/bin/sh\ncat > /dev/null\nprintf 'password=%s\\n' "$${name}"\n`,
+		);
+		expect(await provider.getToken("first.example")).toBe("helper-env-token");
+		const remedy = provider.credentialRemedy("first.example", "rejected");
+		expect(remedy).toContain(name);
+		expect(remedy).not.toContain("saved first.example credential");
+	});
+
+	test("does not label another host's helper token as a GitHub variable", async () => {
+		const provider = providerWith(
+			{
+				GH_TOKEN: "helper-token",
+				GITHUB_TOKEN: "helper-token",
+				CREDENTIAL_TOKEN: "helper-token",
+			},
+			`#!/bin/sh\ncat > /dev/null\nprintf 'password=%s\\n' "$CREDENTIAL_TOKEN"\n`,
+		);
+		expect(await provider.getToken("first.example")).toBe("helper-token");
+		const remedy = provider.credentialRemedy("first.example", "rejected");
+		expect(remedy).toContain("saved first.example credential");
+		expect(remedy).not.toContain("GH_TOKEN");
+		expect(remedy).not.toContain("GITHUB_TOKEN");
 	});
 });

@@ -1,4 +1,4 @@
-import { afterEach, expect, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, expect, spyOn, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -37,19 +37,30 @@ interface Internals {
 type GitDirectoryHandle = ReturnType<GitDirectoryWatcher["watch"]>;
 const failGitDirectory = new WeakMap<GitDirectoryHandle, () => void>();
 const watchGitDirectory = GitDirectoryWatcher.prototype.watch;
-spyOn(GitDirectoryWatcher.prototype, "watch").mockImplementation(function (
-	this: GitDirectoryWatcher,
-	path,
-	onChange,
-	onError,
-) {
-	const handle = watchGitDirectory.call(this, path, onChange, onError);
-	failGitDirectory.set(handle, onError);
-	return handle;
+let restoreWatch = () => {};
+beforeEach(() => {
+	const watchSpy = spyOn(
+		GitDirectoryWatcher.prototype,
+		"watch",
+	).mockImplementation(function (
+		this: GitDirectoryWatcher,
+		path,
+		onChange,
+		onError,
+	) {
+		const handle = watchGitDirectory.call(this, path, onChange, onError);
+		failGitDirectory.set(handle, onError);
+		return handle;
+	});
+	restoreWatch = () => watchSpy.mockRestore();
 });
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
-	for (const cleanup of cleanups.splice(0)) await cleanup();
+	try {
+		for (const cleanup of cleanups.splice(0)) await cleanup();
+	} finally {
+		restoreWatch();
+	}
 });
 async function waitFor(check: () => boolean) {
 	const deadline = Date.now() + 5_000;

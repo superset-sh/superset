@@ -1,12 +1,30 @@
-import { db } from "@superset/db/client";
-import { cloudWorkspaces, environments, tasks } from "@superset/db/schema";
+import { db, dbWs } from "@superset/db/client";
+import {
+	cloudWorkspaces,
+	environmentRepositories,
+	environments,
+	tasks,
+} from "@superset/db/schema";
 import type { CloudAgentLaunch } from "@superset/shared/cloud-agent-launch";
 import { and, eq, inArray, isNull } from "drizzle-orm";
+import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import { anchorAttachments } from "../../lib/attachments";
 import {
 	githubRepositoriesOutOfReach,
 	githubUserTokenFor,
 } from "../../lib/github-user";
+import {
+	recordGitlabCheckout,
+	recordGitlabProject,
+} from "../../lib/gitlab/checkout";
+import {
+	lockGitlabConsumerEnvironment,
+	rejectMixedGitlabConsumer,
+	requireAbsentGitlabConsumerBinding,
+	requireSameGitlabConsumerBinding,
+	resolveGitlabConsumerProject,
+} from "../../lib/gitlab/consumer-storage";
+import { loadGitlabEnvironmentProject } from "../../lib/gitlab/environment-project";
 import { nudge } from "../../lib/realtime";
 import {
 	environmentRepositoryRows,
@@ -76,16 +94,61 @@ export async function startCloudWorkspace(args: {
 	typedPrompt?: string;
 	/** Omitted = the repo's default branch. */
 	branch?: string;
+	gitlabCloneUrl?: string;
 	launch?: CloudAgentLaunch;
 	taskIds?: string[];
 	attachmentFileIds?: string[];
 }) {
 	const environment = await loadUsableEnvironment(args);
 
-	// A workspace is started from an environment, and the environment's
-	// repositories are its checkouts.
-	const repositories = await environmentRepositoryRows(environment.id);
-	if (repositories.length === 0) {
+	const boundProject = await loadGitlabEnvironmentProject(
+		environment.id,
+		args.organizationId,
+	);
+	if (!boundProject)
+		await requireAbsentGitlabConsumerBinding(db, environment.id);
+	const cloneUrl = args.gitlabCloneUrl ?? boundProject?.cloneUrl;
+	if (
+		environment.sourceKind === "fork" &&
+		args.gitlabCloneUrl &&
+		(!boundProject || boundProject.cloneUrl !== args.gitlabCloneUrl)
+	) {
+		throw userError({
+			code: "FORBIDDEN",
+			message:
+				"This environment's repositories are fixed; promote a workspace again to change them",
+			i18nKey: "serverError.environment.repositoriesFrozen",
+		});
+	}
+	if (
+		cloneUrl &&
+		(environment.hooksRepositoryId ||
+			(await db.query.environmentRepositories.findFirst({
+				columns: { id: true },
+				where: eq(environmentRepositories.environmentId, environment.id),
+			})))
+	)
+		rejectMixedGitlabConsumer();
+	const gitlabProject = cloneUrl
+		? await resolveGitlabConsumerProject({
+				organizationId: args.organizationId,
+				cloneUrl,
+			})
+		: null;
+	if (
+		gitlabProject &&
+		boundProject &&
+		(!args.gitlabCloneUrl || args.gitlabCloneUrl === boundProject.cloneUrl)
+	) {
+		requireSameGitlabConsumerBinding(
+			{ ...boundProject, defaultBranch: gitlabProject.defaultBranch },
+			gitlabProject,
+		);
+	}
+	const repositories = gitlabProject
+		? []
+		: await environmentRepositoryRows(environment.id);
+	if (!gitlabProject && repositories.length === 0) {
 		throw userError({
 			code: "BAD_REQUEST",
 			message:
@@ -97,10 +160,13 @@ export async function startCloudWorkspace(args: {
 		repositories,
 		environment.hooksRepositoryId,
 	) as (typeof repositories)[number];
-	const branch = args.branch ?? primary.defaultBranch;
+	const branch =
+		args.branch ?? gitlabProject?.defaultBranch ?? primary.defaultBranch;
 	// A connected person's workspace acts as them on GitHub, so a
 	// repository they cannot see would fail to clone later; say so now.
-	const githubToken = await githubUserTokenFor(args.userId);
+	const githubToken = gitlabProject
+		? null
+		: await githubUserTokenFor(args.userId);
 	if (githubToken) {
 		const outOfReach = await githubRepositoriesOutOfReach({
 			token: githubToken,
@@ -122,33 +188,79 @@ export async function startCloudWorkspace(args: {
 	const id = crypto.randomUUID();
 	const providerSandboxId = sandboxNameFor(id);
 	const name = args.name ?? FALLBACK_NAME;
-	const [row] = await db
-		.insert(cloudWorkspaces)
-		.values({
-			id,
-			organizationId: args.organizationId,
-			name,
-			branch: workspaceBranchName({ id, name }),
-			baseBranch: branch,
-			provider: "vercel",
-			providerSandboxId,
-			status: "provisioning",
-			environmentId: environment.id,
-			createdByUserId: args.userId,
-			prompt: (args.typedPrompt ?? args.prompt)?.trim() || null,
-		})
-		.returning();
-	if (!row) {
-		throw userError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: "Could not record cloud workspace",
-			i18nKey: "serverError.cloudWorkspace.couldNotRecordCloudWorkspace",
+	const recordWorkspace = async (
+		executor: Pick<PgDatabase<PgQueryResultHKT>, "insert">,
+	) => {
+		const [row] = await executor
+			.insert(cloudWorkspaces)
+			.values({
+				id,
+				organizationId: args.organizationId,
+				name,
+				branch: workspaceBranchName({ id, name }),
+				baseBranch: branch,
+				provider: "vercel",
+				providerSandboxId,
+				status: "provisioning",
+				environmentId: environment.id,
+				createdByUserId: args.userId,
+				prompt: (args.typedPrompt ?? args.prompt)?.trim() || null,
+			})
+			.returning();
+		if (!row) {
+			throw userError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Could not record cloud workspace",
+				i18nKey: "serverError.cloudWorkspace.couldNotRecordCloudWorkspace",
+			});
+		}
+		return row;
+	};
+	const row = gitlabProject
+		? await dbWs.transaction(async (tx) => {
+				await lockGitlabConsumerEnvironment(tx, {
+					environment,
+					organizationId: args.organizationId,
+					userId: args.userId,
+				});
+				const current = await tx.query.environments.findFirst({
+					columns: { hooksRepositoryId: true },
+					where: eq(environments.id, environment.id),
+				});
+				if (
+					current?.hooksRepositoryId ||
+					(await tx.query.environmentRepositories.findFirst({
+						columns: { id: true },
+						where: eq(environmentRepositories.environmentId, environment.id),
+					}))
+				)
+					rejectMixedGitlabConsumer();
+				requireSameGitlabConsumerBinding(
+					boundProject,
+					await loadGitlabEnvironmentProject(
+						environment.id,
+						args.organizationId,
+						tx,
+					),
+				);
+				if (!boundProject)
+					await requireAbsentGitlabConsumerBinding(tx, environment.id);
+				const recorded = await recordWorkspace(tx);
+				await recordGitlabProject(args.organizationId, gitlabProject, tx);
+				await recordGitlabCheckout({
+					cloudWorkspaceId: recorded.id,
+					organizationId: args.organizationId,
+					project: gitlabProject,
+					executor: tx,
+				});
+				return recorded;
+			})
+		: await recordWorkspace(db);
+	if (!gitlabProject)
+		await recordWorkspaceRepositories({
+			cloudWorkspaceId: row.id,
+			repositories,
 		});
-	}
-	await recordWorkspaceRepositories({
-		cloudWorkspaceId: row.id,
-		repositories,
-	});
 	const actor = { kind: "user" as const, userId: args.userId };
 	await recordCloudWorkspaceActivity(db, row.id, actor, { event: "created" });
 	if (args.taskIds?.length) {

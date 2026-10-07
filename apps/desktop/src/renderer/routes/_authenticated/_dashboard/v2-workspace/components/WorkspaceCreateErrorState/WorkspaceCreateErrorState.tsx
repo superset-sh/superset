@@ -22,6 +22,7 @@ export function WorkspaceCreateErrorState({
 	const branch = "branch" in entry.input ? entry.input.branch : undefined;
 
 	const handleRetry = () => {
+		if (entry.retryBlocked) return;
 		const { workspaceId, completed } = submit({
 			hostId: entry.hostId,
 			snapshot: entry.input,
@@ -89,9 +90,28 @@ export function WorkspaceCreateErrorState({
 				</div>
 
 				<div className="flex items-center gap-2">
-					<Button size="sm" onClick={handleRetry}>
-						<Trans>Try again</Trans>
-					</Button>
+					{entry.retryBlocked ? (
+						entry.recoveryWorkspaceId ? (
+							<Button
+								size="sm"
+								onClick={() =>
+									void navigate({
+										to: "/v2-workspace/$workspaceId",
+										params: {
+											workspaceId: entry.recoveryWorkspaceId ?? entry.id,
+										},
+										replace: true,
+									})
+								}
+							>
+								<Trans>Open workspace</Trans>
+							</Button>
+						) : null
+					) : (
+						<Button size="sm" onClick={handleRetry}>
+							<Trans>Try again</Trans>
+						</Button>
+					)}
 					<Button size="sm" variant="ghost" onClick={handleDismiss}>
 						<Trans>Dismiss</Trans>
 					</Button>

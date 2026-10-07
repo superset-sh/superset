@@ -1,13 +1,13 @@
-import { z } from "zod";
 import { protectedProcedure } from "../../../index";
-import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
 import { fetchPullRequestContent } from "../shared/fetch-pull-request-content";
+import { contentTargetSchema, resolveContentTarget } from "./content-target";
+import { gitLabContent } from "./gitlab-project";
 
 export const getContent = protectedProcedure
-	.input(
-		z.object({ projectId: z.string(), prNumber: z.number().int().positive() }),
-	)
+	.input(contentTargetSchema)
 	.query(async ({ ctx, input }) => {
-		const repo = await resolveGithubRepo(ctx, input.projectId);
-		return fetchPullRequestContent(repo, input.prNumber);
+		const target = await resolveContentTarget(ctx, input);
+		return target.provider === "gitlab"
+			? gitLabContent(target.repo, target.client, input.prNumber)
+			: fetchPullRequestContent(target.repo, input.prNumber);
 	});

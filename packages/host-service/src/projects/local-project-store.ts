@@ -25,6 +25,7 @@ export function toProjectSnapshot(
 		repoOwner: row.repoOwner,
 		repoName: row.repoName,
 		repoUrl: row.repoUrl,
+		repoProvider: row.repoProvider,
 		worktreeBaseDir: row.worktreeBaseDir,
 		icon: row.icon,
 		color: row.color,

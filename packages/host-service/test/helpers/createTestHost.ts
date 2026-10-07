@@ -12,6 +12,7 @@ import {
 	createApp,
 } from "../../src/app";
 import type { HostDb } from "../../src/db";
+import { applyRepoSchema } from "../../src/db/repo-schema";
 import * as schema from "../../src/db/schema";
 import type { TokenSource } from "../../src/providers/git/LocalGitCredentialProvider/credential-remedy";
 import type { AppRouter as HostAppRouter } from "../../src/trpc/router";
@@ -98,6 +99,7 @@ export async function createTestHost(
 	sqlite.exec("PRAGMA foreign_keys = ON");
 	const db = drizzle(sqlite, { schema });
 	migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
+	applyRepoSchema(sqlite);
 
 	const fakeApi = createFakeApiClient(options.apiOverrides);
 

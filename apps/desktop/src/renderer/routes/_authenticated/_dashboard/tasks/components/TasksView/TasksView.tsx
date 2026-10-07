@@ -27,6 +27,7 @@ import {
 	type TaskSource,
 	TasksTopBar,
 } from "./components/TasksTopBar";
+import { useIssueSearchSelection } from "./hooks/useIssueSearchSelection/useIssueSearchSelection";
 import type { TaskWithStatus } from "./hooks/useTasksData";
 
 interface TasksViewProps {
@@ -187,6 +188,10 @@ export function TasksView({
 		projects: hostProjects,
 		targets: projectTargets,
 	} = useProjectQueryTargets(projectFilters);
+	const issueSelection = useIssueSearchSelection(
+		projectTargets,
+		typeTab === "issues",
+	);
 	const v2Projects = useMemo(
 		() =>
 			hostProjects.map((project) => ({
@@ -329,6 +334,7 @@ export function TasksView({
 	return (
 		<div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
 			<TasksTopBar
+				issueSelection={showIssues ? issueSelection : undefined}
 				currentTab={currentTab}
 				onTabChange={handleTabChange}
 				searchQuery={searchQuery}
@@ -387,6 +393,7 @@ export function TasksView({
 				)}
 				{showIssues && (
 					<GitHubIssuesContent
+						issueSelection={issueSelection}
 						projectFilters={projectFilters}
 						projectTargets={projectTargets}
 						areProjectsReady={areProjectsReady}

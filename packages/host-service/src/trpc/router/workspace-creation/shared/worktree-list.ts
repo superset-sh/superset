@@ -1,6 +1,6 @@
 import { realpathSync } from "node:fs";
 import { resolve as resolvePath } from "node:path";
-import type { GitClient } from "./types";
+import type { GitCommandRunner } from "./types";
 
 // Single source of truth for parsing `git worktree list --porcelain`.
 // Every consumer in this package MUST go through `parseWorktreeList` /
@@ -71,7 +71,7 @@ export function parseWorktreeList(raw: string): WorktreeRecord[] {
 }
 
 export async function listGitWorktrees(
-	git: GitClient,
+	git: GitCommandRunner,
 ): Promise<WorktreeRecord[]> {
 	try {
 		const raw = await git.raw(["worktree", "list", "--porcelain"]);

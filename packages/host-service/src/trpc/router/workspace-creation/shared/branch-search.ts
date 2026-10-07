@@ -1,4 +1,4 @@
-import type { GitClient } from "./types";
+import type { GitClient, GitCommandRunner } from "./types";
 import { listGitWorktrees, normalizeWorktreePath } from "./worktree-list";
 
 function encodeCursor(offset: number): string {
@@ -46,7 +46,7 @@ export function markRefetchRemote(projectId: string): void {
 // (dir deleted without `git worktree remove`) are filtered: not valid
 // adoption targets, and `workspaces.create` runs `git worktree prune`
 // before re-adding so the branch is freed.
-export async function listWorktreeBranches(git: GitClient): Promise<{
+export async function listWorktreeBranches(git: GitCommandRunner): Promise<{
 	worktreeMap: Map<string, string>;
 	checkedOutBranches: Set<string>;
 }> {

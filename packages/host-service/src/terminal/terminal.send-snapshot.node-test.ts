@@ -1430,3 +1430,72 @@ async function waitForSnapshotText(
 		await new Promise((r) => setTimeout(r, 25));
 	}
 }
+
+for (const scenario of [
+	"denied",
+	"after-text",
+	"write-failed",
+	"accepted",
+] as const) {
+	test(`bound generic send acquires at queue head and fences ${scenario}`, async () => {
+		const terminalId = `e2e-generic-bound-${randomUUID().slice(0, 8)}`;
+		const session = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+		});
+		assert.ok(!("error" in session));
+		if ("error" in session) return;
+		const gate = Promise.withResolvers<void>();
+		session.followUpWriteChain = gate.promise;
+		let acquired = false,
+			valid = true;
+		const writes: string[] = [];
+		const daemon = await getDaemonClient();
+		const input = mock.method(daemon, "input", (_id: string, bytes: Buffer) => {
+			const data = bytes.toString("utf8");
+			if (scenario === "write-failed" && data === "\r")
+				throw Error("owned submit failure");
+			writes.push(data);
+			if (scenario === "after-text") valid = false;
+		});
+		try {
+			const sending = writeFramedInputToSession({
+				terminalId,
+				workspaceId,
+				db,
+				text: "bound",
+				submit: true,
+				...{
+					acquireDelivery: async () => {
+						acquired = true;
+						return scenario === "denied" ? null : { isValid: () => valid };
+					},
+				},
+			});
+			await waitFor(() => session.followUpWriteChain !== gate.promise, 5000);
+			assert.equal(acquired, false);
+			assert.deepEqual(writes, []);
+			gate.resolve();
+			const outcome = await sending;
+			assert.equal(acquired, true);
+			assert.equal("success" in outcome, scenario === "accepted");
+			if ("error" in outcome)
+				assert.equal(
+					outcome.inputStaged,
+					scenario === "denied" ? undefined : true,
+				);
+			assert.deepEqual(
+				writes,
+				scenario === "denied"
+					? []
+					: scenario === "accepted"
+						? ["bound", "\r"]
+						: ["bound"],
+			);
+		} finally {
+			input.mock.restore();
+			await disposeSessionAndWait(terminalId, db);
+		}
+	});
+}

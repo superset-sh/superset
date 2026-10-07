@@ -8,7 +8,10 @@ import {
 	JwtApiAuthProvider,
 	SandboxApiAuthProvider,
 } from "./providers/auth";
-import { LocalGitCredentialProvider } from "./providers/git";
+import {
+	LocalGitCredentialProvider,
+	SandboxGitCredentialProvider,
+} from "./providers/git";
 import { PskHostAuthProvider } from "./providers/host-auth";
 import { provisionAgentIntegrations } from "./runtime/agent-provisioning";
 import { processStartedAt, recordBootStamp } from "./runtime/boot-stamps";
@@ -16,6 +19,7 @@ import { resolveBrowserBridgeFromEnv } from "./runtime/browser-bridge/env";
 import { applyLoginShellEnvToProcess } from "./runtime/login-shell-env";
 import { startSandboxAgentStatusReporter } from "./runtime/sandbox-agent-status";
 import { startSandboxCredentialRefresh } from "./runtime/sandbox-credential-refresh";
+import { readSandboxIdentity } from "./runtime/sandbox-self-seed/sandbox-self-seed";
 import { startVitalsLog } from "./runtime/vitals";
 import { detachFromLaunchDirectory } from "./runtime/working-directory";
 import { installProcessSafetyNet, installUpgradeSocketGuard } from "./safety";
@@ -106,7 +110,13 @@ async function main(): Promise<void> {
 		providers: {
 			auth: apiAuthProvider,
 			hostAuth: new PskHostAuthProvider(env.HOST_SERVICE_SECRET),
-			credentials: new LocalGitCredentialProvider(),
+			credentials:
+				env.SUPERSET_HOST_RUN_MODE === "sandbox"
+					? new SandboxGitCredentialProvider(
+							new LocalGitCredentialProvider(),
+							readSandboxIdentity()?.repositories ?? [],
+						)
+					: new LocalGitCredentialProvider(),
 		},
 	});
 

@@ -1,9 +1,15 @@
 import { db } from "@superset/db/client";
 import { cloudWorkspaces, environments, members } from "@superset/db/schema";
+import { gitlabAutomationCheckoutNumber } from "@superset/shared/automation-matching";
 import { CLOUD_AGENT_PROMPT_MAX_LENGTH } from "@superset/shared/cloud-agent-launch";
+import { parseGitRemote } from "@superset/shared/git-remote";
 import { SUPERSET_USER_ID_HEADER } from "@superset/shared/host-routing";
 import { and, eq } from "drizzle-orm";
 import { cloudAccess } from "../../lib/cloud-guards";
+import { gitlabMergeRequestProvenance } from "../../lib/gitlab/automation-provenance";
+import { gitlabCredentialsFor } from "../../lib/gitlab/connection";
+import { loadGitlabEnvironmentProject } from "../../lib/gitlab/environment-project";
+import { parseGitLabOrigin } from "../../lib/gitlab/ssrf";
 import {
 	environmentRepositoryRows,
 	primaryRepository,
@@ -37,6 +43,8 @@ type RunInCloudArgs = {
 	automation: DispatchableAutomation;
 	prompt: string;
 	event: {
+		organizationId?: string;
+		integrationConnectionId?: string | null;
 		provider: string;
 		repositoryId: string | null;
 		payload: unknown;
@@ -170,7 +178,11 @@ async function prepareLaunch({
 		kind: "new",
 		environmentId: automation.environmentId,
 		branch: event
-			? await pullRequestBranch(event, automation.environmentId)
+			? await pullRequestBranch(
+					event,
+					automation.environmentId,
+					automation.organizationId,
+				)
 			: undefined,
 	};
 }
@@ -245,9 +257,60 @@ async function reachablePin(
 
 /** The event's pull request branch, only when the event is about the environment's primary repository. */
 async function pullRequestBranch(
-	event: { provider: string; repositoryId: string | null; payload: unknown },
+	event: NonNullable<RunInCloudArgs["event"]>,
 	environmentId: string,
+	organizationId: string,
 ): Promise<string | undefined> {
+	if (event.provider === "gitlab") {
+		if (
+			event.organizationId !== organizationId ||
+			!event.integrationConnectionId ||
+			!event.repositoryId ||
+			typeof event.payload !== "object" ||
+			event.payload === null ||
+			!("repositoryId" in event.payload) ||
+			event.payload.repositoryId !== event.repositoryId
+		)
+			return undefined;
+		const project = await loadGitlabEnvironmentProject(
+			environmentId,
+			organizationId,
+		);
+		if (
+			!project ||
+			project.connectionId !== event.integrationConnectionId ||
+			project.projectId !== event.repositoryId
+		)
+			return undefined;
+		const parsed = parseGitRemote(project.cloneUrl);
+		if (
+			!parsed ||
+			`${parsed.owner}/${parsed.name}` !== project.pathWithNamespace
+		)
+			return undefined;
+		const iid = gitlabAutomationCheckoutNumber(project.cloneUrl, event.payload);
+		if (iid === null) return undefined;
+		const credentials = await gitlabCredentialsFor(project.connectionId, {
+			organizationId,
+			expected: { host: parsed.host, projectPath: project.pathWithNamespace },
+		});
+		if (
+			!credentials ||
+			credentials.connectionId !== project.connectionId ||
+			credentials.organizationId !== organizationId ||
+			parseGitLabOrigin(credentials.config.host).host !== parsed.host
+		)
+			return undefined;
+		const current = await gitlabMergeRequestProvenance(credentials, {
+			projectId: project.projectId,
+			projectPath: project.pathWithNamespace,
+			iid,
+		});
+		return current?.sourceProjectId === project.projectId &&
+			current.targetProjectId === project.projectId
+			? current.sourceBranch
+			: undefined;
+	}
 	const pullRequest = nonForkPullRequest(event);
 	if (!pullRequest?.headRef || event.repositoryId === null) return undefined;
 	const environment = await db.query.environments.findFirst({

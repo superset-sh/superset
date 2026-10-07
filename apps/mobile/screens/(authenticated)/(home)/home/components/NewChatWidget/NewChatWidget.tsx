@@ -7,8 +7,11 @@ import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, View } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { Text } from "@/components/ui/text";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import { awaitAttachmentUploads } from "@/lib/attachments/upload";
 import { useSession } from "@/lib/auth/client";
@@ -16,6 +19,7 @@ import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { posthog } from "@/lib/posthog";
 import { apiClient } from "@/lib/trpc/client";
 import { useCloudCreateSelection } from "@/screens/(authenticated)/(home)/hooks/useCloudCreateSelection";
+import { cloudGitlabSelectionKey } from "@/screens/(authenticated)/(home)/hooks/useCloudCreateSelection/useCloudCreateSelection";
 import { useWorkspaceScope } from "@/screens/(authenticated)/(home)/hooks/useWorkspaceScope";
 import {
 	agentLaunchPresetId,
@@ -83,12 +87,27 @@ export function NewChatWidget({
 	const isCloudTarget = selectedTarget?.kind === "cloud";
 	const isSessionTarget = selectedTarget?.projectId === null;
 	const cloudScope = useWorkspaceScope() === "cloud";
+	const selection = useCloudCreateSelection();
 	const { environment: selectedEnvironment, repository: cloudRepository } =
-		useCloudCreateSelection();
+		selection;
+	const native = isCloudTarget && selection.isGitlab;
+	const nativeContext = isCloudTarget ? selection.gitlab : null;
+	const nativeKey = cloudGitlabSelectionKey(nativeContext);
+	const latest = useRef(nativeKey);
+	latest.current = nativeKey;
+	const live = useRef(true);
+	useEffect(() => {
+		live.current = true;
+		latest.current = nativeKey;
+		return () => {
+			live.current = false;
+			latest.current = null;
+		};
+	}, [nativeKey]);
 
 	const { data: session } = useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
-	const { data: branchData } = useQuery({
+	const regularBranches = useQuery({
 		queryKey: [
 			isCloudTarget ? "cloud-branches" : "host-service",
 			"branches",
@@ -99,6 +118,7 @@ export function NewChatWidget({
 		],
 		enabled:
 			selectedTarget !== null &&
+			!native &&
 			!isSessionTarget &&
 			(!isCloudTarget || !!organizationId),
 		networkMode: "always" as const,
@@ -121,6 +141,34 @@ export function NewChatWidget({
 		},
 	});
 
+	const nativeBranches = useQuery({
+		queryKey: [
+			"cloud-branches",
+			"gitlab",
+			organizationId,
+			nativeContext?.environmentId,
+			nativeContext?.cloneUrl,
+			"default",
+		],
+		enabled: native && nativeContext !== null,
+		queryFn: () => {
+			if (!nativeContext) throw Error("Cloud environment unavailable");
+			return apiClient.cloudWorkspace.listGitlabBranches.query({
+				organizationId: nativeContext.organizationId,
+				cloneUrl: nativeContext.cloneUrl,
+				page: 1,
+			});
+		},
+	});
+	const nativeError =
+		native && (selection.environmentsQuery.isError || nativeBranches.isError);
+	const nativeReady = useRef(false);
+	nativeReady.current = nativeContext !== null && !nativeError;
+	const branchData = native
+		? nativeError
+			? undefined
+			: nativeBranches.data
+		: regularBranches.data;
 	const createTerminalWorkspace = useCreateTerminalWorkspace();
 	const createCloudWorkspace = useCreateCloudWorkspace();
 	const { data: agentConfigs } = useHostAgentConfigs({
@@ -164,9 +212,16 @@ export function NewChatWidget({
 		: [];
 	// Null until the branch list resolves. The previous fallback was the literal
 	// string "default", which reads as a branch name and is not one.
+	const previousNative = useRef(nativeKey);
+	const nativeBranchChanged = previousNative.current !== nativeKey;
+	useEffect(() => {
+		previousNative.current = nativeKey;
+	}, [nativeKey]);
 	const branchLabel = isSessionTarget
 		? null
-		: (baseBranch ?? branchData?.defaultBranch ?? null);
+		: native && nativeBranchChanged
+			? null
+			: (baseBranch ?? branchData?.defaultBranch ?? null);
 
 	// Only a request made after mount counts: the store keeps the last nonce,
 	// and a remount that read it as "positive" would focus without anyone
@@ -200,6 +255,15 @@ export function NewChatWidget({
 	};
 
 	const submit = async (message: PromptInputMessage) => {
+		if (
+			native &&
+			(!live.current ||
+				nativeKey === null ||
+				nativeKey !== latest.current ||
+				!nativeReady.current ||
+				!nativeContext)
+		)
+			return;
 		if (sending.current) return;
 		sending.current = true;
 		setIsHoldingSend(true);
@@ -207,7 +271,8 @@ export function NewChatWidget({
 			await send(message);
 		} finally {
 			sending.current = false;
-			setIsHoldingSend(false);
+			if (!native || (live.current && nativeKey === latest.current))
+				setIsHoldingSend(false);
 		}
 	};
 
@@ -242,17 +307,33 @@ export function NewChatWidget({
 				message.attachments,
 			);
 		} catch (error) {
+			if (native && (!live.current || nativeKey !== latest.current)) return;
 			Alert.alert(
 				t({ message: "Could not attach files" }),
 				errorMessage(error),
 			);
 			return;
 		}
+		if (
+			native &&
+			(!live.current ||
+				nativeKey === null ||
+				nativeKey !== latest.current ||
+				!nativeReady.current ||
+				!nativeContext)
+		)
+			return;
 		if (selectedTarget.kind === "cloud") {
 			await createCloudWorkspace
 				.mutateAsync({
-					branch: baseBranch ?? branchData?.defaultBranch ?? null,
+					branch:
+						native && nativeBranchChanged
+							? null
+							: (baseBranch ?? branchData?.defaultBranch ?? null),
 					environmentId: selectedEnvironment?.id ?? null,
+					...(nativeContext
+						? { gitlab: Object.freeze({ ...nativeContext }) }
+						: {}),
 					agent: effectiveAgentId,
 					model,
 					effort,
@@ -260,6 +341,7 @@ export function NewChatWidget({
 					attachmentFileIds,
 				})
 				.then(() => {
+					if (native && (!live.current || nativeKey !== latest.current)) return;
 					setBaseBranch(null);
 					clearComposer();
 				})
@@ -323,7 +405,7 @@ export function NewChatWidget({
 
 	// No KeyboardAvoidingView, no absolute-fill backdrop, no safe-area padding:
 	// the native composer owns its own keyboard tracking, dimming and dismissal.
-	return (
+	const composer = (
 		<Composer
 			ref={composerRef}
 			placeholder={t({
@@ -410,5 +492,29 @@ export function NewChatWidget({
 				}
 			}}
 		/>
+	);
+	return native ? (
+		<>
+			<View>
+				{nativeError ? (
+					<Button
+						accessibilityLabel={t({ message: "Try again" })}
+						onPress={() => {
+							if (live.current && nativeKey === latest.current)
+								void (selection.environmentsQuery.isError
+									? selection.environmentsQuery.refetch()
+									: nativeBranches.refetch());
+						}}
+					>
+						<Text>{t({ message: "Could not load branches. Try again." })}</Text>
+					</Button>
+				) : nativeBranches.isPending ? (
+					<Spinner />
+				) : null}
+			</View>
+			{composer}
+		</>
+	) : (
+		composer
 	);
 }

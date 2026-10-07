@@ -1,0 +1,1 @@
+export { GitLabDetailStatus } from "./GitLabDetailStatus";

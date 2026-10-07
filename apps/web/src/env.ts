@@ -27,6 +27,7 @@ export const env = createEnv({
 	},
 
 	client: {
+		NEXT_PUBLIC_AUTH_PROVIDERS: z.string().optional(),
 		NEXT_PUBLIC_API_URL: z.string().url(),
 		NEXT_PUBLIC_RELAY_URL: z.string().url(),
 		NEXT_PUBLIC_REALTIME_URL: z.string().url(),
@@ -43,6 +44,7 @@ export const env = createEnv({
 
 	experimental__runtimeEnv: {
 		NODE_ENV: process.env.NODE_ENV,
+		NEXT_PUBLIC_AUTH_PROVIDERS: process.env.NEXT_PUBLIC_AUTH_PROVIDERS,
 		NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
 		NEXT_PUBLIC_RELAY_URL: process.env.NEXT_PUBLIC_RELAY_URL,
 		NEXT_PUBLIC_REALTIME_URL: process.env.NEXT_PUBLIC_REALTIME_URL,

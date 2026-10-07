@@ -13,6 +13,7 @@
  * and the placeholders the CLIs need to be willing to make a request at all,
  * pushed into host-service after boot and held in memory.
  */
+import { isIP } from "node:net";
 import {
 	agentCredentialToEnv,
 	CLOUD_WORKSPACE_IGNORED_ENV_NAMES,
@@ -24,6 +25,7 @@ import {
 } from "@superset/shared/sandbox-gate";
 import type { NetworkPolicy, NetworkPolicyRule } from "@vercel/sandbox";
 import { env } from "../../env";
+import { parseGitLabOrigin } from "../gitlab/ssrf";
 
 export interface SandboxCredentialInputs {
 	/** Which workspace the box is, for the credential it presents to the API. */
@@ -38,6 +40,7 @@ export interface SandboxCredentialInputs {
 	 * installation's, else none.
 	 */
 	githubToken: string | null;
+	gitlabForward?: { origin: string; forwardURL: string };
 	/** Who commits made on the box are by. */
 	gitAuthor: GitAuthor;
 }
@@ -56,6 +59,46 @@ function apiHost(): string | null {
 		return new URL(env.NEXT_PUBLIC_API_URL).host;
 	} catch {
 		return null;
+	}
+}
+
+function gitlabForwarding(input: { origin: string; forwardURL: string }): {
+	host: string;
+	forwardURL: string;
+} {
+	try {
+		const origin = parseGitLabOrigin(input.origin);
+		const broker = new URL(input.forwardURL);
+		const validHost = (url: URL) =>
+			!isIP(url.hostname.replace(/^\[|\]$/g, "")) &&
+			url.hostname.length <= 253 &&
+			url.hostname
+				.split(".")
+				.every((label) => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label));
+		if (
+			!/^https:\/\/[A-Za-z0-9.-]+(?::443)?\/?$/i.test(input.origin) ||
+			origin.port ||
+			!validHost(origin) ||
+			broker.protocol !== "https:" ||
+			broker.port ||
+			broker.username ||
+			broker.password ||
+			broker.search ||
+			broker.hash ||
+			!validHost(broker) ||
+			broker.hostname === origin.hostname ||
+			!/^https:\/\/[A-Za-z0-9.-]+(?::443)?(?:\/[A-Za-z0-9_./-]*)?$/i.test(
+				input.forwardURL,
+			) ||
+			input.forwardURL.split("/").some((part) => part === "." || part === "..")
+		)
+			throw new Error();
+		return {
+			host: origin.hostname,
+			forwardURL: broker.origin + broker.pathname.replace(/\/+$/, ""),
+		};
+	} catch {
+		throw new Error("Invalid GitLab cloud forwarding configuration");
 	}
 }
 
@@ -106,6 +149,9 @@ function swap(
 export async function deriveSandboxCredentials(
 	inputs: SandboxCredentialInputs,
 ): Promise<SandboxCredentials> {
+	const gitlab = inputs.gitlabForward
+		? gitlabForwarding(inputs.gitlabForward)
+		: null;
 	const allow: Record<string, NetworkPolicyRule[]> = {};
 	const managedEnv: Record<string, string> = {};
 
@@ -115,6 +161,10 @@ export async function deriveSandboxCredentials(
 		...CLOUD_WORKSPACE_IGNORED_ENV_NAMES,
 		"GH_TOKEN",
 		"GITHUB_TOKEN",
+		"GLAB_TOKEN",
+		"GITLAB_TOKEN",
+		"GITLAB_ACCESS_TOKEN",
+		"OAUTH_TOKEN",
 	]);
 	for (const [key, value] of Object.entries(inputs.environmentEnv)) {
 		if (!ignored.has(key)) managedEnv[key] = value;
@@ -207,6 +257,23 @@ export async function deriveSandboxCredentials(
 				inputs.workspaceId,
 			)}`,
 		});
+	}
+	if (gitlab) {
+		if (
+			Object.hasOwn(allow, gitlab.host) ||
+			["github.com", "api.github.com", "uploads.github.com"].includes(
+				gitlab.host,
+			)
+		)
+			throw new Error("GitLab cloud forwarding conflicts with another service");
+		allow[gitlab.host] = [{ forwardURL: gitlab.forwardURL }];
+		managedEnv.GITLAB_TOKEN = SANDBOX_CREDENTIAL_PLACEHOLDER;
+		managedEnv.GITLAB_HOST = gitlab.host;
+		managedEnv.GITLAB_API_HOST = gitlab.host;
+		managedEnv.GLAB_API_PROTOCOL = "https";
+		managedEnv.GLAB_GIT_PROTOCOL = "https";
+		managedEnv.API_PROTOCOL = "https";
+		managedEnv.GIT_PROTOCOL = "https";
 	}
 
 	// The catch-all keeps the rest of the internet reachable; without it a

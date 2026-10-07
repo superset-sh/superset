@@ -1,9 +1,12 @@
 import type { AppRouter } from "@superset/host-service";
 import { CLOUD_HOST_ID } from "@superset/shared/host-routing";
+import type { RouterOutputs } from "@superset/trpc";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
+import { cloudTrpcClient } from "renderer/lib/cloud-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 
 type SearchBranchesInput =
@@ -23,11 +26,22 @@ const PAGE_SIZE = 50;
  * the host-service enforces a TTL so rapid typing doesn't thrash `git fetch`.
  */
 /** The repository a cloud workspace's branches are read from: its primary. */
-export interface CloudRepository {
+interface GithubCloudRepository {
+	provider?: "github";
 	owner: string;
 	name: string;
 	defaultBranch: string;
 }
+interface GitlabCloudRepository {
+	provider: "gitlab";
+	organizationId: string;
+	environmentId: string;
+	project: NonNullable<
+		RouterOutputs["environment"]["list"][number]["gitlabProject"]
+	>;
+}
+export type CloudRepository = GithubCloudRepository | GitlabCloudRepository;
+type GitlabBranchPage = RouterOutputs["cloudWorkspace"]["listGitlabBranches"];
 
 export function useBranchContext(
 	projectId: string | null,
@@ -43,20 +57,79 @@ export function useBranchContext(
 	// Read through the local host's `gh` — the same path issue and PR lookups
 	// take — so it uses the user's own auth rather than an App installation.
 	const localHostUrl = useHostUrl(null);
+	const organizationId = useActiveOrganizationId();
+	const gitlab =
+		cloudRepository?.provider === "gitlab" ? cloudRepository : null;
+	const github =
+		cloudRepository?.provider !== "gitlab" ? cloudRepository : null;
+	const nativeEnabled =
+		isCloud && !!gitlab && organizationId === gitlab.organizationId;
+	const nativeIdentity = JSON.stringify([
+		hostId,
+		organizationId,
+		gitlab,
+		query,
+	]);
+	const mounted = useRef(false);
+	useEffect(() => {
+		mounted.current = true;
+		return () => {
+			mounted.current = false;
+		};
+	}, []);
+	const gitlabBranches = useInfiniteQuery({
+		queryKey: [
+			"cloudWorkspace",
+			"gitlabBranches",
+			organizationId,
+			gitlab?.environmentId,
+			gitlab?.project.connectionId,
+			gitlab?.project.projectId,
+			gitlab?.project.pathWithNamespace,
+			gitlab?.project.cloneUrl,
+			query,
+		],
+		enabled: nativeEnabled,
+		initialPageParam: 1,
+		getNextPageParam: (last: GitlabBranchPage) => last.nextPage ?? undefined,
+		queryFn: async ({ pageParam }): Promise<GitlabBranchPage> => {
+			if (!nativeEnabled || !gitlab)
+				return { defaultBranch: "", items: [], nextPage: null };
+			return cloudTrpcClient.cloudWorkspace.listGitlabBranches.query({
+				organizationId: gitlab.organizationId,
+				cloneUrl: gitlab.project.cloneUrl,
+				query: query || undefined,
+				page: pageParam,
+			});
+		},
+	});
+	const currentNative = useRef({
+		identity: nativeIdentity,
+		enabled: nativeEnabled,
+		fetching: false,
+		error: false,
+	});
+	currentNative.current = {
+		identity: nativeIdentity,
+		enabled: nativeEnabled,
+		fetching: gitlabBranches.isFetching,
+		error: gitlabBranches.isError,
+	};
 	const cloudBranches = useQuery({
 		queryKey: [
 			"cloudBranches",
 			localHostUrl,
-			cloudRepository?.owner,
-			cloudRepository?.name,
+			github?.owner,
+			github?.name,
 			query,
 		],
-		enabled: isCloud && !!localHostUrl && !!cloudRepository,
+		enabled: isCloud && !!localHostUrl && !!github,
 		queryFn: async () => {
-			const client = getHostServiceClientByUrl(localHostUrl as string);
+			if (!localHostUrl || !github) return { items: [] };
+			const client = getHostServiceClientByUrl(localHostUrl);
 			return client.workspaceCreation.searchRemoteBranches.query({
-				owner: cloudRepository?.owner as string,
-				repo: cloudRepository?.name as string,
+				owner: github.owner,
+				repo: github.name,
 				query: query || undefined,
 			});
 		},
@@ -90,9 +163,18 @@ export function useBranchContext(
 		},
 	});
 
+	const nativeAvailable =
+		nativeEnabled && !gitlabBranches.isError && !gitlabBranches.isRefetching;
 	const cloudRows = useMemo<BranchRow[]>(
 		() =>
-			(cloudBranches.data?.items ?? []).map((name) => ({
+			(gitlab
+				? nativeAvailable
+					? (gitlabBranches.data?.pages.flatMap((page) =>
+							page.items.map((item) => item.name),
+						) ?? [])
+					: []
+				: (cloudBranches.data?.items ?? [])
+			).map((name) => ({
 				name,
 				lastCommitDate: 0,
 				isLocal: false,
@@ -102,7 +184,7 @@ export function useBranchContext(
 				hasWorkspace: false,
 				isCheckedOut: false,
 			})),
-		[cloudBranches.data],
+		[cloudBranches.data, gitlab, gitlabBranches.data, nativeAvailable],
 	);
 
 	const pages = q.data?.pages as BranchPage[] | undefined;
@@ -114,9 +196,33 @@ export function useBranchContext(
 	const defaultBranch = pages?.[0]?.defaultBranch ?? null;
 
 	if (isCloud) {
+		if (gitlab)
+			return {
+				branches: cloudRows,
+				defaultBranch: nativeAvailable
+					? (gitlabBranches.data?.pages[0]?.defaultBranch ??
+						gitlab.project.defaultBranch)
+					: null,
+				isLoading: nativeEnabled && gitlabBranches.isLoading,
+				isError: nativeEnabled && gitlabBranches.isError,
+				isFetchingNextPage: gitlabBranches.isFetchingNextPage,
+				hasNextPage: nativeAvailable && gitlabBranches.hasNextPage,
+				fetchNextPage: () => {
+					const current = currentNative.current;
+					if (
+						!mounted.current ||
+						!current.enabled ||
+						current.identity !== nativeIdentity ||
+						current.fetching ||
+						current.error
+					)
+						return;
+					return gitlabBranches.fetchNextPage();
+				},
+			};
 		return {
 			branches: cloudRows,
-			defaultBranch: cloudRepository?.defaultBranch ?? null,
+			defaultBranch: github?.defaultBranch ?? null,
 			isLoading: cloudBranches.isLoading,
 			isError: cloudBranches.isError,
 			isFetchingNextPage: false,

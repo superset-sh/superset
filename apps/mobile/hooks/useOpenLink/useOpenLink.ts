@@ -3,7 +3,10 @@ import { useCallback } from "react";
 import { env } from "@/lib/env";
 import { openUrl } from "@/lib/open-url";
 import { pageSlugFromUrl } from "@/lib/page-links";
-import { pullRequestFromUrl } from "@/lib/pull-request-links";
+import {
+	gitlabPullRequestFromUrl,
+	pullRequestFromUrl,
+} from "@/lib/pull-request-links";
 
 /** Pull request links only open in-app with a workspace: its host is what answers for the PR. */
 export function useOpenLink({
@@ -23,6 +26,21 @@ export function useOpenLink({
 				});
 				return;
 			}
+			const nativePullRequest = gitlabPullRequestFromUrl(url);
+			if (nativePullRequest && workspaceId) {
+				router.push({
+					pathname: "/workspace/[id]/pull-request/[pullRequestId]",
+					params: {
+						id: workspaceId,
+						pullRequestId: String(nativePullRequest.pullNumber),
+						owner: nativePullRequest.owner,
+						repo: nativePullRequest.repo,
+						provider: "gitlab",
+						expectedUrl: nativePullRequest.expectedUrl,
+					},
+				});
+				return;
+			}
 			const pullRequest = pullRequestFromUrl(url);
 			if (pullRequest !== null && workspaceId) {
 				router.push({
@@ -32,6 +50,7 @@ export function useOpenLink({
 						pullRequestId: String(pullRequest.pullNumber),
 						owner: pullRequest.owner,
 						repo: pullRequest.repo,
+						provider: "github",
 					},
 				});
 				return;

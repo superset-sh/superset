@@ -8,9 +8,12 @@ import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
 export function useWorkspaceRepo(workspaceId: string | null): {
 	owner: string | null;
 	repo: string | null;
+	projectId: string | null;
+	repoUrl: string | null;
+	isReady: boolean;
 } {
 	const { workspace, host } = useWorkspaceHost(workspaceId);
-	const { projects } = useHostProjects(
+	const { projects, isReady } = useHostProjects(
 		host
 			? {
 					organizationId: host.organizationId,
@@ -25,5 +28,8 @@ export function useWorkspaceRepo(workspaceId: string | null): {
 	return {
 		owner: project?.repoOwner ?? null,
 		repo: project?.repoName ?? null,
+		projectId: workspace?.projectId ?? null,
+		repoUrl: project?.repoUrl ?? null,
+		isReady,
 	};
 }

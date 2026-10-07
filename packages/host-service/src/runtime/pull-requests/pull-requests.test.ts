@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../../db";
+import { applyRepoSchema } from "../../db/repo-schema";
 import * as schema from "../../db/schema";
 import { pullRequests, workspaces } from "../../db/schema";
 import type { WorkspaceChangedMessage } from "../../events/types";
@@ -28,6 +29,7 @@ function createRealDb(): HostDb {
 	sqlite.exec("PRAGMA foreign_keys = ON;");
 	const db = drizzle(sqlite, { schema });
 	migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
+	applyRepoSchema(sqlite);
 	return db as unknown as HostDb;
 }
 
@@ -241,6 +243,55 @@ async function withSilencedWarnings<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 describe("PullRequestRuntimeManager direct checkout PR linking", () => {
+	test("isolates cached review and checks by repository instance", async () => {
+		const manager = createManager(createRealDb());
+		const accessible = manager as unknown as {
+			fetchFromGitHub: () => Promise<[null, []]>;
+			getCachedPullRequestDetails: (
+				repo: {
+					provider: "github";
+					host: string;
+					owner: string;
+					name: string;
+					url: string;
+				},
+				node: {
+					number: number;
+					headRefOid: string;
+					state: "CLOSED";
+					isDraft: boolean;
+				},
+			) => Promise<unknown>;
+		};
+		let calls = 0;
+		accessible.fetchFromGitHub = async () => {
+			calls += 1;
+			return [null, []];
+		};
+		const node = {
+			number: 7,
+			headRefOid: "sha",
+			state: "CLOSED" as const,
+			isDraft: false,
+		};
+		const first = {
+			provider: "github" as const,
+			host: "one.example",
+			owner: "team",
+			name: "repo",
+			url: "https://one.example/team/repo",
+		};
+		const second = {
+			...first,
+			host: "two.example",
+			url: "https://two.example/team/repo",
+		};
+		await accessible.getCachedPullRequestDetails(first, node);
+		await accessible.getCachedPullRequestDetails(second, node);
+		await accessible.getCachedPullRequestDetails(first, node);
+		expect(calls).toBe(2);
+	});
+
 	test("links a fork PR workspace to the selected PR and records fork upstream", async () => {
 		const db = createRealDb();
 		seedProject(db);

@@ -1,6 +1,7 @@
 import { useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
+import type { PullRequestRef } from "renderer/lib/github/pullRequestRef";
 import { WorkItemDetailState } from "../../../components/WorkItemDetailState";
 import type { PullRequestDetail } from "../../hooks/usePullRequestDetail";
 import { pullRequestReadErrorMessage } from "../../utils/combinePullRequestReadErrors";
@@ -10,6 +11,7 @@ import { PullRequestSummaryContent } from "../PullRequestSummaryContent";
 
 export function PullRequestDetailContent({
 	activeTab,
+	expectedRef,
 	projectId,
 	hostUrl,
 	hostId,
@@ -19,6 +21,7 @@ export function PullRequestDetailContent({
 	children,
 }: {
 	activeTab: PullRequestDetailTab;
+	expectedRef?: PullRequestRef;
 	projectId: string | null;
 	hostUrl: string | null;
 	hostId: string | null;
@@ -51,9 +54,11 @@ export function PullRequestDetailContent({
 		);
 	const prUrl =
 		detail.data?.url ??
-		(repoFullName
-			? `https://github.com/${repoFullName}/pull/${prNumber}`
-			: null);
+		(expectedRef?.provider === "gitlab"
+			? null
+			: repoFullName
+				? `https://github.com/${repoFullName}/pull/${prNumber}`
+				: null);
 	return (
 		<>
 			{detail.data ? (
@@ -78,7 +83,15 @@ export function PullRequestDetailContent({
 			) : null}
 			{activeTab === "code" && prUrl && (
 				<PullRequestCodeTab
-					key={`${repoFullName}#${prNumber}`}
+					key={JSON.stringify([
+						expectedRef?.provider ?? "github",
+						expectedRef?.host ?? "github.com",
+						hostUrl,
+						projectId,
+						repoFullName,
+						prNumber,
+					])}
+					expectedRef={expectedRef}
 					projectId={projectId}
 					hostUrl={hostUrl ?? ""}
 					hostId={hostId}

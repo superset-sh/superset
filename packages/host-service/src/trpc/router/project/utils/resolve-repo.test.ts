@@ -724,3 +724,87 @@ describe("cloneRepoInto", () => {
 		expect(resolved.remoteName).toBeNull();
 	});
 });
+
+describe("native repository identity (real Git)", () => {
+	test("adds native custom-port/subgroup identity while retaining the legacy parsed fields", async () => {
+		const path = join(workRoot, "native-custom-authority");
+		const git = await initRepoAt(path);
+		await git.addRemote(
+			"origin",
+			"https://git.example.invalid:8443/Group/SubGroup/Widget.git",
+		);
+		const resolved = await resolveLocalRepo(path);
+		expect(resolved.parsed).toBeNull();
+		expect(resolved.remoteName).toBeNull();
+		expect(resolved.identity).toEqual({
+			provider: "unknown",
+			host: "git.example.invalid:8443",
+			owner: "Group/SubGroup",
+			name: "Widget",
+			url: "https://git.example.invalid:8443/Group/SubGroup/Widget",
+			remoteName: "origin",
+		});
+	});
+	test("native origin remains secondary to the original GitHub resolver selection", async () => {
+		const path = join(workRoot, "native-with-github-priority");
+		const git = await initRepoAt(path);
+		await git.addRemote("origin", "git@gitlab.com:Group/Sub/Widget.git");
+		await git.addRemote("upstream", "git@github.com:Owner/Repo.git");
+		const resolved = await resolveLocalRepo(path);
+		expect(resolved.remoteName).toBe("upstream");
+		expect(resolved.parsed).toEqual({
+			provider: "github",
+			owner: "Owner",
+			name: "Repo",
+			url: "https://github.com/Owner/Repo",
+		});
+		expect(resolved.identity).toBeUndefined();
+	});
+	test("native SSH transport port is not confused with the web/API authority", async () => {
+		const path = join(workRoot, "native-ssh-port");
+		const git = await initRepoAt(path);
+		await git.addRemote(
+			"origin",
+			"ssh://git@git.example.invalid:2222/Group/Sub/Widget.git",
+		);
+		const resolved = await resolveLocalRepo(path);
+		expect(resolved.identity).toMatchObject({
+			provider: "unknown",
+			host: "git.example.invalid",
+			url: "https://git.example.invalid/Group/Sub/Widget",
+			remoteName: "origin",
+		});
+	});
+});
+
+test("network remotes without a namespace fail before clone or credentials", async () => {
+	const parent = mkdtempSync(join(tmpdir(), "unsupported-network-"));
+	try {
+		let requested = false;
+		const credentials = {
+			getCredentials: async () => {
+				requested = true;
+				return { env: {} };
+			},
+			getToken: async () => null,
+			credentialRemedy: () => "",
+		};
+		for (const remote of [
+			"https://gitlab.example/repo.git",
+			"ssh://git@gitlab.example/repo.git",
+			"git@gitlab.example:repo.git",
+			"gitlab.example:repo.git",
+		])
+			await expect(
+				cloneRepoInto(remote, parent, credentials),
+			).rejects.toMatchObject({
+				code: "BAD_REQUEST",
+				message:
+					"Unsupported repository URL: expected a host and namespace/project path",
+			});
+		expect(requested).toBe(false);
+		expect(existsSync(join(parent, "repo"))).toBe(false);
+	} finally {
+		rmSync(parent, { recursive: true, force: true });
+	}
+});

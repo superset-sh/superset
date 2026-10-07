@@ -1,5 +1,7 @@
 import type { PullRequestDiff } from "@superset/shared/pull-request-diff";
 import { cloudTrpcClient } from "renderer/lib/cloud-trpc";
+import { getPullRequestReadInput } from "renderer/lib/github/getPullRequestReadInput";
+import type { PullRequestRef } from "renderer/lib/github/pullRequestRef";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { combinePullRequestReadErrors } from "../../../../utils/combinePullRequestReadErrors";
 
@@ -9,6 +11,7 @@ interface PullRequestDiffInput {
 	repoFullName: string | null;
 	prNumber: number;
 	organizationId: string | null;
+	expectedRef?: PullRequestRef;
 }
 
 export async function fetchPullRequestDiff({
@@ -17,13 +20,18 @@ export async function fetchPullRequestDiff({
 	repoFullName,
 	prNumber,
 	organizationId,
+	expectedRef,
 }: PullRequestDiffInput): Promise<PullRequestDiff> {
 	let repositoryError: unknown;
 	if (hostUrl) {
 		if (projectId) {
 			try {
 				const client = getHostServiceClientByUrl(hostUrl);
-				return await client.pullRequests.getDiff.query({ projectId, prNumber });
+				return await client.pullRequests.getDiff.query({
+					projectId,
+					prNumber,
+					...getPullRequestReadInput(expectedRef, projectId),
+				});
 			} catch (error) {
 				if (!repoFullName) throw error;
 			}

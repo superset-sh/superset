@@ -92,6 +92,8 @@ export interface SandboxEnvironment {
 
 /** Everything the box needs to become one workspace; nothing of it is a create-time env. */
 export interface SandboxClaim {
+	requireFreshPolicy?: true;
+	recheckPolicy?: () => Promise<void>;
 	identity: SandboxIdentity;
 	/** What the gate presents; travels only in the boot command's env. */
 	hostSecret: string;
@@ -99,6 +101,49 @@ export interface SandboxClaim {
 	networkPolicy: NetworkPolicy;
 	/** Ports the workspace's repository asks to publish, beside the platform's. */
 	ports?: readonly number[];
+}
+
+class SandboxPolicyError extends Error {
+	constructor(readonly stopFailed: boolean) {
+		super("Sandbox policy update failed");
+	}
+}
+
+async function applyRequiredSandboxPolicy(
+	sandbox: Sandbox,
+	networkPolicy: NetworkPolicy,
+	recheckPolicy: (() => Promise<void>) | undefined,
+): Promise<void> {
+	try {
+		if (!recheckPolicy) throw new Error("Missing sandbox grant recheck");
+		await recheckPolicy();
+		await sandbox.update({ networkPolicy });
+		await recheckPolicy();
+	} catch {
+		await stopAfterSandboxPolicyFailure(sandbox);
+	}
+}
+
+async function stopAfterSandboxPolicyFailure(sandbox: Sandbox): Promise<never> {
+	let stopFailed = false;
+	try {
+		await sandbox.stop();
+	} catch {
+		stopFailed = true;
+	}
+	throw new SandboxPolicyError(stopFailed);
+}
+
+async function recheckSandboxPolicy(
+	sandbox: Sandbox,
+	claim: SandboxClaim,
+): Promise<void> {
+	try {
+		if (!claim.recheckPolicy) throw new Error("Missing sandbox grant recheck");
+		await claim.recheckPolicy();
+	} catch {
+		await stopAfterSandboxPolicyFailure(sandbox);
+	}
 }
 
 function publishedPorts(extra: readonly number[] = []): number[] {
@@ -176,8 +221,19 @@ export async function provisionSandbox(args: {
 		keepLastSnapshots: { count: 1 },
 		tags: { kind },
 	};
+	const existing = await getSandbox(args.name);
+	if (existing && args.claim.requireFreshPolicy)
+		await applyRequiredSandboxPolicy(
+			existing,
+			args.claim.networkPolicy,
+			args.claim.recheckPolicy,
+		);
+	if (!existing && args.claim.requireFreshPolicy) {
+		if (!args.claim.recheckPolicy) throw new SandboxPolicyError(false);
+		await args.claim.recheckPolicy();
+	}
 	const sandbox =
-		(await getSandbox(args.name)) ??
+		existing ??
 		(args.environment.sourceKind === "fork"
 			? // A fork copies the golden's resources and its region; a snapshot
 				// only exists where it was taken.
@@ -191,8 +247,14 @@ export async function provisionSandbox(args: {
 					region: args.environment.region as SandboxRegion,
 					resources: { vcpus: IMAGE_SANDBOX_VCPUS },
 				}));
+	if (args.claim.requireFreshPolicy)
+		await recheckSandboxPolicy(sandbox, args.claim);
 	await writeIdentity(sandbox, args.claim.identity);
+	if (args.claim.requireFreshPolicy)
+		await recheckSandboxPolicy(sandbox, args.claim);
 	await runBoot(sandbox, args.claim.hostSecret);
+	if (args.claim.requireFreshPolicy)
+		await recheckSandboxPolicy(sandbox, args.claim);
 	return {
 		providerSandboxId: args.name,
 		sandboxUrl: sandbox.domain(HOST_SERVICE_PORT),
@@ -204,6 +266,7 @@ const HOST_READY_TIMEOUT_MS = 60_000;
 const HOST_READY_POLL_MS = 100;
 
 export class SandboxNotReadyError extends Error {
+	declare stopFailed?: boolean;
 	constructor(providerSandboxId: string) {
 		super(`host-service in ${providerSandboxId} did not answer in time`);
 		this.name = "SandboxNotReadyError";
@@ -237,6 +300,36 @@ export async function settleSandbox(args: {
 	hostTarget: string;
 	claim: SandboxClaim;
 }): Promise<void> {
+	if (args.claim.requireFreshPolicy) {
+		try {
+			if (!args.claim.recheckPolicy)
+				throw new Error("Missing sandbox grant recheck");
+			await args.claim.recheckPolicy();
+			await waitForHostService(args.hostTarget, args.providerSandboxId);
+			await args.claim.recheckPolicy();
+			await pushManagedEnv(
+				args.hostTarget,
+				args.claim.hostSecret,
+				args.claim.managedEnv,
+			);
+			await args.claim.recheckPolicy();
+			return;
+		} catch (error) {
+			const sandbox = await getSandbox(args.providerSandboxId).catch(
+				() => null,
+			);
+			let stopFailed = !sandbox;
+			if (sandbox)
+				await sandbox.stop().catch(() => {
+					stopFailed = true;
+				});
+			if (error instanceof SandboxNotReadyError) {
+				error.stopFailed = stopFailed;
+				throw error;
+			}
+			throw new SandboxPolicyError(stopFailed);
+		}
+	}
 	await waitForHostService(args.hostTarget, args.providerSandboxId);
 	await pushManagedEnv(
 		args.hostTarget,
@@ -277,6 +370,8 @@ export async function pushManagedEnv(
 export async function applySandboxPolicy(args: {
 	providerSandboxId: string;
 	networkPolicy: NetworkPolicy;
+	requireFreshPolicy?: true;
+	recheckPolicy?: () => Promise<void>;
 }): Promise<"applied" | "not-running"> {
 	const sandbox = await Sandbox.get({
 		...credentials(),
@@ -287,6 +382,14 @@ export async function applySandboxPolicy(args: {
 		throw error;
 	});
 	if (!sandbox || sandbox.status !== "running") return "not-running";
+	if (args.requireFreshPolicy) {
+		await applyRequiredSandboxPolicy(
+			sandbox,
+			args.networkPolicy,
+			args.recheckPolicy,
+		);
+		return "applied";
+	}
 	await sandbox.update({ networkPolicy: args.networkPolicy });
 	return "applied";
 }
@@ -348,6 +451,8 @@ export async function wakeSandbox(args: {
 			name: args.providerSandboxId,
 			resume: false,
 		});
+		if (args.claim.requireFreshPolicy)
+			return await wakeSandboxWithRequiredPolicy(sandbox, args);
 		const hostTarget = sandbox.domain(HOST_SERVICE_PORT);
 		const wasRunning = sandbox.status === "running";
 		if (wasRunning) {
@@ -384,6 +489,37 @@ export async function wakeSandbox(args: {
 			throw new SandboxUnavailableError(args.providerSandboxId, error);
 		throw error;
 	}
+}
+
+async function wakeSandboxWithRequiredPolicy(
+	sandbox: Sandbox,
+	args: { providerSandboxId: string; claim: SandboxClaim },
+): Promise<{ hostTarget: string; booted: boolean }> {
+	const wasRunning = sandbox.status === "running";
+	await applyRequiredSandboxPolicy(
+		sandbox,
+		args.claim.networkPolicy,
+		args.claim.recheckPolicy,
+	);
+	const hostTarget = sandbox.domain(HOST_SERVICE_PORT);
+	if (wasRunning) {
+		const remaining = (sandbox.expiresAt?.getTime() ?? 0) - Date.now();
+		if (remaining < EXTEND_BELOW_MS)
+			await sandbox.extendTimeout(SESSION_TIMEOUT_MS).catch(() => {});
+	}
+	const serving = wasRunning && (await hostServiceAnswers(hostTarget));
+	if (!serving) {
+		await recheckSandboxPolicy(sandbox, args.claim);
+		await writeIdentity(sandbox, args.claim.identity);
+		await recheckSandboxPolicy(sandbox, args.claim);
+		await runBoot(sandbox, args.claim.hostSecret);
+	}
+	await settleSandbox({
+		providerSandboxId: args.providerSandboxId,
+		hostTarget,
+		claim: args.claim,
+	});
+	return { hostTarget, booted: !wasRunning };
 }
 
 /**
@@ -438,6 +574,8 @@ export async function promoteSandboxToEnvironment(args: {
 	/** What restarts the source: it boots the same way a wake does. */
 	claim: SandboxClaim;
 }): Promise<{ goldenName: string; region: string }> {
+	if (args.claim.requireFreshPolicy)
+		return promoteSandboxWithRequiredPolicy(args);
 	const source = await Sandbox.get({
 		...credentials(),
 		name: args.sourceSandbox,
@@ -468,6 +606,75 @@ export async function promoteSandboxToEnvironment(args: {
 		await runBoot(source, args.claim.hostSecret);
 	}
 	return { goldenName: args.goldenName, region: source.region };
+}
+
+async function promoteSandboxWithRequiredPolicy(args: {
+	sourceSandbox: string;
+	goldenName: string;
+	claim: SandboxClaim;
+}): Promise<{ goldenName: string; region: string }> {
+	const source = await Sandbox.get({
+		...credentials(),
+		name: args.sourceSandbox,
+		resume: false,
+	});
+	const wasRunning = source.status === "running";
+	await applyRequiredSandboxPolicy(
+		source,
+		args.claim.networkPolicy,
+		args.claim.recheckPolicy,
+	);
+	let golden: Sandbox | undefined;
+	try {
+		const snapshot = await source.snapshot();
+		await recheckSandboxPolicy(source, args.claim);
+		golden = await Sandbox.create({
+			...credentials(),
+			name: args.goldenName,
+			source: { type: "snapshot", snapshotId: snapshot.snapshotId },
+			ports: publishedPorts(),
+			timeout: GOLDEN_SESSION_TIMEOUT_MS,
+			region: source.region as SandboxRegion,
+			...(source.vcpus ? { resources: { vcpus: source.vcpus } } : {}),
+			env: {},
+			networkPolicy: "deny-all",
+			persistent: true,
+			snapshotExpiration: 0,
+			keepLastSnapshots: { count: 1 },
+			tags: { kind: "environment" },
+		});
+		await stripWorkspaceIdentity(golden);
+		const created = golden.currentSnapshotId;
+		await golden.stop();
+		await waitForStopSnapshot(args.goldenName, created);
+		await recheckSandboxPolicy(source, args.claim);
+		if (wasRunning) {
+			await applyRequiredSandboxPolicy(
+				source,
+				args.claim.networkPolicy,
+				args.claim.recheckPolicy,
+			);
+			await writeIdentity(source, args.claim.identity);
+			await recheckSandboxPolicy(source, args.claim);
+			await runBoot(source, args.claim.hostSecret);
+			await settleSandbox({
+				providerSandboxId: args.sourceSandbox,
+				hostTarget: source.domain(HOST_SERVICE_PORT),
+				claim: args.claim,
+			});
+		}
+		return { goldenName: args.goldenName, region: source.region };
+	} catch (error) {
+		if (golden)
+			await golden.delete({ deleteOrphanSnapshots: true }).catch(() => {
+				console.warn("[sandbox] failed to delete unused GitLab golden");
+			});
+		if (!(error instanceof SandboxPolicyError))
+			await source.stop().catch(() => {
+				console.warn("[sandbox] failed to stop GitLab promotion source");
+			});
+		throw error;
+	}
 }
 
 /**

@@ -1,4 +1,6 @@
 import { cloudTrpcClient } from "renderer/lib/cloud-trpc";
+import { getPullRequestReadInput } from "renderer/lib/github/getPullRequestReadInput";
+import type { PullRequestRef } from "renderer/lib/github/pullRequestRef";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { combinePullRequestReadErrors } from "../../../../utils/combinePullRequestReadErrors";
 import { fromHostPullRequestContent } from "../../../../utils/fromHostPullRequestContent";
@@ -9,19 +11,25 @@ export async function fetchPullRequestDetail({
 	repoFullName,
 	organizationId,
 	prNumber,
+	expectedRef,
 }: {
 	projectId: string | null;
 	hostUrl: string | null;
 	repoFullName: string | null;
 	organizationId: string | null;
 	prNumber: number;
+	expectedRef?: PullRequestRef;
 }) {
 	let repositoryError: unknown;
 	if (hostUrl && projectId) {
 		try {
 			const content = await getHostServiceClientByUrl(
 				hostUrl,
-			).pullRequests.getContent.query({ projectId, prNumber });
+			).pullRequests.getContent.query({
+				projectId,
+				prNumber,
+				...getPullRequestReadInput(expectedRef, projectId),
+			});
 			return fromHostPullRequestContent(content);
 		} catch (error) {
 			if (!repoFullName) throw error;

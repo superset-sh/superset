@@ -1,10 +1,11 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
@@ -20,6 +21,7 @@ import { apiClient } from "@/lib/trpc/client";
 import { CLOUD_TARGET_ID } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useNewChatTargets";
 import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
 import { useCloudCreateSelection } from "@/screens/(authenticated)/(home)/hooks/useCloudCreateSelection";
+import { cloudGitlabSelectionKey } from "@/screens/(authenticated)/(home)/hooks/useCloudCreateSelection/useCloudCreateSelection";
 
 function BranchRow({
 	name,
@@ -80,10 +82,49 @@ export function BranchPickerScreen() {
 	const projectId = params.projectId || null;
 	const { data: session } = useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
-	const cloudRepositoryId = useCloudCreateSelection().repository?.id ?? null;
+	const selection = useCloudCreateSelection();
+	const cloudRepositoryId = selection.repository?.id ?? null;
+	const native = isCloud && selection.isGitlab;
+	const nativeContext = isCloud ? selection.gitlab : null;
+	const nativeKey = native
+		? JSON.stringify([cloudGitlabSelectionKey(nativeContext), query.trim()])
+		: null;
+	const latest = useRef(nativeKey);
+	latest.current = nativeKey;
+	const live = useRef(true);
+	useEffect(() => {
+		live.current = true;
+		latest.current = nativeKey;
+		return () => {
+			live.current = false;
+			latest.current = null;
+		};
+	}, [nativeKey]);
+	const gitlabBranches = useInfiniteQuery({
+		queryKey: [
+			"cloud-branches",
+			"gitlab",
+			organizationId,
+			nativeContext?.environmentId,
+			nativeContext?.cloneUrl,
+			query.trim(),
+		],
+		enabled: native && nativeContext !== null,
+		initialPageParam: 1,
+		queryFn: ({ pageParam }) => {
+			if (!nativeContext) throw Error("Cloud environment unavailable");
+			return apiClient.cloudWorkspace.listGitlabBranches.query({
+				organizationId: nativeContext.organizationId,
+				cloneUrl: nativeContext.cloneUrl,
+				query: query.trim() || undefined,
+				page: pageParam,
+			});
+		},
+		getNextPageParam: (last) => last.nextPage ?? undefined,
+	});
 
 	const trimmedQuery = query.trim();
-	const { data, isLoading } = useQuery({
+	const regularBranches = useQuery({
 		queryKey: [
 			isCloud ? "cloud-branches" : "host-service",
 			"branches",
@@ -94,6 +135,7 @@ export function BranchPickerScreen() {
 		],
 		enabled:
 			projectId !== null &&
+			!native &&
 			(isCloud ? !!organizationId && !!cloudRepositoryId : !!hostUrl),
 		placeholderData: (previous) => previous,
 		networkMode: "always" as const,
@@ -124,6 +166,20 @@ export function BranchPickerScreen() {
 		},
 	});
 
+	const nativeError =
+		native && (selection.environmentsQuery.isError || gitlabBranches.isError);
+	const data = native
+		? !nativeError && gitlabBranches.data
+			? {
+					defaultBranch: gitlabBranches.data.pages[0]?.defaultBranch ?? null,
+					items: gitlabBranches.data.pages.flatMap((page) => page.items),
+				}
+			: undefined
+		: regularBranches.data;
+	const isLoading = native
+		? !nativeError &&
+			(selection.environmentsQuery.isPending || gitlabBranches.isPending)
+		: regularBranches.isLoading;
 	const resolvingHost = !isCloud && !host && hostsQuery.isPending;
 	const defaultBranch = data?.defaultBranch ?? null;
 	const branches = useMemo(
@@ -131,7 +187,24 @@ export function BranchPickerScreen() {
 		[data, defaultBranch],
 	);
 
+	const currentChoices = useRef({ key: nativeKey, data, error: nativeError });
+	currentChoices.current = { key: nativeKey, data, error: nativeError };
+
 	const selectAndClose = (branch: string | null) => {
+		if (
+			native &&
+			(!live.current ||
+				nativeKey === null ||
+				nativeKey !== latest.current ||
+				currentChoices.current.key !== nativeKey ||
+				currentChoices.current.error ||
+				!currentChoices.current.data ||
+				(branch !== null &&
+					!currentChoices.current.data.items.some(
+						(row) => row.name === branch,
+					)))
+		)
+			return;
 		setBaseBranch(branch);
 		posthog.capture("new_session_branch_selected", {
 			is_default_branch: branch === null || branch === defaultBranch,
@@ -213,7 +286,39 @@ export function BranchPickerScreen() {
 						<Spinner size="small" />
 					</View>
 				) : null}
-				{!isLoading &&
+				{native && gitlabBranches.hasNextPage && !nativeError ? (
+					<Button
+						accessibilityLabel={t({ message: "Load more" })}
+						variant="secondary"
+						disabled={gitlabBranches.isFetchingNextPage}
+						onPress={() => {
+							if (live.current && nativeKey === latest.current)
+								void gitlabBranches.fetchNextPage();
+						}}
+					>
+						<Text>
+							<Trans>Load more</Trans>
+						</Text>
+					</Button>
+				) : null}
+				{nativeError ? (
+					<Button
+						accessibilityLabel={t({ message: "Try again" })}
+						variant="secondary"
+						onPress={() => {
+							if (live.current && nativeKey === latest.current)
+								void (selection.environmentsQuery.isError
+									? selection.environmentsQuery.refetch()
+									: gitlabBranches.refetch());
+						}}
+					>
+						<Text>
+							<Trans>Could not load branches. Try again.</Trans>
+						</Text>
+					</Button>
+				) : null}
+				{!nativeError &&
+				!isLoading &&
 				!resolvingHost &&
 				!defaultBranch &&
 				branches.length === 0 ? (

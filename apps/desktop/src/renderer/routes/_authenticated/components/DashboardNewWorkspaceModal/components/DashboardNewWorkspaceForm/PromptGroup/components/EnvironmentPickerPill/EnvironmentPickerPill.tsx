@@ -16,6 +16,7 @@ import { FormPickerTrigger } from "../FormPickerTrigger";
 export interface EnvironmentOption {
 	id: string;
 	name: string;
+	gitlabProject?: { pathWithNamespace: string } | null;
 }
 
 interface EnvironmentPickerPillProps {
@@ -65,14 +66,25 @@ export function EnvironmentPickerPill({
 							{environments.map((environment) => (
 								<CommandItem
 									key={environment.id}
-									value={environment.name}
+									value={
+										environment.gitlabProject
+											? `${environment.name} ${environment.gitlabProject.pathWithNamespace}`
+											: environment.name
+									}
 									onSelect={() => {
 										onSelectEnvironment(environment.id);
 										setOpen(false);
 									}}
 								>
 									<LuLayers className="size-4 text-muted-foreground" />
-									<span className="flex-1 truncate">{environment.name}</span>
+									<span className="flex-1 truncate">
+										{environment.name}
+										{environment.gitlabProject && (
+											<span className="block text-xs text-muted-foreground">
+												{environment.gitlabProject.pathWithNamespace}
+											</span>
+										)}
+									</span>
 									{environment.id === selectedEnvironment?.id && (
 										<HiCheck className="size-4 shrink-0" />
 									)}

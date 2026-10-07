@@ -151,3 +151,21 @@ describe("settings search - mobile rollout", () => {
 		).toBe(1);
 	});
 });
+
+describe("settings search - GitLab", () => {
+	it("offers exactly one GitLab integration for native merge request searches", () => {
+		const rows = searchSettings("merge requests").filter(
+			(row) => row.id === "integrations-gitlab",
+		);
+		expect(rows).toHaveLength(1);
+		expect(rows[0]?.title).toBe("GitLab");
+		expect(rows[0]?.section).toBe("integrations");
+	});
+	it("keeps GitHub searchable by its existing pull-request keywords", () => {
+		expect(
+			searchSettings("pull requests").some(
+				(row) => row.id === "integrations-github",
+			),
+		).toBe(true);
+	});
+});

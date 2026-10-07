@@ -28,6 +28,7 @@ import { z } from "zod";
 import type { HostDb } from "../../../db";
 import { workspaces } from "../../../db/schema";
 import {
+	createInitialCommandDelivery,
 	createTerminalSessionInternal,
 	sendAgentMessage,
 } from "../../../terminal/terminal";
@@ -41,8 +42,16 @@ import { hasHarnessSession } from "../../../terminal-agents/harness-sessions";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { resolveAttachmentPath } from "../attachments/storage";
+import {
+	acquireExpectedGitlabDelivery,
+	type ExpectedGitlabPullRequest,
+	type ExpectedGitlabWorkspaceIdentity,
+	expectedGitlabPullRequestSchema,
+} from "../git/gitlab-actions";
 import { toTerminalSessionError } from "../terminal/errors";
 import { seedAgentFolderTrust } from "../workspace-creation/shared/seed-agent-trust";
+import { settleInitialDelivery } from "../workspace-creation/shared/settle-initial-delivery";
+import { captureExpectedGitlabWorkspace } from "../workspaces/create-gitlab-checkout";
 
 /**
  * Build a shell command string that runs the resolved agent config with the
@@ -128,6 +137,7 @@ function buildAttachmentBlock(
 }
 
 export interface AgentRunInput {
+	expectedPullRequest?: ExpectedGitlabPullRequest;
 	colors?: TerminalColors;
 	workspaceId: string;
 	agent: string;
@@ -488,8 +498,12 @@ export function bindResumedSession(
 async function runTerminalAgent(
 	ctx: Pick<HostServiceContext, "db" | "eventBus" | "terminalAgentStore">,
 	input: AgentRunInput,
+	acquireDelivery?: () => Promise<{ isValid(): boolean } | null>,
 ): Promise<AgentRunResult> {
 	const { fullCommand, label } = buildTerminalAgentLaunch(ctx.db, input);
+	const delivery = acquireDelivery
+		? createInitialCommandDelivery(acquireDelivery)
+		: undefined;
 
 	const terminalId = crypto.randomUUID();
 	const result = await createTerminalSessionInternal({
@@ -499,12 +513,16 @@ async function runTerminalAgent(
 		eventBus: ctx.eventBus,
 		initialCommand: fullCommand,
 		colors: input.colors,
+		...(delivery ? { initialDelivery: delivery } : {}),
 	});
 
 	if ("error" in result) {
 		throw toTerminalSessionError(result);
 	}
 
+	if (delivery) {
+		await settleInitialDelivery(delivery, terminalId, ctx.db);
+	}
 	bindResumedSession(ctx, input, result.terminalId);
 
 	return {
@@ -584,6 +602,7 @@ export function continuationTarget(
 async function continueTerminalAgent(
 	ctx: Pick<HostServiceContext, "db" | "eventBus" | "terminalAgentStore">,
 	input: AgentRunInput,
+	acquireDelivery?: () => Promise<{ isValid(): boolean } | null>,
 ): Promise<AgentRunResult | null> {
 	const target = continuationTarget(ctx.db, ctx.terminalAgentStore, input);
 	if (!target) return null;
@@ -596,11 +615,15 @@ async function continueTerminalAgent(
 		submit: true,
 		db: ctx.db,
 		eventBus: ctx.eventBus,
+		...(acquireDelivery ? { acquireDelivery, awaitReplay: true } : {}),
 	});
 	// The session died between the binding read and the write. The send adopts
 	// but never respawns, so this cannot have typed the prompt into a fresh
 	// shell — it simply did not land.
-	if ("error" in sent) return null;
+	if ("error" in sent) {
+		if (acquireDelivery) throw toTerminalSessionError(sent);
+		return null;
+	}
 
 	return {
 		kind: "terminal",
@@ -612,6 +635,7 @@ async function continueTerminalAgent(
 export async function runAgentInWorkspace(
 	ctx: HostServiceContext,
 	input: AgentRunInput,
+	initialWorkspace?: ExpectedGitlabWorkspaceIdentity,
 ): Promise<AgentRunResult> {
 	const workspace = ctx.db.query.workspaces
 		.findFirst({
@@ -633,8 +657,23 @@ export async function runAgentInWorkspace(
 			message: `Workspace ${input.workspaceId} not found on this host — it may have been deleted.`,
 		});
 	}
+	const expected = input.expectedPullRequest;
+	const initial = expected
+		? (initialWorkspace ??
+			captureExpectedGitlabWorkspace(ctx, input.workspaceId))
+		: undefined;
+	const acquireDelivery =
+		expected && initial
+			? () =>
+					acquireExpectedGitlabDelivery(
+						ctx,
+						input.workspaceId,
+						expected,
+						initial,
+					)
+			: undefined;
 	// Ahead of the launch path: continuing costs no pty and no trust seeding.
-	const continued = await continueTerminalAgent(ctx, input);
+	const continued = await continueTerminalAgent(ctx, input, acquireDelivery);
 	if (continued) return continued;
 
 	// Session workspaces are standalone repos the host itself scaffolded, so
@@ -648,7 +687,7 @@ export async function runAgentInWorkspace(
 			await seedAgentFolderTrust(ctx.db, workspace.worktreePath, config);
 		}
 	}
-	return runTerminalAgent(ctx, input);
+	return runTerminalAgent(ctx, input, acquireDelivery);
 }
 
 export const agentsRouter = router({
@@ -656,6 +695,7 @@ export const agentsRouter = router({
 		.input(
 			z.object({
 				workspaceId: z.string().uuid(),
+				expectedPullRequest: expectedGitlabPullRequestSchema.optional(),
 				colors: terminalColorsSchema.optional(),
 				agent: z.string().min(1),
 				// Optional: an empty prompt launches the bare agent (the builder

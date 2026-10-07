@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../../../../db";
+import { applyRepoSchema } from "../../../../db/repo-schema";
 import * as schema from "../../../../db/schema";
 import { projects, pullRequests, workspaces } from "../../../../db/schema";
 
@@ -14,6 +15,7 @@ export function createTestDb(): HostDb {
 	sqlite.exec("PRAGMA foreign_keys = ON");
 	const db = drizzle(sqlite, { schema });
 	migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
+	applyRepoSchema(sqlite);
 	// bun:sqlite's drizzle type differs from the better-sqlite3-based HostDb,
 	// but the query surface used here is identical (same cast as other tests).
 	return db as unknown as HostDb;

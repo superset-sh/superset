@@ -6,6 +6,7 @@ import {
 	REVIEW_THREADS_QUERY,
 } from "../../git/utils/graphql";
 import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
+import { resolveGitLabProject } from "./gitlab-project";
 
 const getThreadsInputSchema = z.object({
 	projectId: z.string(),
@@ -19,6 +20,24 @@ const getThreadsInputSchema = z.object({
 export const getThreads = protectedProcedure
 	.input(getThreadsInputSchema)
 	.query(async ({ ctx, input }) => {
+		const gitlab = await resolveGitLabProject(ctx, input.projectId);
+		if (gitlab) {
+			try {
+				return {
+					...(await gitlab.client.fetchReviewThreads(
+						gitlab.repo,
+						input.prNumber,
+					)),
+					fetchFailed: false,
+				};
+			} catch (error) {
+				console.warn(
+					`[pullRequests.getThreads] Failed to fetch GitLab threads for !${input.prNumber}:`,
+					error,
+				);
+				return { reviewThreads: [], fetchFailed: true };
+			}
+		}
 		const repo = await resolveGithubRepo(ctx, input.projectId);
 		const octokit = await ctx.github();
 

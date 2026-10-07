@@ -66,6 +66,14 @@ export function PullRequestPane({
 		<div className="@container flex h-full w-full min-h-0 min-w-0 flex-col">
 			<div className="flex shrink-0 flex-col border-b border-border pt-3">
 				<PullRequestDetailHeader
+					key={JSON.stringify([
+						data.provider,
+						data.host,
+						data.repoFullName,
+						data.number,
+						workspace.projectId,
+						workspaceHostUrl,
+					])}
 					projectId={isLinkedPR ? workspace.projectId : null}
 					hostId={isLinkedPR ? workspace.hostId : null}
 					hostUrl={isLinkedPR ? workspaceHostUrl : null}
@@ -82,6 +90,7 @@ export function PullRequestPane({
 			</div>
 			<PullRequestDetailContent
 				activeTab={activeTab}
+				expectedRef={data.provider === "gitlab" ? data : undefined}
 				detail={detail}
 				projectId={detail.projectId}
 				repoFullName={data.repoFullName}
@@ -91,6 +100,7 @@ export function PullRequestPane({
 			>
 				{isLinkedPR ? (
 					<PullRequestComments
+						provider={data.provider ?? "github"}
 						workspaceId={workspace.id}
 						comments={comments}
 						isLoading={threads.isLoading}

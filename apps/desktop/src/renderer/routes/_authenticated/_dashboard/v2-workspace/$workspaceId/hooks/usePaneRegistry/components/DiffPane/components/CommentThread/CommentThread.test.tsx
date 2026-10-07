@@ -20,6 +20,7 @@ if (!alreadyRegistered) GlobalRegistrator.register();
 interface ReplyVariables {
 	workspaceId: string;
 	commentId: number;
+	threadId?: string;
 	body: string;
 }
 interface ReplyMutationOptions {
@@ -184,5 +185,75 @@ describe("CommentThread reply", () => {
 			});
 		});
 		expect((textarea as HTMLTextAreaElement).value).toBe("Looks good");
+	});
+});
+
+describe("CommentThread GitLab reply", () => {
+	test("retains the discussion identity and numeric note when posting", async () => {
+		let view!: ReturnType<typeof render>;
+		const threadId = "gitlab:git.example%3A8443:Group/Sub/Repo:7:discussion-1";
+		await act(async () => {
+			view = render(
+				<CommentThread
+					workspaceId="ws-gl"
+					threadId={threadId}
+					isResolved={false}
+					comments={COMMENTS}
+					replyToCommentId={777}
+				/>,
+			);
+		});
+		const ui = within(view.baseElement as HTMLElement);
+		const textarea = ui.getByPlaceholderText("Write a reply…");
+		await act(async () => {
+			fireEvent.change(textarea, { target: { value: "  GitLab reply  " } });
+			fireEvent.click(ui.getByRole("button", { name: "Reply" }));
+		});
+		expect(replyMutate.mock.calls).toEqual([
+			[
+				{
+					workspaceId: "ws-gl",
+					commentId: 777,
+					threadId,
+					body: "GitLab reply",
+				},
+			],
+		]);
+		expect((textarea as HTMLTextAreaElement).value).toBe("");
+		await act(async () => {
+			replyOptions.onError?.(new Error("GitLab refused"), {
+				workspaceId: "ws-gl",
+				commentId: 777,
+				threadId,
+				body: "GitLab reply",
+			});
+		});
+		expect((textarea as HTMLTextAreaElement).value).toBe("GitLab reply");
+		await act(async () => {
+			replyOptions.onSuccess?.();
+		});
+		expect(invalidateThreads.mock.calls).toEqual([[{ workspaceId: "ws-gl" }]]);
+	});
+
+	test("keeps a GitLab draft when no numeric note is available", async () => {
+		let view!: ReturnType<typeof render>;
+		await act(async () => {
+			view = render(
+				<CommentThread
+					workspaceId="ws-gl"
+					threadId="gitlab:git.example:Group/Repo:7:discussion"
+					isResolved={false}
+					comments={[]}
+				/>,
+			);
+		});
+		const ui = within(view.baseElement as HTMLElement);
+		const textarea = ui.getByPlaceholderText("Write a reply…");
+		await act(async () => {
+			fireEvent.change(textarea, { target: { value: "Keep draft" } });
+			fireEvent.click(ui.getByRole("button", { name: "Reply" }));
+		});
+		expect(replyMutate).not.toHaveBeenCalled();
+		expect((textarea as HTMLTextAreaElement).value).toBe("Keep draft");
 	});
 });

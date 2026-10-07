@@ -17,10 +17,7 @@ export function openPullRequestPaneInStore(
 	ref: PullRequestRef,
 ): void {
 	const state = store.getState();
-	const data: PullRequestPaneData = {
-		repoFullName: ref.repoFullName,
-		number: ref.number,
-	};
+	const data: PullRequestPaneData = { ...ref };
 
 	for (const tab of state.tabs) {
 		for (const pane of Object.values(tab.panes)) {

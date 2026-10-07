@@ -53,6 +53,13 @@ export async function ingestAutomationEvent(
 		...delivery.event,
 		dispatchInput: delivery.dispatch,
 	});
+	return dispatchRecordedAutomationEvent(delivery, inserted);
+}
+
+export async function dispatchRecordedAutomationEvent(
+	delivery: Exclude<NormalizedDelivery, { skip: string }>,
+	inserted: { id: string } | null,
+): Promise<IngestOutcome> {
 	if (!inserted) return { status: "duplicate" };
 	if (!delivery.dispatch) return { status: "recorded", eventId: inserted.id };
 

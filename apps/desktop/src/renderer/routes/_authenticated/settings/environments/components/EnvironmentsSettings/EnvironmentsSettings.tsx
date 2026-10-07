@@ -159,6 +159,7 @@ export function EnvironmentsSettings({
 													(repo) => repo.id,
 												),
 												hooksRepositoryId: environment.hooksRepositoryId,
+												gitlabProject: environment.gitlabProject,
 												repositoriesFrozen: environment.sourceKind !== "image",
 												region: environment.region,
 											},

@@ -75,6 +75,16 @@ export const INTEGRATIONS = [
 		standalone: true,
 	},
 	{
+		provider: "gitlab",
+		label: "GitLab",
+		description: () =>
+			i18n._(msg({ message: "Connect repos and sync merge requests." })),
+		category: () => i18n._(msg({ message: "Version Control" })),
+		webPath: "/integrations/gitlab",
+		triggerKinds: ["gitlab"],
+		standalone: true,
+	},
+	{
 		provider: "slack",
 		label: "Slack",
 		description: () =>

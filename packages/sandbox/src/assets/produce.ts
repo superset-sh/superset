@@ -19,11 +19,13 @@
 import {
 	existsSync,
 	mkdirSync,
+	mkdtempSync,
 	readdirSync,
 	readFileSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SANDBOX_PATHS } from "@superset/shared/sandbox-contract";
 import { ASSET_CACHE, BUNDLE_SRC, PACKAGE_ROOT } from "../build";
@@ -492,6 +494,96 @@ async function codex(version?: string): Promise<void> {
 	});
 }
 
+async function glabBytes(url: string, limit: number): Promise<Uint8Array> {
+	const response = await fetch(url, { signal: AbortSignal.timeout(60000) });
+	if (!response.ok || !response.body)
+		throw new Error("glab artifact download failed");
+	const reader = response.body.getReader();
+	const chunks: Uint8Array[] = [];
+	let size = 0;
+	try {
+		while (true) {
+			const next = await reader.read();
+			if (next.done) break;
+			size += next.value.byteLength;
+			if (size > limit) throw new Error("glab artifact exceeds size limit");
+			chunks.push(next.value);
+		}
+		return Buffer.concat(chunks, size);
+	} finally {
+		void reader.cancel().catch(() => {});
+	}
+}
+
+async function glab(version?: string): Promise<void> {
+	const pinned = "1.109.0";
+	if (version !== undefined && version !== pinned)
+		throw new Error("glab version is pinned");
+	const filename = `glab_${pinned}_linux_amd64.tar.gz`;
+	const release = `https://gitlab.com/gitlab-org/cli/-/releases/v${pinned}/downloads`;
+	const source = `${release}/${filename}`;
+	const text = new TextDecoder("utf-8", { fatal: true }).decode(
+		await glabBytes(`${release}/checksums.txt`, 262144),
+	);
+	const selected = text
+		.split(/\r?\n/)
+		.map((line) => line.trim().split(/[ \t]+/))
+		.filter(
+			(parts) => parts.at(-1) === filename || parts.at(-1) === `*${filename}`,
+		);
+	const entry = selected[0];
+	if (
+		selected.length !== 1 ||
+		entry?.length !== 2 ||
+		!/^[a-f0-9]{64}$/i.test(entry[0] ?? "")
+	)
+		throw new Error("glab archive checksum is missing or ambiguous");
+	const archive = await glabBytes(source, 67108864);
+	if (sha256(archive) !== entry[0]?.toLowerCase())
+		throw new Error("glab archive checksum mismatch");
+	const work = mkdtempSync(join(tmpdir(), "superset-glab-"));
+	try {
+		const path = join(work, filename);
+		writeFileSync(path, archive);
+		const extraction = Bun.spawnSync(["tar", "-xOzf", path, "bin/glab"], {
+			stdout: "pipe",
+			stderr: "pipe",
+			timeout: 30000,
+			maxBuffer: 134217728,
+		});
+		if (extraction.exitCode !== 0)
+			throw new Error("glab archive extraction failed");
+		const binary = Buffer.from(extraction.stdout);
+		if (
+			binary.length < 64 ||
+			binary.length > 134217728 ||
+			!binary.subarray(0, 4).equals(Buffer.from([127, 69, 76, 70])) ||
+			binary[4] !== 2 ||
+			binary[5] !== 1 ||
+			binary[6] !== 1 ||
+			![0, 3].includes(binary[7] ?? -1) ||
+			![2, 3].includes(binary.readUInt16LE(16)) ||
+			binary.readUInt16LE(18) !== 62 ||
+			binary.readUInt32LE(20) !== 1 ||
+			binary.readUInt16LE(52) !== 64
+		)
+			throw new Error("glab binary is not Linux amd64 ELF");
+		const { sha256: hash } = cache(binary, "");
+		rewriteRows({
+			glab: {
+				sha256: hash,
+				suffix: "",
+				dest: "/usr/local/bin/glab",
+				mode: "0755",
+				source,
+				version: pinned,
+			},
+		});
+	} finally {
+		rmSync(work, { recursive: true, force: true });
+	}
+}
+
 export const producers: Record<
 	string,
 	(version?: string) => Promise<void> | void
@@ -503,6 +595,7 @@ export const producers: Record<
 	"host-service": hostService,
 	go,
 	cli,
+	glab,
 	claude,
 	codex,
 };

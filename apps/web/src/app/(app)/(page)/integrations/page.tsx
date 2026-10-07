@@ -10,7 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useFeatureFlagPayload } from "posthog-js/react";
 import { type ReactNode, useEffect, useState } from "react";
 import { BsMicrosoftTeams } from "react-icons/bs";
-import { FaGithub, FaGoogle, FaSlack } from "react-icons/fa";
+import { FaGithub, FaGitlab, FaGoogle, FaSlack } from "react-icons/fa";
 import { SiLinear, SiNotion, SiSentry } from "react-icons/si";
 import { useTRPC } from "@/trpc/react";
 import { IntegrationCard } from "./components/IntegrationCard";
@@ -21,6 +21,7 @@ const CARD_STYLES: Record<
 	{ accentColor: string; icon: ReactNode }
 > = {
 	linear: { accentColor: "#5E6AD2", icon: <SiLinear className="size-8" /> },
+	gitlab: { accentColor: "#FC6D26", icon: <FaGitlab className="size-8" /> },
 	github: { accentColor: "#238636", icon: <FaGithub className="size-8" /> },
 	slack: { accentColor: "#4A154B", icon: <FaSlack className="size-8" /> },
 	notion: { accentColor: "#5F5E5B", icon: <SiNotion className="size-8" /> },

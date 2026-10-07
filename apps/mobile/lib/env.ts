@@ -4,6 +4,7 @@ const envSchema = z.object({
 	NODE_ENV: z
 		.enum(["development", "production", "test"])
 		.default("development"),
+	EXPO_PUBLIC_AUTH_PROVIDERS: z.string().optional(),
 	EXPO_PUBLIC_API_URL: z.url(),
 	EXPO_PUBLIC_RELAY_URL: z.url(),
 	EXPO_PUBLIC_REALTIME_URL: z.url().default("https://realtime.superset.sh"),
@@ -22,6 +23,7 @@ const envSchema = z.object({
 
 const rawEnv: Record<string, string | undefined> = {
 	NODE_ENV: process.env.NODE_ENV,
+	EXPO_PUBLIC_AUTH_PROVIDERS: process.env.EXPO_PUBLIC_AUTH_PROVIDERS,
 	EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
 	EXPO_PUBLIC_RELAY_URL: process.env.EXPO_PUBLIC_RELAY_URL,
 	EXPO_PUBLIC_REALTIME_URL: process.env.EXPO_PUBLIC_REALTIME_URL,

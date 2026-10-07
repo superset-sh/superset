@@ -4,6 +4,8 @@
 	"private": true,
 	"type": "module",
 	"exports": {
+		"./git-remote": "./src/git-remote.ts",
+		"./repo-identity": "./src/repo-identity.ts",
 		"./terminal-colors": "./src/terminal-colors.ts",
 		"./voice": {
 			"types": "./src/voice/index.ts",
@@ -384,6 +386,10 @@
 		"./page-storage-ticket": {
 			"types": "./src/page-storage-ticket.ts",
 			"default": "./src/page-storage-ticket.ts"
+		},
+		"./optional-auth-providers": {
+			"types": "./src/optional-auth-providers.ts",
+			"default": "./src/optional-auth-providers.ts"
 		}
 	},
 	"scripts": {

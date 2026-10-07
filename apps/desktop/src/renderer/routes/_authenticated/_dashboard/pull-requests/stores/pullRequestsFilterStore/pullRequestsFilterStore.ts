@@ -22,7 +22,10 @@ interface PullRequestsFilterState {
 	mergedOnly: boolean;
 	setSearch: (search: string) => void;
 	setProjectFilters: (projectFilters: string[]) => void;
-	setAuthorFilter: (authorFilter: string | null) => void;
+	setAuthorFilter: (
+		authorFilter: string | null,
+		provider?: "github" | "gitlab" | "mixed" | "unknown",
+	) => void;
 	setReviewFilter: (reviewFilter: PullRequestReviewFilter | null) => void;
 	setIncludeClosed: (includeClosed: boolean) => void;
 	setMergedOnly: (mergedOnly: boolean) => void;
@@ -39,6 +42,7 @@ type PersistedPullRequestsFilterState = Pick<
 
 export function migratePullRequestsFilterState(
 	persistedState: unknown,
+	version = 7,
 ): PersistedPullRequestsFilterState {
 	const state =
 		persistedState && typeof persistedState === "object"
@@ -50,7 +54,10 @@ export function migratePullRequestsFilterState(
 		projectFilters: normalizeProjectFilters(
 			state.projectFilters ?? (legacyProject ? [legacyProject] : []),
 		),
-		authorFilter: normalizeAuthorFilters(state.authorFilter),
+		authorFilter: normalizeAuthorFilters(
+			state.authorFilter,
+			version >= 8 ? "unknown" : "github",
+		),
 		reviewFilter: normalizePullRequestReviewFilter(state.reviewFilter),
 		includeClosed: state.includeClosed === true,
 		mergedOnly: state.mergedOnly === true,
@@ -76,8 +83,8 @@ export const usePullRequestsFilterStore = create<PullRequestsFilterState>()(
 						? state
 						: { projectFilters: next };
 				}),
-			setAuthorFilter: (authorFilter) =>
-				set({ authorFilter: normalizeAuthorFilters(authorFilter) }),
+			setAuthorFilter: (authorFilter, provider) =>
+				set({ authorFilter: normalizeAuthorFilters(authorFilter, provider) }),
 			setReviewFilter: (reviewFilter) =>
 				set({
 					reviewFilter: normalizePullRequestReviewFilter(reviewFilter),
@@ -87,7 +94,7 @@ export const usePullRequestsFilterStore = create<PullRequestsFilterState>()(
 		}),
 		{
 			name: "pull-requests-filter-state",
-			version: 7,
+			version: 8,
 			migrate: migratePullRequestsFilterState,
 			partialize: (state) => ({
 				projectFilters: state.projectFilters,

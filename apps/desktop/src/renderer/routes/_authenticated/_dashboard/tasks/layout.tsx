@@ -16,11 +16,15 @@ export type TasksSearch = {
 	projects?: string;
 	linearProject?: string;
 	state?: "open" | "all";
+	issueUrl?: string;
 };
 
 export const Route = createFileRoute("/_authenticated/_dashboard/tasks")({
 	component: TasksLayout,
 	validateSearch: (search: Record<string, unknown>): TasksSearch => ({
+		...(search.type === "issues" && typeof search.issueUrl === "string"
+			? { issueUrl: search.issueUrl }
+			: {}),
 		tab: [
 			"all",
 			"active",
