@@ -274,6 +274,18 @@ describe("host-side leaked-input-mode reclaim", () => {
 	});
 });
 
+test("shell-ready callback accepts only Superset's private marker", () => {
+	let readyCount = 0;
+	const t = createModeTracker(120, 32, {
+		onShellReady: () => readyCount++,
+	});
+	t.feed(enc.encode("\x1b]133;A\x07\x1b]777;notify;title;body\x07"));
+	expect(readyCount).toBe(0);
+	t.feed(enc.encode("\x1b]777;superset-shell-ready\x07"));
+	expect(readyCount).toBe(1);
+	t.dispose();
+});
+
 describe("snapshot behind an alt screen", () => {
 	// Why the handoff reads the retained PTY stream instead of this snapshot:
 	// the alternate screen keeps no scrollback, so whatever a TUI has already

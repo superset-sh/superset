@@ -20,6 +20,11 @@ import { selectWorkspaceRunDefinition } from "shared/workspace-run-definition";
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneViewerData, TerminalPaneData } from "../../types";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
+import { waitForWorkspaceRunStop } from "./waitForWorkspaceRunStop";
+import {
+	applyWorkspaceRunLifecycleEvent,
+	markStopped,
+} from "./workspaceRunLifecycle";
 
 const CTRL_C_INPUT = "\u0003";
 const TERMINAL_GONE_ERROR_MESSAGES = [
@@ -35,21 +40,6 @@ function isTerminalGoneError(error: unknown): boolean {
 	return TERMINAL_GONE_ERROR_MESSAGES.some((terminalMessage) =>
 		message.includes(terminalMessage),
 	);
-}
-
-function markStopped(
-	state: WorkspaceRunTerminalState,
-	stoppedAt: number,
-	overrides?: Partial<
-		Pick<WorkspaceRunTerminalState, "exitCode" | "signal" | "state">
-	>,
-) {
-	state.state =
-		overrides?.state ??
-		(state.stopRequestedAt ? "stopped-by-user" : "stopped-by-exit");
-	state.stoppedAt = stoppedAt;
-	if (overrides?.exitCode !== undefined) state.exitCode = overrides.exitCode;
-	if (overrides?.signal !== undefined) state.signal = overrides.signal;
 }
 
 function makeTerminalPane(
@@ -192,11 +182,7 @@ export function useV2WorkspaceRun({
 			// workspaceRunTerminals. Snapshot before launch so the new terminal
 			// we're about to create doesn't itself match.
 			const priorRunTerminalIds = new Set(Object.keys(workspaceRunTerminals));
-
-			const terminalId = await launcher.create({
-				command,
-				cwd: definition.cwd,
-			});
+			const terminalId = launcher.mint();
 			const startedAt = Date.now();
 			updateWorkspaceRunTerminals((states) => {
 				states[terminalId] = {
@@ -209,6 +195,19 @@ export function useV2WorkspaceRun({
 					startedAt,
 				};
 			});
+			try {
+				await launcher.create({
+					terminalId,
+					command,
+					cwd: definition.cwd,
+					trackCommandCompletion: true,
+				});
+			} catch (error) {
+				updateWorkspaceRunTerminals((states) => {
+					delete states[terminalId];
+				});
+				throw error;
+			}
 
 			const state = store.getState();
 			let reused: { tabId: string; paneId: string } | null = null;
@@ -273,18 +272,34 @@ export function useV2WorkspaceRun({
 		setIsPending(true);
 		try {
 			const stopRequestedAt = Date.now();
+			updateWorkspaceRunTerminals((states) => {
+				const state = states[runningState.terminalId];
+				if (!state || state.state !== "running") return;
+				state.stopRequestedAt = stopRequestedAt;
+			});
 			await writeInputMutation.mutateAsync({
 				terminalId: runningState.terminalId,
 				workspaceId,
 				data: CTRL_C_INPUT,
 			});
-			const stoppedAt = Date.now();
-			updateWorkspaceRunTerminals((states) => {
-				const state = states[runningState.terminalId];
-				if (!state || state.state !== "running") return;
-				state.stopRequestedAt = stopRequestedAt;
-				markStopped(state, stoppedAt, { state: "stopped-by-user" });
+			const stopped = await waitForWorkspaceRunStop(async () => {
+				const result = await utils.terminal.hasRunningProcess.fetch(
+					{
+						terminalId: runningState.terminalId,
+						workspaceId,
+					},
+					{ staleTime: 0 },
+				);
+				return result.running;
 			});
+			if (stopped) {
+				const stoppedAt = Date.now();
+				updateWorkspaceRunTerminals((states) => {
+					const state = states[runningState.terminalId];
+					if (!state || state.state !== "running") return;
+					markStopped(state, stoppedAt);
+				});
+			}
 		} catch (error) {
 			if (isTerminalGoneError(error)) {
 				const stoppedAt = Date.now();
@@ -321,6 +336,7 @@ export function useV2WorkspaceRun({
 		runningState,
 		t,
 		updateWorkspaceRunTerminals,
+		utils,
 		workspaceId,
 		writeInputMutation,
 	]);
@@ -387,14 +403,8 @@ export function useV2WorkspaceRun({
 	}, [runningState, startWorkspaceRun, stopWorkspaceRun]);
 
 	useWorkspaceEvent("terminal:lifecycle", workspaceId, (payload) => {
-		if (payload.eventType !== "exit") return;
 		updateWorkspaceRunTerminals((states) => {
-			const state = states[payload.terminalId];
-			if (!state || state.state !== "running") return;
-			markStopped(state, payload.occurredAt, {
-				exitCode: payload.exitCode,
-				signal: payload.signal,
-			});
+			applyWorkspaceRunLifecycleEvent(states, payload);
 		});
 	});
 

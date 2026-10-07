@@ -2,6 +2,10 @@ import {
 	TerminalModes,
 	type TerminalModesSnapshot,
 } from "@superset/pty-daemon/terminal-modes";
+import {
+	SHELL_READY_MARKER_PAYLOAD,
+	SHELL_READY_OSC_ID,
+} from "@superset/shared/leaked-input-mode-reclaim";
 import { HeadlessTerminal } from "./headless-xterm.ts";
 
 export interface ModeTracker {
@@ -18,6 +22,7 @@ export interface ModeTracker {
 }
 
 export interface ModeTrackerOptions {
+	onShellReady?: () => void;
 	/**
 	 * Called with disarm bytes when a shell prompt marker (OSC 777) flows
 	 * through the stream while TUI-only input-reporting modes (kitty keyboard,
@@ -88,6 +93,13 @@ export function createModeTracker(
 	let disposed = false;
 
 	let flushScheduled = false;
+	if (options.onShellReady) {
+		term.parser.registerOscHandler(SHELL_READY_OSC_ID, (data) => {
+			if (data !== SHELL_READY_MARKER_PAYLOAD) return false;
+			options.onShellReady?.();
+			return false;
+		});
+	}
 
 	const buildPreamble = () => modes.buildPreamble();
 
