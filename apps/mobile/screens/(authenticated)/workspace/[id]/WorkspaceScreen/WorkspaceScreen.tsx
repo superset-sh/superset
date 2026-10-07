@@ -790,6 +790,7 @@ export function WorkspaceScreen() {
 						mimeType: entry.mediaType,
 					})),
 				);
+				composerRef.current?.blur();
 				return;
 			}
 			await getHostServiceClientByUrl(hostUrl).terminal.send.mutate({
@@ -1115,6 +1116,7 @@ export function WorkspaceScreen() {
 						hostUrl={hostUrl}
 						key={activeTerminalId}
 						onOpenSession={openSession}
+						onTap={handleTerminalTap}
 						ref={chatRef}
 						sessionId={activeTerminalId}
 						workspaceId={id}

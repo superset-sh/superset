@@ -19,6 +19,7 @@ import {
 	useState,
 } from "react";
 import { ActionSheetIOS, Alert, Pressable, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { Conversation } from "@/components/ai-elements/conversation";
 import { Text } from "@/components/ui/text";
 import {
@@ -72,6 +73,7 @@ interface ChatSessionViewProps {
 	host: ChatHost;
 	hostUrl: string;
 	onOpenSession: (sessionId: string) => void;
+	onTap?: () => void;
 }
 
 /**
@@ -83,7 +85,7 @@ export const ChatSessionView = forwardRef<
 	ChatSessionViewHandle,
 	ChatSessionViewProps
 >(function ChatSessionView(
-	{ sessionId, workspaceId, host, hostUrl, onOpenSession },
+	{ sessionId, workspaceId, host, hostUrl, onOpenSession, onTap },
 	ref,
 ) {
 	const { t } = useLingui();
@@ -334,6 +336,19 @@ export const ChatSessionView = forwardRef<
 		[harness, chat, onRespond, branchFrom, positions, replyEnds, openActivity],
 	);
 
+	const onTapRef = useRef(onTap);
+	onTapRef.current = onTap;
+	const tap = useMemo(
+		() =>
+			Gesture.Tap()
+				.runOnJS(true)
+				.cancelsTouchesInView(false)
+				.onEnd((_event, success) => {
+					if (success) onTapRef.current?.();
+				}),
+		[],
+	);
+
 	const banner =
 		session?.status === "dead"
 			? t({ message: "This chat has ended." })
@@ -348,28 +363,32 @@ export const ChatSessionView = forwardRef<
 					<Text className="text-foreground text-xs font-medium">{banner}</Text>
 				</View>
 			) : null}
-			<Conversation
-				contentContainerClassName="px-4 pt-4"
-				data={rows}
-				keyExtractor={(row) => row.key}
-				ListHeaderComponent={
-					chat.hasOlder ? (
-						<Pressable
-							accessibilityRole="button"
-							className="bg-secondary mb-4 self-center rounded-full px-3.5 py-1.5 active:opacity-70"
-							onPress={() => void chat.loadOlder()}
-						>
-							<Text className="text-foreground text-xs font-medium">
-								<Trans>Load earlier messages</Trans>
-							</Text>
-						</Pressable>
-					) : null
-				}
-				ListFooterComponent={<View style={{ height: dockHeight + 8 }} />}
-				renderItem={renderRow}
-			>
-				<StickToBottom inset={dockHeight} />
-			</Conversation>
+			<GestureDetector gesture={tap}>
+				<View className="flex-1">
+					<Conversation
+						contentContainerClassName="px-4 pt-4"
+						data={rows}
+						keyExtractor={(row) => row.key}
+						ListHeaderComponent={
+							chat.hasOlder ? (
+								<Pressable
+									accessibilityRole="button"
+									className="bg-secondary mb-4 self-center rounded-full px-3.5 py-1.5 active:opacity-70"
+									onPress={() => void chat.loadOlder()}
+								>
+									<Text className="text-foreground text-xs font-medium">
+										<Trans>Load earlier messages</Trans>
+									</Text>
+								</Pressable>
+							) : null
+						}
+						ListFooterComponent={<View style={{ height: dockHeight + 8 }} />}
+						renderItem={renderRow}
+					>
+						<StickToBottom inset={dockHeight} />
+					</Conversation>
+				</View>
+			</GestureDetector>
 			<View
 				className="absolute inset-x-0 bottom-0 gap-2 px-3 pb-2"
 				onLayout={(event) => setDockHeight(event.nativeEvent.layout.height)}
