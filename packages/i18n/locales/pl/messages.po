@@ -3039,7 +3039,7 @@ msgid "Bring {companyName} to your team. Get in touch to learn more about enterp
 msgstr "Wdróż {companyName} w swoim zespole. Skontaktuj się z nami, aby dowiedzieć się więcej o planach enterprise i opcjach wdrożenia."
 
 msgid "Bring a link to something you built recently."
-msgstr "Przynieś link do czegoś, co niedawno zbudowałeś."
+msgstr "Podeślij link do czegoś, co niedawno zbudowałeś."
 
 msgid "Bring Any Agent."
 msgstr "Przyprowadź dowolnego agenta."
@@ -18616,7 +18616,7 @@ msgid "Yes, demote me"
 msgstr "Tak, zdegraduj mnie"
 
 msgid "Yes. Apply to the closest role and tell us what you would build. Include a repo, PR or demo."
-msgstr "Tak. Aplikuj na najbliższe stanowisko i napisz nam, co chciałbyś zbudować. Dołącz repozytorium, PR lub demo."
+msgstr "Tak. Aplikuj na najbardziej pasujące stanowisko i napisz nam, co chciałbyś zbudować. Dołącz repozytorium, PR lub demo."
 
 msgid "Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and the CLI. No credit card required."
 msgstr "Tak. Plan darmowy obejmuje pojedyncze osoby: 1 użytkownik, lokalne obszary robocze, aplikacja desktopowa i CLI. Bez karty kredytowej."

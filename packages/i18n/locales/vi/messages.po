@@ -9688,7 +9688,7 @@ msgid "Median time from previous"
 msgstr "Thời gian trung vị từ bước trước"
 
 msgid "Medical and dental at no cost to you, a 401(k), unlimited time off, a $5K desk stipend, and free meals in the office."
-msgstr "Bảo hiểm y tế và nha khoa miễn phí cho bạn, 401(k), nghỉ phép không giới hạn, $5K trang bị bàn làm việc và bữa ăn miễn phí tại văn phòng."
+msgstr "Bảo hiểm y tế và nha khoa miễn phí cho bạn, 401(k), nghỉ phép không giới hạn, trợ cấp 5.000 USD để trang bị bàn làm việc và bữa ăn miễn phí tại văn phòng."
 
 msgid "Medium"
 msgstr "Trung bình"

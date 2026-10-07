@@ -6102,7 +6102,7 @@ msgid "Do nothing"
 msgstr "Nichts tun"
 
 msgid "Do you sponsor visas?"
-msgstr "Unterstützt ihr Visa?"
+msgstr "Bietet ihr Visa-Sponsoring an?"
 
 #. placeholder {0}: dirtyPanes.length
 msgid "Do you want to save changes to {0} files?"

@@ -15830,7 +15830,7 @@ msgid "Superset is built by a team based in San Francisco, California. For produ
 msgstr "Superset dibangun oleh tim yang berbasis di San Francisco, California. Untuk dukungan produk atau pertanyaan akun, kirim email ke <0>{supportEmail}</0> dan kami akan membalas dalam satu hari kerja. Untuk kemitraan, media, enterprise, atau hal lainnya, tulis ke <1>{teamEmail}</1>."
 
 msgid "Superset is built in Superset, so we're our own #1 users. You get paid to make your own life easier."
-msgstr "Superset dibangun di dalam Superset, jadi kami sendiri adalah pengguna utamanya. Anda dibayar untuk mempermudah pekerjaan Anda sendiri."
+msgstr "Superset dibangun menggunakan Superset, jadi kami sendiri adalah pengguna utamanya. Anda dibayar untuk mempermudah pekerjaan Anda sendiri."
 
 msgid "Superset is designed to work with your existing tool, we natively support deep-linking to IDEs like Cursor so you can open your workspaces and files in your IDE."
 msgstr "Superset dirancang untuk bekerja dengan alat yang sudah Anda pakai; kami mendukung deep-link ke IDE seperti Cursor secara native sehingga Anda bisa membuka workspace dan file di IDE Anda."
@@ -18130,7 +18130,7 @@ msgid "We'll only use this to send your download link."
 msgstr "Kami hanya memakainya untuk mengirim tautan unduhan Anda."
 
 msgid "We're building a flat and talent-dense team, and we're looking for people who have crazy ideas and are crazy enough to ship them."
-msgstr "Kami membangun tim yang datar dan penuh talenta hebat, dan kami mencari orang yang punya ide gila dan cukup berani untuk merilisnya."
+msgstr "Kami membangun tim dengan struktur organisasi yang datar dan penuh talenta hebat, dan kami mencari orang yang punya ide gila dan cukup berani untuk merilisnya."
 
 msgid "We're hiring"
 msgstr "Kami sedang merekrut"

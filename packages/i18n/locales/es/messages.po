@@ -1393,7 +1393,7 @@ msgid "A better Superset is ready"
 msgstr "Una versión mejor de Superset está lista"
 
 msgid "A changelog goes out every week. Most people ship to users in their first few days."
-msgstr "Cada semana publicamos un registro de cambios. La mayoría lanza a usuarios en sus primeros días."
+msgstr "Cada semana publicamos un registro de cambios. La mayoría lanza su primer cambio a los usuarios en sus primeros días."
 
 msgid "A chat takes its name from the agent."
 msgstr "Un chat toma su nombre del agente."

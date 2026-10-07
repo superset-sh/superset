@@ -9688,7 +9688,7 @@ msgid "Median time from previous"
 msgstr "Temps médian depuis la précédente"
 
 msgid "Medical and dental at no cost to you, a 401(k), unlimited time off, a $5K desk stipend, and free meals in the office."
-msgstr "Mutuelle santé et dentaire sans frais pour vous, un 401(k), des congés illimités, $5K pour équiper votre poste de travail et des repas gratuits au bureau."
+msgstr "Mutuelle santé et dentaire sans frais pour vous, un 401(k), des congés illimités, une allocation de 5 000 $ pour équiper votre poste de travail et des repas gratuits au bureau."
 
 msgid "Medium"
 msgstr "Moyenne"

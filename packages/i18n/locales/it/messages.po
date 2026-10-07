@@ -15842,7 +15842,7 @@ msgid "Superset is source-available: the code is public on GitHub under Elastic 
 msgstr "Superset è source-available: il codice è pubblico su GitHub con licenza Elastic License 2.0 (ELv2), che ti permette di ispezionarlo e ospitarlo in autonomia nei limiti della licenza, ma non è open source approvata da OSI. Superset non ha alcun legame con Apache Superset, lo strumento di business intelligence."
 
 msgid "Superset is source-available. Every pull request, review and bug is public on GitHub."
-msgstr "Il codice sorgente di Superset è consultabile pubblicamente. Ogni pull request, revisione e bug è pubblico su GitHub."
+msgstr "Il codice sorgente di Superset è consultabile pubblicamente. Ogni pull request, revisione e bug sono pubblici su GitHub."
 
 msgid "Superset is the workbench for the F3 to F4 transition: parallel agents in isolated workspaces, fleets you can actually supervise, and a review surface for code you did not write."
 msgstr "Superset è il banco di lavoro per la transizione da F3 a F4: agenti in parallelo in workspace isolati, flotte che puoi davvero supervisionare e una superficie di revisione per il codice che non hai scritto."
