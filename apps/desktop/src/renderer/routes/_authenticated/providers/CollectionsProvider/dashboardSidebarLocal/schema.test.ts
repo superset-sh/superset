@@ -637,7 +637,7 @@ describe("healV2UserPreferences projectAccent", () => {
 		const healed = healV2UserPreferences({
 			projectAccent: {
 				enabled: false,
-				terminal: "yes",
+				background: "yes",
 				intensity: 250,
 			},
 		});

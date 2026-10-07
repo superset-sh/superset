@@ -500,7 +500,8 @@ const projectAccentSettingsSchema = z.object({
 	enabled: z.boolean(),
 	tabBar: z.boolean(),
 	paneHeaders: z.boolean(),
-	terminal: z.boolean(),
+	background: z.boolean(),
+	sidebar: z.boolean(),
 	intensity: z.number().min(0).max(100),
 }) satisfies z.ZodType<ProjectAccentSettings>;
 
@@ -638,7 +639,8 @@ function healProjectAccentSettings(raw: unknown): ProjectAccentSettings {
 		enabled: flag(r.enabled, defaults.enabled),
 		tabBar: flag(r.tabBar, defaults.tabBar),
 		paneHeaders: flag(r.paneHeaders, defaults.paneHeaders),
-		terminal: flag(r.terminal, defaults.terminal),
+		background: flag(r.background, defaults.background),
+		sidebar: flag(r.sidebar, defaults.sidebar),
 		intensity: clampAccentIntensity(r.intensity),
 	};
 }

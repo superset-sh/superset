@@ -2889,8 +2889,8 @@ msgstr "Binary file hidden"
 msgid "Bio"
 msgstr "Bio"
 
-msgid "Blend the color into the terminal background"
-msgstr "Blend the color into the terminal background"
+msgid "Blend the color into the workspace and terminal background"
+msgstr "Blend the color into the workspace and terminal background"
 
 msgid "Block"
 msgstr "Block"
@@ -5341,6 +5341,9 @@ msgstr "Custom"
 msgid "Custom agent…"
 msgstr "Custom agent…"
 
+msgid "Custom color"
+msgstr "Custom color"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "Custom components beyond the shadcn set"
 
@@ -5367,6 +5370,9 @@ msgstr "Custom terminal agents"
 
 msgid "Custom themes"
 msgstr "Custom themes"
+
+msgid "Custom…"
+msgstr "Custom…"
 
 msgid "Customize commands"
 msgstr "Customize commands"
@@ -16038,9 +16044,6 @@ msgstr "Terminal"
 msgid "Terminal agent launch configuration"
 msgstr "Terminal agent launch configuration"
 
-msgid "Terminal background"
-msgstr "Terminal background"
-
 msgid "Terminal connection: {label}"
 msgstr "Terminal connection: {label}"
 
@@ -16868,6 +16871,9 @@ msgstr "Time"
 msgid "Time range"
 msgstr "Time range"
 
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "Tint each project and its workspaces in the sidebar"
+
 msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
 msgstr "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
 
@@ -16876,6 +16882,9 @@ msgstr "Tint the header above each pane"
 
 msgid "Tint the tab strip and mark the active tab"
 msgstr "Tint the tab strip and mark the active tab"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "Tints the project in the sidebar and in its workspaces."
 
 msgid "Title"
 msgstr "Title"

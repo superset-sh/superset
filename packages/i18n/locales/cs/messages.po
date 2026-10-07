@@ -2889,8 +2889,8 @@ msgstr "Binární soubor skryt"
 msgid "Bio"
 msgstr "O mně"
 
-msgid "Blend the color into the terminal background"
-msgstr "Promíchat barvu do pozadí terminálu"
+msgid "Blend the color into the workspace and terminal background"
+msgstr "Promíchat barvu do pozadí pracovního prostoru a terminálu"
 
 msgid "Block"
 msgstr "Blok"
@@ -5341,6 +5341,9 @@ msgstr "Vlastní"
 msgid "Custom agent…"
 msgstr "Vlastní agent…"
 
+msgid "Custom color"
+msgstr "Vlastní barva"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "Vlastní komponenty nad rámec sady shadcn"
 
@@ -5367,6 +5370,9 @@ msgstr "Vlastní termináloví agenti"
 
 msgid "Custom themes"
 msgstr "Vlastní motivy"
+
+msgid "Custom…"
+msgstr "Vlastní…"
 
 msgid "Customize commands"
 msgstr "Upravit příkazy"
@@ -16038,9 +16044,6 @@ msgstr "Terminál"
 msgid "Terminal agent launch configuration"
 msgstr "Konfigurace spuštění terminálového agenta"
 
-msgid "Terminal background"
-msgstr "Pozadí terminálu"
-
 msgid "Terminal connection: {label}"
 msgstr "Připojení terminálu: {label}"
 
@@ -16868,6 +16871,9 @@ msgstr "Čas"
 msgid "Time range"
 msgstr "Časové období"
 
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "Tónovat každý projekt a jeho pracovní prostory v postranním panelu"
+
 msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
 msgstr "Tónovat každý pracovní prostor barvou jeho projektu. Barvu vyberete kliknutím pravým tlačítkem na projekt v postranním panelu."
 
@@ -16876,6 +16882,9 @@ msgstr "Tónovat záhlaví nad každým panelem"
 
 msgid "Tint the tab strip and mark the active tab"
 msgstr "Tónovat lištu karet a označit aktivní kartu"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "Tónuje projekt v postranním panelu a v jeho pracovních prostorech."
 
 msgid "Title"
 msgstr "Název"

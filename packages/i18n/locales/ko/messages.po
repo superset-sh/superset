@@ -2889,8 +2889,8 @@ msgstr "바이너리 파일 숨김"
 msgid "Bio"
 msgstr "소개"
 
-msgid "Blend the color into the terminal background"
-msgstr "터미널 배경에 색상을 혼합"
+msgid "Blend the color into the workspace and terminal background"
+msgstr "워크스페이스와 터미널 배경에 색상을 혼합"
 
 msgid "Block"
 msgstr "블록"
@@ -5341,6 +5341,9 @@ msgstr "사용자 지정"
 msgid "Custom agent…"
 msgstr "사용자 지정 에이전트…"
 
+msgid "Custom color"
+msgstr "사용자 지정 색상"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "shadcn 세트를 넘어선 커스텀 컴포넌트"
 
@@ -5367,6 +5370,9 @@ msgstr "커스텀 터미널 에이전트"
 
 msgid "Custom themes"
 msgstr "사용자 지정 테마"
+
+msgid "Custom…"
+msgstr "사용자 지정…"
 
 msgid "Customize commands"
 msgstr "명령 사용자 지정"
@@ -16038,9 +16044,6 @@ msgstr "터미널"
 msgid "Terminal agent launch configuration"
 msgstr "터미널 에이전트 실행 구성"
 
-msgid "Terminal background"
-msgstr "터미널 배경"
-
 msgid "Terminal connection: {label}"
 msgstr "터미널 연결: {label}"
 
@@ -16868,6 +16871,9 @@ msgstr "시간"
 msgid "Time range"
 msgstr "기간"
 
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "사이드바에서 각 프로젝트와 해당 워크스페이스에 색상 적용"
+
 msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
 msgstr "각 워크스페이스를 해당 프로젝트 색상으로 물들입니다. 사이드바에서 프로젝트를 우클릭해 색상을 선택하세요."
 
@@ -16876,6 +16882,9 @@ msgstr "각 패널 위의 헤더에 색상 적용"
 
 msgid "Tint the tab strip and mark the active tab"
 msgstr "탭 바에 색상을 적용하고 활성 탭을 표시"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "사이드바와 해당 워크스페이스에서 프로젝트에 색상을 적용합니다."
 
 msgid "Title"
 msgstr "제목"

@@ -9,6 +9,8 @@ export const PANES_ACCENT_VARS = {
 	activeTabAccent: "--panes-active-tab-accent",
 	/** A `background-image` layered over every pane header. */
 	paneHeaderTint: "--panes-pane-header-tint",
+	/** A `background-image` layered over the workspace surface and active tab. */
+	surfaceTint: "--panes-surface-tint",
 } as const;
 
 export type PanesAccentVar =

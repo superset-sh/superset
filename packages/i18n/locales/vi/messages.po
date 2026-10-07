@@ -2889,8 +2889,8 @@ msgstr "Đã ẩn tệp nhị phân"
 msgid "Bio"
 msgstr "Giới thiệu"
 
-msgid "Blend the color into the terminal background"
-msgstr "Pha màu vào nền terminal"
+msgid "Blend the color into the workspace and terminal background"
+msgstr "Pha màu vào nền workspace và terminal"
 
 msgid "Block"
 msgstr "Khối"
@@ -5341,6 +5341,9 @@ msgstr "Tùy chỉnh"
 msgid "Custom agent…"
 msgstr "Agent tùy chỉnh…"
 
+msgid "Custom color"
+msgstr "Màu tùy chỉnh"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "Component tùy chỉnh ngoài bộ shadcn"
 
@@ -5367,6 +5370,9 @@ msgstr "Agent terminal tùy chỉnh"
 
 msgid "Custom themes"
 msgstr "Theme tùy chỉnh"
+
+msgid "Custom…"
+msgstr "Tùy chỉnh…"
 
 msgid "Customize commands"
 msgstr "Tùy chỉnh lệnh"
@@ -16038,9 +16044,6 @@ msgstr "Terminal"
 msgid "Terminal agent launch configuration"
 msgstr "Cấu hình khởi chạy agent terminal"
 
-msgid "Terminal background"
-msgstr "Nền terminal"
-
 msgid "Terminal connection: {label}"
 msgstr "Kết nối terminal: {label}"
 
@@ -16868,6 +16871,9 @@ msgstr "Thời gian"
 msgid "Time range"
 msgstr "Khoảng thời gian"
 
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "Tô màu mỗi dự án và các workspace của nó trong thanh bên"
+
 msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
 msgstr "Tô màu mỗi workspace bằng màu của dự án. Chọn màu bằng cách nhấp chuột phải vào một dự án trong thanh bên."
 
@@ -16876,6 +16882,9 @@ msgstr "Tô màu tiêu đề phía trên mỗi ngăn"
 
 msgid "Tint the tab strip and mark the active tab"
 msgstr "Tô màu thanh tab và đánh dấu tab đang mở"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "Tô màu dự án trong thanh bên và trong các workspace của nó."
 
 msgid "Title"
 msgstr "Tiêu đề"

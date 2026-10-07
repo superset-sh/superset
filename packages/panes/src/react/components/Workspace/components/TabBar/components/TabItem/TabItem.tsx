@@ -132,6 +132,7 @@ export function TabItem<TData>({
 						isActive
 							? {
 									boxShadow: `inset 0 2px 0 var(${PANES_ACCENT_VARS.activeTabAccent}, transparent)`,
+									backgroundImage: `var(${PANES_ACCENT_VARS.surfaceTint}, none)`,
 								}
 							: undefined
 					}

@@ -2889,8 +2889,8 @@ msgstr "Arquivo binário oculto"
 msgid "Bio"
 msgstr "Bio"
 
-msgid "Blend the color into the terminal background"
-msgstr "Misturar a cor ao fundo do terminal"
+msgid "Blend the color into the workspace and terminal background"
+msgstr "Misturar a cor ao fundo da área de trabalho e do terminal"
 
 msgid "Block"
 msgstr "Bloco"
@@ -5341,6 +5341,9 @@ msgstr "Personalizado"
 msgid "Custom agent…"
 msgstr "Agente personalizado…"
 
+msgid "Custom color"
+msgstr "Cor personalizada"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "Componentes próprios além do conjunto shadcn"
 
@@ -5367,6 +5370,9 @@ msgstr "Agentes de terminal personalizados"
 
 msgid "Custom themes"
 msgstr "Temas personalizados"
+
+msgid "Custom…"
+msgstr "Personalizada…"
 
 msgid "Customize commands"
 msgstr "Personalizar comandos"
@@ -16038,9 +16044,6 @@ msgstr "Terminal"
 msgid "Terminal agent launch configuration"
 msgstr "Configuração de execução do agente de terminal"
 
-msgid "Terminal background"
-msgstr "Fundo do terminal"
-
 msgid "Terminal connection: {label}"
 msgstr "Conexão do terminal: {label}"
 
@@ -16868,6 +16871,9 @@ msgstr "Tempo"
 msgid "Time range"
 msgstr "Período"
 
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "Tingir cada projeto e suas áreas de trabalho na barra lateral"
+
 msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
 msgstr "Tinge cada área de trabalho com a cor do projeto. Escolha uma cor clicando com o botão direito em um projeto na barra lateral."
 
@@ -16876,6 +16882,9 @@ msgstr "Tingir o cabeçalho acima de cada painel"
 
 msgid "Tint the tab strip and mark the active tab"
 msgstr "Tingir a barra de abas e marcar a aba ativa"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "Tinge o projeto na barra lateral e nas suas áreas de trabalho."
 
 msgid "Title"
 msgstr "Título"

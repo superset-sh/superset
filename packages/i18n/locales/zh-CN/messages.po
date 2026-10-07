@@ -2889,8 +2889,8 @@ msgstr "二进制文件已隐藏"
 msgid "Bio"
 msgstr "简介"
 
-msgid "Blend the color into the terminal background"
-msgstr "将颜色混入终端背景"
+msgid "Blend the color into the workspace and terminal background"
+msgstr "将颜色混入工作区和终端背景"
 
 msgid "Block"
 msgstr "方块"
@@ -5341,6 +5341,9 @@ msgstr "自定义"
 msgid "Custom agent…"
 msgstr "自定义智能体…"
 
+msgid "Custom color"
+msgstr "自定义颜色"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "shadcn组件集之外的自定义组件"
 
@@ -5367,6 +5370,9 @@ msgstr "自定义终端智能体"
 
 msgid "Custom themes"
 msgstr "自定义主题"
+
+msgid "Custom…"
+msgstr "自定义…"
 
 msgid "Customize commands"
 msgstr "自定义命令"
@@ -16038,9 +16044,6 @@ msgstr "终端"
 msgid "Terminal agent launch configuration"
 msgstr "终端智能体启动配置"
 
-msgid "Terminal background"
-msgstr "终端背景"
-
 msgid "Terminal connection: {label}"
 msgstr "终端连接：{label}"
 
@@ -16868,6 +16871,9 @@ msgstr "时间"
 msgid "Time range"
 msgstr "时间范围"
 
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "在侧边栏中为每个项目及其工作区着色"
+
 msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
 msgstr "用项目的颜色为每个工作区着色。在侧边栏中右键点击项目即可选择颜色。"
 
@@ -16876,6 +16882,9 @@ msgstr "为每个窗格上方的标题栏着色"
 
 msgid "Tint the tab strip and mark the active tab"
 msgstr "为标签栏着色并标记当前标签页"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "在侧边栏及其工作区中为项目着色。"
 
 msgid "Title"
 msgstr "标题"

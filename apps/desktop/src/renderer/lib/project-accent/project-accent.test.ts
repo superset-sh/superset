@@ -6,6 +6,7 @@ import {
 	isHexColor,
 	mixHexColors,
 	resolveProjectAccent,
+	resolveSidebarProjectTint,
 	tintTerminalTheme,
 } from "./project-accent";
 
@@ -69,14 +70,23 @@ describe("resolveProjectAccent", () => {
 			...DEFAULT_PROJECT_ACCENT_SETTINGS,
 			intensity: 100,
 		});
+		const tint =
+			"linear-gradient(rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.2))";
 		expect(accent?.cssVars).toEqual({
-			[PANES_ACCENT_VARS.tabBarTint]:
-				"linear-gradient(rgba(239, 68, 68, 0.3), rgba(239, 68, 68, 0.3))",
+			[PANES_ACCENT_VARS.tabBarTint]: tint,
 			[PANES_ACCENT_VARS.activeTabAccent]: RED,
-			[PANES_ACCENT_VARS.paneHeaderTint]:
-				"linear-gradient(rgba(239, 68, 68, 0.25), rgba(239, 68, 68, 0.25))",
+			[PANES_ACCENT_VARS.paneHeaderTint]: tint,
+			[PANES_ACCENT_VARS.surfaceTint]: tint,
 		});
 		expect(accent?.terminalTint).toEqual({ color: RED, amount: 0.2 });
+	});
+
+	test("the surface tint matches the terminal blend", () => {
+		const accent = resolveProjectAccent(RED, DEFAULT_PROJECT_ACCENT_SETTINGS);
+		const amount = accent?.terminalTint?.amount;
+		expect(accent?.cssVars[PANES_ACCENT_VARS.surfaceTint]).toBe(
+			`linear-gradient(rgba(239, 68, 68, ${amount}), rgba(239, 68, 68, ${amount}))`,
+		);
 	});
 
 	test("omits surfaces that are switched off", () => {
@@ -84,17 +94,53 @@ describe("resolveProjectAccent", () => {
 			...DEFAULT_PROJECT_ACCENT_SETTINGS,
 			tabBar: false,
 			paneHeaders: false,
-			terminal: false,
+			background: false,
 		});
 		expect(accent).toEqual({ cssVars: {}, terminalTint: null });
 	});
 
-	test("zero intensity leaves the terminal untouched", () => {
+	test("zero intensity leaves the background untouched", () => {
 		const accent = resolveProjectAccent(RED, {
 			...DEFAULT_PROJECT_ACCENT_SETTINGS,
 			intensity: 0,
 		});
 		expect(accent?.terminalTint).toBe(null);
+		expect(accent?.cssVars[PANES_ACCENT_VARS.surfaceTint]).toBeUndefined();
+	});
+});
+
+describe("resolveSidebarProjectTint", () => {
+	test("scales the fill by intensity", () => {
+		expect(
+			resolveSidebarProjectTint(RED, {
+				...DEFAULT_PROJECT_ACCENT_SETTINGS,
+				intensity: 100,
+			}),
+		).toBe("rgba(239, 68, 68, 0.3)");
+		expect(
+			resolveSidebarProjectTint(RED, {
+				...DEFAULT_PROJECT_ACCENT_SETTINGS,
+				intensity: 0,
+			}),
+		).toBe(null);
+	});
+
+	test("is null when switched off or without a color", () => {
+		expect(
+			resolveSidebarProjectTint(RED, {
+				...DEFAULT_PROJECT_ACCENT_SETTINGS,
+				sidebar: false,
+			}),
+		).toBe(null);
+		expect(
+			resolveSidebarProjectTint(RED, {
+				...DEFAULT_PROJECT_ACCENT_SETTINGS,
+				enabled: false,
+			}),
+		).toBe(null);
+		expect(
+			resolveSidebarProjectTint(null, DEFAULT_PROJECT_ACCENT_SETTINGS),
+		).toBe(null);
 	});
 });
 

@@ -2889,8 +2889,8 @@ msgstr "Plik binarny ukryty"
 msgid "Bio"
 msgstr "O sobie"
 
-msgid "Blend the color into the terminal background"
-msgstr "Wmieszaj kolor w tło terminala"
+msgid "Blend the color into the workspace and terminal background"
+msgstr "Wmieszaj kolor w tło obszaru roboczego i terminala"
 
 msgid "Block"
 msgstr "Blok"
@@ -5341,6 +5341,9 @@ msgstr "Własny"
 msgid "Custom agent…"
 msgstr "Własny agent…"
 
+msgid "Custom color"
+msgstr "Własny kolor"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "Własne komponenty poza zestawem shadcn"
 
@@ -5367,6 +5370,9 @@ msgstr "Własne agenty terminalowe"
 
 msgid "Custom themes"
 msgstr "Własne motywy"
+
+msgid "Custom…"
+msgstr "Własny…"
 
 msgid "Customize commands"
 msgstr "Dostosuj polecenia"
@@ -16038,9 +16044,6 @@ msgstr "Terminal"
 msgid "Terminal agent launch configuration"
 msgstr "Konfiguracja uruchamiania agenta terminalowego"
 
-msgid "Terminal background"
-msgstr "Tło terminala"
-
 msgid "Terminal connection: {label}"
 msgstr "Połączenie terminala: {label}"
 
@@ -16868,6 +16871,9 @@ msgstr "Czas"
 msgid "Time range"
 msgstr "Zakres czasu"
 
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "Zabarw każdy projekt i jego obszary robocze na pasku bocznym"
+
 msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
 msgstr "Zabarwia każdy obszar roboczy kolorem jego projektu. Wybierz kolor, klikając prawym przyciskiem projekt na pasku bocznym."
 
@@ -16876,6 +16882,9 @@ msgstr "Zabarw nagłówek nad każdym panelem"
 
 msgid "Tint the tab strip and mark the active tab"
 msgstr "Zabarw pasek kart i oznacz aktywną kartę"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "Zabarwia projekt na pasku bocznym i w jego obszarach roboczych."
 
 msgid "Title"
 msgstr "Tytuł"

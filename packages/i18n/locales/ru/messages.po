@@ -2889,8 +2889,8 @@ msgstr "Бинарный файл скрыт"
 msgid "Bio"
 msgstr "О себе"
 
-msgid "Blend the color into the terminal background"
-msgstr "Подмешивать цвет в фон терминала"
+msgid "Blend the color into the workspace and terminal background"
+msgstr "Подмешивать цвет в фон рабочей области и терминала"
 
 msgid "Block"
 msgstr "Блок"
@@ -5341,6 +5341,9 @@ msgstr "Своя"
 msgid "Custom agent…"
 msgstr "Свой агент…"
 
+msgid "Custom color"
+msgstr "Свой цвет"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "Свои компоненты за пределами набора shadcn"
 
@@ -5367,6 +5370,9 @@ msgstr "Свои терминальные агенты"
 
 msgid "Custom themes"
 msgstr "Свои темы"
+
+msgid "Custom…"
+msgstr "Свой…"
 
 msgid "Customize commands"
 msgstr "Настроить команды"
@@ -16038,9 +16044,6 @@ msgstr "Терминал"
 msgid "Terminal agent launch configuration"
 msgstr "Конфигурация запуска терминального агента"
 
-msgid "Terminal background"
-msgstr "Фон терминала"
-
 msgid "Terminal connection: {label}"
 msgstr "Соединение терминала: {label}"
 
@@ -16868,6 +16871,9 @@ msgstr "Время"
 msgid "Time range"
 msgstr "Период"
 
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "Окрашивать каждый проект и его рабочие области на боковой панели"
+
 msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
 msgstr "Окрашивает каждую рабочую область в цвет её проекта. Выберите цвет, щёлкнув правой кнопкой по проекту на боковой панели."
 
@@ -16876,6 +16882,9 @@ msgstr "Окрашивать заголовок над каждой панель
 
 msgid "Tint the tab strip and mark the active tab"
 msgstr "Окрашивать панель вкладок и отмечать активную вкладку"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "Окрашивает проект на боковой панели и в его рабочих областях."
 
 msgid "Title"
 msgstr "Название"

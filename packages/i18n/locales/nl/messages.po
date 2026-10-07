@@ -2889,8 +2889,8 @@ msgstr "Binair bestand verborgen"
 msgid "Bio"
 msgstr "Bio"
 
-msgid "Blend the color into the terminal background"
-msgstr "De kleur mengen met de terminalachtergrond"
+msgid "Blend the color into the workspace and terminal background"
+msgstr "De kleur mengen met de achtergrond van werkruimte en terminal"
 
 msgid "Block"
 msgstr "Blok"
@@ -5341,6 +5341,9 @@ msgstr "Aangepast"
 msgid "Custom agent…"
 msgstr "Eigen agent…"
 
+msgid "Custom color"
+msgstr "Aangepaste kleur"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "Eigen componenten buiten de shadcn-set"
 
@@ -5367,6 +5370,9 @@ msgstr "Eigen terminalagents"
 
 msgid "Custom themes"
 msgstr "Eigen thema's"
+
+msgid "Custom…"
+msgstr "Aangepast…"
 
 msgid "Customize commands"
 msgstr "Commando's aanpassen"
@@ -16038,9 +16044,6 @@ msgstr "Terminal"
 msgid "Terminal agent launch configuration"
 msgstr "Startconfiguratie van terminalagent"
 
-msgid "Terminal background"
-msgstr "Terminalachtergrond"
-
 msgid "Terminal connection: {label}"
 msgstr "Terminalverbinding: {label}"
 
@@ -16868,6 +16871,9 @@ msgstr "Tijd"
 msgid "Time range"
 msgstr "Periode"
 
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "Elk project en de werkruimtes ervan in de zijbalk kleuren"
+
 msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
 msgstr "Kleur elke werkruimte met de kleur van het project. Kies een kleur door met rechts op een project in de zijbalk te klikken."
 
@@ -16876,6 +16882,9 @@ msgstr "De kop boven elk deelvenster kleuren"
 
 msgid "Tint the tab strip and mark the active tab"
 msgstr "De tabbladbalk kleuren en het actieve tabblad markeren"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "Kleurt het project in de zijbalk en in de werkruimtes ervan."
 
 msgid "Title"
 msgstr "Titel"

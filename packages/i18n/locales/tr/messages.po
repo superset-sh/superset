@@ -2889,8 +2889,8 @@ msgstr "İkili dosya gizlendi"
 msgid "Bio"
 msgstr "Hakkında"
 
-msgid "Blend the color into the terminal background"
-msgstr "Rengi terminal arka planına karıştır"
+msgid "Blend the color into the workspace and terminal background"
+msgstr "Rengi çalışma alanı ve terminal arka planına karıştır"
 
 msgid "Block"
 msgstr "Blok"
@@ -5341,6 +5341,9 @@ msgstr "Özel"
 msgid "Custom agent…"
 msgstr "Özel ajan…"
 
+msgid "Custom color"
+msgstr "Özel renk"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "shadcn setinin ötesindeki özel bileşenler"
 
@@ -5367,6 +5370,9 @@ msgstr "Özel terminal ajanları"
 
 msgid "Custom themes"
 msgstr "Özel temalar"
+
+msgid "Custom…"
+msgstr "Özel…"
 
 msgid "Customize commands"
 msgstr "Komutları özelleştir"
@@ -16038,9 +16044,6 @@ msgstr "Terminal"
 msgid "Terminal agent launch configuration"
 msgstr "Terminal ajanı başlatma yapılandırması"
 
-msgid "Terminal background"
-msgstr "Terminal arka planı"
-
 msgid "Terminal connection: {label}"
 msgstr "Terminal bağlantısı: {label}"
 
@@ -16868,6 +16871,9 @@ msgstr "Zaman"
 msgid "Time range"
 msgstr "Zaman aralığı"
 
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "Kenar çubuğunda her projeyi ve çalışma alanlarını renklendir"
+
 msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
 msgstr "Her çalışma alanını projesinin rengiyle renklendirir. Kenar çubuğunda bir projeye sağ tıklayarak renk seçin."
 
@@ -16876,6 +16882,9 @@ msgstr "Her bölmenin üstündeki başlığı renklendir"
 
 msgid "Tint the tab strip and mark the active tab"
 msgstr "Sekme çubuğunu renklendir ve etkin sekmeyi işaretle"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "Projeyi kenar çubuğunda ve çalışma alanlarında renklendirir."
 
 msgid "Title"
 msgstr "Başlık"

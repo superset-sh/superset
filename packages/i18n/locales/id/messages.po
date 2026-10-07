@@ -2889,8 +2889,8 @@ msgstr "File biner disembunyikan"
 msgid "Bio"
 msgstr "Bio"
 
-msgid "Blend the color into the terminal background"
-msgstr "Campurkan warna ke latar belakang terminal"
+msgid "Blend the color into the workspace and terminal background"
+msgstr "Campurkan warna ke latar belakang workspace dan terminal"
 
 msgid "Block"
 msgstr "Blok"
@@ -5341,6 +5341,9 @@ msgstr "Kustom"
 msgid "Custom agent…"
 msgstr "Agen kustom…"
 
+msgid "Custom color"
+msgstr "Warna kustom"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "Komponen kustom di luar set shadcn"
 
@@ -5367,6 +5370,9 @@ msgstr "Agen terminal kustom"
 
 msgid "Custom themes"
 msgstr "Tema kustom"
+
+msgid "Custom…"
+msgstr "Kustom…"
 
 msgid "Customize commands"
 msgstr "Sesuaikan perintah"
@@ -16038,9 +16044,6 @@ msgstr "Terminal"
 msgid "Terminal agent launch configuration"
 msgstr "Konfigurasi peluncuran agen terminal"
 
-msgid "Terminal background"
-msgstr "Latar belakang terminal"
-
 msgid "Terminal connection: {label}"
 msgstr "Koneksi terminal: {label}"
 
@@ -16868,6 +16871,9 @@ msgstr "Waktu"
 msgid "Time range"
 msgstr "Rentang waktu"
 
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "Beri warna setiap proyek dan workspace-nya di sidebar"
+
 msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
 msgstr "Beri warna setiap workspace dengan warna proyeknya. Pilih warna dengan klik kanan pada proyek di sidebar."
 
@@ -16876,6 +16882,9 @@ msgstr "Beri warna header di atas setiap panel"
 
 msgid "Tint the tab strip and mark the active tab"
 msgstr "Beri warna bilah tab dan tandai tab yang aktif"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "Memberi warna proyek di sidebar dan di workspace-nya."
 
 msgid "Title"
 msgstr "Judul"

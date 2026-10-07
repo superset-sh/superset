@@ -5,7 +5,9 @@ export interface ProjectAccentSettings {
 	enabled: boolean;
 	tabBar: boolean;
 	paneHeaders: boolean;
-	terminal: boolean;
+	/** The workspace surface and the terminal, tinted together so they match. */
+	background: boolean;
+	sidebar: boolean;
 	/** 0–100; scales every tint between none and its surface's maximum. */
 	intensity: number;
 }
@@ -14,13 +16,13 @@ export const DEFAULT_PROJECT_ACCENT_SETTINGS: ProjectAccentSettings = {
 	enabled: true,
 	tabBar: true,
 	paneHeaders: true,
-	terminal: true,
+	background: true,
+	sidebar: true,
 	intensity: 40,
 };
 
-const TAB_BAR_MAX_ALPHA = 0.3;
-const PANE_HEADER_MAX_ALPHA = 0.25;
-const TERMINAL_MAX_MIX = 0.2;
+const CHROME_MAX_ALPHA = 0.2;
+const SIDEBAR_MAX_ALPHA = 0.3;
 
 export interface TerminalTint {
 	color: string;
@@ -92,21 +94,41 @@ export function resolveProjectAccent(
 	if (settings.tabBar) {
 		cssVars[PANES_ACCENT_VARS.tabBarTint] = flatTint(
 			color,
-			TAB_BAR_MAX_ALPHA * scale,
+			CHROME_MAX_ALPHA * scale,
 		);
 		cssVars[PANES_ACCENT_VARS.activeTabAccent] = color;
 	}
 	if (settings.paneHeaders) {
 		cssVars[PANES_ACCENT_VARS.paneHeaderTint] = flatTint(
 			color,
-			PANE_HEADER_MAX_ALPHA * scale,
+			CHROME_MAX_ALPHA * scale,
 		);
 	}
-	const terminalTint =
-		settings.terminal && scale > 0
-			? { color, amount: TERMINAL_MAX_MIX * scale }
-			: null;
+	const backgroundOn = settings.background && scale > 0;
+	if (backgroundOn) {
+		// Alpha-compositing at `a` equals mixing at `a`, so the surface tint
+		// lands on exactly the terminal's blended background.
+		cssVars[PANES_ACCENT_VARS.surfaceTint] = flatTint(
+			color,
+			CHROME_MAX_ALPHA * scale,
+		);
+	}
+	const terminalTint = backgroundOn
+		? { color, amount: CHROME_MAX_ALPHA * scale }
+		: null;
 	return { cssVars, terminalTint };
+}
+
+/** The sidebar group's background, or null when it stays untinted. */
+export function resolveSidebarProjectTint(
+	color: string | null | undefined,
+	settings: ProjectAccentSettings,
+): string | null {
+	if (!settings.enabled || !settings.sidebar || !isHexColor(color)) {
+		return null;
+	}
+	const scale = clampAccentIntensity(settings.intensity) / 100;
+	return scale > 0 ? hexToRgba(color, SIDEBAR_MAX_ALPHA * scale) : null;
 }
 
 export function tintTerminalTheme(

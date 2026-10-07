@@ -7,6 +7,7 @@ export {
 	type ProjectAccent,
 	type ProjectAccentSettings,
 	resolveProjectAccent,
+	resolveSidebarProjectTint,
 	type TerminalTint,
 	tintTerminalTheme,
 } from "./project-accent";

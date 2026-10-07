@@ -10,7 +10,7 @@ import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 type SurfaceKey = keyof Pick<
 	ProjectAccentSettings,
-	"tabBar" | "paneHeaders" | "terminal"
+	"sidebar" | "tabBar" | "paneHeaders" | "background"
 >;
 
 export function ProjectAccentSection() {
@@ -22,6 +22,13 @@ export function ProjectAccentSection() {
 	useEffect(() => setIntensity(accent.intensity), [accent.intensity]);
 
 	const surfaces: { key: SurfaceKey; label: string; description: string }[] = [
+		{
+			key: "sidebar",
+			label: t({ message: "Sidebar" }),
+			description: t({
+				message: "Tint each project and its workspaces in the sidebar",
+			}),
+		},
 		{
 			key: "tabBar",
 			label: t({ message: "Tab bar" }),
@@ -35,10 +42,10 @@ export function ProjectAccentSection() {
 			description: t({ message: "Tint the header above each pane" }),
 		},
 		{
-			key: "terminal",
-			label: t({ message: "Terminal background" }),
+			key: "background",
+			label: t({ message: "Background" }),
 			description: t({
-				message: "Blend the color into the terminal background",
+				message: "Blend the color into the workspace and terminal background",
 			}),
 		},
 	];

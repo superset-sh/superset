@@ -29,7 +29,7 @@ export function ProjectAccentProvider({
 		? (projects.find((project) => project.projectKey === projectId)?.color ??
 			null)
 		: null;
-	const { enabled, tabBar, paneHeaders, terminal, intensity } =
+	const { enabled, tabBar, paneHeaders, background, sidebar, intensity } =
 		preferences.projectAccent;
 	const accent = useMemo(
 		() =>
@@ -37,10 +37,11 @@ export function ProjectAccentProvider({
 				enabled,
 				tabBar,
 				paneHeaders,
-				terminal,
+				background,
+				sidebar,
 				intensity,
 			}),
-		[color, enabled, tabBar, paneHeaders, terminal, intensity],
+		[color, enabled, tabBar, paneHeaders, background, sidebar, intensity],
 	);
 
 	return (

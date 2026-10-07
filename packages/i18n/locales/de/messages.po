@@ -2889,8 +2889,8 @@ msgstr "Binärdatei ausgeblendet"
 msgid "Bio"
 msgstr "Bio"
 
-msgid "Blend the color into the terminal background"
-msgstr "Die Farbe in den Terminal-Hintergrund mischen"
+msgid "Blend the color into the workspace and terminal background"
+msgstr "Die Farbe in den Hintergrund von Arbeitsbereich und Terminal mischen"
 
 msgid "Block"
 msgstr "Block"
@@ -5341,6 +5341,9 @@ msgstr "Benutzerdefiniert"
 msgid "Custom agent…"
 msgstr "Eigener Agent…"
 
+msgid "Custom color"
+msgstr "Benutzerdefinierte Farbe"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "Eigene Komponenten jenseits des shadcn-Sets"
 
@@ -5367,6 +5370,9 @@ msgstr "Eigene Terminal-Agenten"
 
 msgid "Custom themes"
 msgstr "Eigene Themes"
+
+msgid "Custom…"
+msgstr "Benutzerdefiniert…"
 
 msgid "Customize commands"
 msgstr "Befehle anpassen"
@@ -16038,9 +16044,6 @@ msgstr "Terminal"
 msgid "Terminal agent launch configuration"
 msgstr "Startkonfiguration des Terminal-Agenten"
 
-msgid "Terminal background"
-msgstr "Terminal-Hintergrund"
-
 msgid "Terminal connection: {label}"
 msgstr "Terminal-Verbindung: {label}"
 
@@ -16868,6 +16871,9 @@ msgstr "Zeit"
 msgid "Time range"
 msgstr "Zeitraum"
 
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "Jedes Projekt und seine Arbeitsbereiche in der Seitenleiste tönen"
+
 msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
 msgstr "Jeden Arbeitsbereich in der Farbe seines Projekts tönen. Wähle eine Farbe per Rechtsklick auf ein Projekt in der Seitenleiste."
 
@@ -16876,6 +16882,9 @@ msgstr "Den Kopf über jedem Bereich tönen"
 
 msgid "Tint the tab strip and mark the active tab"
 msgstr "Die Tab-Leiste tönen und den aktiven Tab markieren"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "Tönt das Projekt in der Seitenleiste und in seinen Arbeitsbereichen."
 
 msgid "Title"
 msgstr "Titel"

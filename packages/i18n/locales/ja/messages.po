@@ -2889,8 +2889,8 @@ msgstr "バイナリファイルは非表示"
 msgid "Bio"
 msgstr "自己紹介"
 
-msgid "Blend the color into the terminal background"
-msgstr "ターミナルの背景に色をブレンド"
+msgid "Blend the color into the workspace and terminal background"
+msgstr "ワークスペースとターミナルの背景に色をブレンド"
 
 msgid "Block"
 msgstr "ブロック"
@@ -5341,6 +5341,9 @@ msgstr "カスタム"
 msgid "Custom agent…"
 msgstr "カスタムエージェント…"
 
+msgid "Custom color"
+msgstr "カスタムカラー"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "shadcnのセットにない独自コンポーネント"
 
@@ -5367,6 +5370,9 @@ msgstr "カスタムターミナルエージェント"
 
 msgid "Custom themes"
 msgstr "カスタムテーマ"
+
+msgid "Custom…"
+msgstr "カスタム…"
 
 msgid "Customize commands"
 msgstr "コマンドをカスタマイズ"
@@ -16038,9 +16044,6 @@ msgstr "ターミナル"
 msgid "Terminal agent launch configuration"
 msgstr "ターミナルエージェントの起動設定"
 
-msgid "Terminal background"
-msgstr "ターミナルの背景"
-
 msgid "Terminal connection: {label}"
 msgstr "ターミナル接続: {label}"
 
@@ -16868,6 +16871,9 @@ msgstr "時間"
 msgid "Time range"
 msgstr "期間"
 
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "サイドバーで各プロジェクトとそのワークスペースを着色"
+
 msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
 msgstr "各ワークスペースをそのプロジェクトの色で着色します。サイドバーでプロジェクトを右クリックして色を選択してください。"
 
@@ -16876,6 +16882,9 @@ msgstr "各ペイン上部のヘッダーを着色"
 
 msgid "Tint the tab strip and mark the active tab"
 msgstr "タブバーを着色し、アクティブなタブを示す"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "サイドバーとそのワークスペースでプロジェクトを着色します。"
 
 msgid "Title"
 msgstr "タイトル"
