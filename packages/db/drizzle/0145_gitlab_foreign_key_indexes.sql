@@ -1,0 +1,3 @@
+CREATE INDEX "gitlab_cloud_projects_organization_id_idx" ON "gitlab_cloud_projects" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "gitlab_environment_projects_connection_id_idx" ON "gitlab_environment_projects" USING btree ("connection_id");--> statement-breakpoint
+CREATE INDEX "gitlab_workspace_checkouts_connection_id_idx" ON "gitlab_workspace_checkouts" USING btree ("connection_id");

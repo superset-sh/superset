@@ -1009,6 +1009,20 @@
       "when": 1791059309196,
       "tag": "0143_task_numbers_per_team",
       "breakpoints": true
+    },
+    {
+      "idx": 144,
+      "version": "7",
+      "when": 1791181509825,
+      "tag": "0144_gitlab_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 145,
+      "version": "7",
+      "when": 1791327456017,
+      "tag": "0145_gitlab_foreign_key_indexes",
+      "breakpoints": true
     }
   ]
 }
