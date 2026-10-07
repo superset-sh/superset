@@ -55,7 +55,7 @@ export function QueuedPrompts({
 					key={prompt.id}
 				>
 					<Text
-						className="text-foreground min-w-0 flex-1 text-[15px]"
+						className="text-foreground min-w-0 flex-1 text-[17px]"
 						numberOfLines={1}
 					>
 						{userMessageText(prompt, " ")}

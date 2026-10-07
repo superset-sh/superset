@@ -17,6 +17,8 @@ export const AGENT_MARKDOWN_STYLE: MarkdownStyle = {
 	h2: { ...MESSAGE_MARKDOWN_STYLE.h2, fontSize: 19 },
 	h3: { ...MESSAGE_MARKDOWN_STYLE.h3, fontSize: 18 },
 	h4: { ...MESSAGE_MARKDOWN_STYLE.h4, fontSize: 17 },
+	h5: { ...MESSAGE_MARKDOWN_STYLE.h5, fontSize: 17 },
+	h6: { ...MESSAGE_MARKDOWN_STYLE.h6, fontSize: 17 },
 	list: { ...MESSAGE_MARKDOWN_STYLE.list, ...BODY },
 	blockquote: {
 		...MESSAGE_MARKDOWN_STYLE.blockquote,
