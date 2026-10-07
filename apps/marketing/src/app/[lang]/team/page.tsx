@@ -11,9 +11,9 @@ import { getAbout } from "@/lib/about";
 import { getAllPeople } from "@/lib/people";
 import { CompanyFacts } from "../components/CompanyFacts";
 import { CTASection } from "../components/CTASection";
+import { PhotoFan } from "../components/PhotoFan";
 import { FounderRow } from "./components/FounderRow";
 import { Investors } from "./components/Investors";
-import { PhotoFan } from "./components/PhotoFan";
 import { ProofLinks } from "./components/ProofLinks";
 import { Timeline } from "./components/Timeline";
 
