@@ -645,7 +645,7 @@ export function WorkspaceScreen() {
 	const hideNotice = useCallback(() => setNotice(null), []);
 	const composerActiveRef = useRef(false);
 	composerActiveRef.current = composerActive;
-	const handleTerminalTap = useCallback(() => {
+	const dismissComposer = useCallback(() => {
 		if (composerActiveRef.current) composerRef.current?.blur();
 	}, []);
 	const handleCopied = useCallback(
@@ -1116,7 +1116,7 @@ export function WorkspaceScreen() {
 						hostUrl={hostUrl}
 						key={activeTerminalId}
 						onOpenSession={openSession}
-						onTap={handleTerminalTap}
+						onTap={dismissComposer}
 						ref={chatRef}
 						sessionId={activeTerminalId}
 						workspaceId={id}
@@ -1137,7 +1137,7 @@ export function WorkspaceScreen() {
 							// the WebView also ate scroll drags, so the scrollback froze
 							// whenever the keyboard was up. The page reports plain taps
 							// instead, and drags stay with the terminal.
-							onTap={handleTerminalTap}
+							onTap={dismissComposer}
 						/>
 						{/* The WebView swallows every touch that lands on it, so the back
 						    swipe never starts over the terminal. This strip keeps a
