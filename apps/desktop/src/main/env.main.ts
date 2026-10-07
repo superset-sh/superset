@@ -24,6 +24,7 @@ export const env = createEnv({
 		SENTRY_DSN_HOST_SERVICE: z.string().optional(),
 		STREAMS_URL: z.url().default("https://superset-stream.fly.dev"),
 		RELAY_URL: z.url().default("https://relay.superset.sh"),
+		UPDATE_FEED_URL: z.url().optional(),
 	},
 
 	runtimeEnv: {
@@ -41,6 +42,7 @@ export const env = createEnv({
 		SENTRY_DSN_HOST_SERVICE: process.env.SENTRY_DSN_HOST_SERVICE,
 		STREAMS_URL: process.env.STREAMS_URL,
 		RELAY_URL: process.env.RELAY_URL,
+		UPDATE_FEED_URL: process.env.UPDATE_FEED_URL,
 	},
 	emptyStringAsUndefined: true,
 	// Only allow skipping validation in development (never in production)

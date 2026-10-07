@@ -1,5 +1,6 @@
 import { db } from "@superset/db/client";
 import { subscriptions } from "@superset/db/schema";
+import { createJobQueue } from "@superset/shared/self-host-queue";
 import {
 	accountConnection,
 	connectionBotToken,
@@ -618,7 +619,9 @@ async function handBackQueued({
 	if (!newest) return;
 	const isDm = event.channel_type === "im";
 	const files = pending.flatMap((e) => e.files ?? []);
-	const qstash = new QStash({ token: env.QSTASH_TOKEN });
+	const qstash = createJobQueue(
+		() => new QStash({ token: env.QSTASH_TOKEN ?? "" }),
+	);
 	try {
 		await publishHandBack({
 			qstash,
@@ -651,7 +654,9 @@ async function publishHandBack({
 	handoffId,
 	files,
 }: {
-	qstash: QStash;
+	qstash:
+		| Pick<QStash, "publishJSON">
+		| import("@superset/shared/self-host-queue").JobQueue;
 	isDm: boolean;
 	event: SlackAgentMessageEvent;
 	teamId: string;

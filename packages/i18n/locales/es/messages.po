@@ -3481,6 +3481,9 @@ msgstr "Comprobaciones superadas"
 msgid "Checks Skipped"
 msgstr "Comprobaciones omitidas"
 
+msgid "Checksum download failed: {status}"
+msgstr "Error al descargar la suma de comprobación: {status}"
+
 msgid "Choose a fighter"
 msgstr "Elige un luchador"
 
@@ -4380,6 +4383,9 @@ msgstr "Continuar con otro agente"
 
 msgid "Continue with another agent…"
 msgstr "Continuar con otro agente…"
+
+msgid "Continue with Authentik"
+msgstr "Continuar con Authentik"
 
 msgid "Continue with GitHub"
 msgstr "Continuar con GitHub"
@@ -6084,6 +6090,18 @@ msgstr "Descargar el archivo del tema"
 msgid "downloaded"
 msgstr "descargada"
 
+msgid "Downloaded CLI archive checksum mismatch"
+msgstr "La suma de comprobación del archivo CLI descargado no coincide"
+
+msgid "Downloaded CLI archive version mismatch"
+msgstr "La versión del archivo CLI descargado no coincide"
+
+msgid "Downloaded CLI binary version mismatch (expected {targetVersion})"
+msgstr "La versión del binario CLI descargado no coincide (se esperaba {targetVersion})"
+
+msgid "Downloaded CLI version probe failed"
+msgstr "Error al comprobar la versión de la CLI descargada"
+
 msgid "Downloading"
 msgstr "Descargando"
 
@@ -7445,6 +7463,15 @@ msgstr "Tamaño de fuente"
 msgid "Font weight"
 msgstr "Grosor de la fuente"
 
+msgid "For a standalone CLI that updates in place, install from this deployment's channel: {channel}"
+msgstr "Para una CLI independiente que se actualice en su ubicación actual, instálala desde el canal de este despliegue: {channel}"
+
+msgid "For a standalone CLI that updates in place: curl -fsSL https://superset.sh/cli/install.sh | sh"
+msgstr "Para una CLI independiente que se actualice en su ubicación actual: curl -fsSL https://superset.sh/cli/install.sh | sh"
+
+msgid "For a standalone CLI, rebuild from this repository with CLI_UPDATE_BASE_URL set to this deployment's channel."
+msgstr "Para una CLI independiente, vuelve a compilar desde este repositorio con CLI_UPDATE_BASE_URL establecido en el canal de este despliegue."
+
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "Para informes de errores y solicitudes de funciones, lo más rápido es abrir un issue en GitHub en <0>github.com/superset-sh/superset</0>. Nuestra comunidad vive en <1>Discord</1>, y publicamos novedades en <2>X (@superset_sh)</2> y <3>LinkedIn</3>."
 
@@ -8531,6 +8558,9 @@ msgstr "Solicitud no válida"
 
 msgid "Invalid state parameter. Please try again."
 msgstr "Parámetro de estado no válido. Inténtalo de nuevo."
+
+msgid "Invalid version manifest at cli-latest"
+msgstr "Manifiesto de versión no válido en cli-latest"
 
 msgid "Invitation canceled"
 msgstr "Invitación cancelada"
@@ -12909,6 +12939,9 @@ msgstr "Se actualiza la próxima vez que se ejecute Claude Code."
 
 msgid "Refreshes when OpenCode next runs."
 msgstr "Se actualiza la próxima vez que se ejecute OpenCode."
+
+msgid "Refusing to update: this CLI's API and update channel point at different deployments. Rebuild with CLI_UPDATE_BASE_URL set to the matching channel."
+msgstr "Actualización rechazada: la API y el canal de actualización de esta CLI apuntan a despliegues distintos. Vuelve a compilar con CLI_UPDATE_BASE_URL establecido en el canal correspondiente."
 
 msgid "Regenerate"
 msgstr "Regenerar"

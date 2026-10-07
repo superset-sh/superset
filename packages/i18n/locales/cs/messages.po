@@ -3481,6 +3481,9 @@ msgstr "Kontroly prošly"
 msgid "Checks Skipped"
 msgstr "Kontroly přeskočeny"
 
+msgid "Checksum download failed: {status}"
+msgstr "Stažení kontrolního součtu selhalo: {status}"
+
 msgid "Choose a fighter"
 msgstr "Vyberte bojovníka"
 
@@ -4380,6 +4383,9 @@ msgstr "Pokračovat s jiným agentem"
 
 msgid "Continue with another agent…"
 msgstr "Pokračovat s jiným agentem…"
+
+msgid "Continue with Authentik"
+msgstr "Pokračovat přes Authentik"
 
 msgid "Continue with GitHub"
 msgstr "Pokračovat přes GitHub"
@@ -6084,6 +6090,18 @@ msgstr "Stáhnout soubor motivu"
 msgid "downloaded"
 msgstr "staženo"
 
+msgid "Downloaded CLI archive checksum mismatch"
+msgstr "Kontrolní součet staženého archivu CLI se neshoduje"
+
+msgid "Downloaded CLI archive version mismatch"
+msgstr "Verze staženého archivu CLI se neshoduje"
+
+msgid "Downloaded CLI binary version mismatch (expected {targetVersion})"
+msgstr "Verze staženého binárního souboru CLI se neshoduje (očekávána {targetVersion})"
+
+msgid "Downloaded CLI version probe failed"
+msgstr "Ověření verze staženého CLI selhalo"
+
 msgid "Downloading"
 msgstr "Stahování"
 
@@ -7445,6 +7463,15 @@ msgstr "Velikost písma"
 msgid "Font weight"
 msgstr "Tloušťka písma"
 
+msgid "For a standalone CLI that updates in place, install from this deployment's channel: {channel}"
+msgstr "Pro samostatné CLI, které se aktualizuje v místě instalace, jej nainstalujte z kanálu tohoto nasazení: {channel}"
+
+msgid "For a standalone CLI that updates in place: curl -fsSL https://superset.sh/cli/install.sh | sh"
+msgstr "Pro samostatné CLI, které se aktualizuje v místě instalace: curl -fsSL https://superset.sh/cli/install.sh | sh"
+
+msgid "For a standalone CLI, rebuild from this repository with CLI_UPDATE_BASE_URL set to this deployment's channel."
+msgstr "Pro samostatné CLI jej sestavte znovu z tohoto repozitáře s CLI_UPDATE_BASE_URL nastaveným na kanál tohoto nasazení."
+
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "Pro hlášení chyb a náměty na funkce je nejrychlejší cestou GitHub issue na <0>github.com/superset-sh/superset</0>. Naše komunita žije na <1>Discordu</1> a novinky zveřejňujeme na <2>X (@superset_sh)</2> a <3>LinkedInu</3>."
 
@@ -8531,6 +8558,9 @@ msgstr "Neplatný požadavek"
 
 msgid "Invalid state parameter. Please try again."
 msgstr "Neplatný parametr state. Zkuste to prosím znovu."
+
+msgid "Invalid version manifest at cli-latest"
+msgstr "Neplatný manifest verze v cli-latest"
 
 msgid "Invitation canceled"
 msgstr "Pozvánka zrušena"
@@ -12909,6 +12939,9 @@ msgstr "Obnoví se při příštím spuštění Claude Code."
 
 msgid "Refreshes when OpenCode next runs."
 msgstr "Obnoví se při příštím spuštění OpenCode."
+
+msgid "Refusing to update: this CLI's API and update channel point at different deployments. Rebuild with CLI_UPDATE_BASE_URL set to the matching channel."
+msgstr "Aktualizace odmítnuta: API a aktualizační kanál tohoto CLI odkazují na různá nasazení. Sestavte jej znovu s CLI_UPDATE_BASE_URL nastaveným na odpovídající kanál."
 
 msgid "Regenerate"
 msgstr "Vygenerovat znovu"

@@ -5,6 +5,7 @@
 		"@react-email/preview-server": "5.0.7",
 		"@superset/typescript": "workspace:*",
 		"@types/node": "24.12.0",
+		"@types/nodemailer": "8.0.2",
 		"@types/react": "19.2.14",
 		"@types/tailwindcss": "3.1.0",
 		"bun-types": "1.4.2",
@@ -13,7 +14,8 @@
 	},
 	"exports": {
 		"./emails/marketing/DownloadLinkEmail": "./src/emails/marketing/DownloadLinkEmail/index.ts",
-		"./emails/*": "./src/emails/*.tsx"
+		"./emails/*": "./src/emails/*.tsx",
+		"./sender": "./src/sender/index.ts"
 	},
 	"private": true,
 	"scripts": {
@@ -27,12 +29,14 @@
 	"type": "module",
 	"dependencies": {
 		"@react-email/components": "1.0.1",
+		"@react-email/render-native": "npm:@react-email/render@2.0.6",
 		"@react-email/tailwind": "2.0.3",
 		"@superset/db": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@t3-oss/env-core": "0.13.11",
 		"date-fns": "4.1.0",
 		"drizzle-orm": "0.45.2",
+		"nodemailer": "9.0.1",
 		"react": "19.2.3",
 		"react-dom": "19.2.3",
 		"resend": "6.18.0",

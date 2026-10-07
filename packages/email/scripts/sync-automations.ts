@@ -50,6 +50,12 @@ type DesiredAutomation = {
 	connections: Connection[];
 };
 
+if (process.env.SMTP_URL) {
+	throw new Error(
+		"Resend automation synchronization is unavailable when SMTP_URL is set",
+	);
+}
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 const apply = process.argv.includes("--apply");
 const force = process.argv.includes("--force");

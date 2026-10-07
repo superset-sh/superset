@@ -1,9 +1,9 @@
 import { createHmac } from "node:crypto";
 import { db } from "@superset/db/client";
 import { pageReports, pages, pageVersions } from "@superset/db/schema";
+import { createKv } from "@superset/shared/kv";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
 import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { env } from "../../env";
 import { adminProcedure, publicProcedure, userError } from "../../trpc";
@@ -16,9 +16,9 @@ import {
 import { writePageManifest } from "./storage";
 
 const reportRateLimit =
-	env.KV_REST_API_URL && env.KV_REST_API_TOKEN
+	env.SELF_HOST_KV === "1" || (env.KV_REST_API_URL && env.KV_REST_API_TOKEN)
 		? new Ratelimit({
-				redis: new Redis({
+				redis: createKv({
 					url: env.KV_REST_API_URL,
 					token: env.KV_REST_API_TOKEN,
 				}),

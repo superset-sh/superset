@@ -5,8 +5,14 @@ import relay from "./index";
 type ProxiedRequest = { method: string; pathWithQuery: string };
 
 const proxied: ProxiedRequest[] = [];
+const streamPaths: string[] = [];
 
 const tunnel = {
+	prepareStream: async (_caller: unknown, _ticket: string, path: string) => {
+		streamPaths.push(path);
+		return "ready";
+	},
+	fetch: async () => new Response("stream"),
 	setName: async () => {},
 	proxyHttp: async (_caller: unknown, request: ProxiedRequest) => {
 		proxied.push({
@@ -47,6 +53,7 @@ afterAll(() => jwks.stop(true));
 
 beforeEach(() => {
 	proxied.length = 0;
+	streamPaths.length = 0;
 });
 
 const hostId = "org-1:machine-1";
@@ -168,11 +175,21 @@ test("rejects an unauthenticated chat-v3 call with a plain-JSON tRPC error", asy
 	expect(proxied).toEqual([]);
 });
 
-test("rejects a stream path that a percent-encoded host id leaks into", async () => {
+test("forwards the original stream path with a percent-encoded host ID", async () => {
 	const response = await call("/chat-v3/sessions/s1/stream", {
 		host: encodeURIComponent(hostId),
 		headers: { Upgrade: "websocket" },
 	});
 
+	expect(response.status).toBe(200);
+	expect(streamPaths).toEqual(["/chat-v3/sessions/s1/stream"]);
+});
+
+test("rejects a double-slash stream path before preparing the host connection", async () => {
+	const response = await call("//chat-v3/sessions/s1/stream", {
+		host: encodeURIComponent(hostId),
+		headers: { Upgrade: "websocket" },
+	});
 	expect(response.status).toBe(400);
+	expect(streamPaths).toEqual([]);
 });

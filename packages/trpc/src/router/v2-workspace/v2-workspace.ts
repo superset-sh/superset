@@ -4,14 +4,14 @@
 import { db } from "@superset/db/client";
 import { v2WorkspaceTypeValues } from "@superset/db/enums";
 import { type SelectV2Workspace, users } from "@superset/db/schema";
+import { createEmailSender } from "@superset/email/sender";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { Resend } from "resend";
 import { z } from "zod";
 import { env } from "../../env";
 import { jwtProcedure, protectedProcedure, userError } from "../../trpc";
 
-const resend = new Resend(env.RESEND_API_KEY);
+const resend = createEmailSender(env);
 const ACTIVATION_EVENT_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 // Emits `user.activated`, the exit condition of the Resend activation email

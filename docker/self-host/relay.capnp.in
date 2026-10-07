@@ -1,0 +1,32 @@
+using Workerd = import "/workerd/workerd.capnp";
+const config :Workerd.Config = (
+  services = [
+    (name = "relay", worker = .relayWorker),
+    (name = "do-disk", disk = (writable = true)),
+    (name = "placement-disk", disk = (writable = true)),
+    (name = "internet", network = (
+      allow = ["public"@API_PRIVATE_ADDRESSES@],
+      tlsOptions = (trustBrowserCas = true),
+    )),
+  ],
+  sockets = [(name = "http", address = "*:8787", http = (), service = "relay")],
+);
+const relayWorker :Workerd.Worker = (
+  compatibilityDate = "2026-07-01",
+  compatibilityFlags = ["nodejs_als"],
+  modules = [
+    (name = "entry.js", esModule = embed "relay-entry.js"),
+    (name = "index.js", esModule = embed "index.js"),
+  ],
+  durableObjectNamespaces = [
+    (className = "HostTunnel", uniqueKey = "@DO_UNIQUE_KEY@", enableSql = true),
+  ],
+  durableObjectStorage = (localDisk = "do-disk"),
+  bindings = [
+    (name = "NEXT_PUBLIC_API_URL", fromEnvironment = "NEXT_PUBLIC_API_URL"),
+    (name = "HostTunnel", durableObjectNamespace = "HostTunnel"),
+    (name = "PLACEMENT_DISK", service = "placement-disk"),
+    @OPTIONAL_BINDINGS@
+  ],
+  globalOutbound = "internet",
+);

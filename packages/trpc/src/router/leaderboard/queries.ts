@@ -5,7 +5,7 @@ import {
 	publicProfiles,
 	users,
 } from "@superset/db/schema";
-import { escapeLikePattern } from "@superset/db/utils";
+import { escapeLikePattern, executeRows } from "@superset/db/utils";
 import { and, desc, eq, gt, gte, isNull, lte, sql } from "drizzle-orm";
 import { type LeaderboardPeriod, resolveWindow } from "./periods";
 import { type Tier, tierProgress } from "./tier";
@@ -244,7 +244,8 @@ export async function getStandingFor(
 		const tokens = profile.tokens;
 		if (BigInt(tokens) <= 0n) return null;
 
-		const ahead = await db.execute<{ ahead: number }>(sql`
+		const ahead = executeRows<{ ahead: number }>(
+			await db.execute(sql`
 			select count(*)::int as ahead
 			from public_profiles p
 			join auth.users u on u.id = p.user_id
@@ -258,11 +259,12 @@ export async function getStandingFor(
 						? sql`(p.usd > ${profile.usd} or (p.usd = ${profile.usd} and p.user_id < ${profile.userId}))`
 						: sql`(p.tokens > ${tokens} or (p.tokens = ${tokens} and p.user_id < ${profile.userId}))`
 				}
-		`);
+		`),
+		);
 
 		return {
 			...base,
-			rank: Number(ahead.rows[0]?.ahead ?? 0) + 1,
+			rank: Number(ahead[0]?.ahead ?? 0) + 1,
 			tokens,
 			usd: profile.usd,
 			sessions: Number(profile.sessions),
@@ -290,7 +292,8 @@ export async function getStandingFor(
 	const usd = agg?.usd ?? "0";
 	if (BigInt(tokens) <= 0n) return null;
 
-	const ahead = await db.execute<{ ahead: number }>(sql`
+	const ahead = executeRows<{ ahead: number }>(
+		await db.execute(sql`
 		with totals as (
 			select d.user_id, sum(d.tokens) as tokens, sum(d.usd_estimate) as usd
 			from leaderboard_daily d
@@ -310,11 +313,12 @@ export async function getStandingFor(
 				? sql`(usd > ${usd} or (usd = ${usd} and user_id < ${profile.userId}))`
 				: sql`(tokens > ${tokens} or (tokens = ${tokens} and user_id < ${profile.userId}))`
 		}
-	`);
+	`),
+	);
 
 	return {
 		...base,
-		rank: Number(ahead.rows[0]?.ahead ?? 0) + 1,
+		rank: Number(ahead[0]?.ahead ?? 0) + 1,
 		tokens,
 		usd,
 		sessions: Number(agg?.sessions ?? 0),
@@ -456,7 +460,8 @@ export async function searchParticipants(
 				and p.tokens > 0
 		`;
 
-	const result = await db.execute<SearchRow>(sql`
+	const result = executeRows<SearchRow>(
+		await db.execute(sql`
 		with ranked as (${ranked})
 		select
 			handle, name, tokens, usd, sessions, approximate, tier,
@@ -468,9 +473,10 @@ export async function searchParticipants(
 			or name ilike ${contains} escape '\\'
 		order by rank
 		limit ${take}
-	`);
+	`),
+	);
 
-	return result.rows.map((row) => ({
+	return result.map((row) => ({
 		handle: row.handle,
 		name: row.name,
 		usd: row.usd,

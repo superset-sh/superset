@@ -10,6 +10,7 @@ export const env = createEnv({
 	server: {
 		DATABASE_URL: z.string().url(),
 		DATABASE_URL_UNPOOLED: z.string().url(),
+		SELF_HOST_DB: z.enum(["0", "1"]).default("0"),
 	},
 
 	clientPrefix: "PUBLIC_",

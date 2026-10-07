@@ -12,6 +12,7 @@ import {
 	planTierFromSubscription,
 } from "@superset/shared/billing";
 import { nextOccurrenceAfter } from "@superset/shared/rrule";
+import { createJobQueue } from "@superset/shared/self-host-queue";
 import { Client } from "@upstash/qstash";
 import { and, desc, eq, inArray, lte } from "drizzle-orm";
 import { env } from "@/env";
@@ -21,10 +22,13 @@ import { verifyQstashRequest } from "@/lib/verifyQstash";
 
 export const dynamic = "force-dynamic";
 
-const qstash = new Client({
-	token: env.QSTASH_TOKEN,
-	baseUrl: env.QSTASH_URL,
-});
+const qstash = createJobQueue(
+	() =>
+		new Client({
+			token: env.QSTASH_TOKEN ?? "",
+			baseUrl: env.QSTASH_URL,
+		}),
+);
 const BATCH_SIZE = 2000;
 
 function bucketToMinute(d: Date): Date {

@@ -4,11 +4,12 @@ const envSchema = z.object({
 	NODE_ENV: z
 		.enum(["development", "production", "test"])
 		.default("development"),
+	EXPO_PUBLIC_AUTH_PROVIDERS: z.string().optional(),
 	EXPO_PUBLIC_API_URL: z.url(),
 	EXPO_PUBLIC_RELAY_URL: z.url(),
 	EXPO_PUBLIC_REALTIME_URL: z.url().default("https://realtime.superset.sh"),
 	EXPO_PUBLIC_WEB_URL: z.url().default("https://app.superset.sh"),
-	EXPO_PUBLIC_POSTHOG_KEY: z.string(),
+	EXPO_PUBLIC_POSTHOG_KEY: z.string().optional(),
 	EXPO_PUBLIC_POSTHOG_HOST: z.url().default("https://us.i.posthog.com"),
 	EXPO_PUBLIC_SENTRY_DSN_MOBILE: z.url().optional(),
 	EXPO_PUBLIC_SENTRY_ENVIRONMENT: z.string().default("production"),
@@ -22,6 +23,7 @@ const envSchema = z.object({
 
 const rawEnv: Record<string, string | undefined> = {
 	NODE_ENV: process.env.NODE_ENV,
+	EXPO_PUBLIC_AUTH_PROVIDERS: process.env.EXPO_PUBLIC_AUTH_PROVIDERS,
 	EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
 	EXPO_PUBLIC_RELAY_URL: process.env.EXPO_PUBLIC_RELAY_URL,
 	EXPO_PUBLIC_REALTIME_URL: process.env.EXPO_PUBLIC_REALTIME_URL,

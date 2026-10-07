@@ -1,8 +1,8 @@
+import { createKv } from "@superset/shared/kv";
 import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
 import { env } from "../env";
 
-const redis = new Redis({
+const redis = createKv({
 	url: env.KV_REST_API_URL,
 	token: env.KV_REST_API_TOKEN,
 });

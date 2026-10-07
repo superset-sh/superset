@@ -250,3 +250,27 @@ Until that deployment, the enabled Resend automation receives no events from thi
 code. Stop the automation in Resend to disable campaign sending. Never test by
 emitting an event for a customer; local eligibility and deduplication tests live
 beside the job route.
+
+## Transactional sender
+
+Server callers use `createEmailSender(env)` from `@superset/email/sender`.
+Without `SMTP_URL`, it delegates to the genuine Resend SDK. With `SMTP_URL`,
+it uses Nodemailer for transactional email; `EMAIL_FROM` can override the
+sender. `campaigns` exposes the actual Resend client or `null` for SMTP, so
+callers must gate dashboard contact and campaign work explicitly.
+
+Native React rendering uses the npm alias `@react-email/render-native`, pinned
+to the official `@react-email/render` 2.0.6. Version 2.0.0 can resolve a failed
+Suspense render as fallback HTML, which breaks batch preparation. The corrected
+renderer rejects render failures and waits for the complete stream. The alias
+keeps the existing Resend SDK and component renderer resolution unchanged.
+See the [official renderer changelog](https://github.com/resend/react-email/blob/canary/packages/render/CHANGELOG.md).
+
+SMTP batches prepare all messages, including hosted attachments, before sending.
+Delivery is sequential and may partially succeed. Unsupported Resend provider
+features return an explicit error. Lifecycle events return an explicit skipped
+result and log one notice without recipient information. The Resend-specific
+`sync:automations` script requires SMTP to be unset and a real Resend key.
+
+Configuration and transport limits are documented in
+[environment variables](../../docs/environment-variables.md#native-self-host-email).

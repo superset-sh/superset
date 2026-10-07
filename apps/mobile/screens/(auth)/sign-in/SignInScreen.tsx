@@ -1,8 +1,10 @@
 import { Trans } from "@lingui/react/macro";
+import { mobileAuthProviders } from "@superset/shared/optional-auth-providers";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
 import { useState } from "react";
-import { Image, View } from "react-native";
+import { Image, ScrollView, View } from "react-native";
+import { Button } from "@/components/ui/button";
 
 import { Text } from "@/components/ui/text";
 import { signIn } from "@/lib/auth/client";
@@ -14,20 +16,23 @@ import { DevSignInOptions } from "./components/DevSignInOptions";
 import { EmailSignInLink } from "./components/EmailSignInLink";
 import type { SocialProvider } from "./components/SocialButton";
 import { SocialButton } from "./components/SocialButton";
+import { signInOptionalProvider } from "./utils/signInOptionalProvider";
 
 const TERMS_URL = "https://superset.sh/terms";
 const PRIVACY_URL = "https://superset.sh/privacy";
 
 export function SignInScreen() {
 	const [error, setError] = useState<string | null>(null);
+	const providers = mobileAuthProviders(env.EXPO_PUBLIC_AUTH_PROVIDERS);
 
-	const handleSignIn = async (provider: SocialProvider) => {
+	const handleSignIn = async (provider: SocialProvider | "authentik") => {
 		setError(null);
 		try {
-			await signIn.social({
-				provider,
-				callbackURL: "/",
-			});
+			if (provider === "authentik") {
+				await signInOptionalProvider(provider, signIn);
+			} else {
+				await signIn.social({ provider, callbackURL: "/" });
+			}
 		} catch (err) {
 			console.error("[sign-in] Error:", err);
 			setError(errorCopy(err));
@@ -84,7 +89,13 @@ export function SignInScreen() {
 	};
 
 	return (
-		<View className="flex-1 items-center justify-center gap-8 bg-background p-6">
+		<ScrollView
+			className="flex-1 bg-background"
+			contentContainerClassName="items-center justify-center gap-8 p-6"
+			contentContainerStyle={{ flexGrow: 1 }}
+			contentInsetAdjustmentBehavior="automatic"
+			keyboardShouldPersistTaps="handled"
+		>
 			<Image
 				source={require("@/assets/icon.png")}
 				style={{ width: 80, height: 80, borderRadius: 16 }}
@@ -100,21 +111,35 @@ export function SignInScreen() {
 			</View>
 
 			<View className="w-full items-center gap-3">
-				<SocialButton
-					provider="apple"
-					onPress={handleAppleSignIn}
-					className="w-4/5 max-w-sm"
-				/>
-				<SocialButton
-					provider="github"
-					onPress={() => handleSignIn("github")}
-					className="w-4/5 max-w-sm"
-				/>
-				<SocialButton
-					provider="google"
-					onPress={() => handleSignIn("google")}
-					className="w-4/5 max-w-sm"
-				/>
+				{providers
+					.filter((provider) => provider !== "authentik")
+					.map((provider) => (
+						<SocialButton
+							key={provider}
+							provider={provider}
+							onPress={
+								provider === "apple"
+									? handleAppleSignIn
+									: () => handleSignIn(provider)
+							}
+							className="w-4/5 max-w-sm"
+						/>
+					))}
+				{providers
+					.filter((provider) => provider === "authentik")
+					.map((provider) => (
+						<Button
+							key={provider}
+							variant="outline"
+							size="lg"
+							className="w-4/5 max-w-sm"
+							onPress={() => handleSignIn(provider)}
+						>
+							<Text>
+								<Trans>Continue with Authentik</Trans>
+							</Text>
+						</Button>
+					))}
 				{(__DEV__ || env.EXPO_PUBLIC_E2E === "1") && <DevSignInOptions />}
 				<EmailSignInLink onError={setError} />
 			</View>
@@ -141,6 +166,6 @@ export function SignInScreen() {
 					</Text>
 				</Trans>
 			</Text>
-		</View>
+		</ScrollView>
 	);
 }

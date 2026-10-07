@@ -26,7 +26,10 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { renderContractShell } from "@superset/shared/sandbox-contract";
+import {
+	renderContractShell,
+	sandboxAssetBaseURL,
+} from "@superset/shared/sandbox-contract";
 import { bucketFromEnv, contentTypeFor } from "./bucket";
 import {
 	type Assets,
@@ -51,6 +54,7 @@ const LAST_PUBLISHED = join(DIST, "last-published.json");
 export const ASSET_CACHE = join(PACKAGE_ROOT, ".cache", "assets");
 
 export interface BuiltBundle {
+	assetBaseURL: string;
 	sha256: string;
 	dir: string;
 	tarball: string;
@@ -59,6 +63,8 @@ export interface BuiltBundle {
 }
 
 export function buildBundle(): BuiltBundle {
+	const cdnURL = process.env.CDN_URL;
+	const assetBaseURL = sandboxAssetBaseURL(cdnURL);
 	const staging = join(DIST, "staging");
 	rmSync(staging, { recursive: true, force: true });
 	mkdirSync(staging, { recursive: true });
@@ -72,7 +78,7 @@ export function buildBundle(): BuiltBundle {
 	mkdirSync(join(staging, "rootfs", "etc", "superset"), { recursive: true });
 	writeFileSync(
 		join(staging, "rootfs", "etc", "superset", "contract.sh"),
-		renderContractShell(),
+		renderContractShell(cdnURL),
 	);
 
 	const assets = loadAssets(join(BUNDLE_SRC, "assets.json"));
@@ -99,7 +105,7 @@ export function buildBundle(): BuiltBundle {
 	cpSync(staging, dir, { recursive: true });
 	rmSync(staging, { recursive: true, force: true });
 	writeFileSync(join(DIST, "bundle.sha256"), `${hash}\n`);
-	return { sha256: hash, dir, tarball, assets, steps };
+	return { sha256: hash, dir, tarball, assets, steps, assetBaseURL };
 }
 
 function stepDiff(steps: DerivedStep[]): string[] {
@@ -117,6 +123,8 @@ export async function publishBundle(
 	options: { dry: boolean },
 ): Promise<void> {
 	const bucket = bucketFromEnv();
+	if (bucket.url("") !== `${built.assetBaseURL}/`)
+		throw new Error("Sandbox CDN differs from built bundle");
 	const missing: Array<{ key: string; name: string }> = [];
 	for (const [name, asset] of Object.entries(built.assets)) {
 		const key = assetObjectKey(asset);

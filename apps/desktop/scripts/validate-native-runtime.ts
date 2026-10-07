@@ -10,7 +10,11 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { builtinModules } from "node:module";
 import { join } from "node:path";
-import ts from "@typescript/typescript6";
+import { collectBareRequireSpecifiers } from "../dist-require-scan";
+import {
+	collectPackageNameClosure,
+	runtimeDiskRequireSeeds,
+} from "../runtime-closure";
 import {
 	mainExternalizedDependencies,
 	requiredMaterializedNodeModules,
@@ -20,6 +24,7 @@ const projectRoot = join(import.meta.dirname, "..");
 const allowedBareRequirePackages = new Set([
 	"electron",
 	...mainExternalizedDependencies,
+	...collectPackageNameClosure(runtimeDiskRequireSeeds, projectRoot),
 ]);
 const builtinModuleSpecifiers = new Set([
 	...builtinModules,
@@ -140,40 +145,6 @@ function isAllowedBareRequire(specifier: string): boolean {
 	}
 
 	return allowedBareRequirePackages.has(getPackageName(specifier));
-}
-
-function collectBareRequireSpecifiers(filePath: string): string[] {
-	const content = readFileSync(filePath, "utf8");
-	const sourceFile = ts.createSourceFile(
-		filePath,
-		content,
-		ts.ScriptTarget.Latest,
-		false,
-		ts.ScriptKind.JS,
-	);
-	const specifiers: string[] = [];
-
-	function visit(node: ts.Node): void {
-		if (
-			ts.isCallExpression(node) &&
-			ts.isIdentifier(node.expression) &&
-			node.expression.text === "require" &&
-			node.arguments.length === 1
-		) {
-			const [argument] = node.arguments;
-			if (argument && ts.isStringLiteralLike(argument)) {
-				specifiers.push(argument.text);
-			}
-		}
-
-		ts.forEachChild(node, visit);
-	}
-
-	visit(sourceFile);
-
-	return specifiers.filter(
-		(specifier) => !specifier.startsWith(".") && !specifier.startsWith("/"),
-	);
 }
 
 function validateOnlyExpectedExternalRequires(): void {

@@ -1,6 +1,7 @@
 import { getTableColumns, type SQL, sql } from "drizzle-orm";
 import type { PgTable, PgTransaction } from "drizzle-orm/pg-core";
 import { dbWs } from "../client";
+import { executeRows } from "./execute-rows";
 
 export function buildConflictUpdateColumns<
 	T extends PgTable,
@@ -25,7 +26,7 @@ export async function getCurrentTxid(
 		sql`SELECT pg_current_xact_id()::xid::text as txid`,
 	);
 
-	const raw = result.rows[0]?.txid;
+	const raw = executeRows<{ txid: string }>(result)[0]?.txid;
 	const txid = raw === undefined ? Number.NaN : Number.parseInt(raw, 10);
 	if (!Number.isSafeInteger(txid)) {
 		throw new Error(`Failed to get valid Electric txid: ${raw}`);

@@ -1,5 +1,6 @@
 import { db } from "@superset/db/client";
 import type { integrationProvider } from "@superset/db/schema";
+import { executeRows } from "@superset/db/utils";
 import { DrizzleQueryError, sql } from "drizzle-orm";
 import { databaseErrorMessage } from "@/lib/databaseErrorMessage";
 
@@ -12,18 +13,24 @@ export interface RecordedDelivery {
 	receivedAt: Date;
 }
 
-/**
- * Rethrow a failed write with the operation, the provider and the driver's own
- * message, and the driver error as the cause so its code and stack still reach
- * the report: a failure says what broke and why, without the bind parameters —
- * one of ours is the entire webhook body. Anything that is not Drizzle's
- * wrapper carries no bind parameters and is left exactly as it was.
- */
+function withoutDriverParameters(error: unknown): unknown {
+	if (
+		!(error instanceof Error) ||
+		!("query" in error || "parameters" in error || "args" in error)
+	)
+		return error;
+	const safe: Error & { code?: string } = new Error(error.message);
+	safe.name = error.name;
+	safe.stack = error.stack;
+	if ("code" in error && typeof error.code === "string") safe.code = error.code;
+	return safe;
+}
+
 function withoutBoundParameters(provider: Provider, error: unknown): unknown {
 	if (!(error instanceof DrizzleQueryError)) return error;
 	return new Error(
 		`recordWebhookDelivery failed for ${provider} writing ingest.webhook_events and ingest.webhook_payloads: ${databaseErrorMessage(error)}`,
-		{ cause: error.cause },
+		{ cause: withoutDriverParameters(error.cause) },
 	);
 }
 
@@ -86,7 +93,12 @@ export async function recordWebhookDelivery({
 			throw withoutBoundParameters(provider, error);
 		});
 
-	const row = result.rows[0];
+	const row = executeRows<{
+		id: string;
+		status: string;
+		retry_count: number;
+		received_at: string | Date;
+	}>(result)[0];
 	if (!row) return null;
 
 	return {

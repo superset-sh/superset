@@ -1,4 +1,4 @@
-import { Redis } from "@upstash/redis";
+import { createKv } from "@superset/shared/kv";
 
 import { env } from "../env";
 
@@ -15,8 +15,8 @@ import { env } from "../env";
  * every instance sees the same entry.
  */
 const redis =
-	env.KV_REST_API_URL && env.KV_REST_API_TOKEN
-		? new Redis({ url: env.KV_REST_API_URL, token: env.KV_REST_API_TOKEN })
+	env.SELF_HOST_KV === "1" || (env.KV_REST_API_URL && env.KV_REST_API_TOKEN)
+		? createKv({ url: env.KV_REST_API_URL, token: env.KV_REST_API_TOKEN })
 		: null;
 
 const PREFIX = "admin:metrics";

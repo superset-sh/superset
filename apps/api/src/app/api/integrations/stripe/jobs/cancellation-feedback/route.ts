@@ -5,10 +5,10 @@ import {
 	subscriptions,
 	users,
 } from "@superset/db/schema";
+import { createEmailSender } from "@superset/email/sender";
 import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
-import { Redis } from "@upstash/redis";
+import { createKv } from "@superset/shared/kv";
 import { and, eq, isNull } from "drizzle-orm";
-import { Resend } from "resend";
 import Stripe from "stripe";
 import { z } from "zod";
 import { env } from "@/env";
@@ -16,8 +16,8 @@ import { verifyQstashRequest } from "@/lib/verifyQstash";
 import { emitFeedbackOnce, isFeedbackEligible } from "./eligibility";
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY);
-const resend = new Resend(env.RESEND_API_KEY);
-const redis = new Redis({
+const resend = createEmailSender(env).campaigns;
+const redis = createKv({
 	url: env.KV_REST_API_URL,
 	token: env.KV_REST_API_TOKEN,
 });
@@ -37,6 +37,9 @@ export async function POST(request: Request) {
 	} catch {
 		return Response.json({ error: "Invalid payload" }, { status: 400 });
 	}
+
+	if (!resend)
+		return Response.json({ skipped: "SMTP lifecycle campaigns unavailable" });
 
 	try {
 		const subscription = await stripe.subscriptions.retrieve(

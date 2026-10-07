@@ -11,7 +11,6 @@ import * as Haptics from "expo-haptics";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { Box } from "lucide-react-native";
-import { useFeatureFlag } from "posthog-react-native";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
 	ActivityIndicator,
@@ -39,6 +38,7 @@ import { useOrgHosts } from "@/hooks/useOrgHosts";
 import { useReadableInset } from "@/hooks/useReadableInset";
 import { useSession } from "@/lib/auth/client";
 import { errorCopy } from "@/lib/errors";
+import { useFeatureFlag } from "@/lib/posthog";
 import { useVoiceSession } from "@/lib/voice/useVoiceSession";
 import { useVoiceActive } from "@/lib/voice/voiceStore";
 import { useCloudFilters } from "@/screens/(authenticated)/(home)/hooks/useCloudFilters";

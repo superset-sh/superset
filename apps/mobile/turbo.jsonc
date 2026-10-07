@@ -1,0 +1,117 @@
+{
+	"extends": ["//"],
+	"tasks": {
+		"build": {
+			"env": [
+				"EXPO_PUBLIC_*",
+				"APPLE_TEAM_ID",
+				"MOBILE_BUILD_NUMBER",
+				"MOBILE_SELF_HOST",
+				"MOBILE_UPDATES_ENABLED",
+				"EAS_PROJECT_ID",
+				"EAS_OWNER",
+				"MOBILE_UPDATES_CERTIFICATE",
+				"MOBILE_SIGNED_UPDATES",
+				"EAS_BUILD_PROFILE"
+			]
+		},
+		"dev": {
+			"env": [
+				"EXPO_PUBLIC_*",
+				"APPLE_TEAM_ID",
+				"MOBILE_BUILD_NUMBER",
+				"MOBILE_SELF_HOST",
+				"MOBILE_UPDATES_ENABLED",
+				"EAS_PROJECT_ID",
+				"EAS_OWNER",
+				"MOBILE_UPDATES_CERTIFICATE",
+				"MOBILE_SIGNED_UPDATES",
+				"EAS_BUILD_PROFILE"
+			]
+		},
+		"ios": {
+			"env": [
+				"EXPO_PUBLIC_*",
+				"APPLE_TEAM_ID",
+				"MOBILE_BUILD_NUMBER",
+				"MOBILE_SELF_HOST",
+				"MOBILE_UPDATES_ENABLED",
+				"EAS_PROJECT_ID",
+				"EAS_OWNER",
+				"MOBILE_UPDATES_CERTIFICATE",
+				"MOBILE_SIGNED_UPDATES",
+				"EAS_BUILD_PROFILE"
+			]
+		},
+		"android": {
+			"env": [
+				"EXPO_PUBLIC_*",
+				"APPLE_TEAM_ID",
+				"MOBILE_BUILD_NUMBER",
+				"MOBILE_SELF_HOST",
+				"MOBILE_UPDATES_ENABLED",
+				"EAS_PROJECT_ID",
+				"EAS_OWNER",
+				"MOBILE_UPDATES_CERTIFICATE",
+				"MOBILE_SIGNED_UPDATES",
+				"EAS_BUILD_PROFILE"
+			]
+		},
+		"web": {
+			"env": [
+				"EXPO_PUBLIC_*",
+				"APPLE_TEAM_ID",
+				"MOBILE_BUILD_NUMBER",
+				"MOBILE_SELF_HOST",
+				"MOBILE_UPDATES_ENABLED",
+				"EAS_PROJECT_ID",
+				"EAS_OWNER",
+				"MOBILE_UPDATES_CERTIFICATE",
+				"MOBILE_SIGNED_UPDATES",
+				"EAS_BUILD_PROFILE"
+			]
+		},
+		"storybook": {
+			"env": [
+				"EXPO_PUBLIC_*",
+				"APPLE_TEAM_ID",
+				"MOBILE_BUILD_NUMBER",
+				"MOBILE_SELF_HOST",
+				"MOBILE_UPDATES_ENABLED",
+				"EAS_PROJECT_ID",
+				"EAS_OWNER",
+				"MOBILE_UPDATES_CERTIFICATE",
+				"MOBILE_SIGNED_UPDATES",
+				"EAS_BUILD_PROFILE"
+			]
+		},
+		"storybook:ios": {
+			"env": [
+				"EXPO_PUBLIC_*",
+				"APPLE_TEAM_ID",
+				"MOBILE_BUILD_NUMBER",
+				"MOBILE_SELF_HOST",
+				"MOBILE_UPDATES_ENABLED",
+				"EAS_PROJECT_ID",
+				"EAS_OWNER",
+				"MOBILE_UPDATES_CERTIFICATE",
+				"MOBILE_SIGNED_UPDATES",
+				"EAS_BUILD_PROFILE"
+			]
+		},
+		"storybook:android": {
+			"env": [
+				"EXPO_PUBLIC_*",
+				"APPLE_TEAM_ID",
+				"MOBILE_BUILD_NUMBER",
+				"MOBILE_SELF_HOST",
+				"MOBILE_UPDATES_ENABLED",
+				"EAS_PROJECT_ID",
+				"EAS_OWNER",
+				"MOBILE_UPDATES_CERTIFICATE",
+				"MOBILE_SIGNED_UPDATES",
+				"EAS_BUILD_PROFILE"
+			]
+		}
+	}
+}

@@ -25,7 +25,7 @@ import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, isNull, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { userConnection } from "../../lib/connectors";
-import { generateImagePathname, uploadImage } from "../../lib/upload";
+import { generateImagePathname, replaceImage } from "../../lib/upload";
 import {
 	jwtProcedure,
 	protectedProcedure,
@@ -528,17 +528,20 @@ export const organizationRouter = {
 			});
 
 			try {
-				const url = await uploadImage({
+				const { url, result: updatedOrg } = await replaceImage({
 					fileData: input.fileData,
 					pathname,
 					existingUrl: organization.logo,
+					save: async (url) => {
+						const [row] = await db
+							.update(organizations)
+							.set({ logo: url })
+							.where(eq(organizations.id, input.organizationId))
+							.returning();
+						if (!row) throw new Error("Image owner no longer exists");
+						return row;
+					},
 				});
-
-				const [updatedOrg] = await db
-					.update(organizations)
-					.set({ logo: url })
-					.where(eq(organizations.id, input.organizationId))
-					.returning();
 
 				return { success: true, url, organization: updatedOrg };
 			} catch (error) {

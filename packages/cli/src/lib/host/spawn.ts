@@ -10,7 +10,7 @@ import {
 } from "@superset/shared/rotating-log";
 import type { ApiClient } from "../api-client";
 import { SUPERSET_HOME_DIR } from "../config";
-import { env, isDesktopBundled } from "../env";
+import { env, isDesktopBundled, standaloneInstallHint } from "../env";
 import {
 	ensureManifestDir,
 	type HostServiceManifest,
@@ -116,7 +116,7 @@ export async function spawnHostService(
 	if (!existsSync(hostBin)) {
 		if (isDesktopBundled()) {
 			throw new Error(
-				"`superset start` is not available in the CLI bundled with the Superset desktop app; the app runs the host service itself. For headless use, install the standalone CLI: curl -fsSL https://superset.sh/cli/install.sh | sh",
+				`\`superset start\` is not available in the CLI bundled with the Superset desktop app; the app runs the host service itself. ${standaloneInstallHint()}`,
 			);
 		}
 		throw new Error(

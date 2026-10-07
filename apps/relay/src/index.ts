@@ -219,8 +219,9 @@ app.get("/presence", async (c) => {
 // ── Client-facing host routes ───────────────────────────────────────
 
 function pathAfterHost(c: Context<AppContext>): string {
-	const hostId = c.req.param("hostId") ?? "";
-	return new URL(c.req.url).pathname.slice(`/hosts/${hostId}`.length);
+	const pathname = new URL(c.req.url).pathname;
+	const start = pathname.indexOf("/", "/hosts/".length);
+	return start === -1 ? "" : pathname.slice(start);
 }
 
 app.get("/hosts/:hostId/_whoowns", async (c) => {

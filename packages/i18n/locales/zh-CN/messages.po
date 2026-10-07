@@ -3481,6 +3481,9 @@ msgstr "检查通过"
 msgid "Checks Skipped"
 msgstr "检查已跳过"
 
+msgid "Checksum download failed: {status}"
+msgstr "校验和下载失败：{status}"
+
 msgid "Choose a fighter"
 msgstr "选择一名斗士"
 
@@ -4380,6 +4383,9 @@ msgstr "换一个智能体继续"
 
 msgid "Continue with another agent…"
 msgstr "换一个智能体继续…"
+
+msgid "Continue with Authentik"
+msgstr "使用Authentik继续"
 
 msgid "Continue with GitHub"
 msgstr "使用GitHub继续"
@@ -6084,6 +6090,18 @@ msgstr "下载主题文件"
 msgid "downloaded"
 msgstr "已下载"
 
+msgid "Downloaded CLI archive checksum mismatch"
+msgstr "下载的 CLI 归档校验和不匹配"
+
+msgid "Downloaded CLI archive version mismatch"
+msgstr "下载的 CLI 归档版本不匹配"
+
+msgid "Downloaded CLI binary version mismatch (expected {targetVersion})"
+msgstr "下载的 CLI 二进制文件版本不匹配（预期为 {targetVersion}）"
+
+msgid "Downloaded CLI version probe failed"
+msgstr "下载的 CLI 版本检查失败"
+
 msgid "Downloading"
 msgstr "下载中"
 
@@ -7445,6 +7463,15 @@ msgstr "字号"
 msgid "Font weight"
 msgstr "字重"
 
+msgid "For a standalone CLI that updates in place, install from this deployment's channel: {channel}"
+msgstr "如需可原地更新的独立 CLI，请从此部署的渠道安装：{channel}"
+
+msgid "For a standalone CLI that updates in place: curl -fsSL https://superset.sh/cli/install.sh | sh"
+msgstr "如需可原地更新的独立 CLI：curl -fsSL https://superset.sh/cli/install.sh | sh"
+
+msgid "For a standalone CLI, rebuild from this repository with CLI_UPDATE_BASE_URL set to this deployment's channel."
+msgstr "如需独立 CLI，请将 CLI_UPDATE_BASE_URL 设为此部署的渠道，然后从此仓库重新构建。"
+
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "报告bug和提需求，最快的方式是在<0>github.com/superset-sh/superset</0>提一个GitHub议题。我们的社区在<1>Discord</1>，更新会发布在<2>X（@superset_sh）</2>和<3>LinkedIn</3>。"
 
@@ -8531,6 +8558,9 @@ msgstr "无效请求"
 
 msgid "Invalid state parameter. Please try again."
 msgstr "state参数无效。请重试。"
+
+msgid "Invalid version manifest at cli-latest"
+msgstr "cli-latest 的版本清单无效"
 
 msgid "Invitation canceled"
 msgstr "邀请已取消"
@@ -12909,6 +12939,9 @@ msgstr "下次运行 Claude Code 时刷新。"
 
 msgid "Refreshes when OpenCode next runs."
 msgstr "下次运行 OpenCode 时刷新。"
+
+msgid "Refusing to update: this CLI's API and update channel point at different deployments. Rebuild with CLI_UPDATE_BASE_URL set to the matching channel."
+msgstr "拒绝更新：此 CLI 的 API 和更新渠道指向不同的部署。请将 CLI_UPDATE_BASE_URL 设为匹配的渠道，然后重新构建。"
 
 msgid "Regenerate"
 msgstr "重新生成"

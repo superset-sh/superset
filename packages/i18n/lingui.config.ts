@@ -45,6 +45,7 @@ export default defineConfig({
 				"<rootDir>/../../packages/panes/src",
 				"<rootDir>/../../packages/chat-ui/src",
 				"<rootDir>/../../packages/shared/src",
+				"<rootDir>/../../packages/cli/src",
 				"<rootDir>/src",
 			],
 			exclude: [

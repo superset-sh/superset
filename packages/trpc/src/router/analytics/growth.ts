@@ -1,5 +1,6 @@
 import { db } from "@superset/db/client";
 import { members, users } from "@superset/db/schema";
+import { executeRows } from "@superset/db/utils";
 import { COMPANY } from "@superset/shared/constants";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, gte, notLike, type SQL, sql } from "drizzle-orm";
@@ -82,7 +83,8 @@ async function weeklyCreated(
 // personal organization became a team, whenever it was created.
 async function weeklyTeamsFormed(weeks: string[]): Promise<number[]> {
 	const since = new Date(`${weeks[0]}T00:00:00Z`);
-	const result = await db.execute<{ week: string; count: number }>(sql`
+	const result = executeRows<{ week: string; count: number }>(
+		await db.execute(sql`
 		SELECT to_char(date_trunc('week', second_join AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS week,
 			count(*)::int AS count
 		FROM (
@@ -93,9 +95,10 @@ async function weeklyTeamsFormed(weeks: string[]): Promise<number[]> {
 		) AS teams
 		WHERE second_join >= ${since}
 		GROUP BY 1
-	`);
+	`),
+	);
 	const pivoted = pivotWeekly(
-		result.rows.map((r): WeeklyRow => [r.week, "teams", Number(r.count)]),
+		result.map((r): WeeklyRow => [r.week, "teams", Number(r.count)]),
 		weeks,
 	);
 	return pivoted.series[0]?.values ?? new Array<number>(weeks.length).fill(0);

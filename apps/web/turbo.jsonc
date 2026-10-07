@@ -1,0 +1,8 @@
+{
+	"extends": ["//"],
+	"tasks": {
+		"build": {
+			"env": ["APPLE_TEAM_ID", "EXPO_PUBLIC_IOS_BUNDLE_ID"]
+		}
+	}
+}

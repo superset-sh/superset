@@ -1,3 +1,4 @@
+import { executeRows } from "@superset/db/utils";
 import { type SQL, sql } from "drizzle-orm";
 
 import { singleFlight } from "@/lib/singleFlight";
@@ -95,7 +96,7 @@ async function deleteAgedRows(
 		);
 		// Another run holds this table; its batches count for this tick.
 		if (!attempt.ran) return { deleted, more: true, skipped: true };
-		const rows = attempt.result.rows.length;
+		const rows = executeRows(attempt.result).length;
 		deleted += rows;
 		if (rows < BATCH_SIZE) return { deleted, more: false, skipped: false };
 	}

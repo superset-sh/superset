@@ -9,23 +9,23 @@ import {
 	FeedbackReportEmail,
 	feedbackReportText,
 } from "@superset/email/emails/feedback-report";
+import { createEmailSender } from "@superset/email/sender";
 import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
 import { COMPANY } from "@superset/shared/constants";
+import { createKv } from "@superset/shared/kv";
 import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
 import { and, eq, inArray } from "drizzle-orm";
-import { Resend } from "resend";
 import { z } from "zod";
 import { env } from "../../env";
 import { posthog } from "../../lib/analytics";
 import { createTRPCRouter, protectedProcedure, userError } from "../../trpc";
 
-const resend = new Resend(env.RESEND_API_KEY);
+const resend = createEmailSender(env);
 const SUPPORT_EMAIL = COMPANY.MAIL_TO.replace(/^mailto:/, "");
 const supportReportRateLimit =
-	env.KV_REST_API_URL && env.KV_REST_API_TOKEN
+	env.SELF_HOST_KV === "1" || (env.KV_REST_API_URL && env.KV_REST_API_TOKEN)
 		? new Ratelimit({
-				redis: new Redis({
+				redis: createKv({
 					url: env.KV_REST_API_URL,
 					token: env.KV_REST_API_TOKEN,
 				}),
@@ -35,9 +35,9 @@ const supportReportRateLimit =
 		: null;
 
 const submitFeedbackRateLimit =
-	env.KV_REST_API_URL && env.KV_REST_API_TOKEN
+	env.SELF_HOST_KV === "1" || (env.KV_REST_API_URL && env.KV_REST_API_TOKEN)
 		? new Ratelimit({
-				redis: new Redis({
+				redis: createKv({
 					url: env.KV_REST_API_URL,
 					token: env.KV_REST_API_TOKEN,
 				}),
@@ -47,9 +47,9 @@ const submitFeedbackRateLimit =
 		: null;
 
 const submitPromptRateLimit =
-	env.KV_REST_API_URL && env.KV_REST_API_TOKEN
+	env.SELF_HOST_KV === "1" || (env.KV_REST_API_URL && env.KV_REST_API_TOKEN)
 		? new Ratelimit({
-				redis: new Redis({
+				redis: createKv({
 					url: env.KV_REST_API_URL,
 					token: env.KV_REST_API_TOKEN,
 				}),

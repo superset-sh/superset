@@ -63,9 +63,11 @@ const IS_AUTO_UPDATE_PLATFORM = PLATFORM.IS_MAC || PLATFORM.IS_LINUX;
 // (for example latest-mac.yml and latest-linux.yml) from the correct release.
 // - Stable: fetches from /releases/latest/download/ (latest non-prerelease)
 // - Canary: fetches from /releases/download/desktop-canary/ (rolling canary tag)
-const UPDATE_FEED_URL = IS_PRERELEASE
-	? "https://github.com/superset-sh/superset/releases/download/desktop-canary"
-	: "https://github.com/superset-sh/superset/releases/latest/download";
+const UPDATE_FEED_URL =
+	env.UPDATE_FEED_URL ??
+	(IS_PRERELEASE
+		? "https://github.com/superset-sh/superset/releases/download/desktop-canary"
+		: "https://github.com/superset-sh/superset/releases/latest/download");
 
 export type { AutoUpdateStatusEvent } from "shared/auto-update";
 

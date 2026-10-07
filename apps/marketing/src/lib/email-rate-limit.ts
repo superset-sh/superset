@@ -1,5 +1,5 @@
+import { createKv } from "@superset/shared/kv";
 import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
 import { headers } from "next/headers";
 import { env } from "@/env";
 
@@ -8,7 +8,7 @@ type HeaderReader = {
 };
 
 const emailFormRateLimit = new Ratelimit({
-	redis: new Redis({
+	redis: createKv({
 		url: env.KV_REST_API_URL,
 		token: env.KV_REST_API_TOKEN,
 	}),

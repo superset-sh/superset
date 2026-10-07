@@ -3,10 +3,12 @@
  * @see https://www.electron.build/configuration/configuration
  */
 
+import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import type { Configuration } from "electron-builder";
+import { Arch, type Configuration } from "electron-builder";
 import pkg from "./package.json";
+import { computeRuntimeTailExclusions } from "./runtime-closure";
 import {
 	packagedAsarUnpackGlobs,
 	packagedNodeModuleCopies,
@@ -83,6 +85,10 @@ const config: Configuration = {
 
 	files: [
 		"dist/**/*",
+		"!dist/**/*.map",
+		"!dist/resources/**/*",
+		...computeRuntimeTailExclusions(import.meta.dirname),
+		"!**/node_modules/**/*.map",
 		"package.json",
 		{
 			from: pkg.resources,
@@ -98,6 +104,42 @@ const config: Configuration = {
 		"!**/node_modules/@anthropic-ai/claude-agent-sdk-*/**",
 		"!**/node_modules/@openai/codex*/**",
 	],
+
+	afterPack: async (context) => {
+		const mac = context.electronPlatformName === "darwin";
+		const product = context.packager.appInfo.productFilename;
+		const root = mac
+			? join(context.appOutDir, `${product}.app`, "Contents")
+			: context.appOutDir;
+		const executable = mac
+			? join(root, "MacOS", product)
+			: join(
+					root,
+					context.electronPlatformName === "win32"
+						? `${product}.exe`
+						: context.packager.config.linux?.executableName || product,
+				);
+		const asar = join(root, mac ? "Resources" : "resources", "app.asar");
+		await new Promise<void>((resolve, reject) => {
+			const child = spawn(
+				"bun",
+				[
+					join(import.meta.dirname, "scripts/validate-packaged-modules.ts"),
+					executable,
+					asar,
+					context.electronPlatformName,
+					Arch[context.arch],
+				],
+				{ stdio: "inherit", timeout: 120_000 },
+			);
+			child.once("error", reject);
+			child.once("exit", (code) =>
+				code === 0
+					? resolve()
+					: reject(new Error("Packaged runtime module validation failed")),
+			);
+		});
+	},
 
 	// Rebuild native modules for Electron's Node.js version
 	npmRebuild: true,

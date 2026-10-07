@@ -4,6 +4,10 @@ import {
 	githubPullRequests,
 	githubRepositories,
 } from "@superset/db/schema";
+import {
+	createJobQueue,
+	isSelfHostQueue,
+} from "@superset/shared/self-host-queue";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { Client } from "@upstash/qstash";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
@@ -28,7 +32,9 @@ import {
 } from "./pull-request-shape";
 import { listGithubRepositories } from "./trigger-options";
 
-const qstash = new Client({ token: env.QSTASH_TOKEN });
+const qstash = createJobQueue(
+	() => new Client({ token: env.QSTASH_TOKEN ?? "" }),
+);
 
 export const githubRouter = {
 	getPullRequestDiff,
@@ -104,7 +110,7 @@ export const githubRouter = {
 			};
 
 			// In development, call the sync endpoint directly (QStash can't reach localhost)
-			if (env.NODE_ENV === "development") {
+			if (env.NODE_ENV === "development" && !isSelfHostQueue()) {
 				fetch(syncUrl, {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },

@@ -8,9 +8,10 @@ import {
 	userIdentities,
 	users,
 } from "@superset/db/schema";
+import { executeRows } from "@superset/db/utils";
+import { createKv } from "@superset/shared/kv";
 import { TRPCError } from "@trpc/server";
 import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
 import { and, eq, gte, lte, sql } from "drizzle-orm";
 import { env } from "../../env";
 import {
@@ -64,8 +65,8 @@ import {
 import { computeTier, type FactoryDayRow, type Tier } from "./tier";
 
 const redis =
-	env.KV_REST_API_URL && env.KV_REST_API_TOKEN
-		? new Redis({ url: env.KV_REST_API_URL, token: env.KV_REST_API_TOKEN })
+	env.SELF_HOST_KV === "1" || (env.KV_REST_API_URL && env.KV_REST_API_TOKEN)
+		? createKv({ url: env.KV_REST_API_URL, token: env.KV_REST_API_TOKEN })
 		: null;
 
 const publishRateLimit = redis
@@ -138,7 +139,8 @@ async function enforceHostBudget(
 		sql`select 1 from public_profiles where user_id = ${userId} for update`,
 	);
 
-	const seen = await tx.execute<{ hosts: number }>(sql`
+	const seen = executeRows<{ hosts: number }>(
+		await tx.execute(sql`
 		select count(*)::int as hosts from (
 			select host_id from leaderboard_daily
 			where user_id = ${userId} and host_id <> ${hostId}
@@ -146,9 +148,10 @@ async function enforceHostBudget(
 			select host_id from leaderboard_daily_factory
 			where user_id = ${userId} and host_id <> ${hostId}
 		) hosts
-	`);
+	`),
+	);
 
-	if (Number(seen.rows[0]?.hosts ?? 0) >= MAX_HOSTS_PER_USER) {
+	if (Number(seen[0]?.hosts ?? 0) >= MAX_HOSTS_PER_USER) {
 		throw userError({
 			code: "BAD_REQUEST",
 			message: "Too many machines publishing for this account.",
@@ -545,22 +548,25 @@ async function rankFor(
 	const eligible = sql`p.visibility = 'public' and p.revoked_at is null and p.flagged_at is null and u.deleted_at is null ${exclude}`;
 
 	if (!range) {
-		const rows = await db.execute<{ ahead: number; total: number }>(sql`
+		const rows = executeRows<{ ahead: number; total: number }>(
+			await db.execute(sql`
 			select
 				count(*) filter (where p.tokens > ${tokens})::int as ahead,
 				count(*)::int as total
 			from public_profiles p
 			join auth.users u on u.id = p.user_id
 			where ${eligible} and p.tokens > 0
-		`);
-		const row = rows.rows[0];
+		`),
+		);
+		const row = rows[0];
 		return {
 			rank: Number(row?.ahead ?? 0) + 1,
 			total: Number(row?.total ?? 0),
 		};
 	}
 
-	const rows = await db.execute<{ ahead: number; total: number }>(sql`
+	const rows = executeRows<{ ahead: number; total: number }>(
+		await db.execute(sql`
 		with totals as (
 			select d.user_id, sum(d.tokens) as tokens
 			from leaderboard_daily d
@@ -573,8 +579,9 @@ async function rankFor(
 			count(*) filter (where tokens > ${tokens})::int as ahead,
 			count(*)::int as total
 		from totals
-	`);
-	const row = rows.rows[0];
+	`),
+	);
+	const row = rows[0];
 	return { rank: Number(row?.ahead ?? 0) + 1, total: Number(row?.total ?? 0) };
 }
 

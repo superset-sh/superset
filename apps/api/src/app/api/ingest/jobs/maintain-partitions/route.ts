@@ -1,4 +1,5 @@
 import { db } from "@superset/db/client";
+import { executeRows } from "@superset/db/utils";
 import { sql } from "drizzle-orm";
 
 import { verifyQstashRequest } from "@/lib/verifyQstash";
@@ -47,11 +48,11 @@ export async function POST(request: Request): Promise<Response> {
 	// default partition is empty", which is the opposite of what is known.
 	let defaultRows: number | null = null;
 	try {
-		const [row] = (
+		const [row] = executeRows<{ n: number }>(
 			await db.execute(sql`
 				SELECT count(*)::int AS n FROM ingest.webhook_payloads_default
-			`)
-		).rows as Array<{ n: number }>;
+			`),
+		);
 		defaultRows = row?.n ?? 0;
 	} catch (error) {
 		console.error(
@@ -71,7 +72,7 @@ export async function POST(request: Request): Promise<Response> {
 			SELECT action, partition_name
 			FROM ingest.maintain_webhook_payload_partitions(${DAYS_AHEAD}, ${RETAIN_DAYS})
 		`);
-		changes = result.rows as Array<{ action: string; partition_name: string }>;
+		changes = executeRows<{ action: string; partition_name: string }>(result);
 	} catch (error) {
 		console.error("[ingest/maintain-partitions] maintenance failed:", error);
 		return Response.json(

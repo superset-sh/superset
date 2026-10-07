@@ -1,7 +1,13 @@
+import {
+	createJobQueue,
+	isSelfHostQueue,
+} from "@superset/shared/self-host-queue";
 import { Client } from "@upstash/qstash";
 import { env } from "../../env";
 
-const qstash = new Client({ token: env.QSTASH_TOKEN });
+const qstash = createJobQueue(
+	() => new Client({ token: env.QSTASH_TOKEN ?? "" }),
+);
 
 /**
  * QStash only calls public URLs, so a local API would queue a job nothing ever
@@ -23,7 +29,7 @@ export async function publishCloudWorkspaceJob<Body>(args: {
 	delaySeconds?: number;
 	runLocally: (body: Body) => Promise<unknown>;
 }): Promise<void> {
-	if (isLocalApi) {
+	if (isLocalApi && !isSelfHostQueue()) {
 		setTimeout(
 			() => {
 				args.runLocally(args.body).catch((error) => {

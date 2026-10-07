@@ -1,7 +1,7 @@
 import type { TriggerConfigInput } from "./automation-triggers";
 
 // Auth
-export const AUTH_PROVIDERS = ["github", "google"] as const;
+export const AUTH_PROVIDERS = ["github", "google", "authentik"] as const;
 export type AuthProvider = (typeof AUTH_PROVIDERS)[number];
 
 export const ORGANIZATION_HEADER = "x-superset-organization-id";
@@ -15,11 +15,20 @@ export const PROTOCOL_SCHEMES = {
 const IOS_TEAM_ID = "NV9657CS5A";
 const IOS_BUNDLE_ID = "sh.superset.mobile";
 
-export const IOS_APP = {
-	TEAM_ID: IOS_TEAM_ID,
-	BUNDLE_ID: IOS_BUNDLE_ID,
-	APP_ID: `${IOS_TEAM_ID}.${IOS_BUNDLE_ID}`,
-} as const;
+export function getIosAppIdentity(
+	environment: Record<string, string | undefined> = process.env,
+) {
+	const teamId = environment.APPLE_TEAM_ID?.trim() || IOS_TEAM_ID;
+	const bundleId =
+		environment.EXPO_PUBLIC_IOS_BUNDLE_ID?.trim() || IOS_BUNDLE_ID;
+	return {
+		TEAM_ID: teamId,
+		BUNDLE_ID: bundleId,
+		APP_ID: `${teamId}.${bundleId}`,
+	} as const;
+}
+
+export const IOS_APP = getIosAppIdentity();
 
 // Company
 // Root domain flips the whole brand at cutover. Default keeps superset.sh so
@@ -70,9 +79,13 @@ export const OPEN_ROLES = [
 export const THEME_STORAGE_KEY = "superset-theme";
 
 // Download URLs
-export const DOWNLOAD_URL_MAC_ARM64 = `${COMPANY.GITHUB_URL}/releases/latest/download/Superset-arm64.dmg`;
-export const DOWNLOAD_URL_MAC_X64 = `${COMPANY.GITHUB_URL}/releases/latest/download/Superset-x64.dmg`;
-export const DOWNLOAD_URL_LINUX_X64 = `${COMPANY.GITHUB_URL}/releases/latest/download/Superset-x86_64.AppImage`;
+const DOWNLOAD_BASE = (
+	process.env.NEXT_PUBLIC_DOWNLOAD_URL ||
+	`${COMPANY.GITHUB_URL}/releases/latest/download`
+).replace(/\/$/, "");
+export const DOWNLOAD_URL_MAC_ARM64 = `${DOWNLOAD_BASE}/Superset-arm64.dmg`;
+export const DOWNLOAD_URL_MAC_X64 = `${DOWNLOAD_BASE}/Superset-x64.dmg`;
+export const DOWNLOAD_URL_LINUX_X64 = `${DOWNLOAD_BASE}/Superset-x86_64.AppImage`;
 
 // Auth token configuration
 export const TOKEN_CONFIG = {

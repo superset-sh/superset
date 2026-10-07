@@ -2,9 +2,9 @@
 
 import { msg } from "@lingui/core/macro";
 import { ContactInquiryEmail } from "@superset/email/emails/internal/contact-inquiry";
+import { createEmailSender } from "@superset/email/sender";
 import { isSupportedLocale } from "@superset/i18n/locales";
 import { getI18nInstance, preloadServerLocale } from "@superset/i18n/server";
-import { Resend } from "resend";
 import { z } from "zod";
 import { env } from "@/env";
 import { checkEmailFormRateLimit } from "@/lib/email-rate-limit";
@@ -14,7 +14,7 @@ import {
 	validateEmail,
 } from "@/lib/form-utils";
 
-const resend = new Resend(env.RESEND_API_KEY);
+const resend = createEmailSender(env);
 
 const contactFormDataSchema = z.object({
 	name: z.string(),

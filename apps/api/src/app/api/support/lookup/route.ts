@@ -7,9 +7,9 @@ import {
 	users,
 } from "@superset/db/schema";
 import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
+import { createKv } from "@superset/shared/kv";
 import { bearerToken } from "@superset/trpc/automation-webhook-secret";
 import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
 import { and, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
@@ -18,7 +18,7 @@ import { env } from "@/env";
 export const dynamic = "force-dynamic";
 
 const rateLimit = new Ratelimit({
-	redis: new Redis({
+	redis: createKv({
 		url: env.KV_REST_API_URL,
 		token: env.KV_REST_API_TOKEN,
 	}),

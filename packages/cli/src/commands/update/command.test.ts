@@ -1,7 +1,12 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, mock, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import cliConfig from "../../../cli.config";
-import updateCommand from "./command";
+
+mock.module("@lingui/core/macro", () => ({
+	msg: (value: { message: string }) => value.message,
+}));
+
+const { default: updateCommand } = await import("./command");
 
 function invoke() {
 	return updateCommand.run({

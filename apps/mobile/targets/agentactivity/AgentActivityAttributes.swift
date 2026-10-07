@@ -7,7 +7,17 @@ import Foundation
 struct AgentActivityAttributes: ActivityAttributes {
 	/// The App Group both targets read and write. The Live Activity sandbox
 	/// has no network, so project icons arrive as files, never as URLs.
-	static let appGroup = "group.sh.superset.mobile"
+	static let appGroup: String = {
+		if let group = Bundle.main.object(forInfoDictionaryKey: "SupersetAppGroup") as? String,
+			!group.isEmpty { return group }
+		guard Bundle.main.bundleURL.pathExtension == "appex" else { return "" }
+		let containingAppURL = Bundle.main.bundleURL
+			.deletingLastPathComponent().deletingLastPathComponent()
+		guard containingAppURL.pathExtension == "app",
+			let containingApp = Bundle(url: containingAppURL)
+		else { return "" }
+		return containingApp.object(forInfoDictionaryKey: "SupersetAppGroup") as? String ?? ""
+	}()
 
 	struct AgentRow: Codable, Hashable, Identifiable {
 		/// Terminal id. Identity for ForEach, and the tab the link selects.

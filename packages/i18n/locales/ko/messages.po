@@ -3481,6 +3481,9 @@ msgstr "검사 통과"
 msgid "Checks Skipped"
 msgstr "검사 건너뜀"
 
+msgid "Checksum download failed: {status}"
+msgstr "체크섬 다운로드에 실패했습니다: {status}"
+
 msgid "Choose a fighter"
 msgstr "파이터 선택"
 
@@ -4380,6 +4383,9 @@ msgstr "다른 에이전트로 계속하기"
 
 msgid "Continue with another agent…"
 msgstr "다른 에이전트로 계속하기…"
+
+msgid "Continue with Authentik"
+msgstr "Authentik으로 계속하기"
 
 msgid "Continue with GitHub"
 msgstr "GitHub로 계속하기"
@@ -6084,6 +6090,18 @@ msgstr "테마 파일 다운로드"
 msgid "downloaded"
 msgstr "다운로드됨"
 
+msgid "Downloaded CLI archive checksum mismatch"
+msgstr "다운로드한 CLI 아카이브의 체크섬이 일치하지 않습니다"
+
+msgid "Downloaded CLI archive version mismatch"
+msgstr "다운로드한 CLI 아카이브의 버전이 일치하지 않습니다"
+
+msgid "Downloaded CLI binary version mismatch (expected {targetVersion})"
+msgstr "다운로드한 CLI 바이너리의 버전이 일치하지 않습니다 (예상 버전: {targetVersion})"
+
+msgid "Downloaded CLI version probe failed"
+msgstr "다운로드한 CLI의 버전 확인에 실패했습니다"
+
 msgid "Downloading"
 msgstr "다운로드 중"
 
@@ -7445,6 +7463,15 @@ msgstr "글꼴 크기"
 msgid "Font weight"
 msgstr "글꼴 두께"
 
+msgid "For a standalone CLI that updates in place, install from this deployment's channel: {channel}"
+msgstr "현재 설치 위치에서 업데이트할 수 있는 독립 실행형 CLI를 사용하려면 이 배포의 채널에서 설치하세요: {channel}"
+
+msgid "For a standalone CLI that updates in place: curl -fsSL https://superset.sh/cli/install.sh | sh"
+msgstr "현재 설치 위치에서 업데이트할 수 있는 독립 실행형 CLI를 사용하려면: curl -fsSL https://superset.sh/cli/install.sh | sh"
+
+msgid "For a standalone CLI, rebuild from this repository with CLI_UPDATE_BASE_URL set to this deployment's channel."
+msgstr "독립 실행형 CLI를 사용하려면 CLI_UPDATE_BASE_URL을 이 배포의 채널로 설정한 후 이 저장소에서 다시 빌드하세요."
+
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "버그 신고와 기능 요청은 <0>github.com/superset-sh/superset</0>에 GitHub 이슈를 남기는 것이 가장 빠릅니다. 커뮤니티는 <1>Discord</1>에 있고, 소식은 <2>X (@superset_sh)</2>와 <3>LinkedIn</3>에 올립니다."
 
@@ -8531,6 +8558,9 @@ msgstr "잘못된 요청"
 
 msgid "Invalid state parameter. Please try again."
 msgstr "state 매개변수가 올바르지 않습니다. 다시 시도해 주세요."
+
+msgid "Invalid version manifest at cli-latest"
+msgstr "cli-latest의 버전 매니페스트가 유효하지 않습니다"
 
 msgid "Invitation canceled"
 msgstr "초대를 취소했습니다"
@@ -12909,6 +12939,9 @@ msgstr "다음에 Claude Code를 실행하면 갱신됩니다."
 
 msgid "Refreshes when OpenCode next runs."
 msgstr "다음에 OpenCode를 실행하면 갱신됩니다."
+
+msgid "Refusing to update: this CLI's API and update channel point at different deployments. Rebuild with CLI_UPDATE_BASE_URL set to the matching channel."
+msgstr "업데이트를 거부했습니다. 이 CLI의 API와 업데이트 채널이 서로 다른 배포를 가리킵니다. CLI_UPDATE_BASE_URL을 일치하는 채널로 설정한 후 다시 빌드하세요."
 
 msgid "Regenerate"
 msgstr "다시 생성"

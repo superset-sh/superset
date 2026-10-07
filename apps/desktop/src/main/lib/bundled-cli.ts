@@ -4,7 +4,9 @@ import {
 	lstatSync,
 	mkdirSync,
 	openSync,
+	readlinkSync,
 	readSync,
+	statSync,
 	unlinkSync,
 	writeFileSync,
 } from "node:fs";
@@ -109,9 +111,24 @@ export function resolveBundledCliPath(
 }
 
 function shouldReplaceShim(shimPath: string): boolean {
-	if (!existsSync(shimPath)) return true;
-
-	const stat = lstatSync(shimPath);
+	let stat: ReturnType<typeof lstatSync>;
+	try {
+		stat = lstatSync(shimPath);
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") return true;
+		throw error;
+	}
+	if (stat.isSymbolicLink()) {
+		const target = path.resolve(path.dirname(shimPath), readlinkSync(shimPath));
+		if (
+			/[/\\]Superset\.app[/\\]Contents[/\\]Resources[/\\](?:resources[/\\])?bin[/\\]superset$/.test(
+				target,
+			)
+		)
+			return true;
+		if (!existsSync(shimPath)) return false;
+		stat = statSync(shimPath);
+	}
 	if (!stat.isFile()) return false;
 
 	const fd = openSync(shimPath, "r");
@@ -148,8 +165,10 @@ export function installBundledCliShim(
 	}
 
 	mkdirSync(binDir, { recursive: true });
-	if (existsSync(shimPath)) {
+	try {
 		unlinkSync(shimPath);
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
 	}
 	writeFileSync(shimPath, buildBundledCliShim(bundledCliPath, platform), {
 		mode: platform === "win32" ? 0o644 : 0o755,

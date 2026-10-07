@@ -1,5 +1,5 @@
-import { Resend } from "resend";
+import { createEmailSender } from "@superset/email/sender";
 
 import { env } from "../env";
 
-export const resend = new Resend(env.RESEND_API_KEY);
+export const resend = createEmailSender(env);
