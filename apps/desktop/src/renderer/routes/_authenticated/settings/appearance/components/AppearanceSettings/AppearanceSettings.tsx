@@ -1,6 +1,8 @@
 import { Trans } from "@lingui/react/macro";
 import type { ReactNode } from "react";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import {
+	isItemAllowedForVariant,
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
@@ -8,6 +10,7 @@ import {
 import { FontSettingSection } from "./components/FontSettingSection";
 import { LanguageSection } from "./components/LanguageSection";
 import { MarkdownStyleSection } from "./components/MarkdownStyleSection";
+import { ProjectAccentSection } from "./components/ProjectAccentSection";
 import { ThemeSection } from "./components/ThemeSection";
 
 /**
@@ -55,6 +58,12 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		SETTING_ITEM_ID.APPEARANCE_LANGUAGE,
 		visibleItems,
 	);
+	const isV2CloudEnabled = useIsV2CloudEnabled();
+	const showProjectAccent =
+		isItemAllowedForVariant(
+			SETTING_ITEM_ID.APPEARANCE_PROJECT_ACCENT,
+			isV2CloudEnabled,
+		) && isItemVisible(SETTING_ITEM_ID.APPEARANCE_PROJECT_ACCENT, visibleItems);
 	const showThemeSection = showTheme || showCustomThemes;
 
 	return (
@@ -79,6 +88,7 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 						{showMarkdown && <MarkdownStyleSection />}
 					</div>
 				)}
+				{showProjectAccent && <ProjectAccentSection key="project-accent" />}
 				{(showEditorFont || showTerminalFont) && (
 					<FontSettingSection
 						key="typography"

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { FONT_SETTINGS_QUERY_KEY } from "renderer/lib/font-settings";
+import { tintTerminalTheme } from "renderer/lib/project-accent";
 import {
 	getDefaultTerminalAppearance,
 	resolveTerminalAppearance,
@@ -8,12 +9,14 @@ import {
 } from "renderer/lib/terminal/appearance";
 import { detectInstalledNerdFontFamilies } from "renderer/lib/terminal/appearance/installed-nerd-fonts";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { useProjectTerminalTint } from "renderer/providers/ProjectAccentProvider";
 import { useTerminalTheme } from "renderer/stores/theme";
 
 const fallbackTheme = getDefaultTerminalAppearance().theme;
 
 export function useTerminalAppearance(): TerminalAppearance {
 	const terminalTheme = useTerminalTheme();
+	const projectTint = useProjectTerminalTint();
 	const { data: fontSettings } = useQuery({
 		queryKey: FONT_SETTINGS_QUERY_KEY,
 		queryFn: () => electronTrpcClient.settings.getFontSettings.query(),
@@ -29,7 +32,10 @@ export function useTerminalAppearance(): TerminalAppearance {
 	});
 
 	return useMemo(() => {
-		const theme = terminalTheme ?? fallbackTheme;
+		const theme = tintTerminalTheme(
+			terminalTheme ?? fallbackTheme,
+			projectTint,
+		);
 		return resolveTerminalAppearance(theme, fontSettings, installedIconFonts);
-	}, [terminalTheme, fontSettings, installedIconFonts]);
+	}, [terminalTheme, projectTint, fontSettings, installedIconFonts]);
 }

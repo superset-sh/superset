@@ -2889,6 +2889,9 @@ msgstr "バイナリファイルは非表示"
 msgid "Bio"
 msgstr "自己紹介"
 
+msgid "Blend the color into the workspace and terminal background"
+msgstr "ワークスペースとターミナルの背景に色をブレンド"
+
 msgid "Block"
 msgstr "ブロック"
 
@@ -5338,6 +5341,9 @@ msgstr "カスタム"
 msgid "Custom agent…"
 msgstr "カスタムエージェント…"
 
+msgid "Custom color"
+msgstr "カスタムカラー"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "shadcnのセットにない独自コンポーネント"
 
@@ -5364,6 +5370,9 @@ msgstr "カスタムターミナルエージェント"
 
 msgid "Custom themes"
 msgstr "カスタムテーマ"
+
+msgid "Custom…"
+msgstr "カスタム…"
 
 msgid "Customize commands"
 msgstr "コマンドをカスタマイズ"
@@ -8108,6 +8117,9 @@ msgstr "人々が superset.sh とドキュメントにどう到達している�
 msgid "How should the agent's actions be approved?"
 msgstr "エージェントの操作をどう承認しますか？"
 
+msgid "How strongly the color tints each surface"
+msgstr "各領域に色を付ける強さ"
+
 msgid "How the command opens."
 msgstr "コマンドの開き方。"
 
@@ -8474,6 +8486,9 @@ msgstr "指示"
 
 msgid "Integrations"
 msgstr "連携"
+
+msgid "Intensity"
+msgstr "強度"
 
 msgid "Interactive agent terminal."
 msgstr "対話型のエージェントターミナル。"
@@ -11820,6 +11835,9 @@ msgstr "有料検索"
 msgid "Palette"
 msgstr "パレット"
 
+msgid "Pane headers"
+msgstr "ペインのヘッダー"
+
 msgid "Pane in current tab"
 msgstr "現在のタブ内のペイン"
 
@@ -12403,6 +12421,9 @@ msgstr "Progress · Spinner"
 msgid "Project"
 msgstr "プロジェクト"
 
+msgid "Project colors in workspaces"
+msgstr "ワークスペースのプロジェクトカラー"
+
 msgid "Project created."
 msgstr "プロジェクトを作成しました。"
 
@@ -12460,6 +12481,9 @@ msgstr "プロジェクト全体の検索"
 #. placeholder {0}: workspace.projectName ?? t({ message: "none (session)", })
 msgid "Project: {0}"
 msgstr "プロジェクト: {0}"
+
+msgid "Project's host is unreachable — cannot change color right now"
+msgstr "プロジェクトのホストに到達できません — 今は色を変更できません"
 
 msgid "Project's host is unreachable — cannot import worktrees right now"
 msgstr "プロジェクトのホストに到達できません — 今はワークツリーをインポートできません"
@@ -15842,6 +15866,9 @@ msgstr "システムRAM: Superset{0}、他のアプリ{1}、空き{2}"
 msgid "Tab"
 msgstr "タブ"
 
+msgid "Tab bar"
+msgstr "タブバー"
+
 msgid "Tab per command"
 msgstr "コマンドごとにタブ"
 
@@ -16843,6 +16870,21 @@ msgstr "時間"
 
 msgid "Time range"
 msgstr "期間"
+
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "サイドバーで各プロジェクトとそのワークスペースを着色"
+
+msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
+msgstr "各ワークスペースをそのプロジェクトの色で着色します。サイドバーでプロジェクトを右クリックして色を選択してください。"
+
+msgid "Tint the header above each pane"
+msgstr "各ペイン上部のヘッダーを着色"
+
+msgid "Tint the tab strip and mark the active tab"
+msgstr "タブバーを着色し、アクティブなタブを示す"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "サイドバーとそのワークスペースでプロジェクトを着色します。"
 
 msgid "Title"
 msgstr "タイトル"

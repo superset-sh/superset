@@ -2889,6 +2889,9 @@ msgstr "Бинарный файл скрыт"
 msgid "Bio"
 msgstr "О себе"
 
+msgid "Blend the color into the workspace and terminal background"
+msgstr "Подмешивать цвет в фон рабочей области и терминала"
+
 msgid "Block"
 msgstr "Блок"
 
@@ -5338,6 +5341,9 @@ msgstr "Своя"
 msgid "Custom agent…"
 msgstr "Свой агент…"
 
+msgid "Custom color"
+msgstr "Свой цвет"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "Свои компоненты за пределами набора shadcn"
 
@@ -5364,6 +5370,9 @@ msgstr "Свои терминальные агенты"
 
 msgid "Custom themes"
 msgstr "Свои темы"
+
+msgid "Custom…"
+msgstr "Свой…"
 
 msgid "Customize commands"
 msgstr "Настроить команды"
@@ -8108,6 +8117,9 @@ msgstr "Как люди попадают на superset.sh и в документ
 msgid "How should the agent's actions be approved?"
 msgstr "Как одобрять действия агента?"
 
+msgid "How strongly the color tints each surface"
+msgstr "Насколько сильно цвет окрашивает каждую поверхность"
+
 msgid "How the command opens."
 msgstr "Как открывается команда."
 
@@ -8474,6 +8486,9 @@ msgstr "Инструкции"
 
 msgid "Integrations"
 msgstr "Интеграции"
+
+msgid "Intensity"
+msgstr "Интенсивность"
 
 msgid "Interactive agent terminal."
 msgstr "Интерактивный терминал агента."
@@ -11820,6 +11835,9 @@ msgstr "Платный поиск"
 msgid "Palette"
 msgstr "Палитра"
 
+msgid "Pane headers"
+msgstr "Заголовки панелей"
+
 msgid "Pane in current tab"
 msgstr "Панель в текущей вкладке"
 
@@ -12403,6 +12421,9 @@ msgstr "Прогресс · спиннер"
 msgid "Project"
 msgstr "Проект"
 
+msgid "Project colors in workspaces"
+msgstr "Цвета проектов в рабочих областях"
+
 msgid "Project created."
 msgstr "Проект создан."
 
@@ -12460,6 +12481,9 @@ msgstr "Поиск по всему проекту"
 #. placeholder {0}: workspace.projectName ?? t({ message: "none (session)", })
 msgid "Project: {0}"
 msgstr "Проект: {0}"
+
+msgid "Project's host is unreachable — cannot change color right now"
+msgstr "Хост проекта недоступен — сейчас изменить цвет нельзя"
 
 msgid "Project's host is unreachable — cannot import worktrees right now"
 msgstr "Хост проекта недоступен — сейчас импортировать worktree нельзя"
@@ -15842,6 +15866,9 @@ msgstr "Системная RAM: Superset {0}, другие приложения 
 msgid "Tab"
 msgstr "Вкладка"
 
+msgid "Tab bar"
+msgstr "Панель вкладок"
+
 msgid "Tab per command"
 msgstr "Вкладка на команду"
 
@@ -16843,6 +16870,21 @@ msgstr "Время"
 
 msgid "Time range"
 msgstr "Период"
+
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "Окрашивать каждый проект и его рабочие области на боковой панели"
+
+msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
+msgstr "Окрашивает каждую рабочую область в цвет её проекта. Выберите цвет, щёлкнув правой кнопкой по проекту на боковой панели."
+
+msgid "Tint the header above each pane"
+msgstr "Окрашивать заголовок над каждой панелью"
+
+msgid "Tint the tab strip and mark the active tab"
+msgstr "Окрашивать панель вкладок и отмечать активную вкладку"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "Окрашивает проект на боковой панели и в его рабочих областях."
 
 msgid "Title"
 msgstr "Название"

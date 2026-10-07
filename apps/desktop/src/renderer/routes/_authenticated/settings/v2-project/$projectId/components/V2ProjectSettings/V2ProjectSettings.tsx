@@ -24,6 +24,7 @@ import { DeleteProjectSection } from "./components/DeleteProjectSection";
 import { IconUploadField } from "./components/IconUploadField";
 import { NameSection } from "./components/NameSection";
 import { NamingInstructionsSection } from "./components/NamingInstructionsSection";
+import { ProjectColorField } from "./components/ProjectColorField";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 import { RepositorySection } from "./components/RepositorySection";
 import { SparseCheckoutSection } from "./components/SparseCheckoutSection";
@@ -233,6 +234,20 @@ export function V2ProjectSettings({
 							)}
 							isIconRemoved={projectIcon === PROJECT_ICON_NONE}
 							color={projectColor}
+						/>
+					</SettingsRow>
+					<SettingsRow
+						label={t({ message: "Color" })}
+						hint={t({
+							message:
+								"Tints the project in the sidebar and in its workspaces.",
+						})}
+					>
+						<ProjectColorField
+							projectId={projectId}
+							hostUrl={targetHostUrl}
+							color={projectColor}
+							onChanged={() => refetchHostProject()}
 						/>
 					</SettingsRow>
 				</SettingsSection>

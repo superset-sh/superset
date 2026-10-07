@@ -2889,6 +2889,9 @@ msgstr "Binair bestand verborgen"
 msgid "Bio"
 msgstr "Bio"
 
+msgid "Blend the color into the workspace and terminal background"
+msgstr "De kleur mengen met de achtergrond van werkruimte en terminal"
+
 msgid "Block"
 msgstr "Blok"
 
@@ -5338,6 +5341,9 @@ msgstr "Aangepast"
 msgid "Custom agent…"
 msgstr "Eigen agent…"
 
+msgid "Custom color"
+msgstr "Aangepaste kleur"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "Eigen componenten buiten de shadcn-set"
 
@@ -5364,6 +5370,9 @@ msgstr "Eigen terminalagents"
 
 msgid "Custom themes"
 msgstr "Eigen thema's"
+
+msgid "Custom…"
+msgstr "Aangepast…"
 
 msgid "Customize commands"
 msgstr "Commando's aanpassen"
@@ -8108,6 +8117,9 @@ msgstr "Hoe mensen superset.sh en de docs bereiken, en hoeveel daarvan zoeken en
 msgid "How should the agent's actions be approved?"
 msgstr "Hoe moeten de acties van de agent worden goedgekeurd?"
 
+msgid "How strongly the color tints each surface"
+msgstr "Hoe sterk de kleur elk vlak kleurt"
+
 msgid "How the command opens."
 msgstr "Hoe het commando opent."
 
@@ -8474,6 +8486,9 @@ msgstr "Instructies"
 
 msgid "Integrations"
 msgstr "Integraties"
+
+msgid "Intensity"
+msgstr "Intensiteit"
 
 msgid "Interactive agent terminal."
 msgstr "Interactieve agentterminal."
@@ -11820,6 +11835,9 @@ msgstr "Betaald zoeken"
 msgid "Palette"
 msgstr "Palet"
 
+msgid "Pane headers"
+msgstr "Deelvensterkoppen"
+
 msgid "Pane in current tab"
 msgstr "Deelvenster in huidig tabblad"
 
@@ -12403,6 +12421,9 @@ msgstr "Voortgang · Spinner"
 msgid "Project"
 msgstr "Project"
 
+msgid "Project colors in workspaces"
+msgstr "Projectkleuren in werkruimtes"
+
 msgid "Project created."
 msgstr "Project aangemaakt."
 
@@ -12460,6 +12481,9 @@ msgstr "Zoeken door het hele project"
 #. placeholder {0}: workspace.projectName ?? t({ message: "none (session)", })
 msgid "Project: {0}"
 msgstr "Project: {0}"
+
+msgid "Project's host is unreachable — cannot change color right now"
+msgstr "De host van het project is onbereikbaar — kleur kan nu niet worden gewijzigd"
 
 msgid "Project's host is unreachable — cannot import worktrees right now"
 msgstr "De host van het project is onbereikbaar — worktrees kunnen nu niet worden geïmporteerd"
@@ -15842,6 +15866,9 @@ msgstr "Systeem-RAM: Superset {0}, andere apps {1}, vrij {2}"
 msgid "Tab"
 msgstr "Tabblad"
 
+msgid "Tab bar"
+msgstr "Tabbladbalk"
+
 msgid "Tab per command"
 msgstr "Tabblad per commando"
 
@@ -16843,6 +16870,21 @@ msgstr "Tijd"
 
 msgid "Time range"
 msgstr "Periode"
+
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "Elk project en de werkruimtes ervan in de zijbalk kleuren"
+
+msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
+msgstr "Kleur elke werkruimte met de kleur van het project. Kies een kleur door met rechts op een project in de zijbalk te klikken."
+
+msgid "Tint the header above each pane"
+msgstr "De kop boven elk deelvenster kleuren"
+
+msgid "Tint the tab strip and mark the active tab"
+msgstr "De tabbladbalk kleuren en het actieve tabblad markeren"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "Kleurt het project in de zijbalk en in de werkruimtes ervan."
 
 msgid "Title"
 msgstr "Titel"

@@ -1,5 +1,6 @@
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
+import { hexToRgba, isHexColor } from "renderer/lib/project-accent";
 
 interface ProjectThumbnailProps {
 	projectName: string;
@@ -7,19 +8,6 @@ interface ProjectThumbnailProps {
 	/** Accent color as a `#rrggbb` hex; tints the border and letter fallback. */
 	color?: string | null;
 	className?: string;
-}
-
-function hexToRgba(hex: string, alpha: number): string {
-	const r = Number.parseInt(hex.slice(1, 3), 16);
-	const g = Number.parseInt(hex.slice(3, 5), 16);
-	const b = Number.parseInt(hex.slice(5, 7), 16);
-	return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-// Exact #rrggbb only — hexToRgba slices fixed offsets, so anything shorter
-// (e.g. #fff) would produce NaN channels. Treat malformed values as unset.
-function isHexColor(color: string | null | undefined): color is string {
-	return !!color && /^#[0-9a-fA-F]{6}$/.test(color);
 }
 
 export function ProjectThumbnail({

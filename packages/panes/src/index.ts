@@ -26,13 +26,19 @@ export type {
 	PaneContext,
 	PaneDefinition,
 	PaneRegistry,
+	PanesAccentVar,
 	PaneTitleSource,
 	RendererContext,
 	TabContext,
 	WorkspaceInteractionState,
 	WorkspaceProps,
 } from "./react";
-export { resolveTabTitle, useTabTitle, Workspace } from "./react";
+export {
+	PANES_ACCENT_VARS,
+	resolveTabTitle,
+	useTabTitle,
+	Workspace,
+} from "./react";
 export type {
 	LayoutNode,
 	Pane,

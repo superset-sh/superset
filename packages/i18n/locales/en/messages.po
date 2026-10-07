@@ -2889,6 +2889,9 @@ msgstr "Binary file hidden"
 msgid "Bio"
 msgstr "Bio"
 
+msgid "Blend the color into the workspace and terminal background"
+msgstr "Blend the color into the workspace and terminal background"
+
 msgid "Block"
 msgstr "Block"
 
@@ -5338,6 +5341,9 @@ msgstr "Custom"
 msgid "Custom agent…"
 msgstr "Custom agent…"
 
+msgid "Custom color"
+msgstr "Custom color"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "Custom components beyond the shadcn set"
 
@@ -5364,6 +5370,9 @@ msgstr "Custom terminal agents"
 
 msgid "Custom themes"
 msgstr "Custom themes"
+
+msgid "Custom…"
+msgstr "Custom…"
 
 msgid "Customize commands"
 msgstr "Customize commands"
@@ -8108,6 +8117,9 @@ msgstr "How people reach superset.sh and the docs, and how much of it is search 
 msgid "How should the agent's actions be approved?"
 msgstr "How should the agent's actions be approved?"
 
+msgid "How strongly the color tints each surface"
+msgstr "How strongly the color tints each surface"
+
 msgid "How the command opens."
 msgstr "How the command opens."
 
@@ -8474,6 +8486,9 @@ msgstr "Instructions"
 
 msgid "Integrations"
 msgstr "Integrations"
+
+msgid "Intensity"
+msgstr "Intensity"
 
 msgid "Interactive agent terminal."
 msgstr "Interactive agent terminal."
@@ -11820,6 +11835,9 @@ msgstr "Paid search"
 msgid "Palette"
 msgstr "Palette"
 
+msgid "Pane headers"
+msgstr "Pane headers"
+
 msgid "Pane in current tab"
 msgstr "Pane in current tab"
 
@@ -12403,6 +12421,9 @@ msgstr "Progress · Spinner"
 msgid "Project"
 msgstr "Project"
 
+msgid "Project colors in workspaces"
+msgstr "Project colors in workspaces"
+
 msgid "Project created."
 msgstr "Project created."
 
@@ -12460,6 +12481,9 @@ msgstr "Project-wide search"
 #. placeholder {0}: workspace.projectName ?? t({ message: "none (session)", })
 msgid "Project: {0}"
 msgstr "Project: {0}"
+
+msgid "Project's host is unreachable — cannot change color right now"
+msgstr "Project's host is unreachable — cannot change color right now"
 
 msgid "Project's host is unreachable — cannot import worktrees right now"
 msgstr "Project's host is unreachable — cannot import worktrees right now"
@@ -15842,6 +15866,9 @@ msgstr "System RAM: Superset {0}, other apps {1}, free {2}"
 msgid "Tab"
 msgstr "Tab"
 
+msgid "Tab bar"
+msgstr "Tab bar"
+
 msgid "Tab per command"
 msgstr "Tab per command"
 
@@ -16843,6 +16870,21 @@ msgstr "Time"
 
 msgid "Time range"
 msgstr "Time range"
+
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "Tint each project and its workspaces in the sidebar"
+
+msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
+msgstr "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
+
+msgid "Tint the header above each pane"
+msgstr "Tint the header above each pane"
+
+msgid "Tint the tab strip and mark the active tab"
+msgstr "Tint the tab strip and mark the active tab"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "Tints the project in the sidebar and in its workspaces."
 
 msgid "Title"
 msgstr "Title"
