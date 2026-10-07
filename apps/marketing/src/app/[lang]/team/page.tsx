@@ -208,7 +208,7 @@ export default async function TeamPage() {
 					<ProofLinks />
 					<div className="mt-14">
 						<Link
-							href="/join-us"
+							href="/careers"
 							className="inline-flex items-center gap-2 text-foreground hover:text-foreground/80 transition-colors group"
 						>
 							<Trans>We're hiring in San Francisco</Trans>

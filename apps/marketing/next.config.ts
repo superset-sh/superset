@@ -26,7 +26,7 @@ const apiOrigin = process.env.NEXT_PUBLIC_API_URL
 // Third parties this site actually loads (probed against production):
 // - Google Ads gtag + Reddit pixel, injected in [lang]/layout.tsx
 // - Cloudflare Web Analytics, injected at the edge by the Cloudflare proxy
-// - Work at a Startup job board (+ its hCaptcha) on /join-us
+// - Work at a Startup job board (+ its hCaptcha) on /careers
 // - PostHog goes through the same-origin /ingest rewrite; ui_host is listed
 //   so the toolbar can still connect.
 // - Sentry browser SDK reports to *.ingest.sentry.io
@@ -165,6 +165,16 @@ const config: NextConfig = {
 			{
 				source: "/about",
 				destination: "/team",
+				permanent: true,
+			},
+			{
+				source: "/:lang(en)?/join-us",
+				destination: "/careers",
+				permanent: true,
+			},
+			{
+				source: `/:lang(${SUPPORTED_LOCALES.join("|")})/join-us`,
+				destination: "/:lang/careers",
 				permanent: true,
 			},
 			{

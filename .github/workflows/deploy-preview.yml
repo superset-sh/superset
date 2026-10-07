@@ -551,7 +551,7 @@ jobs:
       - name: Smoke test marketing routes
         run: |
           bun scripts/smoke-routes.ts "https://${{ env.MARKETING_ALIAS }}" --localized \
-            / /pricing /enterprise /download /join-us /community /contact \
+            / /pricing /enterprise /download /careers /community /contact \
             /blog /changelog /compare /roadmap /leaderboard /marketplace \
             /agent-orchestration /parallel-coding-agents /factory-2026 \
             /mcp-install /stats /team /starchart /the-production-run

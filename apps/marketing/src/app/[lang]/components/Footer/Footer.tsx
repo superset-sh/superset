@@ -96,7 +96,7 @@ const COMPANY_LINKS: FooterLink[] = [
 		label: <Trans>Contact</Trans>,
 	},
 	{
-		href: "/join-us",
+		href: "/careers",
 		label: <Trans>Careers</Trans>,
 	},
 	{

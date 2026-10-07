@@ -35,7 +35,7 @@ export async function generateMetadata(): Promise<Metadata> {
 	return {
 		title,
 		description,
-		alternates: localizedAlternates(lang, "/join-us"),
+		alternates: localizedAlternates(lang, "/careers"),
 		openGraph: {
 			title: i18n._(
 				msg({
@@ -43,7 +43,7 @@ export async function generateMetadata(): Promise<Metadata> {
 				}),
 			),
 			description,
-			url: localeUrl(lang, "/join-us"),
+			url: localeUrl(lang, "/careers"),
 			images: ["/og-image.png"],
 		},
 		twitter: {
@@ -59,7 +59,7 @@ export async function generateMetadata(): Promise<Metadata> {
 	};
 }
 
-export default async function JoinUsPage() {
+export default async function CareersPage() {
 	const lang = await initServerI18n();
 	const i18n = getI18nInstance(lang);
 	const applyLabel = i18n._(

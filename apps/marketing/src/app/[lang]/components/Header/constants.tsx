@@ -86,7 +86,7 @@ export const TOP_LEVEL_LINKS: NavLink[] = [
 		label: <Trans>Enterprise</Trans>,
 	},
 	{
-		href: "/join-us",
+		href: "/careers",
 		label: <Trans>Join us</Trans>,
 	},
 ];
