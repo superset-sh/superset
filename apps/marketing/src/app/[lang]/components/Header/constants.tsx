@@ -68,6 +68,62 @@ export const PRODUCT_SECTIONS: NavSection[] = [
 			},
 		],
 	},
+];
+
+export const PRODUCT_LINKS: NavLink[] = PRODUCT_SECTIONS.flatMap(
+	(section) => section.links,
+);
+
+export interface NavFeatured {
+	href: string;
+	image: string;
+	eyebrow: ReactNode;
+	title: ReactNode;
+	description: ReactNode;
+	cta: ReactNode;
+}
+
+export const PRODUCT_FEATURED: NavFeatured = {
+	href: "/pages",
+	image: "/pages/hero-poster.webp",
+	eyebrow: <Trans>New</Trans>,
+	title: <Trans>Superset Pages</Trans>,
+	description: (
+		<Trans>Share agent work as a link your team can comment on.</Trans>
+	),
+	cta: <Trans>Explore Pages</Trans>,
+};
+
+export const RESOURCE_SECTIONS: NavSection[] = [
+	{
+		id: "learn",
+		title: <Trans>Learn</Trans>,
+		links: [
+			{
+				href: `${COMPANY.DOCS_URL}/first-workspace`,
+				label: <Trans>Get started</Trans>,
+				description: <Trans>Install and run your first agent.</Trans>,
+				external: true,
+			},
+			{
+				href: COMPANY.DOCS_URL,
+				label: <Trans>Documentation</Trans>,
+				description: <Trans>Guides, references, and integrations.</Trans>,
+				external: true,
+			},
+			{
+				href: COMPANY.YOUTUBE_URL,
+				label: <Trans>Video tutorials</Trans>,
+				description: <Trans>Walkthroughs on YouTube.</Trans>,
+				external: true,
+			},
+			{
+				href: "/parallel-coding-agents",
+				label: <Trans>Parallel agents guide</Trans>,
+				description: <Trans>Run agents side by side, then review.</Trans>,
+			},
+		],
+	},
 	{
 		id: "updates",
 		title: <Trans>Updates</Trans>,
@@ -83,57 +139,55 @@ export const PRODUCT_SECTIONS: NavSection[] = [
 				description: <Trans>What we're building now and next.</Trans>,
 			},
 			{
+				href: "/blog",
+				label: <Trans>Blog</Trans>,
+				description: <Trans>Engineering deep-dives and launches.</Trans>,
+			},
+		],
+	},
+	{
+		id: "explore",
+		title: <Trans>Explore</Trans>,
+		links: [
+			{
+				href: "/compare",
+				label: <Trans>Compare</Trans>,
+				description: <Trans>Superset next to other tools.</Trans>,
+			},
+			{
+				href: "/community",
+				label: <Trans>Community</Trans>,
+				description: <Trans>Discord, GitHub, and office hours.</Trans>,
+			},
+			{
 				href: "/leaderboard",
 				label: <Trans>Leaderboard</Trans>,
 				description: <Trans>See how your agent usage compares.</Trans>,
+			},
+			{
+				href: COMPANY.TRUST_URL,
+				label: <Trans>Security</Trans>,
+				description: <Trans>How we protect your code.</Trans>,
+				external: true,
 			},
 		],
 	},
 ];
 
-export const PRODUCT_LINKS: NavLink[] = PRODUCT_SECTIONS.flatMap(
+export const RESOURCE_LINKS: NavLink[] = RESOURCE_SECTIONS.flatMap(
 	(section) => section.links,
 );
 
-export const PRODUCT_FEATURED = {
-	href: "/pages",
-	image: "/pages/hero-poster.webp",
-	eyebrow: <Trans>New</Trans>,
-	title: <Trans>Superset Pages</Trans>,
+export const RESOURCE_FEATURED: NavFeatured = {
+	href: "/blog/review-agent-work-with-pages",
+	image: "/pages/demo-thumbnail.webp",
+	eyebrow: <Trans>Guide</Trans>,
+	title: <Trans>Review agent work with Pages</Trans>,
 	description: (
-		<Trans>Share agent work as a link your team can comment on.</Trans>
+		<Trans>Pin feedback to a page and let the agent make the change.</Trans>
 	),
-	cta: <Trans>Explore Pages</Trans>,
+	cta: <Trans>Read the guide</Trans>,
 };
-
-export const RESOURCE_LINKS: NavLink[] = [
-	{
-		href: COMPANY.DOCS_URL,
-		label: <Trans>Documentation</Trans>,
-		description: <Trans>Guides, references, and integrations.</Trans>,
-		external: true,
-	},
-	{
-		href: "/blog",
-		label: <Trans>Blog</Trans>,
-		description: <Trans>Engineering deep-dives and launches.</Trans>,
-	},
-	{
-		href: "/community",
-		label: <Trans>Community</Trans>,
-		description: <Trans>Discord, GitHub, and office hours.</Trans>,
-	},
-	{
-		href: "/team",
-		label: <Trans>About</Trans>,
-		description: <Trans>The people behind Superset.</Trans>,
-	},
-	{
-		href: "/media",
-		label: <Trans>Media kit</Trans>,
-		description: <Trans>Logos, product images, and press contact.</Trans>,
-	},
-];
 
 export const TOP_LEVEL_LINKS: NavLink[] = [
 	{

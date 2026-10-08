@@ -6734,6 +6734,9 @@ msgstr "Jelaskan cara kerja repositori ini…"
 msgid "Explain to me how this repository works"
 msgstr "Jelaskan cara kerja repositori ini"
 
+msgid "Explore"
+msgstr "Jelajahi"
+
 msgid "Explore Pages"
 msgstr "Jelajahi Halaman"
 
@@ -8275,6 +8278,9 @@ msgstr "Cara kami membangunnya, secara mendalam."
 msgid "How we hire"
 msgstr "Cara kami merekrut"
 
+msgid "How we protect your code."
+msgstr "Cara kami melindungi kode Anda."
+
 msgid "How we work"
 msgstr "Cara kami bekerja"
 
@@ -8592,6 +8598,9 @@ msgstr "Instal & mulai ulang"
 
 msgid "Install & Restart"
 msgstr "Pasang & Mulai Ulang"
+
+msgid "Install and run your first agent."
+msgstr "Instal dan jalankan agen pertama Anda."
 
 msgid "Install failed"
 msgstr "Pemasangan gagal"
@@ -9093,6 +9102,9 @@ msgstr "Pengaturan papan peringkat"
 msgid "Leaf"
 msgstr "Daun"
 
+msgid "Learn"
+msgstr "Belajar"
+
 msgid "Learn how to use scripts"
 msgstr "Pelajari cara memakai skrip"
 
@@ -9494,9 +9506,6 @@ msgstr "Logo, terang"
 
 msgid "Logos"
 msgstr "Logo"
-
-msgid "Logos, product images, and press contact."
-msgstr "Logo, gambar produk, dan kontak pers."
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "Keandalan jangka panjang melewati ambang batas. Pekerjaan yang diberikan jam 6 sore cukup sering bisa di-merge jam 9 pagi sehingga tidak menjadwalkan shift malam terasa seperti membiarkan pabrik menganggur."
@@ -12286,6 +12295,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Sematkan"
 
+msgid "Pin feedback to a page and let the agent make the change."
+msgstr "Sematkan masukan di halaman dan biarkan agen membuat perubahannya."
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Sematkan workspace di atas proyek Anda, lalu ⌘-klik sekumpulan untuk memindahkan, mengelompokkan, atau menghapus semuanya sekaligus."
 
@@ -12994,6 +13006,9 @@ msgstr "Baca changelog ↗"
 
 msgid "Read the docs"
 msgstr "Baca dokumentasi"
+
+msgid "Read the guide"
+msgstr "Baca panduan"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "Baca panduan agen coding paralel"
@@ -13829,6 +13844,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "Tinjau"
 
+msgid "Review agent work with Pages"
+msgstr "Tinjau pekerjaan agen dengan Halaman"
+
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Antrean review dan CI memakan keuntungan yang dihasilkan agen."
 
@@ -13973,6 +13991,9 @@ msgstr "Jalankan 10+ agen coding paralel di mesin Anda."
 
 msgid "Run again"
 msgstr "Jalankan lagi"
+
+msgid "Run agents side by side, then review."
+msgstr "Jalankan agen berdampingan, lalu tinjau."
 
 msgid "Run automations on data source and comment activity."
 msgstr "Jalankan otomatisasi pada aktivitas sumber data dan komentar."
@@ -16000,6 +16021,9 @@ msgstr "Superset Mobile, workspace cloud, otomatisasi, dan dukungan prioritas."
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset butuh Full Disk Access untuk membaca data browser lain. Berikan izinnya di System Settings, lalu periksa lagi."
 
+msgid "Superset next to other tools."
+msgstr "Superset dibandingkan alat lain."
+
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset hanya menerima izin yang diminta konektor ini. Putuskan koneksi kapan saja untuk mencabutnya."
 
@@ -16689,9 +16713,6 @@ msgstr "Halaman yang Anda cari tidak ada atau sudah dipindahkan."
 
 msgid "The page you're looking for doesn't exist."
 msgstr "Halaman yang Anda cari tidak ada."
-
-msgid "The people behind Superset."
-msgstr "Orang-orang di balik Superset."
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "Checkout proyek apa adanya: file dan branch dibagikan"
@@ -18062,6 +18083,9 @@ msgstr "Versi tidak diketahui"
 msgid "Video"
 msgstr "Video"
 
+msgid "Video tutorials"
+msgstr "Tutorial video"
+
 msgid "View"
 msgstr "Lihat"
 
@@ -18191,6 +18215,9 @@ msgstr "Menunggu masukan Anda"
 
 msgid "Waitlist signups"
 msgstr "Pendaftaran daftar tunggu"
+
+msgid "Walkthroughs on YouTube."
+msgstr "Panduan langkah demi langkah di YouTube."
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Ingin sesuatu lebih cepat? <0>Beri tahu kami di Discord</0>. Banyak yang ada di sini bermula dari permintaan pengguna."

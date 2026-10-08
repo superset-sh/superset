@@ -6734,6 +6734,9 @@ msgstr "Explique como este repositório funciona…"
 msgid "Explain to me how this repository works"
 msgstr "Explique como este repositório funciona"
 
+msgid "Explore"
+msgstr "Explorar"
+
 msgid "Explore Pages"
 msgstr "Explorar Páginas"
 
@@ -8275,6 +8278,9 @@ msgstr "Como construímos, em detalhes."
 msgid "How we hire"
 msgstr "Como contratamos"
 
+msgid "How we protect your code."
+msgstr "Como protegemos seu código."
+
 msgid "How we work"
 msgstr "Como trabalhamos"
 
@@ -8592,6 +8598,9 @@ msgstr "Instalar e reiniciar"
 
 msgid "Install & Restart"
 msgstr "Instalar e reiniciar"
+
+msgid "Install and run your first agent."
+msgstr "Instale e rode seu primeiro agente."
 
 msgid "Install failed"
 msgstr "Falha na instalação"
@@ -9093,6 +9102,9 @@ msgstr "Configurações do ranking"
 msgid "Leaf"
 msgstr "Folha"
 
+msgid "Learn"
+msgstr "Aprender"
+
 msgid "Learn how to use scripts"
 msgstr "Saiba como usar scripts"
 
@@ -9494,9 +9506,6 @@ msgstr "Logotipo, claro"
 
 msgid "Logos"
 msgstr "Logotipos"
-
-msgid "Logos, product images, and press contact."
-msgstr "Logotipos, imagens do produto e contato de imprensa."
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "A confiabilidade em horizontes longos cruza um limiar. O trabalho atribuído às 18h está pronto para merge às 9h com frequência suficiente para que não agendar o turno da noite pareça deixar uma fábrica parada."
@@ -12286,6 +12295,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Fixar"
 
+msgid "Pin feedback to a page and let the agent make the change."
+msgstr "Fixe feedback em uma página e deixe o agente fazer a mudança."
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Fixe áreas de trabalho acima dos seus projetos e depois ⌘-clique em um lote para mover, agrupar ou excluir tudo de uma vez."
 
@@ -12994,6 +13006,9 @@ msgstr "Ler o changelog ↗"
 
 msgid "Read the docs"
 msgstr "Ler a documentação"
+
+msgid "Read the guide"
+msgstr "Ler o guia"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "Leia o guia de agentes de código em paralelo"
@@ -13829,6 +13844,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "Revisar"
 
+msgid "Review agent work with Pages"
+msgstr "Revise o trabalho do agente com Páginas"
+
 msgid "Review and CI queues eat the gains agents create."
 msgstr "As filas de revisão e de CI comem o ganho que os agentes criam."
 
@@ -13973,6 +13991,9 @@ msgstr "Rode mais de 10 agentes de código em paralelo na sua máquina."
 
 msgid "Run again"
 msgstr "Executar novamente"
+
+msgid "Run agents side by side, then review."
+msgstr "Rode agentes lado a lado e depois revise."
 
 msgid "Run automations on data source and comment activity."
 msgstr "Rode automações a partir de atividade em fontes de dados e comentários."
@@ -16000,6 +16021,9 @@ msgstr "Superset Mobile, workspaces na nuvem, automações e suporte prioritári
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "O Superset precisa de Acesso Total ao Disco para ler os dados de outro navegador. Conceda em Ajustes do Sistema e verifique novamente."
 
+msgid "Superset next to other tools."
+msgstr "O Superset comparado a outras ferramentas."
+
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "O Superset recebe apenas as permissões que este conector solicita. Desconecte a qualquer momento para revogá-las."
 
@@ -16689,9 +16713,6 @@ msgstr "A página que você procura não existe ou foi movida."
 
 msgid "The page you're looking for doesn't exist."
 msgstr "A página que você procura não existe."
-
-msgid "The people behind Superset."
-msgstr "As pessoas por trás do Superset."
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "O checkout do projeto como está: arquivos e branch são compartilhados"
@@ -18062,6 +18083,9 @@ msgstr "Versão desconhecida"
 msgid "Video"
 msgstr "Vídeo"
 
+msgid "Video tutorials"
+msgstr "Tutoriais em vídeo"
+
 msgid "View"
 msgstr "Ver"
 
@@ -18191,6 +18215,9 @@ msgstr "Aguardando sua resposta"
 
 msgid "Waitlist signups"
 msgstr "Inscrições na lista de espera"
+
+msgid "Walkthroughs on YouTube."
+msgstr "Demonstrações no YouTube."
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Quer algo antes? <0>Conte para a gente no Discord</0>. Boa parte do que está aqui começou como pedido de usuário."

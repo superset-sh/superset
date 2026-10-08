@@ -6734,6 +6734,9 @@ msgstr "이 리포지토리가 어떻게 동작하는지 설명…"
 msgid "Explain to me how this repository works"
 msgstr "이 리포지토리가 어떻게 동작하는지 설명해 줘"
 
+msgid "Explore"
+msgstr "살펴보기"
+
 msgid "Explore Pages"
 msgstr "페이지 살펴보기"
 
@@ -8275,6 +8278,9 @@ msgstr "어떻게 만드는지 자세히."
 msgid "How we hire"
 msgstr "채용 과정"
 
+msgid "How we protect your code."
+msgstr "코드를 보호하는 방법."
+
 msgid "How we work"
 msgstr "일하는 방식"
 
@@ -8592,6 +8598,9 @@ msgstr "설치 후 재시작"
 
 msgid "Install & Restart"
 msgstr "설치 후 재시작"
+
+msgid "Install and run your first agent."
+msgstr "설치하고 첫 에이전트를 실행하세요."
 
 msgid "Install failed"
 msgstr "설치 실패"
@@ -9093,6 +9102,9 @@ msgstr "리더보드 설정"
 msgid "Leaf"
 msgstr "잎"
 
+msgid "Learn"
+msgstr "배우기"
+
 msgid "Learn how to use scripts"
 msgstr "스크립트 사용법 알아보기"
 
@@ -9494,9 +9506,6 @@ msgstr "로고, 밝은 색"
 
 msgid "Logos"
 msgstr "로고"
-
-msgid "Logos, product images, and press contact."
-msgstr "로고, 제품 이미지, 언론 문의처."
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "장시간 작업의 신뢰성이 임계점을 넘습니다. 오후 6시에 맡긴 일이 오전 9시에 머지할 수 있는 상태로 나오는 경우가 충분히 잦아져서, 야간 근무를 잡지 않는 것이 공장을 놀리는 일처럼 느껴집니다."
@@ -12286,6 +12295,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "고정"
 
+msgid "Pin feedback to a page and let the agent make the change."
+msgstr "페이지에 피드백을 남기면 에이전트가 변경합니다."
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "워크스페이스를 프로젝트 위에 고정하고, ⌘ 클릭으로 여러 개를 골라 한 번에 옮기거나, 묶거나, 삭제하세요."
 
@@ -12994,6 +13006,9 @@ msgstr "변경 로그 읽기 ↗"
 
 msgid "Read the docs"
 msgstr "문서 읽기"
+
+msgid "Read the guide"
+msgstr "가이드 읽기"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "병렬 코딩 에이전트 가이드 읽기"
@@ -13829,6 +13844,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "검토"
 
+msgid "Review agent work with Pages"
+msgstr "페이지로 에이전트 작업 검토하기"
+
 msgid "Review and CI queues eat the gains agents create."
 msgstr "리뷰와 CI 대기열이 에이전트가 만든 이득을 깎아먹습니다."
 
@@ -13973,6 +13991,9 @@ msgstr "내 머신에서 10개 이상의 코딩 에이전트를 병렬로 실행
 
 msgid "Run again"
 msgstr "다시 실행"
+
+msgid "Run agents side by side, then review."
+msgstr "에이전트를 나란히 실행하고 검토하세요."
 
 msgid "Run automations on data source and comment activity."
 msgstr "데이터 소스와 댓글 활동에 따라 자동화를 실행합니다."
@@ -16000,6 +16021,9 @@ msgstr "Superset Mobile, 클라우드 워크스페이스, 자동화, 우선 지�
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "다른 브라우저의 데이터를 읽으려면 Superset에 전체 디스크 접근 권한이 필요합니다. 시스템 설정에서 권한을 허용한 다음 다시 확인하세요."
 
+msgid "Superset next to other tools."
+msgstr "다른 도구와 비교한 Superset."
+
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset는 이 커넥터가 요청한 권한만 받습니다. 언제든지 연결을 해제해 취소할 수 있습니다."
 
@@ -16689,9 +16713,6 @@ msgstr "찾으시는 페이지가 없거나 위치가 바뀌었습니다."
 
 msgid "The page you're looking for doesn't exist."
 msgstr "찾으시는 페이지가 존재하지 않습니다."
-
-msgid "The people behind Superset."
-msgstr "Superset을 만드는 사람들."
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "프로젝트의 체크아웃을 그대로 사용: 파일과 브랜치가 공유됩니다"
@@ -18062,6 +18083,9 @@ msgstr "버전 알 수 없음"
 msgid "Video"
 msgstr "동영상"
 
+msgid "Video tutorials"
+msgstr "동영상 튜토리얼"
+
 msgid "View"
 msgstr "보기"
 
@@ -18191,6 +18215,9 @@ msgstr "입력을 기다리는 중"
 
 msgid "Waitlist signups"
 msgstr "대기자 명단 가입"
+
+msgid "Walkthroughs on YouTube."
+msgstr "YouTube 사용 안내 영상."
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "더 빨리 필요한 기능이 있나요? <0>Discord에서 알려 주세요</0>. 여기 있는 항목 상당수가 사용자 요청에서 시작했습니다."

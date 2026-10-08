@@ -6734,6 +6734,9 @@ msgstr "Vysvětli, jak tento repozitář funguje…"
 msgid "Explain to me how this repository works"
 msgstr "Vysvětlit mi, jak tento repozitář funguje"
 
+msgid "Explore"
+msgstr "Prozkoumat"
+
 msgid "Explore Pages"
 msgstr "Prozkoumat Stránky"
 
@@ -8275,6 +8278,9 @@ msgstr "Jak to stavíme, podrobně."
 msgid "How we hire"
 msgstr "Jak nabíráme"
 
+msgid "How we protect your code."
+msgstr "Jak chráníme váš kód."
+
 msgid "How we work"
 msgstr "Jak pracujeme"
 
@@ -8592,6 +8598,9 @@ msgstr "Nainstalovat a restartovat"
 
 msgid "Install & Restart"
 msgstr "Nainstalovat a restartovat"
+
+msgid "Install and run your first agent."
+msgstr "Nainstalujte a spusťte svého prvního agenta."
 
 msgid "Install failed"
 msgstr "Instalace selhala"
@@ -9093,6 +9102,9 @@ msgstr "Nastavení žebříčku"
 msgid "Leaf"
 msgstr "List"
 
+msgid "Learn"
+msgstr "Učte se"
+
 msgid "Learn how to use scripts"
 msgstr "Jak používat skripty"
 
@@ -9494,9 +9506,6 @@ msgstr "Logo, světlé"
 
 msgid "Logos"
 msgstr "Loga"
-
-msgid "Logos, product images, and press contact."
-msgstr "Loga, obrázky produktu a kontakt pro média."
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "Spolehlivost na dlouhém horizontu překročí práh. Práce zadaná v 18:00 je v 9:00 připravená ke sloučení tak často, že neplánovat noční směnu působí jako nechat továrnu stát."
@@ -12286,6 +12295,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Připnout"
 
+msgid "Pin feedback to a page and let the agent make the change."
+msgstr "Připněte zpětnou vazbu ke stránce a nechte agenta provést změnu."
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Připněte si pracovní prostory nad projekty a pak ⌘-kliknutím vyberte skupinu, kterou přesunete, seskupíte nebo smažete naráz."
 
@@ -12994,6 +13006,9 @@ msgstr "Přečíst changelog ↗"
 
 msgid "Read the docs"
 msgstr "Přečtěte si dokumentaci"
+
+msgid "Read the guide"
+msgstr "Přečíst průvodce"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "Přečíst průvodce paralelními kódovacími agenty"
@@ -13829,6 +13844,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "Ke kontrole"
 
+msgid "Review agent work with Pages"
+msgstr "Kontrola práce agenta ve Stránkách"
+
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Fronty revizí a CI spolykají zisky, které agenti vytvoří."
 
@@ -13973,6 +13991,9 @@ msgstr "Spusťte na svém stroji 10+ paralelních programovacích agentů."
 
 msgid "Run again"
 msgstr "Spustit znovu"
+
+msgid "Run agents side by side, then review."
+msgstr "Spouštějte agenty vedle sebe a pak je zkontrolujte."
 
 msgid "Run automations on data source and comment activity."
 msgstr "Spouštějte automatizace při aktivitě ve zdrojích dat a komentářích."
@@ -16000,6 +16021,9 @@ msgstr "Superset Mobile, cloudové workspaces, automatizace a prioritní podpora
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset potřebuje Plný přístup k disku, aby mohl číst data jiného prohlížeče. Povolte ho v Nastavení systému a zkontrolujte to znovu."
 
+msgid "Superset next to other tools."
+msgstr "Superset ve srovnání s jinými nástroji."
+
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset získá pouze oprávnění, o která tento konektor žádá. Kdykoli je můžete odvolat odpojením."
 
@@ -16689,9 +16713,6 @@ msgstr "Stránka, kterou hledáte, neexistuje nebo byla přesunuta."
 
 msgid "The page you're looking for doesn't exist."
 msgstr "Stránka, kterou hledáte, neexistuje."
-
-msgid "The people behind Superset."
-msgstr "Lidé za Supersetem."
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "Checkout projektu tak, jak je: soubory a větev jsou sdílené"
@@ -18062,6 +18083,9 @@ msgstr "Neznámá verze"
 msgid "Video"
 msgstr "Video"
 
+msgid "Video tutorials"
+msgstr "Video návody"
+
 msgid "View"
 msgstr "Zobrazit"
 
@@ -18191,6 +18215,9 @@ msgstr "Čeká na váš vstup"
 
 msgid "Waitlist signups"
 msgstr "Zápisy na čekací listinu"
+
+msgid "Walkthroughs on YouTube."
+msgstr "Ukázky na YouTube."
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Chcete něco dřív? <0>Napište nám na Discordu</0>. Spousta z toho, co je tady, začala jako přání uživatele."

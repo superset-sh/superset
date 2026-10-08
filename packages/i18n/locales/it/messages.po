@@ -6734,6 +6734,9 @@ msgstr "Spiega come funziona questo repository…"
 msgid "Explain to me how this repository works"
 msgstr "Spiegami come funziona questo repository"
 
+msgid "Explore"
+msgstr "Esplora"
+
 msgid "Explore Pages"
 msgstr "Scopri Pagine"
 
@@ -8275,6 +8278,9 @@ msgstr "Come lo costruiamo, in dettaglio."
 msgid "How we hire"
 msgstr "Come assumiamo"
 
+msgid "How we protect your code."
+msgstr "Come proteggiamo il tuo codice."
+
 msgid "How we work"
 msgstr "Come lavoriamo"
 
@@ -8592,6 +8598,9 @@ msgstr "Installa e riavvia"
 
 msgid "Install & Restart"
 msgstr "Installa e riavvia"
+
+msgid "Install and run your first agent."
+msgstr "Installa e avvia il tuo primo agente."
 
 msgid "Install failed"
 msgstr "Installazione non riuscita"
@@ -9093,6 +9102,9 @@ msgstr "Impostazioni classifica"
 msgid "Leaf"
 msgstr "Foglia"
 
+msgid "Learn"
+msgstr "Impara"
+
 msgid "Learn how to use scripts"
 msgstr "Scopri come usare gli script"
 
@@ -9494,9 +9506,6 @@ msgstr "Logo, chiaro"
 
 msgid "Logos"
 msgstr "Loghi"
-
-msgid "Logos, product images, and press contact."
-msgstr "Loghi, immagini del prodotto e contatto stampa."
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "L'affidabilità sul lungo periodo supera una soglia. Il lavoro assegnato alle 18 è pronto per il merge alle 9 abbastanza spesso che non programmare il turno di notte sembra lasciare una fabbrica ferma."
@@ -12286,6 +12295,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Fissa"
 
+msgid "Pin feedback to a page and let the agent make the change."
+msgstr "Fissa un feedback su una pagina e lascia che l'agente faccia la modifica."
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Fissa i workspace sopra i tuoi progetti, poi seleziona un gruppo con ⌘-clic per spostarli, raggrupparli o eliminarli tutti insieme."
 
@@ -12994,6 +13006,9 @@ msgstr "Leggi il changelog ↗"
 
 msgid "Read the docs"
 msgstr "Leggi la documentazione"
+
+msgid "Read the guide"
+msgstr "Leggi la guida"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "Leggi la guida agli agenti di programmazione in parallelo"
@@ -13829,6 +13844,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "Da rivedere"
 
+msgid "Review agent work with Pages"
+msgstr "Rivedi il lavoro dell'agente con Pagine"
+
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Le code di revisione e di CI si mangiano i guadagni creati dagli agenti."
 
@@ -13973,6 +13991,9 @@ msgstr "Esegui più di 10 agenti di programmazione in parallelo sulla tua macchi
 
 msgid "Run again"
 msgstr "Esegui di nuovo"
+
+msgid "Run agents side by side, then review."
+msgstr "Esegui agenti in parallelo, poi rivedi."
 
 msgid "Run automations on data source and comment activity."
 msgstr "Esegui automazioni sull'attività di origini dati e commenti."
@@ -16000,6 +16021,9 @@ msgstr "Superset Mobile, workspace cloud, automazioni e supporto prioritario."
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset ha bisogno dell'Accesso completo al disco per leggere i dati di un altro browser. Concedilo in Impostazioni di Sistema, poi controlla di nuovo."
 
+msgid "Superset next to other tools."
+msgstr "Superset a confronto con altri strumenti."
+
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset riceve solo i permessi richiesti da questo connettore. Scollegalo in qualsiasi momento per revocarli."
 
@@ -16689,9 +16713,6 @@ msgstr "La pagina che cerchi non esiste o è stata spostata."
 
 msgid "The page you're looking for doesn't exist."
 msgstr "La pagina che cerchi non esiste."
-
-msgid "The people behind Superset."
-msgstr "Le persone dietro Superset."
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "Il checkout del progetto così com'è: file e branch sono condivisi"
@@ -18062,6 +18083,9 @@ msgstr "Versione sconosciuta"
 msgid "Video"
 msgstr "Video"
 
+msgid "Video tutorials"
+msgstr "Video tutorial"
+
 msgid "View"
 msgstr "Visualizza"
 
@@ -18191,6 +18215,9 @@ msgstr "In attesa del tuo input"
 
 msgid "Waitlist signups"
 msgstr "Iscrizioni alla lista d'attesa"
+
+msgid "Walkthroughs on YouTube."
+msgstr "Guide passo passo su YouTube."
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Vuoi qualcosa prima? <0>Dicci la tua su Discord</0>. Molto di ciò che c'è qui è nato da una richiesta degli utenti."

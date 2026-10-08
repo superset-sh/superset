@@ -6734,6 +6734,9 @@ msgstr "Explain how this repository works…"
 msgid "Explain to me how this repository works"
 msgstr "Explain to me how this repository works"
 
+msgid "Explore"
+msgstr "Explore"
+
 msgid "Explore Pages"
 msgstr "Explore Pages"
 
@@ -8275,6 +8278,9 @@ msgstr "How we build it, in long form."
 msgid "How we hire"
 msgstr "How we hire"
 
+msgid "How we protect your code."
+msgstr "How we protect your code."
+
 msgid "How we work"
 msgstr "How we work"
 
@@ -8592,6 +8598,9 @@ msgstr "Install & restart"
 
 msgid "Install & Restart"
 msgstr "Install & Restart"
+
+msgid "Install and run your first agent."
+msgstr "Install and run your first agent."
 
 msgid "Install failed"
 msgstr "Install failed"
@@ -9093,6 +9102,9 @@ msgstr "Leaderboard settings"
 msgid "Leaf"
 msgstr "Leaf"
 
+msgid "Learn"
+msgstr "Learn"
+
 msgid "Learn how to use scripts"
 msgstr "Learn how to use scripts"
 
@@ -9494,9 +9506,6 @@ msgstr "Logo, light"
 
 msgid "Logos"
 msgstr "Logos"
-
-msgid "Logos, product images, and press contact."
-msgstr "Logos, product images, and press contact."
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
@@ -12286,6 +12295,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Pin"
 
+msgid "Pin feedback to a page and let the agent make the change."
+msgstr "Pin feedback to a page and let the agent make the change."
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 
@@ -12994,6 +13006,9 @@ msgstr "Read the changelog ↗"
 
 msgid "Read the docs"
 msgstr "Read the docs"
+
+msgid "Read the guide"
+msgstr "Read the guide"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "Read the guide to parallel coding agents"
@@ -13829,6 +13844,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "Review"
 
+msgid "Review agent work with Pages"
+msgstr "Review agent work with Pages"
+
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Review and CI queues eat the gains agents create."
 
@@ -13973,6 +13991,9 @@ msgstr "Run 10+ parallel coding agents on your machine."
 
 msgid "Run again"
 msgstr "Run again"
+
+msgid "Run agents side by side, then review."
+msgstr "Run agents side by side, then review."
 
 msgid "Run automations on data source and comment activity."
 msgstr "Run automations on data source and comment activity."
@@ -16000,6 +16021,9 @@ msgstr "Superset Mobile, cloud workspaces, automations, and priority support."
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 
+msgid "Superset next to other tools."
+msgstr "Superset next to other tools."
+
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 
@@ -16689,9 +16713,6 @@ msgstr "The page you're looking for doesn't exist or has been moved."
 
 msgid "The page you're looking for doesn't exist."
 msgstr "The page you're looking for doesn't exist."
-
-msgid "The people behind Superset."
-msgstr "The people behind Superset."
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "The project's checkout as it is: files and branch are shared"
@@ -18062,6 +18083,9 @@ msgstr "Version unknown"
 msgid "Video"
 msgstr "Video"
 
+msgid "Video tutorials"
+msgstr "Video tutorials"
+
 msgid "View"
 msgstr "View"
 
@@ -18191,6 +18215,9 @@ msgstr "Waiting for your input"
 
 msgid "Waitlist signups"
 msgstr "Waitlist signups"
+
+msgid "Walkthroughs on YouTube."
+msgstr "Walkthroughs on YouTube."
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."

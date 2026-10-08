@@ -6734,6 +6734,9 @@ msgstr "Bu deponun nasıl çalıştığını açıkla…"
 msgid "Explain to me how this repository works"
 msgstr "Bu deponun nasıl çalıştığını anlat"
 
+msgid "Explore"
+msgstr "Keşfet"
+
 msgid "Explore Pages"
 msgstr "Sayfaları keşfet"
 
@@ -8275,6 +8278,9 @@ msgstr "Nasıl geliştirdiğimiz, ayrıntılı olarak."
 msgid "How we hire"
 msgstr "Nasıl işe alıyoruz"
 
+msgid "How we protect your code."
+msgstr "Kodunuzu nasıl koruyoruz."
+
 msgid "How we work"
 msgstr "Nasıl çalışıyoruz"
 
@@ -8592,6 +8598,9 @@ msgstr "Kur ve yeniden başlat"
 
 msgid "Install & Restart"
 msgstr "Kur ve yeniden başlat"
+
+msgid "Install and run your first agent."
+msgstr "Kurun ve ilk ajanınızı çalıştırın."
 
 msgid "Install failed"
 msgstr "Kurulum başarısız"
@@ -9093,6 +9102,9 @@ msgstr "Liderlik tablosu ayarları"
 msgid "Leaf"
 msgstr "Yaprak"
 
+msgid "Learn"
+msgstr "Öğren"
+
 msgid "Learn how to use scripts"
 msgstr "Betiklerin nasıl kullanılacağını öğrenin"
 
@@ -9494,9 +9506,6 @@ msgstr "Logo, açık"
 
 msgid "Logos"
 msgstr "Logolar"
-
-msgid "Logos, product images, and press contact."
-msgstr "Logolar, ürün görselleri ve basın iletişimi."
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "Uzun vadeli güvenilirlik bir eşiği aşar. Akşam 18.00'de verilen iş, sabah 09.00'da yeterince sık birleştirilebilir hâle gelir; gece vardiyasını planlamamak, fabrikayı boş bırakmak gibi hissettirir."
@@ -12286,6 +12295,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Sabitle"
 
+msgid "Pin feedback to a page and let the agent make the change."
+msgstr "Bir sayfaya geri bildirim iğneleyin, değişikliği ajan yapsın."
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Çalışma alanlarını projelerinizin üstüne sabitleyin, sonra ⌘ ile bir grup seçip hepsini birden taşıyın, gruplayın veya silin."
 
@@ -12994,6 +13006,9 @@ msgstr "Değişiklik günlüğünü okuyun ↗"
 
 msgid "Read the docs"
 msgstr "Dokümanları okuyun"
+
+msgid "Read the guide"
+msgstr "Rehberi oku"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "Paralel kodlama ajanları rehberini okuyun"
@@ -13829,6 +13844,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "İnceleme"
 
+msgid "Review agent work with Pages"
+msgstr "Ajan çalışmasını Sayfalar ile inceleyin"
+
 msgid "Review and CI queues eat the gains agents create."
 msgstr "İnceleme ve CI kuyrukları, ajanların yarattığı kazancı yiyor."
 
@@ -13973,6 +13991,9 @@ msgstr "Makinenizde 10+ paralel kodlama ajanı çalıştırın."
 
 msgid "Run again"
 msgstr "Yeniden çalıştır"
+
+msgid "Run agents side by side, then review."
+msgstr "Ajanları yan yana çalıştırın, sonra inceleyin."
 
 msgid "Run automations on data source and comment activity."
 msgstr "Veri kaynağı ve yorum etkinliğinde otomasyon çalıştırın."
@@ -16000,6 +16021,9 @@ msgstr "Superset Mobile, bulut çalışma alanları, otomasyonlar ve öncelikli 
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset'in başka bir tarayıcının verilerini okuyabilmesi için Tam Disk Erişimi gerekir. Sistem Ayarları'ndan verin, sonra yeniden denetleyin."
 
+msgid "Superset next to other tools."
+msgstr "Superset ile diğer araçların karşılaştırması."
+
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset yalnızca bu bağlayıcının istediği izinleri alır. İzinleri geri almak için istediğiniz zaman bağlantıyı kesin."
 
@@ -16689,9 +16713,6 @@ msgstr "Aradığınız sayfa mevcut değil veya taşınmış."
 
 msgid "The page you're looking for doesn't exist."
 msgstr "Aradığınız sayfa mevcut değil."
-
-msgid "The people behind Superset."
-msgstr "Superset'in arkasındaki insanlar."
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "Projenin checkout'u olduğu gibi: dosyalar ve dal paylaşılır"
@@ -18062,6 +18083,9 @@ msgstr "Sürüm bilinmiyor"
 msgid "Video"
 msgstr "Video"
 
+msgid "Video tutorials"
+msgstr "Video eğitimleri"
+
 msgid "View"
 msgstr "Görüntüle"
 
@@ -18191,6 +18215,9 @@ msgstr "Girdinizi bekliyor"
 
 msgid "Waitlist signups"
 msgstr "Bekleme listesi kayıtları"
+
+msgid "Walkthroughs on YouTube."
+msgstr "YouTube'da adım adım anlatımlar."
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Bir şeyi daha erken mi istiyorsunuz? <0>Discord'da bize söyleyin</0>. Buradakilerin çoğu bir kullanıcı isteği olarak başladı."

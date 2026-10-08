@@ -6734,6 +6734,9 @@ msgstr "講講這個儲存庫是怎麼運作的…"
 msgid "Explain to me how this repository works"
 msgstr "講講這個儲存庫是怎麼運作的"
 
+msgid "Explore"
+msgstr "探索"
+
 msgid "Explore Pages"
 msgstr "了解頁面"
 
@@ -8275,6 +8278,9 @@ msgstr "我們如何打造它，深入介紹。"
 msgid "How we hire"
 msgstr "招聘流程"
 
+msgid "How we protect your code."
+msgstr "我們如何保護你的程式碼。"
+
 msgid "How we work"
 msgstr "我們的工作方式"
 
@@ -8592,6 +8598,9 @@ msgstr "安裝並重啟"
 
 msgid "Install & Restart"
 msgstr "安裝並重啟"
+
+msgid "Install and run your first agent."
+msgstr "安裝並執行你的第一個代理程式。"
 
 msgid "Install failed"
 msgstr "安裝失敗"
@@ -9093,6 +9102,9 @@ msgstr "排行榜設定"
 msgid "Leaf"
 msgstr "葉子"
 
+msgid "Learn"
+msgstr "學習"
+
 msgid "Learn how to use scripts"
 msgstr "瞭解如何使用指令碼"
 
@@ -9494,9 +9506,6 @@ msgstr "標誌，淺色"
 
 msgid "Logos"
 msgstr "標誌"
-
-msgid "Logos, product images, and press contact."
-msgstr "標誌、產品圖片與媒體聯絡方式。"
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "長週期可靠性越過了一個門檻。傍晚6點派出去的活兒，早上9點常常已經可以合併，以至於不排夜班就像讓工廠空轉。"
@@ -12286,6 +12295,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "固定"
 
+msgid "Pin feedback to a page and let the agent make the change."
+msgstr "在頁面上留下回饋，讓代理程式完成修改。"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "把工作區固定在專案上方，再⌘點選批次選中，一次性移動、分組或刪除。"
 
@@ -12994,6 +13006,9 @@ msgstr "閱讀更新日誌 ↗"
 
 msgid "Read the docs"
 msgstr "閱讀文件"
+
+msgid "Read the guide"
+msgstr "閱讀指南"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "閱讀並行編碼代理程式指南"
@@ -13829,6 +13844,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "待檢視"
 
+msgid "Review agent work with Pages"
+msgstr "用頁面審查代理程式的工作"
+
 msgid "Review and CI queues eat the gains agents create."
 msgstr "審查和CI排隊把代理程式帶來的收益吃掉了。"
 
@@ -13973,6 +13991,9 @@ msgstr "在你的機器上並行執行10個以上的編碼代理程式。"
 
 msgid "Run again"
 msgstr "重新執行"
+
+msgid "Run agents side by side, then review."
+msgstr "並行執行代理程式，然後審查。"
 
 msgid "Run automations on data source and comment activity."
 msgstr "在資料來源和評論活動上執行自動化。"
@@ -16000,6 +16021,9 @@ msgstr "Superset Mobile、雲端工作區、自動化與優先支援。"
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset需要「完全磁碟存取權限」才能讀取其他瀏覽器的資料。請在系統設定中授予權限，然後重新檢查。"
 
+msgid "Superset next to other tools."
+msgstr "Superset 與其他工具的比較。"
+
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset 只取得此連接器請求的權限。你可以隨時中斷連線以撤銷。"
 
@@ -16689,9 +16713,6 @@ msgstr "你要找的頁面不存在或已被移動。"
 
 msgid "The page you're looking for doesn't exist."
 msgstr "你要找的頁面不存在。"
-
-msgid "The people behind Superset."
-msgstr "Superset背後的團隊。"
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "按原樣使用專案的簽出: 檔案和分支是共用的"
@@ -18062,6 +18083,9 @@ msgstr "版本未知"
 msgid "Video"
 msgstr "影片"
 
+msgid "Video tutorials"
+msgstr "影片教學"
+
 msgid "View"
 msgstr "檢視"
 
@@ -18191,6 +18215,9 @@ msgstr "等待你的輸入"
 
 msgid "Waitlist signups"
 msgstr "候補名單註冊"
+
+msgid "Walkthroughs on YouTube."
+msgstr "YouTube 上的操作示範。"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "想讓某件事早點做？<0>在Discord上告訴我們</0>。這裡的很多條目最初都來自使用者的請求。"
