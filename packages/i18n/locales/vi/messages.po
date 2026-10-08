@@ -1456,6 +1456,9 @@ msgstr "Cần phiên bản Superset mới để tiếp tục. Vui lòng cập nh
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "Một workspace mới từ nhánh này, hội thoại được bàn giao cho tác nhân mới"
 
+msgid "A page can save each reader's answer, so a poll works with no backend."
+msgstr "Một trang có thể lưu câu trả lời của từng người đọc, nên cuộc khảo sát chạy được mà không cần backend."
+
 msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
 msgstr "Một bài toán TypeScript thực tế, giống những gì chúng tôi giải quyết hằng ngày. Không có câu đố thuật toán."
 
@@ -1911,12 +1914,6 @@ msgstr "Agent hoàn thành các ticket thường ngày mà không cần can thi�
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agent tự mở bản xem trước, thao tác giao diện và đính kèm ảnh chụp làm bằng chứng trước khi đánh dấu sẵn sàng review."
 
-msgid "Agents publish reports, designs, and walkthroughs as a link. Your team pins comments to the page, and the agent updates it and replies."
-msgstr "Agent xuất bản báo cáo, thiết kế và bản hướng dẫn chi tiết dưới dạng một liên kết. Nhóm của bạn ghim bình luận lên trang, còn agent cập nhật trang và phản hồi."
-
-msgid "Agents publish reports, designs, and walkthroughs as a page. Teammates pin comments to any part of it, and the agent updates the page and replies."
-msgstr "Agent xuất bản báo cáo, thiết kế và bản hướng dẫn chi tiết dưới dạng một trang. Đồng đội ghim bình luận vào bất kỳ phần nào, còn agent cập nhật trang và phản hồi."
-
 msgid "Agents running at once"
 msgstr "Số agent chạy cùng lúc"
 
@@ -2246,6 +2243,9 @@ msgstr "Anthropic đã từ chối token này."
 msgid "any account"
 msgstr "bất kỳ tài khoản nào"
 
+msgid "Any agent can publish with the Superset CLI or over MCP."
+msgstr "Mọi agent đều có thể xuất bản bằng Superset CLI hoặc qua MCP."
+
 msgid "Any channel"
 msgstr "Kênh bất kỳ"
 
@@ -2472,8 +2472,8 @@ msgstr "Theo báo cáo gần nhất. Máy chủ phải trực tuyến để cậ
 msgid "ascending"
 msgstr "tăng dần"
 
-msgid "Ask an agent for a design doc, a report, or a PR walkthrough. It builds the page and publishes it."
-msgstr "Nhờ một agent viết tài liệu thiết kế, báo cáo hoặc bản hướng dẫn PR. Agent sẽ dựng trang và xuất bản."
+msgid "Ask an agent for a design doc or a report. It builds the page and publishes it."
+msgstr "Nhờ agent viết tài liệu thiết kế hoặc báo cáo. Agent tạo trang và xuất bản."
 
 msgid "Ask an agent to publish one from the desktop app."
 msgstr "Hãy nhờ một agent xuất bản một trang từ ứng dụng máy tính."
@@ -3122,9 +3122,6 @@ msgstr "Xây phần mềm cuối cùng"
 msgid "Building the last piece of software."
 msgstr "Xây phần mềm cuối cùng."
 
-msgid "Built for work that has a reader."
-msgstr "Dành cho công việc có người đọc."
-
 msgid "Built in Superset"
 msgstr "Được xây dựng trong Superset"
 
@@ -3584,6 +3581,9 @@ msgstr "Chọn khi nào Superset báo cho bạn."
 msgid "Choose where agents started from comments, design mode, and Pages open."
 msgstr "Chọn nơi mở tác nhân được khởi chạy từ bình luận, chế độ thiết kế và Pages."
 
+msgid "Choose who can open each page, from just you to anyone with the link."
+msgstr "Chọn ai có thể mở từng trang, từ chỉ mình bạn đến bất kỳ ai có liên kết."
+
 msgid "Churn"
 msgstr "Rời bỏ"
 
@@ -3595,9 +3595,6 @@ msgstr "Làm rõ điều này"
 
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code, Codex và OpenCode là các agent; Superset là nơi bạn chạy nhiều agent cùng lúc. Mỗi tác vụ có git worktree tách biệt riêng, nên mười agent có thể làm trên mười nhánh đồng thời trong khi bạn theo dõi, review và merge từ một chỗ."
-
-msgid "Claude Code, Codex, and other agents publish through the Superset CLI, the Pages skill, or MCP."
-msgstr "Claude Code, Codex và các agent khác xuất bản qua Superset CLI, skill Trang hoặc MCP."
 
 msgid "Claude Code, Codex, Cursor, OpenCode, and more."
 msgstr "Claude Code, Codex, Cursor, OpenCode và nhiều nữa."
@@ -8900,9 +8897,6 @@ msgstr "vừa xong"
 msgid "Kbd"
 msgstr "Kbd"
 
-msgid "Keep a draft to yourself, share it with your organization, or open it to anyone with the link."
-msgstr "Giữ bản nháp cho riêng bạn, chia sẻ với tổ chức hoặc mở cho bất kỳ ai có liên kết."
-
 msgid "Keep docs fresh"
 msgstr "Giữ tài liệu luôn mới"
 
@@ -12002,8 +11996,8 @@ msgstr "Không thể tải các trang"
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "Các trang mà phiên bắt đầu, cùng tỷ lệ rời đi mà không xem trang thứ hai. Các trang so sánh là bề mặt SEO."
 
-msgid "Pages that remember"
-msgstr "Những trang biết ghi nhớ"
+msgid "Pages that save answers"
+msgstr "Trang có thể lưu câu trả lời"
 
 msgid "Pages this agent is watching for comments"
 msgstr "Các trang agent này đang theo dõi bình luận"
@@ -12356,9 +12350,6 @@ msgstr "Marketplace plugin"
 
 msgid "Plugins"
 msgstr "Plugin"
-
-msgid "Polls, checklists, and sign-up sheets keep one answer per reader, with no backend to run."
-msgstr "Khảo sát, danh sách kiểm tra và bảng đăng ký lưu một câu trả lời cho mỗi người đọc, không cần vận hành backend."
 
 msgid "Popover"
 msgstr "Popover"
@@ -12758,8 +12749,8 @@ msgstr "Công khai"
 msgid "Public leaderboard"
 msgstr "Bảng xếp hạng công khai"
 
-msgid "Publish again and the link stays the same. Earlier versions stay in the history."
-msgstr "Xuất bản lại và liên kết vẫn giữ nguyên. Các phiên bản trước vẫn nằm trong lịch sử."
+msgid "Publish again and the link stays the same. Earlier versions are kept in the history."
+msgstr "Xuất bản lại và liên kết vẫn giữ nguyên. Các phiên bản trước được lưu trong lịch sử."
 
 msgid "Published"
 msgstr "Phát hành"
@@ -14628,8 +14619,8 @@ msgstr "Gửi báo cáo"
 msgid "Send review"
 msgstr "Gửi review"
 
-msgid "Send the link. Your team opens it in a browser, the app, or Slack."
-msgstr "Gửi liên kết. Nhóm của bạn mở nó trong trình duyệt, ứng dụng hoặc Slack."
+msgid "Send the link. Your team opens it in a browser or in Superset."
+msgstr "Gửi liên kết. Nhóm bạn mở nó trong trình duyệt hoặc trong Superset."
 
 msgid "Send to"
 msgstr "Gửi tới"
@@ -16278,8 +16269,8 @@ msgstr "Không tìm thấy nhóm trong tổ chức này"
 msgid "Team settings"
 msgstr "Cài đặt nhóm"
 
-msgid "Teammates pin feedback to the exact heading, chart, or row they mean."
-msgstr "Đồng đội ghim phản hồi đúng vào tiêu đề, biểu đồ hoặc hàng mà họ muốn nói."
+msgid "Teammates pin feedback to the exact part of the page they mean."
+msgstr "Đồng đội ghim phản hồi đúng vào phần trang mà họ muốn nói tới."
 
 msgid "teams"
 msgstr "nhóm"
@@ -16467,8 +16458,8 @@ msgstr "Tác tử đã dừng khi đang tiếp tục cuộc trò chuyện."
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "Agent mà tự động hóa này được đặt để chạy không còn tồn tại trên host của nó — agent của host có thể đã bị đặt lại hoặc gỡ bỏ. Hãy chọn lại agent trong cài đặt của tự động hóa."
 
-msgid "The agent watching the page gets each comment, updates it, publishes a new version, and replies."
-msgstr "Agent theo dõi trang nhận mọi bình luận, cập nhật trang, xuất bản phiên bản mới và phản hồi."
+msgid "The agent watching the page reads each comment. It updates the page and replies in the thread."
+msgstr "Agent theo dõi trang sẽ đọc từng bình luận. Agent cập nhật trang và trả lời trong luồng."
 
 msgid "The app is free to download. It requires iOS 26 or later and Superset Pro. Android is next."
 msgstr "Ứng dụng được tải miễn phí. Yêu cầu iOS 26 trở lên và Superset Pro. Tiếp theo sẽ là Android."
@@ -18343,6 +18334,9 @@ msgstr "Bạn muốn làm gì?"
 msgid "What early users say"
 msgstr "Người dùng đầu tiên nói gì"
 
+msgid "What every page gets."
+msgstr "Những gì mỗi trang đều có."
+
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google hiển thị chúng tôi cho những tìm kiếm nào và bao nhiêu trong đó không phải tên của chúng tôi."
 
@@ -18864,6 +18858,9 @@ msgstr "Tài khoản của bạn đã bị vô hiệu hóa và sẽ sớm bị x
 
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "Tài khoản của bạn do tổ chức quản lý. Hãy liên hệ admin để tạo tổ chức mới."
+
+msgid "Your agent publishes its work as a page. Your team pins comments on it, and the agent makes the changes."
+msgstr "Agent của bạn xuất bản công việc thành một trang. Nhóm bạn bình luận, và agent thực hiện thay đổi."
 
 msgid "Your agent's work, as a link your team can comment on."
 msgstr "Công việc của agent bạn, dưới dạng liên kết để nhóm bạn bình luận."

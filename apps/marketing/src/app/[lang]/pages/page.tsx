@@ -29,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
 		description: i18n._(
 			msg({
 				message:
-					"Agents publish reports, designs, and walkthroughs as a link. Your team pins comments to the page, and the agent updates it and replies.",
+					"Your agent publishes its work as a page. Your team pins comments on it, and the agent makes the changes.",
 			}),
 		),
 		alternates: localizedAlternates(lang, "/pages"),
@@ -55,9 +55,8 @@ export default async function PagesPage() {
 						</h1>
 						<p className="mt-5 max-w-xl text-lg text-muted-foreground leading-relaxed">
 							<Trans>
-								Agents publish reports, designs, and walkthroughs as a page.
-								Teammates pin comments to any part of it, and the agent updates
-								the page and replies.
+								Your agent publishes its work as a page. Your team pins comments
+								on it, and the agent makes the changes.
 							</Trans>
 						</p>
 						<div className="mt-8 flex flex-wrap items-center gap-3">
@@ -134,7 +133,7 @@ export default async function PagesPage() {
 
 				<section className="mt-24 sm:mt-32">
 					<h2 className="font-medium text-3xl text-foreground tracking-tight sm:text-4xl">
-						<Trans>Built for work that has a reader.</Trans>
+						<Trans>What every page gets.</Trans>
 					</h2>
 					<div className="mt-12 grid gap-px overflow-hidden border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
 						{FEATURES.map((feature) => (

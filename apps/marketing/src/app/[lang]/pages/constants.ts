@@ -14,15 +14,14 @@ export const LOOP_STEPS: (PagesItem & { id: LoopStepId })[] = [
 		title: msg({ message: "Create." }),
 		description: msg({
 			message:
-				"Ask an agent for a design doc, a report, or a PR walkthrough. It builds the page and publishes it.",
+				"Ask an agent for a design doc or a report. It builds the page and publishes it.",
 		}),
 	},
 	{
 		id: "share",
 		title: msg({ message: "Share." }),
 		description: msg({
-			message:
-				"Send the link. Your team opens it in a browser, the app, or Slack.",
+			message: "Send the link. Your team opens it in a browser or in Superset.",
 		}),
 	},
 	{
@@ -30,7 +29,7 @@ export const LOOP_STEPS: (PagesItem & { id: LoopStepId })[] = [
 		title: msg({ message: "Comment." }),
 		description: msg({
 			message:
-				"Teammates pin feedback to the exact heading, chart, or row they mean.",
+				"Teammates pin feedback to the exact part of the page they mean.",
 		}),
 	},
 	{
@@ -38,7 +37,7 @@ export const LOOP_STEPS: (PagesItem & { id: LoopStepId })[] = [
 		title: msg({ message: "Iterate." }),
 		description: msg({
 			message:
-				"The agent watching the page gets each comment, updates it, publishes a new version, and replies.",
+				"The agent watching the page reads each comment. It updates the page and replies in the thread.",
 		}),
 	},
 ];
@@ -48,21 +47,20 @@ export const FEATURES: PagesItem[] = [
 		title: msg({ message: "Every publish is a version" }),
 		description: msg({
 			message:
-				"Publish again and the link stays the same. Earlier versions stay in the history.",
+				"Publish again and the link stays the same. Earlier versions are kept in the history.",
 		}),
 	},
 	{
 		title: msg({ message: "Share as wide as you need" }),
 		description: msg({
 			message:
-				"Keep a draft to yourself, share it with your organization, or open it to anyone with the link.",
+				"Choose who can open each page, from just you to anyone with the link.",
 		}),
 	},
 	{
 		title: msg({ message: "Works with any agent" }),
 		description: msg({
-			message:
-				"Claude Code, Codex, and other agents publish through the Superset CLI, the Pages skill, or MCP.",
+			message: "Any agent can publish with the Superset CLI or over MCP.",
 		}),
 	},
 	{
@@ -72,10 +70,10 @@ export const FEATURES: PagesItem[] = [
 		}),
 	},
 	{
-		title: msg({ message: "Pages that remember" }),
+		title: msg({ message: "Pages that save answers" }),
 		description: msg({
 			message:
-				"Polls, checklists, and sign-up sheets keep one answer per reader, with no backend to run.",
+				"A page can save each reader's answer, so a poll works with no backend.",
 		}),
 	},
 	{

@@ -1456,6 +1456,9 @@ msgstr "Versi baru Superset diperlukan untuk melanjutkan. Silakan perbarui ke ve
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "Ruang kerja baru dari cabang ini, dengan percakapan diserahkan ke agen baru"
 
+msgid "A page can save each reader's answer, so a poll works with no backend."
+msgstr "Halaman bisa menyimpan jawaban setiap pembaca, jadi polling berjalan tanpa backend."
+
 msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
 msgstr "Soal TypeScript yang praktis, seperti yang kami selesaikan setiap hari. Tanpa teka-teki algoritma."
 
@@ -1911,12 +1914,6 @@ msgstr "Agen menyelesaikan tiket rutin tanpa intervensi di tengah tugas."
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agen memuat pratinjaunya sendiri, mengendalikan UI, dan melampirkan bukti tangkapan layar sebelum menandai pekerjaan siap direview."
 
-msgid "Agents publish reports, designs, and walkthroughs as a link. Your team pins comments to the page, and the agent updates it and replies."
-msgstr "Agen memublikasikan laporan, desain, dan walkthrough sebagai tautan. Tim Anda menyematkan komentar di halaman, lalu agen memperbaruinya dan membalas."
-
-msgid "Agents publish reports, designs, and walkthroughs as a page. Teammates pin comments to any part of it, and the agent updates the page and replies."
-msgstr "Agen memublikasikan laporan, desain, dan walkthrough sebagai halaman. Rekan tim menyematkan komentar di bagian mana pun, lalu agen memperbarui halaman dan membalas."
-
 msgid "Agents running at once"
 msgstr "Agen yang berjalan sekaligus"
 
@@ -2246,6 +2243,9 @@ msgstr "Anthropic menolak token ini."
 msgid "any account"
 msgstr "akun apa pun"
 
+msgid "Any agent can publish with the Superset CLI or over MCP."
+msgstr "Agen apa pun bisa menerbitkan dengan Superset CLI atau lewat MCP."
+
 msgid "Any channel"
 msgstr "Channel mana pun"
 
@@ -2472,8 +2472,8 @@ msgstr "Sesuai laporan terakhir. Host harus online untuk memperbarui."
 msgid "ascending"
 msgstr "menaik"
 
-msgid "Ask an agent for a design doc, a report, or a PR walkthrough. It builds the page and publishes it."
-msgstr "Minta agen membuat dokumen desain, laporan, atau walkthrough PR. Agen membangun halamannya dan memublikasikannya."
+msgid "Ask an agent for a design doc or a report. It builds the page and publishes it."
+msgstr "Minta agen membuat dokumen desain atau laporan. Agen membuat halamannya lalu menerbitkannya."
 
 msgid "Ask an agent to publish one from the desktop app."
 msgstr "Minta agen untuk memublikasikan satu dari aplikasi desktop."
@@ -3122,9 +3122,6 @@ msgstr "Membangun perangkat lunak yang terakhir"
 msgid "Building the last piece of software."
 msgstr "Membangun perangkat lunak yang terakhir."
 
-msgid "Built for work that has a reader."
-msgstr "Dibuat untuk pekerjaan yang punya pembaca."
-
 msgid "Built in Superset"
 msgstr "Dibangun di Superset"
 
@@ -3584,6 +3581,9 @@ msgstr "Pilih kapan Superset memberi tahu Anda."
 msgid "Choose where agents started from comments, design mode, and Pages open."
 msgstr "Pilih tempat membuka agen yang dimulai dari komentar, mode desain, dan Pages."
 
+msgid "Choose who can open each page, from just you to anyone with the link."
+msgstr "Pilih siapa yang bisa membuka tiap halaman, dari hanya Anda sampai siapa pun yang punya tautan."
+
 msgid "Churn"
 msgstr "Churn"
 
@@ -3595,9 +3595,6 @@ msgstr "Perjelas ini"
 
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code, Codex, dan OpenCode adalah agennya; Superset adalah tempat Anda menjalankan banyak di antaranya sekaligus. Tiap tugas mendapat worktree Git terisolasi sendiri, jadi sepuluh agen bisa bekerja di sepuluh branch bersamaan sementara Anda memantau, mereview, dan me-merge dari satu tempat."
-
-msgid "Claude Code, Codex, and other agents publish through the Superset CLI, the Pages skill, or MCP."
-msgstr "Claude Code, Codex, dan agen lain memublikasikan lewat Superset CLI, skill Halaman, atau MCP."
 
 msgid "Claude Code, Codex, Cursor, OpenCode, and more."
 msgstr "Claude Code, Codex, Cursor, OpenCode, dan lainnya."
@@ -8900,9 +8897,6 @@ msgstr "baru saja"
 msgid "Kbd"
 msgstr "Kbd"
 
-msgid "Keep a draft to yourself, share it with your organization, or open it to anyone with the link."
-msgstr "Simpan draf untuk diri sendiri, bagikan ke organisasi Anda, atau buka untuk siapa saja yang punya tautannya."
-
 msgid "Keep docs fresh"
 msgstr "Jaga dokumentasi tetap segar"
 
@@ -12002,8 +11996,8 @@ msgstr "Halaman tidak dapat dimuat"
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "Halaman tempat sesi dimulai, dengan porsi yang pergi tanpa halaman kedua. Halaman perbandingan adalah permukaan SEO."
 
-msgid "Pages that remember"
-msgstr "Halaman yang mengingat"
+msgid "Pages that save answers"
+msgstr "Halaman yang menyimpan jawaban"
 
 msgid "Pages this agent is watching for comments"
 msgstr "Halaman yang dipantau agen ini untuk komentar"
@@ -12356,9 +12350,6 @@ msgstr "Marketplace plugin"
 
 msgid "Plugins"
 msgstr "Plugin"
-
-msgid "Polls, checklists, and sign-up sheets keep one answer per reader, with no backend to run."
-msgstr "Polling, daftar periksa, dan lembar pendaftaran menyimpan satu jawaban per pembaca, tanpa backend yang perlu dijalankan."
 
 msgid "Popover"
 msgstr "Popover"
@@ -12758,8 +12749,8 @@ msgstr "Publik"
 msgid "Public leaderboard"
 msgstr "Papan peringkat publik"
 
-msgid "Publish again and the link stays the same. Earlier versions stay in the history."
-msgstr "Publikasikan lagi dan tautannya tetap sama. Versi sebelumnya tetap ada di riwayat."
+msgid "Publish again and the link stays the same. Earlier versions are kept in the history."
+msgstr "Terbitkan lagi dan tautannya tetap sama. Versi sebelumnya disimpan di riwayat."
 
 msgid "Published"
 msgstr "Diterbitkan"
@@ -14628,8 +14619,8 @@ msgstr "Kirim laporan"
 msgid "Send review"
 msgstr "Kirim review"
 
-msgid "Send the link. Your team opens it in a browser, the app, or Slack."
-msgstr "Kirim tautannya. Tim Anda membukanya di browser, aplikasi, atau Slack."
+msgid "Send the link. Your team opens it in a browser or in Superset."
+msgstr "Kirim tautannya. Tim Anda membukanya di browser atau di Superset."
 
 msgid "Send to"
 msgstr "Kirim ke"
@@ -16278,8 +16269,8 @@ msgstr "Tim tidak ditemukan di organisasi ini"
 msgid "Team settings"
 msgstr "Pengaturan tim"
 
-msgid "Teammates pin feedback to the exact heading, chart, or row they mean."
-msgstr "Rekan tim menyematkan masukan tepat di judul, grafik, atau baris yang mereka maksud."
+msgid "Teammates pin feedback to the exact part of the page they mean."
+msgstr "Rekan tim menyematkan masukan tepat di bagian halaman yang mereka maksud."
 
 msgid "teams"
 msgstr "tim"
@@ -16467,8 +16458,8 @@ msgstr "Agen berhenti saat melanjutkan percakapan."
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "Agen yang disetel untuk menjalankan otomatisasi ini sudah tidak ada di host-nya — agen host itu mungkin telah direset atau dihapus. Pilih ulang agen di pengaturan otomatisasi."
 
-msgid "The agent watching the page gets each comment, updates it, publishes a new version, and replies."
-msgstr "Agen yang memantau halaman menerima setiap komentar, memperbaruinya, memublikasikan versi baru, dan membalas."
+msgid "The agent watching the page reads each comment. It updates the page and replies in the thread."
+msgstr "Agen yang memantau halaman membaca setiap komentar. Agen memperbarui halaman dan membalas di utas."
 
 msgid "The app is free to download. It requires iOS 26 or later and Superset Pro. Android is next."
 msgstr "Aplikasi ini gratis untuk diunduh. Memerlukan iOS 26 atau lebih baru dan Superset Pro. Android menyusul berikutnya."
@@ -18343,6 +18334,9 @@ msgstr "Apa yang ingin Anda lakukan?"
 msgid "What early users say"
 msgstr "Kata para pengguna awal"
 
+msgid "What every page gets."
+msgstr "Yang didapat setiap halaman."
+
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Untuk pencarian apa Google menampilkan kami dan seberapa banyak yang bukan nama kami sendiri."
 
@@ -18864,6 +18858,9 @@ msgstr "Akun Anda dinonaktifkan dan akan segera dihapus permanen. Aktifkan kemba
 
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "Akun Anda dikelola oleh organisasi Anda. Hubungi admin Anda untuk membuat organisasi baru."
+
+msgid "Your agent publishes its work as a page. Your team pins comments on it, and the agent makes the changes."
+msgstr "Agen Anda menerbitkan pekerjaannya sebagai halaman. Tim Anda memberi komentar, lalu agen membuat perubahannya."
 
 msgid "Your agent's work, as a link your team can comment on."
 msgstr "Hasil kerja agen Anda, sebagai tautan yang bisa dikomentari tim Anda."

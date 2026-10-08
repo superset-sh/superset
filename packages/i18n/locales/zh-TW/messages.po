@@ -1456,6 +1456,9 @@ msgstr "需要新版本的Superset才能繼續。請更新到最新版本。"
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "以該分支建立新工作區，並將對話交給新的代理"
 
+msgid "A page can save each reader's answer, so a poll works with no backend."
+msgstr "頁面可以保存每位讀者的答案，所以不需要後端就能做投票。"
+
 msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
 msgstr "一道實用的 TypeScript 題目，和我們每天解決的問題類似。不考演算法謎題。"
 
@@ -1911,12 +1914,6 @@ msgstr "代理程式無需中途干預即可完成常規工單。"
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "代理程式自己載入預覽、操作介面，並在標記為待審查之前附上截圖證據。"
 
-msgid "Agents publish reports, designs, and walkthroughs as a link. Your team pins comments to the page, and the agent updates it and replies."
-msgstr "代理程式將報告、設計與導覽以連結形式發佈。團隊成員在頁面上釘選留言，代理程式隨即更新頁面並回覆。"
-
-msgid "Agents publish reports, designs, and walkthroughs as a page. Teammates pin comments to any part of it, and the agent updates the page and replies."
-msgstr "代理程式將報告、設計與導覽以頁面形式發佈。團隊成員可以在頁面任何位置釘選留言，代理程式會更新頁面並回覆。"
-
 msgid "Agents running at once"
 msgstr "同時執行的代理程式數"
 
@@ -2246,6 +2243,9 @@ msgstr "Anthropic拒絕了此權杖。"
 msgid "any account"
 msgstr "任一帳號"
 
+msgid "Any agent can publish with the Superset CLI or over MCP."
+msgstr "任何代理程式都能用 Superset CLI 或透過 MCP 發布。"
+
 msgid "Any channel"
 msgstr "任意頻道"
 
@@ -2472,8 +2472,8 @@ msgstr "上次回報的版本。主機必須在線上才能更新。"
 msgid "ascending"
 msgstr "升序"
 
-msgid "Ask an agent for a design doc, a report, or a PR walkthrough. It builds the page and publishes it."
-msgstr "請代理程式產出設計文件、報告或 PR 導覽，它會建立頁面並發佈。"
+msgid "Ask an agent for a design doc or a report. It builds the page and publishes it."
+msgstr "請代理程式寫一份設計文件或報告。它會建立頁面並發布。"
 
 msgid "Ask an agent to publish one from the desktop app."
 msgstr "請代理程式從桌面應用程式發佈一個頁面。"
@@ -3122,9 +3122,6 @@ msgstr "打造最後一款軟體"
 msgid "Building the last piece of software."
 msgstr "打造最後一款軟體。"
 
-msgid "Built for work that has a reader."
-msgstr "為有讀者的工作而生。"
-
 msgid "Built in Superset"
 msgstr "在 Superset 中建構"
 
@@ -3584,6 +3581,9 @@ msgstr "選擇Superset在什麼時候通知你。"
 msgid "Choose where agents started from comments, design mode, and Pages open."
 msgstr "選擇從留言、設計模式和 Pages 啟動的代理程式的開啟位置。"
 
+msgid "Choose who can open each page, from just you to anyone with the link."
+msgstr "為每個頁面選擇誰能開啟，從只有你到任何拿到連結的人。"
+
 msgid "Churn"
 msgstr "流失"
 
@@ -3595,9 +3595,6 @@ msgstr "闡明這裡"
 
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code、Codex和OpenCode是代理程式；Superset是你同時執行它們的地方。每個任務都有自己隔離的Git worktree，十個代理程式可以同時在十個分支上工作，而你在一處監控、審查併合併。"
-
-msgid "Claude Code, Codex, and other agents publish through the Superset CLI, the Pages skill, or MCP."
-msgstr "Claude Code、Codex 與其他代理程式可透過 Superset CLI、Pages 技能或 MCP 發佈。"
 
 msgid "Claude Code, Codex, Cursor, OpenCode, and more."
 msgstr "Claude Code、Codex、Cursor、OpenCode等。"
@@ -8900,9 +8897,6 @@ msgstr "剛剛"
 msgid "Kbd"
 msgstr "Kbd"
 
-msgid "Keep a draft to yourself, share it with your organization, or open it to anyone with the link."
-msgstr "草稿可以僅自己可見、與組織共享，或開放給所有拿到連結的人。"
-
 msgid "Keep docs fresh"
 msgstr "讓文件保持最新"
 
@@ -12002,8 +11996,8 @@ msgstr "無法載入頁面"
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "工作階段開始的頁面，以及未看第二頁就離開的比例。比較頁是 SEO 的主戰場。"
 
-msgid "Pages that remember"
-msgstr "會記住的頁面"
+msgid "Pages that save answers"
+msgstr "能保存答案的頁面"
 
 msgid "Pages this agent is watching for comments"
 msgstr "此代理程式正在關注這些頁面的評論"
@@ -12356,9 +12350,6 @@ msgstr "外掛市場"
 
 msgid "Plugins"
 msgstr "外掛"
-
-msgid "Polls, checklists, and sign-up sheets keep one answer per reader, with no backend to run."
-msgstr "投票、清單與報名表會為每位讀者保存一份答案，無需執行後端。"
 
 msgid "Popover"
 msgstr "氣泡卡片"
@@ -12758,8 +12749,8 @@ msgstr "公開"
 msgid "Public leaderboard"
 msgstr "公開排行榜"
 
-msgid "Publish again and the link stays the same. Earlier versions stay in the history."
-msgstr "再次發佈，連結維持不變。舊版本會保留在記錄中。"
+msgid "Publish again and the link stays the same. Earlier versions are kept in the history."
+msgstr "再次發布時連結不變。舊版本會保留在歷史紀錄中。"
 
 msgid "Published"
 msgstr "發布時間"
@@ -14628,8 +14619,8 @@ msgstr "送出檢舉"
 msgid "Send review"
 msgstr "傳送審查"
 
-msgid "Send the link. Your team opens it in a browser, the app, or Slack."
-msgstr "傳送連結即可。團隊可在瀏覽器、App 或 Slack 中開啟。"
+msgid "Send the link. Your team opens it in a browser or in Superset."
+msgstr "傳送連結。團隊可以在瀏覽器或 Superset 中開啟。"
 
 msgid "Send to"
 msgstr "傳送給"
@@ -16278,8 +16269,8 @@ msgstr "在此組織中未找到該團隊"
 msgid "Team settings"
 msgstr "團隊設定"
 
-msgid "Teammates pin feedback to the exact heading, chart, or row they mean."
-msgstr "團隊成員可以把意見釘選在具體的標題、圖表或列上。"
+msgid "Teammates pin feedback to the exact part of the page they mean."
+msgstr "團隊成員把回饋釘在頁面上他們所指的確切位置。"
 
 msgid "teams"
 msgstr "團隊"
@@ -16467,8 +16458,8 @@ msgstr "恢復對話時代理已停止。"
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "這個自動化原本要執行的代理程式在它的主機上已不存在，該主機的代理程式可能被重置或刪除了。請在自動化的設定中重新選擇一個代理程式。"
 
-msgid "The agent watching the page gets each comment, updates it, publishes a new version, and replies."
-msgstr "關注該頁面的代理程式會收到每則留言，更新頁面、發佈新版本並回覆。"
+msgid "The agent watching the page reads each comment. It updates the page and replies in the thread."
+msgstr "關注該頁面的代理程式會讀取每則留言，更新頁面並在討論串中回覆。"
 
 msgid "The app is free to download. It requires iOS 26 or later and Superset Pro. Android is next."
 msgstr "此 App 可免費下載。需要 iOS 26 或更新版本以及 Superset Pro。接下來將推出 Android 版。"
@@ -18343,6 +18334,9 @@ msgstr "你想做什麼？"
 msgid "What early users say"
 msgstr "早期使用者怎麼說"
 
+msgid "What every page gets."
+msgstr "每個頁面都有的功能。"
+
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google 為哪些搜尋顯示我們，其中有多少不是我們自己的名字。"
 
@@ -18864,6 +18858,9 @@ msgstr "你的帳戶已停用，並將很快被永久刪除。重新啟用即可
 
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "你的帳戶由你所在的組織管理。請聯絡管理員來建立新組織。"
+
+msgid "Your agent publishes its work as a page. Your team pins comments on it, and the agent makes the changes."
+msgstr "你的代理程式把工作發布成頁面。團隊在上面留言，代理程式負責修改。"
 
 msgid "Your agent's work, as a link your team can comment on."
 msgstr "你的代理程式的成果，一個團隊可以留言的連結。"

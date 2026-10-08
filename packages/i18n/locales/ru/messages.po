@@ -1456,6 +1456,9 @@ msgstr "Чтобы продолжить, нужна новая версия Supe
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "Новое рабочее пространство от этой ветки, разговор передаётся новому агенту"
 
+msgid "A page can save each reader's answer, so a poll works with no backend."
+msgstr "Страница может сохранять ответ каждого читателя, поэтому опрос работает без бэкенда."
+
 msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
 msgstr "Практическая задача на TypeScript, вроде тех, что мы решаем каждый день. Никаких алгоритмических головоломок."
 
@@ -1911,12 +1914,6 @@ msgstr "Агенты закрывают рутинные тикеты без в�
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Агенты сами открывают свой предпросмотр, управляют интерфейсом и прикладывают скриншоты как доказательство, прежде чем отметить работу готовой к ревью."
 
-msgid "Agents publish reports, designs, and walkthroughs as a link. Your team pins comments to the page, and the agent updates it and replies."
-msgstr "Агенты публикуют отчеты, дизайны и пошаговые разборы в виде ссылки. Команда закрепляет комментарии на странице, а агент обновляет ее и отвечает."
-
-msgid "Agents publish reports, designs, and walkthroughs as a page. Teammates pin comments to any part of it, and the agent updates the page and replies."
-msgstr "Агенты публикуют отчеты, дизайны и пошаговые разборы в виде страницы. Коллеги закрепляют комментарии к любой ее части, а агент обновляет страницу и отвечает."
-
 msgid "Agents running at once"
 msgstr "Агентов запущено одновременно"
 
@@ -2246,6 +2243,9 @@ msgstr "Anthropic отклонил этот токен."
 msgid "any account"
 msgstr "любой аккаунт"
 
+msgid "Any agent can publish with the Superset CLI or over MCP."
+msgstr "Любой агент может публиковать через Superset CLI или по MCP."
+
 msgid "Any channel"
 msgstr "Любой канал"
 
@@ -2472,8 +2472,8 @@ msgstr "По последним данным. Для обновления хос
 msgid "ascending"
 msgstr "по возрастанию"
 
-msgid "Ask an agent for a design doc, a report, or a PR walkthrough. It builds the page and publishes it."
-msgstr "Попросите агента подготовить дизайн-документ, отчет или разбор PR. Он создаст страницу и опубликует ее."
+msgid "Ask an agent for a design doc or a report. It builds the page and publishes it."
+msgstr "Попросите агента подготовить дизайн-документ или отчёт. Он создаст страницу и опубликует её."
 
 msgid "Ask an agent to publish one from the desktop app."
 msgstr "Попросите агента опубликовать её из десктопного приложения."
@@ -3122,9 +3122,6 @@ msgstr "Строим последнюю программу"
 msgid "Building the last piece of software."
 msgstr "Строим последнюю программу."
 
-msgid "Built for work that has a reader."
-msgstr "Создано для работы, у которой есть читатель."
-
 msgid "Built in Superset"
 msgstr "Создано в Superset"
 
@@ -3584,6 +3581,9 @@ msgstr "Выберите, когда Superset вас уведомляет."
 msgid "Choose where agents started from comments, design mode, and Pages open."
 msgstr "Выберите, где открывать агентов, запущенных из комментариев, режима дизайна и Pages."
 
+msgid "Choose who can open each page, from just you to anyone with the link."
+msgstr "Выбирайте, кто может открыть каждую страницу: от вас одного до любого, у кого есть ссылка."
+
 msgid "Churn"
 msgstr "Отток"
 
@@ -3595,9 +3595,6 @@ msgstr "Уточнить это"
 
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code, Codex и OpenCode — это агенты; Superset — место, где вы запускаете их много сразу. У каждой задачи свой изолированный Git worktree, поэтому десять агентов могут работать над десятью ветками одновременно, пока вы следите, проверяете и объединяете из одного места."
-
-msgid "Claude Code, Codex, and other agents publish through the Superset CLI, the Pages skill, or MCP."
-msgstr "Claude Code, Codex и другие агенты публикуют через Superset CLI, навык Pages или MCP."
 
 msgid "Claude Code, Codex, Cursor, OpenCode, and more."
 msgstr "Claude Code, Codex, Cursor, OpenCode и другие."
@@ -8900,9 +8897,6 @@ msgstr "только что"
 msgid "Kbd"
 msgstr "Kbd"
 
-msgid "Keep a draft to yourself, share it with your organization, or open it to anyone with the link."
-msgstr "Оставьте черновик себе, поделитесь им с организацией или откройте всем, у кого есть ссылка."
-
 msgid "Keep docs fresh"
 msgstr "Держать документацию актуальной"
 
@@ -12002,8 +11996,8 @@ msgstr "Не удалось загрузить страницы"
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "Страницы, с которых начались сессии, и доля ушедших без второй страницы. Страницы сравнения — это SEO-поверхность."
 
-msgid "Pages that remember"
-msgstr "Страницы с памятью"
+msgid "Pages that save answers"
+msgstr "Страницы, которые сохраняют ответы"
 
 msgid "Pages this agent is watching for comments"
 msgstr "Страницы, за комментариями на которых следит этот агент"
@@ -12356,9 +12350,6 @@ msgstr "Маркетплейс плагинов"
 
 msgid "Plugins"
 msgstr "Плагины"
-
-msgid "Polls, checklists, and sign-up sheets keep one answer per reader, with no backend to run."
-msgstr "Опросы, чек-листы и списки записи сохраняют по одному ответу на читателя, без собственного бэкенда."
 
 msgid "Popover"
 msgstr "Поповер"
@@ -12758,8 +12749,8 @@ msgstr "Публичный"
 msgid "Public leaderboard"
 msgstr "Публичный рейтинг"
 
-msgid "Publish again and the link stays the same. Earlier versions stay in the history."
-msgstr "Опубликуйте снова, и ссылка останется прежней. Прежние версии сохраняются в истории."
+msgid "Publish again and the link stays the same. Earlier versions are kept in the history."
+msgstr "Опубликуйте снова, и ссылка останется прежней. Прошлые версии сохраняются в истории."
 
 msgid "Published"
 msgstr "Опубликовано"
@@ -14628,8 +14619,8 @@ msgstr "Отправить жалобу"
 msgid "Send review"
 msgstr "Отправить ревью"
 
-msgid "Send the link. Your team opens it in a browser, the app, or Slack."
-msgstr "Отправьте ссылку. Команда откроет ее в браузере, в приложении или в Slack."
+msgid "Send the link. Your team opens it in a browser or in Superset."
+msgstr "Отправьте ссылку. Команда откроет её в браузере или в Superset."
 
 msgid "Send to"
 msgstr "Кому отправить"
@@ -16278,8 +16269,8 @@ msgstr "Команда не найдена в этой организации"
 msgid "Team settings"
 msgstr "Настройки команды"
 
-msgid "Teammates pin feedback to the exact heading, chart, or row they mean."
-msgstr "Коллеги закрепляют отзыв точно на заголовке, диаграмме или строке, которые имеют в виду."
+msgid "Teammates pin feedback to the exact part of the page they mean."
+msgstr "Коллеги прикрепляют отзыв точно к той части страницы, о которой говорят."
 
 msgid "teams"
 msgstr "команды"
@@ -16467,8 +16458,8 @@ msgstr "Агент остановился при возобновлении ра
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "Агента, на котором должна была запускаться эта автоматизация, больше нет на его хосте — возможно, агенты хоста были сброшены или удалены. Выберите агента заново в настройках автоматизации."
 
-msgid "The agent watching the page gets each comment, updates it, publishes a new version, and replies."
-msgstr "Агент, следящий за страницей, получает каждый комментарий, обновляет ее, публикует новую версию и отвечает."
+msgid "The agent watching the page reads each comment. It updates the page and replies in the thread."
+msgstr "Агент, который следит за страницей, читает каждый комментарий. Он обновляет страницу и отвечает в обсуждении."
 
 msgid "The app is free to download. It requires iOS 26 or later and Superset Pro. Android is next."
 msgstr "Приложение можно скачать бесплатно. Требуются iOS 26 или новее и Superset Pro. Следующей будет версия для Android."
@@ -18343,6 +18334,9 @@ msgstr "Что нужно сделать?"
 msgid "What early users say"
 msgstr "Что говорят первые пользователи"
 
+msgid "What every page gets."
+msgstr "Что есть у каждой страницы."
+
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "По каким запросам Google показывает нас и какая часть из них не наше имя."
 
@@ -18864,6 +18858,9 @@ msgstr "Аккаунт деактивирован и скоро будет бе�
 
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "Вашим аккаунтом управляет ваша организация. Обратитесь к администратору, чтобы создать новую организацию."
+
+msgid "Your agent publishes its work as a page. Your team pins comments on it, and the agent makes the changes."
+msgstr "Ваш агент публикует свою работу как страницу. Команда оставляет комментарии, а агент вносит изменения."
 
 msgid "Your agent's work, as a link your team can comment on."
 msgstr "Работа вашего агента в виде ссылки, которую команда может комментировать."

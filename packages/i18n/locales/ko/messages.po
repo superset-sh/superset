@@ -1456,6 +1456,9 @@ msgstr "계속하려면 새 버전의 Superset이 필요합니다. 최신 버전
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "이 브랜치에서 새 워크스페이스를 만들고 대화를 새 에이전트에 넘깁니다"
 
+msgid "A page can save each reader's answer, so a poll works with no backend."
+msgstr "페이지가 독자별 답변을 저장하므로 백엔드 없이 투표를 만들 수 있습니다."
+
 msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
 msgstr "우리가 매일 해결하는 것과 비슷한 실전 TypeScript 문제입니다. 알고리즘 퍼즐은 없습니다."
 
@@ -1911,12 +1914,6 @@ msgstr "에이전트가 작업 중간 개입 없이 일상적인 티켓을 완�
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "에이전트가 직접 미리 보기를 띄우고, UI를 조작하고, 리뷰 준비 표시를 하기 전에 스크린샷 증거를 첨부합니다."
 
-msgid "Agents publish reports, designs, and walkthroughs as a link. Your team pins comments to the page, and the agent updates it and replies."
-msgstr "에이전트가 보고서, 디자인, 워크스루를 링크로 게시합니다. 팀은 페이지에 댓글을 고정하고, 에이전트가 페이지를 업데이트한 뒤 답글을 남깁니다."
-
-msgid "Agents publish reports, designs, and walkthroughs as a page. Teammates pin comments to any part of it, and the agent updates the page and replies."
-msgstr "에이전트가 보고서, 디자인, 워크스루를 페이지로 게시합니다. 팀원은 페이지의 어느 부분에든 댓글을 고정할 수 있고, 에이전트가 페이지를 업데이트하고 답글을 남깁니다."
-
 msgid "Agents running at once"
 msgstr "동시에 실행 중인 에이전트"
 
@@ -2246,6 +2243,9 @@ msgstr "Anthropic이 이 토큰을 거부했습니다."
 msgid "any account"
 msgstr "모든 계정"
 
+msgid "Any agent can publish with the Superset CLI or over MCP."
+msgstr "어떤 에이전트든 Superset CLI나 MCP로 게시할 수 있습니다."
+
 msgid "Any channel"
 msgstr "모든 채널"
 
@@ -2472,8 +2472,8 @@ msgstr "마지막으로 보고된 값입니다. 업데이트하려면 호스트�
 msgid "ascending"
 msgstr "오름차순"
 
-msgid "Ask an agent for a design doc, a report, or a PR walkthrough. It builds the page and publishes it."
-msgstr "에이전트에게 디자인 문서, 보고서, PR 워크스루를 요청하세요. 페이지를 만들어 게시합니다."
+msgid "Ask an agent for a design doc or a report. It builds the page and publishes it."
+msgstr "에이전트에게 디자인 문서나 보고서를 요청하세요. 페이지를 만들고 게시합니다."
 
 msgid "Ask an agent to publish one from the desktop app."
 msgstr "데스크톱 앱에서 에이전트에게 게시를 요청하세요."
@@ -3122,9 +3122,6 @@ msgstr "마지막 소프트웨어를 만듭니다"
 msgid "Building the last piece of software."
 msgstr "마지막 소프트웨어를 만듭니다."
 
-msgid "Built for work that has a reader."
-msgstr "읽는 사람이 있는 작업을 위해."
-
 msgid "Built in Superset"
 msgstr "Superset으로 개발합니다"
 
@@ -3584,6 +3581,9 @@ msgstr "Superset이 언제 알릴지 선택하세요."
 msgid "Choose where agents started from comments, design mode, and Pages open."
 msgstr "댓글, 디자인 모드 및 Pages에서 시작한 에이전트를 열 위치를 선택하세요."
 
+msgid "Choose who can open each page, from just you to anyone with the link."
+msgstr "나만 보기부터 링크가 있는 누구나까지, 페이지마다 열람 범위를 정하세요."
+
 msgid "Churn"
 msgstr "이탈"
 
@@ -3595,9 +3595,6 @@ msgstr "이것을 명확히 해 주세요"
 
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code, Codex, OpenCode는 에이전트이고, Superset은 그 여럿을 한꺼번에 돌리는 곳입니다. 작업마다 격리된 Git worktree가 생기므로 에이전트 열 개가 브랜치 열 개에서 동시에 작업하는 동안 한곳에서 관찰하고, 리뷰하고, 머지할 수 있습니다."
-
-msgid "Claude Code, Codex, and other agents publish through the Superset CLI, the Pages skill, or MCP."
-msgstr "Claude Code, Codex 등 다른 에이전트는 Superset CLI, Pages 스킬 또는 MCP로 게시합니다."
 
 msgid "Claude Code, Codex, Cursor, OpenCode, and more."
 msgstr "Claude Code, Codex, Cursor, OpenCode 등이 있습니다."
@@ -8900,9 +8897,6 @@ msgstr "방금"
 msgid "Kbd"
 msgstr "Kbd"
 
-msgid "Keep a draft to yourself, share it with your organization, or open it to anyone with the link."
-msgstr "초안은 혼자 보관하거나, 조직과 공유하거나, 링크가 있는 누구에게나 공개할 수 있습니다."
-
 msgid "Keep docs fresh"
 msgstr "문서 최신 상태 유지"
 
@@ -12002,8 +11996,8 @@ msgstr "페이지를 불러오지 못했습니다"
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "세션이 시작된 페이지와 두 번째 페이지 없이 떠난 비율. 비교 페이지가 SEO의 주 무대입니다."
 
-msgid "Pages that remember"
-msgstr "기억하는 페이지"
+msgid "Pages that save answers"
+msgstr "답변을 저장하는 페이지"
 
 msgid "Pages this agent is watching for comments"
 msgstr "이 에이전트가 댓글을 감시 중인 페이지"
@@ -12356,9 +12350,6 @@ msgstr "플러그인 마켓플레이스"
 
 msgid "Plugins"
 msgstr "플러그인"
-
-msgid "Polls, checklists, and sign-up sheets keep one answer per reader, with no backend to run."
-msgstr "투표, 체크리스트, 가입 시트는 백엔드 없이도 독자당 하나의 응답을 저장합니다."
 
 msgid "Popover"
 msgstr "팝오버"
@@ -12758,7 +12749,7 @@ msgstr "공개"
 msgid "Public leaderboard"
 msgstr "공개 리더보드"
 
-msgid "Publish again and the link stays the same. Earlier versions stay in the history."
+msgid "Publish again and the link stays the same. Earlier versions are kept in the history."
 msgstr "다시 게시해도 링크는 그대로입니다. 이전 버전은 기록에 남습니다."
 
 msgid "Published"
@@ -14628,8 +14619,8 @@ msgstr "신고 보내기"
 msgid "Send review"
 msgstr "리뷰 보내기"
 
-msgid "Send the link. Your team opens it in a browser, the app, or Slack."
-msgstr "링크를 보내세요. 팀은 브라우저, 앱 또는 Slack에서 열 수 있습니다."
+msgid "Send the link. Your team opens it in a browser or in Superset."
+msgstr "링크를 보내세요. 팀은 브라우저나 Superset에서 엽니다."
 
 msgid "Send to"
 msgstr "보낼 대상"
@@ -16278,8 +16269,8 @@ msgstr "이 조직에서 팀을 찾을 수 없습니다"
 msgid "Team settings"
 msgstr "팀 설정"
 
-msgid "Teammates pin feedback to the exact heading, chart, or row they mean."
-msgstr "팀원은 원하는 제목, 차트, 행에 정확히 피드백을 고정할 수 있습니다."
+msgid "Teammates pin feedback to the exact part of the page they mean."
+msgstr "팀원이 가리키는 바로 그 부분에 피드백을 고정합니다."
 
 msgid "teams"
 msgstr "팀"
@@ -16467,8 +16458,8 @@ msgstr "대화를 재개하는 중에 에이전트가 중지되었습니다."
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "이 자동화가 실행하도록 설정된 에이전트가 해당 호스트에 더 이상 존재하지 않습니다. 호스트의 에이전트가 초기화되었거나 제거되었을 수 있습니다. 자동화 설정에서 에이전트를 다시 선택하세요."
 
-msgid "The agent watching the page gets each comment, updates it, publishes a new version, and replies."
-msgstr "페이지를 지켜보는 에이전트가 각 댓글을 받아 페이지를 업데이트하고, 새 버전을 게시한 뒤 답글을 남깁니다."
+msgid "The agent watching the page reads each comment. It updates the page and replies in the thread."
+msgstr "페이지를 지켜보는 에이전트가 각 댓글을 읽고 페이지를 업데이트한 뒤 스레드에 답합니다."
 
 msgid "The app is free to download. It requires iOS 26 or later and Superset Pro. Android is next."
 msgstr "앱은 무료로 다운로드할 수 있습니다. iOS 26 이상과 Superset Pro가 필요합니다. 다음은 Android입니다."
@@ -18343,6 +18334,9 @@ msgstr "무엇을 하고 싶으신가요?"
 msgid "What early users say"
 msgstr "초기 사용자들의 이야기"
 
+msgid "What every page gets."
+msgstr "모든 페이지에 들어 있는 것."
+
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google이 어떤 검색어로 우리를 보여주는지, 그중 우리 이름이 아닌 비중은 얼마인지."
 
@@ -18864,6 +18858,9 @@ msgstr "계정이 비활성화되었으며 곧 영구적으로 삭제됩니다. 
 
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "계정이 조직에서 관리됩니다. 새 조직을 만들려면 관리자에게 문의하세요."
+
+msgid "Your agent publishes its work as a page. Your team pins comments on it, and the agent makes the changes."
+msgstr "에이전트가 작업을 페이지로 게시합니다. 팀이 댓글을 달면 에이전트가 수정합니다."
 
 msgid "Your agent's work, as a link your team can comment on."
 msgstr "에이전트의 작업을, 팀이 댓글을 달 수 있는 링크로."
