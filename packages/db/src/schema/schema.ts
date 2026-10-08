@@ -996,6 +996,9 @@ export const cloudWorkspaceShares = pgTable(
 		index("cloud_workspace_shares_user_id_idx").on(table.userId),
 		index("cloud_workspace_shares_team_id_idx").on(table.teamId),
 		index("cloud_workspace_shares_invitation_id_idx").on(table.invitationId),
+		index("cloud_workspace_shares_shared_by_user_id_idx").on(
+			table.sharedByUserId,
+		),
 		check("cloud_workspace_shares_one_grantee", oneGrantee),
 	],
 );
@@ -1157,6 +1160,8 @@ export const cloudWorkspaceActivity = pgTable(
 		index("cloud_workspace_activity_unlinked_task_id_idx").on(
 			table.unlinkedTaskId,
 		),
+		index("cloud_workspace_activity_target_user_id_idx").on(table.targetUserId),
+		index("cloud_workspace_activity_target_team_id_idx").on(table.targetTeamId),
 	],
 );
 
@@ -2045,6 +2050,7 @@ export const pageShares = pgTable(
 		index("page_shares_user_id_idx").on(table.userId),
 		index("page_shares_team_id_idx").on(table.teamId),
 		index("page_shares_invitation_id_idx").on(table.invitationId),
+		index("page_shares_shared_by_user_id_idx").on(table.sharedByUserId),
 		check("page_shares_one_grantee", oneGrantee),
 	],
 );
