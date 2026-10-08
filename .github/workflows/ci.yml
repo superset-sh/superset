@@ -133,9 +133,14 @@ jobs:
         run: bun run check:durable-objects
 
   test:
-    name: Test
+    name: Test (${{ matrix.bun }} ${{ matrix.attempt }})
     runs-on: blacksmith-8vcpu-ubuntu-2404
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        bun: [pinned, canary]
+        attempt: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -151,6 +156,15 @@ jobs:
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
+
+      - name: Setup Bun canary
+        if: matrix.bun == 'canary'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: canary
+
+      - name: Bun revision
+        run: bun --revision
 
       - name: Install dependencies
         run: bun install --frozen --ignore-scripts
