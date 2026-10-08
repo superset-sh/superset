@@ -1944,9 +1944,6 @@ msgstr "nastavení agenta"
 msgid "Agent usage rankings"
 msgstr "Žebříček využití agentů"
 
-msgid "Agent work as a link"
-msgstr "Práce agenta jako odkaz"
-
 msgid "Agent-driven previews"
 msgstr "Náhledy řízené agenty"
 
@@ -14087,6 +14084,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "Ke kontrole"
 
+msgid "Review agent work"
+msgstr "Kontrola práce agenta"
+
 msgid "Review agent work with Pages"
 msgstr "Kontrola práce agenta ve Stránkách"
 
@@ -15141,9 +15141,6 @@ msgstr "Sytost barvy se vztahuje k nejrušnějšímu dni tohoto vývojáře"
 
 msgid "Share"
 msgstr "Sdílet"
-
-msgid "Share agent work as a link your team can comment on."
-msgstr "Sdílejte práci agenta jako odkaz, který může váš tým komentovat."
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Sdílejte návrhy a zprávy. Zpětnou vazbu nechte na svém agentovi."
@@ -19336,11 +19333,11 @@ msgstr "Váš účet spravuje vaše organizace. O vytvoření nové organizace p
 msgid "Your agent can open any page and work through it with superset browser commands. It uses the pane you are watching, so you see every step."
 msgstr "Agent může otevřít libovolnou stránku a projít ji pomocí příkazů superset browser. Používá panel, na který se díváte, takže vidíte každý krok."
 
-msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
-msgstr "Váš agent publikuje svou práci jako stránku. Tým ji okomentuje a agent provede změny."
+msgid "Your agent publishes designs and reports for your team to review. When someone comments, the agent starts working on the feedback."
+msgstr "Váš agent publikuje návrhy a reporty, které tým zkontroluje. Když někdo přidá komentář, agent začne na zpětné vazbě pracovat."
 
-msgid "Your agent's work, as a link your team can comment on."
-msgstr "Práce vašeho agenta jako odkaz, který může váš tým komentovat."
+msgid "Your agent publishes designs and reports. Your team comments, and it gets to work."
+msgstr "Váš agent publikuje návrhy a reporty. Tým je okomentuje a agent se pustí do práce."
 
 msgid "Your agents do the recurring work on a schedule you set."
 msgstr "Vaši agenti vykonávají opakující se práci podle plánu, který nastavíte."
@@ -19414,6 +19411,9 @@ msgstr "Vaše předplatné se odpovídajícím způsobem upraví."
 
 msgid "Your Superset download is starting."
 msgstr "Vaše stahování Supersetu se spouští."
+
+msgid "Your teammates can talk directly to your agent."
+msgstr "Vaši kolegové mohou mluvit přímo s vaším agentem."
 
 msgid "Your terminal sessions won't be interrupted."
 msgstr "Vaše relace v terminálu nebudou přerušeny."

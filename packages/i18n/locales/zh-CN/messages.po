@@ -1944,9 +1944,6 @@ msgstr "智能体设置"
 msgid "Agent usage rankings"
 msgstr "智能体使用量排行"
 
-msgid "Agent work as a link"
-msgstr "以链接分享智能体的工作"
-
 msgid "Agent-driven previews"
 msgstr "由智能体驱动的预览"
 
@@ -14087,6 +14084,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "待查看"
 
+msgid "Review agent work"
+msgstr "审阅智能体的工作"
+
 msgid "Review agent work with Pages"
 msgstr "用页面审查智能体的工作"
 
@@ -15141,9 +15141,6 @@ msgstr "深浅以该开发者最忙的一天为基准"
 
 msgid "Share"
 msgstr "分享"
-
-msgid "Share agent work as a link your team can comment on."
-msgstr "以链接形式分享智能体的成果，让团队可以评论。"
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "分享设计和报告，让你的智能体处理反馈。"
@@ -19336,11 +19333,11 @@ msgstr "你的账户由你所在的组织管理。请联系管理员来创建新
 msgid "Your agent can open any page and work through it with superset browser commands. It uses the pane you are watching, so you see every step."
 msgstr "你的智能体可以用 superset browser 命令打开任意页面并逐步操作。它使用你正在看的窗格，所以每一步你都能看到。"
 
-msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
-msgstr "你的智能体把工作发布成页面。团队发表评论，智能体负责修改。"
+msgid "Your agent publishes designs and reports for your team to review. When someone comments, the agent starts working on the feedback."
+msgstr "你的智能体发布设计和报告，供团队审阅。有人评论后，智能体会立即根据反馈开始修改。"
 
-msgid "Your agent's work, as a link your team can comment on."
-msgstr "你的智能体的成果，一个团队可以评论的链接。"
+msgid "Your agent publishes designs and reports. Your team comments, and it gets to work."
+msgstr "你的智能体发布设计和报告。团队发表评论，智能体随即开始工作。"
 
 msgid "Your agents do the recurring work on a schedule you set."
 msgstr "智能体按你设定的计划完成重复性工作。"
@@ -19414,6 +19411,9 @@ msgstr "你的订阅将相应调整。"
 
 msgid "Your Superset download is starting."
 msgstr "Superset 下载即将开始。"
+
+msgid "Your teammates can talk directly to your agent."
+msgstr "你的队友可以直接与你的智能体对话。"
 
 msgid "Your terminal sessions won't be interrupted."
 msgstr "你的终端会话不会被中断。"

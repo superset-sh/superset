@@ -1944,9 +1944,6 @@ msgstr "настройки агента"
 msgid "Agent usage rankings"
 msgstr "Рейтинги использования агентов"
 
-msgid "Agent work as a link"
-msgstr "Работа агента одной ссылкой"
-
 msgid "Agent-driven previews"
 msgstr "Превью под управлением агента"
 
@@ -14087,6 +14084,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "На проверку"
 
+msgid "Review agent work"
+msgstr "Проверка работы агента"
+
 msgid "Review agent work with Pages"
 msgstr "Проверка работы агента в Страницах"
 
@@ -15141,9 +15141,6 @@ msgstr "Насыщенность цвета отсчитывается от са
 
 msgid "Share"
 msgstr "Поделиться"
-
-msgid "Share agent work as a link your team can comment on."
-msgstr "Делитесь работой агента в виде ссылки, которую команда может комментировать."
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Делитесь дизайнами и отчётами. Пусть ваш агент обработает отзывы."
@@ -19336,11 +19333,11 @@ msgstr "Вашим аккаунтом управляет ваша организ
 msgid "Your agent can open any page and work through it with superset browser commands. It uses the pane you are watching, so you see every step."
 msgstr "Агент может открыть любую страницу и пройтись по ней с помощью команд superset browser. Он использует панель, на которую вы смотрите, поэтому вы видите каждый шаг."
 
-msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
-msgstr "Ваш агент публикует свою работу как страницу. Команда её комментирует, а агент вносит изменения."
+msgid "Your agent publishes designs and reports for your team to review. When someone comments, the agent starts working on the feedback."
+msgstr "Ваш агент публикует дизайны и отчёты, которые проверяет команда. Когда кто-то оставляет комментарий, агент сразу берётся за правки."
 
-msgid "Your agent's work, as a link your team can comment on."
-msgstr "Работа вашего агента в виде ссылки, которую команда может комментировать."
+msgid "Your agent publishes designs and reports. Your team comments, and it gets to work."
+msgstr "Ваш агент публикует дизайны и отчёты. Команда комментирует, и агент берётся за работу."
 
 msgid "Your agents do the recurring work on a schedule you set."
 msgstr "Ваши агенты выполняют регулярную работу по заданному вами расписанию."
@@ -19414,6 +19411,9 @@ msgstr "Подписка будет пересчитана соответств�
 
 msgid "Your Superset download is starting."
 msgstr "Загрузка Superset начинается."
+
+msgid "Your teammates can talk directly to your agent."
+msgstr "Ваша команда может общаться с вашим агентом напрямую."
 
 msgid "Your terminal sessions won't be interrupted."
 msgstr "Сессии терминала не будут прерваны."

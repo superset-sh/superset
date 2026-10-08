@@ -1944,9 +1944,6 @@ msgstr "代理程式設定"
 msgid "Agent usage rankings"
 msgstr "代理程式使用量排行"
 
-msgid "Agent work as a link"
-msgstr "以連結分享代理程式的工作"
-
 msgid "Agent-driven previews"
 msgstr "由代理程式驅動的預覽"
 
@@ -14087,6 +14084,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "待檢視"
 
+msgid "Review agent work"
+msgstr "審閱代理程式的工作"
+
 msgid "Review agent work with Pages"
 msgstr "用頁面審查代理程式的工作"
 
@@ -15141,9 +15141,6 @@ msgstr "深淺以該開發者最忙的一天為基準"
 
 msgid "Share"
 msgstr "分享"
-
-msgid "Share agent work as a link your team can comment on."
-msgstr "以連結分享代理程式的成果，讓團隊可以留言。"
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "分享設計和報告，讓你的代理程式處理回饋。"
@@ -19336,11 +19333,11 @@ msgstr "你的帳戶由你所在的組織管理。請聯絡管理員來建立新
 msgid "Your agent can open any page and work through it with superset browser commands. It uses the pane you are watching, so you see every step."
 msgstr "你的代理程式可以用 superset browser 指令開啟任何頁面並逐步操作。它使用你正在看的窗格，所以每一步你都看得到。"
 
-msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
-msgstr "你的代理程式把工作發布成頁面。團隊留言，代理程式負責修改。"
+msgid "Your agent publishes designs and reports for your team to review. When someone comments, the agent starts working on the feedback."
+msgstr "你的代理程式發布設計和報告，供團隊審閱。有人留言後，代理程式會立即依據回饋開始修改。"
 
-msgid "Your agent's work, as a link your team can comment on."
-msgstr "你的代理程式的成果，一個團隊可以留言的連結。"
+msgid "Your agent publishes designs and reports. Your team comments, and it gets to work."
+msgstr "你的代理程式發布設計和報告。團隊留言，代理程式隨即開始工作。"
 
 msgid "Your agents do the recurring work on a schedule you set."
 msgstr "代理程式依你設定的計劃完成重複性工作。"
@@ -19414,6 +19411,9 @@ msgstr "你的訂閱將相應調整。"
 
 msgid "Your Superset download is starting."
 msgstr "您的 Superset 下載即將開始。"
+
+msgid "Your teammates can talk directly to your agent."
+msgstr "你的隊友可以直接與你的代理程式對話。"
 
 msgid "Your terminal sessions won't be interrupted."
 msgstr "你的終端會話不會被中斷。"

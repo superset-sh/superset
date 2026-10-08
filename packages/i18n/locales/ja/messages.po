@@ -1944,9 +1944,6 @@ msgstr "エージェント設定"
 msgid "Agent usage rankings"
 msgstr "エージェント使用量ランキング"
 
-msgid "Agent work as a link"
-msgstr "エージェントの作業をリンクで共有"
-
 msgid "Agent-driven previews"
 msgstr "エージェントが操作するプレビュー"
 
@@ -14087,6 +14084,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "要確認"
 
+msgid "Review agent work"
+msgstr "エージェントの作業をレビュー"
+
 msgid "Review agent work with Pages"
 msgstr "ページでエージェントの作業をレビュー"
 
@@ -15141,9 +15141,6 @@ msgstr "濃さはこの開発者の最も活動量が多い日を基準にして
 
 msgid "Share"
 msgstr "共有"
-
-msgid "Share agent work as a link your team can comment on."
-msgstr "エージェントの成果を、チームがコメントできるリンクで共有しましょう。"
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "デザインやレポートを共有しましょう。フィードバックへの対応はエージェントに任せられます。"
@@ -19336,11 +19333,11 @@ msgstr "アカウントは組織によって管理されています。新しい
 msgid "Your agent can open any page and work through it with superset browser commands. It uses the pane you are watching, so you see every step."
 msgstr "エージェントは superset browser コマンドで任意のページを開いて操作できます。あなたが見ているペインを使うので、すべての手順が見えます。"
 
-msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
-msgstr "エージェントが作業をページとして公開します。チームがコメントすると、エージェントが修正します。"
+msgid "Your agent publishes designs and reports for your team to review. When someone comments, the agent starts working on the feedback."
+msgstr "エージェントがデザインやレポートを公開し、チームがレビューします。誰かがコメントすると、エージェントがすぐにフィードバックへの対応を始めます。"
 
-msgid "Your agent's work, as a link your team can comment on."
-msgstr "エージェントの成果を、チームがコメントできるリンクに。"
+msgid "Your agent publishes designs and reports. Your team comments, and it gets to work."
+msgstr "エージェントがデザインやレポートを公開します。チームがコメントすると、エージェントが作業を始めます。"
 
 msgid "Your agents do the recurring work on a schedule you set."
 msgstr "エージェントが、設定したスケジュールで定期的な作業をこなします。"
@@ -19414,6 +19411,9 @@ msgstr "サブスクリプションはそれに応じて調整されます。"
 
 msgid "Your Superset download is starting."
 msgstr "Supersetのダウンロードを開始しています。"
+
+msgid "Your teammates can talk directly to your agent."
+msgstr "チームメンバーがエージェントと直接やり取りできます。"
 
 msgid "Your terminal sessions won't be interrupted."
 msgstr "ターミナルセッションは中断されません。"

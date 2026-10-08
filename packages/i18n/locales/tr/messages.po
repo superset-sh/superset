@@ -1944,9 +1944,6 @@ msgstr "ajan ayarları"
 msgid "Agent usage rankings"
 msgstr "Ajan kullanım sıralamaları"
 
-msgid "Agent work as a link"
-msgstr "Ajan işi bir bağlantı olarak"
-
 msgid "Agent-driven previews"
 msgstr "Ajanın yönettiği önizlemeler"
 
@@ -14087,6 +14084,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "İnceleme"
 
+msgid "Review agent work"
+msgstr "Ajan çalışmasını incele"
+
 msgid "Review agent work with Pages"
 msgstr "Ajan çalışmasını Sayfalar ile inceleyin"
 
@@ -15141,9 +15141,6 @@ msgstr "Renk koyuluğu bu geliştiricinin en yoğun gününe göredir"
 
 msgid "Share"
 msgstr "Paylaş"
-
-msgid "Share agent work as a link your team can comment on."
-msgstr "Ajan çalışmalarını ekibinizin yorum yapabileceği bir bağlantı olarak paylaşın."
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Tasarımları ve raporları paylaşın. Geri bildirimleri ajanınız ele alsın."
@@ -19336,11 +19333,11 @@ msgstr "Hesabınız kuruluşunuz tarafından yönetiliyor. Yeni bir kuruluş olu
 msgid "Your agent can open any page and work through it with superset browser commands. It uses the pane you are watching, so you see every step."
 msgstr "Ajanınız superset browser komutlarıyla herhangi bir sayfayı açıp içinde ilerleyebilir. İzlediğiniz bölmeyi kullandığı için her adımı görürsünüz."
 
-msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
-msgstr "Ajanınız çalışmasını bir sayfa olarak yayınlar. Ekibiniz yorum yapar, değişiklikleri ajan yapar."
+msgid "Your agent publishes designs and reports for your team to review. When someone comments, the agent starts working on the feedback."
+msgstr "Ajanınız ekibinizin incelemesi için tasarımlar ve raporlar yayınlar. Biri yorum yaptığında ajan geri bildirim üzerinde çalışmaya başlar."
 
-msgid "Your agent's work, as a link your team can comment on."
-msgstr "Ajanınızın işi, ekibinizin yorum yapabileceği bir bağlantı olarak."
+msgid "Your agent publishes designs and reports. Your team comments, and it gets to work."
+msgstr "Ajanınız tasarımlar ve raporlar yayınlar. Ekibiniz yorum yapar, ajan işe koyulur."
 
 msgid "Your agents do the recurring work on a schedule you set."
 msgstr "Ajanlarınız tekrarlayan işi belirlediğiniz zamanlamayla yapar."
@@ -19414,6 +19411,9 @@ msgstr "Aboneliğiniz buna göre düzenlenecek."
 
 msgid "Your Superset download is starting."
 msgstr "Superset indirmeniz başlıyor."
+
+msgid "Your teammates can talk directly to your agent."
+msgstr "Ekip arkadaşlarınız ajanınızla doğrudan konuşabilir."
 
 msgid "Your terminal sessions won't be interrupted."
 msgstr "Terminal oturumlarınız kesintiye uğramaz."

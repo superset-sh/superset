@@ -1944,9 +1944,6 @@ msgstr "agent settings"
 msgid "Agent usage rankings"
 msgstr "Agent usage rankings"
 
-msgid "Agent work as a link"
-msgstr "Agent work as a link"
-
 msgid "Agent-driven previews"
 msgstr "Agent-driven previews"
 
@@ -14087,6 +14084,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "Review"
 
+msgid "Review agent work"
+msgstr "Review agent work"
+
 msgid "Review agent work with Pages"
 msgstr "Review agent work with Pages"
 
@@ -15141,9 +15141,6 @@ msgstr "Shade is relative to this developer's busiest day"
 
 msgid "Share"
 msgstr "Share"
-
-msgid "Share agent work as a link your team can comment on."
-msgstr "Share agent work as a link your team can comment on."
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Share designs and reports. Let your agent handle the feedback."
@@ -19336,11 +19333,11 @@ msgstr "Your account is managed by your organization. Contact your admin to crea
 msgid "Your agent can open any page and work through it with superset browser commands. It uses the pane you are watching, so you see every step."
 msgstr "Your agent can open any page and work through it with superset browser commands. It uses the pane you are watching, so you see every step."
 
-msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
-msgstr "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
+msgid "Your agent publishes designs and reports for your team to review. When someone comments, the agent starts working on the feedback."
+msgstr "Your agent publishes designs and reports for your team to review. When someone comments, the agent starts working on the feedback."
 
-msgid "Your agent's work, as a link your team can comment on."
-msgstr "Your agent's work, as a link your team can comment on."
+msgid "Your agent publishes designs and reports. Your team comments, and it gets to work."
+msgstr "Your agent publishes designs and reports. Your team comments, and it gets to work."
 
 msgid "Your agents do the recurring work on a schedule you set."
 msgstr "Your agents do the recurring work on a schedule you set."
@@ -19414,6 +19411,9 @@ msgstr "Your subscription will be adjusted accordingly."
 
 msgid "Your Superset download is starting."
 msgstr "Your Superset download is starting."
+
+msgid "Your teammates can talk directly to your agent."
+msgstr "Your teammates can talk directly to your agent."
 
 msgid "Your terminal sessions won't be interrupted."
 msgstr "Your terminal sessions won't be interrupted."

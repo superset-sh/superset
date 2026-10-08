@@ -50,7 +50,7 @@ export const PRODUCT_SECTIONS: NavSection[] = [
 			{
 				href: "/pages",
 				label: <Trans>Pages</Trans>,
-				description: <Trans>Agent work as a link</Trans>,
+				description: <Trans>Review agent work</Trans>,
 			},
 			{
 				href: "/automations",
@@ -106,7 +106,10 @@ export const PRODUCT_FEATURED: NavFeatured = {
 	eyebrow: <Trans>New</Trans>,
 	title: <Trans>Superset Pages</Trans>,
 	description: (
-		<Trans>Share agent work as a link your team can comment on.</Trans>
+		<Trans>
+			Your agent publishes designs and reports. Your team comments, and it gets
+			to work.
+		</Trans>
 	),
 	cta: <Trans>Explore Pages</Trans>,
 };

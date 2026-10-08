@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 		description: i18n._(
 			msg({
 				message:
-					"Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes.",
+					"Your agent publishes designs and reports for your team to review. When someone comments, the agent starts working on the feedback.",
 			}),
 		),
 		alternates: localizedAlternates(lang, "/pages"),
@@ -39,14 +39,13 @@ export default async function PagesPage() {
 							<Trans>Superset Pages</Trans>
 						</p>
 						<h1 className="mt-4 font-medium text-balance text-4xl text-foreground tracking-tight sm:text-5xl">
-							<Trans>
-								Your agent's work, as a link your team can comment on.
-							</Trans>
+							<Trans>Your teammates can talk directly to your agent.</Trans>
 						</h1>
 						<p className="mt-5 max-w-xl text-lg text-muted-foreground leading-relaxed">
 							<Trans>
-								Your agent publishes its work as a page. Your team comments on
-								it, and the agent makes the changes.
+								Your agent publishes designs and reports for your team to
+								review. When someone comments, the agent starts working on the
+								feedback.
 							</Trans>
 						</p>
 						<ProductHeroActions source="pages" docsPath="/pages" />

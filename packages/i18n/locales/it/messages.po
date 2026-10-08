@@ -1944,9 +1944,6 @@ msgstr "impostazioni dell'agente"
 msgid "Agent usage rankings"
 msgstr "Classifiche d'uso degli agenti"
 
-msgid "Agent work as a link"
-msgstr "Il lavoro degli agenti in un link"
-
 msgid "Agent-driven previews"
 msgstr "Anteprime guidate dall'agente"
 
@@ -14087,6 +14084,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "Da rivedere"
 
+msgid "Review agent work"
+msgstr "Rivedi il lavoro dell'agente"
+
 msgid "Review agent work with Pages"
 msgstr "Rivedi il lavoro dell'agente con Pagine"
 
@@ -15141,9 +15141,6 @@ msgstr "L'intensità è relativa al giorno più intenso di questo sviluppatore"
 
 msgid "Share"
 msgstr "Condividi"
-
-msgid "Share agent work as a link your team can comment on."
-msgstr "Condividi il lavoro dell'agente come link su cui il tuo team può commentare."
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Condividi design e report. Lascia che il tuo agente gestisca il feedback."
@@ -19336,11 +19333,11 @@ msgstr "Il tuo account è gestito dalla tua organizzazione. Contatta l'amministr
 msgid "Your agent can open any page and work through it with superset browser commands. It uses the pane you are watching, so you see every step."
 msgstr "Il tuo agente può aprire qualsiasi pagina e percorrerla con i comandi superset browser. Usa il riquadro che stai guardando, quindi vedi ogni passaggio."
 
-msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
-msgstr "Il tuo agente pubblica il suo lavoro come pagina. Il team la commenta e l'agente apporta le modifiche."
+msgid "Your agent publishes designs and reports for your team to review. When someone comments, the agent starts working on the feedback."
+msgstr "Il tuo agente pubblica design e report che il team può rivedere. Quando qualcuno commenta, l'agente inizia a lavorare sul feedback."
 
-msgid "Your agent's work, as a link your team can comment on."
-msgstr "Il lavoro del tuo agente, come link su cui il tuo team può commentare."
+msgid "Your agent publishes designs and reports. Your team comments, and it gets to work."
+msgstr "Il tuo agente pubblica design e report. Il team commenta e l'agente si mette al lavoro."
 
 msgid "Your agents do the recurring work on a schedule you set."
 msgstr "I tuoi agenti svolgono il lavoro ricorrente secondo la pianificazione che imposti."
@@ -19414,6 +19411,9 @@ msgstr "Il tuo abbonamento verrà adeguato di conseguenza."
 
 msgid "Your Superset download is starting."
 msgstr "Il download di Superset sta per iniziare."
+
+msgid "Your teammates can talk directly to your agent."
+msgstr "Il tuo team può parlare direttamente con il tuo agente."
 
 msgid "Your terminal sessions won't be interrupted."
 msgstr "Le tue sessioni del terminale non verranno interrotte."

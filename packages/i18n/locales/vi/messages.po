@@ -1944,9 +1944,6 @@ msgstr "cài đặt agent"
 msgid "Agent usage rankings"
 msgstr "Xếp hạng mức dùng agent"
 
-msgid "Agent work as a link"
-msgstr "Công việc của agent dưới dạng liên kết"
-
 msgid "Agent-driven previews"
 msgstr "Bản xem trước do agent điều khiển"
 
@@ -14087,6 +14084,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "Xem lại"
 
+msgid "Review agent work"
+msgstr "Xem lại công việc của agent"
+
 msgid "Review agent work with Pages"
 msgstr "Duyệt công việc của agent bằng Trang"
 
@@ -15141,9 +15141,6 @@ msgstr "Độ đậm được tính theo ngày bận rộn nhất của nhà ph�
 
 msgid "Share"
 msgstr "Chia sẻ"
-
-msgid "Share agent work as a link your team can comment on."
-msgstr "Chia sẻ công việc của agent dưới dạng liên kết để nhóm bạn bình luận."
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Chia sẻ thiết kế và báo cáo. Hãy để agent của bạn xử lý phản hồi."
@@ -19336,11 +19333,11 @@ msgstr "Tài khoản của bạn do tổ chức quản lý. Hãy liên hệ admi
 msgid "Your agent can open any page and work through it with superset browser commands. It uses the pane you are watching, so you see every step."
 msgstr "Agent của bạn có thể mở bất kỳ trang nào và thao tác trên đó bằng lệnh superset browser. Nó dùng ngăn bạn đang xem, nên bạn thấy từng bước."
 
-msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
-msgstr "Agent của bạn xuất bản công việc thành một trang. Nhóm bạn bình luận, và agent thực hiện thay đổi."
+msgid "Your agent publishes designs and reports for your team to review. When someone comments, the agent starts working on the feedback."
+msgstr "Agent của bạn xuất bản thiết kế và báo cáo để nhóm xem lại. Khi có người bình luận, agent bắt tay xử lý phản hồi ngay."
 
-msgid "Your agent's work, as a link your team can comment on."
-msgstr "Công việc của agent bạn, dưới dạng liên kết để nhóm bạn bình luận."
+msgid "Your agent publishes designs and reports. Your team comments, and it gets to work."
+msgstr "Agent của bạn xuất bản thiết kế và báo cáo. Nhóm bạn bình luận, và agent bắt tay vào việc."
 
 msgid "Your agents do the recurring work on a schedule you set."
 msgstr "Các agent của bạn làm công việc lặp lại theo lịch bạn đặt."
@@ -19414,6 +19411,9 @@ msgstr "Gói đăng ký của bạn sẽ được điều chỉnh tương ứng.
 
 msgid "Your Superset download is starting."
 msgstr "Bản tải xuống Superset của bạn đang bắt đầu."
+
+msgid "Your teammates can talk directly to your agent."
+msgstr "Đồng đội có thể trao đổi trực tiếp với agent của bạn."
 
 msgid "Your terminal sessions won't be interrupted."
 msgstr "Các phiên terminal của bạn sẽ không bị gián đoạn."

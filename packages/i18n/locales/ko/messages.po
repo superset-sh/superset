@@ -1944,9 +1944,6 @@ msgstr "에이전트 설정"
 msgid "Agent usage rankings"
 msgstr "에이전트 사용량 순위"
 
-msgid "Agent work as a link"
-msgstr "에이전트 작업을 링크로 공유"
-
 msgid "Agent-driven previews"
 msgstr "에이전트가 조작하는 미리보기"
 
@@ -14087,6 +14084,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "검토"
 
+msgid "Review agent work"
+msgstr "에이전트 작업 검토"
+
 msgid "Review agent work with Pages"
 msgstr "페이지로 에이전트 작업 검토하기"
 
@@ -15141,9 +15141,6 @@ msgstr "색의 진하기는 이 개발자의 가장 바빴던 날을 기준으�
 
 msgid "Share"
 msgstr "공유"
-
-msgid "Share agent work as a link your team can comment on."
-msgstr "에이전트의 작업을 팀이 댓글을 달 수 있는 링크로 공유하세요."
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "디자인과 보고서를 공유하세요. 피드백 처리는 에이전트에게 맡기세요."
@@ -19336,11 +19333,11 @@ msgstr "계정이 조직에서 관리됩니다. 새 조직을 만들려면 관�
 msgid "Your agent can open any page and work through it with superset browser commands. It uses the pane you are watching, so you see every step."
 msgstr "에이전트는 superset browser 명령으로 어떤 페이지든 열고 조작할 수 있습니다. 보고 있는 패널을 사용하므로 모든 단계를 볼 수 있습니다."
 
-msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
-msgstr "에이전트가 작업을 페이지로 게시합니다. 팀이 댓글을 달면 에이전트가 수정합니다."
+msgid "Your agent publishes designs and reports for your team to review. When someone comments, the agent starts working on the feedback."
+msgstr "에이전트가 디자인과 보고서를 게시하면 팀이 검토합니다. 누군가 댓글을 달면 에이전트가 바로 피드백 작업을 시작합니다."
 
-msgid "Your agent's work, as a link your team can comment on."
-msgstr "에이전트의 작업을, 팀이 댓글을 달 수 있는 링크로."
+msgid "Your agent publishes designs and reports. Your team comments, and it gets to work."
+msgstr "에이전트가 디자인과 보고서를 게시합니다. 팀이 댓글을 달면 에이전트가 작업을 시작합니다."
 
 msgid "Your agents do the recurring work on a schedule you set."
 msgstr "에이전트가 설정한 일정에 따라 반복 작업을 처리합니다."
@@ -19414,6 +19411,9 @@ msgstr "구독 요금이 그에 맞게 조정됩니다."
 
 msgid "Your Superset download is starting."
 msgstr "Superset 다운로드가 시작됩니다."
+
+msgid "Your teammates can talk directly to your agent."
+msgstr "팀원이 에이전트와 직접 대화할 수 있습니다."
 
 msgid "Your terminal sessions won't be interrupted."
 msgstr "터미널 세션은 중단되지 않습니다."

@@ -1944,9 +1944,6 @@ msgstr "pengaturan agen"
 msgid "Agent usage rankings"
 msgstr "Peringkat penggunaan agen"
 
-msgid "Agent work as a link"
-msgstr "Hasil kerja agen sebagai tautan"
-
 msgid "Agent-driven previews"
 msgstr "Pratinjau yang digerakkan agen"
 
@@ -14087,6 +14084,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "Tinjau"
 
+msgid "Review agent work"
+msgstr "Tinjau pekerjaan agen"
+
 msgid "Review agent work with Pages"
 msgstr "Tinjau pekerjaan agen dengan Halaman"
 
@@ -15141,9 +15141,6 @@ msgstr "Kepekatan warna relatif terhadap hari tersibuk pengembang ini"
 
 msgid "Share"
 msgstr "Bagikan"
-
-msgid "Share agent work as a link your team can comment on."
-msgstr "Bagikan hasil kerja agen sebagai tautan yang bisa dikomentari tim Anda."
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Bagikan desain dan laporan. Biarkan agen Anda menangani masukan."
@@ -19336,11 +19333,11 @@ msgstr "Akun Anda dikelola oleh organisasi Anda. Hubungi admin Anda untuk membua
 msgid "Your agent can open any page and work through it with superset browser commands. It uses the pane you are watching, so you see every step."
 msgstr "Agen Anda bisa membuka halaman apa pun dan menjelajahinya dengan perintah superset browser. Agen memakai panel yang sedang Anda lihat, jadi Anda melihat setiap langkah."
 
-msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
-msgstr "Agen Anda menerbitkan pekerjaannya sebagai halaman. Tim Anda berkomentar, lalu agen membuat perubahannya."
+msgid "Your agent publishes designs and reports for your team to review. When someone comments, the agent starts working on the feedback."
+msgstr "Agen Anda menerbitkan desain dan laporan untuk ditinjau tim Anda. Saat seseorang berkomentar, agen langsung mengerjakan masukannya."
 
-msgid "Your agent's work, as a link your team can comment on."
-msgstr "Hasil kerja agen Anda, sebagai tautan yang bisa dikomentari tim Anda."
+msgid "Your agent publishes designs and reports. Your team comments, and it gets to work."
+msgstr "Agen Anda menerbitkan desain dan laporan. Tim Anda berkomentar, lalu agen mulai bekerja."
 
 msgid "Your agents do the recurring work on a schedule you set."
 msgstr "Agen Anda mengerjakan tugas berulang sesuai jadwal yang Anda atur."
@@ -19414,6 +19411,9 @@ msgstr "Langganan Anda akan disesuaikan."
 
 msgid "Your Superset download is starting."
 msgstr "Unduhan Superset Anda sedang dimulai."
+
+msgid "Your teammates can talk directly to your agent."
+msgstr "Rekan tim Anda bisa berbicara langsung dengan agen Anda."
 
 msgid "Your terminal sessions won't be interrupted."
 msgstr "Sesi terminal Anda tidak akan terganggu."
