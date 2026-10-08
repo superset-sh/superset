@@ -1371,6 +1371,26 @@ Page metadata including `id`, `title`, `version`, and `url`, plus `unanchored`,
 </Command>
 
 <Command
+	name="superset pages preview <path>"
+	args={[
+		{ name: "path", required: true, description: "HTML file, or directory containing index.html and its assets." },
+	]}
+	options={[
+		{ flag: "--port <n>", description: "Port to listen on; defaults to a free one." },
+	]}
+>
+Serve a page on `127.0.0.1` with the theme, component kit, and content
+security policy it gets once published, so a page can be checked before it is
+published. Shared storage is not available in preview. Needs no sign-in. Runs
+until stopped with Ctrl-C.
+
+```bash
+superset pages preview report.html
+superset pages preview ./report/ --port 4517
+```
+</Command>
+
+<Command
 	name="superset pages delete <page>"
 	args={[
 		{ name: "page", required: true, description: "Page ID or slug." },
