@@ -1,4 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import {
+	afterAll,
+	afterEach,
+	beforeAll,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	mock,
+} from "bun:test";
 import { execFileSync, spawnSync } from "node:child_process";
 import {
 	chmodSync,
@@ -8,48 +17,50 @@ import {
 	rmSync,
 	writeFileSync,
 } from "node:fs";
-import * as realOs from "node:os";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 const TEST_ROOT = path.join(
-	realOs.tmpdir(),
+	tmpdir(),
 	`superset-agent-wrappers-${process.pid}-${Date.now()}`,
 );
-const TEST_BIN_DIR = path.join(TEST_ROOT, "superset", "bin");
-const TEST_HOOKS_DIR = path.join(TEST_ROOT, "superset", "hooks");
-const TEST_ZSH_DIR = path.join(TEST_ROOT, "superset", "zsh");
-const TEST_BASH_DIR = path.join(TEST_ROOT, "superset", "bash");
-const TEST_OPENCODE_CONFIG_DIR = path.join(TEST_HOOKS_DIR, "opencode");
-const TEST_OPENCODE_PLUGIN_DIR = path.join(TEST_OPENCODE_CONFIG_DIR, "plugin");
-let mockedHomeDir = path.join(TEST_ROOT, "home");
+const TEST_SUPERSET_HOME_DIR = path.join(TEST_ROOT, "superset");
+const TEST_BIN_DIR = path.join(TEST_SUPERSET_HOME_DIR, "bin");
+const TEST_HOOKS_DIR = path.join(TEST_SUPERSET_HOME_DIR, "hooks");
+const TEST_HOME_DIR = path.join(TEST_ROOT, "home");
 
-mock.module("./notify-hook", () => ({
-	NOTIFY_SCRIPT_NAME: "notify.sh",
-	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v20",
-	getNotifyScriptPath: () => path.join(TEST_HOOKS_DIR, "notify.sh"),
-	getNotifyScriptContent: () => "#!/bin/bash\nexit 0\n",
-	createNotifyScript: () => {},
-}));
+const originalSupersetHomeDir = process.env.SUPERSET_HOME_DIR;
+const originalHome = process.env.HOME;
 
-mock.module("./paths", () => ({
-	resolveSupersetHomeDir: () => path.join(TEST_ROOT, "superset"),
-	getBinDir: () => TEST_BIN_DIR,
-	getHooksDir: () => TEST_HOOKS_DIR,
-	getZshDir: () => TEST_ZSH_DIR,
-	getBashDir: () => TEST_BASH_DIR,
-	getOpenCodeConfigDir: () => TEST_OPENCODE_CONFIG_DIR,
-	getOpenCodePluginDir: () => TEST_OPENCODE_PLUGIN_DIR,
-}));
+let managedClaudeHookCommand: string;
+let managedArtifactGuardCommand: string;
+let managedDroidHookCommand: string;
+let managedCodexHookCommand: string;
+let managedMastraHookCommand: string;
 
-mock.module("node:os", () => ({
-	...realOs,
-	homedir: () => mockedHomeDir,
-	default: {
-		...realOs,
-		homedir: () => mockedHomeDir,
-	},
-}));
+beforeAll(() => {
+	process.env.SUPERSET_HOME_DIR = TEST_SUPERSET_HOME_DIR;
+	process.env.HOME = TEST_HOME_DIR;
+	managedClaudeHookCommand = getClaudeManagedHookCommand();
+	managedArtifactGuardCommand = getManagedArtifactGuardHookCommand();
+	managedDroidHookCommand = getManagedNotifyHookCommand("droid");
+	managedCodexHookCommand = getManagedNotifyHookCommand("codex");
+	managedMastraHookCommand = getManagedNotifyHookCommand("mastracode");
+});
+
+afterAll(() => {
+	if (originalSupersetHomeDir === undefined) {
+		delete process.env.SUPERSET_HOME_DIR;
+	} else {
+		process.env.SUPERSET_HOME_DIR = originalSupersetHomeDir;
+	}
+	if (originalHome === undefined) {
+		delete process.env.HOME;
+	} else {
+		process.env.HOME = originalHome;
+	}
+});
 
 const {
 	AMP_PLUGIN_MARKER,
@@ -102,12 +113,6 @@ function requireContent(content: string | null): string {
 	if (content === null) throw new Error("Expected merged hook content");
 	return content;
 }
-
-const managedClaudeHookCommand = getClaudeManagedHookCommand();
-const managedArtifactGuardCommand = getManagedArtifactGuardHookCommand();
-const managedDroidHookCommand = getManagedNotifyHookCommand("droid");
-const managedCodexHookCommand = getManagedNotifyHookCommand("codex");
-const managedMastraHookCommand = getManagedNotifyHookCommand("mastracode");
 
 describe("agent-wrappers opencode", () => {
 	const originalTerminalId = process.env.SUPERSET_TERMINAL_ID;
@@ -420,7 +425,6 @@ describe("agent-wrappers opencode", () => {
 
 describe("agent-wrappers copilot", () => {
 	beforeEach(() => {
-		mockedHomeDir = path.join(TEST_ROOT, "home");
 		mkdirSync(TEST_BIN_DIR, { recursive: true });
 		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
 	});
@@ -980,7 +984,7 @@ exit 0
 
 		expect(pluginPath).toBe(
 			path.join(
-				mockedHomeDir,
+				TEST_HOME_DIR,
 				".config",
 				"amp",
 				"plugins",
@@ -1017,7 +1021,7 @@ exit 0
 	});
 
 	it("replaces stale Cursor hook commands from old superset paths", () => {
-		const cursorHooksPath = path.join(mockedHomeDir, ".cursor", "hooks.json");
+		const cursorHooksPath = path.join(TEST_HOME_DIR, ".cursor", "hooks.json");
 		const staleHookPath =
 			"/tmp/worktree/superset-dev-data/hooks/cursor-hook.sh";
 		const currentHookPath = "/tmp/.superset-new/hooks/cursor-hook.sh";
@@ -1094,7 +1098,7 @@ exit 0
 
 	it("replaces stale Gemini hook commands from old superset paths", () => {
 		const geminiSettingsPath = path.join(
-			mockedHomeDir,
+			TEST_HOME_DIR,
 			".gemini",
 			"settings.json",
 		);
@@ -1225,7 +1229,7 @@ exit 0
 
 	it("replaces stale Mastra hook commands from old superset paths", () => {
 		const mastraHooksPath = path.join(
-			mockedHomeDir,
+			TEST_HOME_DIR,
 			".mastracode",
 			"hooks.json",
 		);
@@ -1292,7 +1296,7 @@ exit 0
 
 	it("replaces stale Droid hook commands from old superset paths", () => {
 		const droidSettingsPath = path.join(
-			mockedHomeDir,
+			TEST_HOME_DIR,
 			".factory",
 			"settings.json",
 		);
@@ -1394,7 +1398,7 @@ exit 0
 
 	it("skips Droid settings writes when the existing JSON is invalid", () => {
 		const droidSettingsPath = path.join(
-			mockedHomeDir,
+			TEST_HOME_DIR,
 			".factory",
 			"settings.json",
 		);
@@ -1414,7 +1418,7 @@ exit 0
 
 	it("skips Droid settings writes when the existing JSON is not an object", () => {
 		const droidSettingsPath = path.join(
-			mockedHomeDir,
+			TEST_HOME_DIR,
 			".factory",
 			"settings.json",
 		);
@@ -1430,7 +1434,6 @@ exit 0
 
 describe("agent-wrappers claude settings.json", () => {
 	beforeEach(() => {
-		mockedHomeDir = path.join(TEST_ROOT, "home");
 		mkdirSync(TEST_BIN_DIR, { recursive: true });
 		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
 	});
@@ -1636,7 +1639,7 @@ describe("agent-wrappers claude settings.json", () => {
 
 	it("does not duplicate the Artifact guard when merging over its own output", () => {
 		const claudeSettingsPath = path.join(
-			mockedHomeDir,
+			TEST_HOME_DIR,
 			".claude",
 			"settings.json",
 		);
@@ -1662,7 +1665,7 @@ describe("agent-wrappers claude settings.json", () => {
 
 	it("removes the Artifact guard on teardown and keeps user PreToolUse hooks", () => {
 		const claudeSettingsPath = path.join(
-			mockedHomeDir,
+			TEST_HOME_DIR,
 			".claude",
 			"settings.json",
 		);
@@ -1710,7 +1713,7 @@ describe("agent-wrappers claude settings.json", () => {
 
 	it("preserves user hooks and non-hook settings when merging", () => {
 		const claudeSettingsPath = path.join(
-			mockedHomeDir,
+			TEST_HOME_DIR,
 			".claude",
 			"settings.json",
 		);
@@ -1768,7 +1771,7 @@ describe("agent-wrappers claude settings.json", () => {
 
 	it("replaces stale Claude hook commands from old superset paths", () => {
 		const claudeSettingsPath = path.join(
-			mockedHomeDir,
+			TEST_HOME_DIR,
 			".claude",
 			"settings.json",
 		);
@@ -1860,7 +1863,7 @@ describe("agent-wrappers claude settings.json", () => {
 
 	it("skips Claude settings writes when existing JSON is invalid", () => {
 		const claudeSettingsPath = path.join(
-			mockedHomeDir,
+			TEST_HOME_DIR,
 			".claude",
 			"settings.json",
 		);
@@ -1881,7 +1884,7 @@ describe("agent-wrappers claude settings.json", () => {
 
 	it("skips Claude settings writes when existing JSON is not an object", () => {
 		const claudeSettingsPath = path.join(
-			mockedHomeDir,
+			TEST_HOME_DIR,
 			".claude",
 			"settings.json",
 		);
@@ -1897,7 +1900,6 @@ describe("agent-wrappers claude settings.json", () => {
 
 describe("agent-wrappers codex hooks.json", () => {
 	beforeEach(() => {
-		mockedHomeDir = path.join(TEST_ROOT, "home");
 		mkdirSync(TEST_BIN_DIR, { recursive: true });
 		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
 	});
@@ -1956,7 +1958,7 @@ describe("agent-wrappers codex hooks.json", () => {
 	});
 
 	it("preserves user hooks when merging", () => {
-		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
+		const codexHooksPath = path.join(TEST_HOME_DIR, ".codex", "hooks.json");
 		mkdirSync(path.dirname(codexHooksPath), { recursive: true });
 		writeFileSync(
 			codexHooksPath,
@@ -2084,7 +2086,7 @@ describe("agent-wrappers codex hooks.json", () => {
 	});
 
 	it("replaces stale Codex hook commands from old superset paths", () => {
-		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
+		const codexHooksPath = path.join(TEST_HOME_DIR, ".codex", "hooks.json");
 		const staleHookPath = "/tmp/.superset-old/hooks/notify.sh";
 		const currentHookPath = "/tmp/.superset-new/hooks/notify.sh";
 
@@ -2169,7 +2171,7 @@ describe("agent-wrappers codex hooks.json", () => {
 	});
 
 	it("removes stale Superset-managed UserPromptSubmit hooks without touching user hooks", () => {
-		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
+		const codexHooksPath = path.join(TEST_HOME_DIR, ".codex", "hooks.json");
 		const staleHookPath =
 			"/Users/test/.superset/worktrees/repo/superset-dev-data/hooks/notify.sh";
 		const currentHookPath = "/tmp/.superset-new/hooks/notify.sh";
@@ -2234,7 +2236,7 @@ describe("agent-wrappers codex hooks.json", () => {
 	});
 
 	it("reaps stale notify.sh paths from in-repo dev worktrees", () => {
-		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
+		const codexHooksPath = path.join(TEST_HOME_DIR, ".codex", "hooks.json");
 		// Real-world layout: a dev worktree lives under <repo>/.worktrees/<name>
 		// and its dev setup writes SUPERSET_HOME_DIR=<worktree>/superset-dev-data.
 		// There is no /.superset/ segment anywhere in the path.
@@ -2298,7 +2300,7 @@ describe("agent-wrappers codex hooks.json", () => {
 	});
 
 	it("skips Codex hooks writes when existing JSON is invalid", () => {
-		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
+		const codexHooksPath = path.join(TEST_HOME_DIR, ".codex", "hooks.json");
 		const invalidJson = "{not-json";
 
 		mkdirSync(path.dirname(codexHooksPath), { recursive: true });
@@ -2314,7 +2316,7 @@ describe("agent-wrappers codex hooks.json", () => {
 	});
 
 	it("skips Codex hooks writes when existing JSON is not an object", () => {
-		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
+		const codexHooksPath = path.join(TEST_HOME_DIR, ".codex", "hooks.json");
 
 		mkdirSync(path.dirname(codexHooksPath), { recursive: true });
 		writeFileSync(codexHooksPath, JSON.stringify("not-an-object"));
@@ -2598,7 +2600,6 @@ describe("grok config.toml", () => {
 
 describe("agent-wrappers pi", () => {
 	beforeEach(() => {
-		mockedHomeDir = path.join(TEST_ROOT, "home");
 		mkdirSync(TEST_BIN_DIR, { recursive: true });
 		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
 	});
@@ -2617,7 +2618,7 @@ describe("agent-wrappers pi", () => {
 		const extensionPath = getPiExtensionPath();
 		expect(extensionPath).toBe(
 			path.join(
-				mockedHomeDir,
+				TEST_HOME_DIR,
 				".pi",
 				"agent",
 				"extensions",
@@ -2643,7 +2644,6 @@ const {
 
 describe("managed hooks teardown", () => {
 	beforeEach(() => {
-		mockedHomeDir = path.join(TEST_ROOT, "home");
 		mkdirSync(TEST_BIN_DIR, { recursive: true });
 		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
 	});
@@ -2653,7 +2653,7 @@ describe("managed hooks teardown", () => {
 	});
 
 	it("removes managed droid hooks, preserving user hooks and settings", () => {
-		const settingsPath = path.join(mockedHomeDir, ".factory", "settings.json");
+		const settingsPath = path.join(TEST_HOME_DIR, ".factory", "settings.json");
 		mkdirSync(path.dirname(settingsPath), { recursive: true });
 		writeFileSync(
 			settingsPath,
@@ -2705,7 +2705,7 @@ describe("managed hooks teardown", () => {
 	});
 
 	it("drops the droid hooks key when every event was managed and never creates a missing file", () => {
-		const settingsPath = path.join(mockedHomeDir, ".factory", "settings.json");
+		const settingsPath = path.join(TEST_HOME_DIR, ".factory", "settings.json");
 
 		removeDroidManagedHooks();
 		expect(existsSync(settingsPath)).toBe(false);
@@ -2728,7 +2728,7 @@ describe("managed hooks teardown", () => {
 	});
 
 	it("leaves a droid settings file untouched when its JSON is invalid", () => {
-		const settingsPath = path.join(mockedHomeDir, ".factory", "settings.json");
+		const settingsPath = path.join(TEST_HOME_DIR, ".factory", "settings.json");
 		mkdirSync(path.dirname(settingsPath), { recursive: true });
 		writeFileSync(settingsPath, "{not-json");
 
@@ -2738,7 +2738,7 @@ describe("managed hooks teardown", () => {
 	});
 
 	it("removes managed cursor hooks but keeps the hooks container and version", () => {
-		const hooksPath = path.join(mockedHomeDir, ".cursor", "hooks.json");
+		const hooksPath = path.join(TEST_HOME_DIR, ".cursor", "hooks.json");
 		mkdirSync(path.dirname(hooksPath), { recursive: true });
 		const scriptPath = path.join(TEST_HOOKS_DIR, "cursor-hook.sh");
 		writeFileSync(
@@ -2767,7 +2767,7 @@ describe("managed hooks teardown", () => {
 	});
 
 	it("removes managed mastra hooks from the root-level event map", () => {
-		const hooksPath = path.join(mockedHomeDir, ".mastracode", "hooks.json");
+		const hooksPath = path.join(TEST_HOME_DIR, ".mastracode", "hooks.json");
 		mkdirSync(path.dirname(hooksPath), { recursive: true });
 		writeFileSync(
 			hooksPath,
@@ -2790,7 +2790,7 @@ describe("managed hooks teardown", () => {
 	});
 
 	it("skips mastra merge instead of clobbering an unparseable file", () => {
-		const hooksPath = path.join(mockedHomeDir, ".mastracode", "hooks.json");
+		const hooksPath = path.join(TEST_HOME_DIR, ".mastracode", "hooks.json");
 		mkdirSync(path.dirname(hooksPath), { recursive: true });
 		writeFileSync(hooksPath, "{not-json");
 
@@ -2822,7 +2822,6 @@ describe("managed hooks teardown", () => {
 
 describe("managed hooks junk tolerance", () => {
 	beforeEach(() => {
-		mockedHomeDir = path.join(TEST_ROOT, "home");
 		mkdirSync(TEST_BIN_DIR, { recursive: true });
 		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
 	});
@@ -2832,7 +2831,7 @@ describe("managed hooks junk tolerance", () => {
 	});
 
 	it("preserves null and primitive entries instead of aborting the merge", () => {
-		const settingsPath = path.join(mockedHomeDir, ".factory", "settings.json");
+		const settingsPath = path.join(TEST_HOME_DIR, ".factory", "settings.json");
 		mkdirSync(path.dirname(settingsPath), { recursive: true });
 		writeFileSync(
 			settingsPath,
@@ -2879,7 +2878,6 @@ describe("agent-wrappers omp", () => {
 	beforeEach(() => {
 		originalOmpCodingAgentDir = process.env.OMP_CODING_AGENT_DIR;
 		originalPiCodingAgentDir = process.env.PI_CODING_AGENT_DIR;
-		mockedHomeDir = path.join(TEST_ROOT, "home");
 		mkdirSync(TEST_BIN_DIR, { recursive: true });
 		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
 		delete process.env.OMP_CODING_AGENT_DIR;
@@ -2932,7 +2930,7 @@ describe("agent-wrappers omp", () => {
 		const extensionPath = getOmpExtensionPath();
 		expect(extensionPath).toBe(
 			path.join(
-				mockedHomeDir,
+				TEST_HOME_DIR,
 				".omp",
 				"agent",
 				"extensions",
@@ -2948,7 +2946,7 @@ describe("agent-wrappers omp", () => {
 	});
 
 	it("honors OMP_CODING_AGENT_DIR when locating the Oh My Pi extension", () => {
-		const customAgentDir = path.join(mockedHomeDir, "custom-omp-agent");
+		const customAgentDir = path.join(TEST_HOME_DIR, "custom-omp-agent");
 		process.env.OMP_CODING_AGENT_DIR = customAgentDir;
 
 		expect(getOmpExtensionPath()).toBe(
@@ -2960,7 +2958,7 @@ describe("agent-wrappers omp", () => {
 		process.env.OMP_CODING_AGENT_DIR = "~/custom-omp-agent";
 		expect(getOmpExtensionPath()).toBe(
 			path.join(
-				mockedHomeDir,
+				TEST_HOME_DIR,
 				"custom-omp-agent",
 				"extensions",
 				"superset-hooks.ts",
@@ -2970,7 +2968,7 @@ describe("agent-wrappers omp", () => {
 		process.env.OMP_CODING_AGENT_DIR = "~\\custom-omp-agent";
 		expect(getOmpExtensionPath()).toBe(
 			path.join(
-				`${mockedHomeDir}\\custom-omp-agent`,
+				`${TEST_HOME_DIR}\\custom-omp-agent`,
 				"extensions",
 				"superset-hooks.ts",
 			),
@@ -2978,11 +2976,11 @@ describe("agent-wrappers omp", () => {
 	});
 
 	it("ignores PI_CODING_AGENT_DIR so pi and omp resolve to distinct extension trees", () => {
-		process.env.PI_CODING_AGENT_DIR = path.join(mockedHomeDir, ".pi", "agent");
+		process.env.PI_CODING_AGENT_DIR = path.join(TEST_HOME_DIR, ".pi", "agent");
 
 		expect(getOmpExtensionPath()).toBe(
 			path.join(
-				mockedHomeDir,
+				TEST_HOME_DIR,
 				".omp",
 				"agent",
 				"extensions",

@@ -1,4 +1,3 @@
-import os from "node:os";
 import path from "node:path";
 import {
 	buildWrapperScript,
@@ -13,6 +12,7 @@ import {
 	removeManagedJsonHooks,
 } from "./managed-json-hooks";
 import { getNotifyScriptPath } from "./notify-hook";
+import { resolveUserHomeDir } from "./paths";
 
 interface MastraHookDefinition {
 	type: "command";
@@ -21,7 +21,7 @@ interface MastraHookDefinition {
 }
 
 export function getMastraGlobalHooksJsonPath(): string {
-	return path.join(os.homedir(), ".mastracode", "hooks.json");
+	return path.join(resolveUserHomeDir(), ".mastracode", "hooks.json");
 }
 
 export function createMastraWrapper(): void {
