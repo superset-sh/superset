@@ -1,0 +1,107 @@
+diff --git a/ios/renderer/ListItemRenderer.m b/ios/renderer/ListItemRenderer.m
+index 1bfe247..af6697a 100644
+--- a/ios/renderer/ListItemRenderer.m
++++ b/ios/renderer/ListItemRenderer.m
+@@ -13,6 +13,7 @@
+ NSString *const TaskItemAttribute = @"TaskItem";
+ NSString *const TaskCheckedAttribute = @"TaskChecked";
+ NSString *const TaskIndexAttribute = @"TaskIndex";
++NSString *const ListContinuationAttribute = @"ListContinuation";
+ 
+ @interface ListItemRenderer ()
+ - (void)applyCheckedDecorationsTo:(NSMutableAttributedString *)output
+@@ -83,6 +84,9 @@ - (void)renderNode:(MarkdownASTNode *)node into:(NSMutableAttributedString *)out
+     metadata[TaskIndexAttribute] = @(taskIndex);
+   }
+ 
++  const NSUInteger firstParagraphEnd =
++      NSMaxRange([output.string paragraphRangeForRange:NSMakeRange(startLocation, 0)]);
++
+   // We enumerate to ensure we don't overwrite styles of nested sub-lists
+   // or code blocks that may have already been rendered inside this item.
+   [output enumerateAttribute:ListDepthAttribute
+@@ -95,30 +99,39 @@ - (void)renderNode:(MarkdownASTNode *)node into:(NSMutableAttributedString *)out
+                       return;
+                     }
+ 
+-                    // Skip code block ranges — CodeBlockRenderer already applied its own
+-                    // paragraph style (padding, LTR indent). Overwriting would add list
+-                    // markers ("2.") inside the code block.
+-                    NSNumber *isCodeBlock = [output attribute:CodeBlockAttributeName
+-                                                      atIndex:range.location
+-                                               effectiveRange:nil];
+-                    if ([isCodeBlock boolValue]) {
+-                      return;
+-                    }
+-
+-                    NSMutableParagraphStyle *style = [[NSMutableParagraphStyle alloc] init];
+-                    style.baseWritingDirection = currentWritingDirection();
+-                    style.firstLineHeadIndent = totalIndent;
+-                    style.headIndent = totalIndent;
+-
+-                    if (lineHeightConfig > 0) {
+-                      style.minimumLineHeight = lineHeightConfig;
+-                      style.maximumLineHeight = lineHeightConfig;
+-                    }
+-
+-                    NSMutableDictionary *attributesToApply = [metadata mutableCopy];
+-                    attributesToApply[NSParagraphStyleAttributeName] = style;
+-
+-                    [output addAttributes:attributesToApply range:range];
++                    // Superset patch: a range that starts in the item's text can run on into a
++                    // code block, so skip every code block inside it, not only one at its start.
++                    [output enumerateAttribute:CodeBlockAttributeName
++                                       inRange:range
++                                       options:0
++                                    usingBlock:^(id isCodeBlock, NSRange segment, BOOL *innerStop) {
++                                      if ([isCodeBlock boolValue]) {
++                                        return;
++                                      }
++
++                                      NSMutableParagraphStyle *style = [[NSMutableParagraphStyle alloc] init];
++                                      style.baseWritingDirection = currentWritingDirection();
++                                      style.firstLineHeadIndent = totalIndent;
++                                      style.headIndent = totalIndent;
++
++                                      if (lineHeightConfig > 0) {
++                                        style.minimumLineHeight = lineHeightConfig;
++                                        style.maximumLineHeight = lineHeightConfig;
++                                      }
++
++                                      NSMutableDictionary *attributesToApply = [metadata mutableCopy];
++                                      attributesToApply[NSParagraphStyleAttributeName] = style;
++
++                                      [output addAttributes:attributesToApply range:segment];
++
++                                      // Superset patch: only the item's first paragraph draws a marker.
++                                      if (NSMaxRange(segment) > firstParagraphEnd) {
++                                        const NSUInteger from = MAX(segment.location, firstParagraphEnd);
++                                        [output addAttribute:ListContinuationAttribute
++                                                       value:@YES
++                                                       range:NSMakeRange(from, NSMaxRange(segment) - from)];
++                                      }
++                                    }];
+                   }];
+ 
+   if (isTask && isChecked) {
+diff --git a/ios/utils/ListMarkerDrawer.m b/ios/utils/ListMarkerDrawer.m
+index e2dafdd..9358d6e 100644
+--- a/ios/utils/ListMarkerDrawer.m
++++ b/ios/utils/ListMarkerDrawer.m
+@@ -10,6 +10,7 @@
+ extern NSString *const ListItemNumberAttribute;
+ extern NSString *const TaskItemAttribute;
+ extern NSString *const TaskCheckedAttribute;
++extern NSString *const ListContinuationAttribute;
+ 
+ @implementation ListMarkerDrawer {
+   StyleConfig *_config;
+@@ -49,7 +50,7 @@ - (void)drawMarkersForGlyphRange:(NSRange)glyphsToShow
+                                  // 1. Fetch all attributes at once for efficiency
+                                  NSDictionary *attrs = [storage attributesAtIndex:charRange.location
+                                                                    effectiveRange:NULL];
+-                                 if (!attrs[ListDepthAttribute])
++                                 if (!attrs[ListDepthAttribute] || [attrs[ListContinuationAttribute] boolValue])
+                                    return;
+ 
+                                  // 2. Identify the start of the paragraph

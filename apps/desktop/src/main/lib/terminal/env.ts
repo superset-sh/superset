@@ -213,6 +213,10 @@ const ALLOWED_ENV_VARS = new Set([
 
 	// Terminal/display
 	"DISPLAY",
+	// X11 auth cookie and Wayland socket. Needed alongside DISPLAY so
+	// clipboard tools (xclip/xsel/wl-paste) can reach the display server. (#5003)
+	"XAUTHORITY",
+	"WAYLAND_DISPLAY",
 	"COLORTERM",
 	"TERM_PROGRAM",
 	"TERM_PROGRAM_VERSION",

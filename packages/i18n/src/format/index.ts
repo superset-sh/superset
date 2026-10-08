@@ -231,3 +231,13 @@ export function formatAge(
 		? formatUnit(locale, unit, count, "short")
 		: narrow;
 }
+
+export function formatRelativePeriod(
+	{ unit, count }: { unit: "day" | "week" | "month" | "year"; count: number },
+	locale = getActiveLocale(),
+): string {
+	const label = new Intl.RelativeTimeFormat(locale, {
+		numeric: "auto",
+	}).format(-count, unit);
+	return label.charAt(0).toLocaleUpperCase(locale) + label.slice(1);
+}

@@ -14,4 +14,6 @@ tmux new-session -d -s superset -n stack -c "$ROOT_DIR" \
   "export NODE_ENV=development; set -a; . '$ROOT_DIR/.env'; set +a; bunx turbo run dev --filter=@superset/api --filter=@superset/web --filter=// 2>&1 | tee '$LOG_DIR/dev-stack.log'"
 tmux new-window -t superset -n desktop -c "$ROOT_DIR/apps/desktop" \
   "export DISPLAY=${DISPLAY:-:1} NODE_ENV=development; set -a; . '$ROOT_DIR/.env'; set +a; bun run dev 2>&1 | tee '$LOG_DIR/desktop-dev.log'"
+tmux new-window -t superset -n realtime -c "$ROOT_DIR" \
+  "bash '$ROOT_DIR/apps/realtime/scripts/dev-local.sh' 2>&1 | tee '$LOG_DIR/realtime-dev.log'"
 echo "dev-stack: started (tmux attach -t superset)"

@@ -1,4 +1,11 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { db } from "@superset/db/client";
+import * as connectors from "@superset/trpc/connectors";
+import * as linear from "@superset/trpc/integrations/linear";
+import * as syncPolicy from "@superset/trpc/sync-policy";
+import * as automationEvent from "@/lib/automations/ingestAutomationEvent";
+import * as webhookDelivery from "@/lib/ingest/recordWebhookDelivery";
+import { stub } from "../../../../../../test/stub";
 
 const ORG = "org-1";
 const WORKSPACE = "linear-workspace-1";
@@ -16,48 +23,43 @@ function connection(id: string, userId: string) {
 }
 
 let subscribers: ReturnType<typeof connection>[] = [];
-// `mock.module` is process-wide, so every export the real module has must be
-// here: another file's import of `connectionBotToken` resolves against this
-// stub too.
-mock.module("@superset/trpc/connectors", () => ({
+stub(connectors, {
 	accountConnection: mock(async () => subscribers[0] ?? null),
 	accountConnections: mock(async () => subscribers),
 	connectionBotToken: mock(async () => "bot-token"),
-}));
+});
 
 // The plan gate is exercised on the route, not here: these cases are about
 // how one delivery fans out across connections.
-mock.module("@superset/trpc/sync-policy", () => ({
+stub(syncPolicy, {
 	organizationSyncs: mock(() => undefined),
 	organizationSyncsNow: mock(async () => true),
 	syncingOrganizationIds: mock(
 		async (organizationIds: string[]) => new Set(organizationIds),
 	),
-}));
+});
 
-mock.module("@superset/trpc/integrations/linear", () => ({
+stub(linear, {
 	getLinearClient: mock(async () => null),
 	linearClientFor: mock(async () => null),
-	isLinearAuthError: () => false,
-	mapPriorityFromLinear: () => null,
-}));
+});
 
 let eventSeq = 0;
-mock.module("@/lib/ingest/recordWebhookDelivery", () => ({
+stub(webhookDelivery, {
 	recordWebhookDelivery: mock(async () => ({
 		id: `webhook-event-${++eventSeq}`,
 		status: "pending",
 		retryCount: 0,
 		receivedAt: new Date(),
 	})),
-}));
+});
 
 const ingestCalls: Array<{
 	connectionId: string | null;
 	externalEventId: string;
 	ownerUserId: string | null;
 }> = [];
-mock.module("@/lib/automations/ingestAutomationEvent", () => ({
+stub(automationEvent, {
 	ingestAutomationEvent: mock(async (_db: unknown, delivery: never) => {
 		const d = delivery as {
 			skip?: string;
@@ -75,11 +77,11 @@ mock.module("@/lib/automations/ingestAutomationEvent", () => ({
 		});
 		return { status: "dispatched", eventId: "e" };
 	}),
-}));
+});
 
-mock.module("@superset/db/client", () => ({
-	db: { update: () => ({ set: () => ({ where: async () => undefined }) }) },
-}));
+stub(db, {
+	update: () => ({ set: () => ({ where: async () => undefined }) }),
+});
 
 const { processDelivery } = await import("./processDelivery");
 

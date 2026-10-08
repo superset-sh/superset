@@ -54,8 +54,7 @@ export function githubEventNames(event: {
 		case "pull_request.synchronize":
 			return ["pull_request.pushed"];
 		case "pull_request.closed":
-			// Closed without merging names nothing; there is no closed trigger.
-			return event.isMerged ? ["pull_request.merged"] : [];
+			return event.isMerged ? ["pull_request.merged"] : ["pull_request.closed"];
 		case "pull_request.labeled":
 		case "pull_request.unlabeled":
 			return ["label_change"];

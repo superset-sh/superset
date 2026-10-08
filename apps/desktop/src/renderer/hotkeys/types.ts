@@ -13,6 +13,7 @@ export type HotkeyCategory =
 	| "Workspace"
 	| "Layout"
 	| "Terminal"
+	| "Chat"
 	| "Window"
 	| "Help";
 

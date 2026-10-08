@@ -1,54 +1,19 @@
-import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
-import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
-import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { workspaceTrpc } from "@superset/workspace-client";
 import type { PullRequestRef } from "renderer/lib/github/pullRequestRef";
 import { usePullRequestDetail } from "renderer/routes/_authenticated/_dashboard/pull-requests/hooks/usePullRequestDetail";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 
-/**
- * A pull request's content by its own identity, from whichever source can
- * answer: the workspace's host when its project is the PR's repository (the
- * person's own `gh`, no GitHub App required), else the API with the
- * organization's App installation, which is what a closed cloud box or a PR
- * in a repository nobody has checked out needs.
- */
 export function usePullRequestPaneDetail(ref: PullRequestRef) {
 	const { workspace, hostUrl } = useWorkspace();
-	const organizationId = useActiveOrganizationId();
-	const { projects, isReady: projectsReady } = useHostProjects();
-	const project = projects.find(
-		(candidate) => candidate.id === workspace.projectId,
+	const projectQuery = workspaceTrpc.project.get.useQuery(
+		{ projectId: workspace.projectId ?? "" },
+		{ enabled: !!workspace.projectId },
 	);
-	const hostHasRepo =
-		!!project?.repoOwner &&
-		!!project.repoName &&
-		`${project.repoOwner}/${project.repoName}`.toLowerCase() ===
-			ref.repoFullName.toLowerCase();
-
-	const fromHost = usePullRequestDetail({
-		projectId: hostHasRepo ? (workspace.projectId ?? null) : null,
-		hostUrl: hostHasRepo ? hostUrl : null,
+	return usePullRequestDetail({
+		projectId: workspace.projectId ?? null,
+		projectQuery,
+		hostUrl,
+		repoFullName: ref.repoFullName,
 		prNumber: ref.number,
-		enabled: hostHasRepo,
 	});
-	const fromApi = cloudTrpc.integration.github.getPullRequest.useQuery(
-		{
-			organizationId: organizationId ?? "",
-			repoFullName: ref.repoFullName,
-			number: ref.number,
-		},
-		{
-			// Until the projects have answered, which path applies is unknown.
-			enabled: projectsReady && !hostHasRepo && organizationId !== null,
-			staleTime: 30_000,
-			refetchOnWindowFocus: true,
-		},
-	);
-	return {
-		...(hostHasRepo ? fromHost : fromApi),
-		/** True when this pane's diff/comments can be fetched from the
-		 *  workspace's own host (the Code tab needs a real project + host
-		 *  to call into, which the cloud API path can't provide). */
-		isFromHost: hostHasRepo,
-	};
 }

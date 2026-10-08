@@ -173,7 +173,7 @@ export const hostManagementRouter = {
 
 			const txid = await dbWs.transaction(async (tx) => {
 				const [membership] = await tx
-					.select({ id: members.id })
+					.select({ role: members.role })
 					.from(members)
 					.where(
 						and(
@@ -225,11 +225,13 @@ export const hostManagementRouter = {
 					.limit(1)
 					.for("update");
 
-				if (!access || access.role !== "owner") {
+				if (access?.role !== "owner" && membership.role !== "owner") {
 					throw userError({
 						code: "FORBIDDEN",
-						message: "Only host owners can delete this host",
-						i18nKey: "serverError.host.onlyHostOwnersCanDelete",
+						message:
+							"Only host owners or organization owners can delete this host",
+						i18nKey:
+							"serverError.host.onlyHostOwnersOrOrganizationOwnersCanDelete",
 					});
 				}
 

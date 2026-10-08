@@ -1,4 +1,8 @@
 export {
+	mapPriorityFromLinear,
+	mapPriorityToLinear,
+} from "../../../router/integration/linear/api";
+export {
 	callLinear,
 	callLinearForConnection,
 	isLinearAuthError,
@@ -14,6 +18,4 @@ export {
 export {
 	getLinearClient,
 	linearClientFor,
-	mapPriorityFromLinear,
-	mapPriorityToLinear,
 } from "../../../router/integration/linear/utils";

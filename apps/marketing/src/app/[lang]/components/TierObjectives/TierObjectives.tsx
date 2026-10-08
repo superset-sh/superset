@@ -88,7 +88,7 @@ export function TierObjectives({ tier, axes }: TierObjectivesProps) {
 
 					return (
 						<div key={gap.axis}>
-							<div className="flex items-baseline justify-between gap-3 font-mono text-[0.62rem]">
+							<div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 font-mono text-[0.62rem]">
 								<span className="flex min-w-0 items-baseline gap-2">
 									<span
 										aria-hidden="true"

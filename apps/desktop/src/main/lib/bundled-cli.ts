@@ -51,9 +51,13 @@ function devStackAddresses(): Array<[string, string]> {
 	if (app.isPackaged) return [];
 	const api = process.env.NEXT_PUBLIC_API_URL;
 	const web = process.env.NEXT_PUBLIC_WEB_URL;
+	const realtime = process.env.REALTIME_URL;
 	return [
 		...(api ? ([["SUPERSET_API_URL", api]] as Array<[string, string]>) : []),
 		...(web ? ([["SUPERSET_WEB_URL", web]] as Array<[string, string]>) : []),
+		...(realtime
+			? ([["REALTIME_URL", realtime]] as Array<[string, string]>)
+			: []),
 	];
 }
 

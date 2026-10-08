@@ -177,13 +177,35 @@ export const taskStatuses = pgTable(
 export type InsertTaskStatus = typeof taskStatuses.$inferInsert;
 export type SelectTaskStatus = typeof taskStatuses.$inferSelect;
 
+/** Task slugs are `<key>-<number>`, with one counter per team. */
+export const taskSequences = pgTable(
+	"task_sequences",
+	{
+		teamId: uuid("team_id")
+			.primaryKey()
+			.references(() => teams.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		key: text().notNull(),
+		lastNumber: integer("last_number").notNull().default(0),
+	},
+	(table) => [
+		unique("task_sequences_organization_key_unique").on(
+			table.organizationId,
+			table.key,
+		),
+	],
+);
+
 export const tasks = pgTable(
 	"tasks",
 	{
 		id: uuid().primaryKey().defaultRandom(),
 
 		// Core fields
-		slug: text().notNull(),
+		/** Leave out on insert: the tasks_assign_number trigger sets slug and number, and team_id when it is left out. */
+		slug: text().notNull().default(sql`NULL`),
 		title: text().notNull(),
 		description: text(),
 		statusId: uuid("status_id")
@@ -201,6 +223,11 @@ export const tasks = pgTable(
 		creatorId: uuid("creator_id")
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
+		teamId: uuid("team_id")
+			.notNull()
+			.default(sql`NULL`)
+			.references(() => teams.id),
+		number: integer().notNull().default(sql`NULL`),
 
 		// Planning
 		estimate: integer(),
@@ -211,29 +238,6 @@ export const tasks = pgTable(
 		// Git/Work tracking
 		branch: text(),
 		prUrl: text("pr_url"),
-
-		// External sync (null if local-only task)
-		externalProvider: integrationProvider("external_provider"),
-		externalId: text("external_id"),
-		externalKey: text("external_key"), // "SUPER-172", "#123"
-		externalUrl: text("external_url"),
-		lastSyncedAt: timestamp("last_synced_at"),
-		syncError: text("sync_error"),
-		// The provider's own updatedAt, recorded on every write in either
-		// direction. An inbound event no newer than this is our own echo or a
-		// redelivery that arrived late, and is not applied.
-		externalUpdatedAt: timestamp("external_updated_at"),
-
-		// External project/cycle snapshot (from Linear)
-		externalProjectId: text("external_project_id"),
-		externalProjectName: text("external_project_name"),
-		externalCycleId: text("external_cycle_id"),
-		externalCycleName: text("external_cycle_name"),
-
-		// External assignee snapshot (for unmatched Linear users)
-		assigneeExternalId: text("assignee_external_id"),
-		assigneeDisplayName: text("assignee_display_name"),
-		assigneeAvatarUrl: text("assignee_avatar_url"),
 
 		startedAt: timestamp("started_at"),
 		completedAt: timestamp("completed_at"),
@@ -253,17 +257,8 @@ export const tasks = pgTable(
 		index("tasks_creator_id_idx").on(table.creatorId),
 		index("tasks_status_id_idx").on(table.statusId),
 		index("tasks_created_at_idx").on(table.createdAt),
-		index("tasks_external_provider_idx").on(table.externalProvider),
-		index("tasks_external_project_id_idx").on(table.externalProjectId),
-		index("tasks_external_project_name_idx").on(table.externalProjectName),
-		index("tasks_external_cycle_id_idx").on(table.externalCycleId),
-		index("tasks_assignee_external_id_idx").on(table.assigneeExternalId),
-		unique("tasks_external_unique").on(
-			table.organizationId,
-			table.externalProvider,
-			table.externalId,
-		),
 		unique("tasks_org_slug_unique").on(table.organizationId, table.slug),
+		unique("tasks_team_number_unique").on(table.teamId, table.number),
 	],
 );
 
@@ -359,6 +354,33 @@ export const taskActivity = pgTable(
 
 export type InsertTaskActivity = typeof taskActivity.$inferInsert;
 
+export const taskImports = pgTable(
+	"task_imports",
+	{
+		taskId: uuid("task_id")
+			.primaryKey()
+			.references(() => tasks.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id").notNull(),
+		provider: integrationProvider().notNull(),
+		externalId: text("external_id").notNull(),
+		externalUrl: text("external_url").notNull(),
+		importedByUserId: uuid("imported_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(table) => [
+		unique("task_imports_org_provider_external_unique").on(
+			table.organizationId,
+			table.provider,
+			table.externalId,
+		),
+	],
+);
+
+export type InsertTaskImport = typeof taskImports.$inferInsert;
+export type SelectTaskImport = typeof taskImports.$inferSelect;
+
 // Integration connections for external providers (Linear, GitHub, etc.)
 export const integrationConnections = pgTable(
 	"integration_connections",
@@ -453,6 +475,8 @@ export const connections = pgTable(
 		externalAccountLabel: text("external_account_label"),
 		externalUserId: text("external_user_id"),
 		externalUserLabel: text("external_user_label"),
+
+		nickname: text(),
 
 		config: jsonb().$type<Record<string, string | null>>(),
 		state: jsonb().$type<IntegrationConfig>(),
@@ -891,6 +915,8 @@ export const cloudWorkspaces = pgTable(
 			.notNull()
 			.references(() => environments.id),
 		hostVersion: text("host_version"),
+		/** The creator's agent sign-ins the running box booted with, keyed; null before it was recorded. */
+		bootAgentCredentialDigest: text("boot_agent_credential_digest"),
 		agentStatus: text("agent_status").$type<ActiveAgentStatus>(),
 		agentStatusAt: timestamp("agent_status_at", { withTimezone: true }),
 		/** What the creator typed, as markdown; null when the box started idle. */
@@ -1560,6 +1586,8 @@ export const automationTriggers = pgTable(
 		kind: automationTriggerKind().notNull(),
 		config: jsonb().$type<TriggerConfig>().notNull(),
 
+		connectionId: uuid("connection_id"),
+
 		// Schedule kind only. A column rather than config because the dispatcher
 		// indexes and sorts on it.
 		nextRunAt: timestamp("next_run_at", { withTimezone: true }),
@@ -1747,6 +1775,7 @@ export const automationRuns = pgTable(
 			.on(t.triggerId, t.resourceKey)
 			.where(sql`status IN ('dispatching', 'dispatched')`),
 		index("automation_runs_history_idx").on(t.automationId, t.createdAt),
+		index("automation_runs_org_created_idx").on(t.organizationId, t.createdAt),
 		index("automation_runs_status_idx").on(t.status),
 		index("automation_runs_workspace_idx").on(t.v2WorkspaceId),
 		index("automation_runs_cloud_workspace_idx").on(t.cloudWorkspaceId),

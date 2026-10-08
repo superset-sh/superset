@@ -1,0 +1,37 @@
+@theme inline {
+	--animate-shimmer: shimmer var(--shimmer-duration, 2s) linear infinite;
+	--animate-spin-slow: spin-slow 3.6s linear infinite;
+	--animate-block-fade: block-fade 320ms ease-out both;
+	--animate-thinking-pulse: thinking-pulse 1.8s ease-in-out infinite;
+
+	@keyframes shimmer {
+		from {
+			background-position: 100% center;
+		}
+		to {
+			background-position: 0% center;
+		}
+	}
+
+	@keyframes spin-slow {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	@keyframes block-fade {
+		from {
+			opacity: 0;
+		}
+	}
+
+	@keyframes thinking-pulse {
+		0%,
+		100% {
+			opacity: 0.35;
+		}
+		50% {
+			opacity: 0.9;
+		}
+	}
+}

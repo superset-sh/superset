@@ -84,6 +84,7 @@ export function WorkspaceRow({
 			// a host is deletable.
 			canRename={cloudStatus === undefined || cloudStatus === "ready"}
 			canDelete={cloudStatus === undefined || cloudStatus !== "provisioning"}
+			isCloud={cloudStatus !== undefined}
 			isUnread={isUnread}
 			onToggleUnread={toggleUnread}
 			pinned={pinned}

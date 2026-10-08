@@ -80,7 +80,6 @@ export function CloudWorkspacePresenceStack({
 										},
 									]}
 									size={32}
-									surface="popover"
 								/>
 								<div className="min-w-0">
 									<div className="truncate text-sm font-medium">

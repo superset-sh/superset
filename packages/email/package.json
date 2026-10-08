@@ -7,9 +7,9 @@
 		"@types/node": "24.12.0",
 		"@types/react": "19.2.14",
 		"@types/tailwindcss": "3.1.0",
-		"bun-types": "1.3.14",
+		"bun-types": "1.4.2",
 		"react-email": "5.0.7",
-		"typescript": "6.0.3"
+		"typescript": "7.0.2"
 	},
 	"exports": {
 		"./emails/marketing/DownloadLinkEmail": "./src/emails/marketing/DownloadLinkEmail/index.ts",
@@ -21,7 +21,7 @@
 		"dev": "NEXT_PUBLIC_MARKETING_URL=$(grep NEXT_PUBLIC_MARKETING_URL ../../.env | cut -d '=' -f2) email dev --dir src/emails",
 		"export": "email export --dir src/emails",
 		"sync:automations": "bun scripts/sync-automations.ts",
-		"test": "bun test",
+		"test": "bun test --isolate",
 		"typecheck": "tsc --noEmit"
 	},
 	"type": "module",
@@ -37,6 +37,6 @@
 		"react-dom": "19.2.3",
 		"resend": "6.18.0",
 		"tailwindcss": "4.2.2",
-		"zod": "4.4.3"
+		"zod": "4.6.5"
 	}
 }

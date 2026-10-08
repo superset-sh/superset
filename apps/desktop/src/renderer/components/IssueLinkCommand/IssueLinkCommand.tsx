@@ -65,7 +65,6 @@ export function IssueLinkCommand({
 				statusId: task.statusId,
 				priority: task.priority,
 				updatedAt: task.updatedAt,
-				externalUrl: task.externalUrl,
 				branch: task.branch,
 			})),
 		[taskPage],
@@ -228,7 +227,7 @@ export function IssueLinkCommand({
 													task.slug,
 													task.title,
 													task.id,
-													task.externalUrl ?? undefined,
+													undefined,
 													task.branch ?? undefined,
 												)
 											}

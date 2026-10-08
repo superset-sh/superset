@@ -1,9 +1,11 @@
 import { auth } from "@superset/auth/server";
 import { stripeClient } from "@superset/auth/stripe";
 import { db } from "@superset/db/client";
+import { taskTrackerEnum } from "@superset/db/enums";
 import {
 	members,
 	organizations,
+	taskSequences,
 	teamMembers,
 	teams,
 	users,
@@ -13,11 +15,16 @@ import {
 	invitations,
 	verifications,
 } from "@superset/db/schema/auth";
-import { findOrgMembership } from "@superset/db/utils";
+import {
+	cleanupRemovedMember,
+	findMemberRemovalEffects,
+	findOrgMembership,
+} from "@superset/db/utils";
 import { canRemoveMember, type OrganizationRole } from "@superset/shared/auth";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, isNull, ne, sql } from "drizzle-orm";
 import { z } from "zod";
+import { userConnection } from "../../lib/connectors";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
 import {
 	jwtProcedure,
@@ -25,7 +32,7 @@ import {
 	publicProcedure,
 	userError,
 } from "../../trpc";
-import { verifyOrgAdmin } from "../integration/utils";
+import { verifyOrgAdmin, verifyOrgMembership } from "../integration/utils";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { organizationMembersRouter } from "./members";
 
@@ -66,6 +73,16 @@ function verificationMatchesInvitation({
 		verificationIdentifier === invitationId ||
 		verificationIdentifier.toLowerCase() === invitationEmail.toLowerCase()
 	);
+}
+
+function countEffects<T extends { automations: unknown[]; hosts: unknown[] }>(
+	effects: T,
+) {
+	return {
+		...effects,
+		automations: effects.automations.length,
+		hosts: effects.hosts.length,
+	};
 }
 
 export const organizationRouter = {
@@ -151,9 +168,11 @@ export const organizationRouter = {
 					id: teams.id,
 					name: teams.name,
 					slug: teams.slug,
+					taskKey: taskSequences.key,
 					createdAt: teams.createdAt,
 				})
 				.from(teams)
+				.leftJoin(taskSequences, eq(taskSequences.teamId, teams.id))
 				.where(eq(teams.organizationId, organizationId))
 				.orderBy(teams.name),
 			db
@@ -200,7 +219,7 @@ export const organizationRouter = {
 
 		const org = await db.query.organizations.findFirst({
 			where: eq(organizations.id, orgId),
-			columns: { id: true, name: true, slug: true },
+			columns: { id: true, name: true, slug: true, taskTracker: true },
 		});
 		return org ?? null;
 	}),
@@ -218,7 +237,7 @@ export const organizationRouter = {
 
 		const org = await db.query.organizations.findFirst({
 			where: eq(organizations.id, ctx.activeOrganizationId),
-			columns: { id: true, name: true, slug: true },
+			columns: { id: true, name: true, slug: true, taskTracker: true },
 		});
 		return org ?? null;
 	}),
@@ -238,7 +257,7 @@ export const organizationRouter = {
 
 			const org = await db.query.organizations.findFirst({
 				where: eq(organizations.id, input.id),
-				columns: { id: true, name: true, slug: true },
+				columns: { id: true, name: true, slug: true, taskTracker: true },
 			});
 			return org ?? null;
 		}),
@@ -381,6 +400,7 @@ export const organizationRouter = {
 					.regex(/[a-z0-9]$/, "Slug must end with a letter or number")
 					.optional(),
 				logo: z.string().url().optional(),
+				taskTracker: taskTrackerEnum.optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -405,6 +425,18 @@ export const organizationRouter = {
 					message: "Only owners can update organization settings",
 					i18nKey:
 						"serverError.organization.onlyOwnersCanUpdateOrganizationSettings",
+				});
+			}
+
+			if (
+				data.taskTracker === "linear" &&
+				!(await userConnection(id, "linear", ctx.session.user.id))
+			) {
+				throw userError({
+					code: "PRECONDITION_FAILED",
+					message:
+						"Connect your Linear account before tracking tasks in Linear.",
+					i18nKey: "serverError.organization.connectLinearToTrackTasks",
 				});
 			}
 
@@ -613,7 +645,33 @@ export const organizationRouter = {
 				headers: ctx.headers,
 			});
 
-			return { success: true };
+			const cleanup = await cleanupRemovedMember({
+				userId: input.userId,
+				organizationId: input.organizationId,
+			});
+
+			return { success: true, cleanup: countEffects(cleanup) };
+		}),
+
+	/**
+	 * What removing a member takes with them, for the confirmation before it
+	 * happens. Anyone may ask about themselves; asking about someone else is
+	 * an admin question.
+	 */
+	memberRemovalEffects: protectedProcedure
+		.input(
+			z.object({
+				organizationId: z.uuid(),
+				userId: z.uuid(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			if (input.userId === ctx.session.user.id) {
+				await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			} else {
+				await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
+			}
+			return countEffects(await findMemberRemovalEffects(input));
 		}),
 
 	leave: protectedProcedure
@@ -651,6 +709,11 @@ export const organizationRouter = {
 				});
 			}
 
+			const cleanup = await cleanupRemovedMember({
+				userId: ctx.session.user.id,
+				organizationId: input.organizationId,
+			});
+
 			const otherMembership = await db.query.members.findFirst({
 				where: and(
 					eq(members.userId, ctx.session.user.id),
@@ -673,6 +736,7 @@ export const organizationRouter = {
 			return {
 				success: true,
 				activeOrganizationId: otherMembership?.organizationId ?? null,
+				cleanup: countEffects(cleanup),
 			};
 		}),
 

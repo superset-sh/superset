@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import simpleGit from "simple-git";
+import { simpleGit } from "simple-git";
 import type { HostServiceContext } from "../../../types";
 import { gitRouter } from "./git";
 import { getGitStatusSnapshot } from "./utils/git-status";

@@ -9,6 +9,7 @@ import {
 } from "@superset/ui/card";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { FaGithub } from "react-icons/fa";
 import { initServerI18n } from "@/lib/i18n-server";
 import { api } from "@/trpc/server";
@@ -93,6 +94,14 @@ export default async function GitHubIntegrationPage() {
 				</p>
 			</div>
 		);
+	}
+
+	if (
+		!(await trpc.integration.syncAllowed.query({
+			organizationId: organization.id,
+		}))
+	) {
+		redirect("/integrations?pro=github");
 	}
 
 	const installation = await trpc.integration.github.getInstallation.query({

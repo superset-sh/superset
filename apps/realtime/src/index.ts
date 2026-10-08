@@ -1,14 +1,26 @@
 import * as Sentry from "@sentry/cloudflare";
 import {
+	MAX_PAGE_STORAGE_KEY_LENGTH,
+	PAGE_STORAGE_TICKET_SECONDS,
+	type PageStorageReadback,
+} from "@superset/shared/page-storage";
+import { readable, writableFor } from "@superset/shared/page-storage-access";
+import type { PageStorageHubRequest } from "@superset/shared/page-storage-hub";
+import {
 	isRealtimeNudgeKind,
 	isRealtimeUpdate,
 } from "@superset/shared/realtime";
+import {
+	signPageConnectTicket,
+	verifyPageConnectTicket,
+} from "@superset/shared/usercontent";
 import { verifyJWT } from "@superset/shared/verify-jwt";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { getServerByName } from "partyserver";
 import { OrgHub } from "./org-hub";
+import { CLAIMS_HEADER, PageHub } from "./page-hub";
 import type { RealtimeEnv } from "./types";
 
 type AppContext = { Bindings: RealtimeEnv };
@@ -53,6 +65,182 @@ app.get("/v2/org/:organizationId/nudges", async (c) => {
 	return stub.fetch("https://realtime/subscribe", {
 		headers: { Upgrade: "websocket" },
 	});
+});
+
+app.post("/v2/page/:pageId/storage/admin", async (c) => {
+	const token = extractToken(c);
+	if (!token || token !== c.env.NUDGE_SECRET) {
+		return c.json({ error: "Unauthorized" }, 401);
+	}
+	const request = (await c.req
+		.json()
+		.catch(() => null)) as PageStorageHubRequest | null;
+	if (!request || typeof request.op !== "string") {
+		return c.json({ error: "op required" }, 400);
+	}
+	const stub = await getServerByName(c.env.PageHub, c.req.param("pageId"));
+	return c.json(await stub.apply(request));
+});
+
+app.post("/v2/page/:pageId/storage/manifest-changed", async (c) => {
+	const token = extractToken(c);
+	if (!token || token !== c.env.NUDGE_SECRET) {
+		return c.json({ error: "Unauthorized" }, 401);
+	}
+	const stub = await getServerByName(c.env.PageHub, c.req.param("pageId"));
+	await stub.manifestChanged();
+	return c.json({ ok: true });
+});
+
+app.post("/v2/page/:pageId/storage/ticket", async (c) => {
+	const pageId = c.req.param("pageId");
+	const token = extractToken(c);
+	if (!token) return c.json({ error: "Unauthorized" }, 401);
+	const auth = await verifyJWT(token, c.env.NEXT_PUBLIC_API_URL);
+	if (!auth) return c.json({ error: "Unauthorized" }, 401);
+
+	const stub = await getServerByName(c.env.PageHub, pageId);
+	const manifest = await stub.readManifest();
+	if (!manifest) return c.json({ error: "Not found" }, 404);
+
+	const viewer = { userId: auth.sub, organizationIds: auth.organizationIds };
+	if (!readable(manifest, viewer)) {
+		return c.json({ error: "Forbidden" }, 403);
+	}
+
+	const nonce = crypto.randomUUID();
+	const ticket = await signPageConnectTicket(c.env.NUDGE_SECRET, {
+		pageId,
+		userId: auth.sub,
+		name: auth.name ?? "Someone",
+		image: auth.image ?? null,
+		organizationIds: auth.organizationIds,
+		author: manifest.createdByUserId === auth.sub,
+		writable: writableFor(manifest, viewer),
+		nonce,
+		exp: Math.floor(Date.now() / 1000) + PAGE_STORAGE_TICKET_SECONDS,
+	});
+
+	return c.json({ ticket });
+});
+
+app.get("/v2/page/:pageId/storage/records", async (c) => {
+	const pageId = c.req.param("pageId");
+	const token = extractToken(c);
+	if (!token) return c.json({ error: "Unauthorized" }, 401);
+	const auth = await verifyJWT(token, c.env.NEXT_PUBLIC_API_URL);
+	if (!auth) return c.json({ error: "Unauthorized" }, 401);
+
+	const key = c.req.query("key");
+	if (
+		key !== undefined &&
+		(key.length === 0 || key.length > MAX_PAGE_STORAGE_KEY_LENGTH)
+	) {
+		return c.json(
+			{
+				error: `A storage key is 1 to ${MAX_PAGE_STORAGE_KEY_LENGTH} characters`,
+			},
+			400,
+		);
+	}
+
+	const stub = await getServerByName(c.env.PageHub, pageId);
+	const manifest = await stub.readManifest();
+	if (!manifest) return c.json({ error: "Not found" }, 404);
+
+	const viewer = { userId: auth.sub, organizationIds: auth.organizationIds };
+	if (!readable(manifest, viewer)) {
+		return c.json({ error: "You cannot read this page's storage" }, 403);
+	}
+
+	const body: PageStorageReadback =
+		key === undefined
+			? { pageId, keys: await stub.storageKeys() }
+			: { pageId, key, records: await stub.storageRecords(key) };
+	return c.json(body);
+});
+
+app.get("/v2/page/:pageId/storage/socket", async (c) => {
+	if (c.req.header("Upgrade")?.toLowerCase() !== "websocket") {
+		return c.json({ error: "WebSocket upgrade required" }, 426);
+	}
+	const pageId = c.req.param("pageId");
+	const ticket = c.req.query("ticket");
+	if (!ticket) return acceptAndClose(4401, "Unauthorized");
+	const claims = await verifyPageConnectTicket(c.env.NUDGE_SECRET, ticket);
+	if (!claims || claims.pageId !== pageId) {
+		return acceptAndClose(4401, "Unauthorized");
+	}
+
+	const stub = await getServerByName(c.env.PageHub, pageId);
+	const headers = new Headers({ Upgrade: "websocket" });
+	headers.set(
+		CLAIMS_HEADER,
+		JSON.stringify({
+			userId: claims.userId,
+			name: claims.name,
+			image: claims.image,
+			organizationIds: claims.organizationIds,
+			nonce: claims.nonce,
+		}),
+	);
+	const origin = c.req.header("origin");
+	if (origin) headers.set("origin", origin);
+	return stub.fetch("https://realtime/subscribe", { headers });
+});
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+app.get("/v2/page/:pageId/presence", async (c) => {
+	if (c.req.header("Upgrade")?.toLowerCase() !== "websocket") {
+		return c.json({ error: "WebSocket upgrade required" }, 426);
+	}
+	const pageId = c.req.param("pageId");
+	if (!UUID.test(pageId)) return acceptAndClose(4403, "Not found");
+
+	let claims: {
+		userId: string;
+		name: string;
+		image: string | null;
+		organizationIds: string[];
+		guest: boolean;
+	};
+	const token = extractToken(c);
+	const guestId = c.req.query("guest");
+	if (token) {
+		const auth = await verifyJWT(token, c.env.NEXT_PUBLIC_API_URL);
+		if (!auth) return acceptAndClose(4401, "Unauthorized");
+		claims = {
+			userId: auth.sub,
+			name: auth.name ?? "Someone",
+			image: auth.image ?? null,
+			organizationIds: auth.organizationIds,
+			guest: false,
+		};
+	} else if (guestId && UUID.test(guestId)) {
+		const ip = c.req.header("cf-connecting-ip") ?? "unknown";
+		const [byIp, byPage] = await Promise.all([
+			c.env.GUEST_PRESENCE_BY_IP.limit({ key: ip }),
+			c.env.GUEST_PRESENCE_BY_PAGE.limit({ key: pageId }),
+		]);
+		if (!byIp.success || !byPage.success) {
+			return acceptAndClose(4429, "Too many requests");
+		}
+		claims = {
+			userId: `guest:${guestId}`,
+			name: "",
+			image: null,
+			organizationIds: [],
+			guest: true,
+		};
+	} else {
+		return acceptAndClose(4401, "Unauthorized");
+	}
+
+	const stub = await getServerByName(c.env.PageHub, pageId);
+	const headers = new Headers({ Upgrade: "websocket" });
+	headers.set(CLAIMS_HEADER, JSON.stringify({ ...claims, presence: true }));
+	return stub.fetch("https://realtime/presence", { headers });
 });
 
 // ── Emit: the API, after a write ────────────────────────────────────
@@ -108,7 +296,11 @@ const InstrumentedOrgHub = Sentry.instrumentDurableObjectWithSentry(
 	sentryOptions,
 	OrgHub,
 );
-export { InstrumentedOrgHub as OrgHub };
+const InstrumentedPageHub = Sentry.instrumentDurableObjectWithSentry(
+	sentryOptions,
+	PageHub,
+);
+export { InstrumentedOrgHub as OrgHub, InstrumentedPageHub as PageHub };
 
 export default Sentry.withSentry(sentryOptions, {
 	fetch: app.fetch,

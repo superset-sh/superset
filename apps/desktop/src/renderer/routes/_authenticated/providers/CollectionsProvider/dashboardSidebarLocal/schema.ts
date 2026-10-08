@@ -15,6 +15,23 @@ const persistedDateSchema = z
 	.union([z.string(), z.date()])
 	.transform((value) => (typeof value === "string" ? new Date(value) : value));
 
+export const pendingChatHandoffSchema = z.object({
+	agentId: z.string(),
+	prompt: z.string(),
+	attachments: z
+		.array(
+			z.object({
+				attachmentId: z.string(),
+				name: z.string(),
+				mimeType: z.string(),
+			}),
+		)
+		.optional(),
+	modelId: z.string().optional(),
+	modeId: z.string().optional(),
+});
+export type PendingChatHandoff = z.infer<typeof pendingChatHandoffSchema>;
+
 export const dashboardSidebarProjectSchema = z.object({
 	projectId: z.string().uuid(),
 	createdAt: persistedDateSchema,
@@ -191,6 +208,15 @@ export const workspaceLocalStateSchema = z.object({
 		suppressedPullRequestUrl: z.string().nullable().default(null),
 	}),
 	paneLayout: paneWorkspaceStateSchema,
+	rightPaneLayout: paneWorkspaceStateSchema.optional(),
+	rightSidebarOpen: z.boolean().optional(),
+	rightPaneAreaExpansion: z
+		.object({
+			movedTabIds: z.array(z.string()),
+			centerActiveTabId: z.string().nullable(),
+			rightActiveTabId: z.string().nullable(),
+		})
+		.optional(),
 	viewedFiles: z.array(z.string()).default([]),
 	recentlyViewedFiles: z
 		.array(
@@ -224,6 +250,12 @@ export const workspaceLocalStateSchema = z.object({
 	// page drains this queue once on first open (see
 	// useRunWorkspaceCreationPresets) and clears it before running.
 	pendingCreationPresetIds: z.array(z.string()).default([]),
+	// A chat branched into this worktree from another one. An agent keys its
+	// sessions to a project directory, so the branch cannot be resumed here:
+	// the new chat is started with the conversation as its first message. The
+	// v2 workspace page drains this once on first open (see
+	// useRunPendingChatHandoff) and clears it before running.
+	pendingChatHandoff: pendingChatHandoffSchema.nullable().default(null),
 });
 
 // Defaults for fields heal can synthesize. Identity fields (workspaceId,
@@ -256,6 +288,7 @@ const WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS = {
 		v1PaneId: string | null;
 	}>,
 	pendingCreationPresetIds: [] as string[],
+	pendingChatHandoff: null as PendingChatHandoff | null,
 };
 
 /**
@@ -471,6 +504,7 @@ export const v2UserPreferencesSchema = z.object({
 	rightSidebarOpen: z.boolean().default(true),
 	rightSidebarTab: z.enum(["changes", "files"]).default("changes"),
 	rightSidebarWidth: z.number().default(340),
+	rightPaneAreaWidth: z.number().optional(),
 	deleteLocalBranch: z.boolean().default(false),
 	showPresetsBar: z.boolean().default(true),
 	changesViewMode: changesViewModeSchema.default("folders"),
@@ -539,6 +573,10 @@ export function healWorkspaceLocalState(raw: unknown): WorkspaceLocalStateRow {
 		// undefined node. Passed through untouched before, which white-screened
 		// the workspace view on a corrupt layout.
 		paneLayout: sanitizePaneLayout(r.paneLayout),
+		rightPaneLayout:
+			r.rightPaneLayout === undefined
+				? undefined
+				: sanitizePaneLayout(r.rightPaneLayout),
 		viewedFiles:
 			r.viewedFiles ?? WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.viewedFiles,
 		recentlyViewedFiles:
@@ -553,6 +591,9 @@ export function healWorkspaceLocalState(raw: unknown): WorkspaceLocalStateRow {
 		pendingCreationPresetIds:
 			r.pendingCreationPresetIds ??
 			WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.pendingCreationPresetIds,
+		pendingChatHandoff:
+			r.pendingChatHandoff ??
+			WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.pendingChatHandoff,
 		sidebarState: {
 			...SIDEBAR_STATE_DEFAULTS,
 			...sidebar,

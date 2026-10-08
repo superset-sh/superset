@@ -1,8 +1,5 @@
-import { afterAll, afterEach, describe, expect, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, describe, expect, test } from "bun:test";
 
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
@@ -18,10 +15,6 @@ const { Popover, PopoverContent, PopoverTrigger } = await import(
 );
 
 afterEach(cleanup);
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
-
 // Mirrors the workspace composer: Radix content is portaled out of the DOM
 // footer but its React click events still bubble through InputGroupAddon.
 function ComposerWithIssuePicker({

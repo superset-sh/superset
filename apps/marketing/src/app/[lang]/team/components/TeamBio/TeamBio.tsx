@@ -1,4 +1,4 @@
-import { parseTeamBio } from "../../utils/teamBio";
+import { parseTeamBio } from "../../../utils/teamBio";
 
 interface TeamBioProps {
 	bio: string;

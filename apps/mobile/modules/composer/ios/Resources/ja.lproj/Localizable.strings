@@ -14,3 +14,4 @@
 "Could not start dictation" = "音声入力を開始できませんでした";
 "Uploading" = "アップロード中";
 "Upload failed" = "アップロードに失敗しました";
+"Stop" = "停止";

@@ -6,30 +6,30 @@ interface Stat {
 
 export function StatStrip({
 	stats,
-	pixelClassName = "",
+	loading = false,
 }: {
 	stats: Stat[];
-	pixelClassName?: string;
+	loading?: boolean;
 }) {
 	return (
-		<div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border border border-border">
+		<dl
+			aria-busy={loading}
+			className={`grid grid-cols-2 overflow-hidden rounded-[2px] border border-border bg-background sm:grid-cols-4 ${loading ? "opacity-50" : ""}`}
+		>
 			{stats.map((stat) => (
-				<div key={stat.label} className="bg-background px-4 py-4">
-					<div
-						className={`text-xl text-brand-light leading-none ${pixelClassName || "font-mono tracking-tight"}`}
-					>
+				<div
+					key={stat.label}
+					className="border-border p-4 odd:border-r max-sm:nth-[-n+2]:border-b sm:border-r sm:last:border-r-0 sm:p-5"
+				>
+					<dt className="text-xs text-muted-foreground">{stat.label}</dt>
+					<dd className="mt-2 text-2xl font-medium tracking-tight text-foreground tabular-nums">
 						{stat.value}
-					</div>
-					<div className="font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted-foreground mt-2">
-						{stat.label}
-					</div>
+					</dd>
 					{stat.hint && (
-						<div className="text-[0.65rem] text-muted-foreground/70 mt-1">
-							{stat.hint}
-						</div>
+						<dd className="mt-1 text-xs text-muted-foreground">{stat.hint}</dd>
 					)}
 				</div>
 			))}
-		</div>
+		</dl>
 	);
 }

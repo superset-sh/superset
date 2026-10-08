@@ -6,6 +6,7 @@
 	"scripts": {
 		"dev": "wrangler dev",
 		"deploy": "wrangler deploy",
+		"test": "bun test --isolate",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
@@ -13,7 +14,7 @@
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@trpc/client": "11.16.0",
-		"hono": "4.13.5",
+		"hono": "4.13.7",
 		"lru-cache": "11.2.7",
 		"partyserver": "0.5.9",
 		"superjson": "2.2.6"
@@ -21,7 +22,7 @@
 	"devDependencies": {
 		"@cloudflare/workers-types": "5.20260801.1",
 		"@superset/typescript": "workspace:*",
-		"typescript": "6.0.3",
+		"typescript": "7.0.2",
 		"wrangler": "4.118.0"
 	}
 }

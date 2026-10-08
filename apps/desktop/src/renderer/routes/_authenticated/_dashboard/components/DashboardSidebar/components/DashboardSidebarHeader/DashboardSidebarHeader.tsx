@@ -55,6 +55,7 @@ import {
 	WINDOW_CONTROLS_ROW_HEIGHT,
 	WINDOW_CONTROLS_ROW_TOP,
 } from "renderer/routes/_authenticated/_dashboard/components/WindowChrome";
+import { useFailedAutomations } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import { useShowsAppTopBar } from "renderer/routes/_authenticated/_dashboard/hooks/useShowsAppTopBar";
 import {
 	pullRequestsSearchFromFilters,
@@ -163,7 +164,6 @@ export function DashboardSidebarHeader({
 		to: "/v2-workspace/$workspaceId",
 		fuzzy: true,
 	});
-	const onV2WorkspaceRoute = v2WorkspaceMatch !== false;
 	const showsAppTopBar = useShowsAppTopBar();
 	// Pre-select the viewed workspace's project in the new-workspace modal.
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
@@ -188,6 +188,7 @@ export function DashboardSidebarHeader({
 		(useFeatureFlagEnabled(FEATURE_FLAGS.PLUGINS) ?? false) ||
 		env.NODE_ENV === "development";
 	const cloudUtils = cloudTrpc.useUtils();
+	const { myFailedCount } = useFailedAutomations();
 
 	const {
 		tab: lastTab,
@@ -195,7 +196,6 @@ export function DashboardSidebarHeader({
 		search: lastSearch,
 		typeTab: lastTypeTab,
 		projectFilters: lastProjectFilters,
-		linearProjectFilter: lastLinearProjectFilter,
 		includeClosedIssues: lastIncludeClosedIssues,
 	} = useTasksFilterStore();
 	const {
@@ -242,6 +242,13 @@ export function DashboardSidebarHeader({
 		});
 	};
 
+	const handleFailedAutomationsClick = () => {
+		navigate({
+			to: "/automations/runs",
+			search: { status: "failed", scope: "mine" },
+		});
+	};
+
 	const handleTasksClick = () => {
 		gateFeature(GATED_FEATURES.TASKS, () => {
 			navigate({
@@ -252,7 +259,6 @@ export function DashboardSidebarHeader({
 					search: lastSearch,
 					typeTab: lastTypeTab,
 					projectFilters: lastProjectFilters,
-					linearProjectFilter: lastLinearProjectFilter,
 					includeClosedIssues: lastIncludeClosedIssues,
 				}),
 			});
@@ -294,19 +300,14 @@ export function DashboardSidebarHeader({
 		return (
 			<div className="flex flex-col">
 				{/* The page's header row continues across the rail, and the macOS
-				    window buttons sit in it. On the v2 workspace route that row is
-				    the pane tab bar. */}
+				    window buttons sit in it. */}
 				{!showsAppTopBar && (
 					<div
 						// w +1px: overlaps the container's border-r so the sidebar's
-						// vertical border starts below the row, not inside it. The tab
-						// bar fill is its bg-muted/45|35-over-background flattened to an
-						// opaque color so it can paint over that border pixel.
+						// vertical border starts below the row, not inside it.
 						className={cn(
-							"drag w-[calc(100%+1px)] shrink-0",
-							onV2WorkspaceRoute
-								? "h-10 bg-[color-mix(in_oklab,var(--muted)_45%,var(--background))] dark:bg-[color-mix(in_oklab,var(--muted)_35%,var(--background))]"
-								: cn("h-12", WINDOW_CHROME_BAND_CLASS),
+							"drag h-12 w-[calc(100%+1px)] shrink-0",
+							WINDOW_CHROME_BAND_CLASS,
 						)}
 					>
 						{!isMac && (
@@ -442,21 +443,37 @@ export function DashboardSidebarHeader({
 							<button
 								type="button"
 								onClick={handleAutomationsClick}
-								aria-label={t({
-									message: "Automations",
-								})}
+								aria-label={
+									myFailedCount > 0
+										? t({
+												message: `Automations, ${myFailedCount} failing`,
+											})
+										: t({
+												message: "Automations",
+											})
+								}
 								className={cn(
-									"flex size-7 items-center justify-center rounded-md transition-colors",
+									"relative flex size-7 items-center justify-center rounded-md transition-colors",
 									isAutomationsOpen
 										? "bg-fill-selected text-muted-foreground"
 										: "text-muted-foreground hover:bg-fill-hover",
 								)}
 							>
 								<LuClock className="size-3.5" strokeWidth={1.5} />
+								{myFailedCount > 0 && (
+									<span
+										aria-hidden="true"
+										className="absolute right-1 top-1 size-1.5 rounded-full bg-red-500"
+									/>
+								)}
 							</button>
 						</TooltipTrigger>
 						<TooltipContent side="right">
-							<Trans>Automations</Trans>
+							{myFailedCount > 0 ? (
+								<Trans>Automations ({myFailedCount} failing)</Trans>
+							) : (
+								<Trans>Automations</Trans>
+							)}
 						</TooltipContent>
 					</Tooltip>
 
@@ -769,24 +786,38 @@ export function DashboardSidebarHeader({
 				</button>
 			)}
 
-			<button
-				type="button"
-				onClick={handleAutomationsClick}
-				className={cn(
-					"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
-					isAutomationsOpen
-						? "bg-fill-selected text-foreground"
-						: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
+			<div className="relative">
+				<button
+					type="button"
+					onClick={handleAutomationsClick}
+					className={cn(
+						"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
+						isAutomationsOpen
+							? "bg-fill-selected text-foreground"
+							: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
+					)}
+				>
+					<LuClock
+						className="size-4 shrink-0 text-muted-foreground"
+						strokeWidth={1.5}
+					/>
+					<span className="flex-1 text-left">
+						<Trans>Automations</Trans>
+					</span>
+				</button>
+				{myFailedCount > 0 && (
+					<button
+						type="button"
+						onClick={handleFailedAutomationsClick}
+						title={t({
+							message: `${myFailedCount} of your automations failed their last run`,
+						})}
+						className="absolute right-2 top-1/2 flex h-4 min-w-4 -translate-y-1/2 items-center justify-center rounded-full bg-red-500/15 px-1 text-[10px] font-medium tabular-nums text-red-600 transition-colors hover:bg-red-500/25 dark:text-red-400"
+					>
+						{myFailedCount > 9 ? "9+" : myFailedCount}
+					</button>
 				)}
-			>
-				<LuClock
-					className="size-4 shrink-0 text-muted-foreground"
-					strokeWidth={1.5}
-				/>
-				<span className="flex-1 text-left">
-					<Trans>Automations</Trans>
-				</span>
-			</button>
+			</div>
 
 			<button
 				type="button"

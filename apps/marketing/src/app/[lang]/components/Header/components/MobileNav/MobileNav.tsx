@@ -1,16 +1,15 @@
 "use client";
 
-import { Trans, useLingui } from "@lingui/react/macro";
+import { useLingui } from "@lingui/react/macro";
 import { AnimatePresence, m } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { useIsMobileLaunched } from "../../../../providers/MobileLaunchProvider";
 import {
 	type NavLink,
-	productLinks,
-	RESOURCE_LINKS,
+	PRODUCT_SECTIONS,
+	RESOURCE_SECTIONS,
 	TOP_LEVEL_LINKS,
 } from "../../constants";
 
@@ -21,7 +20,6 @@ interface MobileNavProps {
 
 export function MobileNav({ ctaButtons, starCounter }: MobileNavProps) {
 	const { t } = useLingui();
-	const isMobileLaunched = useIsMobileLaunched();
 	const [isOpen, setIsOpen] = useState(false);
 	const close = () => setIsOpen(false);
 
@@ -45,23 +43,21 @@ export function MobileNav({ ctaButtons, starCounter }: MobileNavProps) {
 			<AnimatePresence>
 				{isOpen && (
 					<m.div
-						className="absolute inset-x-0 top-14 border-t border-border bg-background/95 backdrop-blur-sm"
+						className="absolute inset-x-0 top-16 max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-border bg-background"
 						initial={{ opacity: 0, height: 0 }}
 						animate={{ opacity: 1, height: "auto" }}
 						exit={{ opacity: 0, height: 0 }}
 						transition={{ duration: 0.2 }}
 					>
 						<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col gap-6">
-							<MobileSection
-								title={<Trans>Product</Trans>}
-								links={productLinks(isMobileLaunched)}
-								onNavigate={close}
-							/>
-							<MobileSection
-								title={<Trans>Resources</Trans>}
-								links={RESOURCE_LINKS}
-								onNavigate={close}
-							/>
+							{[...PRODUCT_SECTIONS, ...RESOURCE_SECTIONS].map((section) => (
+								<MobileSection
+									key={section.id}
+									title={section.title}
+									links={section.links}
+									onNavigate={close}
+								/>
+							))}
 							<MobileSection links={TOP_LEVEL_LINKS} onNavigate={close} />
 							<div className="pt-4 border-t border-border flex flex-col gap-3">
 								{starCounter}

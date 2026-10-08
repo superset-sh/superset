@@ -286,7 +286,7 @@ Não é preciso conta na Neon nem credenciais de terceiros. O `setup.local.sh` s
 uma stack local de Postgres + Electric via Docker e cria uma conta de dev. Entre
 com o botão **"Sign in as dev"** (ou `admin@local.test` / `supersetdev`).
 
-Pré-requisitos: [Bun](https://bun.sh/) v1.3.14+ (fixado em `.bun-version`), `docker`, `jq` e `caddy`, que o `bun dev` executa como proxy HTTPS local (`brew install jq caddy && caddy trust`).
+Pré-requisitos: [Bun](https://bun.sh/) v1.4.2+ (fixado em `.bun-version`), `docker`, `jq` e `caddy`, que o `bun dev` executa como proxy HTTPS local (`brew install jq caddy && caddy trust`).
 
 Veja [**DEVELOPMENT.md**](../DEVELOPMENT.md) para o guia completo: o que o script de configuração faz, configuração manual com serviços reais, comandos comuns, solução de problemas e como compilar o app desktop. O processo de contribuição está em [**CONTRIBUTING.md**](../CONTRIBUTING.md).
 

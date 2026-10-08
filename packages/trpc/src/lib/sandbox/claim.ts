@@ -4,6 +4,7 @@
  * its identity file, the credential rules for the firewall, the managed
  * environment to push after boot, and the host secret for the boot command.
  */
+import { createHmac } from "node:crypto";
 import { db } from "@superset/db/client";
 import { type cloudWorkspaces, users } from "@superset/db/schema";
 import {
@@ -22,6 +23,7 @@ import { resolveEnvironment } from "../../router/environment/resolve-environment
 import { githubUserConnectionFor, githubUserTokenFor } from "../github-user";
 import { sandboxHostSecretFor } from "./access";
 import { deriveSandboxCredentials, gitAuthorFor } from "./credentials";
+import { creatorPlugins } from "./plugins";
 import { readRepoHooks } from "./repo-hooks";
 import {
 	installationTokenFor,
@@ -31,6 +33,15 @@ import {
 import type { SandboxClaim, SandboxEnvironment } from "./vercel";
 
 type CloudWorkspaceRow = typeof cloudWorkspaces.$inferSelect;
+
+function agentCredentialDigest(userAgentEnv: Record<string, string>): string {
+	const sorted = Object.keys(userAgentEnv)
+		.sort()
+		.map((key) => [key, userAgentEnv[key]]);
+	return createHmac("sha256", env.SANDBOX_GATE_SECRET)
+		.update(`agent-credentials:${JSON.stringify(sorted)}`)
+		.digest("hex");
+}
 
 /** Commits by a workspace nobody created, such as an automation's. */
 const SUPERSET_GIT_AUTHOR = { name: "Superset", email: "noreply@superset.sh" };
@@ -47,6 +58,7 @@ export async function buildSandboxClaim(args: {
 	claim: SandboxClaim;
 	environment: SandboxEnvironment;
 	repositories: SandboxRepository[];
+	agentCredentialDigest: string;
 }> {
 	const [environment, userAgentEnv] = await Promise.all([
 		resolveEnvironment(args.row.environmentId, args.row.organizationId),
@@ -72,6 +84,7 @@ export async function buildSandboxClaim(args: {
 				}),
 			])
 		: [null, null, undefined];
+	const plugins = await creatorPlugins(creator);
 	// The creator's own token when they have connected GitHub: pushes and pull
 	// requests are theirs. The App's installation token otherwise.
 	const token =
@@ -93,7 +106,9 @@ export async function buildSandboxClaim(args: {
 		SUPERSET_API_URL: env.NEXT_PUBLIC_API_URL,
 		SUPERSET_SANDBOX_WORKSPACE_ID: args.row.id,
 		SUPERSET_SANDBOX_ORGANIZATION_ID: args.row.organizationId,
+		...(creator ? { SUPERSET_SANDBOX_CREATOR_USER_ID: creator } : {}),
 		SUPERSET_SANDBOX_REPOSITORIES: JSON.stringify(repositories),
+		SUPERSET_SANDBOX_PLUGINS: JSON.stringify(plugins),
 		SUPERSET_SANDBOX_IMAGE_TAG: environment.sourceRef,
 		SUPERSET_SANDBOX_PROVIDER: args.row.provider,
 		...(environment.bundleSha
@@ -138,5 +153,6 @@ export async function buildSandboxClaim(args: {
 			region: environment.region,
 		},
 		repositories,
+		agentCredentialDigest: agentCredentialDigest(userAgentEnv),
 	};
 }

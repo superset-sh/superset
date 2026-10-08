@@ -10,11 +10,14 @@ import { getComparisonPages } from "@/lib/compare";
 import { getAllLegalSlugs, getLegalPage } from "@/lib/legal";
 import { themeListings } from "@/lib/marketplace";
 import { getAllPeople } from "@/lib/people";
-import { isMobileLaunched } from "@/lib/site-flags";
+
+async function listProfileHandles() {
+	"use cache";
+	return fetchPublicHandles();
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	const baseUrl = COMPANY.MARKETING_URL;
-	const isLaunched = await isMobileLaunched();
 
 	const staticPages: MetadataRoute.Sitemap = [
 		{
@@ -22,15 +25,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 			changeFrequency: "monthly",
 			priority: 0.8,
 		},
-		...(isLaunched
-			? [
-					{
-						url: `${baseUrl}/mobile`,
-						changeFrequency: "monthly" as const,
-						priority: 0.8,
-					},
-				]
-			: []),
+		{
+			url: `${baseUrl}/mobile`,
+			changeFrequency: "monthly",
+			priority: 0.8,
+		},
+		{
+			url: `${baseUrl}/pages`,
+			changeFrequency: "monthly",
+			priority: 0.8,
+		},
+		{
+			url: `${baseUrl}/automations`,
+			changeFrequency: "monthly",
+			priority: 0.8,
+		},
+		{
+			url: `${baseUrl}/browser`,
+			changeFrequency: "monthly",
+			priority: 0.8,
+		},
 		{
 			url: baseUrl,
 			changeFrequency: "weekly",
@@ -72,7 +86,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 			priority: 0.8,
 		},
 		{
-			url: `${baseUrl}/join-us`,
+			url: `${baseUrl}/careers`,
 			changeFrequency: "monthly",
 			priority: 0.7,
 		},
@@ -220,14 +234,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	// Profiles are listed once at their canonical bare URL. Expanding each of
 	// them across every locale with a full alternates map multiplies the file
 	// by the square of the locale count and blew past Vercel's 19 MB ISR cap.
-	const profilePages: MetadataRoute.Sitemap = (await fetchPublicHandles()).map(
-		(profile) => ({
-			url: `${baseUrl}/${profile.handle}`,
-			lastModified: profile.lastPublishedAt ?? undefined,
-			changeFrequency: "daily" as const,
-			priority: 0.6,
-		}),
-	);
+	const handles = await listProfileHandles().catch((error) => {
+		console.error("[marketing/sitemap] handles error:", error);
+		return [];
+	});
+	const profilePages: MetadataRoute.Sitemap = handles.map((profile) => ({
+		url: `${baseUrl}/${profile.handle}`,
+		lastModified: profile.lastPublishedAt ?? undefined,
+		changeFrequency: "daily" as const,
+		priority: 0.6,
+	}));
 
 	return [...pages.flatMap(expand), ...profilePages];
 }

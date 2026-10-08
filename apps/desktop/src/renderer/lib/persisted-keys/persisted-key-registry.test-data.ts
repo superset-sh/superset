@@ -58,7 +58,7 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["v2-workspaces-view"],
 	],
 	[
-		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/ChatV3Pane/components/Composer/Composer.tsx",
+		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/ChatSession/components/Composer/hooks/useComposerDraft/useComposerDraft.ts",
 		["chat-v3-draft:*"],
 	],
 	["src/renderer/stores/changes/store.ts", ["changes-store"]],
@@ -113,6 +113,10 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["terminal-close-confirm-v1"],
 	],
 	[
+		"src/renderer/stores/automation-failures/store.ts",
+		["automation-failures-v1"],
+	],
+	[
 		"src/renderer/stores/app-version-history/store.ts",
 		["app-version-history-v1"],
 	],
@@ -160,6 +164,14 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["leaderboard-auto-publish-v2"],
 	],
 	[
+		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/ChatSession/components/Composer/components/ModelPicker/hooks/useFavoriteModels/useFavoriteModels.ts",
+		["chatFavoriteModels"],
+	],
+	[
+		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/ChatPane/utils/savedChatMode/savedChatMode.ts",
+		["chatModeByAgent"],
+	],
+	[
 		"src/renderer/hooks/useAgentModelPreference/useAgentModelPreference.ts",
 		["lastSelectedV2WorkspaceCreateModelByPreset"],
 	],
@@ -191,6 +203,10 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 	],
 	[
 		"src/renderer/routes/_authenticated/_dashboard/automations/components/AutomationRow/AutomationRow.tsx",
+		["lastViewedWorkspaceId"],
+	],
+	[
+		"src/renderer/routes/_authenticated/_dashboard/automations/runs/components/RunRow/RunRow.tsx",
 		["lastViewedWorkspaceId"],
 	],
 	[

@@ -2,12 +2,15 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { getHostId } from "@superset/shared/host-info";
 import type { ApiClient } from "../api-client";
-import { SUPERSET_HOME_DIR } from "../config";
 import { resolveHostFilter } from "../host-target";
+import { getSupersetHomeDir } from "../settings/paths";
 
-const AVAILABILITY_PATH = join(SUPERSET_HOME_DIR, "cloud-availability.json");
 const AVAILABILITY_TTL_MS = 60 * 60_000;
 const AVAILABILITY_TIMEOUT_MS = 2_000;
+
+function availabilityPath(): string {
+	return join(getSupersetHomeDir(), "cloud-availability.json");
+}
 
 /**
  * The host a workspace command targets, or undefined for the cloud. `--local`
@@ -56,7 +59,7 @@ async function cloudWorkspacesAvailable(
 	}
 	cache[organizationId] = { available, checkedAt: Date.now() };
 	try {
-		writeFileSync(AVAILABILITY_PATH, JSON.stringify(cache), { mode: 0o600 });
+		writeFileSync(availabilityPath(), JSON.stringify(cache), { mode: 0o600 });
 	} catch {
 		// Uncached, the next command asks again.
 	}
@@ -67,9 +70,10 @@ function readCache(): Record<
 	string,
 	{ available: boolean; checkedAt: number }
 > {
-	if (!existsSync(AVAILABILITY_PATH)) return {};
+	const path = availabilityPath();
+	if (!existsSync(path)) return {};
 	try {
-		return JSON.parse(readFileSync(AVAILABILITY_PATH, "utf8"));
+		return JSON.parse(readFileSync(path, "utf8"));
 	} catch {
 		return {};
 	}

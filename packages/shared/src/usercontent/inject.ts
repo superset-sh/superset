@@ -1,5 +1,7 @@
 export const RUNTIME_SCRIPT_PATH = "/_superset/runtime.js";
 
+export const STORAGE_SCRIPT_PATH = "/_superset/storage.js";
+
 /**
  * The origin's one edit to a published document: a same-origin script tag
  * before `</body>` (or appended when there is none), so the runtime can
@@ -60,6 +62,10 @@ function findHeadTag(html: string): { index: number; length: number } | null {
  */
 export function injectStyleTag(html: string, css: string): string {
 	return injectIntoHead(html, `<style>${css}</style>`);
+}
+
+export function injectHeadScriptTag(html: string, src: string): string {
+	return injectIntoHead(html, `<script src="${src}"></script>`);
 }
 
 function injectIntoHead(html: string, tag: string): string {

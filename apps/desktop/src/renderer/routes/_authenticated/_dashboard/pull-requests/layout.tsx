@@ -26,6 +26,7 @@ const MIN_DETAIL_PANE_WIDTH = 420;
 export type PullRequestsSearch = {
 	search?: string;
 	project?: string;
+	repo?: string;
 	projects?: string;
 	author?: string;
 	review?: string;
@@ -38,6 +39,7 @@ export const Route = createFileRoute(
 	component: PullRequestsLayout,
 	validateSearch: (search: Record<string, unknown>): PullRequestsSearch => ({
 		search: typeof search.search === "string" ? search.search : undefined,
+		repo: typeof search.repo === "string" ? search.repo : undefined,
 		project: typeof search.project === "string" ? search.project : undefined,
 		projects: typeof search.projects === "string" ? search.projects : undefined,
 		author: typeof search.author === "string" ? search.author : undefined,
@@ -58,7 +60,7 @@ export const Route = createFileRoute(
  * always reveals the other, since hiding both would leave nothing on screen.
  */
 function PullRequestsLayout() {
-	const { search, project, projects, author, review, state } =
+	const { search, project, repo, projects, author, review, state } =
 		Route.useSearch();
 	const params = useParams({ strict: false }) as { prNumber?: string };
 	const selectedPrNumber = params.prNumber
@@ -115,6 +117,7 @@ function PullRequestsLayout() {
 			initialState={state}
 			selectedPrNumber={selectedPrNumber}
 			selectedPrProjectId={project ?? null}
+			selectedPrRepo={repo ?? null}
 		/>
 	);
 

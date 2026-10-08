@@ -103,44 +103,54 @@ export function CloudWorkspaceListRow({
 				</span>
 			</td>
 			<td className="w-0 pr-3">
-				{item.showsPresence && (
-					<AvatarStack
-						people={workspace.presence.map((person) => ({
-							id: person.userId,
-							name: person.name,
-							image: person.image,
-							isActive:
-								now.getTime() - person.lastSeenAt.getTime() < ACTIVE_WITHIN_MS,
-						}))}
-						size={20}
-					/>
-				)}
+				<span className="flex min-w-[50px] justify-end">
+					{item.showsPresence && (
+						<AvatarStack
+							people={workspace.presence.map((person) => ({
+								id: person.userId,
+								name: person.name,
+								image: person.image,
+								isActive:
+									now.getTime() - person.lastSeenAt.getTime() <
+									ACTIVE_WITHIN_MS,
+							}))}
+							size={20}
+						/>
+					)}
+				</span>
 			</td>
 			<td className="w-0 pr-3 text-right">
-				{isArchived || item.isMine ? null : isInSidebar ? (
-					<Button
-						variant="outline"
-						size="xs"
-						onClick={(event) => {
-							event.stopPropagation();
-							onSetInSidebar(false);
-						}}
-						className="gap-1 text-xs whitespace-nowrap"
-					>
-						<HiMiniXMark className="size-3.5" />
-						<Trans>Remove from sidebar</Trans>
-					</Button>
-				) : (
-					<Button
-						size="xs"
-						onClick={(event) => {
-							event.stopPropagation();
-							onSetInSidebar(true);
-						}}
-						className="text-xs whitespace-nowrap"
-					>
-						<Trans>Add to sidebar</Trans>
-					</Button>
+				{isArchived || item.isMine ? null : (
+					<span className="inline-grid justify-items-end *:[grid-area:1/1]">
+						<Button
+							variant="outline"
+							size="xs"
+							onClick={(event) => {
+								event.stopPropagation();
+								onSetInSidebar(false);
+							}}
+							className={cn(
+								"gap-1 text-xs whitespace-nowrap transition-none",
+								!isInSidebar && "invisible",
+							)}
+						>
+							<HiMiniXMark className="size-3.5" />
+							<Trans>Remove from sidebar</Trans>
+						</Button>
+						<Button
+							size="xs"
+							onClick={(event) => {
+								event.stopPropagation();
+								onSetInSidebar(true);
+							}}
+							className={cn(
+								"text-xs whitespace-nowrap transition-none",
+								isInSidebar && "invisible",
+							)}
+						>
+							<Trans>Add to sidebar</Trans>
+						</Button>
+					</span>
 				)}
 			</td>
 			<td className="w-0 pr-4">

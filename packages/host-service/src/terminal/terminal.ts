@@ -39,7 +39,7 @@ import { isProcessAlive, readPtyDaemonManifest } from "../daemon/manifest.ts";
 import type { HostDb } from "../db/index.ts";
 import { projects, terminalSessions, workspaces } from "../db/schema.ts";
 import type { EventBus } from "../events/index.ts";
-import { portManager } from "../ports/port-manager.ts";
+import { chatPortTerminalIds, portManager } from "../ports/port-manager.ts";
 import { issueAttributionToken } from "../terminal-agents/attribution-token.ts";
 import { sweepAgentBindingsAfterDaemonLoss } from "../terminal-agents/daemon-loss-sweep.ts";
 import { terminalHarnessSession } from "../terminal-agents/harness-session-ref.ts";
@@ -59,7 +59,7 @@ import {
 	onDaemonDisconnect,
 } from "./daemon-client-singleton.ts";
 import {
-	buildV2TerminalEnv,
+	buildHostLaunchEnv,
 	getShellLaunchArgs,
 	getTerminalBaseEnv,
 	resolveLaunchShell,
@@ -2789,7 +2789,8 @@ async function disposeSessionUnlocked(
 		closePromise = closeDaemonSessionById(terminalId, "SIGHUP");
 	}
 
-	portManager.unregisterSession(terminalId);
+	if (!chatPortTerminalIds.has(terminalId))
+		portManager.unregisterSession(terminalId);
 
 	const closeResult = closePromise
 		? await closePromise
@@ -3090,21 +3091,13 @@ async function createTerminalSessionUnlocked({
 	const shell = resolveLaunchShell(baseEnv);
 	const shellArgs = getShellLaunchArgs({ shell, supersetHomeDir });
 	const ptyEnv = {
-		...buildV2TerminalEnv({
-			baseEnv,
-			shell,
-			supersetHomeDir,
-			organizationId: process.env.ORGANIZATION_ID || "",
+		...buildHostLaunchEnv({
 			themeType,
 			cwd,
 			terminalId,
 			workspaceId,
 			workspacePath: workspace.worktreePath,
 			rootPath,
-			supersetEnv:
-				process.env.NODE_ENV === "development" ? "development" : "production",
-			agentHookPort: process.env.SUPERSET_AGENT_HOOK_PORT || "",
-			agentHookVersion: process.env.SUPERSET_AGENT_HOOK_VERSION || "",
 			hostAgentHookUrl: getHostAgentHookUrl(),
 		}),
 		// Usage-tab default account: provider CLIs typed or preset-launched in
@@ -3431,7 +3424,8 @@ async function createTerminalSessionUnlocked({
 				session.exitSignal = signal ?? 0;
 				const occurredAt = Date.now();
 
-				portManager.unregisterSession(terminalId);
+				if (!chatPortTerminalIds.has(terminalId))
+					portManager.unregisterSession(terminalId);
 
 				db.update(terminalSessions)
 					.set({ status: "exited", endedAt: occurredAt })

@@ -11,7 +11,13 @@ const EMPTY_STATE: WorkspaceState<PaneViewerData> = {
 };
 
 type AgentLaunchResult =
-	| { ok: true; kind: "terminal"; sessionId: string; label: string }
+	| {
+			ok: true;
+			kind: "terminal";
+			sessionId: string;
+			label: string;
+			chatSessionId?: string;
+	  }
 	| { ok: false; error: string };
 
 interface AppendArgs {
@@ -35,7 +41,10 @@ export function appendLaunchesToPaneLayout({
 		label: entry.label,
 	}));
 	const agentLaunches: PaneLaunch[] = agents
-		.filter((entry): entry is Extract<typeof entry, { ok: true }> => entry.ok)
+		.filter(
+			(entry): entry is Extract<typeof entry, { ok: true }> =>
+				entry.ok && !entry.chatSessionId,
+		)
 		.map((entry) => ({
 			sessionId: entry.sessionId,
 			label: entry.label,

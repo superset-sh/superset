@@ -3,8 +3,6 @@ name: Deploy Preview
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    paths-ignore:
-      - "apps/desktop/**"
 
 concurrency:
   group: preview-${{ github.event.pull_request.number }}
@@ -20,30 +18,13 @@ env:
   DOCS_ALIAS: docs-pr-${{ github.event.pull_request.number }}-superset.vercel.app
 
 jobs:
-  deploy-database:
-    name: Deploy Database (Neon)
+  create-database:
+    name: Create Database (Neon)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: preview
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Setup Bun
-        id: setup-bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version-file: .bun-version
-
-      - name: Cache dependencies
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
-
-      - name: Install dependencies
-        run: bun install --frozen --ignore-scripts
-
       - name: Create Neon branch
         id: create-branch
         uses: neondatabase/create-branch-action@fb620d43d4c565abaf088b848a4e28e5c4ea4d9c # 6.3.1
@@ -52,18 +33,7 @@ jobs:
           branch_name: ${{ github.head_ref }}
           api_key: ${{ secrets.NEON_API_KEY }}
 
-      - name: Validate and push database schema
-        working-directory: packages/db
-        env:
-          DATABASE_URL: ${{ steps.create-branch.outputs.db_url_pooled }}
-          DATABASE_URL_UNPOOLED: ${{ steps.create-branch.outputs.db_url }}
-          PGOPTIONS: -c lock_timeout=5s -c statement_timeout=60s
-        run: |
-          bun drizzle-kit check
-          bun drizzle-kit migrate
-          bun run src/verify-migrations-applied.ts
-
-      - name: Save database success status
+      - name: Save database connection
         run: |
           cat > database-status.env << EOF
           DATABASE_STATUS="✅"
@@ -79,11 +49,12 @@ jobs:
           name: database-status
           path: database-status.env
 
-  deploy-api:
-    name: Deploy API
+  deploy-database:
+    name: Deploy Database (Neon)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: preview
-    needs: deploy-database
+    needs: create-database
 
     steps:
       - name: Checkout repository
@@ -94,6 +65,55 @@ jobs:
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: .bun-version
+
+      - name: Cache dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen --ignore-scripts
+
+      - name: Download database info
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: database-status
+
+      - name: Validate and push database schema
+        working-directory: packages/db
+        env:
+          PGOPTIONS: -c lock_timeout=5s -c statement_timeout=60s
+        run: |
+          set -a
+          source ../../database-status.env
+          set +a
+          bun drizzle-kit check
+          bun drizzle-kit migrate
+          bun run src/verify-migrations-applied.ts
+
+  deploy-api:
+    name: Deploy API
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
+    environment: preview
+    needs: create-database
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Bun
+        id: setup-bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Cache dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
 
       - name: Download database info
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -106,17 +126,16 @@ jobs:
           echo "DATABASE_URL=$DATABASE_URL" >> $GITHUB_ENV
           echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
 
-      - name: Cache dependencies
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
-
-      - name: Install dependencies
-        run: bun install --frozen --ignore-scripts
-
       - name: Install Vercel CLI
-        run: npm install --global vercel@$VERCEL_CLI_VERSION
+        run: bun add --global vercel@$VERCEL_CLI_VERSION
+
+      # Production deploys on main write this cache; a PR only reads it.
+      - name: Restore Next.js build cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: apps/api/.next/cache
+          key: next-api-${{ github.sha }}
+          restore-keys: next-api-
 
       - name: Build and Deploy API
         id: deploy
@@ -150,7 +169,6 @@ jobs:
           GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
           GH_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
           NEXT_PUBLIC_SENTRY_DSN_API: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_API }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
           NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
           NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
@@ -195,7 +213,7 @@ jobs:
           SANDBOX_GATE_SECRET: ${{ secrets.SANDBOX_GATE_SECRET }}
           SANDBOX_GATE_ORIGIN: ${{ secrets.SANDBOX_GATE_ORIGIN }}
           SENTRY_DSN_SANDBOX: ${{ secrets.SENTRY_DSN_SANDBOX }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          SERVER_OPENAI_API_KEY: ${{ secrets.SERVER_OPENAI_API_KEY }}
           GH_APP_SLUG: ${{ secrets.GH_APP_SLUG }}
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
@@ -271,7 +289,7 @@ jobs:
             --env SANDBOX_GATE_SECRET=$SANDBOX_GATE_SECRET \
             --env SANDBOX_GATE_ORIGIN=$SANDBOX_GATE_ORIGIN \
             --env SENTRY_DSN_SANDBOX=$SENTRY_DSN_SANDBOX \
-            --env OPENAI_API_KEY=$OPENAI_API_KEY \
+            --env SERVER_OPENAI_API_KEY=$SERVER_OPENAI_API_KEY \
             --env GH_APP_SLUG=$GH_APP_SLUG)
           vercel alias $VERCEL_URL ${{ env.API_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
@@ -292,11 +310,12 @@ jobs:
 
   deploy-web:
     name: Deploy Web
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
     environment:
       name: preview
       url: https://${{ env.WEB_ALIAS }}
-    needs: deploy-database
+    needs: create-database
 
     steps:
       - name: Checkout repository
@@ -325,11 +344,16 @@ jobs:
           echo "DATABASE_URL=$DATABASE_URL" >> $GITHUB_ENV
           echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
 
-      - name: Install dependencies
-        run: bun install --frozen --ignore-scripts
-
       - name: Install Vercel CLI
-        run: npm install --global vercel@$VERCEL_CLI_VERSION
+        run: bun add --global vercel@$VERCEL_CLI_VERSION
+
+      # Production deploys on main write this cache; a PR only reads it.
+      - name: Restore Next.js build cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: apps/web/.next/cache
+          key: next-web-${{ github.sha }}
+          restore-keys: next-web-
 
       - name: Build and Deploy Web
         id: deploy
@@ -345,6 +369,7 @@ jobs:
           NEXT_PUBLIC_ADMIN_URL: https://${{ env.ADMIN_ALIAS }}
           NEXT_PUBLIC_DOCS_URL: https://${{ env.DOCS_ALIAS }}
           NEXT_PUBLIC_RELAY_URL: ${{ secrets.RELAY_URL }}
+          NEXT_PUBLIC_REALTIME_URL: ${{ secrets.REALTIME_URL }}
           USERCONTENT_URL: ${{ secrets.USERCONTENT_URL }}
           MEDIA_URL: ${{ secrets.MEDIA_URL }}
           STATIC_URL: ${{ secrets.STATIC_URL }}
@@ -353,7 +378,6 @@ jobs:
           NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
           NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
           NEXT_PUBLIC_SENTRY_DSN_WEB: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_WEB }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
@@ -381,6 +405,7 @@ jobs:
             --env NEXT_PUBLIC_ADMIN_URL=$NEXT_PUBLIC_ADMIN_URL \
             --env NEXT_PUBLIC_DOCS_URL=$NEXT_PUBLIC_DOCS_URL \
             --env NEXT_PUBLIC_RELAY_URL=$NEXT_PUBLIC_RELAY_URL \
+            --env NEXT_PUBLIC_REALTIME_URL=$NEXT_PUBLIC_REALTIME_URL \
             --env USERCONTENT_URL=$USERCONTENT_URL \
             --env MEDIA_URL=$MEDIA_URL \
             --env STATIC_URL=$STATIC_URL \
@@ -423,9 +448,10 @@ jobs:
 
   deploy-marketing:
     name: Deploy Marketing
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
     environment: preview
-    needs: deploy-database
+    needs: create-database
 
     steps:
       - name: Checkout repository
@@ -436,6 +462,12 @@ jobs:
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: .bun-version
+
+      - name: Cache dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
 
       - name: Download database info
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -448,17 +480,16 @@ jobs:
           echo "DATABASE_URL=$DATABASE_URL" >> $GITHUB_ENV
           echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
 
-      - name: Cache dependencies
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
-
-      - name: Install dependencies
-        run: bun install --frozen --ignore-scripts
-
       - name: Install Vercel CLI
-        run: npm install --global vercel@$VERCEL_CLI_VERSION
+        run: bun add --global vercel@$VERCEL_CLI_VERSION
+
+      # Production deploys on main write this cache; a PR only reads it.
+      - name: Restore Next.js build cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: apps/marketing/.next/cache
+          key: next-marketing-${{ github.sha }}
+          restore-keys: next-marketing-
 
       - name: Build and Deploy Marketing
         id: deploy
@@ -477,7 +508,6 @@ jobs:
           NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
           NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
           NEXT_PUBLIC_SENTRY_DSN_MARKETING: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_MARKETING }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
@@ -530,7 +560,7 @@ jobs:
       - name: Smoke test marketing routes
         run: |
           bun scripts/smoke-routes.ts "https://${{ env.MARKETING_ALIAS }}" --localized \
-            / /pricing /enterprise /download /join-us /community /contact \
+            / /pricing /enterprise /download /careers /community /contact \
             /blog /changelog /compare /roadmap /leaderboard /marketplace \
             /agent-orchestration /parallel-coding-agents /factory-2026 \
             /mcp-install /stats /team /starchart /the-production-run
@@ -561,9 +591,10 @@ jobs:
 
   deploy-admin:
     name: Deploy Admin
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
     environment: preview
-    needs: deploy-database
+    needs: create-database
 
     steps:
       - name: Checkout repository
@@ -574,6 +605,12 @@ jobs:
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: .bun-version
+
+      - name: Cache dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
 
       - name: Download database info
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -586,17 +623,16 @@ jobs:
           echo "DATABASE_URL=$DATABASE_URL" >> $GITHUB_ENV
           echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
 
-      - name: Cache dependencies
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
-
-      - name: Install dependencies
-        run: bun install --frozen --ignore-scripts
-
       - name: Install Vercel CLI
-        run: npm install --global vercel@$VERCEL_CLI_VERSION
+        run: bun add --global vercel@$VERCEL_CLI_VERSION
+
+      # Production deploys on main write this cache; a PR only reads it.
+      - name: Restore Next.js build cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: apps/admin/.next/cache
+          key: next-admin-${{ github.sha }}
+          restore-keys: next-admin-
 
       - name: Build and Deploy Admin
         id: deploy
@@ -618,7 +654,6 @@ jobs:
           GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT }}
           POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
           NEXT_PUBLIC_SENTRY_DSN_ADMIN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_ADMIN }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
@@ -685,9 +720,10 @@ jobs:
 
   deploy-docs:
     name: Deploy Docs
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
     environment: preview
-    needs: deploy-database
+    needs: create-database
 
     steps:
       - name: Checkout repository
@@ -698,6 +734,12 @@ jobs:
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: .bun-version
+
+      - name: Cache dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
 
       - name: Download database info
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -710,17 +752,16 @@ jobs:
           echo "DATABASE_URL=$DATABASE_URL" >> $GITHUB_ENV
           echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
 
-      - name: Cache dependencies
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
-
-      - name: Install dependencies
-        run: bun install --frozen --ignore-scripts
-
       - name: Install Vercel CLI
-        run: npm install --global vercel@$VERCEL_CLI_VERSION
+        run: bun add --global vercel@$VERCEL_CLI_VERSION
+
+      # Production deploys on main write this cache; a PR only reads it.
+      - name: Restore Next.js build cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: apps/docs/.next/cache
+          key: next-docs-${{ github.sha }}
+          restore-keys: next-docs-
 
       - name: Build and Deploy Docs
         id: deploy
@@ -736,7 +777,6 @@ jobs:
           NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
           NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
           NEXT_PUBLIC_SENTRY_DSN_DOCS: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_DOCS }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
           SECRETS_ENCRYPTION_KEY: ${{ secrets.SECRETS_ENCRYPTION_KEY }}
         run: |
@@ -773,8 +813,9 @@ jobs:
   post-final-comment:
     name: Post Deployment Comment
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     if: always()
-    needs: [deploy-database, deploy-api, deploy-web, deploy-marketing, deploy-admin, deploy-docs]
+    needs: [create-database, deploy-database, deploy-api, deploy-web, deploy-marketing, deploy-admin, deploy-docs]
     permissions:
       contents: read
       pull-requests: write
@@ -804,8 +845,11 @@ jobs:
           DOCS_STATUS="❌"
           DOCS_LINK="Failed to deploy"
 
-          if [[ "${{ needs.deploy-database.result }}" == "success" ]]; then
+          if [[ "${{ needs.create-database.result }}" == "success" ]]; then
             source database-status.env
+          fi
+          if [[ "${{ needs.deploy-database.result }}" != "success" ]]; then
+            DATABASE_STATUS="❌"
           fi
 
           if [[ "${{ needs.deploy-api.result }}" == "success" ]]; then

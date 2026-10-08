@@ -12,6 +12,7 @@ jobs:
   backfill:
     name: Backfill Connections
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: production
     concurrency:
       group: backfill-connections

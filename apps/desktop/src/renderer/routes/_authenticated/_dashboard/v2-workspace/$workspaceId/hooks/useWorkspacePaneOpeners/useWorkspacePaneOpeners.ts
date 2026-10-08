@@ -9,7 +9,6 @@ import { useSettings } from "renderer/stores/settings";
 import type { StoreApi } from "zustand/vanilla";
 import type {
 	BrowserPaneData,
-	ChatV3PaneData,
 	CommentPaneData,
 	DiffFocusSide,
 	DiffPaneData,
@@ -23,7 +22,10 @@ import {
 } from "../../utils/openChangesPaneInStore";
 import { openPagePaneInStore } from "../../utils/openPagePaneInStore";
 import { openPullRequestPaneInStore } from "../../utils/openPullRequestPaneInStore";
-import { setWorkspaceSidebarTab } from "../../utils/setWorkspaceSidebarTab";
+import {
+	getWorkspaceSidebarTab,
+	setWorkspaceSidebarTab,
+} from "../../utils/setWorkspaceSidebarTab";
 import { useDefaultBrowserUrl } from "../useDefaultBrowserUrl";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
 
@@ -51,7 +53,6 @@ export function useWorkspacePaneOpeners({
 		changeKey?: string,
 	) => void;
 	addTerminalTab: () => Promise<void>;
-	addChatV3Tab: () => void;
 	addBrowserTab: () => void;
 	openChangesPane: () => void;
 	/** Close the visible Changes pane, or open/focus one when none is showing. */
@@ -158,17 +159,6 @@ export function useWorkspacePaneOpeners({
 		}
 	}, [addBlankTerminalTab, executePreset, newTabPresets]);
 
-	const addChatV3Tab = useCallback(() => {
-		store.getState().addTab({
-			panes: [
-				{
-					kind: "chat-v3",
-					data: { sessionId: null } as ChatV3PaneData,
-				},
-			],
-		});
-	}, [store]);
-
 	const defaultBrowserUrl = useDefaultBrowserUrl();
 	const addBrowserTab = useCallback(() => {
 		store.getState().addTab({
@@ -221,10 +211,18 @@ export function useWorkspacePaneOpeners({
 		openChangesPaneInStore(store, useSettings.getState().changesOpenTarget);
 	}, [store, setRightSidebarOpen, collections, workspace.id]);
 
+	// Opening brings the sidebar along on Changes, so closing takes it back
+	// down — unless the sidebar has since moved to Files or Review, where
+	// it's serving something else and stays.
 	const toggleChangesPane = useCallback(() => {
-		if (closeVisibleChangesPane(store)) return;
+		if (closeVisibleChangesPane(store)) {
+			if (getWorkspaceSidebarTab(collections, workspace.id) === "changes") {
+				setRightSidebarOpen(false);
+			}
+			return;
+		}
 		openChangesPane();
-	}, [store, openChangesPane]);
+	}, [store, openChangesPane, collections, workspace.id, setRightSidebarOpen]);
 
 	const openPagePane = useCallback(
 		(page: PagePaneData, placement: "split" | "tab") => {
@@ -243,7 +241,6 @@ export function useWorkspacePaneOpeners({
 	return {
 		openDiffPane,
 		addTerminalTab,
-		addChatV3Tab,
 		addBrowserTab,
 		openChangesPane,
 		toggleChangesPane,

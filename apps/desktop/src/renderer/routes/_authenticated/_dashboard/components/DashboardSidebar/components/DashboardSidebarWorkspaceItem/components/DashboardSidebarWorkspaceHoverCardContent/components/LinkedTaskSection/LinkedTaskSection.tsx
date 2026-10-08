@@ -1,6 +1,7 @@
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Trans } from "@lingui/react/macro";
 import { Link } from "@tanstack/react-router";
-import { LuExternalLink } from "react-icons/lu";
+import { MarqueeText } from "renderer/components/MarqueeText";
+import { useFocusVisible } from "renderer/hooks/useFocusVisible";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import {
 	StatusIcon,
@@ -12,9 +13,13 @@ interface LinkedTaskSectionProps {
 }
 
 export function LinkedTaskSection({ taskId }: LinkedTaskSectionProps) {
-	const { t } = useLingui();
 	const { data: taskRecord } = cloudTrpc.task.byIdOrSlug.useQuery(taskId);
 	const { data: statuses } = cloudTrpc.task.statuses.list.useQuery(undefined);
+	const {
+		isFocusVisible,
+		onFocus: handleLinkFocus,
+		onBlur: handleLinkBlur,
+	} = useFocusVisible();
 
 	if (!taskRecord) return null;
 
@@ -24,7 +29,6 @@ export function LinkedTaskSection({ taskId }: LinkedTaskSectionProps) {
 		id: taskRecord.id,
 		slug: taskRecord.slug,
 		title: taskRecord.title,
-		externalUrl: taskRecord.externalUrl,
 		statusType: status?.type ?? null,
 		statusColor: status?.color ?? null,
 		statusProgress: status?.progressPercent ?? null,
@@ -41,6 +45,8 @@ export function LinkedTaskSection({ taskId }: LinkedTaskSectionProps) {
 					params={{ taskId: task.id }}
 					className="group/task flex min-w-0 flex-1 items-center gap-1.5 text-left hover:text-foreground"
 					title={task.title}
+					onFocus={handleLinkFocus}
+					onBlur={handleLinkBlur}
 				>
 					<span className="flex size-3.5 shrink-0 items-center justify-center">
 						{task.statusType ? (
@@ -53,25 +59,17 @@ export function LinkedTaskSection({ taskId }: LinkedTaskSectionProps) {
 							<span className="size-3 rounded-full border border-muted-foreground/40" />
 						)}
 					</span>
-					<span className="font-mono text-xs text-muted-foreground shrink-0">
-						{task.slug}
-					</span>
-					<span className="truncate text-xs">{task.title}</span>
-				</Link>
-				{task.externalUrl && (
-					<a
-						href={task.externalUrl}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="shrink-0 text-muted-foreground hover:text-foreground"
-						title={t({
-							message: "Open task externally",
-						})}
-						onClick={(e) => e.stopPropagation()}
+					<MarqueeText
+						title={`${task.slug} ${task.title}`}
+						className="min-w-0 flex-1 text-xs"
+						forceActive={isFocusVisible}
 					>
-						<LuExternalLink className="size-3" />
-					</a>
-				)}
+						<span className="mr-1.5 font-mono text-muted-foreground">
+							{task.slug}
+						</span>
+						{task.title}
+					</MarqueeText>
+				</Link>
 			</div>
 		</div>
 	);

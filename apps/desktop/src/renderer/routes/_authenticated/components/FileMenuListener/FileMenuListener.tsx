@@ -2,6 +2,7 @@ import { useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useOpenNewWorkspaceForLocalProject } from "renderer/hooks/useOpenNewWorkspace";
+import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 
@@ -24,16 +25,21 @@ export function FileMenuListener() {
 		},
 	});
 
+	const openProject = async () => {
+		const result = await folderImport.start();
+		if (result) {
+			openNewWorkspace(result.projectId);
+			toast.success(t({ message: "Project imported and selected." }));
+		}
+	};
+
 	electronTrpc.menu.subscribe.useSubscription(undefined, {
-		onData: async (event) => {
-			if (event.type !== "open-project") return;
-			const result = await folderImport.start();
-			if (result) {
-				openNewWorkspace(result.projectId);
-				toast.success(t({ message: "Project imported and selected." }));
-			}
+		onData: (event) => {
+			if (event.type === "open-project") void openProject();
 		},
 	});
+
+	useHotkey("OPEN_PROJECT", () => void openProject());
 
 	return null;
 }

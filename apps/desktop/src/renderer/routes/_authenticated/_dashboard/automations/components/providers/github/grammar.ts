@@ -53,6 +53,12 @@ export const GITHUB_SENTENCES: Record<GithubTriggerEvent, SentencePart[]> = {
 		{ text: "by" },
 		{ slot: "actor" },
 	],
+	"pull_request.closed": [
+		{ text: "PR closed without merging in" },
+		{ slot: "repositories" },
+		{ text: "by" },
+		{ slot: "actor" },
+	],
 	"pull_request.assigned": [
 		{ text: "PR assigned to" },
 		{ slot: "assignee" },
@@ -210,6 +216,12 @@ export const GITHUB_MENU: TriggerMenuEntry<GithubConfig>[] = [
 					message: "Merged",
 				}),
 				"pull_request.merged",
+			),
+			leaf(
+				msg({
+					message: "Closed",
+				}),
+				"pull_request.closed",
 			),
 			leaf(
 				msg({

@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { SANDBOX_API_CREDENTIAL_HEADER } from "@superset/shared/sandbox-gate";
+import { sandboxCredentialWorkspaceId } from "@superset/trpc/lib/sandbox";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { env } from "@/env";
@@ -40,13 +42,21 @@ function limiterFor(prefix: string): Ratelimit {
 	return limiter;
 }
 
-function rateLimitKey(req: Request): string {
+async function rateLimitKey(req: Request): Promise<string> {
 	const authorization = req.headers.get("authorization") ?? "";
 	const token = authorization.replace(/^Bearer\s+/i, "").trim();
 	if (token) {
 		const digest = createHash("sha256").update(token).digest("hex");
 		return `token:${digest.slice(0, 32)}`;
 	}
+	// Boxes send no bearer and share egress addresses, so the IP fallback would
+	// give the whole fleet one bucket. Only a credential that verifies earns a
+	// bucket of its own; anyone can send the header, and an unchecked one is a
+	// fresh bucket per request.
+	const workspaceId = await sandboxCredentialWorkspaceId(
+		req.headers.get(SANDBOX_API_CREDENTIAL_HEADER),
+	);
+	if (workspaceId) return `sandbox:${workspaceId}`;
 	const ip =
 		req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
 		req.headers.get("x-real-ip") ||
@@ -59,7 +69,7 @@ export async function checkRateLimit(
 	prefix = "ratelimit:mcp",
 ): Promise<RateLimitState | undefined> {
 	try {
-		const result = await limiterFor(prefix).limit(rateLimitKey(req));
+		const result = await limiterFor(prefix).limit(await rateLimitKey(req));
 		return {
 			success: result.success,
 			limit: result.limit,

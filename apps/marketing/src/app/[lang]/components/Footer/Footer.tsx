@@ -22,7 +22,6 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { FaApple } from "react-icons/fa";
 import { track } from "@/lib/analytics";
-import { useIsMobileLaunched } from "../../providers/MobileLaunchProvider";
 import { Soc2Badge } from "../Soc2Badge";
 import { SocialLinks } from "../SocialLinks";
 
@@ -51,15 +50,30 @@ interface FooterLink {
 	external?: boolean;
 }
 
-const MOBILE_LINK: FooterLink = {
-	href: "/mobile",
-	label: <Trans>Mobile</Trans>,
-};
-
 const PRODUCT_LINKS: FooterLink[] = [
 	{
 		href: "/download",
 		label: <Trans>Download</Trans>,
+	},
+	{
+		href: "/mobile",
+		label: <Trans>Mobile</Trans>,
+	},
+	{
+		href: "/pages",
+		label: <Trans>Pages</Trans>,
+	},
+	{
+		href: "/automations",
+		label: <Trans>Automations</Trans>,
+	},
+	{
+		href: "/browser",
+		label: <Trans>Browser</Trans>,
+	},
+	{
+		href: "/leaderboard",
+		label: <Trans>Leaderboard</Trans>,
 	},
 	{
 		href: "/#how-it-works",
@@ -94,7 +108,7 @@ const COMPANY_LINKS: FooterLink[] = [
 		label: <Trans>Contact</Trans>,
 	},
 	{
-		href: "/join-us",
+		href: "/careers",
 		label: <Trans>Careers</Trans>,
 	},
 	{
@@ -163,11 +177,14 @@ const LEGAL_LINKS: FooterLink[] = [
 	},
 ];
 
-export function Footer({ locale }: { locale?: SupportedLocale }) {
-	const isMobileLaunched = useIsMobileLaunched();
+export function Footer({
+	locale,
+	year,
+}: {
+	locale?: SupportedLocale;
+	year: number;
+}) {
 	const pathname = usePathname();
-	// Named local so the copyright message extracts as `{year}`, not `{0}`.
-	const year = new Date().getFullYear();
 	if (pathname === "/download") return null;
 
 	return (
@@ -219,18 +236,7 @@ export function Footer({ locale }: { locale?: SupportedLocale }) {
 						<FooterLanguageSwitcher locale={locale} />
 					</div>
 
-					<FooterColumn
-						title={<Trans>Product</Trans>}
-						links={
-							isMobileLaunched
-								? [
-										...PRODUCT_LINKS.slice(0, 1),
-										MOBILE_LINK,
-										...PRODUCT_LINKS.slice(1),
-									]
-								: PRODUCT_LINKS
-						}
-					/>
+					<FooterColumn title={<Trans>Product</Trans>} links={PRODUCT_LINKS} />
 					<FooterColumn title={<Trans>Company</Trans>} links={COMPANY_LINKS} />
 					<FooterColumn
 						title={<Trans>Resources</Trans>}

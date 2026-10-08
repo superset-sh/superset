@@ -42,7 +42,11 @@ async function slack(
 
 	const payload = (await response.json()) as SlackResponse;
 	if (!payload.ok) {
-		throw new Error(`Slack API error: ${payload.error ?? "Unknown error"}`);
+		const rejected = ["invalid_auth", "token_revoked", "account_inactive"];
+		throw Object.assign(
+			new Error(`Slack API error: ${payload.error ?? "Unknown error"}`),
+			rejected.includes(payload.error ?? "") ? { code: 401 } : {},
+		);
 	}
 	return payload;
 }
@@ -63,6 +67,7 @@ interface SlackMessage {
 	permalink?: string;
 	channel?: { id?: string; name?: string } | string;
 	reactions?: { name?: string; count?: number; users?: string[] }[];
+	attachments?: { title?: string; title_link?: string; fallback?: string }[];
 }
 
 interface SlackChannel {
@@ -96,8 +101,23 @@ function sender(message: SlackMessage): string {
 	return message.username ?? message.bot_id ?? message.app_id ?? "Unknown";
 }
 
-function describeMessage(message: SlackMessage): string {
-	let line = `[${message.ts}] ${sender(message)}: ${message.text ?? ""}`;
+// Apps such as GitHub post a card with no text; without this the message lists as empty.
+function attachmentText(message: SlackMessage): string {
+	return (message.attachments ?? [])
+		.map((attachment) =>
+			attachment.title
+				? [attachment.title, attachment.title_link].filter(Boolean).join(" ")
+				: (attachment.fallback ?? ""),
+		)
+		.filter(Boolean)
+		.join(" | ");
+}
+
+export function describeMessage(message: SlackMessage): string {
+	const text = [message.text, attachmentText(message)]
+		.filter(Boolean)
+		.join(" ");
+	let line = `[${message.ts}] ${sender(message)}: ${text}`;
 	if (message.reply_count && message.reply_count > 0) {
 		line += ` 💬 ${message.reply_count} ${message.reply_count === 1 ? "reply" : "replies"}`;
 	} else if (message.thread_ts && message.thread_ts !== message.ts) {
@@ -923,6 +943,7 @@ export async function callTool(
 				return { ...text(`Unknown tool: ${name}`), isError: true };
 		}
 	} catch (error) {
+		if ((error as { code?: unknown }).code === 401) throw error;
 		return {
 			...text(
 				`Error: ${error instanceof Error ? error.message : String(error)}`,

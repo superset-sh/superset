@@ -8,6 +8,9 @@ export default command({
 	args: [],
 	options: {
 		plugin: string().desc("Plugin name from `superset plugins list`"),
+		account: string().desc(
+			"Connection id, when the plugin's connector has more than one account",
+		),
 		connection: string().desc("Deprecated alias for --plugin"),
 		pluginId: string().desc("Deprecated alias for --plugin"),
 	},
@@ -25,7 +28,11 @@ export default command({
 			pluginId: options.pluginId as string | undefined,
 		});
 
-		const { client, ref } = await connectPluginMcp(pluginName, ctx.bearer);
+		const { client, ref } = await connectPluginMcp(
+			pluginName,
+			ctx.bearer,
+			options.account as string | undefined,
+		);
 		try {
 			const { tools } = await client.listTools();
 			return {

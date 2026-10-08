@@ -183,11 +183,7 @@ export function ProjectsHeader({
 											}
 										>
 											<span className="flex min-w-0 flex-1 items-center gap-2">
-												<AvatarStack
-													people={[person]}
-													size={16}
-													surface="popover"
-												/>
+												<AvatarStack people={[person]} size={16} />
 												<span className="min-w-0 truncate">{person.name}</span>
 											</span>
 											<span className="ml-3 text-xs tabular-nums text-muted-foreground">

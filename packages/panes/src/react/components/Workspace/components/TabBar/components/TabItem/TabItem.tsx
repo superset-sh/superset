@@ -24,6 +24,7 @@ export const TAB_DRAG_TYPE = "tab";
 interface TabItemProps<TData> {
 	tab: Tab<TData>;
 	tabs: Tab<TData>[];
+	store?: unknown;
 	registry: PaneRegistry<TData>;
 	index: number;
 	isActive: boolean;
@@ -39,6 +40,7 @@ interface TabItemProps<TData> {
 export function TabItem<TData>({
 	tab,
 	tabs,
+	store,
 	registry,
 	index,
 	isActive,
@@ -79,12 +81,12 @@ export function TabItem<TData>({
 	const [{ isDragging }, connectDrag] = useDrag(
 		() => ({
 			type: TAB_DRAG_TYPE,
-			item: { tabId: tab.id, index },
+			item: { tabId: tab.id, index, store },
 			collect: (monitor) => ({
 				isDragging: monitor.isDragging(),
 			}),
 		}),
-		[tab.id, index],
+		[tab.id, index, store],
 	);
 
 	// Existing pane-to-tab drop (hovering a pane over a tab switches to it)

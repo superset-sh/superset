@@ -2,6 +2,7 @@ import type {
 	Cursor,
 	DurableEnvelope,
 	DurableEvent,
+	SessionStatus,
 } from "@superset/chat/protocol";
 import { durableEventSchema } from "@superset/chat/protocol";
 import { eq } from "drizzle-orm";
@@ -23,16 +24,31 @@ export type OpenedSession = {
 	queuedCount: number;
 };
 
+export type ChatSessionChange = {
+	sessionId: string;
+	scopeId: string;
+	occurredAt: number;
+};
+
+export type ChatJournalOptions = {
+	onSessionChanged?: (change: ChatSessionChange) => void | Promise<void>;
+};
+
+function reportListenerFailure(error: unknown): void {
+	console.error("[chat-journal] onSessionChanged listener failed", error);
+}
+
 type SessionCache = {
+	scopeId: string;
 	epoch: string;
 	lastSeq: number;
 	queuedItemIds: Set<string>;
-	status: string;
+	status: SessionStatus;
 	title: string | null;
 };
 
 type NextProjection = {
-	status: string;
+	status: SessionStatus;
 	title: string | null;
 	queuedItemIds: Set<string>;
 };
@@ -40,12 +56,16 @@ type NextProjection = {
 export class ChatJournal {
 	private readonly sessions = new Map<string, SessionCache>();
 
-	constructor(private readonly db: ChatDb) {}
+	constructor(
+		private readonly db: ChatDb,
+		private readonly options: ChatJournalOptions = {},
+	) {}
 
 	open(init: ChatSessionInit): OpenedSession {
-		const { epoch } = openEpoch(this.db, init);
+		const { epoch, minted } = openEpoch(this.db, init);
 		this.sessions.delete(init.sessionId);
 		const cache = this.cacheFor(init.sessionId, epoch);
+		if (minted) this.notify(init.sessionId, cache.scopeId, Date.now());
 		return {
 			sessionId: init.sessionId,
 			epoch: cache.epoch,
@@ -64,6 +84,10 @@ export class ChatJournal {
 		const seq = cache.lastSeq + 1;
 		const ts = Date.now();
 		const next = this.projectionFor(cache, parsed);
+		const listingChanged =
+			next.status !== cache.status ||
+			next.title !== cache.title ||
+			next.queuedItemIds.size !== cache.queuedItemIds.size;
 
 		this.db.transaction(() => {
 			this.db
@@ -88,6 +112,7 @@ export class ChatJournal {
 		cache.status = next.status;
 		cache.title = next.title;
 		cache.queuedItemIds = next.queuedItemIds;
+		if (listingChanged) this.notify(sessionId, cache.scopeId, ts);
 
 		return {
 			v: 1,
@@ -108,6 +133,7 @@ export class ChatJournal {
 	}
 
 	discard(sessionId: string): void {
+		const row = readSessionRow(this.db, sessionId);
 		this.sessions.delete(sessionId);
 		this.db.transaction(() => {
 			this.db
@@ -116,6 +142,22 @@ export class ChatJournal {
 				.run();
 			removeSessionRow(this.db, sessionId);
 		});
+		if (row) this.notify(sessionId, row.scopeId, Date.now());
+	}
+
+	announce(sessionId: string): void {
+		const row = readSessionRow(this.db, sessionId);
+		if (row) this.notify(sessionId, row.scopeId, Date.now());
+	}
+
+	private notify(sessionId: string, scopeId: string, occurredAt: number): void {
+		try {
+			void Promise.resolve(
+				this.options.onSessionChanged?.({ sessionId, scopeId, occurredAt }),
+			).catch(reportListenerFailure);
+		} catch (error) {
+			reportListenerFailure(error);
+		}
 	}
 
 	private projectionFor(
@@ -183,6 +225,7 @@ export class ChatJournal {
 		}
 
 		const cache: SessionCache = {
+			scopeId: row.scopeId,
 			epoch,
 			lastSeq,
 			queuedItemIds,

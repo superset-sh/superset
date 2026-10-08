@@ -18,6 +18,42 @@ const selectOptionSchema = z.looseObject({
 	label: z.string(),
 });
 
+export const sessionConfigOptionSchema = z.looseObject({
+	id: z.string().min(1),
+	label: z.string(),
+	category: z.string().optional(),
+	currentValue: z.string().optional(),
+	options: z.array(
+		z.looseObject({
+			id: z.string().min(1),
+			label: z.string(),
+			description: z.string().optional(),
+		}),
+	),
+});
+export type SessionConfigOption = z.infer<typeof sessionConfigOptionSchema>;
+
+/** A command the agent offers for this session, for the composer's `/` menu. */
+export const availableCommandSchema = z.looseObject({
+	name: z.string().min(1),
+	description: z.string().optional(),
+	hint: z.string().optional(),
+});
+export type AvailableCommand = z.infer<typeof availableCommandSchema>;
+
+export const backgroundTaskKindSchema = z.enum(["process", "subagent"]);
+export type BackgroundTaskKind = z.infer<typeof backgroundTaskKindSchema>;
+
+export const backgroundTaskSchema = z.looseObject({
+	id: z.string().min(1),
+	kind: backgroundTaskKindSchema,
+	name: z.string(),
+	detail: z.string().optional(),
+	canStop: z.boolean(),
+	startedAtMs: z.number(),
+});
+export type BackgroundTask = z.infer<typeof backgroundTaskSchema>;
+
 export const sessionStateSchema = z.looseObject({
 	status: sessionStatusSchema,
 	harness: z.string().min(1),
@@ -26,6 +62,18 @@ export const sessionStateSchema = z.looseObject({
 	modelId: z.string().optional(),
 	availableModes: z.array(selectOptionSchema).optional(),
 	availableModels: z.array(selectOptionSchema).optional(),
+	availableCommands: z.array(availableCommandSchema).optional(),
+	configOptions: z.array(sessionConfigOptionSchema).optional(),
+	/**
+	 * The agent-side session this chat is bound to. It is not always the id the
+	 * caller asked to resume: a load that finds no transcript falls back to a new
+	 * session, and the caller has to know which one it ended up on.
+	 */
+	harnessSessionId: z.string().optional(),
+	queuePaused: z.boolean().optional(),
+	queueControls: z.boolean().optional(),
+	backgroundTasks: z.array(backgroundTaskSchema).optional(),
+	awaitingBackground: z.boolean().optional(),
 });
 export type SessionState = z.infer<typeof sessionStateSchema>;
 
@@ -60,7 +108,12 @@ export const durableEventSchema = z.discriminatedUnion("type", [
 ]);
 export type DurableEvent = z.infer<typeof durableEventSchema>;
 
-export const deltaChannelSchema = z.enum(["text", "tool_input", "terminal"]);
+export const deltaChannelSchema = z.enum([
+	"text",
+	"tool_input",
+	"terminal",
+	"background",
+]);
 export type DeltaChannel = z.infer<typeof deltaChannelSchema>;
 
 export const deltaSchema = z.discriminatedUnion("type", [
@@ -76,6 +129,11 @@ export const deltaSchema = z.discriminatedUnion("type", [
 	}),
 	z.looseObject({
 		type: z.literal("terminal"),
+		itemId: z.string().min(1),
+		append: z.string(),
+	}),
+	z.looseObject({
+		type: z.literal("background"),
 		itemId: z.string().min(1),
 		append: z.string(),
 	}),

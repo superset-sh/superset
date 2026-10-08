@@ -9,6 +9,7 @@ import {
 	formatNumber,
 	formatPercent,
 	formatPrice,
+	formatRelativePeriod,
 	formatRelativeTime,
 	getActiveLocale,
 } from "./index";
@@ -157,5 +158,20 @@ describe("formatRelativeTime", () => {
 		} finally {
 			i18n.activate("en");
 		}
+	});
+});
+
+describe("formatRelativePeriod", () => {
+	test("names recent periods the way a list heading would", () => {
+		expect(formatRelativePeriod({ unit: "day", count: 0 }, "en")).toBe("Today");
+		expect(formatRelativePeriod({ unit: "day", count: 1 }, "en")).toBe(
+			"Yesterday",
+		);
+		expect(formatRelativePeriod({ unit: "day", count: 3 }, "en")).toBe(
+			"3 days ago",
+		);
+		expect(formatRelativePeriod({ unit: "week", count: 1 }, "en")).toBe(
+			"Last week",
+		);
 	});
 });

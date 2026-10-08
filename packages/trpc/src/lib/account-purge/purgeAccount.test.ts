@@ -1,6 +1,11 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { stripeClient } from "@superset/auth/stripe";
+import { db, dbWs } from "@superset/db/client";
 import type { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
+import { setTestEnv } from "../../../test/env";
+import { stub } from "../../../test/stub";
+import * as pageStore from "../page-store";
 
 interface FakeOrganization {
 	id: string;
@@ -23,6 +28,7 @@ let log: string[] = [];
 let posthogResponse: () => Response;
 let posthogRequests: Array<{ url: string; init: RequestInit }> = [];
 let failCustomerDelete: Error | null = null;
+let failPageStoragePurge: Error | null = null;
 
 const dialect = new PgDialect();
 const firstParam = (condition: SQL) =>
@@ -38,114 +44,108 @@ const customerById = (id: string) => {
 	return customer;
 };
 
-mock.module("../../env", () => ({
-	env: {
-		POSTHOG_API_HOST: "https://posthog.test",
-		POSTHOG_PROJECT_ID: "264803",
-		POSTHOG_API_KEY: "phx_test",
-	},
-}));
-
-mock.module("@superset/db/client", () => {
-	const tx = {
-		delete: () => ({ where: async () => {} }),
-		update: () => ({ set: () => ({ where: async () => {} }) }),
-	};
-	return {
-		db: {
-			query: {
-				members: {
-					findMany: async () =>
-						organizations
-							.filter((org) => org.memberIds.includes(USER_ID))
-							.map((org) => ({ organizationId: org.id, userId: USER_ID })),
-				},
-				subscriptions: {
-					findFirst: async ({ where }: { where: SQL }) => {
-						const subscription = organizationById(
-							firstParam(where),
-						).subscription;
-						return subscription && { ...subscription, status: "active" };
-					},
-				},
-				organizations: {
-					findFirst: async ({ where }: { where: SQL }) => {
-						const organization = organizationById(firstParam(where));
-						return {
-							id: organization.id,
-							stripeCustomerId: organization.stripeCustomerId,
-						};
-					},
-				},
-			},
-			select: () => ({
-				from: () => ({
-					where: async (condition: SQL) => [
-						{
-							value:
-								organizationById(firstParam(condition)).memberIds.length - 1,
-						},
-					],
-				}),
-			}),
-			delete: () => ({
-				where: async (condition: SQL) => {
-					log.push(`organization.delete ${firstParam(condition)}`);
-				},
-			}),
-		},
-		dbWs: {
-			transaction: async (run: (transaction: typeof tx) => Promise<void>) => {
-				await run(tx);
-				log.push("tombstone");
-			},
-		},
-	};
+setTestEnv({
+	POSTHOG_API_HOST: "https://posthog.test",
+	POSTHOG_PROJECT_ID: "264803",
+	POSTHOG_API_KEY: "phx_test",
 });
 
-mock.module("@superset/auth/stripe", () => ({
-	stripeClient: {
-		subscriptions: {
-			retrieve: async () => ({ items: { data: [{ id: "si_1" }] } }),
-			update: async (
-				id: string,
-				params: { items: Array<{ quantity: number }> },
-			) => {
-				log.push(`subscription.update ${id} ${params.items[0]?.quantity}`);
-			},
-			list: async ({ customer }: { customer: string }) => ({
-				data: customerById(customer).activeSubscriptionIds.map((id) => ({
-					id,
-				})),
-			}),
-			cancel: async (id: string) => {
-				log.push(`subscription.cancel ${id}`);
-			},
-		},
-		charges: {
-			list: ({ customer }: { customer: string }) => {
-				log.push(`charges.list ${customer}`);
-				const { charges } = customerById(customer);
-				return (async function* () {
-					yield* charges;
-				})();
-			},
-		},
-		customers: {
-			del: async (id: string) => {
-				if (failCustomerDelete) throw failCustomerDelete;
-				const customer = customerById(id);
-				if (customer.deleted) {
-					throw Object.assign(new Error(`No such customer: '${id}'`), {
-						code: "resource_missing",
-					});
-				}
-				customer.deleted = true;
-				log.push(`customer.delete ${id}`);
-			},
-		},
+const tx = {
+	delete: () => ({ where: async () => {} }),
+	update: () => ({ set: () => ({ where: async () => {} }) }),
+};
+
+stub(db.query.members, {
+	findMany: async () =>
+		organizations
+			.filter((org) => org.memberIds.includes(USER_ID))
+			.map((org) => ({ organizationId: org.id, userId: USER_ID })),
+});
+stub(db.query.subscriptions, {
+	findFirst: async ({ where }: { where: SQL }) => {
+		const subscription = organizationById(firstParam(where)).subscription;
+		return subscription && { ...subscription, status: "active" };
 	},
-}));
+});
+stub(db.query.organizations, {
+	findFirst: async ({ where }: { where: SQL }) => {
+		const organization = organizationById(firstParam(where));
+		return {
+			id: organization.id,
+			stripeCustomerId: organization.stripeCustomerId,
+		};
+	},
+});
+stub(db, {
+	select: () => ({
+		from: () => ({
+			where: async (condition: SQL) => [
+				{
+					value: organizationById(firstParam(condition)).memberIds.length - 1,
+				},
+			],
+		}),
+	}),
+	delete: () => ({
+		where: async (condition: SQL) => {
+			log.push(`organization.delete ${firstParam(condition)}`);
+		},
+	}),
+});
+stub(dbWs, {
+	transaction: async (run: (transaction: typeof tx) => Promise<void>) => {
+		await run(tx);
+		log.push("tombstone");
+	},
+});
+
+stub(pageStore, {
+	purgePageStorageForUser: async (userId: string) => {
+		log.push(`page-storage.purge ${userId}`);
+		if (failPageStoragePurge) throw failPageStoragePurge;
+		return { pages: 0, cleared: 0 };
+	},
+});
+
+stub(stripeClient.subscriptions, {
+	retrieve: async () => ({ items: { data: [{ id: "si_1" }] } }),
+	update: async (
+		id: string,
+		params: { items: Array<{ quantity: number }> },
+	) => {
+		log.push(`subscription.update ${id} ${params.items[0]?.quantity}`);
+	},
+	list: async ({ customer }: { customer: string }) => ({
+		data: customerById(customer).activeSubscriptionIds.map((id) => ({
+			id,
+		})),
+	}),
+	cancel: async (id: string) => {
+		log.push(`subscription.cancel ${id}`);
+	},
+});
+stub(stripeClient.charges, {
+	list: ({ customer }: { customer: string }) => {
+		log.push(`charges.list ${customer}`);
+		const { charges } = customerById(customer);
+		return (async function* () {
+			yield* charges;
+		})();
+	},
+});
+stub(stripeClient.customers, {
+	del: async (id: string) => {
+		if (failCustomerDelete) throw failCustomerDelete;
+		const customer = customerById(id);
+		if (customer.deleted) {
+			throw Object.assign(new Error(`No such customer: '${id}'`), {
+				code: "resource_missing",
+			});
+		}
+		customer.deleted = true;
+		log.push(`customer.delete ${id}`);
+	},
+});
 
 const { purgeAccount } = await import("./purgeAccount");
 const purge = () => purgeAccount(USER_ID);
@@ -159,6 +159,7 @@ describe("purgeAccount", () => {
 		log = [];
 		posthogRequests = [];
 		failCustomerDelete = null;
+		failPageStoragePurge = null;
 		posthogResponse = () =>
 			Response.json(
 				{ persons_found: 1, persons_deleted: 1, deletion_errors: [] },
@@ -202,6 +203,7 @@ describe("purgeAccount", () => {
 		});
 		expect(log).toEqual([
 			"posthog.delete",
+			`page-storage.purge ${USER_ID}`,
 			"subscription.cancel sub_solo",
 			"charges.list cus_solo",
 			"customer.delete cus_solo",
@@ -225,6 +227,7 @@ describe("purgeAccount", () => {
 		expect(customerById("cus_paid").deleted).toBe(false);
 		expect(log).toEqual([
 			"posthog.delete",
+			`page-storage.purge ${USER_ID}`,
 			"charges.list cus_paid",
 			"organization.delete org-paid",
 			"tombstone",
@@ -245,6 +248,7 @@ describe("purgeAccount", () => {
 
 		expect(log).toEqual([
 			"posthog.delete",
+			`page-storage.purge ${USER_ID}`,
 			"subscription.update sub_shared 1",
 			"tombstone",
 		]);
@@ -268,6 +272,7 @@ describe("purgeAccount", () => {
 		await purge();
 		expect(log).toEqual([
 			"posthog.delete",
+			`page-storage.purge ${USER_ID}`,
 			"charges.list cus_gone",
 			"organization.delete org-solo",
 			"tombstone",
@@ -290,6 +295,21 @@ describe("purgeAccount", () => {
 		expect(log).toEqual(["posthog.delete"]);
 	});
 
+	test("a hub that kept records leaves the user untombstoned", async () => {
+		organizations = [
+			{ id: "org-solo", memberIds: [USER_ID], stripeCustomerId: "cus_solo" },
+		];
+		customers.set("cus_solo", {
+			deleted: false,
+			activeSubscriptionIds: [],
+			charges: [],
+		});
+		failPageStoragePurge = new Error("Page storage kept records on 1 page(s)");
+
+		await expect(purge()).rejects.toThrow("Page storage kept records");
+		expect(log).toEqual(["posthog.delete", `page-storage.purge ${USER_ID}`]);
+	});
+
 	test("a Stripe error other than a missing customer leaves the user untombstoned", async () => {
 		organizations = [
 			{ id: "org-solo", memberIds: [USER_ID], stripeCustomerId: "cus_solo" },
@@ -304,6 +324,10 @@ describe("purgeAccount", () => {
 		});
 
 		await expect(purge()).rejects.toThrow("rate limited");
-		expect(log).toEqual(["posthog.delete", "charges.list cus_solo"]);
+		expect(log).toEqual([
+			"posthog.delete",
+			`page-storage.purge ${USER_ID}`,
+			"charges.list cus_solo",
+		]);
 	});
 });

@@ -6,7 +6,12 @@ export const DEFAULT_MARKETPLACE = "superset";
 export const DEFAULT_MARKETPLACE_REPO = "superset-sh/superset";
 export const DEFAULT_MARKETPLACE_REF = "main";
 
-export const SUPERSET_HOSTED_PLUGINS = ["gmail", "slack"] as const;
+export const SUPERSET_HOSTED_PLUGINS = [
+	"gmail",
+	"google-calendar",
+	"slack",
+	"ynab",
+] as const;
 export type SupersetHostedPlugin = (typeof SUPERSET_HOSTED_PLUGINS)[number];
 
 export function isSupersetHosted(name: string): boolean {
@@ -37,6 +42,14 @@ export type PluginMcpServerConfig =
 			type: "http" | "sse";
 			url: string;
 			headers?: Record<string, string>;
+			/**
+			 * A command printing a JSON object of headers on stdout, run per
+			 * connection. Both supported agents have this and it is the only way to
+			 * attach a credential without writing one to disk: Claude calls it
+			 * `headersHelper`, Codex `http_headers_helper`, so the dialect writers
+			 * rename it rather than this type carrying both spellings.
+			 */
+			headersHelper?: string;
 	  }
 	| {
 			command: string;
@@ -131,6 +144,20 @@ function packageFromArgs(args: readonly string[] | undefined): string | null {
 	return null;
 }
 
+function isPluginProxyUrl(value: string): boolean {
+	return value.startsWith(`${SUPERSET_API_URL}/mcp/plugins/`);
+}
+
+function sameEndpoint(a: string, b: string): boolean {
+	try {
+		const [x, y] = [new URL(a), new URL(b)];
+		const path = (url: URL) => url.pathname.replace(/\/+$/, "");
+		return x.host === y.host && path(x) === path(y) && x.search === y.search;
+	} catch {
+		return false;
+	}
+}
+
 function externalMatchesConfig(
 	server: ExternalMcpServer,
 	catalogName: string,
@@ -138,9 +165,12 @@ function externalMatchesConfig(
 ): boolean {
 	if (server.name === catalogName) return true;
 	if ("url" in config && server.url) {
-		const catalogHost = urlHost(config.url);
-		if (catalogHost !== null && catalogHost === urlHost(server.url)) {
-			return true;
+		if (isPluginProxyUrl(config.url)) {
+			if (sameEndpoint(config.url, server.url)) return true;
+		} else {
+			const catalogHost = urlHost(config.url);
+			if (catalogHost !== null && catalogHost === urlHost(server.url))
+				return true;
 		}
 	}
 	if ("command" in config) {
@@ -155,7 +185,8 @@ function externalMatchesConfig(
 
 /**
  * Whether one catalog server is already covered by an entry the user wrote
- * themselves — matched by name, remote URL hostname, or the npm package a
+ * themselves — matched by name, remote URL hostname (the full endpoint for a
+ * plugin proxy URL, which all share one host), or the npm package a
  * stdio server runs (people name servers freely, e.g. "linear-server").
  * The materializer skips satisfied servers so installing never duplicates.
  */
@@ -167,27 +198,6 @@ export function isServerSatisfiedExternally(
 	return external.some((server) =>
 		externalMatchesConfig(server, catalogName, config),
 	);
-}
-
-/** The user's own config entries that correspond to this plugin. */
-export function getMatchingExternalServers(
-	plugin: PluginCatalogEntry,
-	external: readonly ExternalMcpServer[],
-): ExternalMcpServer[] {
-	const entries = Object.entries(plugin.mcpServers);
-	return external.filter((server) =>
-		entries.some(([name, config]) =>
-			externalMatchesConfig(server, name, config),
-		),
-	);
-}
-
-/** Whether the user already has any of this plugin's servers configured themselves. */
-export function isPluginExternallyConfigured(
-	plugin: PluginCatalogEntry,
-	external: readonly ExternalMcpServer[],
-): boolean {
-	return getMatchingExternalServers(plugin, external).length > 0;
 }
 
 /** What a plugin puts on your machine, for at-a-glance labeling in the UI. */
@@ -371,6 +381,14 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 		mcpServers: {},
 	},
 	{
+		name: "google-calendar",
+		version: "1.0.0",
+		description: "Read and manage your Google Calendar",
+		interface: { displayName: "Google Calendar", category: "Productivity" },
+		auth: [{ type: "oauth2" }],
+		mcpServers: {},
+	},
+	{
 		name: "vercel",
 		version: "1.0.0",
 		description: "Manage deployments, projects, and logs",
@@ -451,6 +469,15 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 			},
 		},
 	},
+	{
+		name: "ynab",
+		version: "1.0.0",
+		description:
+			"Track money in YNAB: accounts, categories, budgets, and transactions",
+		interface: { displayName: "YNAB", category: "Productivity" },
+		auth: [{ type: "api_key", label: "Personal Access Token" }],
+		mcpServers: {},
+	},
 ];
 
 export const SUPERSET_API_URL = "https://api.superset.sh";
@@ -465,17 +492,57 @@ export const SUPERSET_API_URL = "https://api.superset.sh";
 export function pluginProxyMcpServers(
 	name: string,
 	marketplace: string = DEFAULT_MARKETPLACE,
+	options: { headersHelper?: string } = {},
 ): Record<string, PluginMcpServerConfig> | undefined {
 	const extension = firstPartyManifest(name)?.extensions?.superset as
 		| { connector?: { slug: string } }
 		| undefined;
 	if (!extension?.connector) return undefined;
+
 	return {
 		[name]: {
 			type: "http",
 			url: `${SUPERSET_API_URL}/mcp/plugins/${marketplace}/${name}`,
+			...(options.headersHelper
+				? { headersHelper: options.headersHelper }
+				: {}),
 		},
 	};
+}
+
+/**
+ * The MCP entries an installed set should materialize, merged.
+ *
+ * Shared so the desktop and the host-service compute the same desired set from
+ * the same catalog: two copies of this is how one surface writes an entry the
+ * other reaps. A disabled install contributes nothing, which is what makes a
+ * disable reap its servers.
+ */
+export function desiredPluginMcpServers(
+	installed: readonly {
+		name: string;
+		marketplace?: string;
+		enabled?: boolean;
+	}[],
+	options: {
+		/** Command printing the auth header, so no entry needs its own OAuth. */
+		headersHelper?: string;
+	} = {},
+): Record<string, PluginMcpServerConfig> {
+	const desired: Record<string, PluginMcpServerConfig> = {};
+	for (const install of installed) {
+		if (install.enabled === false) continue;
+		// This catalog is the first-party one, and the proxy URL names the
+		// marketplace it came from: another marketplace's same-named plugin
+		// would otherwise be served Superset's.
+		const marketplace = install.marketplace || DEFAULT_MARKETPLACE;
+		if (marketplace !== DEFAULT_MARKETPLACE) continue;
+		const entry = PLUGIN_CATALOG.find((p) => p.name === install.name);
+		if (!entry) continue;
+		const proxied = pluginProxyMcpServers(install.name, marketplace, options);
+		Object.assign(desired, proxied ?? entry.mcpServers);
+	}
+	return desired;
 }
 
 export function getPluginByName(name: string): PluginCatalogEntry | undefined {

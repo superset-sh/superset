@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { TextFilter, TriggerScope } from "../automation-triggers";
 import {
+	accountAllows,
 	configHasMeScope,
 	resolveMeScopes,
 	scopeAllows,
@@ -109,5 +110,29 @@ describe("scope matching fails closed on an unresolved me", () => {
 
 	test("scopeAllowsAny rejects", () => {
 		expect(scopeAllowsAny({ mode: "me" }, ["gh-42"])).toBe(false);
+	});
+});
+
+describe("accountAllows", () => {
+	test("an unpinned trigger takes any account", () => {
+		expect(accountAllows(null, "work")).toBe(true);
+		expect(accountAllows(undefined, "work")).toBe(true);
+	});
+
+	test("a pinned trigger takes its own account", () => {
+		expect(accountAllows("work", "work")).toBe(true);
+	});
+
+	test("a pinned trigger refuses a sibling account", () => {
+		expect(accountAllows("work", "personal")).toBe(false);
+	});
+
+	test("a pinned trigger refuses an event with no connection", () => {
+		expect(accountAllows("work", null)).toBe(false);
+		expect(accountAllows("work", undefined)).toBe(false);
+	});
+
+	test("an unpinned trigger still takes an event with no connection", () => {
+		expect(accountAllows(null, null)).toBe(true);
 	});
 });

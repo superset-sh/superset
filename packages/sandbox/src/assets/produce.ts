@@ -271,8 +271,8 @@ async function wallpapers(): Promise<void> {
 
 // --- host-service runtime -------------------------------------------------
 /**
- * The runtime tarball: host-service's bundle, its migrations, the agent
- * templates, pty-daemon, the native modules installed for linux/amd64 against
+ * The runtime tarball: host-service's bundle, its and chat.db's migrations, the agent
+ * templates, pty-daemon, the ACP adapters, the native modules installed for linux/amd64 against
  * the image's Node, and a pre-migrated host.db template so first boot copies
  * a file instead of running migrations. Built in the image's own Node so the
  * natives match.
@@ -284,11 +284,17 @@ function hostService(): void {
 			"utf8",
 		),
 	) as { version: string; dependencies: Record<string, string> };
-	const natives = ["better-sqlite3", "node-pty"].map((dep) => {
+	const pinned = (dep: string) => {
 		const version = pkg.dependencies[dep];
 		if (!version) throw new Error(`${dep} is not a host-service dependency`);
 		return `${dep}@${version}`;
-	});
+	};
+	const natives = ["better-sqlite3", "node-pty"].map(pinned);
+	const acpAdapters = [
+		"@agentclientprotocol/claude-agent-acp",
+		"@agentclientprotocol/codex-acp",
+		"pi-acp",
+	];
 	for (const [dir, script] of [
 		["packages/host-service", "build:host"],
 		["packages/pty-daemon", "build:daemon"],
@@ -311,11 +317,23 @@ function hostService(): void {
 	rmSync(out, { recursive: true, force: true });
 	const stage = join(out, "stage");
 	mkdirSync(stage, { recursive: true });
-	const copy = (from: string, to: string) =>
-		Bun.spawnSync(["cp", "-R", join(REPO_ROOT, from), join(stage, to)]);
+	const copy = (from: string, to: string) => {
+		const result = Bun.spawnSync([
+			"cp",
+			"-R",
+			join(REPO_ROOT, from),
+			join(stage, to),
+		]);
+		if (result.exitCode !== 0) {
+			throw new Error(
+				`cp -R ${from} ${to} failed: ${result.stderr?.toString().trim()}`,
+			);
+		}
+	};
 	copy("packages/host-service/dist", "dist");
 	copy("packages/host-service/drizzle", "drizzle");
 	copy("packages/agent-setup/templates", "agent-templates");
+	copy("plugins", "agent-templates/plugins");
 	copy("packages/pty-daemon/dist", "pty-daemon");
 	writeFileSync(join(stage, "RUNTIME"), `version=${version}\nnode=24\n`);
 	inContainer(
@@ -326,8 +344,16 @@ function hostService(): void {
 			// host-service resolves the daemon side by side with itself, the way the desktop ships it.
 			"cp /out/stage/pty-daemon/pty-daemon.js /rt/pty-daemon.js",
 			"cd /rt && npm init -y >/dev/null && npm pkg set type=module >/dev/null",
-			`npm install ${natives.join(" ")} @parcel/watcher @xterm/headless --no-audit --no-fund >/dev/null`,
+			`npm install ${[...natives, ...acpAdapters.map(pinned)].join(" ")} @parcel/watcher @xterm/headless --no-audit --no-fund >/dev/null`,
+			// The adapters bring their own claude and codex binaries (~650 MB); host-service points them at the box's pinned CLIs instead.
+			"rm -rf node_modules/@anthropic-ai/claude-agent-sdk-linux-* node_modules/@openai/codex-linux-*",
 			"test -d node_modules/node-pty/prebuilds/linux-x64 || (echo 'node-pty prebuild missing' && exit 1)",
+			...acpAdapters.map(
+				(adapter) =>
+					`test -f node_modules/${adapter}/dist/index.js || (echo '${adapter} missing' && exit 1)`,
+			),
+			// chat.db migrates on the first /chat-v3 request, after release: apply every journaled migration here.
+			'cd /rt && node -e \'const fs=require("node:fs");const D=require("better-sqlite3");const d=new D(":memory:");for(const e of JSON.parse(fs.readFileSync("/rt/chat-migrations/meta/_journal.json","utf8")).entries)d.exec(fs.readFileSync("/rt/chat-migrations/"+e.tag+".sql","utf8").replaceAll("--> statement-breakpoint",""));d.close()\'',
 			// The schema, baked: run host-service once against a throwaway path so the template carries every migration.
 			"cd /rt && ORGANIZATION_ID=00000000-0000-0000-0000-000000000000 HOST_DB_PATH=/rt/host.db.template HOST_MIGRATIONS_FOLDER=/rt/drizzle AUTH_TOKEN=build SUPERSET_API_URL=https://example.invalid SUPERSET_HOST_RUN_MODE=sandbox SUPERSET_SANDBOX_WORKSPACE_ID=00000000-0000-0000-0000-000000000000 SUPERSET_SANDBOX_WORKSPACE_PATH=/workspace PORT=4879 node -e '" +
 				'const {spawn}=require("node:child_process");const p=spawn("node",["host-service.js"],{stdio:["ignore","pipe","pipe"]});let out="";const done=c=>{try{p.kill("SIGTERM")}catch{}process.exit(c)};const w=ch=>{out+=ch;if(out.includes("Initialized at"))setTimeout(()=>done(0),2000)};p.stdout.on("data",w);p.stderr.on("data",w);setTimeout(()=>{console.error(out.slice(-800));done(1)},60000)\'',

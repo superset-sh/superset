@@ -5,10 +5,14 @@ import {
 	describe,
 	expect,
 	it,
-	mock,
 	spyOn,
 } from "bun:test";
 import type { ListSessionsResponse } from "main/lib/terminal-host/types";
+import {
+	restartDaemon as restartDaemonWith,
+	type TerminalDaemonDeps,
+	tryListExistingDaemonSessions as tryListExistingDaemonSessionsWith,
+} from "./index";
 
 let listSessionsIfRunningResult: ListSessionsResponse | null = null;
 let listSessionsIfRunningError: Error | null = null;
@@ -30,7 +34,7 @@ function makeSession(
 	};
 }
 
-mock.module("main/lib/terminal-host/client", () => ({
+const deps: TerminalDaemonDeps = {
 	getTerminalHostClient: () => ({
 		listSessionsIfRunning: async () => {
 			if (listSessionsIfRunningError) {
@@ -45,33 +49,30 @@ mock.module("main/lib/terminal-host/client", () => ({
 			}
 			return { wasRunning: true };
 		},
-		ensureConnected: async () => {},
 	}),
-	disposeTerminalHostClient: () => {},
-}));
-
-mock.module("./daemon", () => ({
-	DaemonTerminalManager: class {},
 	getDaemonTerminalManager: () => ({
 		reset: () => {
 			resetCalls++;
 		},
-		reconcileOnStartup: async () => {},
 	}),
-}));
+};
 
-const { restartDaemon, tryListExistingDaemonSessions } = await import(
-	"./index"
-);
+const restartDaemon = () => restartDaemonWith(deps);
+const tryListExistingDaemonSessions = () =>
+	tryListExistingDaemonSessionsWith(deps);
 
 describe("terminal index", () => {
+	let consoleSpies: { mockRestore: () => void }[] = [];
+
 	beforeAll(() => {
-		spyOn(console, "log").mockImplementation(() => {});
-		spyOn(console, "warn").mockImplementation(() => {});
+		consoleSpies = [
+			spyOn(console, "log").mockImplementation(() => {}),
+			spyOn(console, "warn").mockImplementation(() => {}),
+		];
 	});
 
 	afterAll(() => {
-		mock.restore();
+		for (const spy of consoleSpies) spy.mockRestore();
 	});
 
 	beforeEach(() => {

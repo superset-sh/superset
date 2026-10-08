@@ -17,6 +17,8 @@ import {
 	userError,
 } from "../../../trpc";
 import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
+import { findInstalledRepository } from "./find-installed-repository";
+import { getPullRequestDiff } from "./get-pull-request-diff";
 import {
 	type PullRequestDetail,
 	toChecks,
@@ -29,6 +31,7 @@ import { listGithubRepositories } from "./trigger-options";
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
 export const githubRouter = {
+	getPullRequestDiff,
 	getInstallation: protectedProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
@@ -345,31 +348,10 @@ export const githubRouter = {
 		)
 		.query(async ({ ctx, input }): Promise<PullRequestDetail> => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
-			const installation = await db.query.githubInstallations.findFirst({
-				where: eq(githubInstallations.organizationId, input.organizationId),
-			});
-			if (!installation) {
-				throw userError({
-					code: "PRECONDITION_FAILED",
-					message: "GitHub installation not found",
-					i18nKey: "serverError.integration.githubInstallationNotFound",
-				});
-			}
-			const repo = await db.query.githubRepositories.findFirst({
-				where: and(
-					eq(githubRepositories.installationId, installation.id),
-					sql`lower(${githubRepositories.fullName}) = ${input.repoFullName.toLowerCase()}`,
-				),
-				columns: { id: true, fullName: true },
-			});
-			if (!repo) {
-				throw userError({
-					code: "NOT_FOUND",
-					message: `${input.repoFullName} is not a repository the GitHub App is installed on`,
-					i18nKey: "serverError.integration.repositoryNotInstalled",
-					params: { repoFullName: input.repoFullName },
-				});
-			}
+			const { installation, repo } = await findInstalledRepository(
+				input.organizationId,
+				input.repoFullName,
+			);
 			const [owner, name] = repo.fullName.split("/");
 			const [row, octokit] = await Promise.all([
 				db.query.githubPullRequests.findFirst({

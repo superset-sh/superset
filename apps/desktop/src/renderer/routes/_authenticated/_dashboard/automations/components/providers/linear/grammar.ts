@@ -14,13 +14,20 @@ export type LinearConfig = Extract<TriggerConfigInput, { kind: "linear" }>;
  * event describes itself.
  */
 
-export type Slot = "teams" | "projects" | "labels" | "toStatus" | "assignee";
+export type Slot =
+	| "account"
+	| "teams"
+	| "projects"
+	| "labels"
+	| "toStatus"
+	| "assignee";
 
 export type SentencePart = { text: string } | { slot: Slot };
 
 export const LINEAR_SENTENCES: Record<LinearTriggerEvent, SentencePart[]> = {
 	"issue.created": [
 		{ text: "Issue created in" },
+		{ slot: "account" },
 		{ slot: "teams" },
 		{ text: "in" },
 		{ slot: "projects" },
@@ -31,6 +38,7 @@ export const LINEAR_SENTENCES: Record<LinearTriggerEvent, SentencePart[]> = {
 		{ text: "Issue moved to" },
 		{ slot: "toStatus" },
 		{ text: "in" },
+		{ slot: "account" },
 		{ slot: "teams" },
 		{ text: "in" },
 		{ slot: "projects" },
@@ -43,13 +51,18 @@ export const LINEAR_SENTENCES: Record<LinearTriggerEvent, SentencePart[]> = {
 		{ text: "Issue assigned to" },
 		{ slot: "assignee" },
 		{ text: "in" },
+		{ slot: "account" },
 		{ slot: "teams" },
 		{ text: "in" },
 		{ slot: "projects" },
 		{ text: "with label" },
 		{ slot: "labels" },
 	],
-	"cycle.ended": [{ text: "Cycle ended in" }, { slot: "teams" }],
+	"cycle.ended": [
+		{ text: "Cycle ended in" },
+		{ slot: "account" },
+		{ slot: "teams" },
+	],
 };
 
 export const LINEAR_MENU: TriggerMenuEntry<LinearConfig>[] = [

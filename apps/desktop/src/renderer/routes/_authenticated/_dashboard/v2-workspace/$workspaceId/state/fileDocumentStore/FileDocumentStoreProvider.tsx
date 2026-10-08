@@ -11,18 +11,18 @@ import { renameFilePanePaths } from "./renameFilePanePaths";
 
 export function FileDocumentStoreProvider({
 	children,
-	store,
+	stores,
 }: {
 	children: ReactNode;
-	store: StoreApi<WorkspaceStore<PaneViewerData>>;
+	stores: StoreApi<WorkspaceStore<PaneViewerData>>[];
 }) {
 	const { workspace } = useWorkspace();
 	const handleFsEvent = useCallback(
 		(event: FsWatchEvent) => {
 			dispatchFsEvent(workspace.id, event);
-			renameFilePanePaths(store, event);
+			for (const store of stores) renameFilePanePaths(store, event);
 		},
-		[workspace.id, store],
+		[workspace.id, stores],
 	);
 	useWorkspaceEvent("fs:events", workspace.id, handleFsEvent);
 

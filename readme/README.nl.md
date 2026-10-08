@@ -286,7 +286,7 @@ Er is geen Neon-account en er zijn geen third-party credentials nodig. `setup.lo
 een lokale Postgres + Electric-stack op via Docker en seedt een dev-account. Log in
 met de knop **"Sign in as dev"** (of `admin@local.test` / `supersetdev`).
 
-Vereisten: [Bun](https://bun.sh/) v1.3.14+ (vastgezet in `.bun-version`), `docker`, `jq` en `caddy`, dat `bun dev` draait als de lokale HTTPS-proxy (`brew install jq caddy && caddy trust`).
+Vereisten: [Bun](https://bun.sh/) v1.4.2+ (vastgezet in `.bun-version`), `docker`, `jq` en `caddy`, dat `bun dev` draait als de lokale HTTPS-proxy (`brew install jq caddy && caddy trust`).
 
 Zie [**DEVELOPMENT.md**](../DEVELOPMENT.md) voor de volledige gids: wat het setup-script doet, handmatige setup tegen echte services, veelgebruikte commando's, troubleshooting en hoe je de desktop-app bouwt. Het bijdrageproces staat in [**CONTRIBUTING.md**](../CONTRIBUTING.md).
 

@@ -1,5 +1,4 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { SelectAutomationRun } from "@superset/db/schema";
 import { errorMessage } from "@superset/i18n/errors";
 import type { DraftTrigger } from "@superset/shared/automation-triggers";
 import { isCloudAgentId } from "@superset/shared/cloud-agent-launch";
@@ -18,6 +17,7 @@ import { CLOUD_AGENT_CHOICES } from "renderer/hooks/useV2AgentChoices/cloud-agen
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions/useWorkspaceHostOptions";
 import { AgentPicker } from "../../../components/AgentPicker";
+import { useProviderConnections } from "../../../components/providers/useProviderConnections";
 import { useProviderOptions } from "../../../components/providers/useProviderOptions";
 import { useAutomationAgentChoices } from "../../../hooks/useAutomationAgentChoices";
 import { useProjectFileSearch } from "../../../hooks/useProjectFileSearch";
@@ -35,6 +35,9 @@ type DetailTab = "settings" | "runs";
 export function AutomationBody({
 	automation,
 	recentRuns,
+	hasMoreRuns,
+	isLoadingMoreRuns,
+	onLoadMoreRuns,
 	ownerName,
 	readOnly,
 	onToggleEnabled,
@@ -42,7 +45,10 @@ export function AutomationBody({
 }: {
 	/** `get` output plus the prompt body, which rides its own procedure. */
 	automation: RouterOutputs["automation"]["get"] & { prompt: string };
-	recentRuns: SelectAutomationRun[];
+	recentRuns: RouterOutputs["automation"]["listOrgRuns"]["runs"];
+	hasMoreRuns: boolean;
+	isLoadingMoreRuns: boolean;
+	onLoadMoreRuns: () => void;
 	ownerName?: string | null;
 	readOnly?: boolean;
 	onToggleEnabled: (enabled: boolean) => void;
@@ -84,10 +90,24 @@ export function AutomationBody({
 			continueAgentSession: automation.continueAgentSession,
 			triggers: automation.triggers.map((trigger) => ({
 				id: trigger.id,
+				connectionId: trigger.connectionId,
 				config: trigger.config as DraftTrigger["config"],
 			})),
 		}),
 		[automation],
+	);
+
+	const { accounts, isPending: connectionsPending } = useProviderConnections(
+		automation.organizationId,
+	);
+	const knownConnectionIds = useMemo(
+		() =>
+			connectionsPending
+				? undefined
+				: Object.values(accounts).flatMap((list) =>
+						(list ?? []).map((account) => account.id),
+					),
+		[accounts, connectionsPending],
 	);
 
 	const {
@@ -100,16 +120,20 @@ export function AutomationBody({
 		editTriggers,
 		save,
 		discard,
-	} = useAutomationDraft(saved, async (next) => {
-		await updateMutation.mutateAsync(next);
-		toast.success(
-			t({
-				message: "Automation saved",
-			}),
-		);
-		// Saving may have joined channels, which flips `botMember`.
-		optionState.slack?.refetch();
-	});
+	} = useAutomationDraft(
+		saved,
+		async (next) => {
+			await updateMutation.mutateAsync(next);
+			toast.success(
+				t({
+					message: "Automation saved",
+				}),
+			);
+			// Saving may have joined channels, which flips `botMember`.
+			optionState.slack?.refetch();
+		},
+		knownConnectionIds,
+	);
 
 	const { options, state: optionState } = useProviderOptions(
 		automation.organizationId,
@@ -334,7 +358,12 @@ export function AutomationBody({
 						)}
 					</fieldset>
 				) : (
-					<PreviousRunsList runs={recentRuns} />
+					<PreviousRunsList
+						runs={recentRuns}
+						hasMore={hasMoreRuns}
+						isLoadingMore={isLoadingMoreRuns}
+						onLoadMore={onLoadMoreRuns}
+					/>
 				)}
 			</div>
 		</div>

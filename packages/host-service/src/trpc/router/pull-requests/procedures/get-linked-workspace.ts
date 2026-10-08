@@ -1,7 +1,12 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { pullRequests, workspaces } from "../../../../db/schema";
 import { protectedProcedure } from "../../../index";
+import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
+import {
+	findLinkedWorkspaceIds,
+	findPullRequestRows,
+	findPullRequestRowsByProject,
+	type LinkedPullRequestRow,
+} from "../shared/linked-workspaces";
 
 const getLinkedWorkspaceInputSchema = z.object({
 	projectId: z.string(),
@@ -9,39 +14,30 @@ const getLinkedWorkspaceInputSchema = z.object({
 });
 
 /**
- * Reverse (PR -> workspace) lookup. `workspaces.pullRequestId` is the single
- * "currently linked" pointer per workspace (see db/schema.ts), so this finds
- * whichever live, non-archived workspace currently points at this PR, if
+ * Whichever live, non-archived workspace currently points at this PR, if
  * any. Used by the Code tab's "+" comment composer to decide whether to
- * send a prompt into an already-open workspace or spin up a new one.
+ * send a prompt into an already-open workspace or spin up a new one. When
+ * the project's repository cannot be resolved (checkout gone, remote
+ * unreachable) the rows the project wrote itself still answer, so an
+ * existing link is never mistaken for "none".
  */
 export const getLinkedWorkspace = protectedProcedure
 	.input(getLinkedWorkspaceInputSchema)
 	.query(async ({ ctx, input }) => {
-		const pr = ctx.db
-			.select({ id: pullRequests.id })
-			.from(pullRequests)
-			.where(
-				and(
-					eq(pullRequests.projectId, input.projectId),
-					eq(pullRequests.prNumber, input.prNumber),
-				),
-			)
-			.get();
-		if (!pr) return { workspaceId: null };
-
-		// workspaces.pullRequestId has no unique constraint — more than one
-		// non-archived workspace can link to the same PR (two worktrees
-		// checking out the same branch, a stale duplicate). Break the tie
-		// deterministically by picking the most recently active one instead
-		// of an arbitrary DB row order.
-		const workspace = ctx.db
-			.select({ id: workspaces.id })
-			.from(workspaces)
-			.where(
-				and(eq(workspaces.pullRequestId, pr.id), isNull(workspaces.archivedAt)),
-			)
-			.orderBy(desc(workspaces.updatedAt), desc(workspaces.createdAt))
-			.get();
-		return { workspaceId: workspace?.id ?? null };
+		let rows: LinkedPullRequestRow[];
+		try {
+			const repo = await resolveGithubRepo(ctx, input.projectId);
+			rows = findPullRequestRows(ctx.db, repo, input.prNumber);
+		} catch {
+			rows = findPullRequestRowsByProject(
+				ctx.db,
+				input.projectId,
+				input.prNumber,
+			);
+		}
+		const [workspaceId = null] = findLinkedWorkspaceIds(
+			ctx.db,
+			rows.map((row) => row.id),
+		);
+		return { workspaceId };
 	});

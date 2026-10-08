@@ -58,6 +58,7 @@ export function ProjectRecordView({
 					onBack={onBack}
 				/>
 			}
+			sideTitle={<Trans>Properties</Trans>}
 			side={
 				<ProjectRecordSide
 					project={project}

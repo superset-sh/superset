@@ -281,7 +281,7 @@ bun run dev
 
 Neon 계정이나 서드파티 자격 증명은 필요 없습니다. `setup.local.sh`가 Docker로 로컬 Postgres + Electric 스택을 띄우고 개발 계정을 시드합니다. **"Sign in as dev"** 버튼(또는 `admin@local.test` / `supersetdev`)으로 로그인하세요.
 
-사전 요구 사항: [Bun](https://bun.sh/) v1.3.14+(`.bun-version`에 고정), `docker`, `jq`, `caddy`. `caddy`는 `bun dev`가 로컬 HTTPS 프록시로 실행합니다(`brew install jq caddy && caddy trust`).
+사전 요구 사항: [Bun](https://bun.sh/) v1.4.2+(`.bun-version`에 고정), `docker`, `jq`, `caddy`. `caddy`는 `bun dev`가 로컬 HTTPS 프록시로 실행합니다(`brew install jq caddy && caddy trust`).
 
 전체 가이드는 [**DEVELOPMENT.md**](../DEVELOPMENT.md)를 참고하세요: 설정 스크립트가 하는 일, 실제 서비스 대상 수동 설정, 자주 쓰는 명령, 문제 해결, 데스크톱 앱 빌드 방법을 다룹니다. 기여 절차는 [**CONTRIBUTING.md**](../CONTRIBUTING.md)에 있습니다.
 

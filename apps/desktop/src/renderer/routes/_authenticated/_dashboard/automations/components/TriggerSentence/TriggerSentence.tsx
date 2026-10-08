@@ -10,7 +10,9 @@ import { LuTrash2 } from "react-icons/lu";
 import { connectorFor, type ProviderOptions, providerFor } from "../providers";
 import { triggerEventLabel } from "../providers/eventLabel";
 import type { OptionGroupState } from "../providers/types";
+import type { ProviderAccount } from "../providers/useProviderConnections";
 import { CHIP_INVALID } from "./chipStyles";
+import { AccountChip } from "./components/AccountChip";
 
 interface TriggerSentenceProps {
 	trigger: DraftTrigger;
@@ -33,6 +35,7 @@ interface TriggerSentenceProps {
 	requiresConnection?: boolean;
 	/** The connector was connected and its refresh failed; offer Reconnect. */
 	needsReauth?: boolean;
+	accounts?: ProviderAccount[];
 	disabled?: boolean;
 }
 
@@ -54,6 +57,7 @@ export function TriggerSentence({
 	nextRun,
 	requiresConnection,
 	needsReauth,
+	accounts,
 	disabled,
 	onConnect,
 }: TriggerSentenceProps) {
@@ -68,6 +72,25 @@ export function TriggerSentence({
 	const invalid = new Set((problems ?? []).map((p) => p.field));
 
 	const connector = connectorFor(provider);
+
+	const pinned = (accounts ?? []).find(
+		(account) => account.id === trigger.connectionId,
+	);
+	const accountChoice =
+		(accounts ?? []).length > 1 || (Boolean(trigger.connectionId) && !pinned);
+
+	const accountChip =
+		!requiresConnection && accountChoice ? (
+			<AccountChip
+				accounts={accounts ?? []}
+				value={trigger.connectionId}
+				onChange={(connectionId) => onChange({ ...trigger, connectionId })}
+				onManage={
+					connector && onConnect ? () => onConnect(connector) : undefined
+				}
+				disabled={disabled}
+			/>
+		) : undefined;
 
 	// Always the first element of the right-hand cluster, so whatever follows
 	// it — nothing, or a Connect button — is what sits against the row's right
@@ -130,6 +153,7 @@ export function TriggerSentence({
 						: undefined,
 					disabled,
 					nextRun,
+					account: accountChip,
 				})
 			)}
 

@@ -122,7 +122,7 @@ describe("codexAdapter fixtures", () => {
 		expect(sessionStates[0]).toEqual({ status: "starting" });
 		expect(sessionStates[1]).toMatchObject({
 			status: "idle",
-			modeId: "auto",
+			modeId: "full-access",
 			modelId: "gpt-5.5",
 			availableModes: [
 				{ id: "read-only", label: "Read Only" },

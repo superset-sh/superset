@@ -168,6 +168,14 @@ export async function awaitUploads(
  * Each pill subscribes to its own slot, so unrelated upload state changes
  * don't trigger re-renders elsewhere in the modal.
  */
+export function readyAttachmentId(
+	fileId: string,
+	hostUrl: string,
+): string | null {
+	const entry = useAttachmentUploadsStore.getState().entries[fileId]?.[hostUrl];
+	return entry?.kind === "ready" ? entry.attachmentId : null;
+}
+
 export function useUploadStateFor(
 	fileId: string,
 	hostUrl: string | null,

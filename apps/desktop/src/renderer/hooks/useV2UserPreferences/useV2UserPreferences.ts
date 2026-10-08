@@ -23,6 +23,7 @@ export interface V2UserPreferencesApi {
 	setPageLinks: (next: LinkTierMap) => void;
 	setRightSidebarOpen: (next: boolean | ((prev: boolean) => boolean)) => void;
 	setRightSidebarWidth: (next: number) => void;
+	setRightPaneAreaWidth: (next: number) => void;
 	setDeleteLocalBranch: (next: boolean) => void;
 	setShowPresetsBar: (next: boolean | ((prev: boolean) => boolean)) => void;
 	toggleShowPresetsBar: () => void;
@@ -163,6 +164,25 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 			}
 			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
 				draft.rightSidebarWidth = next;
+			});
+		},
+		[collections],
+	);
+
+	const setRightPaneAreaWidth = useCallback(
+		(next: number) => {
+			const existing = collections.v2UserPreferences.get(
+				V2_USER_PREFERENCES_ID,
+			);
+			if (!existing) {
+				collections.v2UserPreferences.insert({
+					...DEFAULT_V2_USER_PREFERENCES,
+					rightPaneAreaWidth: next,
+				});
+				return;
+			}
+			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
+				draft.rightPaneAreaWidth = next;
 			});
 		},
 		[collections],
@@ -327,6 +347,7 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		setPageLinks,
 		setRightSidebarOpen,
 		setRightSidebarWidth,
+		setRightPaneAreaWidth,
 		setDeleteLocalBranch,
 		setShowPresetsBar,
 		toggleShowPresetsBar,

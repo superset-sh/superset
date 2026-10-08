@@ -1,18 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
+import { isSafePluginSegment } from "@superset/agent-setup";
 import { CLIError } from "@superset/cli-framework";
 
 export const MARKETPLACE_FILE = ".agent-marketplace.json";
 export const SUPERSET_EXTENSION = "superset";
 
-const SAFE_SEGMENT = /^[a-zA-Z0-9][a-zA-Z0-9._+-]*$/;
-
 export function assertSafeSegment(value: string, label: string): string {
-	if (
-		typeof value !== "string" ||
-		!SAFE_SEGMENT.test(value) ||
-		value.includes("..")
-	) {
+	if (!isSafePluginSegment(value)) {
 		throw new CLIError(
 			`Refusing to use ${label} "${value}": it must be alphanumeric with dots, dashes, pluses, or underscores, and cannot contain "..".`,
 		);

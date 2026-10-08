@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
-import simpleGit from "simple-git";
+import { simpleGit } from "simple-git";
 import { GitStatusStore } from "../trpc/router/git/utils/git-status-store/git-status-store";
 import { GitDirectoryWatcher } from "./git-directory-watcher";
 import { GitWatcher } from "./git-watcher";

@@ -5,7 +5,9 @@ import {
 } from "@superset/shared/plugins";
 import type { ConnectionSecrets } from "../../../lib/connectors/upsert";
 import { gmailServer } from "./gmail";
+import { googleCalendarServer } from "./google-calendar";
 import { slackServer } from "./slack";
+import { ynabServer } from "./ynab";
 
 export interface FirstPartyServer {
 	getTools(): Tool[];
@@ -22,7 +24,9 @@ export const FIRST_PARTY_SERVERS: Record<
 	FirstPartyServer
 > = {
 	gmail: gmailServer,
+	"google-calendar": googleCalendarServer,
 	slack: slackServer,
+	ynab: ynabServer,
 };
 
 export function firstPartyServer(name: string): FirstPartyServer | undefined {

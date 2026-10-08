@@ -2,9 +2,10 @@ import type { ChatCommands } from "./commands";
 import { CommandDedupe, createCommands } from "./commands";
 import type { ChatDb, OpenChatDb } from "./db";
 import { createChatDb } from "./db";
+import type { ChatJournalOptions } from "./journal";
 import { ChatJournal } from "./journal";
 import { ChatSessionStore } from "./projection";
-import type { HarnessRegistry } from "./sessions";
+import type { HarnessRegistry, LiveSessionObserver } from "./sessions";
 import { LiveSessionRegistry } from "./sessions";
 import type { Schedule, Sink, SubscribeOptions, Subscription } from "./stream";
 import { SubscriptionHub } from "./stream";
@@ -24,9 +25,11 @@ export type ChatRuntimeOptions = {
 	migrationsFolder?: string;
 	openDatabase?: OpenChatDb;
 	harnesses?: HarnessRegistry;
+	observer?: LiveSessionObserver;
 	schedule?: Schedule;
 	bootstrapLimit?: number;
 	dedupeCapacity?: number;
+	onSessionChanged?: ChatJournalOptions["onSessionChanged"];
 };
 
 export type ChatRuntime = {
@@ -49,7 +52,9 @@ export function createChatRuntime(options: ChatRuntimeOptions): ChatRuntime {
 		dataDir: options.dataDir,
 		migrationsFolder: options.migrationsFolder,
 	});
-	const journal = new ChatJournal(db);
+	const journal = new ChatJournal(db, {
+		onSessionChanged: options.onSessionChanged,
+	});
 	const sessions = new ChatSessionStore(db);
 	const subscriptions = new SubscriptionHub(db, {
 		schedule: options.schedule,
@@ -59,6 +64,7 @@ export function createChatRuntime(options: ChatRuntimeOptions): ChatRuntime {
 		journal,
 		publish: (envelope) => subscriptions.publish(envelope),
 		harnesses: options.harnesses ?? new Map(),
+		observer: options.observer,
 	});
 	const commands = createCommands({
 		journal,

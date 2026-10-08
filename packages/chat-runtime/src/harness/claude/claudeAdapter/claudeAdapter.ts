@@ -26,8 +26,10 @@ type SdkOptions = NonNullable<SdkParams["options"]>;
 export type ClaudeQueryOptions = Pick<
 	SdkOptions,
 	| "abortController"
+	| "allowDangerouslySkipPermissions"
 	| "canUseTool"
 	| "cwd"
+	| "env"
 	| "includePartialMessages"
 	| "model"
 	| "pathToClaudeCodeExecutable"
@@ -40,18 +42,41 @@ type PermissionResult = Awaited<
 	ReturnType<NonNullable<SdkOptions["canUseTool"]>>
 >;
 
+type ClaudePermissionMode = NonNullable<SdkOptions["permissionMode"]>;
+
 export type ClaudeSession = AsyncIterable<unknown> & {
-	interrupt?: () => Promise<void>;
+	interrupt?: () => Promise<unknown>;
+	setPermissionMode?: (mode: ClaudePermissionMode) => Promise<unknown>;
 };
+
+export const CLAUDE_MODES = [
+	{ id: "default", label: "Ask for approval" },
+	{ id: "acceptEdits", label: "Approve edits" },
+	{ id: "auto", label: "Approve for me" },
+	{ id: "plan", label: "Plan" },
+	{ id: "bypassPermissions", label: "Full access" },
+] as const satisfies readonly { id: ClaudePermissionMode; label: string }[];
+
+export const DEFAULT_CLAUDE_MODE: ClaudePermissionMode = "bypassPermissions";
+
+function claudeMode(modeId: string | undefined): ClaudePermissionMode {
+	return CLAUDE_MODES.find((mode) => mode.id === modeId)?.id ?? "default";
+}
 
 export type ClaudeQuery = (params: {
 	prompt: SdkParams["prompt"];
 	options: ClaudeQueryOptions;
 }) => ClaudeSession;
 
+export type ClaudeLaunch = {
+	pathToClaudeCodeExecutable?: string;
+	env?: ClaudeQueryOptions["env"];
+};
+
 export type ClaudeAdapterOptions = {
 	query: ClaudeQuery;
 	pathToClaudeCodeExecutable?: string;
+	launch?: () => Promise<ClaudeLaunch>;
 	now?: () => number;
 	mintId?: () => string;
 };
@@ -156,6 +181,7 @@ export class ClaudeAdapter implements HarnessAdapter {
 	private readonly abortController = new AbortController();
 	private translator: ClaudeTranslator | null = null;
 	private session: ClaudeSession | null = null;
+	private modeId: ClaudePermissionMode = "default";
 	private pump: Promise<void> | null = null;
 	private disposed = false;
 
@@ -169,15 +195,54 @@ export class ClaudeAdapter implements HarnessAdapter {
 		});
 		this.translator = translator;
 
+		this.modeId = claudeMode(
+			startOptions.modeId ??
+				(startOptions.resume ? undefined : DEFAULT_CLAUDE_MODE),
+		);
+		this.events.push({
+			kind: "session",
+			session: { modeId: this.modeId, availableModes: [...CLAUDE_MODES] },
+		});
+		void this.begin(startOptions, translator);
+		const events = this.events;
+		return {
+			[Symbol.asyncIterator](): AsyncIterator<AdapterEvent> {
+				return { next: () => events.next() };
+			},
+		};
+	}
+
+	private async begin(
+		startOptions: HarnessStartOptions,
+		translator: ClaudeTranslator,
+	): Promise<void> {
+		let launch: ClaudeLaunch | undefined;
+		try {
+			launch = await this.options.launch?.();
+		} catch (error) {
+			for (const event of translator.interrupt(
+				error instanceof Error ? error.message : String(error),
+			)) {
+				this.events.push(event);
+			}
+			this.events.close();
+			return;
+		}
+		if (this.disposed) return;
+
 		const stream = this.options.query({
 			prompt: this.prompts.stream(),
 			options: {
 				cwd: startOptions.cwd,
 				model: startOptions.modelId,
-				pathToClaudeCodeExecutable: this.options.pathToClaudeCodeExecutable,
+				pathToClaudeCodeExecutable:
+					launch?.pathToClaudeCodeExecutable ??
+					this.options.pathToClaudeCodeExecutable,
+				env: launch?.env,
 				includePartialMessages: true,
 				settingSources: [],
-				permissionMode: "default",
+				permissionMode: this.modeId,
+				allowDangerouslySkipPermissions: true,
 				abortController: this.abortController,
 				resume: startOptions.resume?.harnessSessionId,
 				canUseTool: (_toolName, input, { toolUseID }) =>
@@ -187,12 +252,6 @@ export class ClaudeAdapter implements HarnessAdapter {
 
 		this.session = stream;
 		this.pump = this.run(stream, translator);
-		const events = this.events;
-		return {
-			[Symbol.asyncIterator](): AsyncIterator<AdapterEvent> {
-				return { next: () => events.next() };
-			},
-		};
 	}
 
 	prompt(content: UserContent[]): void {
@@ -236,7 +295,15 @@ export class ClaudeAdapter implements HarnessAdapter {
 	}
 
 	setMode(modeId: string): void {
-		this.events.push({ kind: "session", session: { modeId } });
+		const previous = this.modeId;
+		const next = claudeMode(modeId);
+		this.modeId = next;
+		this.events.push({ kind: "session", session: { modeId: next } });
+		void this.session?.setPermissionMode?.(next).catch(() => {
+			if (this.modeId !== next) return;
+			this.modeId = previous;
+			this.events.push({ kind: "session", session: { modeId: previous } });
+		});
 	}
 
 	async dispose(): Promise<void> {

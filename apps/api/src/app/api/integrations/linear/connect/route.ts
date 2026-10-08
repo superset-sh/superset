@@ -1,3 +1,4 @@
+import { organizationSyncsNow } from "@superset/trpc/sync-policy";
 import { env } from "@/env";
 import { beginOAuthFlow, STATE_COOKIES } from "@/lib/integrations/oauthFlow";
 import { requireOrgMember } from "@/lib/integrations/requireOrgMember";
@@ -6,9 +7,20 @@ export async function GET(request: Request) {
 	const member = await requireOrgMember(request);
 	if (member instanceof Response) return member;
 
+	if (!(await organizationSyncsNow(member.organizationId))) {
+		return Response.redirect(
+			`${env.NEXT_PUBLIC_WEB_URL}/integrations?pro=linear`,
+		);
+	}
+
 	return beginOAuthFlow({
 		cookie: STATE_COOKIES.linear,
-		payload: { organizationId: member.organizationId, userId: member.userId },
+		payload: {
+			organizationId: member.organizationId,
+			userId: member.userId,
+			trackTasksInLinear:
+				new URL(request.url).searchParams.get("taskTracker") === "linear",
+		},
 		authorizeUrl: (state) => {
 			const linearAuthUrl = new URL("https://linear.app/oauth/authorize");
 			linearAuthUrl.searchParams.set("client_id", env.LINEAR_CLIENT_ID);

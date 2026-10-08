@@ -16,6 +16,8 @@ import {
 	type PageViewportZoom,
 } from "@superset/shared/page-zoom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useJoinPagePresence } from "../../hooks/useJoinPagePresence";
+import { usePageStorageConnect } from "../../hooks/usePageStorageConnect";
 import { useComments } from "../../providers/CommentProvider";
 import { PageFrame } from "../PageFrame";
 import { CommentBubble, pinClassName } from "./components/CommentBubble";
@@ -28,6 +30,7 @@ import {
 } from "./utils/pinLayout";
 
 interface PageCommentsViewProps {
+	pageId?: string;
 	/** The page's own origin, which serves it with the comment runtime injected. */
 	src: string;
 	title: string;
@@ -40,9 +43,12 @@ interface PageCommentsViewProps {
 	 */
 	onFramePointerDown?: () => void;
 	onLinkClick?: (click: PageLinkClick) => void;
+	storageTicket?: () => Promise<string | null>;
+	presenceUrl?: () => Promise<string | null>;
 }
 
 export function PageCommentsView({
+	pageId,
 	src,
 	title,
 	initialScrollY,
@@ -50,6 +56,8 @@ export function PageCommentsView({
 	onScrollYChange,
 	onFramePointerDown,
 	onLinkClick,
+	storageTicket,
+	presenceUrl,
 }: PageCommentsViewProps) {
 	const onLinkClickRef = useRef(onLinkClick);
 	onLinkClickRef.current = onLinkClick;
@@ -92,6 +100,9 @@ export function PageCommentsView({
 	} = useComments();
 
 	const frameOrigin = useMemo(() => new URL(src).origin, [src]);
+
+	usePageStorageConnect({ frameRef, frameOrigin, ticket: storageTicket });
+	useJoinPagePresence({ pageId, url: presenceUrl });
 
 	const [lastHoverRect, setLastHoverRect] = useState<FrameRect | null>(null);
 	useEffect(() => {
@@ -393,12 +404,14 @@ export function PageCommentsView({
 						container={container}
 						thread={null}
 						initialValue={draft.body}
+						initialAttachments={draft.attachments}
 						onDismiss={discardDraft}
-						onSubmit={(body) =>
+						onSubmit={(body, attachments) =>
 							createThread({
 								anchor: draft.anchor,
 								anchorText: draft.anchor.text,
 								body,
+								attachments,
 							})
 						}
 						onQuick={(body, intent) => {

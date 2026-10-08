@@ -8,10 +8,12 @@ const payloadSchema = z
 	.object({
 		cloudWorkspaceId: z.string().uuid(),
 		archivedAt: z.string().datetime(),
+		// Reaps queued before the stop stage existed carry no stage.
+		stage: z.enum(["stop", "delete"]).default("delete"),
 	})
 	.strict();
 
-/** Deletes an archived workspace's stopped box once its grace period is over. */
+/** Stops an archived workspace's box, then deletes it once its grace period is over. */
 export async function POST(request: Request): Promise<Response> {
 	const body = await request.text();
 	const rejected = await verifyQstashRequest(

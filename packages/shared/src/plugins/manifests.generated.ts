@@ -55,7 +55,7 @@ export const FIRST_PARTY_MANIFESTS = {
 	"linear": {
 		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 		"name": "linear",
-		"version": "1.5.2",
+		"version": "1.5.3",
 		"description": "Plan and build products: create, search, and update Linear issues.",
 		"author": {
 			"name": "Superset",
@@ -78,7 +78,7 @@ export const FIRST_PARTY_MANIFESTS = {
 					"icon": "linear"
 				},
 				"connector": {
-					"slug": "linear"
+					"slug": "linear_mcp"
 				},
 				"mcp": {
 					"type": "streamable-http",
@@ -354,6 +354,297 @@ export const FIRST_PARTY_MANIFESTS = {
 				"description": "Work the action items Circleback captured — find what is assigned to this user, do the ones the workspace can do, and update status only for work that is actually finished. Use when the user asks what they owe, \"do my action items\", \"what's still open from\", or wants to close, reassign, or add an action item."
 			}
 		]
+	} as const,
+	"ynab": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "ynab",
+		"version": "1.0.0",
+		"description": "Track money in YNAB: accounts, categories, budgets, and transactions.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"ynab",
+			"budget",
+			"finance",
+			"money",
+			"transactions"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "YNAB",
+					"category": "Productivity",
+					"icon": "ynab"
+				},
+				"connector": {
+					"slug": "ynab"
+				}
+			}
+		},
+		"skills": []
+	} as const,
+	"stripe": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "stripe",
+		"version": "1.0.0",
+		"description": "Work with payments in Stripe: trace charges and subscriptions, read billing data, and search Stripe's docs.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"stripe",
+			"payments",
+			"billing",
+			"subscriptions",
+			"invoices"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Stripe",
+					"category": "Data & APIs",
+					"icon": "stripe"
+				},
+				"connector": {
+					"slug": "stripe"
+				},
+				"mcp": {
+					"type": "streamable-http",
+					"url": "https://mcp.stripe.com"
+				}
+			}
+		},
+		"skills": [
+			{
+				"name": "build-a-stripe-integration",
+				"description": "Write Stripe code against what the API does today — plan the product shape, confirm every parameter from Stripe's own docs and schemas, and keep the agent in a sandbox. Use when adding checkout, billing, subscriptions, invoicing, or webhooks to a codebase, or when debugging Stripe integration code that compiles but behaves wrong."
+			},
+			{
+				"name": "refund-and-dispute",
+				"description": "Move money back to a customer in Stripe, or respond to a dispute, with the checks that belong in front of an irreversible write — read the charge first, fix the exact amount, and clear Stripe's human confirmation step. Use when the user asks to refund a payment, cancel and refund a subscription, or handle a chargeback or dispute."
+			},
+			{
+				"name": "trace-a-payment",
+				"description": "Answer a question about money that already moved in Stripe — why a charge failed, what a customer was billed, where an invoice or payout stands — by reading the object chain instead of guessing from a dashboard total. Use when the user pastes a Stripe id, asks why a payment failed, asks what a customer is paying, or wants revenue, invoice, or subscription state."
+			}
+		]
+	} as const,
+	"superhuman": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "superhuman",
+		"version": "1.0.0",
+		"description": "Work your inbox from Superhuman: find and read threads, triage what needs you, draft replies in your voice, and schedule from your calendar.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"superhuman",
+			"email",
+			"mail",
+			"inbox",
+			"calendar"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Superhuman",
+					"category": "Communication",
+					"icon": "superhuman"
+				},
+				"connector": {
+					"slug": "superhuman_mcp"
+				},
+				"mcp": {
+					"type": "streamable-http",
+					"url": "https://mcp.mail.superhuman.com/mcp"
+				}
+			}
+		},
+		"skills": [
+			{
+				"name": "find-in-superhuman",
+				"description": "Find and read mail in Superhuman — the thread where something was said, sent, or promised — by filtering on who, when, and which split before searching by words, reading the thread before answering, and linking the thread behind every claim. Use when the user asks what someone emailed, whether a reply or an invoice ever arrived, what the latest is on a thread, or what is on their calendar."
+			},
+			{
+				"name": "reply-from-superhuman",
+				"description": "Draft a reply, a follow-up, or a new email in Superhuman in the user's own voice — read the whole thread first, reuse an existing draft instead of adding a second one, keep the right people on the thread, and leave sending to the user unless they asked for it. Use when the user says reply to, answer, follow up with, draft an email to, or send, or when a triage turned up threads that need a response."
+			},
+			{
+				"name": "schedule-with-superhuman",
+				"description": "Find a time and put a meeting on the calendar through Superhuman — read what is already booked, check the participants' availability, propose slots, and create the event only once the user picks one. Use when the user asks what is on their calendar, when they are free, to find a time with someone, or to schedule, move, or set up a call."
+			},
+			{
+				"name": "triage-superhuman-inbox",
+				"description": "Work through a Superhuman inbox — sort what is there into needs a reply, waiting on someone else, worth knowing, and noise, then archive, star, label, remind, or unsubscribe only as the user directs. Use when the user asks what needs their attention, what they are waiting on, to triage or clean up their inbox, or to deal with newsletters and notifications."
+			}
+		]
+	} as const,
+	"neon": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "neon",
+		"version": "1.0.0",
+		"description": "Work with your Neon Postgres: inspect projects and branches, read schemas, and run SQL.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"neon",
+			"postgres",
+			"database",
+			"sql",
+			"branches"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Neon",
+					"category": "Data & APIs",
+					"icon": "neon"
+				},
+				"connector": {
+					"slug": "neon_mcp"
+				},
+				"bind": {
+					"headers": {
+						"Authorization": "Bearer ${config.access_token}"
+					}
+				},
+				"mcp": {
+					"type": "streamable-http",
+					"url": "https://mcp.neon.tech/mcp"
+				}
+			}
+		},
+		"skills": []
+	} as const,
+	"posthog": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "posthog",
+		"version": "1.0.0",
+		"description": "Ask PostHog about your product: query events and insights, look up people, and check feature flags.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"posthog",
+			"analytics",
+			"events",
+			"feature-flags",
+			"product"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "PostHog",
+					"category": "Data & APIs",
+					"icon": "posthog"
+				},
+				"connector": {
+					"slug": "posthog_mcp"
+				},
+				"bind": {
+					"headers": {
+						"Authorization": "Bearer ${config.access_token}"
+					}
+				},
+				"mcp": {
+					"type": "streamable-http",
+					"url": "https://mcp.posthog.com/mcp"
+				}
+			}
+		},
+		"skills": []
+	} as const,
+	"google-calendar": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "google-calendar",
+		"version": "1.0.0",
+		"description": "Read and manage your Google Calendar: find events, check free time, and schedule meetings.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"google",
+			"calendar",
+			"events",
+			"meetings",
+			"scheduling"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Google Calendar",
+					"category": "Productivity",
+					"icon": "google-calendar"
+				},
+				"connector": {
+					"slug": "google"
+				}
+			}
+		},
+		"skills": []
+	} as const,
+	"vercel": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "vercel",
+		"version": "1.0.0",
+		"description": "Work with Vercel: inspect projects and deployments, read build and runtime logs, and search Vercel's docs.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"vercel",
+			"deployments",
+			"hosting",
+			"logs",
+			"nextjs"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Vercel",
+					"category": "Developer tools",
+					"icon": "vercel"
+				},
+				"connector": {
+					"slug": "vercel_mcp"
+				},
+				"mcp": {
+					"type": "streamable-http",
+					"url": "https://mcp.vercel.com"
+				}
+			}
+		},
+		"skills": []
 	} as const,
 } as const;
 

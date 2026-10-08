@@ -1,0 +1,35 @@
+{
+	"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+	"name": "neon",
+	"version": "1.0.0",
+	"description": "Work with your Neon Postgres: inspect projects and branches, read schemas, and run SQL.",
+	"author": {
+		"name": "Superset",
+		"url": "https://superset.sh"
+	},
+	"homepage": "https://docs.superset.sh",
+	"repository": "https://github.com/superset-sh/superset",
+	"license": "MIT",
+	"keywords": ["neon", "postgres", "database", "sql", "branches"],
+	"extensions": {
+		"superset": {
+			"interface": {
+				"displayName": "Neon",
+				"category": "Data & APIs",
+				"icon": "neon"
+			},
+			"connector": {
+				"slug": "neon_mcp"
+			},
+			"bind": {
+				"headers": {
+					"Authorization": "Bearer ${config.access_token}"
+				}
+			},
+			"mcp": {
+				"type": "streamable-http",
+				"url": "https://mcp.neon.tech/mcp"
+			}
+		}
+	}
+}

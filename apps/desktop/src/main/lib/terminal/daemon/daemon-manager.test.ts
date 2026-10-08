@@ -1,9 +1,11 @@
-import { afterAll, beforeEach, describe, expect, it, mock } from "bun:test";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { EventEmitter } from "node:events";
+import type { TerminalHostClient } from "../../terminal-host/client";
 import {
 	TERMINAL_ATTACH_CANCELED_MESSAGE,
 	TerminalAttachCanceledError,
 } from "../errors";
+import { DaemonTerminalManager } from "./daemon-manager";
 import type { SessionInfo } from "./types";
 
 class MockTerminalHostClient extends EventEmitter {
@@ -166,90 +168,40 @@ class MockTerminalHostClient extends EventEmitter {
 
 let mockClient = new MockTerminalHostClient();
 
-mock.module("../../terminal-host/client", () => ({
-	getTerminalHostClient: () => mockClient,
-	disposeTerminalHostClient: () => {},
-}));
+const noop = () => {};
+const resolved = () => Promise.resolve();
 
-mock.module("main/lib/analytics", () => ({
-	track: () => {},
-}));
-
-mock.module("../env", () => ({
-	buildTerminalEnv: () => ({}),
-	getDefaultShell: () => "/bin/zsh",
-}));
-
-mock.module("main/lib/app-state", () => ({
-	appState: { data: null },
-}));
-
-mock.module("main/lib/local-db", () => ({
-	localDb: {
-		select: () => ({
-			from: () => ({
-				all: () => [],
-				get: () => undefined,
-			}),
+const createManager = () =>
+	new DaemonTerminalManager({
+		getTerminalHostClient: () => mockClient as unknown as TerminalHostClient,
+		disposeTerminalHostClient: noop,
+		buildTerminalEnv: () => ({}),
+		getDefaultShell: () => "/bin/zsh",
+		portManager: {
+			upsertSession: noop,
+			unregisterSession: noop,
+			checkOutputForHint: noop,
+		},
+		createHistoryManager: () => ({
+			initHistoryWriter: resolved,
+			writeToHistory: noop,
+			closeHistoryWriter: noop,
+			cleanupHistory: resolved,
+			getHistoryWriter: () => undefined,
+			resetAll: resolved,
+			cleanup: resolved,
+			forceCloseAll: resolved,
+			closeAllSync: noop,
 		}),
-	},
-}));
-
-mock.module("@superset/local-db", () => ({
-	workspaces: { id: "id" },
-}));
-
-mock.module("../port-manager", () => ({
-	portManager: {
-		upsertSession: () => {},
-		unregisterSession: () => {},
-		checkOutputForHint: () => {},
-	},
-}));
-
-mock.module("./history-manager", () => ({
-	HistoryManager: class {
-		cleanupHistory() {
-			return Promise.resolve();
-		}
-
-		cleanup() {
-			return Promise.resolve();
-		}
-
-		forceCloseAll() {
-			return Promise.resolve();
-		}
-
-		initHistoryWriter() {
-			return Promise.resolve();
-		}
-
-		writeToHistory() {}
-
-		closeHistoryWriter() {}
-
-		closeAllSync() {}
-
-		reset() {
-			return Promise.resolve();
-		}
-	},
-}));
-
-const { DaemonTerminalManager } = await import("./daemon-manager");
+	});
 
 describe("DaemonTerminalManager kill tracking", () => {
 	beforeEach(() => {
 		mockClient = new MockTerminalHostClient();
 	});
 
-	afterAll(() => {
-		mock.restore();
-	});
-
 	it("waits for daemon exit and labels killed sessions", async () => {
-		const manager = new DaemonTerminalManager();
+		const manager = createManager();
 		const paneId = "pane-kill-1";
 		const sessions = (
 			manager as unknown as { sessions: Map<string, SessionInfo> }
@@ -279,7 +231,7 @@ describe("DaemonTerminalManager kill tracking", () => {
 	});
 
 	it("labels exit as killed even if session is missing", async () => {
-		const manager = new DaemonTerminalManager();
+		const manager = createManager();
 		const paneId = "pane-kill-2";
 
 		let exitReason: string | undefined;
@@ -293,7 +245,7 @@ describe("DaemonTerminalManager kill tracking", () => {
 	});
 
 	it("defaults exit reason to exited when no kill tombstone exists", () => {
-		const manager = new DaemonTerminalManager();
+		const manager = createManager();
 		const paneId = "pane-exit-1";
 
 		let exitReason: string | undefined;
@@ -306,7 +258,7 @@ describe("DaemonTerminalManager kill tracking", () => {
 	});
 
 	it("supersedes older createOrAttach requests for the same pane", async () => {
-		const manager = new DaemonTerminalManager();
+		const manager = createManager();
 		const paneId = "pane-attach-1";
 		const managerInternals = manager as unknown as {
 			daemonSessionIdsHydrated: boolean;
@@ -359,7 +311,7 @@ describe("DaemonTerminalManager kill tracking", () => {
 	});
 
 	it("reuses a helper joinPending attach when a request-scoped attach starts later", async () => {
-		const manager = new DaemonTerminalManager();
+		const manager = createManager();
 		const paneId = "pane-attach-helper-first";
 		const managerInternals = manager as unknown as {
 			daemonSessionIdsHydrated: boolean;
@@ -403,7 +355,7 @@ describe("DaemonTerminalManager kill tracking", () => {
 	});
 
 	it("does not dispatch stale daemon work after canceling before dispatch", async () => {
-		const manager = new DaemonTerminalManager();
+		const manager = createManager();
 		const paneId = "pane-attach-blocked";
 		const managerInternals = manager as unknown as {
 			daemonSessionIdsHydrated: boolean;
@@ -434,7 +386,7 @@ describe("DaemonTerminalManager kill tracking", () => {
 	});
 
 	it("aborts pending attaches during reset", async () => {
-		const manager = new DaemonTerminalManager();
+		const manager = createManager();
 		const paneId = "pane-reset-attach";
 		const managerInternals = manager as unknown as {
 			daemonSessionIdsHydrated: boolean;
@@ -476,7 +428,7 @@ describe("DaemonTerminalManager kill tracking", () => {
 	 * to pass joinPending: true so the two calls share one pending promise.
 	 */
 	it("cancels first attach when two non-joinPending calls race for the same pane (#2748)", async () => {
-		const manager = new DaemonTerminalManager();
+		const manager = createManager();
 		const paneId = "pane-worktree-race";
 		const managerInternals = manager as unknown as {
 			daemonSessionIdsHydrated: boolean;
@@ -517,7 +469,7 @@ describe("DaemonTerminalManager kill tracking", () => {
 	});
 
 	it("joinPending avoids cancellation when WorkspaceInitEffects and lifecycle race (#2748 fix)", async () => {
-		const manager = new DaemonTerminalManager();
+		const manager = createManager();
 		const paneId = "pane-worktree-fix";
 		const managerInternals = manager as unknown as {
 			daemonSessionIdsHydrated: boolean;
@@ -558,7 +510,7 @@ describe("DaemonTerminalManager kill tracking", () => {
 	});
 
 	it("propagates probe failures from forceKillAll instead of silently no-oping", async () => {
-		const manager = new DaemonTerminalManager();
+		const manager = createManager();
 		mockClient.listSessionsIfRunningError = new Error("probe failed");
 
 		await expect(manager.forceKillAll()).rejects.toThrow("probe failed");

@@ -62,12 +62,13 @@ export default async function MicrosoftTeamsIntegrationPage() {
 		),
 		tenant_already_linked: {
 			param: "detail",
-			withParam: i18n._(
-				msg({
+			withParam: i18n._({
+				...msg({
 					message:
 						"This Microsoft tenant is already connected by {detail}. Ask them to disconnect first.",
 				}),
-			),
+				values: { detail: "{detail}" },
+			}),
 			withoutParam: i18n._(
 				msg({
 					message:

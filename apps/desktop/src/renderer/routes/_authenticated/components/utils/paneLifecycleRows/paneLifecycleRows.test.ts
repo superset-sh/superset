@@ -73,6 +73,20 @@ describe("paneLifecycleRows", () => {
 		]);
 	});
 
+	test("tracks a pane after it moves from the center layout to the right layout", () => {
+		const moved: PaneLifecycleRow = {
+			...row("workspace-a", {}),
+			rightPaneLayout: row("workspace-a", {
+				"pane-term-1": terminalPane("term-1"),
+			}).paneLayout,
+		};
+
+		expect([
+			...extractPaneLocations([moved], terminalIdForPane).entries(),
+		]).toEqual([["term-1", "workspace-a"]]);
+		expect([...extractPaneIds([moved], terminalIdForPane)]).toEqual(["term-1"]);
+	});
+
 	test("marks a pane removed only when its owner workspace row is present", () => {
 		const previousLocations = new Map([
 			["term-1", "workspace-a"],

@@ -12,8 +12,8 @@ import {
 } from "@superset/db/schema";
 import { fileOriginalKey } from "@superset/shared/usercontent";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, asc, eq, isNotNull, isNull, or } from "drizzle-orm";
-import { detachAll, reapOrphanFiles } from "../../lib/files";
+import { and, asc, eq, inArray, isNotNull, isNull, or } from "drizzle-orm";
+import { reapOrphanFiles } from "../../lib/files";
 import { presignedPutUrl } from "../../lib/r2";
 import { protectedProcedure, userError } from "../../trpc";
 import { assertPageReadable } from "../page/access";
@@ -628,25 +628,43 @@ export const pageCommentRouter = {
 				});
 			}
 
-			// Read before the delete: the cascade takes the comment rows, and
-			// with them the only way to name their attachments.
-			const commentIds = (
-				await db
-					.select({ id: pageComments.id })
-					.from(pageComments)
-					.where(eq(pageComments.threadId, input.threadId))
-			).map((row) => row.id);
-
-			await db
-				.delete(pageCommentThreads)
-				.where(eq(pageCommentThreads.id, input.threadId));
+			// Locking the thread row first makes the cleanup complete: a reply
+			// being inserted takes a KEY SHARE lock on it, so it either commits
+			// before this and is detached here, or waits and fails the FK.
+			const fileIds = await dbWs.transaction(async (tx) => {
+				await tx
+					.select({ id: pageCommentThreads.id })
+					.from(pageCommentThreads)
+					.where(eq(pageCommentThreads.id, input.threadId))
+					.for("update");
+				const commentIds = (
+					await tx
+						.select({ id: pageComments.id })
+						.from(pageComments)
+						.where(eq(pageComments.threadId, input.threadId))
+				).map((row) => row.id);
+				const detached =
+					commentIds.length === 0
+						? []
+						: await tx
+								.delete(attachments)
+								.where(
+									and(
+										eq(attachments.parentKind, "comment"),
+										inArray(attachments.parentId, commentIds),
+									),
+								)
+								.returning({ fileId: attachments.fileId });
+				await tx
+					.delete(pageCommentThreads)
+					.where(eq(pageCommentThreads.id, input.threadId));
+				return [...new Set(detached.map((row) => row.fileId))];
+			});
 
 			// The thread is gone either way; a storage failure here is logged,
 			// not surfaced as a failed delete.
 			try {
-				await reapOrphanFiles(
-					await detachAll({ parentKind: "comment", parentIds: commentIds }),
-				);
+				await reapOrphanFiles(fileIds);
 			} catch (error) {
 				console.error("[page-comments] storage cleanup failed after delete", {
 					threadId: input.threadId,

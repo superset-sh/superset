@@ -17,7 +17,7 @@ import {
 	useV2ChangesSectionsStore,
 	type V2ChangesSectionKey,
 } from "renderer/stores/v2-changes-sections";
-import { DiffStatText } from "../DiffStatText";
+import { DiffStatText } from "../../../../../../../DiffStatText";
 
 type SectionKind = "unstaged" | "staged";
 

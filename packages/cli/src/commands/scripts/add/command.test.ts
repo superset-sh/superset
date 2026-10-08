@@ -1,24 +1,12 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { writeConfig } from "../../../lib/config";
 import { readSettingsRow } from "../../../lib/settings";
 import {
 	createLocalSettingsDb,
 	withTempSupersetHome,
 } from "../../../lib/settings/test-helpers";
-
-let activeOrganizationId: string | undefined = "org-a";
-
-const realConfig = await import("../../../lib/config");
-mock.module("../../../lib/config", () => ({
-	...realConfig,
-	readConfig: () => ({ organizationId: activeOrganizationId }),
-}));
-
-mock.module("../../../lib/settings/notify", () => ({
-	notifyDesktopSettingsChanged: async () => false,
-}));
-
-const { default: addScriptCommand } = await import("./command");
-const { default: scriptsMeta } = await import("../meta");
+import scriptsMeta from "../meta";
+import addScriptCommand from "./command";
 
 const home = withTempSupersetHome("superset-cli-script-command-");
 let previousOrgOverride: string | undefined;
@@ -39,11 +27,14 @@ function invoke(overrides: Record<string, unknown> = {}) {
 beforeEach(() => {
 	previousOrgOverride = process.env.SUPERSET_ORGANIZATION_ID;
 	delete process.env.SUPERSET_ORGANIZATION_ID;
-	activeOrganizationId = "org-a";
+	// Port 9 (discard) has no listener, so no desktop app acknowledges.
+	process.env.DESKTOP_NOTIFICATIONS_PORT = "9";
 	createLocalSettingsDb(home.dir);
+	writeConfig({ organizationId: "org-a" });
 });
 
 afterEach(() => {
+	delete process.env.DESKTOP_NOTIFICATIONS_PORT;
 	if (previousOrgOverride === undefined)
 		delete process.env.SUPERSET_ORGANIZATION_ID;
 	else process.env.SUPERSET_ORGANIZATION_ID = previousOrgOverride;
@@ -79,13 +70,13 @@ describe("scripts add", () => {
 	});
 
 	test("requires an active organization", async () => {
-		activeOrganizationId = undefined;
+		writeConfig({});
 		await expect(invoke()).rejects.toThrow(/No active organization/);
 		expect(readSettingsRow()).toBeUndefined();
 	});
 
 	test("honors the SUPERSET_ORGANIZATION_ID override like other commands", async () => {
-		activeOrganizationId = undefined;
+		writeConfig({});
 		process.env.SUPERSET_ORGANIZATION_ID = "org-env";
 		await invoke();
 		expect(

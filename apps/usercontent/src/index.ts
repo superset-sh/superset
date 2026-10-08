@@ -1,9 +1,11 @@
 import * as Sentry from "@sentry/cloudflare";
 import { PAGE_COMMENTS_RUNTIME_SOURCE } from "@superset/shared/page-comments-runtime";
+import { PAGE_STORAGE_RUNTIME_SOURCE } from "@superset/shared/page-storage-runtime";
 import {
 	FILE_CONTENT_SECURITY_POLICY,
 	fileOriginalKey,
 	fileResponsePolicy,
+	injectHeadScriptTag,
 	injectScriptTag,
 	injectStyleTag,
 	PAGE_THEME_CSS,
@@ -17,6 +19,7 @@ import {
 	parsePageManifest,
 	publiclyReadable,
 	RUNTIME_SCRIPT_PATH,
+	STORAGE_SCRIPT_PATH,
 	servedVersionOf,
 	THUMBNAIL_FILENAME,
 	TICKET_QUERY_PARAM,
@@ -88,7 +91,7 @@ function ifNoneMatchSatisfied(
 
 /** A deploy that moves either has to miss the cache, not serve stale styling. */
 const RENDER_REVISION = revisionOf(
-	`${RUNTIME_SCRIPT_PATH}\u0000${PAGE_THEME_CSS}`,
+	`${RUNTIME_SCRIPT_PATH}\u0000${STORAGE_SCRIPT_PATH}\u0000${PAGE_THEME_CSS}`,
 );
 
 function baseHost(c: Context<AppContext>): string {
@@ -196,6 +199,7 @@ async function servePage(c: Context<AppContext>): Promise<Response> {
 				: "private, no-cache";
 	const policy = pageContentSecurityPolicy(
 		c.env.FRAME_ANCESTORS.split(/\s+/).filter(Boolean),
+		new URL(c.env.REALTIME_URL).origin,
 	);
 	// The policy is in the tag because a 304 has no other way to refresh it.
 	const etag = `W/"${version}.${revisionOf(policy)}"`;
@@ -246,9 +250,12 @@ async function servePage(c: Context<AppContext>): Promise<Response> {
 		return new Response(object.body, { headers: headersFor(contentType) });
 	}
 
-	const html = injectStyleTag(
-		injectScriptTag(await object.text(), RUNTIME_SCRIPT_PATH),
-		PAGE_THEME_CSS,
+	const html = injectHeadScriptTag(
+		injectStyleTag(
+			injectScriptTag(await object.text(), RUNTIME_SCRIPT_PATH),
+			PAGE_THEME_CSS,
+		),
+		STORAGE_SCRIPT_PATH,
 	);
 	c.executionCtx.waitUntil(
 		caches.default
@@ -467,6 +474,7 @@ async function serveAsset(c: Context<AppContext>): Promise<Response> {
 			"Content-Security-Policy",
 			pageContentSecurityPolicy(
 				c.env.FRAME_ANCESTORS.split(/\s+/).filter(Boolean),
+				new URL(c.env.REALTIME_URL).origin,
 			),
 		);
 		headers.set("Origin-Agent-Cluster", "?1");
@@ -530,11 +538,17 @@ app.use("*", async (c, next) => {
 	return c.redirect(c.env.APP_URL, 302);
 });
 
+const SCRIPT_HEADERS = {
+	"Content-Type": "text/javascript; charset=utf-8",
+	"Cache-Control": "public, max-age=300",
+} as const;
+
 app.get(RUNTIME_SCRIPT_PATH, (c) =>
-	c.body(PAGE_COMMENTS_RUNTIME_SOURCE, 200, {
-		"Content-Type": "text/javascript; charset=utf-8",
-		"Cache-Control": "public, max-age=300",
-	}),
+	c.body(PAGE_COMMENTS_RUNTIME_SOURCE, 200, SCRIPT_HEADERS),
+);
+
+app.get(STORAGE_SCRIPT_PATH, (c) =>
+	c.body(PAGE_STORAGE_RUNTIME_SOURCE, 200, SCRIPT_HEADERS),
 );
 
 // Relative references resolve against the directory the document was

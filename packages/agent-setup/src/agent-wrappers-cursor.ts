@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import {
 	buildWrapperScript,
@@ -14,7 +13,7 @@ import {
 	type ManagedJsonHooksSpec,
 	removeManagedJsonHooks,
 } from "./managed-json-hooks";
-import { getHooksDir } from "./paths";
+import { getHooksDir, resolveUserHomeDir } from "./paths";
 
 export const CURSOR_HOOK_SCRIPT_NAME = "cursor-hook.sh";
 
@@ -32,7 +31,7 @@ export function getCursorHookScriptPath(): string {
 }
 
 export function getCursorGlobalHooksJsonPath(): string {
-	return path.join(os.homedir(), ".cursor", "hooks.json");
+	return path.join(resolveUserHomeDir(), ".cursor", "hooks.json");
 }
 
 export function getCursorHookScriptContent(): string {

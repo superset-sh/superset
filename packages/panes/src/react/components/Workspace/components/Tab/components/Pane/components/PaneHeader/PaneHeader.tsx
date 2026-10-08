@@ -12,6 +12,7 @@ interface PaneHeaderProps {
 	actionsContent: ReactNode;
 	toolbar?: ReactNode;
 	paneId?: string;
+	store?: unknown;
 	onClick?: () => void;
 	onMiddleClick?: () => void;
 }
@@ -27,19 +28,20 @@ export function PaneHeader({
 	actionsContent,
 	toolbar,
 	paneId,
+	store,
 	onClick,
 	onMiddleClick,
 }: PaneHeaderProps) {
 	const [{ isDragging }, connectDrag] = useDrag(
 		() => ({
 			type: PANE_DRAG_TYPE,
-			item: { paneId },
+			item: { paneId, store },
 			canDrag: !!paneId,
 			collect: (monitor) => ({
 				isDragging: monitor.isDragging(),
 			}),
 		}),
-		[paneId],
+		[paneId, store],
 	);
 
 	const nodeRef = useRef<HTMLDivElement>(null);

@@ -34,7 +34,7 @@ export function PillTabs<T extends string>({
 						role="tab"
 						aria-selected={active}
 						onClick={() => onChange(option.id)}
-						className={`px-4 py-1.5 text-xs font-mono uppercase tracking-wider border rounded-[2px] transition-colors ${
+						className={`min-h-11 px-4 py-2 text-sm border rounded-[2px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
 							active
 								? accent
 									? ""

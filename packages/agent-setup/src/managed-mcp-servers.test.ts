@@ -249,7 +249,32 @@ describe("syncManagedMcpServers — per-agent external scoping", () => {
 		expect(content).not.toContain("superset managed mcp servers");
 	});
 
-	it("a Claude-scope user server suppresses Claude but not Codex", () => {
+	it("a user-scope server suppresses Claude but not Codex", () => {
+		writeFileSync(
+			claudeJson,
+			JSON.stringify({
+				mcpServers: {
+					"linear-server": {
+						type: "http",
+						url: "https://mcp.linear.app/mcp",
+					},
+				},
+			}),
+		);
+
+		run({ linear: LINEAR });
+
+		// Theirs, in the scope we would have written. Left alone.
+		expect(
+			(readClaude().mcpServers as Record<string, unknown>).linear,
+		).toBeUndefined();
+		expect(readFileSync(codexToml, "utf-8")).toContain("[mcp_servers.linear]");
+	});
+
+	// A project entry applies to one directory; it used to match on the
+	// "Claude Code" prefix and blank the user-scope server everywhere, so a
+	// plugin installed with no entry and nothing said why.
+	it("a project-scoped server does not suppress the user-scope entry", () => {
 		writeFileSync(
 			claudeJson,
 			JSON.stringify({
@@ -268,7 +293,9 @@ describe("syncManagedMcpServers — per-agent external scoping", () => {
 
 		run({ linear: LINEAR });
 
-		expect(readClaude().mcpServers).toBeUndefined();
+		expect(
+			(readClaude().mcpServers as Record<string, unknown>).linear,
+		).toBeDefined();
 		expect(readFileSync(codexToml, "utf-8")).toContain("[mcp_servers.linear]");
 	});
 });

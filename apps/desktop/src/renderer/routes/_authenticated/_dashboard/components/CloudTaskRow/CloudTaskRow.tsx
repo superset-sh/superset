@@ -19,7 +19,7 @@ export function CloudTaskRow({ task, onOpen, trailing }: CloudTaskRowProps) {
 				className="flex h-full min-w-0 items-center gap-2 px-2 text-left focus-visible:outline-none"
 			>
 				<CloudTaskIcon task={task} />
-				<span className="shrink-0 tabular-nums text-muted-foreground">
+				<span className="shrink-0 font-mono text-muted-foreground">
 					{task.slug}
 				</span>
 				<span

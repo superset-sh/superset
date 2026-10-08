@@ -1,24 +1,20 @@
-import { afterEach, expect, mock, test } from "bun:test";
+import { afterEach, beforeEach, expect, test } from "bun:test";
 import { ORGANIZATION_HEADER } from "@superset/shared/constants";
+import { apiTrpcClient } from "./api-trpc-client";
+import { getAuthToken, setAuthToken } from "./auth-client";
+import { cloudTrpcClient } from "./cloud-trpc";
 import { setCloudOrganizationId } from "./cloudRequestContext";
 
-let authToken: string | null = "test-token";
-
-mock.module("renderer/env.renderer", () => ({
-	env: { NEXT_PUBLIC_API_URL: "https://api.example.test" },
-}));
-mock.module("./auth-client", () => ({
-	getAuthToken: () => authToken,
-}));
-
-const { apiTrpcClient } = await import("./api-trpc-client");
-const { cloudTrpcClient } = await import("./cloud-trpc");
 const originalFetch = globalThis.fetch;
+const authTokenBefore = getAuthToken();
 
+beforeEach(() => {
+	setAuthToken("test-token");
+});
 afterEach(() => {
 	globalThis.fetch = originalFetch;
 	setCloudOrganizationId(null);
-	authToken = "test-token";
+	setAuthToken(authTokenBefore);
 });
 
 test("automation and billing mutations follow the window organization on every request", async () => {
@@ -76,7 +72,8 @@ test("both cloud clients share current authentication and organization headers",
 	);
 	for (const organizationId of ["paid-org", "other-org", null]) {
 		setCloudOrganizationId(organizationId);
-		authToken = organizationId ? `token-${organizationId}` : null;
+		const authToken = organizationId ? `token-${organizationId}` : null;
+		setAuthToken(authToken);
 		await expect(apiTrpcClient.billing.activePlan.query()).rejects.toThrow(
 			"request captured",
 		);

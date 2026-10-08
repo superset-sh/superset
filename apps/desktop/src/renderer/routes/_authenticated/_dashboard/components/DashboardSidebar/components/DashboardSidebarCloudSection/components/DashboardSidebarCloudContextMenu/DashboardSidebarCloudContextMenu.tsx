@@ -138,49 +138,6 @@ export function DashboardSidebarCloudContextMenu({
 				{(onRename || onSaveAsEnvironment) && <ContextMenuSeparator />}
 				<ContextMenuSub>
 					<ContextMenuSubTrigger>
-						<HiOutlineClipboardDocumentList />
-						<Trans>Add task</Trans>
-					</ContextMenuSubTrigger>
-					<ContextMenuSubContent className="w-80 p-0">
-						<LinkTaskCommand
-							linkedTaskIds={linkedTaskIds}
-							onToggle={onToggleTask}
-							onKeyDown={keepKeysInSearch}
-						/>
-					</ContextMenuSubContent>
-				</ContextMenuSub>
-				<ContextMenuSub>
-					<ContextMenuSubTrigger>
-						<ProjectGlyph />
-						<Trans>Add to project</Trans>
-					</ContextMenuSubTrigger>
-					<ContextMenuSubContent className="w-64 p-0">
-						<ProjectCommand
-							projectId={projectId}
-							projects={projects}
-							onSelect={onSetProject}
-							onKeyDown={keepKeysInSearch}
-						/>
-					</ContextMenuSubContent>
-				</ContextMenuSub>
-				<ContextMenuSub>
-					<ContextMenuSubTrigger>
-						<LuTag />
-						<Trans>Add label</Trans>
-					</ContextMenuSubTrigger>
-					<ContextMenuSubContent className="w-64 p-0">
-						<LabelCommand
-							labels={labels}
-							knownLabels={knownLabels}
-							onAdd={onAddLabel}
-							onRemove={onRemoveLabel}
-							onKeyDown={keepKeysInSearch}
-						/>
-					</ContextMenuSubContent>
-				</ContextMenuSub>
-				<ContextMenuSeparator />
-				<ContextMenuSub>
-					<ContextMenuSubTrigger>
 						<Trans>Copy</Trans>
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent>
@@ -243,6 +200,49 @@ export function DashboardSidebarCloudContextMenu({
 						<Trans>Ungroup</Trans>
 					</ContextMenuItem>
 				)}
+				<ContextMenuSeparator />
+				<ContextMenuSub>
+					<ContextMenuSubTrigger>
+						<HiOutlineClipboardDocumentList />
+						<Trans>Add task</Trans>
+					</ContextMenuSubTrigger>
+					<ContextMenuSubContent className="w-80 p-0">
+						<LinkTaskCommand
+							linkedTaskIds={linkedTaskIds}
+							onToggle={onToggleTask}
+							onKeyDown={keepKeysInSearch}
+						/>
+					</ContextMenuSubContent>
+				</ContextMenuSub>
+				<ContextMenuSub>
+					<ContextMenuSubTrigger>
+						<ProjectGlyph />
+						<Trans>Add to project</Trans>
+					</ContextMenuSubTrigger>
+					<ContextMenuSubContent className="w-64 p-0">
+						<ProjectCommand
+							projectId={projectId}
+							projects={projects}
+							onSelect={onSetProject}
+							onKeyDown={keepKeysInSearch}
+						/>
+					</ContextMenuSubContent>
+				</ContextMenuSub>
+				<ContextMenuSub>
+					<ContextMenuSubTrigger>
+						<LuTag />
+						<Trans>Add label</Trans>
+					</ContextMenuSubTrigger>
+					<ContextMenuSubContent className="w-64 p-0">
+						<LabelCommand
+							labels={labels}
+							knownLabels={knownLabels}
+							onAdd={onAddLabel}
+							onRemove={onRemoveLabel}
+							onKeyDown={keepKeysInSearch}
+						/>
+					</ContextMenuSubContent>
+				</ContextMenuSub>
 				<ContextMenuSeparator />
 				{onCloseAllPorts && (
 					<ContextMenuItem

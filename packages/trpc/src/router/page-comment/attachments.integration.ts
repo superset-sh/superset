@@ -171,7 +171,9 @@ afterAll(async () => {
 	await db.delete(organizations).where(eq(organizations.id, ORG));
 	await db.delete(users).where(eq(users.id, USER));
 	await db.delete(users).where(eq(users.id, OTHER_USER));
-	await dbWs.$client.end?.();
+	// Guarded: the pooled client is shared, so a sibling integration file that
+	// already closed it must not fail this teardown.
+	await dbWs.$client.end?.().catch(() => {});
 });
 
 const fileRow = async (fileId: string) => {
@@ -226,6 +228,15 @@ describe("attaching images to comments", () => {
 			"Only images can be attached",
 		);
 		expect((await fileRow(fileId))?.status).toBe("pending");
+	});
+
+	test("bytes no sniffer recognises are refused even under an image label", async () => {
+		const fileId = await uploadImage({
+			bytes: new Uint8Array([0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77]),
+		});
+		await expect(createThread([fileId])).rejects.toThrow(
+			"Only images can be attached",
+		);
 	});
 
 	test("an upload whose bytes never landed is refused", async () => {

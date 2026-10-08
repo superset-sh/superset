@@ -61,7 +61,6 @@ export function LinkTaskFrame({ workspaceId }: LinkTaskFrameProps) {
 				labels: task.labels,
 				statusId: task.statusId,
 				priority: task.priority,
-				externalUrl: task.externalUrl,
 				updatedAt: task.updatedAt,
 			})),
 		[taskPage],

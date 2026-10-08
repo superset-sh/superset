@@ -4,6 +4,10 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useDrop } from "react-dnd";
 import type { StoreApi } from "zustand/vanilla";
 import type { WorkspaceStore } from "../../../../../../../core/store";
+import {
+	transferPaneToSplit,
+	transferTabToSplit,
+} from "../../../../../../../core/transfer";
 import type {
 	Pane as PaneType,
 	SplitPosition,
@@ -26,7 +30,9 @@ import { PaneErrorBoundary } from "./components/PaneErrorBoundary";
 import { PaneFallback } from "./components/PaneFallback";
 import { PANE_DRAG_TYPE, PaneHeader } from "./components/PaneHeader";
 
-type PaneDropItem = { paneId: string } | { tabId: string; index: number };
+type PaneDropItem =
+	| { paneId: string; store?: unknown }
+	| { tabId: string; index: number; store?: unknown };
 
 interface PaneComponentProps<TData> {
 	store: StoreApi<WorkspaceStore<TData>>;
@@ -200,6 +206,27 @@ export function Pane<TData>({
 			drop: (item: PaneDropItem, monitor) => {
 				const pos = dropPositionRef.current;
 				if (!pos) return;
+				const source = item.store as typeof store | undefined;
+				if (source && source !== store) {
+					if (monitor.getItemType() === TAB_DRAG_TYPE && "tabId" in item) {
+						transferTabToSplit({
+							source,
+							target: store,
+							tabId: item.tabId,
+							targetPaneId: pane.id,
+							position: pos,
+						});
+					} else if ("paneId" in item) {
+						transferPaneToSplit({
+							source,
+							target: store,
+							paneId: item.paneId,
+							targetPaneId: pane.id,
+							position: pos,
+						});
+					}
+					return;
+				}
 				if (monitor.getItemType() === TAB_DRAG_TYPE && "tabId" in item) {
 					store.getState().moveTabToSplit({
 						sourceTabId: item.tabId,
@@ -274,6 +301,7 @@ export function Pane<TData>({
 					toolbar={toolbar}
 					actionsContent={context.headerActions}
 					paneId={pane.id}
+					store={store}
 					onClick={
 						definition?.onHeaderClick
 							? () => definition.onHeaderClick?.(context)

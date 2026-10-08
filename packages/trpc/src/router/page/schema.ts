@@ -237,6 +237,8 @@ export const clearPageWatchSchema = z.object({ id: pageFields.id });
 
 export const publicPageSchema = z.object({ slug: pageFields.slug });
 
+export const pagePreviewSchema = z.object({ slug: pageFields.slug });
+
 export const updatePageSchema = z
 	.object({
 		id: pageFields.id,

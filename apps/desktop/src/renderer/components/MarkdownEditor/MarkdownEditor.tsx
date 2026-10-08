@@ -40,6 +40,11 @@ import { BubbleMenu } from "@tiptap/react/menus";
 import { common, createLowlight } from "lowlight";
 import { type MutableRefObject, useEffect, useRef } from "react";
 import { BubbleMenuToolbar } from "renderer/components/MarkdownRenderer/components/TipTapMarkdownRenderer/components/BubbleMenuToolbar";
+import {
+	PluginMentionNode,
+	type PluginMentionOption,
+	restorePluginMentions,
+} from "renderer/components/PluginMention";
 import { useUrlLinkAction } from "renderer/lib/clickPolicy";
 import {
 	SafeLink,
@@ -59,6 +64,10 @@ import {
 	getLinearProxyUrl,
 	isLinearImageUrl,
 } from "./components/ImageView/utils/linearImage";
+import {
+	isPluginMentionMenuOpen,
+	PluginMentionSuggestion,
+} from "./components/PluginMentionSuggestion";
 import {
 	RecordMentionNode,
 	type RecordMentionSearchFn,
@@ -144,6 +153,7 @@ const KeyboardHandler = Extension.create({
 	addKeyboardShortcuts() {
 		return {
 			Tab: ({ editor }) => {
+				if (isPluginMentionMenuOpen(editor)) return false;
 				if (editor.commands.sinkListItem("listItem")) return true;
 				if (editor.commands.sinkListItem("taskItem")) return true;
 				// Not in a list - consume event to prevent browser focus navigation
@@ -181,6 +191,11 @@ interface MarkdownEditorProps {
 	searchFiles?: FileMentionSearchFn;
 	/** If provided (and searchFiles isn't), @ mentions people, tasks, and pull requests. */
 	searchMentions?: RecordMentionSearchFn;
+	/**
+	 * If provided, @ mentions installed plugins; a mention reaches the agent as
+	 * `@name`. Composer prompts only — leave searchFiles and searchMentions unset.
+	 */
+	pluginMentions?: readonly PluginMentionOption[];
 	/** If provided, pasted file items (e.g. clipboard images) are forwarded here. */
 	onPasteFiles?: (files: File[]) => void;
 	/** If provided, files dropped on the editor are forwarded here with the drop position. */
@@ -238,6 +253,7 @@ export function MarkdownEditor({
 	onEnterSubmit,
 	searchFiles,
 	searchMentions,
+	pluginMentions,
 	onPasteFiles,
 	onDropFiles,
 	editorHandle,
@@ -261,6 +277,8 @@ export function MarkdownEditor({
 	searchFilesRef.current = searchFiles;
 	const searchMentionsRef = useRef(searchMentions);
 	searchMentionsRef.current = searchMentions;
+	const pluginMentionsRef = useRef(pluginMentions);
+	pluginMentionsRef.current = pluginMentions;
 	const onPasteFilesRef = useRef(onPasteFiles);
 	onPasteFilesRef.current = onPasteFiles;
 	const onDropFilesRef = useRef(onDropFiles);
@@ -396,6 +414,18 @@ export function MarkdownEditor({
 			...(showSlashCommand ? [SlashCommand] : []),
 			...(showEmoji ? [EmojiSuggestion] : []),
 			RecordMentionNode,
+			PluginMentionNode.configure({
+				resolvePlugin: (name) =>
+					pluginMentionsRef.current?.find((plugin) => plugin.name === name) ??
+					null,
+			}),
+			...(pluginMentionsRef.current
+				? [
+						PluginMentionSuggestion.configure({
+							getPlugins: () => pluginMentionsRef.current ?? [],
+						}),
+					]
+				: []),
 			...(!showFileMention && searchMentionsRef.current
 				? [
 						RecordMentionSuggestion.configure({
@@ -429,7 +459,8 @@ export function MarkdownEditor({
 					onEnterSubmitRef.current &&
 					event.key === "Enter" &&
 					!event.shiftKey &&
-					!event.altKey
+					!event.altKey &&
+					!isPluginMentionMenuOpen(editorRef.current)
 				) {
 					onEnterSubmitRef.current();
 					return true;
@@ -495,6 +526,18 @@ export function MarkdownEditor({
 	useEffect(() => {
 		if (editor && editor.isEditable !== editable) editor.setEditable(editable);
 	}, [editable, editor]);
+
+	// Content read before the catalog answered kept `@name` as text; the first
+	// catalog arrival turns those into chips. Later refreshes leave typing alone.
+	const hadPluginMentions = useRef((pluginMentions?.length ?? 0) > 0);
+	useEffect(() => {
+		if (!editor || hadPluginMentions.current || !pluginMentions?.length) return;
+		hadPluginMentions.current = true;
+		restorePluginMentions(
+			editor,
+			(name) => pluginMentions.find((plugin) => plugin.name === name) ?? null,
+		);
+	}, [editor, pluginMentions]);
 
 	useEffect(() => {
 		if (!editor || editor.isFocused) return;

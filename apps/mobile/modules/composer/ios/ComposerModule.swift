@@ -13,6 +13,8 @@ public final class ComposerModule: Module {
         "onDictationError",
         "onModelPress",
         "onLaunchOptionPress",
+        "onModeSelect",
+        "onStop",
         "onChipPress",
         "onQuickKeyPress",
         "onSessionTabPress",
@@ -64,6 +66,22 @@ public final class ComposerModule: Module {
       Prop("launchOptions") { (view: ComposerAnchorView, options: [ComposerMenuOption]) in
         placing(view.overlay.model, ComposerMetrics.controlSwap) {
           view.overlay.model.launchOptions = options
+        }
+      }
+
+      Prop("modeOptions") { (view: ComposerAnchorView, options: [ComposerModeOption]) in
+        placing(view.overlay.model, ComposerMetrics.controlSwap) {
+          view.overlay.model.modeOptions = options
+        }
+      }
+
+      Prop("selectedModeId") { (view: ComposerAnchorView, id: String?) in
+        view.overlay.model.selectedModeId = id
+      }
+
+      Prop("canStop") { (view: ComposerAnchorView, canStop: Bool) in
+        placing(view.overlay.model, ComposerMetrics.controlSwap) {
+          view.overlay.model.canStop = canStop
         }
       }
 
@@ -139,6 +157,13 @@ public final class ComposerModule: Module {
         view.overlay.model.autocapitalization = mode == "never" ? .never : .sentences
       }
 
+      /// The terminal's shorter floor for the expanded editor. Set once at
+      /// mount like `autocapitalization` — no transaction, since it never
+      /// changes under a caller that isn't flipping surfaces mid-session.
+      Prop("compactEditor") { (view: ComposerAnchorView, compact: Bool) in
+        view.overlay.model.compactEditor = compact
+      }
+
       /// Same reasoning as `attachments`: the chip row is a whole row of card
       /// height appearing or leaving.
       Prop("headerChips") { (view: ComposerAnchorView, chips: [ComposerMenuOption]) in
@@ -202,6 +227,8 @@ final class ComposerAnchorView: ExpoView {
   private let onDictationError = EventDispatcher()
   private let onModelPress = EventDispatcher()
   private let onLaunchOptionPress = EventDispatcher()
+  private let onModeSelect = EventDispatcher()
+  private let onStop = EventDispatcher()
   private let onChipPress = EventDispatcher()
   private let onQuickKeyPress = EventDispatcher()
   private let onSessionTabPress = EventDispatcher()
@@ -230,6 +257,10 @@ final class ComposerAnchorView: ExpoView {
     overlay.model.onLaunchOptionPress = { [weak self] id in
       self?.onLaunchOptionPress(["id": id])
     }
+    overlay.model.onModeSelect = { [weak self] id in
+      self?.onModeSelect(["id": id])
+    }
+    overlay.model.onStop = { [weak self] in self?.onStop([:]) }
     overlay.model.onQuickKeyPress = { [weak self] id in
       self?.onQuickKeyPress(["id": id])
     }

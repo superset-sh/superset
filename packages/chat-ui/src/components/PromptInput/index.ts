@@ -1,6 +1,7 @@
 export {
 	type ComposerActionContext,
 	type ComposerChip,
+	type ComposerChipMatch,
 	type ComposerMentionEntry,
 	type ComposerMentionProvider,
 	type ComposerMentionSource,
@@ -8,6 +9,7 @@ export {
 	PromptInput,
 	type PromptInputAttachment,
 	type PromptInputCommand,
+	type PromptInputHandle,
 	type PromptInputProps,
 	type PromptInputSubmitPayload,
 } from "./PromptInput";

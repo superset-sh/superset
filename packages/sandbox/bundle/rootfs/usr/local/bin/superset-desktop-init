@@ -13,7 +13,7 @@ set -uo pipefail
 LOG="${SUPERSET_LOG_DIR}/desktop.log"
 log() { printf '%s desktop %s\n' "$(date +%s%3N)" "$*"; }
 export DISPLAY="$SUPERSET_DISPLAY"
-export HOME="${HOME:-$SUPERSET_HOME_DIR}"
+export HOME="${HOME:-$SUPERSET_USER_HOME}"
 # No GPU: OpenGL through llvmpipe, WebGL through SwiftShader (the wrapper).
 export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe
 export BROWSER=/usr/local/bin/google-chrome

@@ -11,6 +11,7 @@ import {
 	missingInputsError,
 	parseInputs,
 } from "../../../lib/plugins/inputs";
+import { syncPluginMcpServers } from "../../../lib/plugins/mcp-servers";
 
 export default command({
 	sandbox: false,
@@ -115,11 +116,16 @@ export default command({
 				slug,
 				inputs: provided,
 			});
+
+			const mcp = syncPluginMcpServers();
+
 			return {
 				data: [
 					{ plugin: name, status: "connected", detail: created.connectionId },
 				],
-				message: `Connected ${slug} for ${name}.`,
+				message: mcp.error
+					? `Connected ${slug} for ${name}, but the agent MCP config could not be written: ${mcp.error}`
+					: `Connected ${slug} for ${name}.`,
 			};
 		}
 

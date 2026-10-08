@@ -75,12 +75,6 @@ export const PRICING_TIERS: PricingTier[] = [
 				}),
 			},
 			{
-				id: "githubIntegration",
-				label: msg({
-					message: "GitHub integration",
-				}),
-			},
-			{
 				id: "cli",
 				label: msg({
 					message: "CLI",
@@ -329,13 +323,6 @@ export const COMPARISON_SECTIONS: ComparisonSection[] = [
 				values: [true, true, true],
 			},
 			{
-				id: "githubIntegration",
-				label: msg({
-					message: "GitHub integration",
-				}),
-				values: [true, true, true],
-			},
-			{
 				id: "remoteAccess",
 				label: msg({
 					message: "Remote access",
@@ -467,7 +454,7 @@ export const PRICING_FAQ_ITEMS: PricingFAQItem[] = [
 		}),
 		answer: msg({
 			message:
-				"Yes. Free covers individuals with 1 user, local workspaces, the desktop app, the CLI, and GitHub integration. No credit card required.",
+				"Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and the CLI. No credit card required.",
 		}),
 	},
 	{

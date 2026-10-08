@@ -90,7 +90,10 @@ export function CommentList({
 									</span>
 								</div>
 								<div className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover/comment:opacity-100">
-									{onEdit && !isOptimisticId(comment.id) && canEdit(comment) ? (
+									{onEdit &&
+									comment.body &&
+									!isOptimisticId(comment.id) &&
+									canEdit(comment) ? (
 										<IconButton
 											label={t({ message: "Edit comment" })}
 											onClick={() => {
@@ -167,6 +170,7 @@ export function CommentList({
 											<Trans>Cancel</Trans>
 										</Button>
 									</div>
+									<CommentImages attachments={comment.attachments} />
 								</div>
 							) : (
 								<>

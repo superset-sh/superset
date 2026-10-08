@@ -1,9 +1,11 @@
 import { useLingui } from "@lingui/react/macro";
+import { acpHarnessForPreset } from "@superset/chat/core";
 import { startableCloudEnvironments } from "@superset/shared/cloud-environments";
 import { CLOUD_HOST_ID } from "@superset/shared/host-routing";
 import { toast } from "@superset/ui/sonner";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
+import { useAwaitAcpChatEnabled } from "renderer/hooks/useAcpChatEnabled";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { cloudTrpc, cloudTrpcClient } from "renderer/lib/cloud-trpc";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -24,6 +26,7 @@ import { resolveNames } from "./resolveNames";
 export function useSubmitWorkspace(
 	projectId: string | null,
 	selectedAgent: WorkspaceCreateAgent,
+	selectedPresetId: string | null,
 	selectedModel: string | null,
 	selectedEffort: string | null,
 	selectedMode: string | null,
@@ -37,6 +40,7 @@ export function useSubmitWorkspace(
 	const { submit } = useWorkspaceCreates();
 	const { machineId } = useLocalHostService();
 	const activeOrganizationId = useActiveOrganizationId();
+	const awaitAcpChatEnabled = useAwaitAcpChatEnabled();
 	const createCloudWorkspace = cloudTrpc.cloudWorkspace.create.useMutation();
 	const utils = cloudTrpc.useUtils();
 
@@ -238,6 +242,10 @@ export function useSubmitWorkspace(
 				})
 			: null;
 
+		const openAsChat =
+			wantAgent &&
+			Boolean(acpHarnessForPreset(selectedPresetId)) &&
+			(await awaitAcpChatEnabled());
 		const agents = wantAgent
 			? [
 					{
@@ -245,8 +253,9 @@ export function useSubmitWorkspace(
 						prompt: finalPrompt ?? "",
 						attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
 						model: selectedModel ?? undefined,
-						effort: selectedEffort ?? undefined,
+						effort: openAsChat ? undefined : (selectedEffort ?? undefined),
 						mode: selectedMode ?? undefined,
+						...(openAsChat ? { surface: "chat" as const } : {}),
 					},
 				]
 			: undefined;
@@ -261,6 +270,12 @@ export function useSubmitWorkspace(
 			: undefined;
 
 		const trimmedPrompt = draft.prompt.trim();
+		const namingPrompt = openAsChat
+			? (finalPrompt ?? trimmedPrompt).trim().slice(0, 20_000) || undefined
+			: !wantAgent && trimmedPrompt
+				? trimmedPrompt
+				: undefined;
+		const namingAgent = openAsChat ? selectedAgent : undefined;
 		const workspaceId = crypto.randomUUID();
 		const snapshot = isSession
 			? {
@@ -268,7 +283,8 @@ export function useSubmitWorkspace(
 					projectId: null,
 					name: workspaceName ?? undefined,
 					agents,
-					namingPrompt: !wantAgent && trimmedPrompt ? trimmedPrompt : undefined,
+					namingPrompt,
+					namingAgent,
 				}
 			: isLocalCheckout
 				? {
@@ -278,8 +294,8 @@ export function useSubmitWorkspace(
 						name: workspaceName ?? undefined,
 						taskId: linkedTaskId,
 						agents,
-						namingPrompt:
-							!wantAgent && trimmedPrompt ? trimmedPrompt : undefined,
+						namingPrompt,
+						namingAgent,
 					}
 				: {
 						id: workspaceId,
@@ -296,10 +312,8 @@ export function useSubmitWorkspace(
 						baseBranch: draft.baseBranch ?? undefined,
 						taskId: linkedTaskId,
 						agents,
-						namingPrompt:
-							!isPrCheckout && !wantAgent && trimmedPrompt
-								? trimmedPrompt
-								: undefined,
+						namingPrompt: isPrCheckout ? undefined : namingPrompt,
+						namingAgent: isPrCheckout ? undefined : namingAgent,
 					};
 
 		if (trimmedPrompt) {
@@ -344,6 +358,8 @@ export function useSubmitWorkspace(
 		});
 	}, [
 		activeOrganizationId,
+		awaitAcpChatEnabled,
+		selectedPresetId,
 		closeAndResetDraft,
 		createCloudWorkspace,
 		draft,

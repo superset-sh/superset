@@ -2,6 +2,7 @@
 
 import { useLingui } from "@lingui/react/macro";
 import {
+	COMMENT_IMAGE_CONTENT_TYPES,
 	type ComposedImage,
 	MAX_COMMENT_IMAGE_BYTES,
 	MAX_COMMENT_IMAGES,
@@ -29,6 +30,14 @@ interface ComposerImage {
  * server's copy arrives — so it is released on a delay instead of at
  * unmount.
  */
+const COMMENT_IMAGE_TYPES: ReadonlySet<string> = new Set(
+	COMMENT_IMAGE_CONTENT_TYPES,
+);
+
+function isCommentImageType(type: string): boolean {
+	return COMMENT_IMAGE_TYPES.has(type);
+}
+
 function revokeSoon(url: string) {
 	setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
@@ -77,24 +86,28 @@ export function CommentComposer({
 
 	const imagesRef = useRef(images);
 	imagesRef.current = images;
+	// Previews handed to a post in flight: the optimistic row still shows
+	// them, so unmount must not revoke them — `revokeSoon` does, on success.
+	const submittedRef = useRef(new Set<string>());
+	const pendingCountRef = useRef(0);
 	useEffect(
 		() => () => {
-			// Whatever is still sitting in the composer dies with it; submitted
-			// images were handed to `revokeSoon` and are no longer here.
 			for (const image of imagesRef.current) {
-				URL.revokeObjectURL(image.previewUrl);
+				if (!submittedRef.current.has(image.previewUrl)) {
+					URL.revokeObjectURL(image.previewUrl);
+				}
 			}
 		},
 		[],
 	);
 
 	const addFiles = (files: Iterable<File>) => {
-		const room = MAX_COMMENT_IMAGES - imagesRef.current.length;
+		const room =
+			MAX_COMMENT_IMAGES - imagesRef.current.length - pendingCountRef.current;
 		const accepted = [...files]
 			.filter(
 				(file) =>
-					file.type.startsWith("image/") &&
-					file.size <= MAX_COMMENT_IMAGE_BYTES,
+					isCommentImageType(file.type) && file.size <= MAX_COMMENT_IMAGE_BYTES,
 			)
 			.slice(0, Math.max(room, 0));
 		for (const file of accepted) {
@@ -161,11 +174,19 @@ export function CommentComposer({
 		}));
 		setValue("");
 		setImages((current) => current.filter((image) => image.status === "error"));
+		for (const image of ready) submittedRef.current.add(image.previewUrl);
+		pendingCountRef.current += ready.length;
+		const settle = () => {
+			pendingCountRef.current -= ready.length;
+			for (const image of ready) submittedRef.current.delete(image.previewUrl);
+		};
 		Promise.resolve(onSubmit(body, attachments))
 			.then(() => {
+				settle();
 				for (const image of ready) revokeSoon(image.previewUrl);
 			})
 			.catch(() => {
+				settle();
 				setValue((current) => current || body);
 				setImages((current) => [...ready, ...current]);
 			});
@@ -205,7 +226,7 @@ export function CommentComposer({
 				onFocus={onFocus}
 				onPaste={(event) => {
 					const files = [...event.clipboardData.files].filter((file) =>
-						file.type.startsWith("image/"),
+						isCommentImageType(file.type),
 					);
 					if (files.length === 0) return;
 					event.preventDefault();
@@ -226,47 +247,50 @@ export function CommentComposer({
 			/>
 			{images.length > 0 ? (
 				<div className="flex flex-wrap gap-1.5 px-3 pb-2">
-					{images.map((image) => (
-						<div
-							key={image.id}
-							className={cn(
-								"group/image relative size-12 overflow-hidden rounded-md border",
-								image.status === "error" && "border-destructive",
-							)}
-							title={
-								image.status === "error"
-									? t({ message: `Couldn't upload ${image.name}` })
-									: image.name
-							}
-						>
-							<img
-								src={image.previewUrl}
-								alt={image.name}
+					{images.map((image) => {
+						const name = image.name;
+						return (
+							<div
+								key={image.id}
 								className={cn(
-									"size-full object-cover",
-									image.status !== "ready" && "opacity-50",
+									"group/image relative size-12 overflow-hidden rounded-md border",
+									image.status === "error" && "border-destructive",
 								)}
-							/>
-							{image.status === "uploading" ? (
-								<Loader2 className="absolute inset-0 m-auto size-4 animate-spin text-foreground" />
-							) : null}
-							<button
-								type="button"
-								aria-label={t({ message: "Remove image" })}
-								onClick={() => removeImage(image.id)}
-								className="absolute top-0.5 right-0.5 rounded-full bg-background/80 p-0.5 opacity-0 transition-opacity focus-visible:opacity-100 group-hover/image:opacity-100"
+								title={
+									image.status === "error"
+										? t({ message: `Couldn't upload ${name}` })
+										: name
+								}
 							>
-								<X className="size-3" />
-							</button>
-						</div>
-					))}
+								<img
+									src={image.previewUrl}
+									alt={image.name}
+									className={cn(
+										"size-full object-cover",
+										image.status !== "ready" && "opacity-50",
+									)}
+								/>
+								{image.status === "uploading" ? (
+									<Loader2 className="absolute inset-0 m-auto size-4 animate-spin text-foreground" />
+								) : null}
+								<button
+									type="button"
+									aria-label={t({ message: "Remove image" })}
+									onClick={() => removeImage(image.id)}
+									className="absolute top-0.5 right-0.5 rounded-full bg-background/80 p-0.5 opacity-0 transition-opacity focus-visible:opacity-100 group-hover/image:opacity-100"
+								>
+									<X className="size-3" />
+								</button>
+							</div>
+						);
+					})}
 				</div>
 			) : null}
 			<div className="flex items-center gap-2 px-3 pb-2.5">
 				<input
 					ref={fileInputRef}
 					type="file"
-					accept="image/*"
+					accept={COMMENT_IMAGE_CONTENT_TYPES.join(",")}
 					multiple
 					hidden
 					onChange={(event) => {
@@ -278,8 +302,7 @@ export function CommentComposer({
 					size="icon"
 					variant="ghost"
 					className="size-7 rounded-md text-muted-foreground hover:text-foreground"
-					// Focus stays in the textarea: the blur would collapse the
-					// composer out from under the click before it lands.
+					// Keep typing focus in the textarea across the picker round trip.
 					onMouseDown={(event) => event.preventDefault()}
 					onClick={() => fileInputRef.current?.click()}
 					aria-label={t({ message: "Attach image" })}

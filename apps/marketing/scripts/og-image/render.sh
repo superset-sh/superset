@@ -30,7 +30,7 @@ LOG="$PROFILE/chrome.log"
 # Chrome writes the screenshot within a few seconds but its updater/crash-handler
 # helpers can keep the process alive indefinitely, so wait for the file, then stop it.
 "$CHROME_BIN" --headless=new --disable-gpu --hide-scrollbars --no-first-run --no-default-browser-check \
-  --user-data-dir="$PROFILE" --window-size=1200,630 --force-device-scale-factor=2 --timeout=10000 \
+  --user-data-dir="$PROFILE" --window-size=1200,630 --force-device-scale-factor=2 --timeout=10000 --virtual-time-budget=8000 \
   --screenshot="$TMP_OUT" "file://$PWD/og-image.html" >"$LOG" 2>&1 &
 CHROME_PID=$!
 for _ in $(seq 1 60); do

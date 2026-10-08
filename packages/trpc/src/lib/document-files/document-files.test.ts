@@ -1,8 +1,7 @@
-import { describe, expect, mock, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
+import { setTestEnv } from "../../../test/env";
 
-mock.module("../../env", () => ({
-	env: { NEXT_PUBLIC_API_URL: "https://api.example.com" },
-}));
+setTestEnv({ NEXT_PUBLIC_API_URL: "https://api.example.com" });
 
 const {
 	documentFileRef,

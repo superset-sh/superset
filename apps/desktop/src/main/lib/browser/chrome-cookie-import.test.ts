@@ -7,6 +7,7 @@ import {
 	type ImportedCookie,
 	importCookies,
 	mapCookieRow,
+	mapCookieRows,
 	safeStorageServiceFor,
 } from "./chrome-cookie-import";
 
@@ -38,6 +39,9 @@ describe("safeStorageServiceFor", () => {
 		expect(safeStorageServiceFor("chrome")).toBe("Chrome Safe Storage");
 		expect(safeStorageServiceFor("brave")).toBe("Brave Safe Storage");
 		expect(safeStorageServiceFor("arc")).toBe("Arc Safe Storage");
+		expect(safeStorageServiceFor("aside")).toBe("Aside Safe Storage");
+		expect(safeStorageServiceFor("helium")).toBe("Helium Storage Key");
+		expect(safeStorageServiceFor("opera-gx")).toBe("Opera Safe Storage");
 		expect(safeStorageServiceFor("unknown")).toBeNull();
 	});
 });
@@ -79,6 +83,38 @@ describe("decryptCookieValue", () => {
 		expect(
 			decryptCookieValue(enc, deriveCookieKey("other-password")),
 		).toBeNull();
+	});
+});
+
+describe("mapCookieRows", () => {
+	const row = (encrypted_value: Buffer) => ({
+		host_key: ".example.com",
+		name: "sid",
+		value: "",
+		encrypted_value,
+		path: "/",
+		expires_utc: 0,
+		is_secure: 1,
+		is_httponly: 1,
+		samesite: 1,
+		is_persistent: 0,
+	});
+
+	it("returns an empty list for a profile with no cookies", () => {
+		expect(mapCookieRows([], KEY)).toEqual([]);
+	});
+
+	it("returns null when no cookie decrypts with the key", () => {
+		const otherKey = deriveCookieKey("another-browser");
+		expect(mapCookieRows([row(encryptV10("a", otherKey))], KEY)).toBeNull();
+	});
+
+	it("keeps the cookies that decrypt", () => {
+		const cookies = mapCookieRows(
+			[row(encryptV10("a", KEY)), row(Buffer.from("v20xxxxxxxxxxxxxxxx"))],
+			KEY,
+		);
+		expect(cookies?.map((cookie) => cookie.value)).toEqual(["a"]);
 	});
 });
 

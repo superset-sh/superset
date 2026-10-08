@@ -27,6 +27,7 @@ export async function callTool(
 	try {
 		return await handler(args, accessToken);
 	} catch (error) {
+		if ((error as { code?: unknown }).code === 401) throw error;
 		return failure(
 			`Error: ${error instanceof Error ? error.message : String(error)}`,
 		);

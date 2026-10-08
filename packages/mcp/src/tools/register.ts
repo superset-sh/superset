@@ -16,6 +16,7 @@ import * as automationsPause from "./automations/pause";
 import * as automationsResume from "./automations/resume";
 import * as automationsRun from "./automations/run";
 import * as automationsSetPrompt from "./automations/set_prompt";
+import * as automationsTriggerOptions from "./automations/trigger_options";
 import * as automationsUpdate from "./automations/update";
 import * as hostsList from "./hosts/list";
 import * as organizationMembersList from "./organization/members/list";
@@ -26,6 +27,7 @@ import * as pagesGet from "./pages/get";
 import * as pagesList from "./pages/list";
 import * as pagesPublish from "./pages/publish";
 import * as pagesPull from "./pages/pull";
+import * as pagesStorage from "./pages/storage";
 import * as pagesVersions from "./pages/versions";
 import * as projectsList from "./projects/list";
 import * as tasksCreate from "./tasks/create";
@@ -61,6 +63,7 @@ const REGISTRARS = [
 	automationsDelete,
 	automationsPause,
 	automationsResume,
+	automationsTriggerOptions,
 	automationsRun,
 	automationsLogs,
 	workspacesList,
@@ -78,6 +81,7 @@ const REGISTRARS = [
 	pagesGet,
 	pagesVersions,
 	pagesPull,
+	pagesStorage,
 	pagesPublish,
 	pagesCommentsList,
 	pagesCommentsReply,

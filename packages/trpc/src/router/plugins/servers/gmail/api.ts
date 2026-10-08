@@ -57,7 +57,9 @@ export async function gmail<T = Record<string, unknown>>(
 	if (!response.ok) {
 		const detail =
 			payload?.error?.message ?? `${response.status} ${response.statusText}`;
-		throw new Error(`Gmail API error: ${detail}`);
+		throw Object.assign(new Error(`Gmail API error: ${detail}`), {
+			code: response.status,
+		});
 	}
 	return (payload ?? {}) as T;
 }

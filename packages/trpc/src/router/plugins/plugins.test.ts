@@ -1,7 +1,12 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
-import { pluginInstalls } from "@superset/db/schema";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { db } from "@superset/db/client";
+import { connections, pluginInstalls } from "@superset/db/schema";
 import type { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
+import { stub } from "../../../test/stub";
+import { posthog } from "../../lib/analytics";
+import * as pluginConnections from "./connections";
+import * as proxy from "./proxy";
 
 interface InstallRow {
 	id: string;
@@ -32,70 +37,73 @@ const rows = <T>(value: T[]) =>
 		orderBy: () => Promise.resolve(value),
 	});
 
-mock.module("../../env", () => ({ env: {} }));
-mock.module("@superset/auth/server", () => ({ auth: {} }));
-mock.module("../../lib/analytics", () => ({ posthog: { capture: () => {} } }));
-mock.module("./proxy", () => ({
-	forgetUpstreamTools: (id: string) => forgotten.push(id),
-}));
+stub(posthog, { capture: () => {} });
+stub(proxy, { forgetUpstreamTools: (id: string) => forgotten.push(id) });
 
-mock.module("./connections", () => ({
+stub(pluginConnections, {
 	installRecord: (_userId: string, pluginName: string) => {
 		const row = installs.find((entry) => entry.pluginName === pluginName);
 		return Promise.resolve(
 			row && { id: row.id, marketplace: row.marketplace, siblings: 1 },
 		);
 	},
-	installedPlugin: () => Promise.resolve(null),
-	installById: () => Promise.resolve(null),
-	installedManifest: () => Promise.resolve(null),
-	AmbiguousPluginError: class extends Error {},
-}));
+});
 
-mock.module("@superset/db/client", () => ({
-	db: {
-		select: () => ({
-			from: (table: unknown) => ({
-				where: (condition: SQL) => {
-					if (table !== pluginInstalls) return rows([]);
-					const values = bound(condition);
+stub(db, {
+	select: () => ({
+		from: (table: unknown) => ({
+			where: (condition: SQL) => {
+				if (table === connections) {
 					return rows(
-						installs.filter(
-							(row) => values.includes(row.id) || values.includes(row.userId),
-						),
+						live
+							.filter(
+								(row) =>
+									row.connectedByUserId === USER_ID &&
+									row.disconnectedAt === null,
+							)
+							.map((row) => ({
+								id: row.id,
+								connector: row.connector,
+								account: null,
+								user: "me@superset.sh",
+							})),
 					);
+				}
+				if (table !== pluginInstalls) return rows([]);
+				const values = bound(condition);
+				return rows(
+					installs.filter(
+						(row) => values.includes(row.id) || values.includes(row.userId),
+					),
+				);
+			},
+		}),
+	}),
+	delete: () => ({
+		where: (condition: SQL) => {
+			const values = bound(condition);
+			installs = installs.filter((row) => !values.includes(row.id));
+			return Promise.resolve();
+		},
+	}),
+	update: () => ({
+		set: () => ({
+			where: (condition: SQL) => ({
+				returning: () => {
+					const values = bound(condition);
+					const hit = live.filter(
+						(row) =>
+							row.disconnectedAt === null &&
+							values.includes(row.connector) &&
+							values.includes(row.connectedByUserId),
+					);
+					for (const row of hit) row.disconnectedAt = new Date();
+					return Promise.resolve(hit.map((row) => ({ id: row.id })));
 				},
 			}),
 		}),
-		delete: () => ({
-			where: (condition: SQL) => {
-				const values = bound(condition);
-				installs = installs.filter((row) => !values.includes(row.id));
-				return Promise.resolve();
-			},
-		}),
-		update: () => ({
-			set: () => ({
-				where: (condition: SQL) => ({
-					returning: () => {
-						const values = bound(condition);
-						const hit = live.filter(
-							(row) =>
-								row.disconnectedAt === null &&
-								values.includes(row.connector) &&
-								values.includes(row.connectedByUserId),
-						);
-						for (const row of hit) row.disconnectedAt = new Date();
-						return Promise.resolve(hit.map((row) => ({ id: row.id })));
-					},
-				}),
-			}),
-		}),
-	},
-	dbWs: {
-		transaction: () => Promise.reject(new Error("dbWs is stubbed in tests")),
-	},
-}));
+	}),
+});
 
 const { pluginsRouter } = await import("./plugins");
 const { createCallerFactory, createTRPCContext, createTRPCRouter } =
@@ -194,5 +202,45 @@ describe("plugins.uninstall", () => {
 
 		expect(result.disconnected).toBe(0);
 		expect(live[0]?.disconnectedAt).toBe(null);
+	});
+});
+
+describe("plugins.list", () => {
+	test("a connection without an install shows on its plugin's card, not a second card", async () => {
+		live = [connection("conn-mcp", "notion_mcp")];
+
+		const plugins = await caller.plugins.list();
+		const notion = plugins.filter(
+			(plugin) => plugin.connector === "notion_mcp",
+		);
+
+		expect(plugins.map((plugin) => plugin.name)).not.toContain("notion_mcp");
+		expect(notion).toHaveLength(1);
+		expect(notion[0]?.accounts).toEqual(["me@superset.sh"]);
+	});
+
+	test("a connection another install claims stays on that install only", async () => {
+		installs = [
+			install({
+				id: "install-notes-acme",
+				marketplace: "acme",
+				pluginName: "notes",
+				manifest: {
+					name: "notes",
+					version: "9.9.9",
+					extensions: { superset: { connector: { slug: "notion_mcp" } } },
+				},
+			}),
+		];
+		live = [connection("conn-mcp", "notion_mcp")];
+
+		const plugins = await caller.plugins.list();
+		const holders = plugins.filter((plugin) =>
+			plugin.connections.some((held) => held.id === "conn-mcp"),
+		);
+
+		expect(
+			holders.map((plugin) => `${plugin.marketplace}/${plugin.name}`),
+		).toEqual(["acme/notes"]);
 	});
 });

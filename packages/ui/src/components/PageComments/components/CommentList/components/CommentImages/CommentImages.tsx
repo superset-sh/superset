@@ -19,32 +19,39 @@ export function CommentImages({ attachments, className }: CommentImagesProps) {
 
 	return (
 		<div className={cn("flex flex-wrap gap-1.5", className)}>
-			{attachments.map((attachment) => (
-				<button
-					key={attachment.fileId}
-					type="button"
-					onClick={() => setOpenImage(attachment)}
-					aria-label={t({ message: `View ${attachment.name}` })}
-					className="overflow-hidden rounded-md border transition-opacity hover:opacity-90 focus-visible:ring-1 focus-visible:ring-ring"
-				>
-					<img
-						src={attachment.url}
-						alt={attachment.name}
-						loading="lazy"
-						className={cn(
-							"max-h-40 object-cover",
-							attachments.length === 1 ? "max-w-full" : "size-24",
-						)}
-					/>
-				</button>
-			))}
+			{attachments.map((attachment) => {
+				const name = attachment.name;
+				return (
+					<button
+						key={attachment.fileId}
+						type="button"
+						onClick={() => setOpenImage(attachment)}
+						aria-label={t({ message: `View ${name}` })}
+						className="overflow-hidden rounded-md border transition-opacity hover:opacity-90 focus-visible:ring-1 focus-visible:ring-ring"
+					>
+						<img
+							src={attachment.url}
+							alt={attachment.name}
+							loading="lazy"
+							className={cn(
+								"max-h-40 object-cover",
+								attachments.length === 1 ? "max-w-full" : "size-24",
+							)}
+						/>
+					</button>
+				);
+			})}
 			<Dialog
+				modal
 				open={openImage !== null}
 				onOpenChange={(open) => {
 					if (!open) setOpenImage(null);
 				}}
 			>
-				<DialogContent className="w-fit max-w-[90vw] p-2 sm:max-w-[90vw]">
+				<DialogContent
+					data-comment-ui=""
+					className="w-fit max-w-[90vw] p-2 sm:max-w-[90vw]"
+				>
 					{openImage ? (
 						<>
 							<DialogTitle className="sr-only">{openImage.name}</DialogTitle>

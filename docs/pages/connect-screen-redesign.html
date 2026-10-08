@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>/connect/&lt;connector&gt; — redesign</title>
+    <style>
+      :root {
+        --sp-measure: 74ch;
+        --warn: var(--sp-chart-3);
+        --ok: var(--sp-chart-2);
+      }
+      body {
+        padding: 3rem 1.5rem 6rem;
+      }
+      main {
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: clamp(1.8rem, 4vw, 2.4rem);
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        margin: 0 0 0.5rem;
+      }
+      .lede {
+        max-width: var(--sp-measure);
+        color: var(--sp-muted);
+        font-size: 1.05rem;
+        margin: 0 0 2.5rem;
+      }
+      h2 {
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.13em;
+        color: var(--sp-muted);
+        font-weight: 600;
+        margin: 3.5rem 0 1.25rem;
+        padding-bottom: 0.6rem;
+        border-bottom: 1px solid var(--sp-border);
+      }
+      h3 {
+        font-size: 1rem;
+        margin: 0 0 0.5rem;
+        letter-spacing: -0.01em;
+      }
+      p {
+        max-width: var(--sp-measure);
+      }
+      code {
+        font-family: var(--sp-font-mono);
+        font-size: 0.86em;
+      }
+      .cols {
+        display: grid;
+        gap: 2rem;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        align-items: start;
+      }
+      .mock {
+        border: 1px solid var(--sp-border);
+        border-radius: var(--sp-radius, 10px);
+        background: var(--sp-surface);
+        padding: 1.25rem;
+      }
+      .mock .cap {
+        font-family: var(--sp-font-mono);
+        font-size: 0.68rem;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--sp-muted);
+        margin-bottom: 0.9rem;
+      }
+      .panel {
+        border: 1px solid var(--sp-border);
+        border-radius: 10px;
+        background: var(--sp-bg);
+        padding: 1.1rem;
+      }
+      .ttl {
+        text-align: center;
+        font-weight: 600;
+        font-size: 1.05rem;
+        margin: 0.5rem 0 0.2rem;
+      }
+      .sub {
+        text-align: center;
+        color: var(--sp-muted);
+        font-size: 0.85rem;
+        margin: 0 0 1rem;
+      }
+      .glyphs {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        color: var(--sp-muted);
+        font-size: 0.8rem;
+      }
+      .sq {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 8px;
+        border: 1px solid var(--sp-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+      .rows {
+        border: 1px solid var(--sp-border);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        padding: 0.6rem 0.75rem;
+        font-size: 0.85rem;
+      }
+      .addrow {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        padding: 0.6rem 0.75rem;
+        font-size: 0.85rem;
+        color: var(--sp-text);
+        background: color-mix(in srgb, var(--sp-text) 4%, transparent);
+      }
+      .row + .row,
+      .row + .addrow {
+        border-top: 1px solid var(--sp-border);
+      }
+      .av {
+        width: 1.9rem;
+        height: 1.9rem;
+        border-radius: 50%;
+        background: var(--sp-code-bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.65rem;
+        font-weight: 600;
+        flex: 0 0 auto;
+      }
+      .who {
+        min-width: 0;
+        flex: 1;
+      }
+      .who b {
+        display: block;
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .who span {
+        color: var(--sp-muted);
+        font-size: 0.78rem;
+      }
+      .dots {
+        color: var(--sp-muted);
+        flex: 0 0 auto;
+      }
+      .plus {
+        width: 1.9rem;
+        height: 1.9rem;
+        border-radius: 50%;
+        border: 1px dashed var(--sp-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--sp-muted);
+        flex: 0 0 auto;
+      }
+      .trust {
+        border: 1px solid var(--sp-border);
+        border-radius: 10px;
+        margin-bottom: 0.9rem;
+      }
+      .trust div {
+        padding: 0.55rem 0.75rem;
+        font-size: 0.8rem;
+      }
+      .trust div + div {
+        border-top: 1px solid var(--sp-border);
+      }
+      .trust b {
+        display: block;
+        font-weight: 600;
+      }
+      .trust span {
+        color: var(--sp-muted);
+      }
+      .cta {
+        display: block;
+        width: 100%;
+        text-align: center;
+        padding: 0.5rem;
+        border-radius: 8px;
+        background: var(--sp-text);
+        color: var(--sp-bg);
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-top: 0.9rem;
+      }
+      .pill {
+        font-family: var(--sp-font-mono);
+        font-size: 0.64rem;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        padding: 0.12rem 0.45rem;
+        border-radius: 3px;
+        border: 1px solid currentColor;
+        flex: 0 0 auto;
+      }
+      .pill.warn {
+        color: var(--warn);
+      }
+      .pill.ok {
+        color: var(--ok);
+      }
+      .scroller {
+        overflow-x: auto;
+      }
+      table {
+        border-collapse: collapse;
+        font-size: 0.88rem;
+        min-width: 38rem;
+      }
+      th {
+        text-align: left;
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--sp-muted);
+        font-weight: 600;
+        padding: 0 1.25rem 0.5rem 0;
+        border-bottom: 1px solid var(--sp-border);
+        white-space: nowrap;
+      }
+      td {
+        padding: 0.6rem 1.25rem 0.6rem 0;
+        border-bottom: 1px solid var(--sp-border);
+        vertical-align: top;
+      }
+      ul.tight {
+        margin: 0.4rem 0 0;
+        padding-left: 1.1rem;
+      }
+      ul.tight li {
+        margin-bottom: 0.45rem;
+        max-width: var(--sp-measure);
+      }
+      .note {
+        border-left: 2px solid var(--warn);
+        padding-left: 1rem;
+        max-width: var(--sp-measure);
+      }
+      .foot {
+        margin-top: 3rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--sp-border);
+        font-size: 0.85rem;
+        color: var(--sp-muted);
+        max-width: var(--sp-measure);
+      }
+    </style>
+  </head>
+  <body class="auto">
+    <main>
+      <h1>/connect/&lt;connector&gt; — redesign</h1>
+      <p class="lede">
+        The web connect screen is the surface a person lands on from a share
+        link, a cloud workspace, or any machine without the desktop app. It still
+        shows one account and offers no way to add a second — the same shape the
+        desktop had before PR #8003. This proposes bringing it to the connector
+        modal's structure, which already solves both.
+      </p>
+
+      <h2>Today vs proposed</h2>
+      <div class="cols">
+        <div class="mock">
+          <p class="cap">Today — apps/web · /connect/linear</p>
+          <div class="panel">
+            <div style="font-weight: 600; font-size: 1.05rem">Linear</div>
+            <div
+              style="
+                color: var(--sp-muted);
+                font-size: 0.82rem;
+                margin-bottom: 0.9rem;
+              "
+            >
+              Connects for you only.
+            </div>
+            <div class="row" style="padding-left: 0">
+              <span class="pill ok">Connected</span>
+              <span class="who"
+                ><span>harshith@tegon.ai · Superset</span></span
+              >
+            </div>
+            <div
+              style="
+                border: 1px solid var(--sp-border);
+                border-radius: 8px;
+                padding: 0.4rem;
+                text-align: center;
+                font-size: 0.82rem;
+                margin-top: 0.8rem;
+              "
+            >
+              Disconnect
+            </div>
+          </div>
+          <ul class="tight">
+            <li>One account. A second is invisible and unreachable.</li>
+            <li>No trust copy — it asks for an OAuth grant with no context.</li>
+            <li>Nothing to rename, nothing to reconnect.</li>
+          </ul>
+        </div>
+
+        <div class="mock">
+          <p class="cap">Proposed — the connector modal's shape</p>
+          <div class="panel">
+            <div class="glyphs">
+              <span class="sq">S</span><span>•••</span><span class="sq">L</span>
+            </div>
+            <p class="ttl">Linear accounts</p>
+            <p class="sub">
+              Add another account, or disconnect one you no longer use.
+            </p>
+            <div class="rows">
+              <div class="row">
+                <span class="av">WK</span>
+                <span class="who"
+                  ><b>Work</b><span>harshith@tegon.ai · Superset</span></span
+                >
+                <span class="dots">···</span>
+              </div>
+              <div class="row">
+                <span class="av">SP</span>
+                <span class="who"
+                  ><b>Side project</b
+                  ><span>harshithmullapudi@gmail.com</span></span
+                >
+                <span class="pill warn">Reconnect</span>
+                <span class="dots">···</span>
+              </div>
+              <div class="addrow">
+                <span class="plus">+</span><span>Connect another account</span>
+              </div>
+            </div>
+          </div>
+          <ul class="tight">
+            <li>Every account, each with its own menu and its own state.</li>
+            <li>Nicknames as the title, provider identity beneath.</li>
+            <li>An expired account is fixed on its row, not hidden.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h2>First connect keeps the trust panel</h2>
+      <div class="cols">
+        <div class="mock">
+          <p class="cap">Nothing connected yet</p>
+          <div class="panel">
+            <div class="glyphs">
+              <span class="sq">S</span><span>•••</span><span class="sq">L</span>
+            </div>
+            <p class="ttl">Connect Linear</p>
+            <p class="sub">Developed by Superset</p>
+            <div class="trust">
+              <div>
+                <b>You control the access</b
+                ><span
+                  >Superset only receives the permissions this connector asks
+                  for.</span
+                >
+              </div>
+              <div>
+                <b>Credentials stay on the server</b
+                ><span
+                  >Tokens are held by Superset and never written into your local
+                  agent config.</span
+                >
+              </div>
+              <div>
+                <b>Connectors carry risk</b
+                ><span
+                  >Connecting lets your agents read and act in Linear on your
+                  behalf.</span
+                >
+              </div>
+            </div>
+            <span class="cta">Continue to Linear</span>
+          </div>
+        </div>
+        <div>
+          <h3>Why it matters more on the web</h3>
+          <p>
+            The desktop modal shows this before a first grant and skips it once
+            anything is connected. The web screen shows it never — and the web
+            screen is the one reached from a share link, where the person may not
+            know what Superset is about to be allowed to do.
+          </p>
+          <p>
+            The same rule applies: trust copy answers “should I grant this?”,
+            which is decided once. After that the screen is a manage view and the
+            copy is in the way.
+          </p>
+        </div>
+      </div>
+
+      <h2>What to change</h2>
+      <div class="scroller">
+        <table>
+          <thead>
+            <tr>
+              <th>Where</th>
+              <th>Change</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>connect/[connector]/page.tsx:46</code></td>
+              <td>
+                <code>live.find((row) =&gt; row.connector === slug)</code> →
+                <code>filter</code>. This single line is why a second account is
+                invisible; it is the same first-match-wins the desktop hook had.
+              </td>
+            </tr>
+            <tr>
+              <td><code>ConnectorConnect.tsx:74</code></td>
+              <td>
+                The <code>if (connection)</code> branch becomes a list: one row
+                per account with nickname, identity, and a per-row menu of
+                Rename, Reconnect, Disconnect.
+              </td>
+            </tr>
+            <tr>
+              <td>Same file, below the list</td>
+              <td>
+                A “Connect another account” row for user-scoped connectors. Org
+                scope permits exactly one, so it is hidden there rather than
+                shown and refused.
+              </td>
+            </tr>
+            <tr>
+              <td>New, above the list</td>
+              <td>
+                The three trust items, rendered only when nothing is connected
+                yet — same condition the desktop dialog uses.
+              </td>
+            </tr>
+            <tr>
+              <td>Shared</td>
+              <td>
+                The row is the same object in three places now — web, plugin
+                page, connector dialog. Worth one component rather than a third
+                copy of the label rule.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Open questions</h2>
+      <ul class="tight">
+        <li>
+          <b>Does the web screen get Rename?</b> It needs the
+          <code>connectors.rename</code> mutation, which exists. Cheap, and the
+          nickname is what makes two accounts legible — so probably yes.
+        </li>
+        <li>
+          <b>Does it share a component with desktop, or copy the shape?</b>
+          Desktop renders in Electron with its own design system; the web app has
+          its own. A shared headless hook with two renderers is the honest
+          middle, but a copy is faster and this is two screens, not twenty.
+        </li>
+        <li>
+          <b>What does it do about the tool-call gap?</b> Letting someone connect
+          a second account from the web, when a second account still breaks every
+          plugin tool call, is the same foot-gun as on the plugins page —
+          decided separately, but it lands here too.
+        </li>
+      </ul>
+
+      <p class="note">
+        Not addressed here: the connect screen cannot show whether an account
+        actually works, only that a row exists. A connection whose refresh failed
+        is listed as needing reconnect, but one whose token is live and whose
+        scopes are wrong looks identical to a healthy one.
+      </p>
+
+      <p class="foot">
+        Mockups are drawn from the shipped desktop
+        <code>ConnectConnectorDialog</code> and the rebuilt
+        <code>ConnectedAccounts</code> rows, so the proposal is the structure
+        that already exists rather than a new invention. Written from this
+        worktree, 2026-10-01.
+      </p>
+    </main>
+  </body>
+</html>

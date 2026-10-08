@@ -80,6 +80,23 @@ describe("LiveSessionRegistry", () => {
 		await runtime.dispose();
 	});
 
+	test("closing a scope stops only that scope's sessions", async () => {
+		const runtime = createTestRuntime({ harnesses: registryOf(idleAdapter) });
+		const kept = createSession(runtime);
+		const removed = runtime.commands.createSession({
+			commandId: randomUUID(),
+			scopeId: "workspace-2",
+			harness: HARNESS,
+			cwd: "/tmp/workspace-2",
+		}).sessionId;
+
+		await runtime.commands.closeScope("workspace-2");
+
+		expect(runtime.live.get(removed)).toBeNull();
+		expect(runtime.live.get(kept)).not.toBeNull();
+		await runtime.dispose();
+	});
+
 	test("settles every disposal and still closes the database when one fails", async () => {
 		let secondDisposed = false;
 		let created = 0;

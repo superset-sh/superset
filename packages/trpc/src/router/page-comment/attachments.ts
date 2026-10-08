@@ -80,7 +80,10 @@ export async function verifyCommentImages({
 			const bytes = sample
 				? new Uint8Array(await sample.arrayBuffer())
 				: new Uint8Array();
-			const contentType = sniffContentType(bytes, file.contentType);
+			// A neutral declaration: the sniffer falls back to the declared type
+			// for bytes it does not recognise, which would let any file in under
+			// an `image/*` label.
+			const contentType = sniffContentType(bytes, "application/octet-stream");
 			if (!isCommentImageType(contentType)) {
 				throw userError({
 					code: "BAD_REQUEST",

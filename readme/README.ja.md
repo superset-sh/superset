@@ -281,7 +281,7 @@ bun run dev
 
 Neonアカウントやサードパーティの認証情報は不要です。`setup.local.sh` がDocker経由でローカルのPostgres + Electricスタックを立ち上げ、開発用アカウントをシードします。**「Sign in as dev」**ボタン(または `admin@local.test` / `supersetdev`)でサインインしてください。
 
-前提条件: [Bun](https://bun.sh/) v1.3.14+(`.bun-version` で固定)、`docker`、`jq`、`caddy`。`caddy` は `bun dev` がローカルHTTPSプロキシとして実行します(`brew install jq caddy && caddy trust`)。
+前提条件: [Bun](https://bun.sh/) v1.4.2+(`.bun-version` で固定)、`docker`、`jq`、`caddy`。`caddy` は `bun dev` がローカルHTTPSプロキシとして実行します(`brew install jq caddy && caddy trust`)。
 
 完全なガイドは[**DEVELOPMENT.md**](../DEVELOPMENT.md)を参照してください:セットアップスクリプトの内容、実サービスに対する手動セットアップ、よく使うコマンド、トラブルシューティング、デスクトップアプリのビルド方法を説明しています。コントリビューションの手順は[**CONTRIBUTING.md**](../CONTRIBUTING.md)にあります。
 

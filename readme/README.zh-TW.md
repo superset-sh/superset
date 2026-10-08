@@ -281,7 +281,7 @@ bun run dev
 
 不需要 Neon 帳號或第三方憑證。`setup.local.sh` 會透過 Docker 啟動本機 Postgres + Electric 堆疊並植入一個開發帳號。用 **「Sign in as dev」**按鈕(或 `admin@local.test` / `supersetdev`)登入即可。
 
-先決條件:[Bun](https://bun.sh/) v1.3.14+(固定在 `.bun-version` 中)、`docker`、`jq` 和 `caddy`,`bun dev` 會將 `caddy` 作為本機 HTTPS 代理伺服器執行(`brew install jq caddy && caddy trust`)。
+先決條件:[Bun](https://bun.sh/) v1.4.2+(固定在 `.bun-version` 中)、`docker`、`jq` 和 `caddy`,`bun dev` 會將 `caddy` 作為本機 HTTPS 代理伺服器執行(`brew install jq caddy && caddy trust`)。
 
 完整指南見 [**DEVELOPMENT.md**](../DEVELOPMENT.md):設定指令碼做了什麼、針對真實服務的手動設定、常用命令、疑難排解,以及如何建置桌面應用程式。貢獻流程見 [**CONTRIBUTING.md**](../CONTRIBUTING.md)。
 

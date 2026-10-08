@@ -119,7 +119,8 @@ Keychain prompt was denied; ask them to allow it and retry.
 ## Full interaction over raw CDP
 
 For clicking, typing, scrolling, waiting on selectors, or any Playwright-class
-flow, get the pane's CDP WebSocket endpoint:
+flow, get the pane's CDP WebSocket endpoint. This pattern is for panes only;
+for the user's own browser, follow `references/browser-use.md`:
 
 ```bash
 superset browser cdp --workspace <id> --pane <paneId> --json

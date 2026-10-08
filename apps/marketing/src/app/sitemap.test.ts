@@ -12,11 +12,6 @@ mock.module("@/app/[lang]/utils/fetchLeaderboard", () => ({
 	],
 }));
 
-let isMobileLaunched = false;
-mock.module("@/lib/site-flags", () => ({
-	isMobileLaunched: async () => isMobileLaunched,
-}));
-
 const { default: sitemap } = await import("./sitemap");
 
 describe("marketing sitemap", () => {
@@ -107,16 +102,9 @@ describe("marketing sitemap", () => {
 		expect(new Set(urls).size).toBe(urls.length);
 	});
 
-	test("lists /mobile only once the launch flag is on", async () => {
-		const mobileUrl = `${COMPANY.MARKETING_URL}/mobile`;
-
-		isMobileLaunched = false;
-		const before = (await sitemap()).map((entry) => entry.url);
-		expect(before).not.toContain(mobileUrl);
-
-		isMobileLaunched = true;
-		const after = (await sitemap()).map((entry) => entry.url);
-		expect(after).toContain(mobileUrl);
-		expect(after).toContain(`${COMPANY.MARKETING_URL}/fr/mobile`);
+	test("lists /mobile in every locale", async () => {
+		const urls = (await sitemap()).map((entry) => entry.url);
+		expect(urls).toContain(`${COMPANY.MARKETING_URL}/mobile`);
+		expect(urls).toContain(`${COMPANY.MARKETING_URL}/fr/mobile`);
 	});
 });

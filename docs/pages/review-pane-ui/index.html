@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR pane responsiveness</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1a1a; --muted: #6b7280; --line: #e5e7eb; --card: #f6f7f9;
+    --accent: #2563eb; --green: #047857; --red: #b91c1c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111113; --fg: #ececec; --muted: #9ca3af; --line: #2a2a2e; --card: #18181b; --accent: #7cacf8; --green: #34d399; --red: #f87171; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1240px; margin: 0 auto; padding: 40px 24px 96px; }
+  h1 { font-size: 28px; line-height: 1.2; margin: 0 0 6px; letter-spacing: -0.01em; }
+  h2 { font-size: 20px; margin: 48px 0 12px; letter-spacing: -0.01em; }
+  h3 { font-size: 15px; margin: 28px 0 10px; color: var(--muted); font-weight: 500; }
+  p { margin: 0 0 12px; }
+  .sub { color: var(--muted); margin-bottom: 28px; }
+  ul { padding-left: 20px; margin: 0 0 12px; }
+  li { margin: 4px 0; }
+  code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--card); padding: 1px 5px; border-radius: 5px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 8px 0 20px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; }
+  .pair { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; margin: 10px 0 28px; }
+  figure { margin: 0; flex: 0 1 auto; }
+  figcaption { font-size: 13px; color: var(--muted); margin-bottom: 8px; display: flex; gap: 8px; align-items: baseline; }
+  figcaption b { color: var(--fg); font-weight: 600; }
+  figure img { display: block; height: auto; border: 1px solid var(--line); border-radius: 10px; background: #0d0d0d; }
+  .tag { font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .tag.before { border-color: var(--red); color: var(--red); }
+  .tag.after { border-color: var(--green); color: var(--green); }
+  .clip { max-height: 900px; overflow: hidden; border-radius: 10px; position: relative; }
+  .clip img { border: 0; border-radius: 0; }
+  .clip.framed { border: 1px solid var(--line); }
+  .note { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 14px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>PR pane responsiveness: before and after</h1>
+  <p class="sub">Workspace pull-request pane on branch <code>review-pane-ui</code> (PR #8247), measured 2026-10-07 in the dev app against PR #7209 in the Archive workspace. Every pair below was captured at the same pane width by dragging the split handle over CDP, so the two columns are pixel-comparable. Images are 2x; they display at the pane's real CSS width.</p>
+
+  <h2>What changed</h2>
+  <ul>
+    <li><b>One-row top bar.</b> The pane's header row is now a named container (<code>@container/topbar</code>), the same one the route page already had, so the actions' compact rules finally apply inside a pane. Tabs give up width to the actions instead of the actions wrapping under them.</li>
+    <li><b>Staged compaction.</b> Below 30rem the Changes tab drops its +/- diff stat; below 23rem the Merge and Ready-for-review labels fold to the glyph (still read by screen readers). Copy link and Open on GitHub stay as icons at every width.</li>
+    <li><b>Title and gutters scale.</b> The title steps 1.75rem → 1.5rem below 48rem → 1.25rem below 36rem; page gutters go 24px → 16px below 36rem, for the Summary and the Changes title alike.</li>
+    <li><b>Info rows.</b> The label column narrows below 30rem, which is what lets "coderabbitai · Request" sit on one line at 320px.</li>
+    <li><b>No sideways overflow.</b> From the review round: the scroll viewport's <code>display:table</code> wrapper is forced to block, so long code tokens cannot push the Summary wider than the pane.</li>
+  </ul>
+  <p class="note">All of it is container queries on the pane itself, not on the window, so a narrow pane in a wide window and a narrow window behave the same. The full-page route is untouched except for the shared thresholds, which were chosen so its wider top bar (list toggle + Send to agent) still fits.</p>
+
+  <h2>Top bar at four widths (after)</h2>
+  <p>320 and 400px: diff stat hidden; 320px also folds the Merge label. 520 and 570px: everything shown.</p>
+  <div class="pair">
+    <figure><figcaption><b>320</b><span class="tag after">after</span></figcaption><div class="clip framed" style="max-height:150px;width:320px"><img src="img/pane-after-320-summary.png" width="320" alt="320px pane top bar after"></div></figure>
+    <figure><figcaption><b>400</b><span class="tag after">after</span></figcaption><div class="clip framed" style="max-height:150px;width:400px"><img src="img/pane-after-400-summary.png" width="400" alt="400px pane top bar after"></div></figure>
+    <figure><figcaption><b>520</b><span class="tag after">after</span></figcaption><div class="clip framed" style="max-height:150px;width:520px"><img src="img/pane-after-520-summary.png" width="520" alt="520px pane top bar after"></div></figure>
+    <figure><figcaption><b>570</b><span class="tag after">after</span></figcaption><div class="clip framed" style="max-height:150px;width:570px"><img src="img/pane-after-570-summary.png" width="570" alt="570px pane top bar after"></div></figure>
+  </div>
+
+  <h2>Summary tab</h2>
+
+  <h3>320px pane</h3>
+  <p>Before: the action row wraps under the tabs, the title runs five lines at 1.75rem, and the Reviews chip breaks onto its own line. After: one header row, four-line title at 1.25rem, 16px gutters.</p>
+  <div class="pair">
+    <figure><figcaption><b>320</b><span class="tag before">before</span></figcaption><img src="img/pane-before-320-summary.png" width="320" loading="lazy" alt="320px Summary before"></figure>
+    <figure><figcaption><b>320</b><span class="tag after">after</span></figcaption><img src="img/pane-after-320-summary.png" width="320" loading="lazy" alt="320px Summary after"></figure>
+  </div>
+
+  <h3>400px pane</h3>
+  <div class="pair">
+    <figure><figcaption><b>400</b><span class="tag before">before</span></figcaption><img src="img/pane-before-400-summary.png" width="400" loading="lazy" alt="400px Summary before"></figure>
+    <figure><figcaption><b>400</b><span class="tag after">after</span></figcaption><img src="img/pane-after-400-summary.png" width="400" loading="lazy" alt="400px Summary after"></figure>
+  </div>
+
+  <h3>520px pane</h3>
+  <div class="pair">
+    <figure><figcaption><b>520</b><span class="tag before">before</span></figcaption><img src="img/pane-before-520-summary.png" width="520" loading="lazy" alt="520px Summary before"></figure>
+    <figure><figcaption><b>520</b><span class="tag after">after</span></figcaption><img src="img/pane-after-520-summary.png" width="520" loading="lazy" alt="520px Summary after"></figure>
+  </div>
+
+  <h3>570px pane (the widest this split allows)</h3>
+  <div class="pair">
+    <figure><figcaption><b>570</b><span class="tag before">before</span></figcaption><img src="img/pane-before-570-summary.png" width="570" loading="lazy" alt="570px Summary before"></figure>
+    <figure><figcaption><b>570</b><span class="tag after">after</span></figcaption><img src="img/pane-after-570-summary.png" width="570" loading="lazy" alt="570px Summary after"></figure>
+  </div>
+
+  <h2>Changes tab</h2>
+  <p>The title row above the files toolbar picks up the same gutter and the top bar stays on one line. The diff itself now runs edge to edge below 40rem (16px gutters to 56rem, 24px above), shown in the third pair on a different PR after the first captures.</p>
+  <div class="pair">
+    <figure><figcaption><b>320</b><span class="tag before">before</span></figcaption><div class="clip framed" style="max-height:700px;width:320px"><img src="img/pane-before-320-changes.png" width="320" loading="lazy" alt="320px Changes before"></div></figure>
+    <figure><figcaption><b>320</b><span class="tag after">after</span></figcaption><div class="clip framed" style="max-height:700px;width:320px"><img src="img/pane-after-320-changes.png" width="320" loading="lazy" alt="320px Changes after"></div></figure>
+    <figure><figcaption><b>400</b><span class="tag before">before</span></figcaption><div class="clip framed" style="max-height:700px;width:400px"><img src="img/pane-before-400-changes.png" width="400" loading="lazy" alt="400px Changes before"></div></figure>
+    <figure><figcaption><b>400</b><span class="tag after">after</span></figcaption><div class="clip framed" style="max-height:700px;width:400px"><img src="img/pane-after-400-changes.png" width="400" loading="lazy" alt="400px Changes after"></div></figure>
+    <figure><figcaption><b>320</b><span class="tag after">after, no gutters</span></figcaption><div class="clip framed" style="max-height:700px;width:320px"><img src="img/pane-after2-320-changes.png" width="320" loading="lazy" alt="320px Changes with no side gutters"></div></figure>
+    <figure><figcaption><b>585</b><span class="tag after">after, no gutters</span></figcaption><div class="clip framed" style="max-height:700px;width:585px"><img src="img/pane-after2-585-changes.png" width="585" loading="lazy" alt="585px Changes with no side gutters"></div></figure>
+  </div>
+
+  <h2>Conversation and composer (after)</h2>
+  <p>Scrolled to the end of the Summary: the collapsible review rows, the comment pill, and below it the workspace's inline review threads.</p>
+  <div class="pair">
+    <figure><figcaption><b>320</b><span class="tag after">after</span></figcaption><div class="clip framed" style="max-height:800px;width:320px"><img src="img/pane-after-320-composer.png" width="320" loading="lazy" alt="320px composer after"></div></figure>
+    <figure><figcaption><b>520</b><span class="tag after">after</span></figcaption><div class="clip framed" style="max-height:800px;width:520px"><img src="img/pane-after-520-composer.png" width="520" loading="lazy" alt="520px composer after"></div></figure>
+  </div>
+
+  <h2>Bottom of the pane (inline review threads)</h2>
+  <p>These are the pre-existing workspace review threads. They were already fluid; included so the whole pane is covered.</p>
+  <div class="pair">
+    <figure><figcaption><b>320</b><span class="tag before">before</span></figcaption><div class="clip framed" style="max-height:700px;width:320px"><img src="img/pane-before-320-bottom.png" width="320" loading="lazy" alt="320px bottom before"></div></figure>
+    <figure><figcaption><b>320</b><span class="tag after">after</span></figcaption><div class="clip framed" style="max-height:700px;width:320px"><img src="img/pane-after-320-bottom.png" width="320" loading="lazy" alt="320px bottom after"></div></figure>
+  </div>
+
+  <h2>How it was tested</h2>
+  <table>
+    <tr><th>Check</th><th>Result</th></tr>
+    <tr><td>Pane widths 320, 400, 485, 520, 570px, each on Summary top, Summary end, and Changes</td><td>Captured before and after, same drag script</td></tr>
+    <tr><td>Horizontal overflow of the Summary viewport</td><td><code>scrollWidth === clientWidth</code> at 411px; inner wrapper computes <code>display: block</code></td></tr>
+    <tr><td>Top bar never wraps</td><td>Row is <code>h-11</code> with no <code>flex-wrap</code>; tabs scroll before anything wraps</td></tr>
+    <tr><td>Merge / Ready labels when folded</td><td><code>sr-only</code>, so the accessible name is kept</td></tr>
+    <tr><td><code>bun run typecheck</code> (desktop)</td><td>exit 0</td></tr>
+    <tr><td>Desktop PR suites + PullRequestPane fixtures</td><td>51 pass</td></tr>
+  </table>
+
+  <h2>Files</h2>
+  <ul>
+    <li><code>v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PullRequestPane/PullRequestPane.tsx</code>: header row becomes the <code>topbar</code> container, single row</li>
+    <li><code>pull-requests/components/PullRequestDetailTabs</code>: diff stat hides below 30rem</li>
+    <li><code>pull-requests/components/PullRequestActions</code>: label fold moves from 34rem to 23rem</li>
+    <li><code>pull-requests/components/PullRequestPageBody</code>: gutters 24→16px below 36rem; viewport wrapper forced to block</li>
+    <li><code>pull-requests/components/PullRequestItemHeader</code>: title 1.75→1.5→1.25rem</li>
+    <li><code>pull-requests/components/PullRequestInfo</code>: row label column 96→80px below 30rem</li>
+    <li><code>pull-requests/components/PullRequestDetailContent</code> + <code>PullRequestTabTitle</code>: Changes wrapper is a <code>detail</code> container so its title shares the gutter rule</li>
+  </ul>
+</main>
+</body>
+</html>

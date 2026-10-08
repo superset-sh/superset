@@ -12,8 +12,8 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@lingui/core": "6.6.0",
-		"@lingui/react": "6.6.0",
+		"@lingui/core": "6.8.0",
+		"@lingui/react": "6.8.0",
 		"@sentry/nextjs": "10.68.0",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
@@ -42,7 +42,7 @@
 		"require-in-the-middle": "8.0.1",
 		"server-only": "0.0.1",
 		"superjson": "2.2.6",
-		"zod": "4.4.3"
+		"zod": "4.6.5"
 	},
 	"devDependencies": {
 		"@lingui/swc-plugin": "6.6.0",
@@ -54,6 +54,6 @@
 		"babel-plugin-react-compiler": "1.0.0",
 		"dotenv": "17.3.1",
 		"tailwindcss": "4.2.2",
-		"typescript": "6.0.3"
+		"typescript": "7.0.2"
 	}
 }

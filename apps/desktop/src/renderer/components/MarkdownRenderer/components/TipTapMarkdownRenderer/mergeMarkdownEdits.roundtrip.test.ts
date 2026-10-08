@@ -1,20 +1,8 @@
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
-
-// happy-dom over the preloaded plain-object document — TipTap's Editor needs
-// real DOM APIs. bun runs test files sequentially in one process and
-// happy-dom's globals are process-wide, so register once and unregister after.
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
-
-const { afterAll, describe, expect, it } = await import("bun:test");
+const { describe, expect, it } = await import("bun:test");
 const { Editor } = await import("@tiptap/core");
 const { createMarkdownExtensions } = await import("./createMarkdownExtensions");
 const { mergeMarkdownEdits } = await import("./mergeMarkdownEdits");
 const { applyExternalMarkdown } = await import("./TipTapMarkdownRenderer");
-
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
 
 function getMarkdown(editor: InstanceType<typeof Editor>): string {
 	const storage = editor.storage as unknown as Record<

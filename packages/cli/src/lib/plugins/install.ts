@@ -30,6 +30,7 @@ import {
 	type MarketplaceEntry,
 	releaseTag,
 } from "./marketplace";
+import { syncPluginMcpServers } from "./mcp-servers";
 
 const git = promisify(execFile);
 
@@ -551,7 +552,7 @@ export async function removePlugin(
 	if (!match) throw new CLIError(`"${name}" is not installed.`);
 
 	writeInstalledPlugins(plugins.filter((p) => p !== match));
-	if (fs.existsSync(match.installPath)) {
+	if (match.installPath && fs.existsSync(match.installPath)) {
 		fs.rmSync(match.installPath, { recursive: true });
 	}
 	await syncPlugins();
@@ -576,6 +577,8 @@ export interface SyncResult {
 	plugins: number;
 	skills: number;
 	removed: number;
+	mcpServers: number;
+	mcpError: string | null;
 	entries: SkillEntry[];
 }
 
@@ -596,6 +599,11 @@ export async function syncPlugins(): Promise<SyncResult> {
 		disabledSkills: resolveDisabledSkillIds(),
 	});
 
+	// Both halves of a plugin, converged together. Skills without MCP entries is
+	// the half-on state installed_plugins.json exists to prevent, and an install
+	// made here reached no agent config at all before this.
+	const mcp = syncPluginMcpServers();
+
 	const after = new Set(skillDirNames());
 	const entries = listSkills();
 
@@ -603,6 +611,8 @@ export async function syncPlugins(): Promise<SyncResult> {
 		plugins: installed.length,
 		skills: entries.length,
 		removed: [...before].filter((dir) => !after.has(dir)).length,
+		mcpServers: mcp.servers,
+		mcpError: mcp.error,
 		entries,
 	};
 }

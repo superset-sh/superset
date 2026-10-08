@@ -1,3 +1,4 @@
+import { organizationSyncsNow } from "@superset/trpc/sync-policy";
 import { env } from "@/env";
 import { beginOAuthFlow, STATE_COOKIES } from "@/lib/integrations/oauthFlow";
 import { requireOrgMember } from "@/lib/integrations/requireOrgMember";
@@ -5,6 +6,12 @@ import { requireOrgMember } from "@/lib/integrations/requireOrgMember";
 export async function GET(request: Request) {
 	const member = await requireOrgMember(request);
 	if (member instanceof Response) return member;
+
+	if (!(await organizationSyncsNow(member.organizationId))) {
+		return Response.redirect(
+			`${env.NEXT_PUBLIC_WEB_URL}/integrations?pro=github`,
+		);
+	}
 
 	if (!env.GH_APP_ID) {
 		return Response.json(

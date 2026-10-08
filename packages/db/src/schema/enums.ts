@@ -38,6 +38,10 @@ export const integrationProviderValues = [
 export const integrationProviderEnum = z.enum(integrationProviderValues);
 export type IntegrationProvider = z.infer<typeof integrationProviderEnum>;
 
+export const taskTrackerValues = ["superset", "linear"] as const;
+export const taskTrackerEnum = z.enum(taskTrackerValues);
+export type TaskTracker = z.infer<typeof taskTrackerEnum>;
+
 export const v2ClientTypeValues = ["desktop", "mobile", "web"] as const;
 export const v2ClientTypeEnum = z.enum(v2ClientTypeValues);
 export type V2ClientType = z.infer<typeof v2ClientTypeEnum>;

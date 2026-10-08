@@ -63,11 +63,11 @@ Two dev servers may try to use the same port. Two tests may write to the same da
 
 Give previews distinct ports and use separate test data where tasks write to shared services. If a task needs stronger runtime isolation, use an appropriate container or separate host alongside the worktree.
 
-Superset's terminal daemon keeps sessions separate from the desktop UI, so an app restart can reconnect to running processes. The host and daemon must remain running. See the [terminal daemon design](/blog/terminal-daemon-deep-dive) for the difference between reconnecting and restoring saved history.
+Superset's terminal daemon keeps sessions separate from the desktop UI, so an app restart can reconnect to running processes. The host and daemon must remain running. If a reboot or crash ends an agent session, Superset resumes it in the same pane with the agent's own resume command, for agents with an ID-based resume command set under **Settings → Agents**. See the [terminal daemon design](/blog/terminal-daemon-deep-dive) for the difference between reconnecting and restoring saved history.
 
 ## Clean up finished work
 
-After a change is merged, stop its agent and dev server, then remove the workspace when you no longer need it. Check for uncommitted work before deleting it.
+After a change is merged, stop its agent and dev server, then remove the workspace when you no longer need it. Check for uncommitted work before deleting it. When you delete several workspaces at once, Superset previews each one and flags dirty or unpushed work first. Deleting a workspace also runs the teardown commands in the project's `.superset/config.json`.
 
 For a worktree you created manually, use:
 

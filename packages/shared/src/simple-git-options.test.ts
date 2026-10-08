@@ -5,8 +5,10 @@ import {
 } from "./simple-git-options";
 
 const EXPECTED_SIMPLE_GIT_UNSAFE_OPTION_FLAGS = [
+	"allowAbbreviatedOptions",
 	"allowUnsafeAlias",
 	"allowUnsafeAskPass",
+	"allowUnsafeCommandBinaries",
 	"allowUnsafeConfigEnvCount",
 	"allowUnsafeConfigPaths",
 	"allowUnsafeCredentialHelper",
@@ -14,17 +16,21 @@ const EXPECTED_SIMPLE_GIT_UNSAFE_OPTION_FLAGS = [
 	"allowUnsafeDiffExternal",
 	"allowUnsafeDiffTextConv",
 	"allowUnsafeEditor",
+	"allowUnsafeExec",
 	"allowUnsafeFilter",
 	"allowUnsafeFsMonitor",
 	"allowUnsafeGitProxy",
 	"allowUnsafeGpgProgram",
 	"allowUnsafeHooksPath",
+	"allowUnsafeInclude",
 	"allowUnsafeMergeDriver",
 	"allowUnsafePack",
 	"allowUnsafePager",
 	"allowUnsafeProtocolOverride",
 	"allowUnsafeSshCommand",
+	"allowUnsafeSubmodule",
 	"allowUnsafeTemplateDir",
+	"allowUnsafeUrlRewrite",
 ] as const;
 
 describe("simple-git unsafe options", () => {

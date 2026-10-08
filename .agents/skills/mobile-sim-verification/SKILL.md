@@ -54,6 +54,8 @@ superset terminals create --local --workspace "$SUPERSET_WORKSPACE_ID" --command
   cd apps/relay && while true; do CI=1 WRANGLER_SEND_METRICS=false node_modules/.bin/wrangler dev \
     --port "$RELAY_PORT" --var NEXT_PUBLIC_API_URL:http://localhost:$API_PORT --local; sleep 1; done
   ```
+- **Realtime:** `bun dev:realtime`. It runs the Worker on this worktree's `REALTIME_PORT` and
+  restarts it when it exits. Without it, the app falls back to polling and nudges go nowhere.
 - **Metro:** `cd apps/mobile && CI=1 bunx expo start --dev-client --port 8081`. `CI=1` turns off file
   watching, so restart Metro after editing code. The first bundle after a dependency change takes
   minutes and the dev client gives up waiting: warm it first by fetching `launchAsset.url` from
@@ -99,3 +101,38 @@ xcrun simctl ui booted content_size extra-extra-extra-large
 Count requests in the relay log to prove polling behavior (for example none while backgrounded).
 Reset the locale, text size and status bar, stop the services, and delete test hosts and the
 temporary plan when done.
+
+### Limrun: no Mac (Linux, a cloud workspace)
+
+`lim` runs the simulator remotely; `LIM_API_KEY` is set in cloud workspaces. The `xcrun simctl`
+steps above become `lim ios` commands, and the simulator reaches this box only through a tunnel.
+
+- **App.** JavaScript-only changes reuse a Debug dev-client build: `lim asset list` and
+  `lim ios create --install-asset <name> --inactivity-timeout 30m --hard-timeout 2h --json`. Build a
+  new one with `lim xcode build` only after a native change.
+- **Tunnel.** One selector for each local port the app calls, all in one command, because selector
+  sets cannot change: `lim ios tunnel --selector localhost:8081 --selector localhost:$API_PORT
+  --selector localhost:$RELAY_PORT --selector localhost:$REALTIME_PORT --detach --id <id>`. A port
+  with no selector fails as a network error in the app; without the relay, Home says it cannot
+  check the host.
+- **Metro.** Start it with `EXPO_PACKAGER_PROXY_URL=http://localhost:8081`. Without it, Metro
+  advertises `127.0.0.1`, which the tunnel does not route. Set `EXPO_PUBLIC_*` overrides inline;
+  they take precedence over the root `.env`.
+- **Launch.** `lim ios open-url --id <id> "superset://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081"`.
+  The dev-menu sheet takes the first link: tap `Continue` and `Close` with
+  `lim ios tap-element --ax-label`, then open the URL again.
+- **Input.** `lim ios tap-element --ax-label`, `lim ios type`, `lim ios element-tree`. Rows inside a
+  list are often missing from the tree; use `lim ios screenshot`.
+- **Background and foreground.** Always pass `-d`, or the command streams logs and does not return:
+  `lim ios launch-app com.apple.Preferences -d`, then
+  `lim ios launch-app sh.superset.mobile -d --mode ForegroundIfRunning`.
+- **Request counts.** The tunnel logs every request the app makes, in
+  `~/.lim/tunnels/<dir>/<tunnel-id>.log`. Note its line count, act, and read the new lines.
+- **Cloud screens.** The workspace's Neon branch is a copy of production, and cloud access is a
+  PostHog flag on the email, so the dev account sees no cloud workspaces. Prefer a test account
+  that has the flag. Use a real account only with its owner's approval: save its `auth.accounts`
+  credential `password`, set a temporary hash (`hashPassword` from `better-auth/crypto`), and sign
+  in with "Sign in with email (dev)". After the test, restore the hash and delete the sessions the
+  test created.
+- **Cleanup.** `lim ios tunnel stop --id <id>` and `lim ios delete <id>`; the simulator bills while
+  it runs. Stop local processes by PID: `pkill -f <pattern>` also matches the shell that runs it.

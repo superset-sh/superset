@@ -1,4 +1,4 @@
-import type { CloudWorkspaceSort } from "renderer/routes/_authenticated/_dashboard/utils/groupCloudWorkspaces";
+import type { CloudWorkspaceSort } from "@superset/shared/cloud-workspace-groups";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 

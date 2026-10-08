@@ -71,6 +71,9 @@ export const connectorsRouter = {
 			// dropping it here would offer "Connect" for an account they already
 			// linked, losing the distinction between never-connected and expired.
 			const rows = await db.query.connections.findMany({
+				// Stable order, so the account list does not reshuffle between
+				// refetches.
+				orderBy: (row, { asc }) => [asc(row.createdAt), asc(row.id)],
 				where: and(
 					eq(connections.organizationId, input.organizationId),
 					or(
@@ -87,6 +90,7 @@ export const connectorsRouter = {
 					externalAccountLabel: true,
 					externalUserId: true,
 					externalUserLabel: true,
+					nickname: true,
 					disconnectedAt: true,
 					disconnectReason: true,
 				},
@@ -100,6 +104,7 @@ export const connectorsRouter = {
 				)
 				.map(({ disconnectedAt, disconnectReason, ...row }) => ({
 					...row,
+					externalUserLabel: row.nickname ?? row.externalUserLabel,
 					needsReauth: disconnectedAt !== null,
 				}));
 		}),
@@ -165,6 +170,78 @@ export const connectorsRouter = {
 				});
 
 			return { connectionId: result.connectionId };
+		}),
+
+	rename: protectedProcedure
+		.input(
+			z
+				.object({
+					organizationId: z.uuid(),
+					connectionId: z.uuid(),
+					label: z.string().trim().min(1).max(64).optional(),
+					/** @deprecated desktop 1.36.0 sends this; use `label`. */
+					nickname: z.string().max(64).nullable().optional(),
+				})
+				.refine(
+					(input) => input.label !== undefined || input.nickname !== undefined,
+					{ message: "Pass label." },
+				),
+		)
+		.mutation(async ({ ctx, input }) => {
+			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+
+			const reachable = or(
+				isNull(connections.disconnectedAt),
+				eq(connections.disconnectReason, NEEDS_REAUTH),
+			);
+
+			const [existing] = await db
+				.select({
+					ownerKind: connections.ownerKind,
+					connectedByUserId: connections.connectedByUserId,
+				})
+				.from(connections)
+				.where(
+					and(
+						eq(connections.id, input.connectionId),
+						eq(connections.organizationId, input.organizationId),
+						reachable,
+					),
+				)
+				.limit(1);
+
+			if (!existing)
+				throw new TRPCError({ code: "NOT_FOUND", message: "No connection" });
+
+			// Same rule as disconnect: an org-scoped row is the organization's, so
+			// renaming it is an admin action; a user-scoped row is only its owner's.
+			if (existing.ownerKind === "org")
+				await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
+			else if (existing.connectedByUserId !== ctx.session.user.id)
+				throw new TRPCError({ code: "NOT_FOUND", message: "No connection" });
+
+			const label = input.label ?? (input.nickname?.trim() || undefined);
+			const [row] = await db
+				.update(connections)
+				.set({
+					...(label === undefined ? {} : { externalUserLabel: label }),
+					nickname: null,
+				})
+				.where(
+					and(
+						eq(connections.id, input.connectionId),
+						eq(connections.organizationId, input.organizationId),
+						reachable,
+					),
+				)
+				.returning({
+					id: connections.id,
+					label: connections.externalUserLabel,
+				});
+
+			if (!row)
+				throw new TRPCError({ code: "NOT_FOUND", message: "No connection" });
+			return { ...row, nickname: row.label };
 		}),
 
 	disconnect: protectedProcedure

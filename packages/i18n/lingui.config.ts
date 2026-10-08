@@ -47,7 +47,11 @@ export default defineConfig({
 				"<rootDir>/../../packages/shared/src",
 				"<rootDir>/src",
 			],
-			exclude: ["**/node_modules/**", "**/*.test.*", "**/*.stories.*"],
+			exclude: [
+				"<rootDir>/../../**/node_modules/**",
+				"<rootDir>/../../**/*.test.*",
+				"<rootDir>/../../**/*.stories.*",
+			],
 		},
 	],
 });

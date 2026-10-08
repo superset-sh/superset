@@ -4,7 +4,7 @@
  * node-pty) are marked external and must be resolved at runtime from
  * lib/native/ in the distribution bundle.
  */
-import { existsSync, mkdirSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { linguiMacroPlugin } from "@superset/i18n/bun-plugin";
 
 const outdir = "dist";
@@ -63,6 +63,10 @@ if (!workerResult.success) {
 	process.exit(1);
 }
 
+const chatMigrations = `${outdir}/chat-migrations`;
+rmSync(chatMigrations, { recursive: true, force: true });
+cpSync("../chat-runtime/src/db/drizzle", chatMigrations, { recursive: true });
+
 console.log(
-	`[host-service] bundled to ${outdir}/host-service.js + ${outdir}/host-worker.js`,
+	`[host-service] bundled to ${outdir}/host-service.js + ${outdir}/host-worker.js + ${chatMigrations}/`,
 );

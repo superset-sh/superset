@@ -1,107 +1,99 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
-// Static import so the real module is captured before the mock below replaces it.
-import * as reactActual from "react";
+import { afterEach, describe, expect, test } from "bun:test";
+import type { TRPCLink } from "@trpc/client";
+import type { AppRouter } from "lib/trpc/routers";
+import type { ReactNode } from "react";
 
-let rawQueryResult: {
-	data?: {
-		content: string;
-		byteLength: number;
-		exceededLimit: boolean;
-		revision: string;
-	};
-	error?: Error;
-	isLoading: boolean;
-};
+(
+	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
-const readFileUseQuery = mock(
-	(_input: unknown, options: { enabled: boolean }) =>
-		options.enabled
-			? rawQueryResult
-			: { data: undefined, error: undefined, isLoading: false },
+const { QueryClient } = await import("@tanstack/react-query");
+const { observable } = await import("@trpc/server/observable");
+const { act, cleanup, renderHook, waitFor } = await import(
+	"@testing-library/react"
 );
-const emptyUseQuery = mock(() => ({ data: undefined, isLoading: false }));
-
-// Spread the real module: bun's mock.module is process-global and permanent,
-// so dropping an export here deletes it for every test file that runs after
-// this one. `useMemo` runs eagerly so the hook can be exercised outside a
-// render.
-mock.module("react", () => ({
-	...reactActual,
-	useMemo: <T>(factory: () => T) => factory(),
-}));
-
-mock.module("renderer/lib/electron-trpc", () => ({
-	electronTrpc: {
-		changes: {
-			getBranches: { useQuery: emptyUseQuery },
-			getGitFileContents: { useQuery: emptyUseQuery },
-			getGitOriginalContent: { useQuery: emptyUseQuery },
-		},
-		filesystem: {
-			readFile: { useQuery: readFileUseQuery },
-		},
-	},
-}));
-
+const { createElement } = await import("react");
+const { electronTrpc } = await import("renderer/lib/electron-trpc");
 const { FILE_CONTENT_GC_TIME_MS, FILE_CONTENT_STALE_TIME_MS, useFileContent } =
 	await import("./useFileContent");
 
-describe("useFileContent", () => {
-	beforeEach(() => {
-		rawQueryResult = { isLoading: true };
-		readFileUseQuery.mockClear();
-	});
-
-	test("keeps exact-workspace cached file content visible during a refresh", () => {
-		rawQueryResult = {
-			data: {
-				content: "cached content",
-				byteLength: 14,
-				exceededLimit: false,
-				revision: "revision-1",
-			},
-			isLoading: true,
-		};
-
-		const result = useFileContent({
-			workspaceId: "workspace-1",
-			worktreePath: "/worktrees/one",
-			filePath: "/worktrees/one/README.md",
-			viewMode: "raw",
+afterEach(cleanup);
+function renderFileContent(answerRead: (attempt: number) => unknown) {
+	const reads: unknown[] = [];
+	const link: TRPCLink<AppRouter> = () => (call) =>
+		observable((observer) => {
+			if (call.op.path !== "filesystem.readFile") return;
+			reads.push(call.op.input);
+			const answer = answerRead(reads.length);
+			if (answer === undefined) return;
+			observer.next({ result: { data: answer } });
+			observer.complete();
 		});
+	const queryClient = new QueryClient();
+	const client = electronTrpc.createClient({ links: [link] });
+	const view = renderHook(
+		() =>
+			useFileContent({
+				workspaceId: "workspace-1",
+				worktreePath: "/worktrees/one",
+				filePath: "/worktrees/one/README.md",
+				viewMode: "raw",
+			}),
+		{
+			wrapper: ({ children }: { children: ReactNode }) =>
+				createElement(electronTrpc.Provider, { client, queryClient, children }),
+		},
+	);
+	return { queryClient, reads, view };
+}
 
-		expect(result.rawFileData).toEqual({
+describe("useFileContent", () => {
+	test("keeps exact-workspace cached file content visible during a refresh", async () => {
+		const { queryClient, reads, view } = renderFileContent((attempt) =>
+			attempt === 1
+				? {
+						content: "cached content",
+						byteLength: 14,
+						exceededLimit: false,
+						revision: "revision-1",
+					}
+				: undefined,
+		);
+		await waitFor(() => expect(view.result.current.rawFileData).toBeDefined());
+
+		act(() => {
+			void queryClient.invalidateQueries();
+		});
+		await waitFor(() => expect(reads).toHaveLength(2));
+
+		expect(view.result.current.rawFileData).toEqual({
 			ok: true,
 			content: "cached content",
 			truncated: false,
 			byteLength: 14,
 		});
-		expect(result.isLoadingRaw).toBe(false);
-		expect(readFileUseQuery).toHaveBeenNthCalledWith(
-			1,
-			{
-				workspaceId: "workspace-1",
-				absolutePath: "/worktrees/one/README.md",
-				encoding: "utf-8",
-				maxBytes: 2 * 1024 * 1024,
-			},
-			expect.objectContaining({
-				enabled: true,
-				gcTime: FILE_CONTENT_GC_TIME_MS,
-				staleTime: FILE_CONTENT_STALE_TIME_MS,
-			}),
+		expect(view.result.current.isLoadingRaw).toBe(false);
+		expect(reads[0]).toEqual({
+			workspaceId: "workspace-1",
+			absolutePath: "/worktrees/one/README.md",
+			encoding: "utf-8",
+			maxBytes: 2 * 1024 * 1024,
+		});
+		const query = queryClient
+			.getQueryCache()
+			.getAll()
+			.find((cached) => cached.state.data !== undefined);
+		expect(query?.options.gcTime).toBe(FILE_CONTENT_GC_TIME_MS);
+		expect(query?.observers[0]?.options.staleTime).toBe(
+			FILE_CONTENT_STALE_TIME_MS,
 		);
 	});
 
-	test("shows initial loading only when no cached file data exists", () => {
-		const result = useFileContent({
-			workspaceId: "workspace-2",
-			worktreePath: "/worktrees/two",
-			filePath: "/worktrees/two/README.md",
-			viewMode: "raw",
-		});
+	test("shows initial loading only when no cached file data exists", async () => {
+		const { reads, view } = renderFileContent(() => undefined);
+		await waitFor(() => expect(reads).toHaveLength(1));
 
-		expect(result.rawFileData).toBeUndefined();
-		expect(result.isLoadingRaw).toBe(true);
+		expect(view.result.current.rawFileData).toBeUndefined();
+		expect(view.result.current.isLoadingRaw).toBe(true);
 	});
 });

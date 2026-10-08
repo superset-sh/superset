@@ -9,7 +9,6 @@ import type { CloudWorkspaceRow } from "renderer/hooks/useCloudWorkspaces";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { useCopyShareLink } from "renderer/routes/_authenticated/_dashboard/hooks/useCopyShareLink";
-import { useOpenPullRequestInApp } from "renderer/routes/_authenticated/_dashboard/hooks/useOpenPullRequestInApp";
 import {
 	type CloudSidebarEntry,
 	type CloudSidebarGroup,
@@ -25,6 +24,7 @@ import { useDashboardSidebarPortKill } from "../../../../hooks/useDashboardSideb
 import { usePortOpener } from "../../../../hooks/usePortOpenActions";
 import { useDashboardSidebarWorkspacePorts } from "../../../../providers/DashboardSidebarPortsProvider";
 import { usePortForwardLookup } from "../../../../providers/PortForwardsProvider";
+import { useOpenCloudWorkspacePullRequest } from "../../hooks/useOpenCloudWorkspacePullRequest";
 import { DashboardSidebarCloudContextMenu } from "../DashboardSidebarCloudContextMenu";
 import { DashboardSidebarCloudRow } from "../DashboardSidebarCloudRow";
 import { DashboardSidebarPortsCard } from "../DashboardSidebarPortsCard";
@@ -82,7 +82,7 @@ export function DashboardSidebarCloudItem({
 	const { setProject, linkTask, unlinkTask, addLabel, removeLabel } =
 		useCloudWorkspaceMenuMutations(organizationId);
 	const { v2Workspaces: workspaceActions } = useOptimisticActions();
-	const openPullRequest = useOpenPullRequestInApp();
+	const openPullRequest = useOpenCloudWorkspacePullRequest();
 	const requestSaveAsEnvironment = useSaveAsEnvironmentIntent(
 		(state) => state.request,
 	);
@@ -284,7 +284,7 @@ export function DashboardSidebarCloudItem({
 				now={now}
 				isActive={isActive}
 				onOpenPullRequest={() => {
-					if (pullRequest) openPullRequest(pullRequest.url);
+					if (pullRequest) openPullRequest(workspace.id, pullRequest.url);
 				}}
 				onArchive={() =>
 					useDeleteWorkspaceIntent.getState().request({

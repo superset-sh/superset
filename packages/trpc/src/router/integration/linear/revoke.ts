@@ -1,6 +1,7 @@
 import type { SelectConnection } from "@superset/db/schema";
 import { decryptOptional, decryptSecret } from "../../plugins/crypto";
 import { markDisconnected } from "../token-refresh";
+import { trackTasksInSupersetWithoutLinear } from "./tracker";
 
 export const SYNC_SUSPENDED = "sync_suspended";
 
@@ -47,5 +48,6 @@ export async function revokeLinearConnection(
 		}
 	}
 	await markDisconnected(connection.id, SYNC_SUSPENDED, { clearTokens: true });
+	await trackTasksInSupersetWithoutLinear(connection.organizationId);
 	return "revoked";
 }

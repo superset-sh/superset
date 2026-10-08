@@ -23,6 +23,38 @@ function setTTY(value: boolean | undefined): void {
 
 afterEach(() => setTTY(originalIsTTY));
 
+describe("formatOutput", () => {
+	const raw = { raw: "#!/bin/sh\necho hi\n" };
+
+	test("prints a raw result verbatim in every mode", () => {
+		expect(formatOutput(raw, undefined, { json: true, quiet: false })).toBe(
+			raw.raw,
+		);
+		expect(formatOutput(raw, undefined, { json: false, quiet: true })).toBe(
+			raw.raw,
+		);
+		expect(
+			formatOutput(raw, () => "shown", { json: false, quiet: false }),
+		).toBe(raw.raw);
+	});
+
+	test("treats a data object with a non-string raw field as data", () => {
+		const out = formatOutput({ raw: 1 }, undefined, {
+			json: true,
+			quiet: false,
+		});
+		expect(JSON.parse(out)).toEqual({ raw: 1 });
+	});
+
+	test("treats a result that carries data or message beside raw as data", () => {
+		const out = formatOutput({ raw: "x", data: { id: 1 } }, undefined, {
+			json: true,
+			quiet: false,
+		});
+		expect(JSON.parse(out)).toEqual({ id: 1 });
+	});
+});
+
 describe("table", () => {
 	test("truncates a cell wider than its cap", () => {
 		setTTY(false);

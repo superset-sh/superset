@@ -1,19 +1,16 @@
 import { describe, expect, mock, test } from "bun:test";
+import { withLocalHostService } from "../../../lib/host/test-helpers";
+import command from "./command";
 
 const open = mock(async (input: { url: string }) => ({
 	paneId: "pane-1",
 	url: input.url,
 }));
-mock.module("../shared", () => ({
-	resolveBrowserTarget: async () => ({
-		client: { browser: { open: { mutate: open } } },
-	}),
-}));
-const { default: command } = await import("./command");
+withLocalHostService("org-1", { "browser.open": open as never });
 
 function invoke(show?: boolean, target?: string) {
 	return command.run({
-		ctx: {} as never,
+		ctx: { config: { organizationId: "org-1" }, bearer: "bearer" } as never,
 		args: {} as never,
 		options: {
 			workspace: "agent-workspace",

@@ -6,6 +6,7 @@ import {
 } from "@superset/db/schema";
 import { findProviderIdentity } from "@superset/db/utils";
 import {
+	accountAllows,
 	configHasMeScope,
 	type MatchableEvent,
 	resolveMeScopes,
@@ -17,7 +18,7 @@ import {
 } from "@superset/shared/billing";
 import { organizationPlan } from "@superset/trpc/billing";
 import { Client } from "@upstash/qstash";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { env } from "@/env";
 
 const qstash = new Client({
@@ -60,6 +61,7 @@ export async function dispatchMatchingTriggers(params: {
 	 * events would match every org member's triggers.
 	 */
 	ownerUserId?: string;
+	integrationConnectionId?: string | null;
 }): Promise<{ matched: number; considered: number }> {
 	const { event } = params;
 
@@ -78,6 +80,7 @@ export async function dispatchMatchingTriggers(params: {
 		.select({
 			triggerId: automationTriggers.id,
 			config: automationTriggers.config,
+			connectionId: automationTriggers.connectionId,
 			automationId: automations.id,
 			ownerUserId: automations.ownerUserId,
 		})
@@ -100,6 +103,15 @@ export async function dispatchMatchingTriggers(params: {
 				params.ownerUserId
 					? eq(automations.ownerUserId, params.ownerUserId)
 					: undefined,
+				params.integrationConnectionId
+					? or(
+							isNull(automationTriggers.connectionId),
+							eq(
+								automationTriggers.connectionId,
+								params.integrationConnectionId,
+							),
+						)
+					: isNull(automationTriggers.connectionId),
 			),
 		);
 
@@ -137,7 +149,9 @@ export async function dispatchMatchingTriggers(params: {
 	);
 
 	const matched = resolved.filter(
-		(candidate) => triggerMatches(candidate.config, event).matches,
+		(candidate) =>
+			accountAllows(candidate.connectionId, params.integrationConnectionId) &&
+			triggerMatches(candidate.config, event).matches,
 	);
 
 	if (matched.length === 0) {

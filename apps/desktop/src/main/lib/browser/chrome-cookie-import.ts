@@ -7,6 +7,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import Database from "better-sqlite3";
 import type { Session } from "electron";
+import { browserLocations } from "./chromium-profiles";
 
 const execFileAsync = promisify(execFile);
 
@@ -16,6 +17,9 @@ const execFileAsync = promisify(execFile);
  */
 const CHROME_EPOCH_OFFSET_MS = 11_644_473_600_000;
 
+/** Long enough for a person to read the Keychain prompt and click Allow. */
+const KEYCHAIN_PROMPT_TIMEOUT_MS = 120_000;
+
 /** Fixed parameters of Chrome's macOS "v10" cookie encryption. */
 const KDF_SALT = "saltysalt";
 const KDF_ITERATIONS = 1003;
@@ -23,19 +27,6 @@ const KDF_KEY_LENGTH = 16;
 const AES_IV = Buffer.alloc(16, 0x20); // 16 spaces
 /** Newer Chrome prepends a 32-byte SHA-256(host) to the plaintext. */
 const HOST_HASH_PREFIX_LENGTH = 32;
-
-/** Keychain service that stores each browser's cookie-encryption password. */
-const SAFE_STORAGE_SERVICE: Record<string, string> = {
-	chrome: "Chrome Safe Storage",
-	"chrome-beta": "Chrome Safe Storage",
-	"chrome-canary": "Chrome Safe Storage",
-	chromium: "Chromium Safe Storage",
-	edge: "Microsoft Edge Safe Storage",
-	brave: "Brave Safe Storage",
-	arc: "Arc Safe Storage",
-	dia: "Dia Safe Storage",
-	comet: "Comet Safe Storage",
-};
 
 export interface ImportedCookie {
 	url: string;
@@ -56,7 +47,7 @@ export interface ImportedCookie {
 	sameSite: "unspecified" | "no_restriction" | "lax" | "strict";
 }
 
-interface ChromeCookieRow {
+export interface ChromeCookieRow {
 	host_key: string;
 	name: string;
 	value: string;
@@ -70,7 +61,29 @@ interface ChromeCookieRow {
 }
 
 export function safeStorageServiceFor(browserKey: string): string | null {
-	return SAFE_STORAGE_SERVICE[browserKey] ?? null;
+	return (
+		browserLocations("darwin").find((location) => location.key === browserKey)
+			?.safeStorageService ?? null
+	);
+}
+
+/**
+ * True when the browser's Keychain item exists. Reads only its attributes, so
+ * it never shows a Keychain prompt. A browser that was uninstalled can leave
+ * its profiles on disk after its Keychain item is gone.
+ */
+export async function hasSafeStorageKey(browserKey: string): Promise<boolean> {
+	if (process.platform !== "darwin") return false;
+	const service = safeStorageServiceFor(browserKey);
+	if (!service) return false;
+	try {
+		await execFileAsync("security", ["find-generic-password", "-s", service], {
+			timeout: 10_000,
+		});
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 /**
@@ -88,7 +101,7 @@ export async function readSafeStorageKey(
 		const { stdout } = await execFileAsync(
 			"security",
 			["find-generic-password", "-s", service, "-w"],
-			{ timeout: 10_000 },
+			{ timeout: KEYCHAIN_PROMPT_TIMEOUT_MS },
 		);
 		return stdout.trim() || null;
 	} catch {
@@ -226,19 +239,35 @@ export function mapCookieRow(
 }
 
 /**
+ * Decrypts a profile's cookie rows. Returns null when there are rows but none
+ * decrypt, which means the key is wrong rather than that the profile is empty.
+ */
+export function mapCookieRows(
+	rows: ChromeCookieRow[],
+	key: Buffer,
+): ImportedCookie[] | null {
+	const cookies: ImportedCookie[] = [];
+	for (const row of rows) {
+		const cookie = mapCookieRow(row, key);
+		if (cookie) cookies.push(cookie);
+	}
+	return rows.length > 0 && cookies.length === 0 ? null : cookies;
+}
+
+/**
  * Reads and decrypts cookies from a Chromium profile. Chrome locks the live
- * `Cookies` DB while running, so we read a copy. Returns an empty array when the
- * DB or the Keychain key is unavailable.
+ * `Cookies` DB while running, so we read a copy. Returns an empty array when
+ * the profile has no cookies, and null when the Keychain key is unavailable.
  */
 export async function readCookiesFromProfile(
 	profileDir: string,
 	browserKey: string,
-): Promise<ImportedCookie[]> {
+): Promise<ImportedCookie[] | null> {
 	const source = path.join(profileDir, "Cookies");
 	if (!existsSync(source)) return [];
 
 	const safeStorageKey = await readSafeStorageKey(browserKey);
-	if (!safeStorageKey) return [];
+	if (!safeStorageKey) return null;
 	const key = deriveCookieKey(safeStorageKey);
 
 	const tempDir = mkdtempSync(
@@ -260,12 +289,7 @@ export async function readCookiesFromProfile(
 					 FROM cookies`,
 				)
 				.all() as ChromeCookieRow[];
-			const cookies: ImportedCookie[] = [];
-			for (const row of rows) {
-				const cookie = mapCookieRow(row, key);
-				if (cookie) cookies.push(cookie);
-			}
-			return cookies;
+			return mapCookieRows(rows, key);
 		} finally {
 			db.close();
 		}
@@ -277,7 +301,7 @@ export async function readCookiesFromProfile(
 export interface CookieImportResult {
 	imported: number;
 	skipped: number;
-	/** True when no cookies could be read — usually the Keychain key was denied. */
+	/** True when the Keychain key was denied, missing, or could not decrypt the cookies. */
 	keyUnavailable: boolean;
 }
 
@@ -492,7 +516,7 @@ export async function importCookiesIntoSession(
 	browserKey: string,
 ): Promise<CookieImportResult> {
 	const cookies = await readCookiesFromProfile(profileDir, browserKey);
-	if (cookies.length === 0) {
+	if (cookies === null) {
 		return { imported: 0, skipped: 0, keyUnavailable: true };
 	}
 	const result = await importCookies(targetSession, cookies);

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #8247: pull request page</title>
+<style>
+  :root { --bg: #ffffff; --fg: #1a1a1a; --muted: #6b7280; --line: #e5e7eb; --card: #f6f7f9; --accent: #2563eb; --green: #047857; --red: #b91c1c; --amber: #b45309; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #111113; --fg: #ececec; --muted: #9ca3af; --line: #2a2a2e; --card: #18181b; --accent: #7cacf8; --green: #34d399; --red: #f87171; --amber: #fbbf24; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--accent); }
+  main { max-width: 1180px; margin: 0 auto; padding: 40px 24px 96px; }
+  h1 { font-size: 28px; line-height: 1.2; margin: 0 0 6px; letter-spacing: -0.01em; }
+  h2 { font-size: 20px; margin: 52px 0 12px; letter-spacing: -0.01em; padding-top: 16px; border-top: 1px solid var(--line); }
+  h3 { font-size: 15px; margin: 26px 0 8px; font-weight: 600; }
+  p { margin: 0 0 12px; }
+  .sub { color: var(--muted); margin-bottom: 20px; }
+  ul { padding-left: 20px; margin: 0 0 12px; }
+  li { margin: 4px 0; }
+  code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--card); padding: 1px 5px; border-radius: 5px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 8px 0 20px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; }
+  figure { margin: 14px 0 26px; }
+  figure img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px; background: #0d0d0d; }
+  figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+  .grid figure { margin: 0; }
+  .row { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+  .row figure { margin: 0; flex: 0 1 auto; }
+  .row figure img { width: auto; }
+  .note { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 14px; margin: 12px 0 20px; }
+  .toc { columns: 2; font-size: 14px; margin: 0 0 8px; }
+  .toc a { text-decoration: none; }
+  .ok { color: var(--green); } .no { color: var(--red); } .meh { color: var(--amber); }
+  .tag { font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); margin-left: 6px; vertical-align: middle; }
+</style>
+</head>
+<body>
+<main>
+  <h1>PR #8247: the pull request page, end to end</h1>
+  <p class="sub">Everything on branch <code>review-pane-ui</code> as of 2026-10-07, captures retaken on the pushed head (<code>6be4faa04a</code>): the page redesign, the host procedures behind it, the bot review round and what was done with it, and the pane responsiveness pass. All captures are from the dev app over CDP against real pull requests on this repository. <a href="https://github.com/superset-sh/superset/pull/8247">Open the PR</a>.</p>
+
+  <ul class="toc">
+    <li><a href="#summary">1. Summary layout and info rail</a></li>
+    <li><a href="#loading">2. Loading states</a></li>
+    <li><a href="#prose">3. Description as page prose</a></li>
+    <li><a href="#changes">4. Changes tab</a></li>
+    <li><a href="#conversation">5. Conversation and composer</a></li>
+    <li><a href="#draft">6. Draft flow and menus</a></li>
+    <li><a href="#colors">7. Color and icon consistency</a></li>
+    <li><a href="#host">8. Host service</a></li>
+    <li><a href="#review">9. Review round</a></li>
+    <li><a href="#pane">10. Pane responsiveness</a></li>
+    <li><a href="#removed">11. Removed for now</a></li>
+    <li><a href="#status">12. Status and verification</a></li>
+  </ul>
+
+  <h2 id="summary">1. Summary layout and info rail</h2>
+  <p>The route and the workspace pane now share one page: a top bar (Summary / Changes tabs with the diff size, copy link, open on GitHub, Send to agent, and a split primary pill), a header (state pill beside "repo #n", a large title, author · age · head → base, labels), the description as prose, and an info rail with merge status, comments, reviewers, and checks. The rail is a sticky right column while the body is at least 52rem wide and folds into label/value rows under the header below that. The switch is a container query on the body itself, so a narrow window and a split pane fold the same way.</p>
+  <figure><img src="img/pr-screen-summary.png" alt="Summary with the info rail column" loading="lazy"><figcaption>Full-width Summary: header, prose, and the rail as a column.</figcaption></figure>
+  <div class="row">
+    <figure><img src="img/pr-screen-summary-narrow.png" width="500" alt="Summary with the rail folded into rows" loading="lazy"><figcaption>Below 52rem the same facts render as rows under the header; Checks collapses to a one-line brief.</figcaption></figure>
+  </div>
+
+  <h2 id="loading">2. Loading states</h2>
+  <p>The detail loads behind a page-shaped skeleton; a cold Changes click loads the diff renderer and its worker pool behind a file-card skeleton. Both share one shimmer: a viewport-fixed gradient sweep over the muted fill (<code>background-attachment: fixed</code>), 2s linear, off under reduced motion, so every placeholder on screen sweeps in sync instead of each one running its own loop.</p>
+  <div class="grid">
+    <figure><img src="img/pr-screen-skeleton.png" alt="Page skeleton" loading="lazy"><figcaption>Page skeleton while the detail loads.</figcaption></figure>
+    <figure><img src="img/pr-screen-changes-fallback.png" alt="Diff skeleton" loading="lazy"><figcaption>Changes while the diff loads, title row already in place.</figcaption></figure>
+  </div>
+  <figure><img src="img/pr-screen-shimmer.png" alt="Shimmer sweep mid-frame" loading="lazy"><figcaption>Shimmer mid-sweep.</figcaption></figure>
+
+  <h2 id="prose">3. Description as page prose</h2>
+  <p>The body renders through the shared markdown renderer with page-specific element renderers layered on top and an unlayered stylesheet for the scale (the renderer's own sheet is unlayered, so Tailwind utilities could not outrank it). Base 14px at 1.7 line height, 0.8rem block rhythm, headings at 600 weight with no underline rule, inline code as a pill, links in a dedicated blue because the desktop's primary token is near-foreground.</p>
+  <figure><img src="img/pr-screen-summary-prose.png" alt="Prose scale" loading="lazy"><figcaption>Prose scale: heading weights, list rhythm, inline code pills.</figcaption></figure>
+  <ul>
+    <li><b>Links</b> lead with the site's mark: GitHub's for github.com, otherwise the favicon served by the link's own origin, Globe when none loads. No lookup service sees the hostname (this changed in the review round).</li>
+    <li><b>Task lists</b> render as read-only boxes in the list gutter instead of inline inputs.</li>
+    <li><b>Tables</b> are a bordered grid at natural width inside a sideways-scrolling wrapper. A 100% table squeezed the prose column behind unbreakable code tokens; GitHub's approach reads better.</li>
+    <li>The pre-pass only strips HTML template comments ("READ BEFORE OPENING") so a comment-only body reads as empty. <code>br</code>, <code>sub</code>, <code>kbd</code> and friends are in the sanitizer allowlist and render natively; code spans are never rewritten.</li>
+  </ul>
+  <div class="grid">
+    <figure><img src="img/pr-screen-tasklist.png" alt="Task list" loading="lazy"><figcaption>Task boxes in the gutter (#8238).</figcaption></figure>
+    <figure><img src="img/pr-screen-table.png" alt="Table" loading="lazy"><figcaption>Bordered table at natural width (#8234).</figcaption></figure>
+  </div>
+
+  <h2 id="changes">4. Changes tab</h2>
+  <p>The Changes tab is lazy: the Summary stays mounted (hidden) and the diff tab mounts on first click. A title row (state glyph + PR title) sits above the files toolbar so the pane keeps its context when the Summary scrolls away. The diff viewer underneath is the shared code tab.</p>
+  <div class="grid">
+    <figure><img src="img/pr-screen-changes.png" alt="Changes tab" loading="lazy"><figcaption>The diff for #8247.</figcaption></figure>
+    <figure><img src="img/pr-screen-changes-title.png" alt="Changes title row" loading="lazy"><figcaption>Title row above the files toolbar.</figcaption></figure>
+  </div>
+
+  <h2 id="conversation">5. Conversation and composer</h2>
+  <p>The Summary ends in a Comments section: reviews and conversation comments sorted oldest first as collapsible rows (the last two open), each with avatar, author, a review-state label (approved / requested changes / reviewed), relative time, and a Reply link to the comment on GitHub. Bot findings that follow the title-plus-severity convention are lifted into a title and a colored severity line. Below the rows, a "Leave a comment" pill posts as the gh user through the host and invalidates the detail so the new comment appears on the refetch.</p>
+  <figure><img src="img/pr-screen-conversation.png" alt="Conversation" loading="lazy"><figcaption>Conversation on #8247: bot reviews and comments as collapsible rows, composer at the end.</figcaption></figure>
+
+  <h2 id="draft">6. Draft flow and menus</h2>
+  <p>A draft pull request gets Ready for review as its primary pill, and the header pill becomes a Draft / Ready for review state menu. The split pill's chevron opens a menu in a frosted picker skin (14px radius, 40px blur, 10px rows at 12px) with a glyph on every row:</p>
+  <ul>
+    <li><b>Draft menu</b>: Draft / Ready for review radio, Fix findings, Close pull request.</li>
+    <li><b>Merge menu</b>: a commit-message field, the three merge methods with a one-line description each, Force merge when checks are failing, Fix findings, Resolve conflicts when the base conflicts, Convert to draft, Close pull request.</li>
+    <li><b>Fix findings</b> builds a prompt from the review findings and failing checks (approvals skipped, findings posted as plain comments included, each field capped so one bot essay cannot crowd the rest) and hands it to an agent: into the workspace already open on the PR when there is one, otherwise by starting a workspace checked out on the PR with the host's first agent.</li>
+  </ul>
+  <figure><img src="img/pr-screen-draft.png" alt="Draft PR" loading="lazy"><figcaption>Draft #8243: Ready for review split pill, Draft state pill in the header, no Merge offered.</figcaption></figure>
+  <figure><img src="img/pr-screen-merge-menu.png" alt="Merge menu" loading="lazy"><figcaption>The merge menu on #8247: comment field, three methods with descriptions, Force merge while a check is failing, Fix findings, Convert to draft, Close.</figcaption></figure>
+  <figure><img src="img/pr-screen-draft-menu.png" alt="Draft state menu" loading="lazy"><figcaption>The header pill's Draft / Ready for review menu on #8243, with the rail beside it.</figcaption></figure>
+  <div class="row">
+    <figure><img src="img/pr-screen-topbar-icons.png" width="840" alt="Top bar icons" loading="lazy"><figcaption>Top bar: chain-link copy (with a check on success), arrow-out open on GitHub, Send to agent.</figcaption></figure>
+  </div>
+
+  <h2 id="colors">7. Color and icon consistency</h2>
+  <p>Every green and red on the page (diff stat, state glyph and pill, check marks, merge status) reads one shared constant that the sidebar list row also uses, so the page and the list are the same tone in light and dark. Draft pull requests now show the dashed draft glyph in the list and in every status chip; before this the shared icon drew open and draft with the same arrow.</p>
+  <div class="row">
+    <figure><img src="img/pr-list-draft-glyph.png" width="310" alt="Draft glyph in the list" loading="lazy"><figcaption>The list beside the page: draft #8243 with the dashed glyph, open rows with the green arrow, the same green and red as the page's diff stat and checks.</figcaption></figure>
+  </div>
+
+  <h2 id="host">8. Host service</h2>
+  <p>Writes go through the host's <code>gh</code>, like merge and close already did, so no GitHub App is needed. Every tRPC change is additive and optional for older clients.</p>
+  <table>
+    <tr><th>Change</th><th>Shape</th></tr>
+    <tr><td><code>pullRequests.addComment</code></td><td>New. One REST request: <code>gh api --method POST repos/o/r/issues/n/comments --input -</code> with the JSON body on stdin. <code>gh pr comment</code> posts over GraphQL and then reads the comment back, and GitHub failed that read once after the comment had landed, so the host reported a failure for a successful write. Stdin also keeps a long body out of argv. Evicts the content cache so the refetch carries the comment.</td></tr>
+    <tr><td><code>pullRequests.setDraft</code></td><td>New. <code>gh pr ready [--undo]</code>; the host records the draft flag on linked rows before the refetch lands so sidebar chips agree.</td></tr>
+    <tr><td><code>getContent</code> / <code>getContentByRepo</code></td><td>Same input; the output gains mergeability, merge-state status, diff counts, review decision, reviewers (requested plus everyone who submitted a review; pending reviews excluded), comments with review state and URL, labels, and merged/closed times. All optional; the desktop treats an older host's answer as "unknown", not "empty".</td></tr>
+  </table>
+  <p>Tests: add-comment, set-draft, the ready/draft branch of the post-write sync, and a populated-payload normalizer case (ghost author, pending review dropped, team review request without a login, reviewer de-dupe, negative and fractional counts).</p>
+
+  <h2 id="review">9. Review round</h2>
+  <p>Greptile posted 7 inline threads, CodeRabbit 5, and the superset-home review one summary with 8 points. Two independent review passes of my own (host side and renderer) overlapped heavily with them. Verdicts, each checked against the code before acting:</p>
+  <table>
+    <tr><th>Finding</th><th>Verdict</th><th>Outcome</th></tr>
+    <tr><td>CI Test red: fixtures render English text in an i18n-enforced dir</td><td class="ok">valid</td><td>Mocks render a test id</td></tr>
+    <tr><td>Favicon lookups send every external hostname to Google</td><td class="ok">valid</td><td>Favicon from the link's own origin, Globe fallback</td></tr>
+    <tr><td>Host review decision dropped on the way in</td><td class="ok">valid (×2)</td><td>Mapped to the values the Reviews section checks</td></tr>
+    <tr><td>Markdown pre-pass rewrote inline code and turned <code>br</code> into a soft break</td><td class="ok">valid</td><td>Pre-pass strips comments only; code spans protected</td></tr>
+    <tr><td>Page stylesheet only targets the default markdown style</td><td class="ok">valid</td><td>Renderer pinned to the default style</td></tr>
+    <tr><td>Check rows have no accessible outcome text</td><td class="ok">valid</td><td>Screen-reader status label per row</td></tr>
+    <tr><td><code>mutateAsync().finally()</code> leaves an unhandled rejection</td><td class="ok">valid (×2)</td><td><code>mutate</code> with <code>onSettled</code></td></tr>
+    <tr><td>Fix findings skips comment findings and quotes approvals</td><td class="ok">valid (×2)</td><td>Comment findings included, approvals filtered; inline review threads still a follow-up</td></tr>
+    <tr><td>Narrow pane clips: the scroll viewport's <code>display:table</code> wrapper</td><td class="ok">valid, confirmed live</td><td>Wrapper forced to block; no overflow at 411px</td></tr>
+    <tr><td>Duplicate React key in the skeleton</td><td class="ok">valid</td><td>Keyed by index</td></tr>
+    <tr><td>Fix findings can open a duplicate workspace before the linked lookup lands</td><td class="ok">valid</td><td>Mutation resolves the lookup first</td></tr>
+    <tr><td><code>commits</code> fetched but unread</td><td class="ok">valid</td><td>Dropped from the host read</td></tr>
+    <tr><td>French / Polish / Russian wording</td><td class="ok">valid</td><td>Fixed</td></tr>
+    <tr><td>Force merge calls the same endpoint as Merge</td><td class="meh">technically right, declined</td><td>GitHub decides bypass by permissions; the item only adds a warning confirmation when checks fail</td></tr>
+    <tr><td>"Send to agent" only opens the New Workspace modal</td><td class="no">not a bug</td><td>Intended: it pre-fills a workspace draft on the PR</td></tr>
+    <tr><td>Folder placement and multi-component files (own reviewer)</td><td class="meh">valid, deferred</td><td>A mechanical reshuffle of most of the diff; waiting on a call</td></tr>
+  </table>
+  <p>Extra from the host review: a very long comment body is now piped over stdin, and the pending-review author no longer counts as a reviewer.</p>
+
+  <h2 id="pane">10. Pane responsiveness</h2>
+  <p>The workspace pane got its own pass with before/after captures at 320, 400, 520, and 570px: a one-row top bar that compacts in stages (diff stat hidden below 30rem, Merge and Ready labels fold to the glyph below 23rem), the title stepping 1.75rem → 1.5rem → 1.25rem, gutters 24px → 16px, a narrower info-row label column, and now no side gutters at all around the diff below 40rem. The full comparison is its own page: <a href="https://app.superset.sh/page/pr-pane-responsiveness-before-and-after-uce2fr">PR pane responsiveness: before and after</a>.</p>
+  <div class="row">
+    <figure><img src="img/pane-before-320-summary.png" width="320" alt="320px pane before" loading="lazy"><figcaption>320px pane, before.</figcaption></figure>
+    <figure><img src="img/pane-after-320-summary.png" width="320" alt="320px pane after" loading="lazy"><figcaption>320px pane, after.</figcaption></figure>
+    <figure><img src="img/pane-after2-320-changes.png" width="320" alt="320px Changes with no side gutters" loading="lazy"><figcaption>320px Changes with the gutters removed.</figcaption></figure>
+  </div>
+
+  <h2 id="removed">11. Removed for now</h2>
+  <p>Two surfaces were built, verified, and then taken out at your request to keep the page focused. The host already returns what they need, so either can come back as its own PR.</p>
+  <div class="grid">
+    <figure><img src="img/pr-screen-timeline.png" alt="Timeline tab" loading="lazy"><figcaption>Timeline tab: commits, reviews, and comments in one feed.<span class="tag">removed</span></figcaption></figure>
+    <figure><img src="img/pr-screen-composer-typed.png" alt="Ask composer" loading="lazy"><figcaption>"Ask about this pull request" composer with an agent picker.<span class="tag">removed</span></figcaption></figure>
+  </div>
+
+  <h2 id="status">12. Status and verification</h2>
+  <table>
+    <tr><th>Gate</th><th>Result</th></tr>
+    <tr><td>Desktop typecheck</td><td>exit 0</td></tr>
+    <tr><td>Host-service typecheck</td><td>exit 0</td></tr>
+    <tr><td>Desktop PR suites and PullRequestPane fixtures</td><td>51 pass</td></tr>
+    <tr><td>Host pull-request suites</td><td>75 pass</td></tr>
+    <tr><td><code>check:i18n</code></td><td>clean; new strings translated in all 17 locales</td></tr>
+    <tr><td>Live over CDP</td><td>Summary wide and folded, skeletons, Changes, prose features, conversation, draft and merge menus, top bar, five pane widths</td></tr>
+    <tr><td>Not exercised live</td><td>Posting a comment, Ready for review / Convert to draft, Merge, Close, Fix findings, Resolve conflicts (each writes to a real PR or launches an agent)</td></tr>
+  </table>
+  <p class="note">Branch state: seven commits after the PR's last push (review follow-ups, host test coverage, the pane pass, the diff gutters). Nothing pushed and no review thread replied to yet; both are waiting on a go-ahead.</p>
+</main>
+</body>
+</html>

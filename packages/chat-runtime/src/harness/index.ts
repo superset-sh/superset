@@ -1,3 +1,6 @@
+export type { AcpAdapterOptions } from "./acp";
+export { AcpAdapter, createAcpAdapter } from "./acp";
+export { BackgroundTasks } from "./backgroundTasks";
 export type {
 	ClaudeAdapterOptions,
 	ClaudeQuery,

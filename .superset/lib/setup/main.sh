@@ -71,6 +71,10 @@ setup_main() {
     step_failed "Validate .env"
   fi
 
+  # Step 10.5: Mobile dev sign-in, from whatever desktop sign-in already
+  # exists on this machine. Best-effort — see the step's own comment.
+  step_seed_local_mobile_token
+
   # Step 11: Setup local MCP in .mcp.json (opt-in)
   if [ "$SETUP_LOCAL_MCP" = "1" ]; then
     if ! step_setup_local_mcp; then

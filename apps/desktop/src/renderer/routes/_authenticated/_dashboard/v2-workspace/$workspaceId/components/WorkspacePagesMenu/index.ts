@@ -1,1 +1,0 @@
-export { WorkspacePagesMenu } from "./WorkspacePagesMenu";

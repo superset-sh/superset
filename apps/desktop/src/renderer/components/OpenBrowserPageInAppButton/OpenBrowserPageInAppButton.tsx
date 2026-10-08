@@ -22,10 +22,7 @@ export function OpenBrowserPageInAppButton({
 	const { projects } = useHostProjects();
 	const target = getPullRequestTarget(currentUrl, projects);
 	const pageSlug = parseSupersetPageUrl(currentUrl, env.NEXT_PUBLIC_WEB_URL);
-	const canOpen =
-		pageSlug !== null ||
-		(target !== null &&
-			(onOpenInPane !== undefined || target.projectId !== null));
+	const canOpen = pageSlug !== null || target !== null;
 	if (!canOpen) return null;
 
 	return (
@@ -50,12 +47,15 @@ export function OpenBrowserPageInAppButton({
 							});
 							return;
 						}
-						if (!target?.projectId) return;
+						if (!target) return;
 						usePullRequestsSplitViewStore.getState().expandDetail();
 						void navigate({
 							to: "/pull-requests/$prNumber",
 							params: { prNumber: String(target.ref.number) },
-							search: { project: target.projectId },
+							search: {
+								project: target.projectId ?? undefined,
+								repo: target.ref.repoFullName,
+							},
 						});
 					}}
 				>

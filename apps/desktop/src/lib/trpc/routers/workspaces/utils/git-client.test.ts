@@ -6,8 +6,9 @@ import { join } from "node:path";
 import {
 	SIMPLE_GIT_UNSAFE_OPTION_FLAGS,
 	USER_GIT_ENV_SIMPLE_GIT_OPTIONS,
+	userGitSimpleGitOptions,
 } from "@superset/shared/simple-git-options";
-import simpleGit, { type SimpleGit } from "simple-git";
+import { type SimpleGit, simpleGit } from "simple-git";
 
 function makeBlockedGitEnv(workRoot: string): Record<string, string> {
 	const globalConfig = join(workRoot, "global.gitconfig");
@@ -84,9 +85,8 @@ describe("simple-git user env options", () => {
 		mkdirSync(repoPath);
 		execSync("git init", { cwd: repoPath, stdio: "ignore" });
 
-		const git = simpleGit(repoPath, USER_GIT_ENV_SIMPLE_GIT_OPTIONS).env(
-			makeBlockedGitEnv(workRoot),
-		);
+		const env = makeBlockedGitEnv(workRoot);
+		const git = simpleGit(repoPath, userGitSimpleGitOptions(env)).env(env);
 
 		const status = await git.raw(["status", "--short"]);
 		expect(status).toBe("");

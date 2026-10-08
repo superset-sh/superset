@@ -27,6 +27,17 @@ export function buildSubmitPrompt(args: BuildSubmitPromptArgs): string {
 	}
 
 	for (const issue of args.linkedIssues) {
+		if (issue.source !== "linear") continue;
+		const body = readBody(`linear-issue:${issue.slug}`);
+		const headerLines = [
+			`## Linked Linear issue — ${issue.slug}: ${issue.title}`,
+		];
+		if (issue.url) headerLines.push(issue.url);
+		const header = headerLines.join("\n");
+		linkedSections.push(body ? `${header}\n\n${body}` : header);
+	}
+
+	for (const issue of args.linkedIssues) {
 		if (issue.source !== "github" || issue.number == null) continue;
 		const body = readBody(`github-issue:${issue.number}`);
 		const headerLines = [

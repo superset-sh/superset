@@ -25,6 +25,7 @@ export async function createSupersetMcpClient({
 		userId,
 		clientLabel: SLACK_CLIENT_LABEL,
 		relayUrl: env.RELAY_URL,
+		realtimeUrl: env.REALTIME_URL,
 		onToolCall: (event) => {
 			posthog.capture({
 				distinctId: event.userId,

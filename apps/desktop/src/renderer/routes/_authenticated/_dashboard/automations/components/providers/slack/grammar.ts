@@ -15,6 +15,7 @@ export type SlackConfig = Extract<TriggerConfigInput, { kind: "slack" }>;
  */
 
 export type Slot =
+	| "account"
 	| "channels"
 	| "emoji"
 	| "actor"
@@ -32,6 +33,7 @@ export const SLACK_SENTENCES: Record<SlackTriggerEvent, SentencePart[]> = {
 		{ slot: "actor" },
 		{ text: "in" },
 		{ slot: "channels" },
+		{ slot: "account" },
 		{ text: "; react with" },
 		{ slot: "completionReaction" },
 		{ text: "upon completion" },
@@ -45,10 +47,12 @@ export const SLACK_SENTENCES: Record<SlackTriggerEvent, SentencePart[]> = {
 		{ slot: "actor" },
 		{ text: "to a message in" },
 		{ slot: "channels" },
+		{ slot: "account" },
 	],
 	channel_created: [
 		{ text: "Channel created matching" },
 		{ slot: "messageFilter" },
+		{ slot: "account" },
 	],
 };
 

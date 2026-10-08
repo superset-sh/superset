@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { TRIGGER_KIND_CONNECTOR } from "@superset/shared/automation-triggers";
 import { labelText } from "./eventLabel";
-import { TRIGGER_PROVIDERS } from "./index";
+import { connectorFor, TRIGGER_PROVIDERS } from "./index";
 import type { TriggerMenuEntry } from "./types";
 
 /**
@@ -62,5 +63,19 @@ describe("the Add Trigger menu", () => {
 	test("no two providers claim the same kind", () => {
 		const kinds = TRIGGER_PROVIDERS.map((provider) => provider.kind);
 		expect(new Set(kinds).size).toBe(kinds.length);
+	});
+});
+
+describe("the kind-to-connector map", () => {
+	test("agrees with the one the server pins from", () => {
+		const fromRegistry = Object.fromEntries(
+			TRIGGER_PROVIDERS.map((provider) => [
+				provider.kind,
+				provider.kind === "github" ? null : connectorFor(provider),
+			]),
+		);
+		for (const [kind, connector] of Object.entries(fromRegistry)) {
+			expect(TRIGGER_KIND_CONNECTOR[kind]).toBe(connector);
+		}
 	});
 });

@@ -20,6 +20,8 @@ interface PageHeaderProps extends PageHeaderActions {
 	leading?: ReactNode;
 	trailing?: ReactNode;
 	className?: string;
+	/** The empty space between the title and the actions, e.g. a window-drag region. */
+	fillerClassName?: string;
 }
 
 export function PageHeader({
@@ -29,6 +31,7 @@ export function PageHeader({
 	leading,
 	trailing,
 	className,
+	fillerClassName,
 	onSetVisibility,
 	onSetSharedVersion,
 	onDelete,
@@ -81,7 +84,7 @@ export function PageHeader({
 					) : null}
 				</div>
 
-				<div className="drag h-full min-w-0 flex-1" />
+				<div className={cn("h-full min-w-0 flex-1", fillerClassName)} />
 				<div className="flex shrink-0 items-center gap-1">
 					{trailing}
 					<PageShareButton

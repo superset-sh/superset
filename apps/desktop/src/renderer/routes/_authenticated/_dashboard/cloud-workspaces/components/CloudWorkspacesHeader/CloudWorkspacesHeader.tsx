@@ -1,5 +1,6 @@
 import { plural } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
+import type { CloudWorkspaceSort } from "@superset/shared/cloud-workspace-groups";
 import { AvatarStack } from "@superset/ui/atoms/AvatarStack";
 import {
 	DropdownMenu,
@@ -33,7 +34,6 @@ import {
 import { ToolbarMenuButton } from "renderer/routes/_authenticated/_dashboard/components/ToolbarMenuButton";
 import { WorkItemsSearch } from "renderer/routes/_authenticated/_dashboard/components/WorkItemsSearch";
 import type { CloudWorkspaceGrouping } from "renderer/routes/_authenticated/_dashboard/stores/listDisplayStore";
-import type { CloudWorkspaceSort } from "renderer/routes/_authenticated/_dashboard/utils/groupCloudWorkspaces";
 import { NO_PROJECT } from "../../constants";
 import type { CloudWorkspaceStatusFilter } from "../../types";
 
@@ -280,7 +280,6 @@ export function CloudWorkspacesHeader({
 														},
 													]}
 													size={16}
-													surface="popover"
 												/>
 												<span className="min-w-0 truncate">{option.name}</span>
 											</span>

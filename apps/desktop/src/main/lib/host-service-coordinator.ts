@@ -274,6 +274,34 @@ function isValidPort(port: number | null | undefined): port is number {
 	);
 }
 
+export interface HostServiceCoordinatorDeps {
+	isProcessAlive: typeof isProcessAlive;
+	killProcess: typeof killProcess;
+	manifestDir: typeof manifestDir;
+	readManifest: typeof readManifest;
+	removeManifest: typeof removeManifest;
+	findFreePort: typeof findFreePort;
+	openRotatingLogFd: typeof openRotatingLogFd;
+	pollHealthCheck: typeof pollHealthCheck;
+	getHostId: typeof getHostId;
+	showMessageBox: (
+		options: Electron.MessageBoxOptions,
+	) => Promise<Electron.MessageBoxReturnValue>;
+}
+
+const defaultDeps: HostServiceCoordinatorDeps = {
+	isProcessAlive,
+	killProcess,
+	manifestDir,
+	readManifest,
+	removeManifest,
+	findFreePort,
+	openRotatingLogFd,
+	pollHealthCheck,
+	getHostId,
+	showMessageBox: (options) => dialog.showMessageBox(options),
+};
+
 /**
  * Coupled to Electron: each child is spawned attached and SIGTERMed on
  * before-quit. PTYs survive across Electron restarts via the pty-daemon
@@ -286,7 +314,7 @@ export class HostServiceCoordinator extends EventEmitter {
 	private lastKnownPorts = new Map<string, number>();
 	private stableSecrets = new Map<string, string>();
 	private scriptPath = path.join(__dirname, "host-service.js");
-	private machineId = getHostId();
+	private machineId: string;
 	private devReloadWatcher: fs.FSWatcher | null = null;
 	private respawns = new Map<string, RespawnState>();
 	private desiredOrganizationIds = new Set<string>();
@@ -314,6 +342,13 @@ export class HostServiceCoordinator extends EventEmitter {
 	 */
 	private inspectProcess: (pid: number) => Promise<ProcessIdentity | null> =
 		inspectProcessWithPs;
+	private readonly deps: HostServiceCoordinatorDeps;
+
+	constructor(deps: Partial<HostServiceCoordinatorDeps> = {}) {
+		super();
+		this.deps = { ...defaultDeps, ...deps };
+		this.machineId = this.deps.getHostId();
+	}
 
 	/**
 	 * Supplies fresh spawn config for automatic respawns. A respawn must not
@@ -344,7 +379,7 @@ export class HostServiceCoordinator extends EventEmitter {
 			// An adopted entry points at a foreign instance's child we don't
 			// supervise (no exit handler). Re-validate it's still alive before
 			// handing it back; if the owner died, drop it and start fresh.
-			if (existing.owned || isProcessAlive(existing.pid)) {
+			if (existing.owned || this.deps.isProcessAlive(existing.pid)) {
 				return {
 					port: existing.port,
 					secret: existing.secret,
@@ -433,24 +468,26 @@ export class HostServiceCoordinator extends EventEmitter {
 	private getOrCreateSecret(organizationId: string): string {
 		const existing =
 			this.stableSecrets.get(organizationId) ??
-			readManifest(organizationId)?.authToken;
+			this.deps.readManifest(organizationId)?.authToken;
 		const secret = existing ?? randomBytes(32).toString("hex");
 		this.stableSecrets.set(organizationId, secret);
 		return secret;
 	}
 
-	stop(organizationId: string): void {
+	/** Returns the pid it sent SIGTERM to, or null when it signalled nothing. */
+	stop(organizationId: string): number | null {
 		// Cancel first, and unconditionally: a respawn may be pending with no
 		// instance tracked (the crashed one was already deleted), and quitting or
 		// restarting must not let that timer resurrect a child.
 		this.clearRespawnState(organizationId);
 
 		const instance = this.instances.get(organizationId);
-		if (!instance) return;
+		if (!instance) return null;
 
 		const previousStatus = instance.status;
 		instance.status = "stopped";
 		this.rememberPort(organizationId, instance.port);
+		let signalledPid: number | null = null;
 
 		// Only owned children are ours to kill + de-manifest. Adopted entries
 		// (owned=false) belong to another live instance — fall through and just
@@ -458,7 +495,8 @@ export class HostServiceCoordinator extends EventEmitter {
 		if (instance.owned) {
 			try {
 				if (instance.pid > 0) {
-					killProcess(instance.pid, "SIGTERM");
+					this.deps.killProcess(instance.pid, "SIGTERM");
+					signalledPid = instance.pid;
 					this.scheduleKillEscalation(organizationId, instance.pid);
 				}
 			} catch {}
@@ -467,6 +505,7 @@ export class HostServiceCoordinator extends EventEmitter {
 
 		this.instances.delete(organizationId);
 		this.emitStatus(organizationId, "stopped", previousStatus);
+		return signalledPid;
 	}
 
 	/**
@@ -477,21 +516,25 @@ export class HostServiceCoordinator extends EventEmitter {
 	 * writer's claim must not read as license to delete.
 	 */
 	private removeManifestIfHeldBy(organizationId: string, pid: number): void {
-		if (readManifest(organizationId)?.pid !== pid) return;
-		removeManifest(organizationId);
+		if (this.deps.readManifest(organizationId)?.pid !== pid) return;
+		this.deps.removeManifest(organizationId);
 	}
 
-	stopAll(): void {
+	/** Returns the pids of the children it sent SIGTERM to. */
+	stopAll(): number[] {
 		this.startGeneration++;
 		this.desiredOrganizationIds.clear();
+		const signalledPids: number[] = [];
 		for (const [id] of this.instances) {
-			this.stop(id);
+			const pid = this.stop(id);
+			if (pid !== null) signalledPids.push(pid);
 		}
 		// A crashed instance is deleted before its respawn fires, so an org with a
 		// pending respawn has no entry in `instances` for the loop above to reach.
 		for (const id of Array.from(this.respawns.keys())) {
 			this.clearRespawnState(id);
 		}
+		return signalledPids;
 	}
 
 	async restart(
@@ -522,13 +565,13 @@ export class HostServiceCoordinator extends EventEmitter {
 		// for tracked instances and only sends SIGTERM, which a wedged process
 		// can ignore. We escalate to SIGKILL on whatever pid the manifest named.
 		const preferredPorts = this.getPreferredPorts(organizationId);
-		const manifestPid = readManifest(organizationId)?.pid;
+		const manifestPid = this.deps.readManifest(organizationId)?.pid;
 
 		this.stop(organizationId);
 
-		if (manifestPid != null && isProcessAlive(manifestPid)) {
+		if (manifestPid != null && this.deps.isProcessAlive(manifestPid)) {
 			try {
-				killProcess(manifestPid, "SIGKILL");
+				this.deps.killProcess(manifestPid, "SIGKILL");
 			} catch (error) {
 				log.warn(
 					`[host-service:${organizationId}] reset: SIGKILL of pid=${manifestPid} failed`,
@@ -537,7 +580,7 @@ export class HostServiceCoordinator extends EventEmitter {
 			}
 		}
 
-		removeManifest(organizationId);
+		this.deps.removeManifest(organizationId);
 
 		return this.startWithPreferredPorts(organizationId, config, preferredPorts);
 	}
@@ -757,9 +800,11 @@ export class HostServiceCoordinator extends EventEmitter {
 		const deadline = Date.now() + START_OR_ADOPT_DEADLINE_MS;
 		for (;;) {
 			if (!isStartAllowed()) throw new Error("Host service start cancelled");
-			const lock = acquireSpawnLock(organizationId, {
-				staleMs: SPAWN_LOCK_STALE_MS,
-			});
+			const lock = acquireSpawnLock(
+				organizationId,
+				{ staleMs: SPAWN_LOCK_STALE_MS },
+				this.deps,
+			);
 			if (lock) {
 				try {
 					// A peer may have finished spawning between our first adopt
@@ -802,7 +847,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		isStartAllowed: () => boolean,
 	): Promise<Connection | null> {
 		if (!isStartAllowed()) throw new Error("Host service start cancelled");
-		const manifest = readManifest(organizationId);
+		const manifest = this.deps.readManifest(organizationId);
 		if (!manifest) return null;
 
 		let port: number;
@@ -813,7 +858,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		}
 		if (!isValidPort(port)) return null;
 
-		const healthy = await pollHealthCheck(
+		const healthy = await this.deps.pollHealthCheck(
 			manifest.endpoint,
 			manifest.authToken,
 			ADOPT_HEALTH_TIMEOUT_MS,
@@ -855,7 +900,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		isStartAllowed: () => boolean = () => true,
 	): Promise<Connection> {
 		if (!isStartAllowed()) throw new Error("Host service start cancelled");
-		const port = await findFreePort(preferredPorts);
+		const port = await this.deps.findFreePort(preferredPorts);
 		if (!isStartAllowed()) throw new Error("Host service start cancelled");
 		this.rememberPort(organizationId, port);
 		const secret = this.getOrCreateSecret(organizationId);
@@ -886,8 +931,8 @@ export class HostServiceCoordinator extends EventEmitter {
 			}
 			throw new Error("Host service start cancelled");
 		}
-		const logFd = openRotatingLogFd(
-			path.join(manifestDir(organizationId), "host-service.log"),
+		const logFd = this.deps.openRotatingLogFd(
+			path.join(this.deps.manifestDir(organizationId), "host-service.log"),
 			MAX_HOST_LOG_BYTES,
 		);
 		// Output is piped rather than handing the log fd straight to the child so
@@ -970,7 +1015,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		child.unref();
 
 		const endpoint = `http://127.0.0.1:${port}`;
-		const healthy = await pollHealthCheck(
+		const healthy = await this.deps.pollHealthCheck(
 			endpoint,
 			secret,
 			HEALTH_POLL_TIMEOUT_MS,
@@ -1009,7 +1054,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		secret: string,
 		config: SpawnConfig,
 	): Promise<Record<string, string>> {
-		const organizationDir = manifestDir(organizationId);
+		const organizationDir = this.deps.manifestDir(organizationId);
 		const row = localDb.select().from(settings).get();
 		const exposeViaRelay = row?.exposeHostServiceViaRelay ?? false;
 		const browserBridge = getBrowserBridgeInfo();
@@ -1021,7 +1066,7 @@ export class HostServiceCoordinator extends EventEmitter {
 				? "production"
 				: (process.env.NODE_ENV ?? "development"),
 			ORGANIZATION_ID: organizationId,
-			HOST_CLIENT_ID: getHostId(),
+			HOST_CLIENT_ID: this.deps.getHostId(),
 			HOST_NAME: getHostName(),
 			HOST_SERVICE_SECRET: secret,
 			HOST_SERVICE_PORT: String(port),
@@ -1342,12 +1387,12 @@ export class HostServiceCoordinator extends EventEmitter {
 			// no longer the registered one; never signal a pid we know is gone.
 			if (this.killEscalations.get(pid) !== timer) return;
 			this.killEscalations.delete(pid);
-			if (!isProcessAlive(pid)) return;
+			if (!this.deps.isProcessAlive(pid)) return;
 			log.warn(
 				`[host-service:${organizationId}] pid=${pid} still alive ${STOP_KILL_ESCALATION_MS}ms after SIGTERM; escalating to SIGKILL`,
 			);
 			try {
-				killProcess(pid, "SIGKILL");
+				this.deps.killProcess(pid, "SIGKILL");
 			} catch (error) {
 				log.warn(
 					`[host-service:${organizationId}] SIGKILL of pid=${pid} failed`,
@@ -1386,8 +1431,8 @@ export class HostServiceCoordinator extends EventEmitter {
 	private async reapWedgedManifestHolder(
 		organizationId: string,
 	): Promise<void> {
-		const manifest = readManifest(organizationId);
-		if (!manifest || !isProcessAlive(manifest.pid)) return;
+		const manifest = this.deps.readManifest(organizationId);
+		if (!manifest || !this.deps.isProcessAlive(manifest.pid)) return;
 		// tryAdopt() returns null without probing when the endpoint is
 		// unparsable; only a probed miss is evidence of a wedge.
 		let port: number | null = null;
@@ -1418,7 +1463,7 @@ export class HostServiceCoordinator extends EventEmitter {
 			`[host-service:${organizationId}] manifest pid=${manifest.pid} at ${manifest.endpoint} is alive but unhealthy; SIGKILLing it before spawning`,
 		);
 		try {
-			killProcess(manifest.pid, "SIGKILL");
+			this.deps.killProcess(manifest.pid, "SIGKILL");
 		} catch (error) {
 			log.warn(
 				`[host-service:${organizationId}] reap: SIGKILL of pid=${manifest.pid} failed`,
@@ -1439,7 +1484,7 @@ export class HostServiceCoordinator extends EventEmitter {
 
 	private async waitForExit(pid: number, timeoutMs: number): Promise<boolean> {
 		const deadline = Date.now() + timeoutMs;
-		while (isProcessAlive(pid)) {
+		while (this.deps.isProcessAlive(pid)) {
 			if (Date.now() >= deadline) return false;
 			await new Promise((r) => setTimeout(r, REAP_EXIT_POLL_MS));
 		}
@@ -1453,7 +1498,7 @@ export class HostServiceCoordinator extends EventEmitter {
 	 */
 	private alertChildCrashed(organizationId: string, cause: string): void {
 		const orgName = this.getOrganizationName(organizationId);
-		void dialog.showMessageBox({
+		void this.deps.showMessageBox({
 			type: "error",
 			title: i18n._(
 				msg({

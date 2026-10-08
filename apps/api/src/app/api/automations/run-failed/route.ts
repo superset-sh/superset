@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { db } from "@superset/db/client";
 import { automationRuns, automations } from "@superset/db/schema";
+import { nudge } from "@superset/trpc/realtime";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { verifyQstashRequest } from "@/lib/verifyQstash";
@@ -105,6 +106,8 @@ export async function POST(request: Request): Promise<Response> {
 				set: failed,
 			});
 	}
+
+	nudge(automation.organizationId, "automation_runs");
 
 	Sentry.captureException(
 		new Error(`automation dispatch failed: ${automationId}`),

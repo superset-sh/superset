@@ -1,61 +1,34 @@
-import { afterAll, afterEach, beforeEach, expect, mock, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, beforeEach, expect, mock, test } from "bun:test";
+import type { useNavigate } from "@tanstack/react-router";
+import { useNewWorkspaceDraftStore } from "renderer/stores/new-workspace-draft";
+import { useNewWorkspaceModalStore } from "renderer/stores/new-workspace-modal";
+import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
+import {
+	openNewSession,
+	openNewWorkspace,
+	openNewWorkspaceForLocalProject,
+} from "./useOpenNewWorkspace";
 
 const navigate = mock(() => Promise.resolve());
-let v2Enabled = true;
-mock.module("renderer/hooks/useIsV2CloudEnabled", () => ({
-	useIsV2CloudEnabled: () => v2Enabled,
-}));
-mock.module(
-	"renderer/routes/_authenticated/providers/LocalHostServiceProvider",
-	() => ({
-		useLocalHostService: () => ({ machineId: "this-machine" }),
-	}),
-);
+const MACHINE_ID = "this-machine";
+const v2 = {
+	isV2CloudEnabled: true,
+	machineId: MACHINE_ID,
+	navigate: navigate as unknown as ReturnType<typeof useNavigate>,
+};
 
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
-const {
-	act,
-	cleanup,
-	renderHook: renderHookWithOptions,
-} = await import("@testing-library/react");
-const {
-	createRootRoute,
-	createRouter,
-	createMemoryHistory,
-	RouterContextProvider,
-} = await import("@tanstack/react-router");
-const { createElement } = await import("react");
-function renderHook<Result>(hook: () => Result) {
-	const router = createRouter({
-		routeTree: createRootRoute(),
-		history: createMemoryHistory({ initialEntries: ["/"] }),
-	});
-	router.navigate = navigate;
-	return renderHookWithOptions(hook, {
-		wrapper: ({ children }) =>
-			createElement(RouterContextProvider, { router, children }),
-	});
+function resetStores() {
+	useNewWorkspaceDraftStore.getState().updateDraft({ hostId: null });
+	useNewWorkspaceDraftStore.getState().resetDraft();
+	useV2WorkspaceCreateDefaultsStore.getState().setLastHostId(null);
+	useNewWorkspaceModalStore.getState().closeModal();
 }
-const { useNewWorkspaceDraftStore } = await import(
-	"renderer/stores/new-workspace-draft"
-);
-const { useNewWorkspaceModalStore } = await import(
-	"renderer/stores/new-workspace-modal"
-);
-const { useOpenNewWorkspace, useOpenNewWorkspaceForLocalProject } =
-	await import("./useOpenNewWorkspace");
 
 beforeEach(() => {
 	navigate.mockClear();
-	v2Enabled = true;
-	useNewWorkspaceDraftStore.getState().resetDraft();
+	resetStores();
 });
-afterEach(cleanup);
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
+afterEach(resetStores);
 
 test.each([
 	"cloud",
@@ -67,8 +40,7 @@ test.each([
 		prompt: "Keep my prompt",
 		checkout: "local",
 	});
-	const { result } = renderHook(useOpenNewWorkspaceForLocalProject);
-	act(() => result.current("new-project"));
+	openNewWorkspaceForLocalProject(v2, "new-project");
 	expect(navigate).toHaveBeenCalledWith(
 		expect.objectContaining({
 			to: "/new-workspace",
@@ -83,21 +55,98 @@ test.each([
 		checkout: "local",
 	});
 	useNewWorkspaceDraftStore.getState().updateDraft({ hostId: "cloud" });
-	act(() => result.current("second-project"));
+	openNewWorkspaceForLocalProject(v2, "second-project");
 	expect(useNewWorkspaceDraftStore.getState().hostId).toBe("this-machine");
 });
 
 test("ordinary new workspace navigation preserves the selected remote host", () => {
 	useNewWorkspaceDraftStore.getState().updateDraft({ hostId: "other-machine" });
-	const { result } = renderHook(useOpenNewWorkspace);
-	act(() => result.current("existing-project"));
+	openNewWorkspace(v2, "existing-project");
 	expect(useNewWorkspaceDraftStore.getState().hostId).toBe("other-machine");
 });
 
+test("project handoff leaves the cloud host for the local machine", () => {
+	useNewWorkspaceDraftStore.getState().updateDraft({ hostId: "cloud" });
+	openNewWorkspace(v2, "project-a");
+	expect(navigate).toHaveBeenCalledWith(
+		expect.objectContaining({
+			search: { projectId: "project-a", host: "this-machine" },
+		}),
+	);
+	expect(useNewWorkspaceDraftStore.getState()).toMatchObject({
+		hostId: "this-machine",
+		selectedProjectId: "project-a",
+	});
+});
+
+test("project handoff leaves a remembered cloud host before the page restores it", () => {
+	useV2WorkspaceCreateDefaultsStore.getState().setLastHostId("cloud");
+	openNewWorkspace(v2, "project-a");
+	expect(navigate).toHaveBeenCalledWith(
+		expect.objectContaining({
+			search: { projectId: "project-a", host: "this-machine" },
+		}),
+	);
+});
+
+test("project handoff keeps a draft remote host over a remembered cloud host", () => {
+	useV2WorkspaceCreateDefaultsStore.getState().setLastHostId("cloud");
+	useNewWorkspaceDraftStore.getState().updateDraft({ hostId: "other-machine" });
+	openNewWorkspace(v2, "project-a");
+	expect(navigate).toHaveBeenCalledWith(
+		expect.objectContaining({
+			search: { projectId: "project-a", host: "other-machine" },
+		}),
+	);
+	expect(useNewWorkspaceDraftStore.getState().hostId).toBe("other-machine");
+});
+
+test("session handoff keeps a draft remote host over a remembered cloud host", () => {
+	useV2WorkspaceCreateDefaultsStore.getState().setLastHostId("cloud");
+	useNewWorkspaceDraftStore.getState().updateDraft({ hostId: "other-machine" });
+	openNewSession(v2);
+	expect(navigate).toHaveBeenCalledWith(
+		expect.objectContaining({
+			search: { session: true, host: "other-machine" },
+		}),
+	);
+	expect(useNewWorkspaceDraftStore.getState().hostId).toBe("other-machine");
+});
+
+test("new workspace without a project keeps the cloud host", () => {
+	useNewWorkspaceDraftStore.getState().updateDraft({ hostId: "cloud" });
+	openNewWorkspace(v2);
+	expect(useNewWorkspaceDraftStore.getState().hostId).toBe("cloud");
+});
+
+test("session handoff leaves the cloud host and selects the session", () => {
+	useNewWorkspaceDraftStore.getState().updateDraft({ hostId: "cloud" });
+	openNewSession(v2);
+	expect(navigate).toHaveBeenCalledWith(
+		expect.objectContaining({
+			search: { session: true, host: "this-machine" },
+		}),
+	);
+	expect(useNewWorkspaceDraftStore.getState()).toMatchObject({
+		hostId: "this-machine",
+		isSession: true,
+	});
+});
+
+test("session handoff re-selects the session when the URL already asks for it", () => {
+	useNewWorkspaceDraftStore.getState().selectProject("project-a");
+	openNewSession(v2);
+	expect(useNewWorkspaceDraftStore.getState()).toMatchObject({
+		isSession: true,
+		selectedProjectId: null,
+	});
+});
+
 test("v1 local project handoff still opens the project modal", () => {
-	v2Enabled = false;
-	const { result } = renderHook(useOpenNewWorkspaceForLocalProject);
-	act(() => result.current("v1-project"));
+	openNewWorkspaceForLocalProject(
+		{ ...v2, isV2CloudEnabled: false },
+		"v1-project",
+	);
 	expect(navigate).not.toHaveBeenCalled();
 	expect(useNewWorkspaceModalStore.getState()).toMatchObject({
 		isOpen: true,

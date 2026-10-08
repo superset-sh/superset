@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { PluginSkillSource } from "./managed-skills";
 import { resolveSupersetHomeDir } from "./paths";
+import { writeFileIfChanged } from "./write-file-if-changed";
 
 export function installedPluginsFilePath(): string {
 	return path.join(
@@ -18,14 +19,17 @@ interface InstalledPluginRecord {
 	enabled?: unknown;
 }
 
+export interface EnabledPlugin {
+	name: string;
+	marketplace: string;
+}
+
 /**
- * `file` defaults to the one ledger every provisioner reads. Callers pass it
- * explicitly when they cannot rely on the ambient SUPERSET_HOME_DIR — a test
- * sharing a process with siblings that move the variable, most of all.
+ * The enabled, named records, or null when the ledger exists and cannot be
+ * read: an empty list means every plugin is gone, and a read failure must not
+ * be taken for one.
  */
-export function readInstalledPluginSources(
-	file: string = installedPluginsFilePath(),
-): PluginSkillSource[] | null {
+function readLedgerRecords(file: string): InstalledPluginRecord[] | null {
 	let raw: string;
 	try {
 		raw = fs.readFileSync(file, "utf-8");
@@ -42,14 +46,61 @@ export function readInstalledPluginSources(
 
 	const plugins = (parsed as { plugins?: unknown })?.plugins;
 	if (!Array.isArray(plugins)) return null;
+	return (plugins as InstalledPluginRecord[]).filter(
+		(entry) =>
+			entry?.enabled !== false && typeof entry?.name === "string" && entry.name,
+	);
+}
+
+export function readEnabledPlugins(
+	file: string = installedPluginsFilePath(),
+): EnabledPlugin[] | null {
+	return (
+		readLedgerRecords(file)?.map((entry) => ({
+			name: entry.name as string,
+			marketplace:
+				typeof entry.marketplace === "string" ? entry.marketplace : "",
+		})) ?? null
+	);
+}
+
+export interface InstalledPluginEntry {
+	marketplace: string;
+	name: string;
+	version: string;
+	installPath?: string;
+	installedAt: string;
+	enabled: boolean;
+}
+
+export function writeInstalledPlugins(
+	plugins: readonly InstalledPluginEntry[],
+	file: string = installedPluginsFilePath(),
+): void {
+	fs.mkdirSync(path.dirname(file), { recursive: true });
+	writeFileIfChanged(
+		file,
+		`${JSON.stringify({ version: 1, plugins }, null, "\t")}\n`,
+		0o644,
+	);
+}
+
+/**
+ * `file` defaults to the one ledger every provisioner reads. Callers pass it
+ * explicitly when they cannot rely on the ambient SUPERSET_HOME_DIR — a test
+ * sharing a process with siblings that move the variable, most of all.
+ */
+export function readInstalledPluginSources(
+	file: string = installedPluginsFilePath(),
+): PluginSkillSource[] | null {
+	const records = readLedgerRecords(file);
+	if (!records) return null;
 
 	const usable: { name: string; marketplace: string; dir: string }[] = [];
-	for (const entry of plugins as InstalledPluginRecord[]) {
-		if (entry?.enabled === false) continue;
-		if (typeof entry?.name !== "string" || !entry.name) continue;
-		if (typeof entry?.installPath !== "string" || !entry.installPath) continue;
+	for (const entry of records) {
+		if (typeof entry.installPath !== "string" || !entry.installPath) continue;
 		usable.push({
-			name: entry.name,
+			name: entry.name as string,
 			marketplace:
 				typeof entry.marketplace === "string" ? entry.marketplace : "",
 			dir: entry.installPath,

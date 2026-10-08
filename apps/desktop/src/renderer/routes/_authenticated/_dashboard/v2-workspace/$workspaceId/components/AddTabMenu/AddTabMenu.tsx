@@ -6,12 +6,11 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { BsTerminalPlus } from "react-icons/bs";
 import { LuGitCompareArrows } from "react-icons/lu";
-import { TbDeviceDesktop, TbMessageCirclePlus, TbWorld } from "react-icons/tb";
+import { TbDeviceDesktop, TbWorld } from "react-icons/tb";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
 
 interface AddTabMenuProps {
 	onAddTerminal: () => void;
-	onAddChatV3?: (() => void) | undefined;
 	onAddBrowser: () => void;
 	onAddChanges: () => void;
 	onAddDesktop?: (() => void) | undefined;
@@ -21,7 +20,6 @@ interface AddTabMenuProps {
 
 export function AddTabMenu({
 	onAddTerminal,
-	onAddChatV3,
 	onAddBrowser,
 	onAddChanges,
 	onAddDesktop,
@@ -37,14 +35,6 @@ export function AddTabMenu({
 				</span>
 				<HotkeyMenuShortcut hotkeyId="NEW_GROUP" />
 			</DropdownMenuItem>
-			{onAddChatV3 && (
-				<DropdownMenuItem className="gap-2" onClick={onAddChatV3}>
-					<TbMessageCirclePlus className="size-4" />
-					<span>
-						<Trans>Chat v3</Trans>
-					</span>
-				</DropdownMenuItem>
-			)}
 			<DropdownMenuItem className="gap-2" onClick={onAddBrowser}>
 				<TbWorld className="size-4" />
 				<span>

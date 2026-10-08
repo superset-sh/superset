@@ -16,6 +16,7 @@ export type MicrosoftTeamsConfig = Extract<
  * event names its words and slots, the renderer knows only slots.
  */
 export type Slot =
+	| "account"
 	| "teams"
 	| "channels"
 	| "actor"
@@ -31,6 +32,7 @@ export const TEAMS_SENTENCES: Record<
 	message_in_channel: [
 		{ slot: "messageFilter" },
 		{ text: "in" },
+		{ slot: "account" },
 		{ slot: "teams" },
 		{ text: "›" },
 		{ slot: "channels" },
@@ -39,6 +41,7 @@ export const TEAMS_SENTENCES: Record<
 	],
 	channel_created: [
 		{ text: "Channel created in" },
+		{ slot: "account" },
 		{ slot: "teams" },
 		{ slot: "nameFilter" },
 	],

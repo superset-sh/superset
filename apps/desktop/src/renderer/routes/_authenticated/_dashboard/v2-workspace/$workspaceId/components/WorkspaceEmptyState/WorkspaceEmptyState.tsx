@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import type { IconType } from "react-icons";
 import { BsTerminalPlus } from "react-icons/bs";
 import { LuGitCompareArrows, LuSearch } from "react-icons/lu";
-import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
+import { TbWorld } from "react-icons/tb";
 import { GitHubStarPill } from "renderer/components/GitHubStarPill";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import supersetEmptyStateWordmark from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/assets/superset-empty-state-wordmark.svg";
@@ -13,7 +13,6 @@ import { useTheme } from "renderer/stores/theme";
 interface WorkspaceEmptyStateProps {
 	onOpenBrowser: () => void;
 	onOpenChanges: () => void;
-	onOpenChatV3?: (() => void) | undefined;
 	onOpenQuickOpen: () => void;
 	onOpenTerminal: () => void;
 }
@@ -29,7 +28,6 @@ interface WorkspaceEmptyStateAction {
 export function WorkspaceEmptyState({
 	onOpenBrowser,
 	onOpenChanges,
-	onOpenChatV3,
 	onOpenQuickOpen,
 	onOpenTerminal,
 }: WorkspaceEmptyStateProps) {
@@ -51,19 +49,6 @@ export function WorkspaceEmptyState({
 				icon: BsTerminalPlus,
 				onClick: onOpenTerminal,
 			},
-			...(onOpenChatV3
-				? [
-						{
-							id: "chat-v3",
-							label: t({
-								message: "Open Chat v3",
-							}),
-							display: [],
-							icon: TbMessageCirclePlus,
-							onClick: onOpenChatV3,
-						},
-					]
-				: []),
 			{
 				id: "browser",
 				label: t({
@@ -97,7 +82,6 @@ export function WorkspaceEmptyState({
 			newGroupDisplay,
 			onOpenBrowser,
 			onOpenChanges,
-			onOpenChatV3,
 			onOpenQuickOpen,
 			onOpenTerminal,
 			openChangesDisplay,

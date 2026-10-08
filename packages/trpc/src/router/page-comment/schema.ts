@@ -45,7 +45,7 @@ export const listOrganizationPageCommentsSchema = z.object({
  * pending→ready flip against itself and fail anyway, with a worse message.
  */
 const commentAttachmentsSchema = z
-	.array(z.string().uuid())
+	.array(z.string().uuid().toLowerCase())
 	.max(MAX_COMMENT_IMAGES)
 	.refine((ids) => new Set(ids).size === ids.length, {
 		message: "The same image cannot be attached twice",

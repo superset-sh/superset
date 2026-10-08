@@ -4,17 +4,18 @@ import { useEffect } from "react";
 import { logStressEvent } from "renderer/lib/performance/stress-instrumentation";
 import { getTerminalBackgroundMarkerIdsKey } from "renderer/lib/terminal/terminal-background-intents";
 import type { StoreApi } from "zustand/vanilla";
+import type { PaneViewerData } from "../../types";
 import {
 	getAttachedTerminalIdsKey,
 	getBackgroundTerminalSessions,
 	parseAttachedTerminalIdsKey,
-} from "../../components/BackgroundTerminalsButton/BackgroundTerminalsButton.utils";
-import type { PaneViewerData } from "../../types";
+} from "../../utils/backgroundTerminals";
 import { isTerminalReplacementCancelled } from "../../utils/cancelledTerminalReplacements";
 import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
 
 interface UseAutoAdoptBackgroundSessionsArgs {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
+	linkedStores: readonly StoreApi<WorkspaceStore<PaneViewerData>>[];
 	workspaceId: string;
 	isLayoutReady: boolean;
 }
@@ -37,6 +38,7 @@ interface UseAutoAdoptBackgroundSessionsArgs {
  */
 export function useAutoAdoptBackgroundSessions({
 	store,
+	linkedStores,
 	workspaceId,
 	isLayoutReady,
 }: UseAutoAdoptBackgroundSessionsArgs): void {
@@ -60,7 +62,12 @@ export function useAutoAdoptBackgroundSessions({
 		);
 		const toAdopt = getBackgroundTerminalSessions(
 			sessions,
-			parseAttachedTerminalIdsKey(getAttachedTerminalIdsKey(state.tabs)),
+			parseAttachedTerminalIdsKey(
+				getAttachedTerminalIdsKey([
+					...state.tabs,
+					...linkedStores.flatMap((linked) => linked.getState().tabs),
+				]),
+			),
 		).filter(
 			(session) =>
 				!marked.has(session.terminalId) &&
@@ -81,5 +88,12 @@ export function useAutoAdoptBackgroundSessions({
 			count: toAdopt.length,
 			workspaceId,
 		});
-	}, [isLayoutReady, isFetchingSessions, sessions, store, workspaceId]);
+	}, [
+		isLayoutReady,
+		isFetchingSessions,
+		sessions,
+		store,
+		linkedStores,
+		workspaceId,
+	]);
 }

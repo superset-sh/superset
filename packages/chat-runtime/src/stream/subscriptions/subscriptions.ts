@@ -57,7 +57,10 @@ function mergeDeltas(batch: DeltaEnvelope[]): DeltaEnvelope[] {
 				...envelope,
 				delta: {
 					...envelope.delta,
-					append: previous.delta.append + envelope.delta.append,
+					append:
+						envelope.delta.type === "background"
+							? envelope.delta.append
+							: previous.delta.append + envelope.delta.append,
 				},
 			};
 			continue;

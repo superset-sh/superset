@@ -1,5 +1,4 @@
 import {
-	afterAll,
 	afterEach,
 	beforeEach,
 	describe,
@@ -9,8 +8,16 @@ import {
 	setSystemTime,
 	test,
 } from "bun:test";
-import * as relaySocketModule from "@superset/workspace-client/relay-socket";
+import type { createRelaySocket } from "@superset/workspace-client/relay-socket";
 import type { Terminal as XTerm } from "@xterm/xterm";
+import {
+	connect,
+	createTransport as createRealTransport,
+	disconnect,
+	park,
+	reconnect,
+	sendColors,
+} from "./terminal-ws-transport";
 
 // The transport builds on createRelaySocket (partysocket) — reconnection,
 // backoff, and the relay preflight live inside the shared socket. We inject a
@@ -106,26 +113,12 @@ class FakeRelaySocket {
 	}
 }
 
-// mock.module affects later suites too. Snapshot the real exports before the
-// mock rewrites their live bindings, then restore them when this suite ends.
-// (auth-client / posthog are deliberately NOT mocked: with a
-// faked socket getToken/ensureFreshJwt never runs, and posthog.capture before
-// init is a harmless no-op — the real modules load fine, as the prior test did.)
-const realRelaySocketModule = { ...relaySocketModule };
-mock.module("@superset/workspace-client/relay-socket", () => ({
-	...realRelaySocketModule,
-	createRelaySocket: (options: Record<string, unknown>) =>
-		new FakeRelaySocket(options),
-}));
-afterAll(() => {
-	mock.module(
-		"@superset/workspace-client/relay-socket",
-		() => realRelaySocketModule,
-	);
-});
+const createSocket = ((options: Record<string, unknown>) =>
+	new FakeRelaySocket(options)) as unknown as typeof createRelaySocket;
 
-const { connect, createTransport, disconnect, park, reconnect, sendColors } =
-	await import("./terminal-ws-transport");
+function createTransport(options: { onSessionEnded?: () => void } = {}) {
+	return createRealTransport({ ...options, createSocket });
+}
 
 // `window` is aliased to `globalThis` by the xterm-env-polyfill preload, and
 // `globalThis.addEventListener` is absent on Linux CI runtimes, so the transport's

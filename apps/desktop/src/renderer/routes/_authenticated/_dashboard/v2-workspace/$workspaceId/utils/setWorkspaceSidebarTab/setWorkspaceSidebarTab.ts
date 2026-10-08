@@ -8,6 +8,23 @@ type Collections = ReturnType<typeof useCollections>;
 export const DEFAULT_WORKSPACE_SIDEBAR_TAB: WorkspaceSidebarTab = "changes";
 
 /**
+ * The tab a workspace's sidebar is on: its local-state row, else the
+ * session fallback a rowless workspace wrote, else the default. A plain
+ * read for event handlers — the sidebar itself subscribes to both sources.
+ */
+export function getWorkspaceSidebarTab(
+	collections: Collections,
+	workspaceId: string,
+): WorkspaceSidebarTab {
+	const row = collections.v2WorkspaceLocalState.get(workspaceId);
+	if (row) return row.sidebarState.activeTab;
+	return (
+		useRowlessSidebarTabStore.getState().tabs[workspaceId] ??
+		DEFAULT_WORKSPACE_SIDEBAR_TAB
+	);
+}
+
+/**
  * Switch a workspace's right-sidebar tab. The sidebar reads its active tab
  * from per-workspace local state (not the global v2 preferences row), so
  * every flow that surfaces a tab's content — a file reveal, opening Changes,

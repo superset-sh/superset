@@ -44,6 +44,11 @@ type LocalStateRow = {
 		pinnedAt: number | null;
 	};
 	paneLayout: { version: number; tabs: unknown[]; activeTabId: string | null };
+	rightPaneLayout?: {
+		version: number;
+		tabs: unknown[];
+		activeTabId: string | null;
+	};
 };
 
 function localStateRow(
@@ -232,14 +237,15 @@ describe("tombstoneSidebarWorkspaceRecord", () => {
 		expect(cleaned).toEqual([]);
 	});
 
-	it("hides an existing row, clears its section and pin, and runs pane cleanup", () => {
+	it("hides an existing row, clears its section, pin and right pane layout, and runs pane cleanup", () => {
 		const collections = makeCollections();
-		collections.v2WorkspaceLocalState.insert(
-			localStateRow("ws-1", "proj-1", {
+		collections.v2WorkspaceLocalState.insert({
+			...localStateRow("ws-1", "proj-1", {
 				sectionId: "sec-1",
 				pinnedAt: 1753000000000,
 			}),
-		);
+			rightPaneLayout: { version: 1, tabs: [], activeTabId: null },
+		});
 		const cleaned: string[] = [];
 
 		tombstoneSidebarWorkspaceRecord(
@@ -255,6 +261,7 @@ describe("tombstoneSidebarWorkspaceRecord", () => {
 		expect(row?.sidebarState.isHidden).toBe(true);
 		expect(row?.sidebarState.sectionId).toBeNull();
 		expect(row?.sidebarState.pinnedAt).toBeNull();
+		expect(row?.rightPaneLayout).toBeUndefined();
 		expect(cleaned).toEqual(["ws-1"]);
 	});
 });

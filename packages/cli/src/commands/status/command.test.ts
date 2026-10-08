@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, mock, test } from "bun:test";
+import { afterAll, afterEach, describe, expect, mock, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -8,9 +8,9 @@ const originalSupersetHomeDir = process.env.SUPERSET_HOME_DIR;
 const tempHome = mkdtempSync(join(tmpdir(), "superset-cli-status-"));
 process.env.SUPERSET_HOME_DIR = tempHome;
 
-// Imports below must come after SUPERSET_HOME_DIR is set: config.ts and
-// manifest.ts both read it once at module load.
-const { writeManifest } = await import("../../lib/host/manifest");
+const { removeManifest, writeManifest } = await import(
+	"../../lib/host/manifest"
+);
 const statusCommand = (await import("./command")).default;
 
 afterAll(() => {
@@ -23,6 +23,8 @@ afterAll(() => {
 });
 
 const ORG = { id: "org-1", slug: "org-1", name: "Palette" };
+
+afterEach(() => removeManifest(ORG.id));
 
 function makeCtx(): CliContext {
 	const query = mock(async () => [ORG]);

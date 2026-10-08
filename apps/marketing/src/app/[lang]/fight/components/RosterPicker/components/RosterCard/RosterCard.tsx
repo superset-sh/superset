@@ -1,6 +1,6 @@
 import { tierRgb } from "@/app/[lang]/components/TierBadge";
 import type { Fighter } from "../../../../utils/simulateFight";
-import { DinoSprite } from "../../../DinoSprite";
+import { FighterSprite } from "../../../FighterSprite";
 
 interface RosterCardProps {
 	fighter: Fighter;
@@ -23,8 +23,9 @@ export function RosterCard({ fighter, seated, onPick }: RosterCardProps) {
 					: "hover:bg-foreground/[0.04]"
 			}`}
 		>
-			<div className="fight-card-dino">
-				<DinoSprite
+			<div className="fight-card-sprite">
+				<FighterSprite
+					identity={fighter.handle}
 					frame="stand"
 					rgb={rgb}
 					facing="right"

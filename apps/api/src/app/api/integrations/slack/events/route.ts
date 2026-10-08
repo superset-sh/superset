@@ -103,12 +103,13 @@ export async function POST(request: Request) {
 		};
 		if (isAutomationEvent(envelope)) {
 			try {
-				const outcome = await processAutomationEvent(envelope);
-				if (outcome.status === "dispatched" && outcome.matched > 0) {
-					console.log(
-						`[slack/events] ${outcome.matched}/${outcome.considered} triggers matched:`,
-						event_id,
-					);
+				for (const outcome of await processAutomationEvent(envelope)) {
+					if (outcome.status === "dispatched" && outcome.matched > 0) {
+						console.log(
+							`[slack/events] ${outcome.matched}/${outcome.considered} triggers matched:`,
+							event_id,
+						);
+					}
 				}
 			} catch (error) {
 				console.error("[slack/events] processAutomationEvent failed:", error);

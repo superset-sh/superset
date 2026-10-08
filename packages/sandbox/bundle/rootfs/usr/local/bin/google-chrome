@@ -7,5 +7,5 @@
 # Chrome 136+ refuses remote debugging on its default profile directory, so
 # the visible instance lives in its own; the private automation profile is
 # google-chrome-playwright beside it.
-. /etc/superset/contract.sh 2>/dev/null || { SUPERSET_CHROME_DEBUG_PORT=9222; SUPERSET_HOME_DIR="$HOME"; }
-exec /usr/bin/google-chrome-stable --no-sandbox --test-type --no-first-run --no-default-browser-check --disable-dev-shm-usage --password-store=basic --start-maximized --disable-session-crashed-bubble --hide-crash-restore-bubble "--user-data-dir=${SUPERSET_HOME_DIR}/.config/google-chrome-visible" "--remote-debugging-port=${SUPERSET_CHROME_DEBUG_PORT}" --use-angle=swiftshader-webgl --enable-unsafe-swiftshader "$@"
+. /etc/superset/contract.sh 2>/dev/null || { SUPERSET_CHROME_DEBUG_PORT=9222; SUPERSET_USER_HOME="$HOME"; }
+exec /usr/bin/google-chrome-stable --no-sandbox --test-type --no-first-run --no-default-browser-check --disable-dev-shm-usage --password-store=basic --start-maximized --disable-session-crashed-bubble --hide-crash-restore-bubble "--user-data-dir=${SUPERSET_USER_HOME}/.config/google-chrome-visible" "--remote-debugging-port=${SUPERSET_CHROME_DEBUG_PORT}" --use-angle=swiftshader-webgl --enable-unsafe-swiftshader "$@"

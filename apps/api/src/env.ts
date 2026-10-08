@@ -72,6 +72,7 @@ export const env = createEnv({
 		// The published app's slug, used to build the install URL.
 		SENTRY_APP_SLUG: z.string().optional(),
 		RELAY_URL: z.string().url().default("https://relay.superset.sh"),
+		REALTIME_URL: z.string().url().default("https://realtime.superset.sh"),
 	},
 	client: {
 		NEXT_PUBLIC_API_URL: z.string().url(),

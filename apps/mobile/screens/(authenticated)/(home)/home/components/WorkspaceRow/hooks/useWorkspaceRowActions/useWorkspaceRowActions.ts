@@ -103,21 +103,28 @@ export function useWorkspaceRowActions(
 		cache.invalidateHost(workspace.hostId);
 	};
 
-	const deleteWorkspace = () =>
+	const deleteWorkspace = () => {
+		if (isCloud) {
+			void cloud
+				.archive(workspace.id)
+				.catch(() => Alert.alert(t({ message: "Archive failed" })));
+			return;
+		}
 		remove({
 			id: workspace.id,
 			name: workspace.name,
 			type: workspace.type,
 			hostId: workspace.hostId,
 			hostUrl: cache.resolveHostUrl(workspace.hostId),
-			isCloud,
 		});
+	};
 
 	const copyId = () =>
 		void Clipboard.setStringAsync(workspace.id).then(onCopied);
 
-	const shareWorkspace = () =>
-		void Share.share({ url: workspaceShareUrl(workspace.id) });
+	// `anchor` places the iPad share popover; iPhone ignores it.
+	const shareWorkspace = (anchor?: number) =>
+		void Share.share({ url: workspaceShareUrl(workspace.id) }, { anchor });
 
 	return {
 		renameWorkspace,

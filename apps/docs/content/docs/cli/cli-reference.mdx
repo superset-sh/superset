@@ -280,6 +280,7 @@ talk to when targeting this machine.
 	name="superset start"
 	options={[
 		{ flag: "--daemon", description: "Run detached." },
+		{ flag: "--auto-update", description: "Check hourly for a newer release, install it, and restart the host. Requires --daemon. Off by default." },
 		{ flag: "--port <n>", description: "Specific port. Default: a free loopback port." },
 		{ flag: "--org <id>", description: "Organization to register under. Default: the active organization." },
 	]}
@@ -798,20 +799,48 @@ superset workspaces create --project prj_… --name "perf-spike" --branch perf/s
 </Command>
 
 <Command
-	name="superset workspaces delete <id...>"
+	name="superset workspaces archive <id...>"
 	args={[
-		{ name: "id", required: true, variadic: true, description: "Workspace IDs to delete." },
+		{ name: "id", required: true, variadic: true, description: "Workspace IDs to archive." },
 	]}
 	options={[
 		{ flag: "--host <id>", description: "Host the workspaces live on." },
-		{ flag: "--local", description: "Target this machine (the default)." },
+		{ flag: "--local", description: "Target this machine." },
 	]}
 	output={`{ deleted: string[]; warnings: string[] }`}
 >
-Delete one or more workspaces on the target host (default: this machine).
+Archive one or more workspaces. Without `--host` or `--local`, this targets
+cloud workspaces if your account has them, else this machine. The old name
+`delete` remains an alias.
+
+- **Cloud workspace:** the sandbox stops within a minute and is deleted after
+  7 days. A restore within those 7 days keeps its disk; after that, the
+  workspace starts again from a fresh sandbox.
+- **Worktree workspace on a host:** its folder is removed, with any uncommitted
+  changes. Its branch stays, so a restore brings back only committed work. A
+  workspace that shares the project's own checkout keeps that folder.
+
+`deleted` lists the archived IDs; the field keeps its old name so existing
+scripts still work.
 
 ```bash
-superset workspaces delete ws_a ws_b ws_c
+superset workspaces archive ws_a ws_b ws_c
+```
+</Command>
+
+<Command
+	name="superset workspaces sleep [id]"
+	args={[
+		{ name: "id", description: "Cloud workspace ID. Defaults to the cloud workspace the command runs in." },
+	]}
+	output={`{ id: string; stopped: boolean }`}
+>
+Put a cloud workspace to sleep. Its sandbox stops, every terminal and agent in
+it ends, and it costs storage only. Files are kept, and opening the workspace
+wakes it. An agent can run this as its last step, inside its own workspace.
+
+```bash
+superset workspaces sleep ws_a
 ```
 </Command>
 
@@ -1044,7 +1073,7 @@ Model is an explicit override for one launch. If you omit `--model`, Superset
 passes no model flag and the agent uses its own configured default. Ids match
 the desktop model picker: Claude takes a family alias (`fable`, `opus`,
 `sonnet`, `haiku`) that tracks the newest release, or a pinned id such as
-`claude-opus-5-5`. Codex includes `gpt-6-sol` and `gpt-6-luna`. The host rejects an unknown id before launching the agent,
+`claude-opus-5-5` or `claude-sonnet-5-5`. Codex includes `gpt-6-astra`, `gpt-6-sol`, and `gpt-6-luna`. The host rejects an unknown id before launching the agent,
 and the error names every id that agent accepts. Agents without a model
 picker, including Superset chat, reject an explicit model override.
 
@@ -1063,7 +1092,7 @@ The host rejects unsupported values before launching the agent.
 | Pi | `off`, `minimal`, `low`, `medium`, `high`, `xhigh` |
 | Copilot | `low`, `medium`, `high`, `xhigh` |
 
-GPT-6 Sol supports `max` and `ultra`; GPT-6 Luna supports `max`.
+GPT-6 Astra and GPT-6 Sol support `max` and `ultra`; GPT-6 Luna supports `max`.
 
 Other agents, including Superset chat, currently use their own default and
 reject an explicit effort override.
@@ -1327,10 +1356,7 @@ existing page. Without a workspace, keep the returned ID and pass `--page` on
 later publishes to avoid creating another page. Existing visibility is
 preserved unless explicitly supplied.
 
-The first version published from a workspace attempts to open in the desktop,
-following **Settings → Links → Pages**. This is skipped over SSH or in a cloud
-sandbox. An opening failure does not fail the publish; the result includes an
-`openNote`. Later versions do not reopen.
+Publishing does not open the page in the desktop.
 
 ```bash
 superset pages publish report.html --title "Weekly report" --visibility everyone
@@ -1340,7 +1366,7 @@ superset pages publish report.html --page <page-id> --label "Addressed feedback"
 <CommandReturns>
 Page metadata including `id`, `title`, `version`, and `url`, plus `unanchored`,
 `watching`, and asset upload/reuse counts. Unlinked publishes include a
-`republish` command; watch and opening notes appear when applicable.
+`republish` command. When the publish tries to register the session for comments, `watchNote` says whether it worked.
 </CommandReturns>
 </Command>
 
@@ -1358,39 +1384,26 @@ Delete a page and every version. Interactive terminals ask for confirmation
 unless `--yes` is passed; non-interactive input does not prompt.
 </Command>
 
-### mcp
-
-Use tools from connected plugins. This is separate from the
-[Superset MCP server](/mcp-server), which exposes Superset itself to agents.
-
 <Command
-	name="superset mcp tools"
-	options={[
-		{ flag: "--plugin <name>", required: true, description: "Plugin name from superset plugins list." },
-	]}
-	output="Array<{ plugin: string; tool: string; description: string }>"
->
-List the tools a connected plugin exposes. Use the returned names and
-descriptions before calling a tool.
-</Command>
-
-<Command
-	name="superset mcp call-tool <tool> [arguments]"
+	name="superset pages storage <page>"
 	args={[
-		{ name: "tool", required: true, description: "Tool name from mcp tools." },
-		{ name: "arguments", description: "JSON arguments; defaults to {}. Pass - to read stdin." },
+		{ name: "page", required: true, description: "Page ID or slug." },
 	]}
 	options={[
-		{ flag: "--plugin <name>", required: true, description: "Connected plugin name." },
+		{ flag: "--key <key>", description: "Show each person's value for this key." },
 	]}
+	output="{ pageId, keys: Array<{ key, records, updatedAt }> } | { pageId, key, records: Array<{ userId, name, image, value, updatedAt }> }"
 >
-Call a plugin tool and return its MCP result, including the content array.
-Credentials are attached by Superset's API. `--connection` and `--plugin-id`
-are deprecated aliases for `--plugin`; they take a plugin name, not a connection ID.
+Read what viewers stored with `window.superset.storage` on a page.
+Without `--key`, lists each key with its record count (KEY, RECORDS, UPDATED).
+With `--key`, lists each person's value for that key (NAME, VALUE, UPDATED).
+On a `just_me` page only the creator can read storage. On an `org` or
+`everyone` page, members of the page's organization can read it, even when the
+page is public.
 
 ```bash
-superset mcp tools --plugin notion
-superset mcp call-tool notion-fetch --plugin notion '{"id":"<page-id>"}'
+superset pages storage weekly-report
+superset pages storage weekly-report --key votes --json
 ```
 </Command>
 
@@ -1398,20 +1411,24 @@ superset mcp call-tool notion-fetch --plugin notion '{"id":"<page-id>"}'
 
 ### tasks (alias: `t`)
 
-Tasks are units of work in your organization's task tracker.
+Tasks are units of work in your organization's task tracker. When the
+organization tracks tasks in Linear (an owner's setting), these commands work on
+its Linear issues through your own Linear connection; otherwise on Superset
+tasks. A command works on one tracker only: in an organization that tracks in
+Linear, Superset tasks are not listed or resolved, and the reverse. Pass
+`--tracker superset|linear` to reach the other one for a single command.
 
 <Command
 	name="superset tasks list"
 	options={[
-		{ flag: "--status <id>", description: "Filter by status ID." },
+		{ flag: "--tracker <superset|linear>", description: "Override the organization's task tracker." },
+		{ flag: "--team <key>", description: "Filter by team key or name." },
+		{ flag: "--status <id>", description: "Filter by status ID. For Linear: all | active | backlog | unstarted | started | completed | canceled (default active)." },
 		{ flag: "--priority <urgent|high|medium|low|none>", description: "Filter by priority." },
 		{ flag: "--assignee <userId>", description: "Filter by assignee user ID." },
 		{ flag: "--assignee-me, -m", description: "Tasks assigned to the current user." },
 		{ flag: "--creator-me", description: "Tasks created by the current user." },
 		{ flag: "--search <query>, -s", description: "Substring search on title or description." },
-		{ flag: "--project <id>", description: "Filter by Linear project id." },
-		{ flag: "--project-name <name>", description: "Filter by Linear project name (prefix, case-insensitive)." },
-		{ flag: "--cycle <id>", description: "Filter by Linear cycle id." },
 		{ flag: "--due-from <date>", description: "Tasks due on or after this date (YYYY-MM-DD)." },
 		{ flag: "--due-to <date>", description: "Tasks due on or before this date (YYYY-MM-DD)." },
 		{ flag: "--sort-by <field>", description: "createdAt | updatedAt | dueDate | priority. Default: createdAt." },
@@ -1434,7 +1451,10 @@ superset t list -s "auth" --json
 <Command
 	name="superset tasks get <idOrSlug>"
 	args={[
-		{ name: "idOrSlug", required: true, description: "Task ID or slug." },
+		{ name: "idOrSlug", required: true, description: "Task ID or slug, or a Linear identifier (ENG-123)." },
+	]}
+	options={[
+		{ flag: "--tracker <superset|linear>", description: "Override the organization's task tracker." },
 	]}
 	output="Task"
 >
@@ -1449,6 +1469,8 @@ superset tasks get fix-login-bug
 <Command
 	name="superset tasks create"
 	options={[
+		{ flag: "--tracker <superset|linear>", description: "Override the organization's task tracker." },
+		{ flag: "--team <key>", description: "Team key or name. Superset tasks go to the default team without it; Linear needs it when the workspace has several teams." },
 		{ flag: "--title <title>", required: true, description: "Task title." },
 		{ flag: "--description <text>", description: "Task description." },
 		{ flag: "--priority <urgent|high|medium|low|none>", description: "Priority." },
@@ -1470,9 +1492,10 @@ superset tasks create --title "Audit auth flow" --priority high
 <Command
 	name="superset tasks update <idOrSlug>"
 	args={[
-		{ name: "idOrSlug", required: true, description: "Task ID or slug." },
+		{ name: "idOrSlug", required: true, description: "Task ID or slug, or a Linear identifier (ENG-123)." },
 	]}
 	options={[
+		{ flag: "--tracker <superset|linear>", description: "Override the organization's task tracker." },
 		{ flag: "--title <title>", description: "New title." },
 		{ flag: "--description <text>", description: "New description." },
 		{ flag: "--priority <urgent|high|medium|low|none>", description: "New priority." },
@@ -1497,9 +1520,12 @@ superset tasks update fix-login-bug --priority urgent
 	args={[
 		{ name: "idOrSlug", required: true, variadic: true, description: "Task IDs or slugs to delete." },
 	]}
+	options={[
+		{ flag: "--tracker <superset|linear>", description: "Override the organization's task tracker." },
+	]}
 	output={`{ deleted: string[]; failed: string[] }`}
 >
-Delete one or more tasks.
+Delete one or more tasks. Linear issues are archived.
 
 ```bash
 superset tasks delete tsk_a tsk_b
@@ -1514,12 +1540,18 @@ superset tasks delete tsk_a tsk_b
   type: string;
   position: number;
 }>`}
-	humanColumns={["NAME", "TYPE", "POS", "ID"]}
+	options={[
+		{ flag: "--tracker <superset|linear>", description: "Override the organization's task tracker." },
+		{ flag: "--team <key>", description: "Linear team key (Linear only)." },
+	]}
+	humanColumns={["TEAM", "NAME", "TYPE", "POS", "ID"]}
 	quiet="status IDs"
 >
-List task statuses in the active organization. Use the returned IDs with
-`tasks list --status`, `tasks create --status-id`, or
-`tasks update --status-id`.
+List task statuses in the active organization. Superset status IDs work with
+`tasks list --status`, `tasks create --status-id` and `tasks update --status-id`.
+Linear statuses belong to a team: pass their names or IDs to `--status-id` on
+create and update; `tasks list --status` takes a category (`active`, `started`, …)
+for Linear.
 
 ```bash
 superset tasks statuses list
@@ -1947,6 +1979,131 @@ relaunch, or the app may overwrite the change.)
 superset settings theme set monokai
 superset settings theme set system --system-light light --system-dark monokai
 ```
+</Command>
+
+---
+
+### completion
+
+Shell completion for bash and zsh, generated from the installed version's
+command tree, so it never drifts from what the binary accepts.
+
+<Command
+	name="superset completion <shell>"
+	args={[
+		{ name: "shell", required: true, description: "`bash` or `zsh`." },
+	]}
+>
+Prints the script to stdout, byte for byte, in every output mode: `--json`,
+`--quiet` and agent environments do not wrap it. The script completes command
+names at every level and walks through an alias already typed
+(`superset ws cr<Tab>`), each command's flags and their aliases, enum values
+for flags (`--priority=u<Tab>` included) and arguments, and the global
+options.
+
+```bash
+# This shell session
+source <(superset completion zsh)
+eval "$(superset completion bash)"   # bash 3.2 (macOS's /bin/bash) cannot source a process substitution
+
+# Every session: put the line above in ~/.zshrc or ~/.bashrc, or for zsh
+# install the script on fpath so compinit autoloads it
+superset completion zsh > ~/.zfunc/_superset   # with fpath=(~/.zfunc $fpath) before compinit
+```
+</Command>
+
+### schema
+
+<Command name="superset schema">
+Prints every command, option and argument as JSON, for tooling that must not
+parse `--help`. Commands hidden from this run (internal-only, or unavailable
+in a cloud workspace) are left out, as they are from `--help`. Commands and
+options are sorted and absent fields are omitted, so the output of two
+versions diffs cleanly.
+
+```bash
+superset schema | jq '.commands[] | select(.path == ["terminals"]) | .commands[].path'
+```
+
+<CommandReturns>
+<JsonOutput>
+```ts
+{
+  name: "superset";
+  version: string;
+  globalOptions: SchemaOption[];
+  commands: SchemaCommand[];
+}
+
+// SchemaCommand
+{
+  path: string[];            // e.g. ["terminals", "read"]
+  description?: string;
+  aliases?: string[];
+  options: SchemaOption[];
+  args: SchemaArg[];
+  commands: SchemaCommand[]; // empty for a leaf command
+}
+
+// SchemaOption
+{
+  name: string;              // flag name without the dashes
+  aliases: string[];
+  type: "string" | "number" | "boolean";
+  required: boolean;
+  description?: string;
+  default?: unknown;
+  enum?: string[];
+  variadic?: true;
+  int?: true;
+  min?: number;
+  max?: number;
+  env?: string;              // environment variable that can supply the value
+}
+
+// SchemaArg
+{
+  name: string;
+  required: boolean;
+  description?: string;
+  enum?: string[];
+  variadic?: true;
+}
+```
+</JsonOutput>
+</CommandReturns>
+</Command>
+
+### config
+
+Inspect the CLI's local config file: `config.json` under `~/.superset`, or
+under `$SUPERSET_HOME_DIR` when that is set.
+
+<Command name="superset config check">
+Validates the file before a hand edit or a bad restore surfaces as a
+confusing auth failure: JSON syntax, the shape of `auth`, `apiKey` and
+`organizationId`, an expired token, and keys this version does not read.
+An error exits 1; a warning does not. A missing file is not an error, it
+only means nobody has logged in yet.
+
+```bash
+superset config check
+superset config check --json
+```
+
+<CommandReturns>
+<JsonOutput>
+```ts
+{
+  path: string;
+  exists: boolean;
+  valid: boolean;     // false when any issue is an error
+  loggedIn: boolean;  // the file holds a usable credential
+  issues: { severity: "error" | "warning"; message: string }[];
+}
+```
+</JsonOutput>
+</CommandReturns>
 </Command>
 
 ---

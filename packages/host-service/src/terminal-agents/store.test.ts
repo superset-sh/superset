@@ -822,4 +822,56 @@ describe("session account attribution", () => {
 		});
 		expect(store.get("account-terminal")?.account).toBeUndefined();
 	});
+
+	it("clearing a workspace's statuses resets a chat agent too", () => {
+		const store = new TerminalAgentStore();
+		store.recordChatEvent({
+			terminalId: "chat-terminal",
+			workspaceId: "ws-chat",
+			eventType: "PermissionRequest",
+			agentId: "claude",
+			chatSessionId: "chat-1",
+			occurredAt: 1,
+		});
+		store.clearWorkspaceStatuses("ws-chat");
+		expect(store.listByWorkspace("ws-chat")[0]?.lastEventType).toBe("Stop");
+	});
+
+	it("clearing statuses leaves a failed chat failed", () => {
+		const store = new TerminalAgentStore();
+		store.recordChatEvent({
+			terminalId: "chat-terminal",
+			workspaceId: "ws-failed",
+			eventType: "Failed",
+			agentId: "claude",
+			chatSessionId: "chat-1",
+			occurredAt: 1,
+		});
+		store.clearWorkspaceStatuses("ws-failed");
+		expect(store.listByWorkspace("ws-failed")[0]?.lastEventType).toBe("Failed");
+	});
+
+	it("keeps a chat's account through its later events", () => {
+		const store = new TerminalAgentStore();
+		const account = {
+			agent: "claude" as const,
+			selection: null,
+			credentialKind: "api_key" as const,
+			identity: "api-env" as const,
+		};
+		const chat = {
+			terminalId: "chat-terminal",
+			workspaceId: "ws-account",
+			agentId: "claude" as const,
+			chatSessionId: "chat-1",
+		};
+		store.recordChatEvent({
+			...chat,
+			eventType: "Attached",
+			account,
+			occurredAt: 1,
+		});
+		store.recordChatEvent({ ...chat, eventType: "Stop", occurredAt: 2 });
+		expect(store.listByWorkspace("ws-account")[0]?.account).toEqual(account);
+	});
 });

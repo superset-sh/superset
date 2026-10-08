@@ -75,7 +75,7 @@ export function StatusIcon({
 		// Progress fills clockwise starting from 12 o'clock
 		const centerRadius = 2;
 		const centerCircumference = 2 * Math.PI * centerRadius;
-		const progressPercent = progress ?? 100;
+		const progressPercent = progress ?? 50;
 
 		// Dash length is the visible portion (progress%)
 		const dashLength = (progressPercent / 100) * centerCircumference;

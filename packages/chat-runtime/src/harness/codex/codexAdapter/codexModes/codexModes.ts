@@ -4,7 +4,7 @@ export const CODEX_MODES = [
 	{ id: "full-access", label: "Full Access" },
 ] as const;
 
-export const DEFAULT_CODEX_MODE = "auto";
+export const DEFAULT_CODEX_MODE = "full-access";
 
 export type CodexTurnPolicy = {
 	approvalPolicy: "untrusted" | "on-request" | "never";

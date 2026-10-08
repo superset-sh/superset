@@ -49,7 +49,7 @@ export function ProjectLeadPicker({
 							key={person.id}
 							onSelect={() => onChange(person.id)}
 						>
-							<AvatarStack people={[person]} size={16} surface="popover" />
+							<AvatarStack people={[person]} size={16} />
 							<span className="min-w-0 flex-1 truncate">{person.name}</span>
 							{person.id === value && <LuCheck className="size-3.5" />}
 						</DropdownMenuItem>

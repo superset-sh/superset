@@ -50,6 +50,7 @@ export async function redispatchUndispatched(tx: SingleFlightTx): Promise<{
 		.select({
 			id: automationEvents.id,
 			organizationId: automationEvents.organizationId,
+			integrationConnectionId: automationEvents.integrationConnectionId,
 			dispatchInput: automationEvents.dispatchInput,
 		})
 		.from(automationEvents)
@@ -78,6 +79,7 @@ export async function redispatchUndispatched(tx: SingleFlightTx): Promise<{
 				automationId: row.dispatchInput.automationId,
 				triggerId: row.dispatchInput.triggerId,
 				ownerUserId: row.dispatchInput.ownerUserId,
+				integrationConnectionId: row.integrationConnectionId,
 			});
 		} catch (error) {
 			failed++;

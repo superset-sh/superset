@@ -149,6 +149,9 @@ step_setup_neon_branch() {
 
   # Export for use in other steps
   export BRANCH_ID DIRECT_URL POOLED_URL WORKSPACE_NAME
+  # An inherited env var beats bun's --env-file, so later steps would otherwise
+  # query the root .env's database instead of this branch.
+  export DATABASE_URL="$POOLED_URL" DATABASE_URL_UNPOOLED="$DIRECT_URL"
 
   success "Neon branch ready: $WORKSPACE_NAME"
   return 0
@@ -370,6 +373,8 @@ step_write_env() {
     write_env_var "RELAY_URL" "http://localhost:$RELAY_PORT"
     write_env_var "NEXT_PUBLIC_RELAY_URL" "http://localhost:$RELAY_PORT"
     write_env_var "REALTIME_URL" "http://localhost:$REALTIME_PORT"
+    write_env_var "NEXT_PUBLIC_REALTIME_URL" "http://localhost:$REALTIME_PORT"
+    write_env_var "EXPO_PUBLIC_REALTIME_URL" "http://localhost:$REALTIME_PORT"
     write_env_var "REALTIME_NUDGE_SECRET" "fake-realtime-nudge-secret"
     write_env_var "SUPERSET_WEB_URL" "http://localhost:$WEB_PORT"
     write_env_var "USERCONTENT_URL" "http://frame.usercontent.localhost:$USERCONTENT_DEV_PORT"
@@ -656,5 +661,20 @@ step_validate_env() {
   fi
 
   success ".env satisfies packages/trpc/src/env.ts and apps/api/src/env.ts"
+  return 0
+}
+
+# A no-op anywhere this machine has never signed into desktop — see
+# packages/auth/src/seed-local-mobile-token.ts. Never worth failing setup over.
+step_seed_local_mobile_token() {
+  echo "📱 Seeding mobile dev sign-in token..."
+
+  if ! NODE_ENV=development bun --env-file=.env run packages/auth/src/seed-local-mobile-token.ts; then
+    warn "Could not seed a mobile dev sign-in token (non-fatal)"
+    step_skipped "Seed mobile dev token"
+    return 0
+  fi
+
+  success "Mobile dev sign-in token step complete"
   return 0
 }

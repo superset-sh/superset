@@ -1,10 +1,5 @@
-import { afterAll, afterEach, describe, expect, mock, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, describe, expect, mock, test } from "bun:test";
 
-// happy-dom over the preloaded plain-object document. Process-wide, so this
-// unregisters in afterAll to leave the other renderer suites their document.
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
@@ -13,10 +8,6 @@ const { act, cleanup, renderHook } = await import("@testing-library/react");
 const { useAutomationDraft } = await import("./useAutomationDraft");
 
 afterEach(cleanup);
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
-
 /**
  * When the editor may write, and what it says while it may not.
  *
@@ -102,7 +93,10 @@ describe("adding a row", () => {
 	test("makes the editor dirty", () => {
 		const { result } = setup([]);
 		act(() => {
-			result.current.addTrigger(schedule().config as never);
+			result.current.editTriggers([
+				...result.current.draft.triggers,
+				schedule(),
+			] as never);
 		});
 		expect(result.current.dirty).toBe(true);
 		expect(result.current.draft.triggers).toHaveLength(1);
@@ -111,7 +105,10 @@ describe("adding a row", () => {
 	test("still says nothing is wrong until a save is attempted", () => {
 		const { result } = setup([]);
 		act(() => {
-			result.current.addTrigger(unfinishedGithub().config as never);
+			result.current.editTriggers([
+				...result.current.draft.triggers,
+				unfinishedGithub(),
+			] as never);
 		});
 		expect(result.current.shownProblems).toEqual([]);
 	});
@@ -122,7 +119,10 @@ describe("saving a valid set", () => {
 		const onChange = mock(() => Promise.resolve());
 		const { result } = setup([], onChange);
 		act(() => {
-			result.current.addTrigger(schedule().config as never);
+			result.current.editTriggers([
+				...result.current.draft.triggers,
+				schedule(),
+			] as never);
 		});
 		await act(async () => {
 			await result.current.save();
@@ -170,7 +170,10 @@ describe("a save the server refuses", () => {
 		const onChange = mock(() => Promise.reject(new Error("refused")));
 		const { result } = setup([], onChange);
 		act(() => {
-			result.current.addTrigger(schedule().config as never);
+			result.current.editTriggers([
+				...result.current.draft.triggers,
+				schedule(),
+			] as never);
 		});
 		await act(async () => {
 			await result.current.save();
@@ -185,7 +188,10 @@ describe("discarding", () => {
 	test("puts the saved rows back", () => {
 		const { result } = setup([schedule("t1")]);
 		act(() => {
-			result.current.addTrigger(schedule().config as never);
+			result.current.editTriggers([
+				...result.current.draft.triggers,
+				schedule(),
+			] as never);
 		});
 		expect(result.current.draft.triggers).toHaveLength(2);
 
@@ -199,7 +205,10 @@ describe("discarding", () => {
 	test("clears complaints from an earlier attempt", async () => {
 		const { result } = setup([schedule("t1")]);
 		act(() => {
-			result.current.addTrigger(unfinishedGithub().config as never);
+			result.current.editTriggers([
+				...result.current.draft.triggers,
+				unfinishedGithub(),
+			] as never);
 		});
 		await act(async () => {
 			await result.current.save();
@@ -225,7 +234,10 @@ describe("the saved set changing underneath", () => {
 	test("is ignored while there are unsaved edits", () => {
 		const { result, rerender } = setup([schedule("t1")]);
 		act(() => {
-			result.current.addTrigger(schedule().config as never);
+			result.current.editTriggers([
+				...result.current.draft.triggers,
+				schedule(),
+			] as never);
 		});
 		rerender({ saved: [schedule("t1"), schedule("t2"), schedule("t3")] });
 		expect(result.current.draft.triggers).toHaveLength(2);

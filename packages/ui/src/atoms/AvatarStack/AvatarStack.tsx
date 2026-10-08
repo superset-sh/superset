@@ -4,12 +4,6 @@ import { Avatar } from "../Avatar";
 
 const OVERLAP_RATIO = 0.27;
 
-const SURFACE_CLASSES = {
-	background: "bg-background outline-background",
-	popover: "bg-popover outline-popover",
-	sidebar: "bg-sidebar outline-sidebar",
-} as const;
-
 export interface AvatarStackPerson {
 	id: string;
 	name: string;
@@ -21,8 +15,6 @@ interface AvatarStackProps {
 	people: AvatarStackPerson[];
 	size?: number;
 	max?: number;
-	/** What the stack sits on: each avatar is filled and ringed in it, so overlaps read as cut-outs. */
-	surface?: keyof typeof SURFACE_CLASSES;
 	className?: string;
 	/** Wraps each avatar, e.g. in its own hover card or link. */
 	renderPerson?: (person: AvatarStackPerson, avatar: ReactNode) => ReactNode;
@@ -38,7 +30,6 @@ export function AvatarStack({
 	people,
 	size = 16,
 	max = 3,
-	surface = "background",
 	className,
 	renderPerson,
 	renderOverflow,
@@ -46,12 +37,13 @@ export function AvatarStack({
 	const shown = people.slice(0, max);
 	const overflow = people.length - shown.length;
 	const overlap = Math.round(size * OVERLAP_RATIO);
-	const ringWidth = Math.max(1.5, size / 12);
+	const gap = Math.max(1.5, size / 12);
+	const cutout = `radial-gradient(circle at ${overlap - size / 2}px 50%, transparent ${size / 2 + gap}px, #000 ${size / 2 + gap + 0.5}px)`;
 
 	return (
 		<span className={cn("flex shrink-0 items-center gap-1", className)}>
 			<span className="flex flex-row-reverse items-center">
-				{[...shown].reverse().map((person, index) => {
+				{[...shown].reverse().map((person, index, reversed) => {
 					const isActive = person.isActive !== false;
 					const avatar = (
 						<Avatar
@@ -63,15 +55,13 @@ export function AvatarStack({
 							)}
 						/>
 					);
+					const isOverlapped = index < reversed.length - 1;
 					return (
 						<span
 							key={person.id}
-							className={cn(
-								"relative shrink-0 rounded-full outline-solid",
-								SURFACE_CLASSES[surface],
-							)}
+							className="relative shrink-0 rounded-full"
 							style={{
-								outlineWidth: ringWidth,
+								maskImage: isOverlapped ? cutout : undefined,
 								width: size,
 								height: size,
 								fontSize: size / 2,

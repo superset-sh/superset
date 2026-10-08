@@ -5,7 +5,7 @@
 # changed number or file re-renders on the next wake.
 set -euo pipefail
 . /etc/superset/contract.sh
-user="$SUPERSET_USER"; home="$SUPERSET_HOME_DIR"; t="$SUPERSET_DESKTOP_TEMPLATES"
+user="$SUPERSET_USER"; home="$SUPERSET_USER_HOME"; t="$SUPERSET_DESKTOP_TEMPLATES"
 
 render() { # template dest
 	sed -e "s|@PANEL_HEIGHT@|28|g" \

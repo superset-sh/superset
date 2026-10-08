@@ -3,6 +3,8 @@ import { usePageComments } from "@superset/cloud-client";
 import { errorMessage } from "@superset/i18n/errors";
 import { pageCommentUser } from "@superset/shared/page-comments";
 import type { PageLinkClick } from "@superset/shared/page-comments-runtime";
+import { pagePresenceUrl } from "@superset/shared/page-presence";
+import { pageStorageSocketUrl } from "@superset/shared/page-storage-ticket";
 import {
 	AllCommentsButton,
 	CommentProvider,
@@ -13,8 +15,9 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Spinner } from "@superset/ui/spinner";
 import { TRPCClientError } from "@trpc/client";
-import { useEffect, useMemo, useRef } from "react";
-import { authClient } from "renderer/lib/auth-client";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { env } from "renderer/env.renderer";
+import { authClient, ensureFreshJwt, getJwt } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { PageViewerMessage } from "./components/PageViewerMessage";
@@ -74,6 +77,25 @@ export function PageViewer({
 		user,
 		onError: (error) => toast.error(errorMessage(error)),
 	});
+	const storageTicket = useCallback(
+		() =>
+			pageStorageSocketUrl({
+				pageId: resolvedPageId ?? "",
+				realtimeUrl: env.REALTIME_URL,
+				token: async () => getJwt(),
+			}),
+		[resolvedPageId],
+	);
+	const presenceUrl = useCallback(async () => {
+		const token = await ensureFreshJwt();
+		return token && resolvedPageId
+			? pagePresenceUrl({
+					realtimeUrl: env.REALTIME_URL,
+					pageId: resolvedPageId,
+					token,
+				})
+			: null;
+	}, [resolvedPageId]);
 	const scrollKey = `${resolvedPageId ?? slug}:${pull.data?.version ?? 0}`;
 
 	const onResolvedRef = useRef(onResolved);
@@ -146,6 +168,7 @@ export function PageViewer({
 				<div className="relative flex min-h-0 w-full flex-1">
 					<div className="min-h-0 min-w-0 flex-1">
 						<PageCommentsView
+							pageId={resolvedPageId}
 							pinchZoomEnabled
 							src={pull.data.viewUrl}
 							title={resolvedTitle}
@@ -153,6 +176,9 @@ export function PageViewer({
 							onScrollYChange={(y) => scrollPositions.set(scrollKey, y)}
 							onFramePointerDown={onFramePointerDown}
 							onLinkClick={onLinkClick}
+							{...(resolvedPageId && !previewing
+								? { storageTicket, presenceUrl }
+								: {})}
 						/>
 					</div>
 					<AllCommentsButton />

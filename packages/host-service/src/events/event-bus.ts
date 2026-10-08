@@ -274,6 +274,15 @@ export class EventBus {
 		return () => this.terminalLifecycleListeners.delete(listener);
 	}
 
+	broadcastChatSessionsChanged(
+		message: Omit<
+			Extract<ServerMessage, { type: "chat:sessions-changed" }>,
+			"type"
+		>,
+	): void {
+		this.broadcast({ type: "chat:sessions-changed", ...message });
+	}
+
 	broadcastPageWatchChanged(
 		message: Omit<
 			Extract<ServerMessage, { type: "page-watch:changed" }>,

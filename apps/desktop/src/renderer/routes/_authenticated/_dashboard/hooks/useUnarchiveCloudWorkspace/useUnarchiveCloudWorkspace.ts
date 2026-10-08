@@ -26,15 +26,23 @@ export function useUnarchiveCloudWorkspace() {
 			context?.rollback();
 			toast.error(errorMessage(error));
 		},
-		onSettled: (_data, _error, { id }) => {
-			void utils.cloudWorkspace.list.invalidate();
-			void utils.cloudWorkspace.get.invalidate({ id });
-			void utils.cloudWorkspace.activity.invalidate({ id });
-		},
+		onSettled: (_data, _error, { id }) =>
+			Promise.all([
+				utils.cloudWorkspace.list.invalidate(),
+				utils.cloudWorkspace.get.invalidate({ id }),
+				utils.cloudWorkspace.activity.invalidate({ id }),
+			]),
 	});
-	return (id: string) => {
+	return (id: string, options?: { onSuccess?: () => void }) => {
 		restartProvisioningTimer(id);
-		mutate({ id });
+		mutate(
+			{ id },
+			{
+				onSuccess: ({ unarchived }) => {
+					if (unarchived) options?.onSuccess?.();
+				},
+			},
+		);
 		void navigate({
 			to: "/v2-workspace/$workspaceId",
 			params: { workspaceId: id },

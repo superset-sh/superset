@@ -1,7 +1,9 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import type { RouterOutputs } from "@superset/trpc";
 import { useFeatureFlagEnabled } from "posthog-js/react";
+import { useMemo } from "react";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
+import { useArchivingCloudWorkspaceIds } from "renderer/hooks/useArchivingCloudWorkspaceIds";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 
 export type CloudWorkspaceRow = RouterOutputs["cloudWorkspace"]["list"][number];
@@ -51,9 +53,19 @@ export function useCloudWorkspaces(): CloudWorkspacesValue {
 		},
 	);
 
+	// A poll or nudge that lands before the archive commits still lists the row.
+	const archiving = useArchivingCloudWorkspaceIds();
+	const workspaces = useMemo(
+		() =>
+			archiving.length === 0
+				? query.data
+				: query.data?.filter((row) => !archiving.includes(row.id)),
+		[query.data, archiving],
+	);
+
 	return {
 		// A disabled query still holds the copy restored from disk.
-		workspaces: enabled ? query.data : [],
+		workspaces: enabled ? workspaces : [],
 		organizationId,
 		isFresh: query.isSuccess && !query.isStale,
 	};

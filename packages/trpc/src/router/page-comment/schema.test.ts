@@ -68,6 +68,16 @@ describe("comment attachments", () => {
 		).toBe(false);
 	});
 
+	test("accepts exactly the cap", () => {
+		expect(
+			replyPageCommentSchema.safeParse({
+				threadId: uuid(2),
+				body: "",
+				attachments: [uuid(1), uuid(2), uuid(3), uuid(4)],
+			}).success,
+		).toBe(true);
+	});
+
 	test("caps how many a comment carries", () => {
 		expect(
 			replyPageCommentSchema.safeParse({

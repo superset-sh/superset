@@ -8,19 +8,19 @@
 		"start": "bun run src/index.ts",
 		"deploy": "./scripts/deploy.sh",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
-		"test": "bun test"
+		"test": "bun test --isolate"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "0.78.0",
 		"@linear/sdk": "68.1.1",
 		"@t3-oss/env-core": "0.13.11",
 		"discord.js": "14.26.4",
-		"zod": "4.4.3"
+		"zod": "4.6.5"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
 		"@types/node": "24.12.0",
-		"bun-types": "1.3.14",
-		"typescript": "6.0.3"
+		"bun-types": "1.4.2",
+		"typescript": "7.0.2"
 	}
 }

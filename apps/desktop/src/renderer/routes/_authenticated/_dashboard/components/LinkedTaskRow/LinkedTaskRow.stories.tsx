@@ -15,6 +15,8 @@ const meta = {
 		task: {
 			id: "t2",
 			slug: "SUPER-2470",
+			externalProvider: null,
+			externalKey: null,
 			title: "Sidebar hover lag",
 			status: { type: "started", color: "#f2c94c", progressPercent: 50 },
 		},
@@ -33,6 +35,8 @@ export const LongTitle: Story = {
 		task: {
 			id: "t1",
 			slug: "SUPER-2311",
+			externalProvider: null,
+			externalKey: null,
 			title: "Figure out how to get plugins and skills working in cloud boxes",
 			status: { type: "started", color: "#f2c94c", progressPercent: 50 },
 		},
@@ -44,6 +48,8 @@ export const NoStatus: Story = {
 		task: {
 			id: "t3",
 			slug: "SUPER-2452",
+			externalProvider: null,
+			externalKey: null,
 			title: "No mechanism for reporting sidebar lag",
 			status: null,
 		},

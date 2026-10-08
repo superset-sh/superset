@@ -47,7 +47,10 @@ export const userRouter = {
 			},
 		});
 
-		return memberships.map((m) => m.organization);
+		const box = ctx.sandboxCaller;
+		return memberships
+			.filter((m) => !box || m.organizationId === box.organizationId)
+			.map((m) => m.organization);
 	}),
 
 	updateProfile: protectedProcedure

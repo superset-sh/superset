@@ -40,8 +40,11 @@ export function ProjectRecordSide({
 		});
 
 	return (
-		<aside className="space-y-4 px-3 py-[18px] text-[13px]">
-			<CloudSection title={<Trans>Properties</Trans>}>
+		<aside className="space-y-4 px-3 py-[18px] text-[13px] @min-[900px]:pt-1">
+			<CloudSection
+				title={<Trans>Properties</Trans>}
+				titleClassName="@min-[900px]:hidden"
+			>
 				<PropertyRow label={<Trans>Status</Trans>}>
 					<ProjectStatePicker
 						value={project.state}

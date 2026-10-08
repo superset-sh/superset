@@ -137,6 +137,7 @@ async function linearPass(deadline: number) {
 		.where(
 			and(
 				eq(connections.connector, "linear"),
+				eq(connections.authMethod, "oauth2"),
 				isNull(connections.disconnectedAt),
 				not(organizationSyncs(connections.organizationId)),
 			),

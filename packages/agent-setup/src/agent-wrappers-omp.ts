@@ -1,11 +1,11 @@
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import {
 	removeOwnedFileIfMarked,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
 import { getTemplatePath } from "./config";
+import { resolveUserHomeDir } from "./paths";
 
 export const OMP_EXTENSION_FILE = "superset-hooks.ts";
 
@@ -26,8 +26,8 @@ export const OMP_EXTENSION_MARKER = `${OMP_EXTENSION_SIGNATURE} ${OMP_EXTENSION_
 export function getOmpExtensionPath(): string {
 	const configuredAgentDir = process.env.OMP_CODING_AGENT_DIR;
 	const agentDir = configuredAgentDir
-		? configuredAgentDir.replace(/^~(?=$|[\\/])/, os.homedir())
-		: path.join(os.homedir(), ".omp", "agent");
+		? configuredAgentDir.replace(/^~(?=$|[\\/])/, resolveUserHomeDir())
+		: path.join(resolveUserHomeDir(), ".omp", "agent");
 	return path.join(agentDir, "extensions", OMP_EXTENSION_FILE);
 }
 

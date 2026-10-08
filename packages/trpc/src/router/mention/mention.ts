@@ -6,6 +6,7 @@ import {
 	tasks,
 	users,
 } from "@superset/db/schema";
+import { retiredTaskColumns } from "@superset/db/task-list-query";
 import { escapeLikePattern } from "@superset/db/utils";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, asc, desc, eq, ilike, isNull, or } from "drizzle-orm";
@@ -48,6 +49,8 @@ export const mentionRouter = {
 					.select({
 						id: tasks.id,
 						slug: tasks.slug,
+						externalProvider: retiredTaskColumns.externalProvider,
+						externalKey: retiredTaskColumns.externalKey,
 						title: tasks.title,
 						status: {
 							type: taskStatuses.type,
