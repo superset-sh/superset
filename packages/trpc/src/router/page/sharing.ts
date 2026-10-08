@@ -77,7 +77,7 @@ export const pageSharingRouter = {
 				owner: owner ?? null,
 				grantees: await listGrantees({ kind: "page", id: page.id }),
 				canManage: pageAccess(page, userId, shareRole).canManage,
-				orgRole: page.orgRole,
+				organizationRole: page.organizationRole,
 			};
 		}),
 

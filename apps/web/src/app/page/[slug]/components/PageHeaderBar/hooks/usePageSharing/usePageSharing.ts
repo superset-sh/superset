@@ -40,7 +40,9 @@ export function usePageSharing(pageId: string): PageHeaderSharing {
 	const add = useMutation(trpc.page.sharing.add.mutationOptions());
 	const remove = useMutation(trpc.page.sharing.remove.mutationOptions());
 	const setRole = useMutation(trpc.page.sharing.setRole.mutationOptions());
-	const setOrgRole = useMutation(trpc.page.setOrgRole.mutationOptions());
+	const setOrganizationRole = useMutation(
+		trpc.page.setOrganizationRole.mutationOptions(),
+	);
 
 	const directory = useMemo(
 		() => shareDirectory(members, teams),
@@ -87,7 +89,7 @@ export function usePageSharing(pageId: string): PageHeaderSharing {
 
 	return {
 		grantees,
-		orgRole: sharing?.orgRole ?? "comment",
+		organizationRole: sharing?.organizationRole ?? "comment",
 		directory,
 		organizationName:
 			organizations?.find((org) => org.id === activeOrganizationId)?.name ?? "",
@@ -118,8 +120,11 @@ export function usePageSharing(pageId: string): PageHeaderSharing {
 			await setRole.mutateAsync({ id: pageId, grantee, role: shareRole });
 			await refresh();
 		},
-		onSetOrgRole: async (orgRole) => {
-			await setOrgRole.mutateAsync({ id: pageId, role: orgRole });
+		onSetOrganizationRole: async (organizationRole) => {
+			await setOrganizationRole.mutateAsync({
+				id: pageId,
+				role: organizationRole,
+			});
 			await refresh();
 			router.refresh();
 		},

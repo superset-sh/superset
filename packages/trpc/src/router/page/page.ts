@@ -73,7 +73,7 @@ import {
 	publicPageSchema,
 	publishPageSchema,
 	pullPageSchema,
-	setPageOrgRoleSchema,
+	setPageOrganizationRoleSchema,
 	setPageVisibilitySchema,
 	setPageWatchSchema,
 	setSharedVersionSchema,
@@ -813,8 +813,8 @@ export const pageRouter = {
 			return { id: updated.id, visibility: updated.visibility };
 		}),
 
-	setOrgRole: protectedProcedure
-		.input(setPageOrgRoleSchema)
+	setOrganizationRole: protectedProcedure
+		.input(setPageOrganizationRoleSchema)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			const userId = ctx.session.user.id;
@@ -822,9 +822,9 @@ export const pageRouter = {
 			assertPageWritable(page, userId);
 			await db
 				.update(pages)
-				.set({ orgRole: input.role })
+				.set({ organizationRole: input.role })
 				.where(eq(pages.id, page.id));
-			return { id: page.id, orgRole: input.role };
+			return { id: page.id, organizationRole: input.role };
 		}),
 
 	claimWatch: protectedProcedure

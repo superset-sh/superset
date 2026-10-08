@@ -191,7 +191,7 @@ export const setPageVisibilitySchema = z.object({
 	visibility: pageFields.visibility,
 });
 
-export const setPageOrgRoleSchema = z.object({
+export const setPageOrganizationRoleSchema = z.object({
 	id: pageFields.id,
 	role: pageShareRoleEnum,
 });

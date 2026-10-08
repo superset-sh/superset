@@ -11,7 +11,7 @@ import { grantsTo, pageShareRoleFor } from "../../lib/sharing";
 
 type AccessPage = Pick<
 	SelectPage,
-	"id" | "visibility" | "orgRole" | "createdByUserId" | "takenDownAt"
+	"id" | "visibility" | "organizationRole" | "createdByUserId" | "takenDownAt"
 >;
 
 export interface PageAccess {
@@ -36,7 +36,7 @@ export function pageAccess(
 		canComment:
 			owner ||
 			shareRole === "comment" ||
-			(general && page.orgRole === "comment"),
+			(general && page.organizationRole === "comment"),
 		canManage: owner && !page.takenDownAt,
 	};
 }

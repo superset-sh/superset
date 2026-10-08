@@ -23,9 +23,9 @@ export function usePageGeneralAccess(slug: string) {
 		organizationName: share.organizationName,
 		onChange: (next) => setVisibility.mutateAsync(next),
 		role: {
-			value: sharing.data?.orgRole ?? "comment",
+			value: sharing.data?.organizationRole ?? "comment",
 			onChange: (role) =>
-				mutations.setOrgRole.mutateAsync(role as PageShareRole),
+				mutations.setOrganizationRole.mutateAsync(role as PageShareRole),
 		},
 	});
 }

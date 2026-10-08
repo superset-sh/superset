@@ -199,10 +199,11 @@ export function PageSharePopover({
 						},
 						confirm,
 						role: {
-							value: sharing.orgRole,
+							value: sharing.organizationRole,
 							options: roles,
 							appliesTo: ["org", "everyone"],
-							onChange: (role) => sharing.onSetOrgRole(role as PageShareRole),
+							onChange: (role) =>
+								sharing.onSetOrganizationRole(role as PageShareRole),
 						},
 					}}
 				>

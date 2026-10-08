@@ -91,12 +91,12 @@ describe("pageAccess", () => {
 	});
 
 	test("general access comments only when its role allows it", () => {
-		expect(at({ orgRole: "comment" }, null).canComment).toBe(true);
-		expect(at({ orgRole: "view" }, null).canComment).toBe(false);
+		expect(at({ organizationRole: "comment" }, null).canComment).toBe(true);
+		expect(at({ organizationRole: "view" }, null).canComment).toBe(false);
 	});
 
 	test("a comment share outranks a view-only organization", () => {
-		expect(at({ orgRole: "view" }, "comment").canComment).toBe(true);
+		expect(at({ organizationRole: "view" }, "comment").canComment).toBe(true);
 	});
 
 	test("only the owner manages, and not once the page is taken down", () => {
@@ -110,7 +110,7 @@ describe("pageAccess", () => {
 
 describe("assertPageCommentable", () => {
 	test("a viewer is told they can view but not comment", () => {
-		const row = page({ orgRole: "view" });
+		const row = page({ organizationRole: "view" });
 		expect(codeOf(() => assertPageCommentable(row, OTHER, null))).toBe(
 			"FORBIDDEN",
 		);

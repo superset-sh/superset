@@ -41,7 +41,7 @@ export type PageShareRole = "view" | "comment";
 /** Who the page is shared with beyond its general access, and how to change that. */
 export interface PageHeaderSharing {
 	grantees: ShareGrantee[];
-	orgRole: PageShareRole;
+	organizationRole: PageShareRole;
 	directory: ShareDirectory;
 	organizationName: string;
 	inviteNew: InviteNewMode;
@@ -49,7 +49,7 @@ export interface PageHeaderSharing {
 	onAdd: (request: ShareAddRequest) => Promise<void>;
 	onRemove: (grantee: ShareGranteeRef) => Promise<void>;
 	onSetRole: (grantee: ShareGranteeRef, role: PageShareRole) => Promise<void>;
-	onSetOrgRole: (role: PageShareRole) => Promise<void>;
+	onSetOrganizationRole: (role: PageShareRole) => Promise<void>;
 	onResendInvite: (invitationId: string) => Promise<void>;
 }
 

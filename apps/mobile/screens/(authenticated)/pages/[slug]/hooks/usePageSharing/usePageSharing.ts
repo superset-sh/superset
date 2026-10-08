@@ -92,11 +92,11 @@ export function usePageShareMutations(pageId: string | undefined) {
 			apiClient.page.sharing.setRole.mutate({ id: pageId as string, ...input }),
 		onSuccess: refresh,
 	});
-	const setOrgRole = useMutation({
+	const setOrganizationRole = useMutation({
 		mutationFn: (role: PageShareRole) =>
-			apiClient.page.setOrgRole.mutate({ id: pageId as string, role }),
+			apiClient.page.setOrganizationRole.mutate({ id: pageId as string, role }),
 		onSuccess: refresh,
 	});
 
-	return { add, remove, setRole, setOrgRole };
+	return { add, remove, setRole, setOrganizationRole };
 }

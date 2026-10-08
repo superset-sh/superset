@@ -65,13 +65,13 @@ export function usePageHeaderData(data: PageHeaderTarget): PageHeaderData {
 	const addShares = cloudTrpc.page.sharing.add.useMutation();
 	const removeShare = cloudTrpc.page.sharing.remove.useMutation();
 	const setShareRole = cloudTrpc.page.sharing.setRole.useMutation();
-	const setOrgRole = cloudTrpc.page.setOrgRole.useMutation();
+	const setOrganizationRole = cloudTrpc.page.setOrganizationRole.useMutation();
 	const refreshSharing = () =>
 		pageId ? utils.page.sharing.get.invalidate({ id: pageId }) : undefined;
 	const grantees = sharingQuery.data?.grantees ?? [];
 	const sharing: PageHeaderSharing = {
 		grantees,
-		orgRole: sharingQuery.data?.orgRole ?? "comment",
+		organizationRole: sharingQuery.data?.organizationRole ?? "comment",
 		directory: share.directory,
 		organizationName: share.organizationName,
 		inviteNew: share.inviteNew,
@@ -104,9 +104,9 @@ export function usePageHeaderData(data: PageHeaderTarget): PageHeaderData {
 			await setShareRole.mutateAsync({ id: pageId, grantee, role });
 			await refreshSharing();
 		},
-		onSetOrgRole: async (role) => {
+		onSetOrganizationRole: async (role) => {
 			if (!pageId) return;
-			await setOrgRole.mutateAsync({ id: pageId, role });
+			await setOrganizationRole.mutateAsync({ id: pageId, role });
 			await Promise.all([refreshSharing(), access.refetch()]);
 		},
 		onResendInvite: async (invitationId) => {
