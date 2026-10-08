@@ -23,7 +23,7 @@
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
-		"test": "bun test --isolate --pass-with-no-tests"
+		"test": "bun test --pass-with-no-tests"
 	},
 	"dependencies": {
 		"marked": "17.0.6",
