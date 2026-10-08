@@ -1767,6 +1767,9 @@ msgstr "Tests für den riskantesten ungetesteten Code schreiben…"
 msgid "Add tests where they're missing"
 msgstr "Tests ergänzen, wo sie fehlen"
 
+msgid "Add themes and agents to Superset."
+msgstr "Füge Superset Themes und Agenten hinzu."
+
 msgid "Add this label"
 msgstr "Dieses Label hinzufügen"
 
@@ -2872,6 +2875,9 @@ msgstr "Basierend auf {0} Tokens in den letzten 30 Tagen, gezählt {1}."
 
 msgid "Become a design partner"
 msgstr "Entwicklungspartner werden"
+
+msgid "Become a design partner."
+msgstr "Werde Designpartner."
 
 msgid "Before"
 msgstr "Vorher"
@@ -6731,6 +6737,12 @@ msgstr "Erklären, wie dieses Repository funktioniert…"
 msgid "Explain to me how this repository works"
 msgstr "Erklär mir, wie dieses Repository funktioniert"
 
+msgid "Explore"
+msgstr "Entdecken"
+
+msgid "Explore Pages"
+msgstr "Seiten entdecken"
+
 msgid "Explored"
 msgstr "Erkundet"
 
@@ -8251,6 +8263,9 @@ msgstr "Wie Leute superset.sh und die Doku erreichen und wie viel davon Suche un
 msgid "How should the agent's actions be approved?"
 msgstr "Wie sollen die Aktionen des Agenten freigegeben werden?"
 
+msgid "How Superset compares to other tools."
+msgstr "Wie Superset im Vergleich zu anderen Tools abschneidet."
+
 msgid "How the command opens."
 msgstr "Wie der Befehl geöffnet wird."
 
@@ -8268,6 +8283,9 @@ msgstr "Wie wir es bauen, ausführlich erklärt."
 
 msgid "How we hire"
 msgstr "Wie wir einstellen"
+
+msgid "How we protect your code."
+msgstr "Wie wir deinen Code schützen."
 
 msgid "How we work"
 msgstr "Wie wir arbeiten"
@@ -8586,6 +8604,9 @@ msgstr "Installieren & neu starten"
 
 msgid "Install & Restart"
 msgstr "Installieren & neu starten"
+
+msgid "Install and run your first agent."
+msgstr "Installieren und den ersten Agenten starten."
 
 msgid "Install failed"
 msgstr "Installation fehlgeschlagen"
@@ -9087,6 +9108,9 @@ msgstr "Bestenlisten-Einstellungen"
 msgid "Leaf"
 msgstr "Blatt"
 
+msgid "Learn"
+msgstr "Lernen"
+
 msgid "Learn how to use scripts"
 msgstr "So verwendest du Skripte"
 
@@ -9488,9 +9512,6 @@ msgstr "Logo, hell"
 
 msgid "Logos"
 msgstr "Logos"
-
-msgid "Logos, product images, and press contact."
-msgstr "Logos, Produktbilder und Pressekontakt."
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "Die Zuverlässigkeit über lange Zeiträume überschreitet eine Schwelle. Arbeit, die um 18 Uhr vergeben wird, ist um 9 Uhr so oft mergebar, dass es sich wie eine stillstehende Fabrik anfühlt, die Nachtschicht nicht einzuplanen."
@@ -10183,6 +10204,9 @@ msgstr "Nie"
 
 msgid "Never asks before acting"
 msgstr "Fragt nie vor dem Handeln"
+
+msgid "New"
+msgstr "Neu"
 
 msgctxt "badge on a page published since the menu was last opened"
 msgid "New"
@@ -12277,6 +12301,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Anheften"
 
+msgid "Pin feedback to a page and let the agent make the change."
+msgstr "Feedback an eine Seite heften und den Agenten die Änderung machen lassen."
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Hefte Arbeitsbereiche über deine Projekte, dann per ⌘-Klick eine Auswahl treffen und alle auf einmal verschieben, gruppieren oder löschen."
 
@@ -12614,6 +12641,9 @@ msgstr "Produktionslauf"
 
 msgid "Productivity"
 msgstr "Produktivität"
+
+msgid "Products"
+msgstr "Produkte"
 
 msgid "Profile name"
 msgstr "Profilname"
@@ -12982,6 +13012,9 @@ msgstr "Changelog lesen ↗"
 
 msgid "Read the docs"
 msgstr "Dokumentation lesen"
+
+msgid "Read the guide"
+msgstr "Leitfaden lesen"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "Zum Leitfaden für parallele Coding-Agenten"
@@ -13817,6 +13850,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "Prüfen"
 
+msgid "Review agent work with Pages"
+msgstr "Agentenarbeit mit Seiten prüfen"
+
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Review- und CI-Warteschlangen fressen die Gewinne der Agenten auf."
 
@@ -13961,6 +13997,9 @@ msgstr "Betreibe 10+ parallele Coding-Agenten auf deinem Rechner."
 
 msgid "Run again"
 msgstr "Erneut ausführen"
+
+msgid "Run agents side by side, then review."
+msgstr "Agenten parallel laufen lassen und dann prüfen."
 
 msgid "Run automations on data source and comment activity."
 msgstr "Automatisierungen bei Aktivität an Datenquellen und Kommentaren ausführen."
@@ -14435,6 +14474,9 @@ msgstr "So schneidet Superset im Vergleich zu anderen Tools ab"
 
 msgid "See how we work"
 msgstr "So arbeiten wir"
+
+msgid "See how your agent usage compares."
+msgstr "Vergleiche deine Agentennutzung."
 
 msgid "See how your agent usage compares. Explore the models behind each profile."
 msgstr "Vergleiche deine Agentennutzung mit anderen. Entdecke die Modelle hinter jedem Profil."
@@ -16675,9 +16717,6 @@ msgstr "Die gesuchte Seite existiert nicht oder wurde verschoben."
 msgid "The page you're looking for doesn't exist."
 msgstr "Die gesuchte Seite gibt es nicht."
 
-msgid "The people behind Superset."
-msgstr "Die Menschen hinter Superset."
-
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "Der Checkout des Projekts, wie er ist: Dateien und Branch werden geteilt"
 
@@ -18044,6 +18083,9 @@ msgstr "Version unbekannt"
 msgid "Video"
 msgstr "Video"
 
+msgid "Video tutorials"
+msgstr "Video-Tutorials"
+
 msgid "View"
 msgstr "Ansehen"
 
@@ -18185,6 +18227,9 @@ msgstr "Es gab eine Warnung."
 
 msgid "Watch a design review go from comment to new version."
 msgstr "Sieh zu, wie aus einem Kommentar in einem Design-Review eine neue Version wird."
+
+msgid "Watch walkthroughs on YouTube."
+msgstr "Sieh dir Walkthroughs auf YouTube an."
 
 msgid "Watchers"
 msgstr "Beobachter"

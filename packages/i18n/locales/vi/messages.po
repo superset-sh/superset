@@ -1767,6 +1767,9 @@ msgstr "Thêm test cho phần code rủi ro nhất chưa được test…"
 msgid "Add tests where they're missing"
 msgstr "Thêm test ở những chỗ còn thiếu"
 
+msgid "Add themes and agents to Superset."
+msgstr "Thêm giao diện và agent vào Superset."
+
 msgid "Add this label"
 msgstr "Thêm nhãn này"
 
@@ -2872,6 +2875,9 @@ msgstr "Dựa trên {0} token trong 30 ngày qua, tính cả {1}."
 
 msgid "Become a design partner"
 msgstr "Trở thành đối tác đồng phát triển"
+
+msgid "Become a design partner."
+msgstr "Trở thành đối tác thiết kế."
 
 msgid "Before"
 msgstr "Trước"
@@ -6731,6 +6737,12 @@ msgstr "Giải thích repository này hoạt động thế nào…"
 msgid "Explain to me how this repository works"
 msgstr "Giải thích cho tôi repository này hoạt động thế nào"
 
+msgid "Explore"
+msgstr "Khám phá"
+
+msgid "Explore Pages"
+msgstr "Khám phá Trang"
+
 msgid "Explored"
 msgstr "Đã tìm hiểu"
 
@@ -8251,6 +8263,9 @@ msgstr "Mọi người đến superset.sh và tài liệu như thế nào, và b
 msgid "How should the agent's actions be approved?"
 msgstr "Thao tác của tác tử nên được phê duyệt thế nào?"
 
+msgid "How Superset compares to other tools."
+msgstr "Superset so với các công cụ khác như thế nào."
+
 msgid "How the command opens."
 msgstr "Cách mở lệnh."
 
@@ -8268,6 +8283,9 @@ msgstr "Cách chúng tôi xây dựng, chi tiết."
 
 msgid "How we hire"
 msgstr "Cách chúng tôi tuyển dụng"
+
+msgid "How we protect your code."
+msgstr "Cách chúng tôi bảo vệ mã của bạn."
 
 msgid "How we work"
 msgstr "Cách chúng tôi làm việc"
@@ -8586,6 +8604,9 @@ msgstr "Cài đặt & khởi động lại"
 
 msgid "Install & Restart"
 msgstr "Cài đặt & khởi động lại"
+
+msgid "Install and run your first agent."
+msgstr "Cài đặt và chạy agent đầu tiên của bạn."
 
 msgid "Install failed"
 msgstr "Cài đặt thất bại"
@@ -9087,6 +9108,9 @@ msgstr "Cài đặt bảng xếp hạng"
 msgid "Leaf"
 msgstr "Chiếc lá"
 
+msgid "Learn"
+msgstr "Học"
+
 msgid "Learn how to use scripts"
 msgstr "Tìm hiểu cách dùng script"
 
@@ -9488,9 +9512,6 @@ msgstr "Logo, sáng"
 
 msgid "Logos"
 msgstr "Logo"
-
-msgid "Logos, product images, and press contact."
-msgstr "Logo, hình ảnh sản phẩm và liên hệ báo chí."
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "Độ tin cậy dài hạn vượt một ngưỡng. Việc giao lúc 6 giờ tối đủ thường xuyên là có thể merge lúc 9 giờ sáng, đến mức không xếp ca đêm giống như để nhà máy nằm không."
@@ -10183,6 +10204,9 @@ msgstr "Chưa bao giờ"
 
 msgid "Never asks before acting"
 msgstr "Không bao giờ hỏi trước"
+
+msgid "New"
+msgstr "Mới"
 
 msgctxt "badge on a page published since the menu was last opened"
 msgid "New"
@@ -12277,6 +12301,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Ghim"
 
+msgid "Pin feedback to a page and let the agent make the change."
+msgstr "Ghim phản hồi lên trang và để agent thực hiện thay đổi."
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Ghim workspace lên trên các dự án, rồi ⌘-nhấp một loạt để chuyển, gom nhóm hoặc xóa tất cả cùng lúc."
 
@@ -12614,6 +12641,9 @@ msgstr "Đợt sản xuất"
 
 msgid "Productivity"
 msgstr "Năng suất"
+
+msgid "Products"
+msgstr "Sản phẩm"
 
 msgid "Profile name"
 msgstr "Tên hồ sơ"
@@ -12982,6 +13012,9 @@ msgstr "Đọc changelog ↗"
 
 msgid "Read the docs"
 msgstr "Đọc tài liệu"
+
+msgid "Read the guide"
+msgstr "Đọc hướng dẫn"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "Đọc hướng dẫn về coding agent chạy song song"
@@ -13817,6 +13850,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "Xem lại"
 
+msgid "Review agent work with Pages"
+msgstr "Duyệt công việc của agent bằng Trang"
+
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Hàng đợi review và CI ăn mất phần lợi mà agent tạo ra."
 
@@ -13961,6 +13997,9 @@ msgstr "Chạy hơn 10 agent lập trình song song trên máy của bạn."
 
 msgid "Run again"
 msgstr "Chạy lại"
+
+msgid "Run agents side by side, then review."
+msgstr "Chạy các agent song song rồi xem lại."
 
 msgid "Run automations on data source and comment activity."
 msgstr "Chạy tự động hóa theo hoạt động của nguồn dữ liệu và bình luận."
@@ -14435,6 +14474,9 @@ msgstr "Xem Superset so với các công cụ khác"
 
 msgid "See how we work"
 msgstr "Xem cách chúng tôi làm việc"
+
+msgid "See how your agent usage compares."
+msgstr "So sánh mức dùng agent của bạn."
 
 msgid "See how your agent usage compares. Explore the models behind each profile."
 msgstr "So sánh mức sử dụng tác tử của bạn với người khác. Khám phá các mô hình trong từng hồ sơ."
@@ -16675,9 +16717,6 @@ msgstr "Trang bạn tìm không tồn tại hoặc đã được chuyển đi."
 msgid "The page you're looking for doesn't exist."
 msgstr "Trang bạn tìm không tồn tại."
 
-msgid "The people behind Superset."
-msgstr "Những người đứng sau Superset."
-
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "Checkout của dự án như hiện có: tệp và nhánh được dùng chung"
 
@@ -18044,6 +18083,9 @@ msgstr "Không rõ phiên bản"
 msgid "Video"
 msgstr "Video"
 
+msgid "Video tutorials"
+msgstr "Video hướng dẫn"
+
 msgid "View"
 msgstr "Xem"
 
@@ -18185,6 +18227,9 @@ msgstr "Có cảnh báo."
 
 msgid "Watch a design review go from comment to new version."
 msgstr "Xem một buổi duyệt thiết kế đi từ bình luận đến phiên bản mới."
+
+msgid "Watch walkthroughs on YouTube."
+msgstr "Xem video hướng dẫn trên YouTube."
 
 msgid "Watchers"
 msgstr "Người theo dõi"

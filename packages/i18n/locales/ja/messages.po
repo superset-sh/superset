@@ -1767,6 +1767,9 @@ msgstr "テストのない危険なコードにテストを追加…"
 msgid "Add tests where they're missing"
 msgstr "テストが不足している箇所に追加"
 
+msgid "Add themes and agents to Superset."
+msgstr "Superset にテーマとエージェントを追加。"
+
 msgid "Add this label"
 msgstr "このラベルを追加"
 
@@ -2872,6 +2875,9 @@ msgstr "過去30日間の{0}トークンに基づく({1}を集計)。"
 
 msgid "Become a design partner"
 msgstr "共同開発パートナーになる"
+
+msgid "Become a design partner."
+msgstr "デザインパートナーになる。"
 
 msgid "Before"
 msgstr "変更前"
@@ -6731,6 +6737,12 @@ msgstr "このリポジトリの仕組みを説明…"
 msgid "Explain to me how this repository works"
 msgstr "このリポジトリの仕組みを教えて"
 
+msgid "Explore"
+msgstr "探す"
+
+msgid "Explore Pages"
+msgstr "ページを見る"
+
 msgid "Explored"
 msgstr "探索済み"
 
@@ -8251,6 +8263,9 @@ msgstr "人々が superset.sh とドキュメントにどう到達している�
 msgid "How should the agent's actions be approved?"
 msgstr "エージェントの操作をどう承認しますか？"
 
+msgid "How Superset compares to other tools."
+msgstr "Superset と他のツールの比較。"
+
 msgid "How the command opens."
 msgstr "コマンドの開き方。"
 
@@ -8268,6 +8283,9 @@ msgstr "どう作っているかを詳しく。"
 
 msgid "How we hire"
 msgstr "採用プロセス"
+
+msgid "How we protect your code."
+msgstr "コードを守る仕組み。"
 
 msgid "How we work"
 msgstr "私たちの働き方"
@@ -8586,6 +8604,9 @@ msgstr "インストールして再起動"
 
 msgid "Install & Restart"
 msgstr "インストールして再起動"
+
+msgid "Install and run your first agent."
+msgstr "インストールして最初のエージェントを動かす。"
 
 msgid "Install failed"
 msgstr "インストールに失敗しました"
@@ -9087,6 +9108,9 @@ msgstr "リーダーボード設定"
 msgid "Leaf"
 msgstr "葉"
 
+msgid "Learn"
+msgstr "学ぶ"
+
 msgid "Learn how to use scripts"
 msgstr "スクリプトの使い方を見る"
 
@@ -9488,9 +9512,6 @@ msgstr "ロゴ（明色）"
 
 msgid "Logos"
 msgstr "ロゴ"
-
-msgid "Logos, product images, and press contact."
-msgstr "ロゴ、製品画像、報道関係のお問い合わせ先。"
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "長時間にわたる信頼性がしきい値を超えます。18時に割り当てた作業が9時にはマージできる。それが十分な頻度で起きるようになり、夜間シフトを組まないことが工場を遊ばせているように感じられます。"
@@ -10183,6 +10204,9 @@ msgstr "未使用"
 
 msgid "Never asks before acting"
 msgstr "確認なしで実行"
+
+msgid "New"
+msgstr "新着"
 
 msgctxt "badge on a page published since the menu was last opened"
 msgid "New"
@@ -12277,6 +12301,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "ピン留め"
 
+msgid "Pin feedback to a page and let the agent make the change."
+msgstr "ページにフィードバックを残し、変更はエージェントに任せましょう。"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "ワークスペースをプロジェクトの上にピン留めし、⌘クリックでまとめて選んで移動、グループ化、削除ができます。"
 
@@ -12614,6 +12641,9 @@ msgstr "生産稼働"
 
 msgid "Productivity"
 msgstr "生産性"
+
+msgid "Products"
+msgstr "プロダクト"
 
 msgid "Profile name"
 msgstr "プロファイル名"
@@ -12982,6 +13012,9 @@ msgstr "Changelogを読む ↗"
 
 msgid "Read the docs"
 msgstr "ドキュメントを読む"
+
+msgid "Read the guide"
+msgstr "ガイドを読む"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "並列コーディングエージェントのガイドを読む"
@@ -13817,6 +13850,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "要確認"
 
+msgid "Review agent work with Pages"
+msgstr "ページでエージェントの作業をレビュー"
+
 msgid "Review and CI queues eat the gains agents create."
 msgstr "レビューとCIの待ち行列が、エージェントの生んだ余力を食い潰しています。"
 
@@ -13961,6 +13997,9 @@ msgstr "手元のマシンで10以上のコーディングエージェントを�
 
 msgid "Run again"
 msgstr "再実行"
+
+msgid "Run agents side by side, then review."
+msgstr "エージェントを並行して動かし、あとでレビュー。"
 
 msgid "Run automations on data source and comment activity."
 msgstr "データソースやコメントの動きに応じてオートメーションを実行します。"
@@ -14435,6 +14474,9 @@ msgstr "Supersetと他ツールの比較を見る"
 
 msgid "See how we work"
 msgstr "私たちの働き方を見る"
+
+msgid "See how your agent usage compares."
+msgstr "エージェントの使用状況を比較できます。"
 
 msgid "See how your agent usage compares. Explore the models behind each profile."
 msgstr "エージェントの使用量を他の開発者と比較できます。各プロフィールで使われているモデルを確認しましょう。"
@@ -16675,9 +16717,6 @@ msgstr "お探しのページは存在しないか、移動しました。"
 msgid "The page you're looking for doesn't exist."
 msgstr "お探しのページは存在しません。"
 
-msgid "The people behind Superset."
-msgstr "Supersetを作っている人たち。"
-
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "プロジェクトのチェックアウトをそのまま使用: ファイルとブランチは共有されます"
 
@@ -18044,6 +18083,9 @@ msgstr "バージョン不明"
 msgid "Video"
 msgstr "動画"
 
+msgid "Video tutorials"
+msgstr "動画チュートリアル"
+
 msgid "View"
 msgstr "表示"
 
@@ -18185,6 +18227,9 @@ msgstr "警告が発生しました。"
 
 msgid "Watch a design review go from comment to new version."
 msgstr "デザインレビューがコメントから新しいバージョンになるまでをご覧ください。"
+
+msgid "Watch walkthroughs on YouTube."
+msgstr "YouTube でウォークスルーを見る。"
 
 msgid "Watchers"
 msgstr "ウォッチャー"

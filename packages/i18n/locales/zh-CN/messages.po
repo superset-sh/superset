@@ -1767,6 +1767,9 @@ msgstr "给风险最高又没测试的代码补上测试…"
 msgid "Add tests where they're missing"
 msgstr "给缺测试的地方补测试"
 
+msgid "Add themes and agents to Superset."
+msgstr "为 Superset 添加主题和智能体。"
+
 msgid "Add this label"
 msgstr "添加此标签"
 
@@ -2872,6 +2875,9 @@ msgstr "基于最近30天的{0}个token，统计{1}。"
 
 msgid "Become a design partner"
 msgstr "成为共创伙伴"
+
+msgid "Become a design partner."
+msgstr "成为设计合作伙伴。"
 
 msgid "Before"
 msgstr "变更前"
@@ -6731,6 +6737,12 @@ msgstr "讲讲这个仓库是怎么运作的…"
 msgid "Explain to me how this repository works"
 msgstr "讲讲这个仓库是怎么运作的"
 
+msgid "Explore"
+msgstr "探索"
+
+msgid "Explore Pages"
+msgstr "了解页面"
+
 msgid "Explored"
 msgstr "已探索"
 
@@ -8251,6 +8263,9 @@ msgstr "人们如何到达 superset.sh 和文档站，其中有多少来自搜�
 msgid "How should the agent's actions be approved?"
 msgstr "智能体的操作应如何批准？"
 
+msgid "How Superset compares to other tools."
+msgstr "Superset 与其他工具的对比。"
+
 msgid "How the command opens."
 msgstr "命令的打开方式。"
 
@@ -8268,6 +8283,9 @@ msgstr "我们如何构建它，深入介绍。"
 
 msgid "How we hire"
 msgstr "招聘流程"
+
+msgid "How we protect your code."
+msgstr "我们如何保护你的代码。"
 
 msgid "How we work"
 msgstr "我们的工作方式"
@@ -8586,6 +8604,9 @@ msgstr "安装并重启"
 
 msgid "Install & Restart"
 msgstr "安装并重启"
+
+msgid "Install and run your first agent."
+msgstr "安装并运行你的第一个智能体。"
 
 msgid "Install failed"
 msgstr "安装失败"
@@ -9087,6 +9108,9 @@ msgstr "排行榜设置"
 msgid "Leaf"
 msgstr "叶子"
 
+msgid "Learn"
+msgstr "学习"
+
 msgid "Learn how to use scripts"
 msgstr "了解如何使用脚本"
 
@@ -9488,9 +9512,6 @@ msgstr "标志，浅色"
 
 msgid "Logos"
 msgstr "标志"
-
-msgid "Logos, product images, and press contact."
-msgstr "标志、产品图片和媒体联系方式。"
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "长周期可靠性越过了一个门槛。傍晚6点派出去的活儿，早上9点常常已经可以合并，以至于不排夜班就像让工厂空转。"
@@ -10183,6 +10204,9 @@ msgstr "从未"
 
 msgid "Never asks before acting"
 msgstr "执行前从不询问"
+
+msgid "New"
+msgstr "新功能"
 
 msgctxt "badge on a page published since the menu was last opened"
 msgid "New"
@@ -12277,6 +12301,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "置顶"
 
+msgid "Pin feedback to a page and let the agent make the change."
+msgstr "在页面上留下反馈，让智能体完成修改。"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "把工作区固定在项目上方，再⌘点击批量选中，一次性移动、分组或删除。"
 
@@ -12614,6 +12641,9 @@ msgstr "生产运行"
 
 msgid "Productivity"
 msgstr "效率"
+
+msgid "Products"
+msgstr "产品"
 
 msgid "Profile name"
 msgstr "配置文件名称"
@@ -12982,6 +13012,9 @@ msgstr "阅读更新日志 ↗"
 
 msgid "Read the docs"
 msgstr "阅读文档"
+
+msgid "Read the guide"
+msgstr "阅读指南"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "阅读并行编码智能体指南"
@@ -13817,6 +13850,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "待查看"
 
+msgid "Review agent work with Pages"
+msgstr "用页面审查智能体的工作"
+
 msgid "Review and CI queues eat the gains agents create."
 msgstr "审查和CI排队把智能体带来的收益吃掉了。"
 
@@ -13961,6 +13997,9 @@ msgstr "在你的机器上并行运行10个以上的编码智能体。"
 
 msgid "Run again"
 msgstr "重新运行"
+
+msgid "Run agents side by side, then review."
+msgstr "并行运行智能体，然后审查。"
 
 msgid "Run automations on data source and comment activity."
 msgstr "在数据源和评论活动上运行自动化。"
@@ -14435,6 +14474,9 @@ msgstr "看看Superset与其他工具的对比"
 
 msgid "See how we work"
 msgstr "看看我们如何工作"
+
+msgid "See how your agent usage compares."
+msgstr "看看你的智能体使用情况排名。"
 
 msgid "See how your agent usage compares. Explore the models behind each profile."
 msgstr "比较你与其他开发者的智能体用量，了解每个个人主页使用的模型。"
@@ -16675,9 +16717,6 @@ msgstr "你要找的页面不存在或已被移动。"
 msgid "The page you're looking for doesn't exist."
 msgstr "你要找的页面不存在。"
 
-msgid "The people behind Superset."
-msgstr "Superset背后的团队。"
-
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "按原样使用项目的检出: 文件和分支是共享的"
 
@@ -18044,6 +18083,9 @@ msgstr "版本未知"
 msgid "Video"
 msgstr "视频"
 
+msgid "Video tutorials"
+msgstr "视频教程"
+
 msgid "View"
 msgstr "查看"
 
@@ -18185,6 +18227,9 @@ msgstr "出现了警告。"
 
 msgid "Watch a design review go from comment to new version."
 msgstr "看一次设计评审如何从评论变成新版本。"
+
+msgid "Watch walkthroughs on YouTube."
+msgstr "在 YouTube 上观看演示教程。"
 
 msgid "Watchers"
 msgstr "关注者"

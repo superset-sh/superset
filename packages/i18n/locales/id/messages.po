@@ -1767,6 +1767,9 @@ msgstr "Tambahkan tes untuk kode paling berisiko yang belum diuji…"
 msgid "Add tests where they're missing"
 msgstr "Tambahkan tes yang belum ada"
 
+msgid "Add themes and agents to Superset."
+msgstr "Tambahkan tema dan agen ke Superset."
+
 msgid "Add this label"
 msgstr "Tambahkan label ini"
 
@@ -2872,6 +2875,9 @@ msgstr "Berdasarkan {0} token dalam 30 hari terakhir, menghitung {1}."
 
 msgid "Become a design partner"
 msgstr "Jadi mitra pengembangan"
+
+msgid "Become a design partner."
+msgstr "Jadilah mitra desain."
 
 msgid "Before"
 msgstr "Sebelum"
@@ -6731,6 +6737,12 @@ msgstr "Jelaskan cara kerja repositori ini…"
 msgid "Explain to me how this repository works"
 msgstr "Jelaskan cara kerja repositori ini"
 
+msgid "Explore"
+msgstr "Jelajahi"
+
+msgid "Explore Pages"
+msgstr "Jelajahi Halaman"
+
 msgid "Explored"
 msgstr "Sudah dijelajahi"
 
@@ -8251,6 +8263,9 @@ msgstr "Bagaimana orang mencapai superset.sh dan dokumentasi, dan seberapa banya
 msgid "How should the agent's actions be approved?"
 msgstr "Bagaimana tindakan agen harus disetujui?"
 
+msgid "How Superset compares to other tools."
+msgstr "Perbandingan Superset dengan alat lain."
+
 msgid "How the command opens."
 msgstr "Bagaimana perintahnya dibuka."
 
@@ -8268,6 +8283,9 @@ msgstr "Cara kami membangunnya, secara mendalam."
 
 msgid "How we hire"
 msgstr "Cara kami merekrut"
+
+msgid "How we protect your code."
+msgstr "Cara kami melindungi kode Anda."
 
 msgid "How we work"
 msgstr "Cara kami bekerja"
@@ -8586,6 +8604,9 @@ msgstr "Instal & mulai ulang"
 
 msgid "Install & Restart"
 msgstr "Pasang & Mulai Ulang"
+
+msgid "Install and run your first agent."
+msgstr "Instal dan jalankan agen pertama Anda."
 
 msgid "Install failed"
 msgstr "Pemasangan gagal"
@@ -9087,6 +9108,9 @@ msgstr "Pengaturan papan peringkat"
 msgid "Leaf"
 msgstr "Daun"
 
+msgid "Learn"
+msgstr "Belajar"
+
 msgid "Learn how to use scripts"
 msgstr "Pelajari cara memakai skrip"
 
@@ -9488,9 +9512,6 @@ msgstr "Logo, terang"
 
 msgid "Logos"
 msgstr "Logo"
-
-msgid "Logos, product images, and press contact."
-msgstr "Logo, gambar produk, dan kontak pers."
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "Keandalan jangka panjang melewati ambang batas. Pekerjaan yang diberikan jam 6 sore cukup sering bisa di-merge jam 9 pagi sehingga tidak menjadwalkan shift malam terasa seperti membiarkan pabrik menganggur."
@@ -10183,6 +10204,9 @@ msgstr "Tidak pernah"
 
 msgid "Never asks before acting"
 msgstr "Tidak pernah bertanya dulu"
+
+msgid "New"
+msgstr "Baru"
 
 msgctxt "badge on a page published since the menu was last opened"
 msgid "New"
@@ -12277,6 +12301,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Sematkan"
 
+msgid "Pin feedback to a page and let the agent make the change."
+msgstr "Sematkan masukan di halaman dan biarkan agen membuat perubahannya."
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Sematkan workspace di atas proyek Anda, lalu ⌘-klik sekumpulan untuk memindahkan, mengelompokkan, atau menghapus semuanya sekaligus."
 
@@ -12614,6 +12641,9 @@ msgstr "Proses produksi"
 
 msgid "Productivity"
 msgstr "Produktivitas"
+
+msgid "Products"
+msgstr "Produk"
 
 msgid "Profile name"
 msgstr "Nama profil"
@@ -12982,6 +13012,9 @@ msgstr "Baca changelog ↗"
 
 msgid "Read the docs"
 msgstr "Baca dokumentasi"
+
+msgid "Read the guide"
+msgstr "Baca panduan"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "Baca panduan agen coding paralel"
@@ -13817,6 +13850,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "Tinjau"
 
+msgid "Review agent work with Pages"
+msgstr "Tinjau pekerjaan agen dengan Halaman"
+
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Antrean review dan CI memakan keuntungan yang dihasilkan agen."
 
@@ -13961,6 +13997,9 @@ msgstr "Jalankan 10+ agen coding paralel di mesin Anda."
 
 msgid "Run again"
 msgstr "Jalankan lagi"
+
+msgid "Run agents side by side, then review."
+msgstr "Jalankan agen berdampingan, lalu tinjau."
 
 msgid "Run automations on data source and comment activity."
 msgstr "Jalankan otomatisasi pada aktivitas sumber data dan komentar."
@@ -14435,6 +14474,9 @@ msgstr "Lihat perbandingan Superset dengan alat lain"
 
 msgid "See how we work"
 msgstr "Lihat cara kami bekerja"
+
+msgid "See how your agent usage compares."
+msgstr "Bandingkan penggunaan agen Anda."
 
 msgid "See how your agent usage compares. Explore the models behind each profile."
 msgstr "Bandingkan penggunaan agen Anda dengan pengguna lain. Jelajahi model di balik setiap profil."
@@ -16675,9 +16717,6 @@ msgstr "Halaman yang Anda cari tidak ada atau sudah dipindahkan."
 msgid "The page you're looking for doesn't exist."
 msgstr "Halaman yang Anda cari tidak ada."
 
-msgid "The people behind Superset."
-msgstr "Orang-orang di balik Superset."
-
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "Checkout proyek apa adanya: file dan branch dibagikan"
 
@@ -18044,6 +18083,9 @@ msgstr "Versi tidak diketahui"
 msgid "Video"
 msgstr "Video"
 
+msgid "Video tutorials"
+msgstr "Tutorial video"
+
 msgid "View"
 msgstr "Lihat"
 
@@ -18185,6 +18227,9 @@ msgstr "Terjadi peringatan."
 
 msgid "Watch a design review go from comment to new version."
 msgstr "Lihat bagaimana tinjauan desain berubah dari komentar menjadi versi baru."
+
+msgid "Watch walkthroughs on YouTube."
+msgstr "Tonton panduan langkah demi langkah di YouTube."
 
 msgid "Watchers"
 msgstr "Pengamat"

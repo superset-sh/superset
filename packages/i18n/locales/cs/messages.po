@@ -1767,6 +1767,9 @@ msgstr "Doplň testy pro nejrizikovější netestovaný kód…"
 msgid "Add tests where they're missing"
 msgstr "Doplnit testy tam, kde chybí"
 
+msgid "Add themes and agents to Superset."
+msgstr "Přidejte do Supersetu motivy a agenty."
+
 msgid "Add this label"
 msgstr "Přidat tento štítek"
 
@@ -2872,6 +2875,9 @@ msgstr "Na základě {0} tokenů za posledních 30 dní, počítáno z {1}."
 
 msgid "Become a design partner"
 msgstr "Staňte se partnerem pro vývoj"
+
+msgid "Become a design partner."
+msgstr "Staňte se designovým partnerem."
 
 msgid "Before"
 msgstr "Před"
@@ -6731,6 +6737,12 @@ msgstr "Vysvětli, jak tento repozitář funguje…"
 msgid "Explain to me how this repository works"
 msgstr "Vysvětlit mi, jak tento repozitář funguje"
 
+msgid "Explore"
+msgstr "Prozkoumat"
+
+msgid "Explore Pages"
+msgstr "Prozkoumat Stránky"
+
 msgid "Explored"
 msgstr "Prozkoumáno"
 
@@ -8251,6 +8263,9 @@ msgstr "Jak se lidé dostávají na superset.sh a do dokumentace a kolik z toho 
 msgid "How should the agent's actions be approved?"
 msgstr "Jak schvalovat akce agenta?"
 
+msgid "How Superset compares to other tools."
+msgstr "Jak si Superset stojí vedle jiných nástrojů."
+
 msgid "How the command opens."
 msgstr "Jak se příkaz otevře."
 
@@ -8268,6 +8283,9 @@ msgstr "Jak to stavíme, podrobně."
 
 msgid "How we hire"
 msgstr "Jak nabíráme"
+
+msgid "How we protect your code."
+msgstr "Jak chráníme váš kód."
 
 msgid "How we work"
 msgstr "Jak pracujeme"
@@ -8586,6 +8604,9 @@ msgstr "Nainstalovat a restartovat"
 
 msgid "Install & Restart"
 msgstr "Nainstalovat a restartovat"
+
+msgid "Install and run your first agent."
+msgstr "Nainstalujte a spusťte svého prvního agenta."
 
 msgid "Install failed"
 msgstr "Instalace selhala"
@@ -9087,6 +9108,9 @@ msgstr "Nastavení žebříčku"
 msgid "Leaf"
 msgstr "List"
 
+msgid "Learn"
+msgstr "Učte se"
+
 msgid "Learn how to use scripts"
 msgstr "Jak používat skripty"
 
@@ -9488,9 +9512,6 @@ msgstr "Logo, světlé"
 
 msgid "Logos"
 msgstr "Loga"
-
-msgid "Logos, product images, and press contact."
-msgstr "Loga, obrázky produktu a kontakt pro média."
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "Spolehlivost na dlouhém horizontu překročí práh. Práce zadaná v 18:00 je v 9:00 připravená ke sloučení tak často, že neplánovat noční směnu působí jako nechat továrnu stát."
@@ -10183,6 +10204,9 @@ msgstr "Nikdy"
 
 msgid "Never asks before acting"
 msgstr "Nikdy se neptá"
+
+msgid "New"
+msgstr "Novinka"
 
 msgctxt "badge on a page published since the menu was last opened"
 msgid "New"
@@ -12277,6 +12301,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Připnout"
 
+msgid "Pin feedback to a page and let the agent make the change."
+msgstr "Připněte zpětnou vazbu ke stránce a nechte agenta provést změnu."
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Připněte si pracovní prostory nad projekty a pak ⌘-kliknutím vyberte skupinu, kterou přesunete, seskupíte nebo smažete naráz."
 
@@ -12614,6 +12641,9 @@ msgstr "Výrobní cyklus"
 
 msgid "Productivity"
 msgstr "Produktivita"
+
+msgid "Products"
+msgstr "Produkty"
 
 msgid "Profile name"
 msgstr "Název profilu"
@@ -12982,6 +13012,9 @@ msgstr "Přečíst changelog ↗"
 
 msgid "Read the docs"
 msgstr "Přečtěte si dokumentaci"
+
+msgid "Read the guide"
+msgstr "Přečíst průvodce"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "Přečíst průvodce paralelními kódovacími agenty"
@@ -13817,6 +13850,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "Ke kontrole"
 
+msgid "Review agent work with Pages"
+msgstr "Kontrola práce agenta ve Stránkách"
+
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Fronty revizí a CI spolykají zisky, které agenti vytvoří."
 
@@ -13961,6 +13997,9 @@ msgstr "Spusťte na svém stroji 10+ paralelních programovacích agentů."
 
 msgid "Run again"
 msgstr "Spustit znovu"
+
+msgid "Run agents side by side, then review."
+msgstr "Spouštějte agenty vedle sebe a pak je zkontrolujte."
 
 msgid "Run automations on data source and comment activity."
 msgstr "Spouštějte automatizace při aktivitě ve zdrojích dat a komentářích."
@@ -14435,6 +14474,9 @@ msgstr "Podívejte se, jak si Superset stojí vedle jiných nástrojů"
 
 msgid "See how we work"
 msgstr "Podívejte se, jak pracujeme"
+
+msgid "See how your agent usage compares."
+msgstr "Porovnejte své využití agentů."
 
 msgid "See how your agent usage compares. Explore the models behind each profile."
 msgstr "Podívejte se, jak si stojí vaše využití agentů. Prozkoumejte modely u jednotlivých profilů."
@@ -16675,9 +16717,6 @@ msgstr "Stránka, kterou hledáte, neexistuje nebo byla přesunuta."
 msgid "The page you're looking for doesn't exist."
 msgstr "Stránka, kterou hledáte, neexistuje."
 
-msgid "The people behind Superset."
-msgstr "Lidé za Supersetem."
-
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "Checkout projektu tak, jak je: soubory a větev jsou sdílené"
 
@@ -18044,6 +18083,9 @@ msgstr "Neznámá verze"
 msgid "Video"
 msgstr "Video"
 
+msgid "Video tutorials"
+msgstr "Video návody"
+
 msgid "View"
 msgstr "Zobrazit"
 
@@ -18185,6 +18227,9 @@ msgstr "Došlo k varování."
 
 msgid "Watch a design review go from comment to new version."
 msgstr "Podívejte se, jak se design review dostane od komentáře k nové verzi."
+
+msgid "Watch walkthroughs on YouTube."
+msgstr "Podívejte se na ukázky na YouTube."
 
 msgid "Watchers"
 msgstr "Sledující"

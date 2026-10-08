@@ -1767,6 +1767,9 @@ msgstr "給風險最高又沒測試的程式碼補上測試…"
 msgid "Add tests where they're missing"
 msgstr "給缺測試的地方補測試"
 
+msgid "Add themes and agents to Superset."
+msgstr "為 Superset 加入主題與代理程式。"
+
 msgid "Add this label"
 msgstr "新增此標籤"
 
@@ -2872,6 +2875,9 @@ msgstr "基於最近30天的{0}個token，統計{1}。"
 
 msgid "Become a design partner"
 msgstr "成為共創夥伴"
+
+msgid "Become a design partner."
+msgstr "成為設計合作夥伴。"
 
 msgid "Before"
 msgstr "變更前"
@@ -6731,6 +6737,12 @@ msgstr "講講這個儲存庫是怎麼運作的…"
 msgid "Explain to me how this repository works"
 msgstr "講講這個儲存庫是怎麼運作的"
 
+msgid "Explore"
+msgstr "探索"
+
+msgid "Explore Pages"
+msgstr "了解頁面"
+
 msgid "Explored"
 msgstr "已探索"
 
@@ -8251,6 +8263,9 @@ msgstr "人們如何到達 superset.sh 與文件站，其中有多少來自搜�
 msgid "How should the agent's actions be approved?"
 msgstr "代理的操作應如何批准？"
 
+msgid "How Superset compares to other tools."
+msgstr "Superset 與其他工具的比較。"
+
 msgid "How the command opens."
 msgstr "命令的開啟方式。"
 
@@ -8268,6 +8283,9 @@ msgstr "我們如何打造它，深入介紹。"
 
 msgid "How we hire"
 msgstr "招聘流程"
+
+msgid "How we protect your code."
+msgstr "我們如何保護你的程式碼。"
 
 msgid "How we work"
 msgstr "我們的工作方式"
@@ -8586,6 +8604,9 @@ msgstr "安裝並重啟"
 
 msgid "Install & Restart"
 msgstr "安裝並重啟"
+
+msgid "Install and run your first agent."
+msgstr "安裝並執行你的第一個代理程式。"
 
 msgid "Install failed"
 msgstr "安裝失敗"
@@ -9087,6 +9108,9 @@ msgstr "排行榜設定"
 msgid "Leaf"
 msgstr "葉子"
 
+msgid "Learn"
+msgstr "學習"
+
 msgid "Learn how to use scripts"
 msgstr "瞭解如何使用指令碼"
 
@@ -9488,9 +9512,6 @@ msgstr "標誌，淺色"
 
 msgid "Logos"
 msgstr "標誌"
-
-msgid "Logos, product images, and press contact."
-msgstr "標誌、產品圖片與媒體聯絡方式。"
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "長週期可靠性越過了一個門檻。傍晚6點派出去的活兒，早上9點常常已經可以合併，以至於不排夜班就像讓工廠空轉。"
@@ -10183,6 +10204,9 @@ msgstr "從未"
 
 msgid "Never asks before acting"
 msgstr "執行前從不詢問"
+
+msgid "New"
+msgstr "新功能"
 
 msgctxt "badge on a page published since the menu was last opened"
 msgid "New"
@@ -12277,6 +12301,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "固定"
 
+msgid "Pin feedback to a page and let the agent make the change."
+msgstr "在頁面上留下回饋，讓代理程式完成修改。"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "把工作區固定在專案上方，再⌘點選批次選中，一次性移動、分組或刪除。"
 
@@ -12614,6 +12641,9 @@ msgstr "生產運行"
 
 msgid "Productivity"
 msgstr "效率"
+
+msgid "Products"
+msgstr "產品"
 
 msgid "Profile name"
 msgstr "配置檔名稱"
@@ -12982,6 +13012,9 @@ msgstr "閱讀更新日誌 ↗"
 
 msgid "Read the docs"
 msgstr "閱讀文件"
+
+msgid "Read the guide"
+msgstr "閱讀指南"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "閱讀並行編碼代理程式指南"
@@ -13817,6 +13850,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "待檢視"
 
+msgid "Review agent work with Pages"
+msgstr "用頁面審查代理程式的工作"
+
 msgid "Review and CI queues eat the gains agents create."
 msgstr "審查和CI排隊把代理程式帶來的收益吃掉了。"
 
@@ -13961,6 +13997,9 @@ msgstr "在你的機器上並行執行10個以上的編碼代理程式。"
 
 msgid "Run again"
 msgstr "重新執行"
+
+msgid "Run agents side by side, then review."
+msgstr "並行執行代理程式，然後審查。"
 
 msgid "Run automations on data source and comment activity."
 msgstr "在資料來源和評論活動上執行自動化。"
@@ -14435,6 +14474,9 @@ msgstr "看看Superset與其他工具的對比"
 
 msgid "See how we work"
 msgstr "看看我們如何工作"
+
+msgid "See how your agent usage compares."
+msgstr "看看你的代理程式使用量排名。"
 
 msgid "See how your agent usage compares. Explore the models behind each profile."
 msgstr "比較你與其他開發者的代理程式用量，探索每個個人檔案使用的模型。"
@@ -16675,9 +16717,6 @@ msgstr "你要找的頁面不存在或已被移動。"
 msgid "The page you're looking for doesn't exist."
 msgstr "你要找的頁面不存在。"
 
-msgid "The people behind Superset."
-msgstr "Superset背後的團隊。"
-
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "按原樣使用專案的簽出: 檔案和分支是共用的"
 
@@ -18044,6 +18083,9 @@ msgstr "版本未知"
 msgid "Video"
 msgstr "影片"
 
+msgid "Video tutorials"
+msgstr "影片教學"
+
 msgid "View"
 msgstr "檢視"
 
@@ -18185,6 +18227,9 @@ msgstr "出現了警告。"
 
 msgid "Watch a design review go from comment to new version."
 msgstr "看一次設計審查如何從留言變成新版本。"
+
+msgid "Watch walkthroughs on YouTube."
+msgstr "在 YouTube 上觀看操作示範。"
 
 msgid "Watchers"
 msgstr "關注者"

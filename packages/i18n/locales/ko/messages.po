@@ -1767,6 +1767,9 @@ msgstr "테스트가 없는 가장 위험한 코드에 테스트 추가…"
 msgid "Add tests where they're missing"
 msgstr "빠진 테스트 추가하기"
 
+msgid "Add themes and agents to Superset."
+msgstr "Superset에 테마와 에이전트를 추가하세요."
+
 msgid "Add this label"
 msgstr "이 라벨 추가"
 
@@ -2872,6 +2875,9 @@ msgstr "최근 30일간 토큰 {0}개 기준이며, {1}을(를) 집계했습니�
 
 msgid "Become a design partner"
 msgstr "공동 개발 파트너 되기"
+
+msgid "Become a design partner."
+msgstr "디자인 파트너가 되어 보세요."
 
 msgid "Before"
 msgstr "변경 전"
@@ -6731,6 +6737,12 @@ msgstr "이 리포지토리가 어떻게 동작하는지 설명…"
 msgid "Explain to me how this repository works"
 msgstr "이 리포지토리가 어떻게 동작하는지 설명해 줘"
 
+msgid "Explore"
+msgstr "살펴보기"
+
+msgid "Explore Pages"
+msgstr "페이지 살펴보기"
+
 msgid "Explored"
 msgstr "탐색 완료"
 
@@ -8251,6 +8263,9 @@ msgstr "사람들이 superset.sh와 문서에 어떻게 도달하는지, 그중 
 msgid "How should the agent's actions be approved?"
 msgstr "에이전트의 작업을 어떻게 승인할까요?"
 
+msgid "How Superset compares to other tools."
+msgstr "Superset과 다른 도구 비교."
+
 msgid "How the command opens."
 msgstr "명령이 열리는 방식입니다."
 
@@ -8268,6 +8283,9 @@ msgstr "어떻게 만드는지 자세히."
 
 msgid "How we hire"
 msgstr "채용 과정"
+
+msgid "How we protect your code."
+msgstr "코드를 보호하는 방법."
 
 msgid "How we work"
 msgstr "일하는 방식"
@@ -8586,6 +8604,9 @@ msgstr "설치 후 재시작"
 
 msgid "Install & Restart"
 msgstr "설치 후 재시작"
+
+msgid "Install and run your first agent."
+msgstr "설치하고 첫 에이전트를 실행하세요."
 
 msgid "Install failed"
 msgstr "설치 실패"
@@ -9087,6 +9108,9 @@ msgstr "리더보드 설정"
 msgid "Leaf"
 msgstr "잎"
 
+msgid "Learn"
+msgstr "배우기"
+
 msgid "Learn how to use scripts"
 msgstr "스크립트 사용법 알아보기"
 
@@ -9488,9 +9512,6 @@ msgstr "로고, 밝은 색"
 
 msgid "Logos"
 msgstr "로고"
-
-msgid "Logos, product images, and press contact."
-msgstr "로고, 제품 이미지, 언론 문의처."
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "장시간 작업의 신뢰성이 임계점을 넘습니다. 오후 6시에 맡긴 일이 오전 9시에 머지할 수 있는 상태로 나오는 경우가 충분히 잦아져서, 야간 근무를 잡지 않는 것이 공장을 놀리는 일처럼 느껴집니다."
@@ -10183,6 +10204,9 @@ msgstr "없음"
 
 msgid "Never asks before acting"
 msgstr "묻지 않고 실행"
+
+msgid "New"
+msgstr "신규"
 
 msgctxt "badge on a page published since the menu was last opened"
 msgid "New"
@@ -12277,6 +12301,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "고정"
 
+msgid "Pin feedback to a page and let the agent make the change."
+msgstr "페이지에 피드백을 남기면 에이전트가 변경합니다."
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "워크스페이스를 프로젝트 위에 고정하고, ⌘ 클릭으로 여러 개를 골라 한 번에 옮기거나, 묶거나, 삭제하세요."
 
@@ -12614,6 +12641,9 @@ msgstr "생산 실행"
 
 msgid "Productivity"
 msgstr "생산성"
+
+msgid "Products"
+msgstr "제품"
 
 msgid "Profile name"
 msgstr "프로필 이름"
@@ -12982,6 +13012,9 @@ msgstr "변경 로그 읽기 ↗"
 
 msgid "Read the docs"
 msgstr "문서 읽기"
+
+msgid "Read the guide"
+msgstr "가이드 읽기"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "병렬 코딩 에이전트 가이드 읽기"
@@ -13817,6 +13850,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "검토"
 
+msgid "Review agent work with Pages"
+msgstr "페이지로 에이전트 작업 검토하기"
+
 msgid "Review and CI queues eat the gains agents create."
 msgstr "리뷰와 CI 대기열이 에이전트가 만든 이득을 깎아먹습니다."
 
@@ -13961,6 +13997,9 @@ msgstr "내 머신에서 10개 이상의 코딩 에이전트를 병렬로 실행
 
 msgid "Run again"
 msgstr "다시 실행"
+
+msgid "Run agents side by side, then review."
+msgstr "에이전트를 나란히 실행하고 검토하세요."
 
 msgid "Run automations on data source and comment activity."
 msgstr "데이터 소스와 댓글 활동에 따라 자동화를 실행합니다."
@@ -14435,6 +14474,9 @@ msgstr "다른 도구와 Superset 비교 보기"
 
 msgid "See how we work"
 msgstr "우리가 일하는 방식 보기"
+
+msgid "See how your agent usage compares."
+msgstr "에이전트 사용량을 비교해 보세요."
 
 msgid "See how your agent usage compares. Explore the models behind each profile."
 msgstr "다른 개발자와 에이전트 사용량을 비교하세요. 각 프로필에서 사용하는 모델을 살펴보세요."
@@ -16675,9 +16717,6 @@ msgstr "찾으시는 페이지가 없거나 위치가 바뀌었습니다."
 msgid "The page you're looking for doesn't exist."
 msgstr "찾으시는 페이지가 존재하지 않습니다."
 
-msgid "The people behind Superset."
-msgstr "Superset을 만드는 사람들."
-
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "프로젝트의 체크아웃을 그대로 사용: 파일과 브랜치가 공유됩니다"
 
@@ -18044,6 +18083,9 @@ msgstr "버전 알 수 없음"
 msgid "Video"
 msgstr "동영상"
 
+msgid "Video tutorials"
+msgstr "동영상 튜토리얼"
+
 msgid "View"
 msgstr "보기"
 
@@ -18185,6 +18227,9 @@ msgstr "경고가 발생했습니다."
 
 msgid "Watch a design review go from comment to new version."
 msgstr "디자인 리뷰가 댓글에서 새 버전으로 이어지는 과정을 확인하세요."
+
+msgid "Watch walkthroughs on YouTube."
+msgstr "YouTube에서 사용 안내 영상을 보세요."
 
 msgid "Watchers"
 msgstr "관찰자"
