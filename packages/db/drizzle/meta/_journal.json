@@ -1016,6 +1016,13 @@
       "when": 1791403363715,
       "tag": "0144_drop_task_external_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 145,
+      "version": "7",
+      "when": 1791438525111,
+      "tag": "0145_organization_plugins",
+      "breakpoints": true
     }
   ]
 }
