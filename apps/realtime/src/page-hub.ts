@@ -56,6 +56,7 @@ interface Pinned {
 	presence?: boolean;
 	guest?: boolean;
 	guestNumber?: number | null;
+	connectedAt?: number;
 }
 
 interface PresenceClaims {
@@ -317,6 +318,7 @@ export class PageHub extends Server<RealtimeEnv> {
 				presence: true,
 				guest: claims.guest,
 				guestNumber: claims.guest ? this.guestNumberFor(claims.userId) : null,
+				connectedAt: Date.now(),
 			});
 		} finally {
 			if (claims.guest) this.connectingGuests--;
@@ -332,8 +334,10 @@ export class PageHub extends Server<RealtimeEnv> {
 		let remaining = 0;
 		let evicted = false;
 		for (const connection of this.getConnections<Pinned>()) {
-			const pinged = this.ctx.getWebSocketAutoResponseTimestamp(connection);
-			if (pinged && now - pinged.getTime() > SILENT_MS) {
+			const heardAt =
+				this.ctx.getWebSocketAutoResponseTimestamp(connection)?.getTime() ??
+				connection.state?.connectedAt;
+			if (heardAt && now - heardAt > SILENT_MS) {
 				try {
 					connection.close(4408, "silent");
 				} catch {}
@@ -535,7 +539,7 @@ export class PageHub extends Server<RealtimeEnv> {
 		const records = this.named(key);
 		const payload = JSON.stringify({ type: "records", key, records });
 		for (const connection of this.getConnections<Pinned>()) {
-			if (connection.state?.presence) continue;
+			if (!connection.state || connection.state.presence) continue;
 			try {
 				connection.send(payload);
 			} catch {}

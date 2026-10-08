@@ -386,7 +386,7 @@ export function PageDetailScreen({
 						) : null}
 					</View>
 
-					{pageId ? <PagePresence url={presenceUrl} /> : null}
+					{pageId ? <PagePresence key={pageId} url={presenceUrl} /> : null}
 
 					{commentMode && !selection ? (
 						<View

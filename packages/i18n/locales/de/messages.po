@@ -2148,7 +2148,7 @@ msgid "Also delete the local git branch when deleting a worktree workspace"
 msgstr "Beim Löschen eines Worktree-Arbeitsbereichs auch den lokalen Git-Branch löschen"
 
 msgid "Also viewing this page"
-msgstr "Sehen sich diese Seite ebenfalls an"
+msgstr "Ebenfalls auf dieser Seite"
 
 msgid "Also: @superset/ui/ai-elements/braille-spinner"
 msgstr "Außerdem: @superset/ui/ai-elements/braille-spinner"
