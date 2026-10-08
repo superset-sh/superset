@@ -13,14 +13,22 @@ const INSTALLS_DEPENDENCIES =
 // The runtime version is a fingerprint that includes bun's store paths, and
 // those differ between bun versions. A builder on another bun rejects builds
 // submitted from this repo, and its updates target a runtime no build has.
-describe("EAS uses the repository's bun", () => {
-	test("every build profile pins it", () => {
-		const { build } = JSON.parse(
-			readFileSync(join(import.meta.dir, "eas.json"), "utf8"),
-		) as { build: Record<string, { bun?: string }> };
+describe("EAS resolves the runtime version this repository does", () => {
+	const { build } = JSON.parse(
+		readFileSync(join(import.meta.dir, "eas.json"), "utf8"),
+	) as {
+		build: Record<string, { bun?: string; env?: Record<string, string> }>;
+	};
 
+	test("every build profile pins it", () => {
 		for (const [profile, config] of Object.entries(build)) {
 			expect(config.bun, profile).toBe(repoBun);
+		}
+	});
+
+	test("every build profile keeps the dev .env out of the app config", () => {
+		for (const [profile, config] of Object.entries(build)) {
+			expect(config.env?.MOBILE_EAS_BUILD, profile).toBe("1");
 		}
 	});
 

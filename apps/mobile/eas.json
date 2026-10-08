@@ -9,13 +9,19 @@
 			"developmentClient": true,
 			"distribution": "internal",
 			"environment": "development",
-			"channel": "development"
+			"channel": "development",
+			"env": {
+				"MOBILE_EAS_BUILD": "1"
+			}
 		},
 		"preview": {
 			"bun": "1.4.2",
 			"distribution": "internal",
 			"environment": "preview",
-			"channel": "preview"
+			"channel": "preview",
+			"env": {
+				"MOBILE_EAS_BUILD": "1"
+			}
 		},
 		"e2e-test": {
 			"bun": "1.4.2",
@@ -24,6 +30,7 @@
 				"simulator": true
 			},
 			"env": {
+				"MOBILE_EAS_BUILD": "1",
 				"EXPO_PUBLIC_E2E": "1"
 			}
 		},
@@ -31,7 +38,10 @@
 			"bun": "1.4.2",
 			"autoIncrement": true,
 			"environment": "production",
-			"channel": "production"
+			"channel": "production",
+			"env": {
+				"MOBILE_EAS_BUILD": "1"
+			}
 		}
 	},
 	"submit": {
