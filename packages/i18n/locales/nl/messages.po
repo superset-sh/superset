@@ -2357,11 +2357,11 @@ msgstr "Toepassingsmenu"
 msgid "Applies to"
 msgstr "Geldt voor"
 
-msgid "Applies to file paths in terminals, chat tool calls, and task markdown."
-msgstr "Geldt voor bestandspaden in terminals, tool-aanroepen in chat en taak-markdown."
+msgid "Applies to file paths in terminals, chat messages and tool calls, and task markdown."
+msgstr "Geldt voor bestandspaden in terminals, chatberichten en tool-aanroepen in chat, en taak-markdown."
 
-msgid "Applies to folder paths in terminal output. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder."
-msgstr "Geldt voor mappaden in terminaluitvoer. Mappen kunnen niet in de bestandsviewer openen, dus een klik toont ze in de zijbalk, opent de externe editor of opent Finder."
+msgid "Applies to folder paths in terminal output and chat messages. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder."
+msgstr "Geldt voor mappaden in terminaluitvoer en chatberichten. Mappen kunnen niet in de bestandsviewer openen, dus een klik toont ze in de zijbalk, opent de externe editor of opent Finder."
 
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "Geldt voor de bestandsboom, de lijst met wijzigingen en de diff-header."

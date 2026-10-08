@@ -2357,11 +2357,11 @@ msgstr "Nabídka aplikace"
 msgid "Applies to"
 msgstr "Platí pro"
 
-msgid "Applies to file paths in terminals, chat tool calls, and task markdown."
-msgstr "Platí pro cesty k souborům v terminálech, voláních nástrojů v chatu a markdownu úkolů."
+msgid "Applies to file paths in terminals, chat messages and tool calls, and task markdown."
+msgstr "Platí pro cesty k souborům v terminálech, zprávách a voláních nástrojů v chatu a markdownu úkolů."
 
-msgid "Applies to folder paths in terminal output. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder."
-msgstr "Platí pro cesty ke složkám ve výstupu terminálu. Složky nejde otevřít v prohlížeči souborů, takže kliknutí je zobrazí v postranním panelu, otevře externí editor nebo Finder."
+msgid "Applies to folder paths in terminal output and chat messages. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder."
+msgstr "Platí pro cesty ke složkám ve výstupu terminálu a ve zprávách chatu. Složky nejde otevřít v prohlížeči souborů, takže kliknutí je zobrazí v postranním panelu, otevře externí editor nebo Finder."
 
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "Platí pro strom souborů, seznam změn a hlavičku rozdílů."

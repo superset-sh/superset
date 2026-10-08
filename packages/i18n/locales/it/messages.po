@@ -2357,11 +2357,11 @@ msgstr "Menu dell'applicazione"
 msgid "Applies to"
 msgstr "Si applica a"
 
-msgid "Applies to file paths in terminals, chat tool calls, and task markdown."
-msgstr "Si applica ai percorsi dei file nei terminali, nelle chiamate degli strumenti in chat e nel markdown dei task."
+msgid "Applies to file paths in terminals, chat messages and tool calls, and task markdown."
+msgstr "Si applica ai percorsi dei file nei terminali, nei messaggi e nelle chiamate degli strumenti in chat e nel markdown dei task."
 
-msgid "Applies to folder paths in terminal output. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder."
-msgstr "Si applica ai percorsi delle cartelle nell'output del terminale. Le cartelle non si aprono nel visualizzatore di file, quindi i clic le mostrano nella barra laterale, aprono l'editor esterno o aprono il Finder."
+msgid "Applies to folder paths in terminal output and chat messages. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder."
+msgstr "Si applica ai percorsi delle cartelle nell'output del terminale e nei messaggi della chat. Le cartelle non si aprono nel visualizzatore di file, quindi i clic le mostrano nella barra laterale, aprono l'editor esterno o aprono il Finder."
 
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "Si applica all'albero dei file, all'elenco delle modifiche e all'intestazione del diff."

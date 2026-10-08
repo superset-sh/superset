@@ -2357,11 +2357,11 @@ msgstr "Anwendungsmenü"
 msgid "Applies to"
 msgstr "Gilt für"
 
-msgid "Applies to file paths in terminals, chat tool calls, and task markdown."
-msgstr "Gilt für Dateipfade in Terminals, Chat-Tool-Aufrufen und Aufgaben-Markdown."
+msgid "Applies to file paths in terminals, chat messages and tool calls, and task markdown."
+msgstr "Gilt für Dateipfade in Terminals, Chat-Nachrichten und Chat-Tool-Aufrufen sowie Aufgaben-Markdown."
 
-msgid "Applies to folder paths in terminal output. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder."
-msgstr "Gilt für Ordnerpfade in der Terminal-Ausgabe. Ordner lassen sich nicht im Dateibetrachter öffnen, daher zeigen Klicks sie in der Seitenleiste, öffnen den externen Editor oder den Finder."
+msgid "Applies to folder paths in terminal output and chat messages. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder."
+msgstr "Gilt für Ordnerpfade in der Terminal-Ausgabe und in Chat-Nachrichten. Ordner lassen sich nicht im Dateibetrachter öffnen, daher zeigen Klicks sie in der Seitenleiste, öffnen den externen Editor oder den Finder."
 
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "Gilt für Dateibaum, Änderungsliste und Diff-Kopfzeile."

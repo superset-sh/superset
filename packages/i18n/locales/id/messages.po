@@ -2357,11 +2357,11 @@ msgstr "Menu aplikasi"
 msgid "Applies to"
 msgstr "Berlaku untuk"
 
-msgid "Applies to file paths in terminals, chat tool calls, and task markdown."
-msgstr "Berlaku untuk path file di terminal, panggilan alat chat, dan markdown tugas."
+msgid "Applies to file paths in terminals, chat messages and tool calls, and task markdown."
+msgstr "Berlaku untuk path file di terminal, pesan dan panggilan alat chat, serta markdown tugas."
 
-msgid "Applies to folder paths in terminal output. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder."
-msgstr "Berlaku untuk path folder di output terminal. Folder tidak bisa dibuka di penampil file, jadi klik akan menampilkannya di sidebar, membuka editor eksternal, atau membuka Finder."
+msgid "Applies to folder paths in terminal output and chat messages. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder."
+msgstr "Berlaku untuk path folder di output terminal dan pesan chat. Folder tidak bisa dibuka di penampil file, jadi klik akan menampilkannya di sidebar, membuka editor eksternal, atau membuka Finder."
 
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "Berlaku untuk pohon file, daftar perubahan, dan header diff."

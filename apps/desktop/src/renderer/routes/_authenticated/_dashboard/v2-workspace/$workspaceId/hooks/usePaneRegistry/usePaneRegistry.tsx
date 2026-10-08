@@ -830,6 +830,7 @@ export function usePaneRegistry({
 					<ChatPane
 						ctx={ctx}
 						onOpenFile={onOpenFile}
+						onRevealPath={onRevealPath}
 						workspaceId={workspaceId}
 					/>
 				),

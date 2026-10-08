@@ -2357,11 +2357,11 @@ msgstr "애플리케이션 메뉴"
 msgid "Applies to"
 msgstr "적용 범위"
 
-msgid "Applies to file paths in terminals, chat tool calls, and task markdown."
-msgstr "터미널, 채팅 도구 호출, 작업 마크다운의 파일 경로에 적용됩니다."
+msgid "Applies to file paths in terminals, chat messages and tool calls, and task markdown."
+msgstr "터미널, 채팅 메시지와 도구 호출, 작업 마크다운의 파일 경로에 적용됩니다."
 
-msgid "Applies to folder paths in terminal output. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder."
-msgstr "터미널 출력의 폴더 경로에 적용됩니다. 폴더는 파일 뷰어에서 열 수 없으므로, 클릭하면 사이드바에서 보여 주거나 외부 편집기 또는 Finder를 엽니다."
+msgid "Applies to folder paths in terminal output and chat messages. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder."
+msgstr "터미널 출력과 채팅 메시지의 폴더 경로에 적용됩니다. 폴더는 파일 뷰어에서 열 수 없으므로, 클릭하면 사이드바에서 보여 주거나 외부 편집기 또는 Finder를 엽니다."
 
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "파일 트리, 변경 목록, 차이 헤더에 적용됩니다."

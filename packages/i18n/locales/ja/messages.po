@@ -2357,11 +2357,11 @@ msgstr "アプリケーションメニュー"
 msgid "Applies to"
 msgstr "適用範囲"
 
-msgid "Applies to file paths in terminals, chat tool calls, and task markdown."
-msgstr "ターミナル、チャットのツール呼び出し、タスクのMarkdown内のファイルパスに適用されます。"
+msgid "Applies to file paths in terminals, chat messages and tool calls, and task markdown."
+msgstr "ターミナル、チャットのメッセージとツール呼び出し、タスクのMarkdown内のファイルパスに適用されます。"
 
-msgid "Applies to folder paths in terminal output. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder."
-msgstr "ターミナル出力内のフォルダパスに適用されます。フォルダはファイルビューアで開けないため、クリックするとサイドバーで表示するか、外部エディタまたはFinderで開きます。"
+msgid "Applies to folder paths in terminal output and chat messages. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder."
+msgstr "ターミナル出力とチャットメッセージ内のフォルダパスに適用されます。フォルダはファイルビューアで開けないため、クリックするとサイドバーで表示するか、外部エディタまたはFinderで開きます。"
 
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "ファイルツリー、変更一覧、差分ヘッダーに適用されます。"

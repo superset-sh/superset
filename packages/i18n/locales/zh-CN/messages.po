@@ -2357,11 +2357,11 @@ msgstr "应用程序菜单"
 msgid "Applies to"
 msgstr "适用于"
 
-msgid "Applies to file paths in terminals, chat tool calls, and task markdown."
-msgstr "适用于终端、聊天工具调用和任务markdown中的文件路径。"
+msgid "Applies to file paths in terminals, chat messages and tool calls, and task markdown."
+msgstr "适用于终端、聊天消息和工具调用以及任务markdown中的文件路径。"
 
-msgid "Applies to folder paths in terminal output. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder."
-msgstr "适用于终端输出中的文件夹路径。文件夹无法在文件查看器中打开，因此点击会在侧边栏中定位、打开外部编辑器或打开Finder。"
+msgid "Applies to folder paths in terminal output and chat messages. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder."
+msgstr "适用于终端输出和聊天消息中的文件夹路径。文件夹无法在文件查看器中打开，因此点击会在侧边栏中定位、打开外部编辑器或打开Finder。"
 
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "适用于文件树、更改列表和差异标题。"
