@@ -33,6 +33,7 @@ export interface PageConnectTicketClaims {
 	organizationIds: string[];
 	author: boolean;
 	writable: boolean;
+	guest: boolean;
 	nonce: string;
 	exp: number;
 }
@@ -184,6 +185,7 @@ export async function signPageConnectTicket(
 		organizationIds: claims.organizationIds,
 		author: claims.author,
 		writable: claims.writable,
+		guest: claims.guest,
 		nonce: claims.nonce,
 		exp: claims.exp,
 	});
@@ -205,6 +207,7 @@ export async function verifyPageConnectTicket(
 		organizationIds,
 		author,
 		writable,
+		guest = false,
 		nonce,
 		exp,
 	} = wire as Record<string, unknown> & { exp: number };
@@ -218,6 +221,7 @@ export async function verifyPageConnectTicket(
 		organizationIds.some((id) => typeof id !== "string") ||
 		typeof author !== "boolean" ||
 		typeof writable !== "boolean" ||
+		typeof guest !== "boolean" ||
 		typeof nonce !== "string" ||
 		nonce.length === 0
 	) {
@@ -231,6 +235,7 @@ export async function verifyPageConnectTicket(
 		organizationIds: organizationIds as string[],
 		author,
 		writable,
+		guest,
 		nonce,
 		exp,
 	};

@@ -1,0 +1,78 @@
+import { describe, expect, test } from "bun:test";
+import {
+	cursorPointsFrom,
+	MAX_PAGE_CURSOR_PATH_LENGTH,
+	parsePageCursor,
+	presenceColor,
+	presenceViewersFrom,
+} from "./page-presence";
+
+describe("parsePageCursor", () => {
+	test("keeps a cursor and clamps it to the element's box", () => {
+		expect(
+			parsePageCursor({ path: "div:nth-of-type(1)", x: 1.4, y: -2 }),
+		).toEqual({ path: "div:nth-of-type(1)", x: 1, y: 0 });
+	});
+
+	test("passes null through as a hidden cursor", () => {
+		expect(parsePageCursor(null)).toBeNull();
+	});
+
+	test("refuses anything else rather than relaying it", () => {
+		expect(parsePageCursor({ path: "", x: Number.NaN, y: 0 })).toBeUndefined();
+		expect(parsePageCursor({ path: 1, x: 0, y: 0 })).toBeUndefined();
+		expect(
+			parsePageCursor({
+				path: "a".repeat(MAX_PAGE_CURSOR_PATH_LENGTH + 1),
+				x: 0,
+				y: 0,
+			}),
+		).toBeUndefined();
+		expect(parsePageCursor("cursor")).toBeUndefined();
+	});
+});
+
+describe("presenceColor", () => {
+	test("gives one person the same colour in every viewer's frame", () => {
+		expect(presenceColor("guest:1")).toBe(presenceColor("guest:1"));
+	});
+
+	test("spreads people across the palette", () => {
+		const colors = new Set(
+			Array.from({ length: 40 }, (_, index) => presenceColor(`user-${index}`)),
+		);
+		expect(colors.size).toBeGreaterThan(4);
+	});
+});
+
+describe("what a host accepts from the frame", () => {
+	test("keeps well-formed viewers and drops a non-https avatar", () => {
+		expect(
+			presenceViewersFrom([
+				{ id: "c1", userId: "u1", name: "Ada", image: "http://x/a.png" },
+				{ id: "c2", userId: "u2", name: 7 },
+				null,
+			]),
+		).toEqual([
+			{
+				id: "c1",
+				userId: "u1",
+				name: "Ada",
+				image: null,
+				guest: false,
+				cursor: null,
+			},
+		]);
+		expect(presenceViewersFrom("viewers")).toEqual([]);
+	});
+
+	test("keeps only cursors with a finite position", () => {
+		expect(
+			cursorPointsFrom([
+				{ id: "c1", x: 1, y: 2 },
+				{ id: "c2", x: Number.NaN, y: 0 },
+				{ x: 1, y: 1 },
+			]),
+		).toEqual([{ id: "c1", x: 1, y: 2 }]);
+	});
+});

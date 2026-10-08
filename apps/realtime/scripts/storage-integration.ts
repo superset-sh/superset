@@ -24,6 +24,8 @@ const OUTSIDER = "44444444-4444-4444-8444-444444444444";
 const ORG_PAGE = "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa";
 const LEGACY_PAGE = "bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb";
 const PRIVATE_PAGE = "cccccccc-3333-4333-8333-cccccccccccc";
+const PUBLIC_PAGE = "eeeeeeee-5555-4555-8555-eeeeeeeeeeee";
+const GUEST = "f0f0f0f0-6666-4666-8666-f0f0f0f0f0f0";
 
 let failures = 0;
 const check = (name: string, ok: boolean, detail?: unknown) => {
@@ -130,6 +132,14 @@ async function main() {
 		}),
 	);
 	seed(LEGACY_PAGE, manifest(LEGACY_PAGE, { visibility: "org" }));
+	seed(
+		PUBLIC_PAGE,
+		manifest(PUBLIC_PAGE, {
+			visibility: "everyone",
+			organizationId: ORG,
+			createdByUserId: AUTHOR,
+		}),
+	);
 
 	writeFileSync(
 		join(import.meta.dir, "..", ".dev.vars.integration"),
@@ -633,6 +643,202 @@ async function main() {
 		wiped.ok && (wipedBody.cleared ?? 0) >= 1,
 		wipedBody,
 	);
+
+	console.log("\npresence and guests");
+	const publicOrigin = `http://${PUBLIC_PAGE}.frame.usercontent.localhost:9999`;
+	const guestTicket = (pageId: string, guestId: unknown) =>
+		fetch(`${base}/v2/page/${pageId}/storage/guest-ticket`, {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({ guestId }),
+		});
+	const socketFor = (pageId: string, ticket: string) =>
+		`ws://127.0.0.1:${PORT}/v2/page/${pageId}/storage/socket?ticket=${encodeURIComponent(ticket)}`;
+
+	const listen = (url: string, origin: string) => {
+		const inbox: Record<string, unknown>[] = [];
+		const socket = new WebSocket(url, { headers: { origin } } as never);
+		let closed: string | null = null;
+		socket.addEventListener("message", (event) => {
+			const data = String(event.data);
+			inbox.push(data === "pong" ? { type: "pong" } : JSON.parse(data));
+		});
+		socket.addEventListener("close", (event) => {
+			closed = String(event.code);
+		});
+		const waitFor = async (
+			match: (message: Record<string, unknown>) => boolean,
+		) => {
+			for (let tries = 0; tries < 80; tries++) {
+				const found = inbox.findLast(match);
+				if (found) return found;
+				await new Promise((r) => setTimeout(r, 100));
+			}
+			return null;
+		};
+		const waitClosed = async () => {
+			for (let tries = 0; tries < 80 && closed === null; tries++) {
+				await new Promise((r) => setTimeout(r, 100));
+			}
+			return closed;
+		};
+		return { socket, inbox, waitFor, waitClosed };
+	};
+
+	const badGuest = await guestTicket(PUBLIC_PAGE, "not-a-uuid");
+	check("guest ticket refuses a malformed guest id", badGuest.status === 400);
+
+	const orgGuest = await guestTicket(ORG_PAGE, GUEST);
+	check(
+		"guest ticket refuses a page not shared with everyone",
+		orgGuest.status === 403,
+		orgGuest.status,
+	);
+
+	const publicGuest = await guestTicket(PUBLIC_PAGE, GUEST);
+	const publicGuestBody = (await publicGuest.json()) as { ticket?: string };
+	check(
+		"guest ticket opens a page shared with everyone",
+		publicGuest.ok && Boolean(publicGuestBody.ticket),
+		publicGuestBody,
+	);
+
+	const member = listen(
+		String((await ticket(PUBLIC_PAGE, memberJwt, "Grace")).url),
+		publicOrigin,
+	);
+	await member.waitFor((m) => m.type === "hello");
+
+	const guest = listen(
+		socketFor(PUBLIC_PAGE, String(publicGuestBody.ticket)),
+		publicOrigin,
+	);
+	const guestHello = await guest.waitFor((m) => m.type === "hello");
+	check(
+		"a guest is greeted as a guest who cannot write",
+		guestHello?.guest === true &&
+			guestHello?.writable === false &&
+			guestHello?.author === false,
+		guestHello,
+	);
+
+	const guestSees = await guest.waitFor(
+		(m) =>
+			m.type === "presence" &&
+			(m.viewers as { name: string }[]).some((v) => v.name === "Grace"),
+	);
+	check("a guest sees the member who is already here", Boolean(guestSees));
+
+	const memberSees = await member.waitFor(
+		(m) =>
+			m.type === "presence" &&
+			(m.viewers as { userId: string; guest: boolean }[]).some(
+				(v) => v.userId === `guest:${GUEST}` && v.guest,
+			),
+	);
+	check(
+		"the member is told a guest arrived",
+		Boolean(memberSees),
+		member.inbox,
+	);
+
+	member.socket.send("ping");
+	check(
+		"the hub answers a heartbeat ping",
+		Boolean(await member.waitFor((m) => m.type === "pong")),
+	);
+
+	const memberSelf = (memberSees?.viewers as { userId: string }[]) ?? [];
+	check(
+		"nobody is listed to themselves",
+		!memberSelf.some((v) => v.userId === MEMBER),
+		memberSelf,
+	);
+
+	guest.socket.send(
+		JSON.stringify({
+			type: "call",
+			id: "g1",
+			request: { op: "getAll", key: "vote" },
+		}),
+	);
+	const guestCall = await guest.waitFor((m) => m.id === "g1");
+	check(
+		"a guest cannot read the page's storage",
+		guestCall?.ok === false && guestCall?.code === "unauthenticated",
+		guestCall,
+	);
+
+	guest.socket.send(
+		JSON.stringify({
+			type: "cursor",
+			cursor: { path: "main:nth-of-type(1)", x: 0.25, y: 2 },
+		}),
+	);
+	const relayed = await member.waitFor((m) => m.type === "cursor");
+	check(
+		"a guest's cursor reaches the member, clamped to the element",
+		(relayed?.cursor as { x: number; y: number; path: string } | undefined)
+			?.y === 1 &&
+			(relayed?.cursor as { path: string } | undefined)?.path ===
+				"main:nth-of-type(1)",
+		relayed,
+	);
+
+	const late = listen(
+		String((await ticket(PUBLIC_PAGE, authorJwt, "Ada")).url),
+		publicOrigin,
+	);
+	const lateSees = await late.waitFor(
+		(m) =>
+			m.type === "presence" &&
+			(m.viewers as { userId: string; cursor: unknown }[]).some(
+				(v) => v.userId === `guest:${GUEST}` && v.cursor !== null,
+			),
+	);
+	check("a late arrival gets cursors already on the page", Boolean(lateSees));
+
+	guest.socket.send(JSON.stringify({ type: "cursor", cursor: "garbage" }));
+	guest.socket.send(JSON.stringify({ type: "cursor", cursor: null }));
+	const hidden = await member.waitFor(
+		(m) => m.type === "cursor" && m.cursor === null,
+	);
+	check(
+		"a malformed cursor is dropped and a null one hides the cursor",
+		Boolean(hidden) &&
+			!member.inbox.some(
+				(m) => m.type === "cursor" && typeof m.cursor === "string",
+			),
+	);
+
+	seed(
+		PUBLIC_PAGE,
+		manifest(PUBLIC_PAGE, {
+			visibility: "org",
+			organizationId: ORG,
+			createdByUserId: AUTHOR,
+		}),
+	);
+	await fetch(`${base}/v2/page/${PUBLIC_PAGE}/storage/manifest-changed`, {
+		method: "POST",
+		headers: { authorization: `Bearer ${SECRET}` },
+	});
+	check(
+		"un-sharing a page closes its guests",
+		(await guest.waitClosed()) === "4403",
+	);
+	const afterGuest = await member.waitFor(
+		(m) =>
+			m.type === "presence" &&
+			!(m.viewers as { guest: boolean }[]).some((v) => v.guest),
+	);
+	check(
+		"members stay, and are told the guest left",
+		Boolean(afterGuest) && member.socket.readyState === WebSocket.OPEN,
+		member.inbox.filter((m) => m.type === "presence").at(-1),
+	);
+	member.socket.close();
+	late.socket.close();
 
 	shutdown();
 

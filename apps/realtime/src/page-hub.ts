@@ -1,4 +1,10 @@
 import {
+	MAX_PAGE_GUESTS,
+	type PageCursor,
+	type PagePresenceViewer,
+	parsePageCursor,
+} from "@superset/shared/page-presence";
+import {
 	MAX_PAGE_STORAGE_KEY_LENGTH,
 	type PageStorageKeySummary,
 	type PageStorageOp,
@@ -7,7 +13,11 @@ import {
 	pageStorageRefusal,
 	pageStorageValueBytes,
 } from "@superset/shared/page-storage";
-import { readable, writableFor } from "@superset/shared/page-storage-access";
+import {
+	guestReadable,
+	readable,
+	writableFor,
+} from "@superset/shared/page-storage-access";
 import type {
 	PageStorageHubRequest,
 	PageStorageHubResponse,
@@ -43,6 +53,7 @@ interface Pinned {
 	organizationIds: string[];
 	author: boolean;
 	writable: boolean;
+	guest: boolean;
 	window: number;
 	calls: number;
 }
@@ -51,6 +62,9 @@ export const CLAIMS_HEADER = "x-superset-page-claims";
 
 const CALLS_PER_WINDOW = 60;
 const WINDOW_MS = 10_000;
+const CURSORS_PER_SECOND = 40;
+const SWEEP_MS = 30_000;
+const SILENT_MS = 75_000;
 const MANIFEST_TTL_MS = 60_000;
 
 export class PageHub extends Server<RealtimeEnv> {
@@ -59,6 +73,15 @@ export class PageHub extends Server<RealtimeEnv> {
 	private ready = false;
 	private manifest: PageManifest | null = null;
 	private manifestReadAt = 0;
+	private cursors = new Map<string, PageCursor>();
+	private cursorBudgets = new Map<string, { second: number; sent: number }>();
+
+	constructor(ctx: DurableObjectState, env: RealtimeEnv) {
+		super(ctx, env);
+		ctx.setWebSocketAutoResponse(
+			new WebSocketRequestResponsePair("ping", "pong"),
+		);
+	}
 
 	private schema(): void {
 		if (this.ready) return;
@@ -140,14 +163,13 @@ export class PageHub extends Server<RealtimeEnv> {
 		for (const connection of this.getConnections<Pinned>()) {
 			const pinned = connection.state;
 			if (!pinned) continue;
-			if (
-				!readable(manifest, {
-					userId: pinned.userId,
-					organizationIds: [...pinned.organizationIds],
-				})
-			) {
-				this.revoke(connection);
-			}
+			const allowed = pinned.guest
+				? guestReadable(manifest)
+				: readable(manifest, {
+						userId: pinned.userId,
+						organizationIds: [...pinned.organizationIds],
+					});
+			if (!allowed) this.revoke(connection);
 		}
 	}
 
@@ -172,6 +194,7 @@ export class PageHub extends Server<RealtimeEnv> {
 			name: string;
 			image: string | null;
 			organizationIds: string[];
+			guest?: boolean;
 			nonce: string;
 		};
 		try {
@@ -193,14 +216,29 @@ export class PageHub extends Server<RealtimeEnv> {
 			return;
 		}
 
+		const guest = claims.guest === true;
 		const manifest = await this.readManifest();
 		const viewer = {
 			userId: claims.userId,
 			organizationIds: claims.organizationIds,
 		};
-		if (!manifest || !readable(manifest, viewer)) {
+		if (
+			!manifest ||
+			!(guest ? guestReadable(manifest) : readable(manifest, viewer))
+		) {
 			connection.close(4403, "forbidden");
 			return;
+		}
+
+		if (guest) {
+			let guests = 0;
+			for (const other of this.getConnections<Pinned>()) {
+				if (other.state?.guest) guests++;
+			}
+			if (guests >= MAX_PAGE_GUESTS) {
+				connection.close(4429, "full");
+				return;
+			}
 		}
 
 		const pinned: Pinned = {
@@ -208,13 +246,31 @@ export class PageHub extends Server<RealtimeEnv> {
 			name: claims.name,
 			image: claims.image,
 			organizationIds: claims.organizationIds,
-			author: manifest.createdByUserId === claims.userId,
-			writable: writableFor(manifest, viewer),
+			author: !guest && manifest.createdByUserId === claims.userId,
+			writable: !guest && writableFor(manifest, viewer),
+			guest,
 			window: 0,
 			calls: 0,
 		};
 		connection.setState(pinned);
 
+		this.send(connection, {
+			type: "hello",
+			viewer: {
+				userId: pinned.userId,
+				name: pinned.name,
+				image: pinned.image,
+			},
+			author: pinned.author,
+			writable: pinned.writable,
+			guest,
+		});
+		this.announce();
+		if ((await this.ctx.storage.getAlarm()) === null) {
+			await this.ctx.storage.setAlarm(Date.now() + SWEEP_MS);
+		}
+
+		if (guest) return;
 		const now = Date.now();
 		this.ctx.storage.sql.exec(
 			`INSERT INTO visits (user_id, name, image, first_seen_at, last_seen_at)
@@ -229,22 +285,15 @@ export class PageHub extends Server<RealtimeEnv> {
 			now,
 			now,
 		);
-
-		this.send(connection, {
-			type: "hello",
-			viewer: {
-				userId: pinned.userId,
-				name: pinned.name,
-				image: pinned.image,
-			},
-			author: pinned.author,
-			writable: pinned.writable,
-		});
 	}
 
 	async onClose(connection: Connection<Pinned>): Promise<void> {
+		this.cursors.delete(connection.id);
+		this.cursorBudgets.delete(connection.id);
 		const pinned = connection.state;
 		if (!pinned) return;
+		this.announce(connection.id);
+		if (pinned.guest) return;
 		this.schema();
 		this.ctx.storage.sql.exec(
 			"UPDATE visits SET last_seen_at = ? WHERE user_id = ?",
@@ -266,8 +315,28 @@ export class PageHub extends Server<RealtimeEnv> {
 		} catch {
 			return;
 		}
-		const call = parsed as { type?: unknown; id?: unknown; request?: unknown };
+		const call = parsed as {
+			type?: unknown;
+			id?: unknown;
+			request?: unknown;
+			cursor?: unknown;
+		};
+		if (call.type === "cursor") {
+			this.relayCursor(connection, pinned, call.cursor);
+			return;
+		}
 		if (call.type !== "call" || typeof call.id !== "string") return;
+
+		if (pinned.guest) {
+			this.send(connection, {
+				type: "result",
+				id: call.id,
+				ok: false,
+				code: "unauthenticated",
+				message: "A guest cannot use this page's storage",
+			});
+			return;
+		}
 
 		if (!this.allow(connection, pinned)) {
 			this.send(connection, {
@@ -402,16 +471,89 @@ export class PageHub extends Server<RealtimeEnv> {
 		const current = connection.state;
 		if (!current) return false;
 		connection.setState({
-			userId: current.userId,
-			name: current.name,
-			image: current.image,
+			...current,
 			organizationIds: [...current.organizationIds],
-			author: current.author,
-			writable: current.writable,
 			window,
 			calls,
 		});
 		return calls <= CALLS_PER_WINDOW;
+	}
+
+	async onAlarm(): Promise<void> {
+		const now = Date.now();
+		let remaining = 0;
+		let evicted = false;
+		for (const connection of this.getConnections<Pinned>()) {
+			const pinged = this.ctx.getWebSocketAutoResponseTimestamp(connection);
+			if (pinged && now - pinged.getTime() > SILENT_MS) {
+				this.cursors.delete(connection.id);
+				this.cursorBudgets.delete(connection.id);
+				try {
+					connection.close(4408, "silent");
+				} catch {}
+				evicted = true;
+				continue;
+			}
+			remaining++;
+		}
+		if (evicted) this.announce();
+		if (remaining > 0) await this.ctx.storage.setAlarm(now + SWEEP_MS);
+	}
+
+	private relayCursor(
+		connection: Connection<Pinned>,
+		pinned: { userId: string },
+		raw: unknown,
+	): void {
+		const cursor = parsePageCursor(raw);
+		if (cursor === undefined) return;
+
+		const second = Math.floor(Date.now() / 1000);
+		const budget = this.cursorBudgets.get(connection.id);
+		const sent = budget?.second === second ? budget.sent + 1 : 1;
+		this.cursorBudgets.set(connection.id, { second, sent });
+		if (sent > CURSORS_PER_SECOND) return;
+
+		if (cursor) this.cursors.set(connection.id, cursor);
+		else this.cursors.delete(connection.id);
+
+		const payload = JSON.stringify({
+			type: "cursor",
+			id: connection.id,
+			cursor,
+		} satisfies PageStorageSocketMessage);
+		for (const other of this.getConnections<Pinned>()) {
+			const state = other.state;
+			if (!state || state.userId === pinned.userId) continue;
+			try {
+				other.send(payload);
+			} catch {}
+		}
+	}
+
+	private announce(leaving?: string): void {
+		const viewers: PagePresenceViewer[] = [];
+		const connections: Connection<Pinned>[] = [];
+		for (const connection of this.getConnections<Pinned>()) {
+			const state = connection.state;
+			if (!state || connection.id === leaving) continue;
+			connections.push(connection);
+			viewers.push({
+				id: connection.id,
+				userId: state.userId,
+				name: state.name,
+				image: state.image,
+				guest: state.guest,
+				cursor: this.cursors.get(connection.id) ?? null,
+			});
+		}
+		for (const connection of connections) {
+			const userId = connection.state?.userId;
+			this.send(connection, {
+				type: "presence",
+				viewers: viewers.filter((viewer) => viewer.userId !== userId),
+			});
+		}
 	}
 
 	private send(

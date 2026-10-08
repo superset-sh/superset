@@ -129,6 +129,7 @@ describe("page connect tickets", () => {
 		organizationIds: ["org-1"],
 		author: true,
 		writable: true,
+		guest: false,
 		nonce: "n-1",
 		exp: EXP,
 	};
@@ -161,6 +162,20 @@ describe("page connect tickets", () => {
 			nonce: "",
 		});
 		expect(await verifyPageConnectTicket(SECRET, ticket, NOW)).toBeNull();
+	});
+
+	test("round-trips a guest, who has no organizations", async () => {
+		const guest = {
+			...claims,
+			userId: "guest:1",
+			name: "",
+			organizationIds: [],
+			author: false,
+			writable: false,
+			guest: true,
+		};
+		const ticket = await signPageConnectTicket(SECRET, guest);
+		expect(await verifyPageConnectTicket(SECRET, ticket, NOW)).toEqual(guest);
 	});
 
 	test("refuses tampered org ids rather than trusting the shape", async () => {

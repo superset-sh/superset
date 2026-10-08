@@ -4,7 +4,11 @@ import {
 	PAGE_STORAGE_TICKET_SECONDS,
 	type PageStorageReadback,
 } from "@superset/shared/page-storage";
-import { readable, writableFor } from "@superset/shared/page-storage-access";
+import {
+	guestReadable,
+	readable,
+	writableFor,
+} from "@superset/shared/page-storage-access";
 import type { PageStorageHubRequest } from "@superset/shared/page-storage-hub";
 import {
 	isRealtimeNudgeKind,
@@ -117,7 +121,44 @@ app.post("/v2/page/:pageId/storage/ticket", async (c) => {
 		organizationIds: auth.organizationIds,
 		author: manifest.createdByUserId === auth.sub,
 		writable: writableFor(manifest, viewer),
+		guest: false,
 		nonce,
+		exp: Math.floor(Date.now() / 1000) + PAGE_STORAGE_TICKET_SECONDS,
+	});
+
+	return c.json({ ticket });
+});
+
+app.post("/v2/page/:pageId/storage/guest-ticket", async (c) => {
+	const pageId = c.req.param("pageId");
+	const body = (await c.req.json().catch(() => null)) as {
+		guestId?: unknown;
+	} | null;
+	const guestId = body?.guestId;
+	if (
+		typeof guestId !== "string" ||
+		!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(
+			guestId,
+		)
+	) {
+		return c.json({ error: "guestId required" }, 400);
+	}
+
+	const stub = await getServerByName(c.env.PageHub, pageId);
+	const manifest = await stub.readManifest();
+	if (!manifest) return c.json({ error: "Not found" }, 404);
+	if (!guestReadable(manifest)) return c.json({ error: "Forbidden" }, 403);
+
+	const ticket = await signPageConnectTicket(c.env.NUDGE_SECRET, {
+		pageId,
+		userId: `guest:${guestId}`,
+		name: "",
+		image: null,
+		organizationIds: [],
+		author: false,
+		writable: false,
+		guest: true,
+		nonce: crypto.randomUUID(),
 		exp: Math.floor(Date.now() / 1000) + PAGE_STORAGE_TICKET_SECONDS,
 	});
 
@@ -181,6 +222,7 @@ app.get("/v2/page/:pageId/storage/socket", async (c) => {
 			name: claims.name,
 			image: claims.image,
 			organizationIds: claims.organizationIds,
+			guest: claims.guest,
 			nonce: claims.nonce,
 		}),
 	);
