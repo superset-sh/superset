@@ -162,6 +162,13 @@ jobs:
         with:
           node-version: 22
 
+      # bun 1.4.2 can spin forever in a synchronous spawn (oven-sh/bun#44581).
+      # Remove this step when .bun-version moves to a release with that fix.
+      - name: Run tests on a bun build with the spawnSync fix
+        run: |
+          npm install --no-save --prefix "$RUNNER_TEMP/bun-canary" bun@1.4.2-canary.20261007.1
+          echo "$RUNNER_TEMP/bun-canary/node_modules/.bin" >> "$GITHUB_PATH"
+
       # bun install ran with --ignore-scripts, so better-sqlite3 has no native
       # build; fetch the prebuilt binary for the Node ABI using the lockfile-
       # pinned prebuild-install that ships as its dependency (bun tests use
