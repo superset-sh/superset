@@ -1,10 +1,7 @@
-import { afterAll, afterEach, describe, expect, mock, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, describe, expect, mock, test } from "bun:test";
 import type { AppRouter } from "@superset/trpc";
 import type { TRPCLink } from "@trpc/client";
 
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
@@ -23,10 +20,6 @@ type OpenPage = import("../../providers/ChatPaneActionsProvider").OpenPage;
 const { PageLinkCard } = await import("./PageLinkCard");
 
 afterEach(cleanup);
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
-
 const PAGE_URL = "https://app.superset.sh/page/quarterly-report-a3f9k";
 
 const readable = {

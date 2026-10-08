@@ -47,7 +47,7 @@ struct ComposerModeMenu: View {
       .pickerStyle(.inline)
     } label: {
       Image(systemName: selected?.symbol ?? "slider.horizontal.3")
-        .font(.system(size: 16, weight: .regular))
+        .font(.system(size: 19, weight: .regular))
     }
     .menuStyle(.button)
     .buttonStyle(.composerControl)

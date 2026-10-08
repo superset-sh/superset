@@ -1,13 +1,5 @@
-import { afterAll, afterEach, describe, expect, mock, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, describe, expect, mock, test } from "bun:test";
 
-// happy-dom over the preloaded plain-object document — ScopeChip renders a
-// Radix popover and a cmdk list, both of which need a real DOM. Bun runs test
-// files sequentially in one process and happy-dom's globals are process-wide,
-// so we MUST unregister in afterAll to restore the shared mock document for the
-// other renderer suites.
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
@@ -18,10 +10,6 @@ const { ScopeChip } = await import("./ScopeChip");
 type Scope = Parameters<typeof ScopeChip>[0]["scope"];
 
 afterEach(cleanup);
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
-
 const OPTIONS = [
 	{ id: "1", label: "alpha" },
 	{ id: "2", label: "beta" },
@@ -29,12 +17,6 @@ const OPTIONS = [
 
 /**
  * Renders the chip and opens its popover, which is where everything lives.
- *
- * Queries go through the render's own baseElement rather than the global
- * `screen`: `screen` binds document.body when @testing-library/react is first
- * imported, and another suite unregistering happy-dom leaves that binding
- * pointing at a torn-down document — the module is cached, so re-importing does
- * not rebind it. Everything here would then query an empty body.
  */
 async function open(props: Partial<Parameters<typeof ScopeChip>[0]> = {}) {
 	const onChange = mock((_next: unknown) => {});

@@ -20,7 +20,6 @@ const POLL_MS = 10_000;
 export interface ProviderAccount {
 	id: string;
 	label: string | null;
-	identity: string | null;
 	needsReauth: boolean;
 }
 

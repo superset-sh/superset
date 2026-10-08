@@ -1,0 +1,1 @@
+export { SuperhumanIcon } from "./SuperhumanIcon";

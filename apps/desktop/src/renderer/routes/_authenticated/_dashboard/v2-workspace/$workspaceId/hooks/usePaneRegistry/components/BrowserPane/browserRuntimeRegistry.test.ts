@@ -1,27 +1,20 @@
 import { describe, expect, mock, spyOn, test } from "bun:test";
+import { pointerPassthrough } from "renderer/lib/pointer-passthrough";
+import { BrowserRuntimeRegistryImpl } from "./browserRuntimeRegistry";
 
 const register = mock(async (_input: unknown) => ({ success: true }));
 const unregister = mock(async () => ({ success: true }));
 
-mock.module("renderer/lib/trpc-client", () => ({
-	electronTrpcClient: {
-		browser: {
-			register: { mutate: register },
-			unregister: { mutate: unregister },
-			onAgentActivePanes: { subscribe: () => ({ unsubscribe: () => {} }) },
-		},
-		browserHistory: {
-			upsert: { mutate: async () => ({ success: true }) },
-		},
+const browserRuntimeRegistry = new BrowserRuntimeRegistryImpl({
+	browser: {
+		register: { mutate: register },
+		unregister: { mutate: unregister },
+		onAgentActivePanes: { subscribe: () => ({ unsubscribe: () => {} }) },
 	},
-}));
-
-(
-	document.documentElement as unknown as Record<string, unknown>
-).toggleAttribute = mock(() => {});
-
-const { pointerPassthrough } = await import("renderer/lib/pointer-passthrough");
-const { browserRuntimeRegistry } = await import("./browserRuntimeRegistry");
+	browserHistory: {
+		upsert: { mutate: async () => ({ success: true }) },
+	},
+} as unknown as ConstructorParameters<typeof BrowserRuntimeRegistryImpl>[0]);
 
 describe("browserRuntimeRegistry detached persistence", () => {
 	test("retains its persistence callback for navigation completion after detach", async () => {
@@ -147,6 +140,15 @@ describe("browserRuntimeRegistry pointer passthrough", () => {
 		registryInternals.entries.set("passthrough-shown", shown);
 		registryInternals.entries.set("passthrough-parked", parked);
 
+		const root = document.documentElement as unknown as {
+			toggleAttribute?: unknown;
+		};
+		const ownToggleAttribute = Object.getOwnPropertyDescriptor(
+			root,
+			"toggleAttribute",
+		);
+		root.toggleAttribute = () => {};
+
 		try {
 			pointerPassthrough.set("test-gesture", true);
 			expect(shown.webview.style.pointerEvents).toBe("none");
@@ -156,6 +158,11 @@ describe("browserRuntimeRegistry pointer passthrough", () => {
 			expect(shown.webview.style.pointerEvents).toBe("auto");
 		} finally {
 			pointerPassthrough.set("test-gesture", false);
+			if (ownToggleAttribute) {
+				Object.defineProperty(root, "toggleAttribute", ownToggleAttribute);
+			} else {
+				delete root.toggleAttribute;
+			}
 			registryInternals.entries.delete("passthrough-shown");
 			registryInternals.entries.delete("passthrough-parked");
 		}

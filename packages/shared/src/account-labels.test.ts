@@ -26,20 +26,6 @@ describe("accountLabels", () => {
 		});
 	});
 
-	test("a nickname titles the row and both labels move below it", () => {
-		expect(accountLabels({ ...LINEAR, nickname: "Work" }, "Linear")).toEqual({
-			title: "Work",
-			subtitle: "satya@superset.sh · Superset",
-		});
-	});
-
-	test("a nickname on a one-label row still shows who it is", () => {
-		expect(accountLabels({ ...GOOGLE, nickname: "Work" }, "Google")).toEqual({
-			title: "Work",
-			subtitle: "satya@superset.sh",
-		});
-	});
-
 	test("falls back to the account label when there is no user label", () => {
 		expect(
 			accountLabels({ externalAccountLabel: "Superset" }, "Linear"),
@@ -49,13 +35,6 @@ describe("accountLabels", () => {
 	test("names the connector when the provider sent no label at all", () => {
 		expect(accountLabels({}, "Linear")).toEqual({
 			title: "Linear account",
-			subtitle: null,
-		});
-	});
-
-	test("an empty nickname is not a title", () => {
-		expect(accountLabels({ ...GOOGLE, nickname: "" }, "Google")).toEqual({
-			title: "satya@superset.sh",
 			subtitle: null,
 		});
 	});

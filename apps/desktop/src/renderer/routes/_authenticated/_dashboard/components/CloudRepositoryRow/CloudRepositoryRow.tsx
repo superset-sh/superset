@@ -22,7 +22,7 @@ export function CloudRepositoryRow({
 					icon: null,
 					repoOwner: fullName.split("/")[0] || null,
 				})}
-				className="size-3.5 rounded-[3px] text-[8px]"
+				className="-mx-px size-4 rounded-[4px] text-[9px]"
 			/>
 			<span className="min-w-0 truncate">{fullName}</span>
 		</button>

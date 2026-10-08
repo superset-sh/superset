@@ -1,4 +1,8 @@
-import { afterAll, beforeEach, describe, expect, it, mock } from "bun:test";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
+import {
+	attemptWorkspaceAutoRenameFromPrompt,
+	generateWorkspaceNameFromPrompt,
+} from "./ai-name";
 
 type SelectedWorkspace =
 	| {
@@ -16,15 +20,9 @@ type SelectedWorkspace =
 	  }
 	| null;
 
-mock.module("drizzle-orm", () => ({
-	and: mock(() => null),
-	eq: mock(() => null),
-	isNull: mock(() => null),
-}));
-
 const selectGetMock = mock((): SelectedWorkspace => null);
 const updateRunMock = mock(() => ({ changes: 1 }));
-const localDbMock = {
+const fakeDb = {
 	select: mock(() => ({
 		from: () => ({
 			where: () => ({
@@ -41,25 +39,9 @@ const localDbMock = {
 	})),
 };
 
-mock.module("main/lib/local-db", () => ({
-	localDb: localDbMock,
-}));
-
-mock.module("@superset/local-db", () => ({
-	workspaces: {
-		id: "id",
-		branch: "branch",
-		name: "name",
-		isUnnamed: "isUnnamed",
-		deletingAt: "deletingAt",
-		updatedAt: "updatedAt",
-	},
-}));
-
-const {
-	attemptWorkspaceAutoRenameFromPrompt,
-	generateWorkspaceNameFromPrompt,
-} = await import("./ai-name");
+const db = fakeDb as unknown as Parameters<
+	typeof attemptWorkspaceAutoRenameFromPrompt
+>[0]["db"];
 
 describe("generateWorkspaceNameFromPrompt", () => {
 	it("derives a title from the prompt text", () => {
@@ -79,8 +61,8 @@ describe("attemptWorkspaceAutoRenameFromPrompt", () => {
 		selectGetMock.mockReturnValue(null);
 		updateRunMock.mockReset();
 		updateRunMock.mockReturnValue({ changes: 1 });
-		localDbMock.select.mockClear();
-		localDbMock.update.mockClear();
+		fakeDb.select.mockClear();
+		fakeDb.update.mockClear();
 	});
 
 	it("renames an unnamed workspace to the derived title", async () => {
@@ -96,12 +78,13 @@ describe("attemptWorkspaceAutoRenameFromPrompt", () => {
 			attemptWorkspaceAutoRenameFromPrompt({
 				workspaceId: "workspace-1",
 				prompt: "  fix the   login redirect  ",
+				db,
 			}),
 		).resolves.toEqual({
 			status: "renamed",
 			name: "fix the login redirect",
 		});
-		expect(localDbMock.update).toHaveBeenCalled();
+		expect(fakeDb.update).toHaveBeenCalled();
 	});
 
 	it("skips already named workspaces before deriving anything", async () => {
@@ -117,12 +100,13 @@ describe("attemptWorkspaceAutoRenameFromPrompt", () => {
 			attemptWorkspaceAutoRenameFromPrompt({
 				workspaceId: "workspace-1",
 				prompt: "rename me",
+				db,
 			}),
 		).resolves.toEqual({
 			status: "skipped",
 			reason: "workspace-named",
 		});
-		expect(localDbMock.update).not.toHaveBeenCalled();
+		expect(fakeDb.update).not.toHaveBeenCalled();
 	});
 
 	it("skips a workspace that is being deleted", async () => {
@@ -138,12 +122,13 @@ describe("attemptWorkspaceAutoRenameFromPrompt", () => {
 			attemptWorkspaceAutoRenameFromPrompt({
 				workspaceId: "workspace-1",
 				prompt: "rename me",
+				db,
 			}),
 		).resolves.toEqual({
 			status: "skipped",
 			reason: "workspace-deleting",
 		});
-		expect(localDbMock.update).not.toHaveBeenCalled();
+		expect(fakeDb.update).not.toHaveBeenCalled();
 	});
 
 	it("skips an empty prompt without touching the database", async () => {
@@ -151,15 +136,12 @@ describe("attemptWorkspaceAutoRenameFromPrompt", () => {
 			attemptWorkspaceAutoRenameFromPrompt({
 				workspaceId: "workspace-1",
 				prompt: "   ",
+				db,
 			}),
 		).resolves.toEqual({
 			status: "skipped",
 			reason: "empty-prompt",
 		});
-		expect(localDbMock.select).not.toHaveBeenCalled();
+		expect(fakeDb.select).not.toHaveBeenCalled();
 	});
-});
-
-afterAll(() => {
-	mock.restore();
 });

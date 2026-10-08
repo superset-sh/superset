@@ -27,6 +27,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { OpenFile } from "../../../../../../types";
 import {
 	ChatPaneActionsProvider,
+	type OpenLink,
 	type OpenPage,
 } from "../../providers/ChatPaneActionsProvider";
 import type { ChatForkTarget } from "../../types";
@@ -74,6 +75,7 @@ export function SessionView({
 	onSessionState,
 	openFile,
 	openPage,
+	openLink,
 	workspaceId,
 }: {
 	client: SessionClient;
@@ -115,6 +117,7 @@ export function SessionView({
 	};
 	openFile?: OpenFile;
 	openPage?: OpenPage;
+	openLink?: OpenLink;
 }) {
 	const { t } = useLingui();
 	const session = useChatSession({ client });
@@ -341,6 +344,7 @@ export function SessionView({
 		<ChatPaneActionsProvider
 			openFile={openFile}
 			openPage={openPage}
+			openLink={openLink}
 			workspaceId={workspaceId}
 		>
 			<ComposerDropZone className="flex h-full min-h-0 w-full min-w-0 flex-col">

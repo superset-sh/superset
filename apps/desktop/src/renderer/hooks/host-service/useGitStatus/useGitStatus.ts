@@ -3,9 +3,9 @@ import {
 	workspaceTrpc,
 } from "@superset/workspace-client";
 import { useCallback, useEffect, useMemo } from "react";
-import { isDiffPatchQueryAffected } from "renderer/lib/diffPatchQuery";
 import { useWorkspaceEvent } from "../useWorkspaceEvent";
 import { createTrailingRefreshScheduler } from "./createTrailingRefreshScheduler";
+import { invalidateGitQueries } from "./invalidateGitQueries";
 
 const GIT_STATUS_STALE_TIME_MS = 5_000;
 // Status snapshots scale with changed-file count, so keep revisits warm without
@@ -66,30 +66,7 @@ export function useGitStatus(workspaceId: string, enabled = true) {
 	const invalidate = useCallback(
 		(payload?: GitChangedPayload) => {
 			void refreshScheduler.request();
-			const paths = payload?.paths;
-			if (paths && paths.length > 0) {
-				// Patch keys name what is diffed, not which files, so an edit
-				// to an already-changed file leaves cached hunks behind while
-				// `loadDiffFiles` reads the file as it is now. Refetch the
-				// patches the write can have moved and leave the rest cached.
-				void utils.git.getDiffPatch.invalidate(
-					{ workspaceId },
-					{ predicate: (query) => isDiffPatchQueryAffected(query, paths) },
-				);
-				for (const path of paths) {
-					void utils.git.getDiff.invalidate({ workspaceId, path });
-				}
-			} else {
-				void utils.git.getDiffPatch.invalidate({ workspaceId });
-				void utils.git.getDiff.invalidate({ workspaceId });
-				// Current branch may have changed (external checkout), and
-				// branch.<name>.base is per-branch — drop the cache so the next read
-				// picks up the new branch's base.
-				void utils.git.getBaseBranch.invalidate({ workspaceId });
-				// A metadata-only change can move HEAD (for example, an agent
-				// committing outside the app), so refresh cached commit lists too.
-				void utils.git.listCommits.invalidate({ workspaceId });
-			}
+			invalidateGitQueries(utils.git, workspaceId, payload);
 		},
 		[refreshScheduler, utils, workspaceId],
 	);

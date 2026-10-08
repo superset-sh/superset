@@ -1,23 +1,17 @@
-import { describe, expect, mock, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
+import { db } from "@superset/db/client";
 import type { TRPCError } from "@trpc/server";
+import { stub } from "../test/stub";
+import { posthog } from "./lib/analytics";
 
 const CREATOR_ORGS = ["box-org", "other-org"];
 
-mock.module("@superset/db/client", () => ({
-	db: {
-		query: {
-			members: {
-				findMany: async () =>
-					CREATOR_ORGS.map((organizationId) => ({ organizationId })),
-				findFirst: async () => ({ id: "membership" }),
-			},
-		},
-	},
-	dbWs: {},
-}));
-mock.module("./lib/analytics", () => ({
-	posthog: { capture: () => {}, isFeatureEnabled: async () => false },
-}));
+stub(db.query.members, {
+	findMany: async () =>
+		CREATOR_ORGS.map((organizationId) => ({ organizationId })),
+	findFirst: async () => ({ id: "membership" }),
+});
+stub(posthog, { capture: () => {}, isFeatureEnabled: async () => false });
 
 const {
 	createCallerFactory,

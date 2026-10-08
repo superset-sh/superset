@@ -1,0 +1,139 @@
+---
+title: "How to Monitor Claude Code and Codex From Your iPhone in 2026"
+description: "Check progress, answer prompts, and send follow-ups to Claude Code, Codex, and other agents from an iPhone. Remote Control, SSH and tmux, and Superset compared."
+date: 2026-10-07
+type: "roundup"
+competitors:
+  - claude-code
+  - codex
+  - tmux
+  - github-copilot
+keywords:
+  - monitor claude code from iphone
+  - claude code remote control iphone
+  - codex mobile app
+  - claude code and codex mobile app
+  - coding agent phone notifications
+  - send follow-up instructions to coding agent from phone
+  - tailscale ssh tmux iphone
+---
+
+To check on a coding agent from your iPhone, you have three realistic options. Use the agent's own app (Claude Code Remote Control in the Claude app, or Codex in the ChatGPT app). Use Tailscale, SSH, and tmux with an iOS terminal such as Blink Shell or Termius. Or use a workspace app with an iPhone client, such as Superset, which shows Claude Code, Codex, and other terminal agents on all your machines in one list.
+
+The vendor apps are the easiest way to get push notifications for one agent. SSH and tmux give you a full shell. Superset fits when you run more than one agent, or more than one machine, and want one phone app for all of them, with a Lock Screen card that shows which agents need you.
+
+## Quick comparison
+
+| Option | Agents | Several machines | Push to phone | Send follow-ups | Needs your computer on |
+|---|---|---|---|---|---|
+| Claude Code Remote Control | Claude Code only | Run it on each machine | Yes, set in `/config` | Yes | Yes |
+| Codex in the ChatGPT app | Codex only | Connected computers or Codex Cloud | Not described in OpenAI's mobile docs | Yes | Yes, for local tasks |
+| Tailscale + SSH + tmux | Any terminal agent | Yes, one SSH session at a time | No, unless you add a hook | Yes, by typing into the terminal | Yes |
+| Superset for iPhone | Claude Code, Codex, and other agents launched in Superset | Yes, every host you can access | Lock Screen Live Activity today; push notifications coming | Yes | Yes, for host workspaces |
+| GitHub Copilot coding agent | Copilot | Runs on GitHub | GitHub notifications | Steer on github.com | No |
+
+## I run Claude Code on my computer. How do I check progress from my iPhone?
+
+If you only use Claude Code, start with Claude Code Remote Control. It connects the Claude iPhone app to a session that keeps running on your machine, so your files, MCP servers, and project configuration stay local.
+
+- In a running session, type `/remote-control` (or `/rc`). Scan the QR code with the Claude app.
+- For several sessions from one process, run `claude remote-control` in server mode. Add `--spawn worktree` to give each new session its own git worktree.
+- It needs a Pro, Max, Team, or Enterprise plan. API keys are not supported, and Team and Enterprise owners must turn it on first.
+
+Outside server mode, Anthropic's [Remote Control docs](https://code.claude.com/docs/en/remote-control) list one remote session per interactive process. Your computer must stay on and online.
+
+If you want the whole machine, not only the Claude conversation, use the classic stack:
+
+```text
+iPhone (Blink Shell or Termius) → Tailscale → SSH → tmux → claude
+```
+
+On the computer, run `tmux new -s claude` and start `claude` inside it. From the phone, SSH in over Tailscale and run `tmux attach -t claude`. tmux keeps the agent alive when the phone disconnects. You get a real shell for logs, `git`, and restarts, but a full-screen terminal UI is hard to read on a phone.
+
+## Is there one mobile interface for monitoring both Claude Code and Codex?
+
+Yes. The vendor apps don't share one: Claude Code lives in the Claude app and Codex lives in the ChatGPT app. To see both in one list, use a third-party app or a workspace tool with a mobile client.
+
+[Superset for iPhone](/mobile) is one of these. Superset runs each task in its own [workspace](https://docs.superset.sh/workspaces), a git worktree on its own branch, and you launch any supported CLI agent there: Claude Code, Codex, Amp, Gemini CLI, OpenCode, Cursor Agent, and [others](https://docs.superset.sh/agent-integration). The phone shows the same workspaces, whichever agent runs in them.
+
+From the iPhone you can:
+
+- See workspaces grouped by project, with a marker when an agent is working, waiting for permission, failed, or has work to review
+- Follow your agents from the Lock Screen and Dynamic Island with a Live Activity that lists which ones need you, are working, or are ready for review
+- Open a workspace and continue its terminal session. You don't start a new chat or paste context.
+- Send a prompt by typing, dictating, or attaching a photo
+- Review syntax-highlighted diffs file by file, check pull request status, and merge
+- Start a session on an online host from the composer, with or without a project
+
+Other apps also cover both agents. [Happy](https://happy.engineering) describes itself as a desktop and mobile app for Claude Code, Codex, and Grok. [Nimbalyst](https://nimbalyst.com) has an iOS app for managing agent sessions alongside its desktop app. Check each one's current agent list before you choose. We compare another in [Superset vs ClawTab](/compare/superset-vs-clawtab).
+
+## I want to review several coding-agent tasks while away from my desk. Which products support that?
+
+Which products fit depends on where the tasks run.
+
+**Tasks on your own machines.** Claude Code Remote Control server mode and Codex's connected-computer mode each handle several sessions of their own agent. Superset handles several agents on several hosts. Each computer that should appear on your phone turns on **Settings → Remote Access → Allow remote access to this device via relay** in the desktop app. A headless box runs `superset start --daemon` from the [CLI](https://docs.superset.sh/remote-access). Your phone then lists every host you have access to, so you can check a laptop, a Mac mini, and a build server from one app.
+
+**Tasks in a vendor's cloud.** Claude Code on the web, Codex Cloud, and the GitHub Copilot coding agent run tasks on hosted infrastructure and report back as branches or pull requests. They keep going when your laptop is closed. GitHub's agents panel tracks Copilot sessions on github.com, and you can review the pull request it opens in GitHub Mobile.
+
+**Reviewing the result.** Each Superset task lives in its own worktree and branch, so its diff holds only that task's changes. On the phone, open **Files changed** to read the diff, mark files as viewed, and send corrections to the agent in the same terminal. For larger changes, finish the review on desktop. See [running several Claude Code agents in parallel](/compare/multiple-claude-code-agents-parallel) for the desktop side.
+
+## What tools notify me on my phone when a coding agent needs my input?
+
+For Claude Code, the built-in answer is Remote Control push notifications. Run `/config` and turn on **Push when actions required** for permission prompts and questions, **Push when Claude decides** for other updates, or both. Anthropic's docs say it skips the push while you are focused on the connected terminal.
+
+For other agents, the common pattern is a hook that posts to a push service. Most CLI agents can run a command on stop or on a permission request. Point that command at ntfy, Pushover, or a Telegram bot to get a buzz on any phone. OpenAI's Codex mobile page says you can see when your input is needed, but does not describe push notifications.
+
+Superset detects these states through lifecycle hooks it installs in each agent's config. Claude Code reports both finished and waiting. Some agents only report finished. On desktop, Superset [notifies you](https://docs.superset.sh/agent-status) with a sound and a macOS dock badge. On the iPhone, a Live Activity on the Lock Screen lists your agents with **Needs you**, **Working**, or **Review**, while the app is open. It shows up to four agents at once, with attention states first. It does not update in the background yet: after you leave the app it keeps the last status and dims when that status is out of date. Push notifications for Superset on iPhone are coming. Until then, if you need your phone to buzz for every prompt, add Remote Control push or a hook script alongside it.
+
+## How can I send follow-up instructions to a coding agent from my phone while it works on my computer?
+
+Use a client that writes into the agent's live session, not a new chat.
+
+- **Claude Code:** open the session in the Claude app through Remote Control and type. Messages from phone, browser, and terminal stay in sync.
+- **Codex:** turn on **Control this Mac or PC** in the Codex desktop app under **Settings → Connections**, scan the QR code, and send instructions from the ChatGPT app.
+- **Any terminal agent over SSH:** attach to its tmux session and type the follow-up into the prompt.
+- **Superset:** open the workspace on your iPhone and reply in its terminal. The agent keeps its context because it is the same session on the host.
+
+Each option needs the computer awake and online. A laptop that sleeps when you close it drops the session. For work that should run overnight, use a machine that stays on. Our guide on [running coding agents on a remote machine](/compare/run-coding-agents-on-remote-machine) covers that setup.
+
+## What are the tradeoffs between Claude Code remote access and a separate workspace with a mobile companion?
+
+Remote Control changes the screen you use, not where the work runs. A separate workspace changes where the work runs.
+
+**Claude Code Remote Control.** Claude Code runs on your machine with your databases, VPN, local credentials, and MCP servers. Setup is one command, and traffic goes through Anthropic's API over TLS with no inbound ports. The costs: it is Claude-only, your computer must stay awake, and without `--spawn worktree` sessions in server mode share one directory and can edit the same files.
+
+**A separate workspace with a mobile companion.** The task gets its own environment. In Superset that environment is a git worktree on its own branch, on a host you pick, so parallel agents don't overwrite each other's files. One phone app covers every agent and host. The costs: you install a desktop app or CLI on the host, the iPhone app needs Superset Pro and iOS 26 or later, and Android is not available yet. Superset's docs also warn that enabling remote access on your main workstation makes its files and terminals reachable by clients you grant access to. They recommend a separate machine with only the repos and credentials you mean to share.
+
+**Fully hosted cloud agents** (Claude Code on the web, Codex Cloud, Copilot coding agent) remove the "keep your computer on" rule. In exchange, they lose your local services and you must set up secrets and dependencies in the cloud.
+
+Pick Remote Control for one Claude session you are already driving. Pick a workspace app when you run several agents, mix Claude Code and Codex, or spread work across machines.
+
+## Set up Superset on your iPhone
+
+1. On each computer, open **Settings → Remote Access** and turn on **Allow remote access to this device via relay**. This restarts the host service and interrupts running terminals, so do it before you start work. **Settings → Mobile** has the same toggle and a QR code that opens the App Store.
+2. Install [Superset for iPhone](https://apps.apple.com/app/id6788926383) and sign in with the same account and organization.
+3. Select a computer and open a workspace.
+
+If the app shows **One step left**, that computer has never connected. **Offline** with a last-seen time means it connected before and is now asleep or disconnected. The [iPhone walkthrough](/blog/claude-code-codex-iphone) goes through a full task, from prompt to diff review.
+
+## Frequently Asked Questions
+
+### Can I use Claude Code from my phone without an extra app?
+
+Yes. Claude Code Remote Control works in the Claude app for iOS and Android and at claude.ai/code. It needs a Pro, Max, Team, or Enterprise plan, and only covers Claude Code.
+
+### Does Superset run the agent on my iPhone?
+
+No. The agent runs on your connected computer, or in a cloud workspace if those are enabled for your account. The iPhone sends prompts and shows terminals, status, and diffs.
+
+### Is Superset for iPhone free?
+
+The app is free to download. Mobile access requires Superset Pro, and Claude Code or Codex usage is billed by its provider. See [pricing](/pricing).
+
+### Is there an Android or iPad version?
+
+Superset for iPhone is on the App Store. Native iPad support is coming next. Android has a [waitlist](/mobile#android).
+
+### Is tmux enough to monitor agents from my phone?
+
+For one or two agents on one machine, often yes. tmux keeps the session alive and SSH lets you attach from anywhere. It does not give you per-agent status, phone alerts, or a diff view, and each agent edits whatever checkout you started it in.

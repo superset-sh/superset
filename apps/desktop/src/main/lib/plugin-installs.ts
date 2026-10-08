@@ -5,10 +5,8 @@ import { promisify } from "node:util";
 import {
 	createManagedSkills,
 	mcpHeadersHelperCommand,
-	readPluginConnections,
 	resolveDisabledSkillIds,
 	syncManagedMcpServers,
-	writePluginConnections,
 	writeSharedDisabledSkillIds,
 } from "@superset/agent-setup";
 import { getBundledPluginDir } from "@superset/agent-setup/config";
@@ -17,7 +15,6 @@ import {
 	desiredPluginMcpServers,
 	getPluginByName,
 	type InstalledPlugin,
-	type PluginConnectionRef,
 	SUPERSET_MANAGED_SKILLS,
 } from "@superset/shared/plugins";
 import log from "electron-log/main";
@@ -78,15 +75,10 @@ function saveInstalledPlugins(next: InstalledPlugin[]): void {
 		.run();
 }
 
-/** Absent `connections` (boot, an install) falls back to the last synced set. */
-export function syncInstalledPluginMcpServers(
-	connections?: readonly PluginConnectionRef[],
-): void {
-	if (connections) writePluginConnections(connections);
+export function syncInstalledPluginMcpServers(): void {
 	if (env.NODE_ENV === "development") return;
 	syncManagedMcpServers(
 		desiredPluginMcpServers(getInstalledPlugins(), {
-			connections: connections ?? readPluginConnections(),
 			headersHelper: mcpHeadersHelperCommand(),
 		}),
 	);

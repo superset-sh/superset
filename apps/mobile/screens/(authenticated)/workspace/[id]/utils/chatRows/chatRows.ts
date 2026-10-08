@@ -112,22 +112,37 @@ export function activityStepCount(rows: readonly ChatRow[]): number {
 	);
 }
 
-/** Folds each run of thoughts and tool calls into one row. */
+function isAgentMessage(row: ChatRow): boolean {
+	return row.kind === "item" && row.item.kind === "agent_message";
+}
+
+function foldRun(run: ChatRow[]): ChatRow[] {
+	const [first] = run;
+	if (!first) return [];
+	if (!run.some(isActivity)) return run;
+	return [{ kind: "activity", key: `activity:${first.key}`, rows: run }];
+}
+
+/**
+ * Folds the agent's work between two prompts into one row, keeping only its
+ * latest message on screen. Steps after that message fold into a second row.
+ */
 export function groupActivity(rows: readonly ChatRow[]): ChatRow[] {
 	const grouped: ChatRow[] = [];
 	let run: ChatRow[] = [];
 	const flush = () => {
-		const [first] = run;
-		if (first)
-			grouped.push({
-				kind: "activity",
-				key: `activity:${first.key}`,
-				rows: run,
-			});
+		const lastMessage = run.findLastIndex(isAgentMessage);
+		const message = run[lastMessage];
+		if (message) {
+			grouped.push(...foldRun(run.slice(0, lastMessage)), message);
+			grouped.push(...foldRun(run.slice(lastMessage + 1)));
+		} else {
+			grouped.push(...foldRun(run));
+		}
 		run = [];
 	};
 	for (const row of rows) {
-		if (isActivity(row)) {
+		if (isActivity(row) || isAgentMessage(row)) {
 			run.push(row);
 			continue;
 		}

@@ -1,15 +1,17 @@
 import { describe, expect, mock, test } from "bun:test";
+import * as connectors from "@superset/trpc/connectors";
+import { posthog } from "@/lib/analytics";
+import { stub } from "../../../../../../../../test/stub";
 
 const isFeatureEnabled = mock(
 	async (..._args: unknown[]): Promise<boolean | undefined> => true,
 );
-mock.module("@superset/db/client", () => ({ db: {} }));
-mock.module("@/lib/analytics", () => ({ posthog: { isFeatureEnabled } }));
-mock.module("@superset/trpc/connectors", () => ({
+stub(posthog, { isFeatureEnabled });
+stub(connectors, {
 	accountConnection: async () => ({ organizationId: "org" }),
 	accountConnections: async () => [{ organizationId: "org" }],
 	connectionBotToken: async () => "token",
-}));
+});
 const {
 	parseThreadCommand,
 	renderThreadMemory,

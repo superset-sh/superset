@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import {
 	buildDefaultAccountResolver,
@@ -22,7 +21,11 @@ import {
 	removeManagedJsonHooks,
 } from "./managed-json-hooks";
 import { getNotifyScriptPath } from "./notify-hook";
-import { getOpenCodeConfigDir, getOpenCodePluginDir } from "./paths";
+import {
+	getOpenCodeConfigDir,
+	getOpenCodePluginDir,
+	resolveUserHomeDir,
+} from "./paths";
 
 export const OPENCODE_PLUGIN_FILE = "superset-notify.js";
 
@@ -42,7 +45,7 @@ export function getOpenCodeGlobalPluginPath(): string {
 	const xdgConfigHome = process.env.XDG_CONFIG_HOME?.trim();
 	const configHome = xdgConfigHome?.length
 		? xdgConfigHome
-		: path.join(os.homedir(), ".config");
+		: path.join(resolveUserHomeDir(), ".config");
 	return path.join(configHome, "opencode", "plugin", OPENCODE_PLUGIN_FILE);
 }
 
@@ -68,7 +71,7 @@ export const CLAUDE_ARTIFACT_GUARD_MATCHER = "Artifact";
  * Returns the global Claude settings path used for native hook registration.
  */
 export function getClaudeGlobalSettingsJsonPath(): string {
-	return path.join(os.homedir(), ".claude", "settings.json");
+	return path.join(resolveUserHomeDir(), ".claude", "settings.json");
 }
 
 // StopFailure is the API-error hook; it fires while the session stays alive,
@@ -175,7 +178,7 @@ export function ensureClaudeManagedHooksAt(configDir: string): void {
  * Returns the global Codex hooks.json path used for fallback hook registration.
  */
 export function getCodexGlobalHooksJsonPath(): string {
-	return path.join(os.homedir(), ".codex", "hooks.json");
+	return path.join(resolveUserHomeDir(), ".codex", "hooks.json");
 }
 
 // SubagentStart/SubagentStop fire for spawn_agent children (multi_agent is

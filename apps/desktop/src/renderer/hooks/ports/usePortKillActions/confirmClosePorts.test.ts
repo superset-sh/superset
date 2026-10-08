@@ -1,29 +1,17 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
-import { initI18n } from "@superset/i18n";
-
-// Alert copy now renders through i18n._; activate the default locale so the
-// descriptors fall back to their English messages.
-initI18n();
-
+import { afterAll, beforeEach, describe, expect, it, mock } from "bun:test";
 import type { AlertOptions } from "@superset/ui/atoms/Alert";
+import { useTerminalCloseConfirmStore } from "renderer/stores/terminal-close-confirm/store";
+import { confirmClosePorts } from "./confirmClosePorts";
 
-let suppressed = false;
-const suppress = mock(() => {
-	suppressed = true;
+const suppressedBefore = useTerminalCloseConfirmStore.getState().suppressed;
+
+afterAll(() => {
+	useTerminalCloseConfirmStore.setState({ suppressed: suppressedBefore });
 });
-
-mock.module("renderer/stores/terminal-close-confirm/store", () => ({
-	useTerminalCloseConfirmStore: {
-		getState: () => ({ suppressed, suppress }),
-	},
-}));
-
-const { confirmClosePorts } = await import("./confirmClosePorts");
 
 describe("confirmClosePorts", () => {
 	beforeEach(() => {
-		suppressed = false;
-		suppress.mockClear();
+		useTerminalCloseConfirmStore.getState().reset();
 	});
 
 	it("confirms a single port with running-process copy", async () => {
@@ -88,8 +76,7 @@ describe("confirmClosePorts", () => {
 			checkboxChecked: true,
 		});
 		expect(await confirmation).toBe(true);
-		expect(suppressed).toBe(true);
-		expect(suppress).toHaveBeenCalledTimes(1);
+		expect(useTerminalCloseConfirmStore.getState().suppressed).toBe(true);
 
 		expect(await confirmClosePorts(1, showAlert)).toBe(true);
 		expect(showAlert).toHaveBeenCalledTimes(1);

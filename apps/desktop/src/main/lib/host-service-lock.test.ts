@@ -1,32 +1,25 @@
-import {
-	afterAll,
-	afterEach,
-	beforeEach,
-	describe,
-	expect,
-	mock,
-	test,
-} from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import path from "node:path";
+import {
+	acquireSpawnLock as acquireSpawnLockWith,
+	readSpawnLock as readSpawnLockWith,
+	type SpawnLockDeps,
+} from "./host-service-lock";
 
 let testRoot = "";
 const isProcessAliveMock = mock((_pid: number) => true);
 
-const realManifest = await import("./host-service-manifest");
-mock.module("./host-service-manifest", () => ({
-	...realManifest,
+const deps: SpawnLockDeps = {
+	manifestDir: (orgId) => path.join(testRoot, orgId),
 	isProcessAlive: isProcessAliveMock,
-	manifestDir: (orgId: string) => path.join(testRoot, orgId),
-}));
-
-mock.module("@superset/shared/host-info", () => ({
 	getHostId: () => "host-1",
-	getHostName: () => "host",
-}));
+};
 
-const { acquireSpawnLock, readSpawnLock } = await import("./host-service-lock");
+const acquireSpawnLock = (orgId: string, options: { staleMs: number }) =>
+	acquireSpawnLockWith(orgId, options, deps);
+const readSpawnLock = (orgId: string) => readSpawnLockWith(orgId, deps);
 
 const ORG = "org-1";
 const lockFile = () => path.join(testRoot, ORG, "spawn.lock");
@@ -117,8 +110,4 @@ describe("acquireSpawnLock", () => {
 		expect(handle).not.toBeNull();
 		expect(readSpawnLock(ORG)?.ownerPid).toBe(process.pid);
 	});
-});
-
-afterAll(() => {
-	mock.restore();
 });

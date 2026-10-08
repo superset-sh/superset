@@ -58,11 +58,18 @@ async function readConnection(id: string): Promise<SelectConnection | null> {
  * every caller rediscovering the failure. `upsertConnection` clears both
  * fields when the user reconnects.
  */
-async function markNeedsReauth(id: string): Promise<void> {
+export async function markNeedsReauth(
+	id: string,
+	storedAccessToken?: string,
+): Promise<void> {
 	await db
 		.update(connections)
 		.set({ disconnectedAt: new Date(), disconnectReason: NEEDS_REAUTH })
-		.where(live(id));
+		.where(
+			storedAccessToken === undefined
+				? live(id)
+				: and(live(id), eq(connections.accessToken, storedAccessToken)),
+		);
 }
 
 const inFlight = new Map<string, Promise<SelectConnection>>();

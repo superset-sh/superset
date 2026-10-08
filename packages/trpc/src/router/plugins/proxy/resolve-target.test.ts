@@ -1,65 +1,39 @@
 // biome-ignore-all lint/suspicious/noTemplateCurlyInString: ${config.*} is the manifest placeholder syntax, not a template literal
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { setTestEnv } from "../../../../test/env";
+import { stub } from "../../../../test/stub";
+import * as lookup from "../../../lib/connectors/lookup";
+import * as refresh from "../../../lib/connectors/refresh";
+import * as upsert from "../../../lib/connectors/upsert";
 import type { InstalledPlugin } from "../connections";
-
-// Every dependency that reaches the database is stubbed so the validated env
-// and the connection it opens at import stay out of this test's module graph.
-// `mock.module` is process-wide, so each stub lists every export the real
-// module has: another file's import resolves against the stub too.
+import * as connections from "../connections";
 
 let install: InstalledPlugin | null = null;
 let installedCalls: Array<[string, string, string | undefined]> = [];
 let active: Record<string, unknown> | null = null;
+let accounts: Record<string, unknown>[] | null = null;
 let pinned: Record<string, unknown> | null = null;
 let pinnedCalls: Array<[string, unknown]> = [];
 let refreshError: Error | null = null;
 
-class StubUnrefreshable extends Error {
-	constructor(connector: string) {
-		super(`The ${connector} connection expired and carries no refresh token.`);
-		this.name = "UnrefreshableConnectionError";
-	}
-}
-
-class StubUnavailable extends Error {
-	constructor(
-		readonly connector: string,
-		detail: string,
-	) {
-		super(`The ${connector} token endpoint is unavailable: ${detail}`);
-		this.name = "ConnectorUnavailableError";
-	}
-}
-
 setTestEnv({ NEXT_PUBLIC_API_URL: "https://api.superset.test" });
 
-mock.module("../connections", () => ({
+stub(connections, {
 	installedPlugin: (userId: string, plugin: string, marketplace?: string) => {
 		installedCalls.push([userId, plugin, marketplace]);
 		return Promise.resolve(install);
 	},
-	installRecord: () => Promise.resolve(null),
-	installById: () => Promise.resolve(null),
-	installedManifest: () => Promise.resolve(null),
-	AmbiguousPluginError: class extends Error {},
-}));
+});
 
-mock.module("../../../lib/connectors/lookup", () => ({
+stub(lookup, {
 	connectionById: (id: string, options: unknown) => {
 		pinnedCalls.push([id, options]);
 		return Promise.resolve(pinned);
 	},
-	orgConnection: () => Promise.resolve(null),
-	userConnection: () => Promise.resolve(null),
-	accountConnection: () => Promise.resolve(null),
-	accountConnections: () => Promise.resolve([]),
-	connectorConnections: () => Promise.resolve([]),
-	connectionBotToken: () => Promise.resolve(null),
-	AmbiguousConnectionError: class extends Error {},
-}));
+	userConnections: () => Promise.resolve(accounts ?? (active ? [active] : [])),
+});
 
-mock.module("../../../lib/connectors/upsert", () => ({
+stub(upsert, {
 	activeConnection: () => Promise.resolve(active),
 	connectionSecrets: (row: { id: string }) =>
 		Promise.resolve({
@@ -67,20 +41,16 @@ mock.module("../../../lib/connectors/upsert", () => ({
 			refreshToken: null,
 			config: { bot_token: null },
 		}),
-	connectionConflict: () => Promise.resolve(null),
-	upsertConnection: () => Promise.resolve(null),
-}));
+});
 
-mock.module("../../../lib/connectors/refresh", () => ({
+stub(refresh, {
 	ensureFreshConnection: (row: Record<string, unknown>) =>
 		refreshError ? Promise.reject(refreshError) : Promise.resolve(row),
-	connectionAccessToken: () => Promise.resolve("token"),
-	NEEDS_REAUTH: "needs_reauth",
-	ConnectorUnavailableError: StubUnavailable,
-	UnrefreshableConnectionError: StubUnrefreshable,
-}));
+});
 
-const { PluginTargetError, resolveTarget } = await import("./resolve-target");
+const { PluginTargetError, resolveTarget, targetKey } = await import(
+	"./resolve-target"
+);
 
 interface ManifestOptions {
 	name?: string;
@@ -131,6 +101,7 @@ const request = {
 beforeEach(() => {
 	install = null;
 	active = null;
+	accounts = null;
 	pinned = null;
 	refreshError = null;
 	installedCalls = [];
@@ -191,7 +162,7 @@ describe("resolveTarget", () => {
 	test("asks for auth, with the reason, when the token cannot be refreshed", async () => {
 		install = installed("superset", { connector: "acme-crm" });
 		active = { id: "conn-1", authMethod: "oauth2" };
-		refreshError = new StubUnrefreshable("acme-crm");
+		refreshError = new refresh.UnrefreshableConnectionError("acme-crm");
 
 		const target = await resolveTarget(request);
 
@@ -215,7 +186,10 @@ describe("resolveTarget", () => {
 	test("an unreachable token endpoint is a bad gateway, not a reconnect prompt", async () => {
 		install = installed("superset", { connector: "acme-crm" });
 		active = { id: "conn-1", authMethod: "oauth2" };
-		refreshError = new StubUnavailable("acme-crm", "503 Service Unavailable");
+		refreshError = new refresh.ConnectorUnavailableError(
+			"acme-crm",
+			"503 Service Unavailable",
+		);
 
 		// needs-auth would tell the user to reconnect a connection that is fine.
 		const error = await resolveTarget(request).catch((e) => e);
@@ -341,5 +315,194 @@ describe("resolveTarget", () => {
 				expect(error.status).toBe(501);
 			},
 		);
+	});
+});
+
+describe("resolveTarget with several accounts", () => {
+	const twoAccounts = [
+		{
+			id: "conn-work",
+			authMethod: "oauth2",
+			externalUserLabel: "satya@superset.sh",
+			externalAccountLabel: null,
+		},
+		{
+			id: "conn-personal",
+			authMethod: "oauth2",
+			externalUserLabel: "satya.personal@gmail.com",
+			externalAccountLabel: null,
+		},
+	];
+
+	test("keeps an account that needs reconnecting, so naming it is not rerouted", async () => {
+		install = installed("superset", {
+			connector: "acme-crm",
+			mcpUrl: "https://mcp.acme.test/mcp",
+		});
+		accounts = [
+			twoAccounts[0],
+			{
+				...twoAccounts[1],
+				disconnectedAt: new Date(),
+				disconnectReason: "needs_reauth",
+			},
+			{
+				id: "conn-gone",
+				authMethod: "oauth2",
+				disconnectedAt: new Date(),
+				disconnectReason: "user_disconnected",
+			},
+		];
+
+		const target = await resolveTarget(request);
+
+		expect(target.kind).toBe("multi");
+		if (target.kind !== "multi") return;
+		expect(target.accounts.map((account) => account.connectionId)).toEqual([
+			"conn-personal",
+			"conn-work",
+		]);
+	});
+
+	test("offers both when the caller has two live connections", async () => {
+		install = installed("superset", {
+			connector: "acme-crm",
+			mcpUrl: "https://mcp.acme.test/mcp",
+		});
+		accounts = twoAccounts;
+
+		const target = await resolveTarget(request);
+
+		expect(target).toMatchObject({
+			kind: "multi",
+			connector: "acme-crm",
+			connectorLabel: "acme-crm",
+			accounts: [
+				{
+					connectionId: "conn-personal",
+					userLabel: "satya.personal@gmail.com",
+				},
+				{ connectionId: "conn-work", userLabel: "satya@superset.sh" },
+			],
+		});
+	});
+
+	test("orders the accounts by id, not by when they were last touched", async () => {
+		install = installed("superset", {
+			connector: "acme-crm",
+			mcpUrl: "https://mcp.acme.test/mcp",
+		});
+		accounts = [twoAccounts[1], twoAccounts[0]];
+
+		const target = await resolveTarget(request);
+		if (target.kind !== "multi") return expect.unreachable("expected multi");
+
+		expect(target.accounts.map((a) => a.connectionId)).toEqual([
+			"conn-personal",
+			"conn-work",
+		]);
+	});
+
+	test("one connection resolves exactly as it does today", async () => {
+		install = installed("superset", {
+			connector: "acme-crm",
+			mcpUrl: "https://mcp.acme.test/mcp",
+		});
+		accounts = [twoAccounts[0]];
+
+		const target = await resolveTarget(request);
+
+		expect(target).toMatchObject({ kind: "remote", connectionId: "conn-work" });
+	});
+
+	test("a pinned connection skips the choice entirely", async () => {
+		install = installed("superset", {
+			connector: "acme-crm",
+			mcpUrl: "https://mcp.acme.test/mcp",
+		});
+		accounts = twoAccounts;
+		pinned = {
+			id: "conn-personal",
+			connectedByUserId: "user-1",
+			organizationId: "org-1",
+			authMethod: "oauth2",
+		};
+
+		const target = await resolveTarget({
+			...request,
+			connectionId: "conn-personal",
+		});
+
+		expect(target).toMatchObject({
+			kind: "remote",
+			connectionId: "conn-personal",
+		});
+	});
+
+	test("resolve() turns one account into a single-account target", async () => {
+		install = installed("superset", {
+			connector: "acme-crm",
+			mcpUrl: "https://mcp.acme.test/mcp",
+		});
+		accounts = twoAccounts;
+		pinned = {
+			id: "conn-work",
+			connectedByUserId: "user-1",
+			organizationId: "org-1",
+			authMethod: "oauth2",
+		};
+
+		const target = await resolveTarget(request);
+		if (target.kind !== "multi") return expect.unreachable("expected multi");
+		const resolved = await target.resolve("conn-work");
+
+		expect(resolved).toMatchObject({
+			kind: "remote",
+			connectionId: "conn-work",
+		});
+	});
+
+	test("no connection at all still asks for auth", async () => {
+		install = installed("superset", { connector: "acme-crm" });
+		accounts = [];
+
+		expect((await resolveTarget(request)).kind).toBe("needs-auth");
+	});
+});
+
+describe("targetKey", () => {
+	test("is the connection for a single-account target", () => {
+		expect(
+			targetKey({
+				kind: "remote",
+				plugin: "acme",
+				version: "1.0.0",
+				url: "https://mcp.acme.test/mcp",
+				headers: {},
+				connectionId: "conn-1",
+			}),
+		).toBe("conn-1");
+	});
+
+	test("is the whole account set, order-independent, for a multi target", () => {
+		const base = {
+			kind: "multi" as const,
+			plugin: "acme",
+			version: "1.0.0",
+			connector: "acme-crm",
+			connectorLabel: "acme-crm",
+			resolve: () => expect.unreachable("not called"),
+		};
+		const forward = targetKey({
+			...base,
+			accounts: [{ connectionId: "a" }, { connectionId: "b" }],
+		});
+		const reverse = targetKey({
+			...base,
+			accounts: [{ connectionId: "b" }, { connectionId: "a" }],
+		});
+
+		expect(forward).toBe("a+b");
+		expect(reverse).toBe(forward);
 	});
 });

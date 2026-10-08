@@ -4,7 +4,7 @@ import { lazy, type ReactNode, Suspense } from "react";
 import { WorkItemDetailState } from "../../../components/WorkItemDetailState";
 import type { PullRequestDetail } from "../../hooks/usePullRequestDetail";
 import { pullRequestReadErrorMessage } from "../../utils/combinePullRequestReadErrors";
-import type { PullRequestCommentTarget } from "../PullRequestConversation";
+import type { PullRequestCommentTarget } from "../PullRequestConversationComposer";
 import { PullRequestDetailSkeleton } from "../PullRequestDetailSkeleton";
 import type { PullRequestDetailTab } from "../PullRequestDetailTabs";
 import { PullRequestSummaryContent } from "../PullRequestSummaryContent";

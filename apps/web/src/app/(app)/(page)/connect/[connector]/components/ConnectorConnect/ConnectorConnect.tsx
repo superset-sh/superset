@@ -38,12 +38,10 @@ interface ConnectorConnectProps {
 		id: string;
 		externalAccountLabel: string | null;
 		externalUserLabel: string | null;
-		nickname: string | null;
 		needsReauth: boolean;
 	}[];
 }
 
-/** Nickname first, then whatever the provider called it. Never the id. */
 function initials(label: string): string {
 	const parts = label
 		.trim()
@@ -123,10 +121,12 @@ export function ConnectorConnect({
 							className="space-y-2 p-3"
 							onSubmit={(e) => {
 								e.preventDefault();
+								const label = draftName.trim();
+								if (!label) return;
 								rename.mutate({
 									organizationId,
 									connectionId: connection.id,
-									nickname: draftName,
+									label,
 								});
 							}}
 						>
@@ -135,11 +135,15 @@ export function ConnectorConnect({
 								autoFocus
 								value={draftName}
 								maxLength={64}
-								placeholder={t({ message: "Nickname" })}
+								placeholder={t({ message: "Account name" })}
 								onChange={(e) => setDraftName(e.target.value)}
 							/>
 							<div className="flex gap-2">
-								<Button type="submit" size="sm" disabled={rename.isPending}>
+								<Button
+									type="submit"
+									size="sm"
+									disabled={rename.isPending || !draftName.trim()}
+								>
 									<Trans>Save</Trans>
 								</Button>
 								<Button
@@ -184,7 +188,7 @@ export function ConnectorConnect({
 							variant="ghost"
 							onClick={() => {
 								setRenaming(connection.id);
-								setDraftName(connection.nickname ?? "");
+								setDraftName(connection.externalUserLabel ?? "");
 							}}
 						>
 							<Trans>Rename</Trans>

@@ -1,6 +1,5 @@
 import { I18nProvider } from "@superset/i18n/react";
 import type { ReactNode } from "react";
-import { PostHogLocaleTagger } from "renderer/components/PostHogLocaleTagger";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 // The electron-trpc IPC channel can still be settling right after a CMD+R
@@ -13,8 +12,10 @@ const GET_LANGUAGE_RETRY_DELAY_MS = 250;
 
 export function LanguageAwareI18nProvider({
 	children,
+	languageRetryDelayMs = GET_LANGUAGE_RETRY_DELAY_MS,
 }: {
 	children: ReactNode;
+	languageRetryDelayMs?: number;
 }) {
 	// Persisted setting wins; undefined falls back to first-load inference.
 	// React Query keeps `isPending` true across every configured retry, so a
@@ -24,7 +25,7 @@ export function LanguageAwareI18nProvider({
 	const { data: language, isPending } =
 		electronTrpc.settings.getLanguage.useQuery(undefined, {
 			retry: GET_LANGUAGE_MAX_RETRIES,
-			retryDelay: (attempt) => GET_LANGUAGE_RETRY_DELAY_MS * (attempt + 1),
+			retryDelay: (attempt) => languageRetryDelayMs * (attempt + 1),
 		});
 	const utils = electronTrpc.useUtils();
 	electronTrpc.settings.onLanguageChange.useSubscription(undefined, {
@@ -38,7 +39,6 @@ export function LanguageAwareI18nProvider({
 	// wrong language beats showing nothing.
 	return (
 		<I18nProvider locale={language ?? undefined} deferUntilReady>
-			<PostHogLocaleTagger />
 			{children}
 		</I18nProvider>
 	);

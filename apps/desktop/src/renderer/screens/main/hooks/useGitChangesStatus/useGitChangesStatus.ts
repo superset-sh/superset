@@ -44,6 +44,30 @@ function errorBackoffInterval(baseInterval: number, error: unknown): number {
 	return Math.max(baseInterval, LARGE_CHANGESET_REFETCH_INTERVAL_MS);
 }
 
+export function resolveStatusRefetchInterval(
+	refetchInterval: number | undefined,
+	state: { status: string; data?: unknown; error?: unknown },
+): number | false {
+	if (!refetchInterval) return false;
+	if (state.status === "error") {
+		return errorBackoffInterval(refetchInterval, state.error);
+	}
+	const data = state.data as GitChangesStatus | undefined;
+	if (!data) return refetchInterval;
+
+	const totalChangedFiles =
+		data.againstBase.length +
+		data.staged.length +
+		data.unstaged.length +
+		data.untracked.length;
+
+	if (totalChangedFiles >= LARGE_CHANGESET_THRESHOLD) {
+		return Math.max(refetchInterval, LARGE_CHANGESET_REFETCH_INTERVAL_MS);
+	}
+
+	return refetchInterval;
+}
+
 export function getGitChangesErrorCause(
 	error: unknown,
 ): GitChangesErrorCause | undefined {
@@ -104,26 +128,8 @@ export function useGitChangesStatus({
 		{
 			enabled: enabled && !!worktreePath,
 			gcTime: GIT_CHANGES_QUERY_GC_TIME_MS,
-			refetchInterval: (query) => {
-				if (!refetchInterval) return false;
-				if (query.state.status === "error") {
-					return errorBackoffInterval(refetchInterval, query.state.error);
-				}
-				const data = query.state.data as GitChangesStatus | undefined;
-				if (!data) return refetchInterval;
-
-				const totalChangedFiles =
-					data.againstBase.length +
-					data.staged.length +
-					data.unstaged.length +
-					data.untracked.length;
-
-				if (totalChangedFiles >= LARGE_CHANGESET_THRESHOLD) {
-					return Math.max(refetchInterval, LARGE_CHANGESET_REFETCH_INTERVAL_MS);
-				}
-
-				return refetchInterval;
-			},
+			refetchInterval: (query) =>
+				resolveStatusRefetchInterval(refetchInterval, query.state),
 			refetchOnWindowFocus,
 			staleTime: staleTime ?? STATUS_QUERY_STALE_TIME_MS,
 		},

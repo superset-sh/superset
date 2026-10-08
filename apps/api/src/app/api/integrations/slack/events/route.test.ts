@@ -1,68 +1,55 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-
-mock.module("@/env", () => ({
-	env: {
-		QSTASH_TOKEN: "test-token",
-		NEXT_PUBLIC_API_URL: "http://localhost",
-		SLACK_SIGNING_SECRET: "test-secret",
-	},
-}));
+import { Client } from "@upstash/qstash";
+import { stub } from "../../../../../../test/stub";
+import * as verifySignature from "../verify-signature";
+import * as appHomeOpened from "./process-app-home-opened";
+import * as automationEvent from "./process-automation-event";
+import * as slackDelivery from "./process-automation-event/normalizeSlackDelivery";
+import * as entityDetails from "./process-entity-details";
+import * as linkShared from "./process-link-shared";
+import * as threadSessions from "./utils/thread-sessions";
 
 const publishJSON = mock(async (_options: unknown) => ({}));
-beforeEach(() => publishJSON.mockClear());
 
-mock.module("@upstash/qstash", () => ({
-	Client: class {
-		publishJSON = publishJSON;
-	},
-}));
+stub(Client.prototype, { publishJSON });
 
-mock.module("../verify-signature", () => ({
+stub(verifySignature, {
 	verifySlackSignature: () => true,
-}));
+});
 
-mock.module("./process-app-home-opened", () => ({
+stub(appHomeOpened, {
 	processAppHomeOpened: mock(async () => ({})),
-}));
+});
 
-mock.module("./process-automation-event", () => ({
+stub(automationEvent, {
 	isAutomationEvent: () => false,
 	processAutomationEvent: mock(async () => [
 		{ status: "skipped", reason: "unknown workspace" },
 	]),
-}));
+});
 
-mock.module("./process-entity-details", () => ({
+stub(entityDetails, {
 	processEntityDetails: mock(async () => ({})),
-}));
+});
 
-mock.module("./process-link-shared", () => ({
+stub(linkShared, {
 	processLinkShared: mock(async () => ({})),
-}));
+});
 
 const followUpTarget = mock(
 	async (_key: unknown): Promise<{ id: string } | null> => null,
 );
-// Complete on purpose: bun keeps the first registration of a module across
-// test files, so a partial mock here would break the handler test's imports.
-mock.module("./utils/thread-sessions", () => ({
-	threadFollowUpTarget: followUpTarget,
-	beginThreadRun: async () => ({ id: "session", entityLog: [], quiet: false }),
-	finishThreadRun: async () => {},
-	setThreadQuiet: async () => {},
-	threadFollowUpsEnabled: async () => true,
-	parseThreadCommand: () => null,
-	requestThreadStop: async () => false,
-	threadStopRequested: async () => false,
-	takeQueuedEvents: async () => [],
-	completeHandBack: async () => {},
-	abandonHandBack: async () => {},
-	renderThreadMemory: () => "",
-}));
-mock.module("./process-automation-event/normalizeSlackDelivery", () => ({
+stub(threadSessions, { threadFollowUpTarget: followUpTarget });
+beforeEach(() => {
+	publishJSON.mockReset();
+	publishJSON.mockImplementation(async () => ({}));
+	followUpTarget.mockReset();
+	followUpTarget.mockImplementation(async () => null);
+});
+stub(slackDelivery, {
 	ownBotUserIds: (envelope: { authorizations?: { user_id?: string }[] }) =>
 		(envelope.authorizations ?? []).map((a) => a.user_id),
-}));
+});
 
 const { POST } = await import("./route");
 
@@ -306,7 +293,6 @@ describe("Slack agent delivery", () => {
 	});
 
 	test("a reply in a thread without a session, or a top-level channel post, is ignored", async () => {
-		followUpTarget.mockClear();
 		await POST(channelReply("random chatter"));
 		await POST(channelReply("top level", { thread_ts: undefined }));
 		expect(publishJSON).not.toHaveBeenCalled();
@@ -314,7 +300,6 @@ describe("Slack agent delivery", () => {
 	});
 
 	test("a reply also sent to the channel still counts as a thread reply", async () => {
-		followUpTarget.mockClear();
 		followUpTarget.mockImplementationOnce(async () => ({ id: "session" }));
 		await POST(
 			channelReply("broadcast reply", { subtype: "thread_broadcast" }),
@@ -323,7 +308,6 @@ describe("Slack agent delivery", () => {
 	});
 
 	test("a thread reply that mentions the bot is left to the app_mention path", async () => {
-		followUpTarget.mockClear();
 		followUpTarget.mockImplementationOnce(async () => ({ id: "session" }));
 		await POST(channelReply("<@UBOT> and this"));
 		expect(followUpTarget).not.toHaveBeenCalled();

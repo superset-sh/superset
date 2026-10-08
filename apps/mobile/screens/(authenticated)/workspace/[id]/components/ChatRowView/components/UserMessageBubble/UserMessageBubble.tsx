@@ -46,7 +46,7 @@ export function UserMessageBubble({
 				<OutgoingBubble dimmed={pending !== undefined}>
 					{text ? (
 						<Text
-							className="text-foreground text-[15px] leading-[22px]"
+							className="text-foreground text-[17px] leading-[24px]"
 							selectable
 						>
 							{text}

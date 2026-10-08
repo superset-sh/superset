@@ -159,7 +159,7 @@ interface UsePaneRegistryOptions {
 	onOpenDiff: OpenReviewDiff;
 	onOpenComment: (comment: CommentPaneData) => void;
 	onOpenFile: OpenFile;
-	onRevealPath: (path: string) => void;
+	onRevealPath: (path: string, options?: { isDirectory?: boolean }) => void;
 	launcher: TerminalLauncher;
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	linkedStores?: StoreApi<WorkspaceStore<PaneViewerData>>[];
@@ -831,6 +831,7 @@ export function usePaneRegistry({
 					<ChatPane
 						ctx={ctx}
 						onOpenFile={onOpenFile}
+						onRevealPath={onRevealPath}
 						workspaceId={workspaceId}
 					/>
 				),

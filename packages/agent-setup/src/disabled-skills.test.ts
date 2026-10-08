@@ -20,13 +20,6 @@ beforeEach(() => {
 	testHome = fs.mkdtempSync(path.join(os.tmpdir(), "superset-skills-"));
 	process.env.SUPERSET_HOME_DIR = testHome;
 	delete process.env.SUPERSET_DISABLED_SKILLS;
-	// Some sibling test file in this suite mock.module()s "./paths" for the
-	// whole process without restoring it, which can point this file's own
-	// resolveSupersetHomeDir() at a directory another test already wrote to.
-	// Every test writes before it reads today, so that's currently harmless,
-	// but clear it here too so a future test that reads first doesn't
-	// silently inherit foreign state.
-	fs.rmSync(getDisabledSkillsStateFilePath(), { force: true });
 });
 
 afterEach(() => {

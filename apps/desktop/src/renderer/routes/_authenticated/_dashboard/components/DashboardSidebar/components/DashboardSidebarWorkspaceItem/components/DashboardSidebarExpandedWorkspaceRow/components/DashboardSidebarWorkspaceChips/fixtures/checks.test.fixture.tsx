@@ -1,7 +1,5 @@
 import { afterEach, expect, mock, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
 
-GlobalRegistrator.register();
 const { createPortal } = await import("react-dom");
 const { cleanup, fireEvent, render } = await import("@testing-library/react");
 

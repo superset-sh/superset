@@ -33,16 +33,18 @@ export function generateWorkspaceNameFromPrompt(prompt: string): string | null {
 export async function attemptWorkspaceAutoRenameFromPrompt({
 	workspaceId,
 	prompt,
+	db = localDb,
 }: {
 	workspaceId: string;
 	prompt?: string | null;
+	db?: Pick<typeof localDb, "select" | "update">;
 }): Promise<WorkspaceAutoRenameResult> {
 	const cleanedPrompt = prompt?.trim();
 	if (!cleanedPrompt) {
 		return { status: "skipped", reason: "empty-prompt" };
 	}
 
-	const workspace = localDb
+	const workspace = db
 		.select({
 			id: workspaces.id,
 			branch: workspaces.branch,
@@ -80,7 +82,7 @@ export async function attemptWorkspaceAutoRenameFromPrompt({
 		return { status: "skipped", reason: decision.reason };
 	}
 
-	const renameResult = localDb
+	const renameResult = db
 		.update(workspaces)
 		.set({
 			name: decision.name,
@@ -100,7 +102,7 @@ export async function attemptWorkspaceAutoRenameFromPrompt({
 		return { status: "renamed", name: decision.name };
 	}
 
-	const latestWorkspace = localDb
+	const latestWorkspace = db
 		.select({
 			branch: workspaces.branch,
 			name: workspaces.name,

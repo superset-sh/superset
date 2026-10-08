@@ -7,17 +7,16 @@ import {
 	mock,
 	test,
 } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import type { CodeViewItem } from "@pierre/diffs";
+import type { AppRouter } from "@superset/host-service/trpc";
+import type { TRPCLink } from "@trpc/client";
 import type { ReactNode } from "react";
 import type { ChangesetFile } from "../../../../../useChangeset";
 import type { DiffAnnotationMetadata } from "../useDiffAnnotations";
 
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
-(
-	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
-).IS_REACT_ACT_ENVIRONMENT = true;
+const reactActGlobal = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean };
+const previousActEnvironment = reactActGlobal.IS_REACT_ACT_ENVIRONMENT;
+reactActGlobal.IS_REACT_ACT_ENVIRONMENT = true;
 
 /** What the fake host answers `git.getDiffPatch` with, per category. */
 const patchByCategory = new Map<string, string>();
@@ -38,26 +37,32 @@ const getDiffPatch = mock(async (input: { category: string }) => {
 });
 let releaseHeldRequest: () => void = () => {};
 
-const actualWorkspaceClient = await import("@superset/workspace-client");
-mock.module("@superset/workspace-client", () => ({
-	...actualWorkspaceClient,
-	useWorkspaceClient: () => ({
-		trpcClient: { git: { getDiffPatch: { query: getDiffPatch } } },
-	}),
-	workspaceTrpc: {
-		git: {
-			getDiffPatch: { _def: () => ({ path: ["git", "getDiffPatch"] }) },
-		},
-	},
-}));
-
 const { act, cleanup, renderHook, waitFor } = await import(
 	"@testing-library/react"
 );
 const { QueryClient, QueryClientProvider } = await import(
 	"@tanstack/react-query"
 );
+const { observable } = await import("@trpc/server/observable");
+const { workspaceTrpc } = await import("@superset/workspace-client");
 const { useDiffCodeViewItems } = await import("./useDiffCodeViewItems");
+
+const hostLink: TRPCLink<AppRouter> = () => (call) =>
+	observable((observer) => {
+		void getDiffPatch(call.op.input as { category: string }).then((data) => {
+			observer.next({ result: { data } });
+			observer.complete();
+		});
+	});
+
+function hostWrapper(client: InstanceType<typeof QueryClient>) {
+	const trpcClient = workspaceTrpc.createClient({ links: [hostLink] });
+	return ({ children }: { children: ReactNode }) => (
+		<workspaceTrpc.Provider client={trpcClient} queryClient={client}>
+			<QueryClientProvider client={client}>{children}</QueryClientProvider>
+		</workspaceTrpc.Provider>
+	);
+}
 
 const FILE_A = [
 	"diff --git a/a.ts b/a.ts",
@@ -150,9 +155,7 @@ function renderItems(files: ChangesetFile[]) {
 	const client = new QueryClient({
 		defaultOptions: { queries: { retry: false } },
 	});
-	const wrapper = ({ children }: { children: ReactNode }) => (
-		<QueryClientProvider client={client}>{children}</QueryClientProvider>
-	);
+	const wrapper = hostWrapper(client);
 	const rendered = renderHook(
 		(props: Parameters<typeof useDiffCodeViewItems>[0]) =>
 			useDiffCodeViewItems(props),
@@ -170,7 +173,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
+	reactActGlobal.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
 });
 
 describe("useDiffCodeViewItems", () => {
@@ -233,9 +236,7 @@ describe("useDiffCodeViewItems", () => {
 		const client = new QueryClient({
 			defaultOptions: { queries: { retry: false } },
 		});
-		const wrapper = ({ children }: { children: ReactNode }) => (
-			<QueryClientProvider client={client}>{children}</QueryClientProvider>
-		);
+		const wrapper = hostWrapper(client);
 		const paneA = renderHook(() => useDiffCodeViewItems(options(files)), {
 			wrapper,
 		});
@@ -269,9 +270,7 @@ describe("useDiffCodeViewItems", () => {
 		const client = new QueryClient({
 			defaultOptions: { queries: { retry: false } },
 		});
-		const wrapper = ({ children }: { children: ReactNode }) => (
-			<QueryClientProvider client={client}>{children}</QueryClientProvider>
-		);
+		const wrapper = hostWrapper(client);
 		holdNextRequest = () => {};
 		const paneA = renderHook(
 			() => useDiffCodeViewItems(options([unstagedFile("a.ts")])),

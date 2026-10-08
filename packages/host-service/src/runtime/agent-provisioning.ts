@@ -5,7 +5,6 @@ import {
 	getAgentSetupTemplatesDir,
 	mcpHeadersHelperCommand,
 	readEnabledPlugins,
-	readPluginConnections,
 	reconcileMcpServers,
 	setAgentSetupTemplatesDir,
 	setupAgentIntegrations,
@@ -76,7 +75,6 @@ export async function provisionAgentIntegrations(): Promise<void> {
 		const reports = enabled
 			? reconcileMcpServers(
 					desiredPluginMcpServers(enabled, {
-						connections: readPluginConnections(),
 						headersHelper: mcpHeadersHelperCommand(),
 					}),
 				)

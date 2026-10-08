@@ -3,21 +3,22 @@
  *
  * This file mocks EXTERNAL dependencies only:
  * - Electron APIs (app, dialog, BrowserWindow, ipcMain)
- * - Browser globals (document, window)
+ * - Browser globals (one happy-dom window for the whole run)
  * - trpc-electron renderer requirements
  *
  * DO NOT mock internal code here - tests should use real implementations
  * or mock at the individual test level when necessary.
  */
 import "../../scripts/test-preload.ts";
-import { beforeEach, mock } from "bun:test";
+import { mock } from "bun:test";
+import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import "@superset/workspace-client/relay-socket";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
 
-// Partysocket subclasses EventTarget at import time; socket tests must use the
-// same native event realm even after another suite registers happy-dom.
+// Partysocket subclasses EventTarget at import time, before happy-dom is
+// registered below; socket tests must use that same native event realm.
 export const nativeWebGlobals = {
 	WebSocket: globalThis.WebSocket,
 	fetch: globalThis.fetch,
@@ -35,88 +36,37 @@ process.env.SKIP_ENV_VALIDATION = "1";
 const testTmpDir = join(tmpdir(), "superset-test");
 
 // =============================================================================
-// Browser Global Mocks (required for renderer code that touches DOM)
+// DOM (one happy-dom window for the whole run)
 // =============================================================================
 
-const mockStyleMap = new Map<string, string>();
-const mockClassList = new Set<string>();
-
-const mockHead = {
-	appendChild: mock(() => {}),
-	removeChild: mock(() => {}),
+// Registered once and never unregistered: react-dom keeps the scheduler
+// functions it saw at import, and unregistering closes the window they belong
+// to, so later files would never see an update made outside act().
+const nativeRuntimeGlobals = {
+	...nativeWebGlobals,
+	Request: globalThis.Request,
+	Headers: globalThis.Headers,
+	URL: globalThis.URL,
+	TransformStream: globalThis.TransformStream,
+	WritableStream: globalThis.WritableStream,
+	setTimeout: globalThis.setTimeout,
+	clearTimeout: globalThis.clearTimeout,
+	setInterval: globalThis.setInterval,
+	clearInterval: globalThis.clearInterval,
+	queueMicrotask: globalThis.queueMicrotask,
+	atob: globalThis.atob,
+	btoa: globalThis.btoa,
 };
+const domEventGlobals = ["Event", "MessageEvent", "EventTarget"];
 
-// biome-ignore lint/suspicious/noExplicitAny: Test setup requires extending globalThis
-(globalThis as any).document = {
-	addEventListener: mock(() => {}),
-	removeEventListener: mock(() => {}),
-	documentElement: {
-		style: {
-			setProperty: (key: string, value: string) => mockStyleMap.set(key, value),
-			getPropertyValue: (key: string) => mockStyleMap.get(key) || "",
-		},
-		classList: {
-			add: (className: string) => mockClassList.add(className),
-			remove: (className: string) => mockClassList.delete(className),
-			toggle: (className: string) => {
-				mockClassList.has(className)
-					? mockClassList.delete(className)
-					: mockClassList.add(className);
-			},
-			contains: (className: string) => mockClassList.has(className),
-		},
-	},
-	head: mockHead,
-	getElementsByTagName: mock((tag: string) => {
-		if (tag === "head") return [mockHead];
-		return [];
-	}),
-	createElement: mock((_tag: string) => ({
-		setAttribute: mock(() => {}),
-		appendChild: mock(() => {}),
-		textContent: "",
-		type: "",
-	})),
-	createTextNode: mock((text: string) => ({
-		textContent: text,
-	})),
-};
-
-// zustand's persist middleware defaults to `window.localStorage`. The
-// xterm-env-polyfill preload aliases `window` to globalThis, so that lookup
-// resolves to `undefined` without throwing and persist crashes on the first
-// setState. Provide an in-memory Storage so persisted stores work in tests.
-const localStorageData = new Map<string, string>();
-(globalThis as { localStorage?: Storage }).localStorage = {
-	get length() {
-		return localStorageData.size;
-	},
-	clear: () => localStorageData.clear(),
-	getItem: (key: string) => localStorageData.get(key) ?? null,
-	key: (index: number) => [...localStorageData.keys()][index] ?? null,
-	removeItem: (key: string) => {
-		localStorageData.delete(key);
-	},
-	setItem: (key: string, value: string) => {
-		localStorageData.set(key, value);
-	},
-};
-
-beforeEach(() => {
-	localStorageData.clear();
-});
-
-// Ensure window has addEventListener/removeEventListener for react-hotkeys-hook's IIFE
-if (typeof globalThis.window !== "undefined") {
-	const win = globalThis.window;
-	if (!win.addEventListener) win.addEventListener = mock(() => {});
-	if (!win.removeEventListener) win.removeEventListener = mock(() => {});
-} else {
-	// biome-ignore lint/suspicious/noExplicitAny: Test setup requires extending globalThis
-	(globalThis as any).window = {
-		addEventListener: mock(() => {}),
-		removeEventListener: mock(() => {}),
-	};
+if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register();
+for (const [name, value] of Object.entries(nativeRuntimeGlobals)) {
+	if (domEventGlobals.includes(name)) continue;
+	Object.defineProperty(globalThis, name, {
+		value,
+		writable: true,
+		configurable: true,
+	});
 }
 
 // localStorage: renderer stores persisted with zustand's `persist` middleware

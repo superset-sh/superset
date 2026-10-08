@@ -1,14 +1,17 @@
 import type { SelectConnection } from "@superset/db/schema";
 import { getConnector, secretInputNames } from "@superset/shared/connectors";
 import { env } from "../../../env";
-import { connectionById } from "../../../lib/connectors/lookup";
+import {
+	connectionById,
+	userConnections,
+} from "../../../lib/connectors/lookup";
 import {
 	ConnectorUnavailableError,
 	ensureFreshConnection,
+	NEEDS_REAUTH,
 	UnrefreshableConnectionError,
 } from "../../../lib/connectors/refresh";
 import {
-	activeConnection,
 	type ConnectionSecrets,
 	connectionSecrets,
 } from "../../../lib/connectors/upsert";
@@ -22,6 +25,7 @@ import {
 	trustedManifest,
 } from "../manifest";
 import { type FirstPartyServer, firstPartyServer } from "../servers";
+import type { AccountRef } from "./account-argument";
 
 export class PluginTargetError extends Error {
 	constructor(
@@ -44,12 +48,24 @@ export type PluginTarget = TargetIdentity &
 				build: FirstPartyServer;
 				secrets: ConnectionSecrets;
 				connectionId: string;
+				account?: AccountRef;
+				storedAccessToken?: string;
 		  }
 		| {
 				kind: "remote";
 				url: string;
 				headers: Record<string, string>;
 				connectionId: string;
+				account?: AccountRef;
+				storedAccessToken?: string;
+		  }
+		| {
+				kind: "multi";
+				connector: string;
+				connectorLabel: string;
+				accounts: AccountRef[];
+				hosted?: FirstPartyServer;
+				resolve(connectionId: string): Promise<PluginTarget>;
 		  }
 		| {
 				kind: "needs-auth";
@@ -90,6 +106,28 @@ async function pinnedConnection(
 	if (row.connectedByUserId !== userId) return null;
 	if (organizationId && row.organizationId !== organizationId) return null;
 	return row;
+}
+
+function accountRef(row: SelectConnection): AccountRef {
+	return {
+		connectionId: row.id,
+		userLabel: row.nickname ?? row.externalUserLabel,
+		accountLabel: row.externalAccountLabel,
+	};
+}
+
+export function targetKey(target: PluginTarget): string {
+	switch (target.kind) {
+		case "multi":
+			return target.accounts
+				.map((account) => account.connectionId)
+				.sort()
+				.join("+");
+		case "needs-auth":
+			return `needs-auth:${target.connector}`;
+		default:
+			return target.connectionId;
+	}
 }
 
 function remoteBinding(
@@ -164,10 +202,37 @@ export async function resolveTarget(
 		};
 	}
 
-	const row = request.connectionId
-		? await pinnedConnection(request.connectionId, slug, request)
-		: await activeConnection(request.userId, slug, request.organizationId);
-	if (!row) {
+	let row: SelectConnection | null;
+	if (request.connectionId) {
+		row = await pinnedConnection(request.connectionId, slug, request);
+	} else if (!request.organizationId) {
+		row = null;
+	} else {
+		const rows = (
+			await userConnections(request.organizationId, slug, request.userId, {
+				includeDisconnected: true,
+			})
+		).filter(
+			(candidate) =>
+				!candidate.disconnectedAt ||
+				candidate.disconnectReason === NEEDS_REAUTH,
+		);
+		if (rows.length > 1) {
+			return {
+				...identity,
+				kind: "multi",
+				connector: slug,
+				connectorLabel: getConnector(slug)?.displayName ?? slug,
+				hosted: local,
+				accounts: rows
+					.map(accountRef)
+					.sort((a, b) => a.connectionId.localeCompare(b.connectionId)),
+				resolve: (connectionId) => resolveTarget({ ...request, connectionId }),
+			};
+		}
+		row = rows[0] ?? null;
+	}
+	if (!row || row.disconnectedAt) {
 		return {
 			...identity,
 			kind: "needs-auth",
@@ -178,9 +243,11 @@ export async function resolveTarget(
 
 	let secrets: ConnectionSecrets;
 	let authMethod: string | null;
+	let storedAccessToken: string;
 	try {
 		const fresh = await ensureFreshConnection(row);
 		authMethod = fresh.authMethod;
+		storedAccessToken = fresh.accessToken;
 		secrets = await connectionSecrets(fresh);
 	} catch (error) {
 		if (error instanceof UnrefreshableConnectionError) {
@@ -207,6 +274,8 @@ export async function resolveTarget(
 			build: local,
 			secrets,
 			connectionId: row.id,
+			account: accountRef(row),
+			storedAccessToken,
 		};
 	}
 
@@ -221,5 +290,12 @@ export async function resolveTarget(
 		);
 	}
 
-	return { ...identity, kind: "remote", ...binding, connectionId: row.id };
+	return {
+		...identity,
+		kind: "remote",
+		...binding,
+		connectionId: row.id,
+		account: accountRef(row),
+		storedAccessToken,
+	};
 }
