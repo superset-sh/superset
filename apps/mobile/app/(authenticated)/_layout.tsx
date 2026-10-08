@@ -3,6 +3,7 @@ import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Redirect, Stack, usePathname } from "expo-router";
 import { Platform, View } from "react-native";
 import { usePrimeRelayUrl } from "@/hooks/usePrimeRelayUrl";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useRealtimeNudges } from "@/hooks/useRealtimeNudges";
 import { useSession } from "@/lib/auth/client";
 import { VoiceLayer } from "@/screens/(authenticated)/voice/VoiceLayer";
@@ -40,6 +41,7 @@ const glassHeaderOptions = {
 export default function AuthenticatedLayout() {
 	usePrimeRelayUrl();
 	useRealtimeNudges();
+	usePushNotifications();
 
 	const { t } = useLingui();
 	const { data: session } = useSession();

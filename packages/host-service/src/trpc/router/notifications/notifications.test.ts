@@ -93,6 +93,9 @@ function createContext(
 					mutate: taskStart,
 				},
 			},
+			push: {
+				notifyAgentEvent: { mutate: () => Promise.resolve({ sent: 0 }) },
+			},
 		},
 		eventBus: {
 			broadcastAgentLifecycle,
@@ -168,7 +171,12 @@ function createDbContext({
 
 	const ctx = {
 		db,
-		api: { task: { start: { mutate: () => Promise.resolve({}) } } },
+		api: {
+			task: { start: { mutate: () => Promise.resolve({}) } },
+			push: {
+				notifyAgentEvent: { mutate: () => Promise.resolve({ sent: 0 }) },
+			},
+		},
 		eventBus,
 		terminalAgentStore: new TerminalAgentStore(),
 	} as unknown as HostServiceContext;

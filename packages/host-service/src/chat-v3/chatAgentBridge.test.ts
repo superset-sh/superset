@@ -20,6 +20,11 @@ function setup() {
 				workspaces: { findFirst: () => ({ sync: () => undefined }) },
 			},
 		},
+		api: {
+			push: {
+				notifyAgentEvent: { mutate: () => Promise.resolve({ sent: 0 }) },
+			},
+		},
 		eventBus: {
 			broadcastAgentLifecycle: lifecycle,
 			broadcastAgentBindingsChanged: bindingsChanged,

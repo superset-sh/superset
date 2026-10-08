@@ -5,6 +5,7 @@ import type { AgentLifecycleEventType } from "../../../events";
 import type { HostServiceContext } from "../../../types";
 import { touchLocalWorkspaceActivity } from "../../../workspaces/local-workspace-store";
 import { continueWorkspaceNaming } from "../workspace-creation/utils/workspace-naming-job";
+import { notifyPhones } from "./notify-phones";
 
 // Tasks already nudged to "started" this process. `Start` fires on every
 // agent turn and tool use, so gate the cloud call to once per task per
@@ -72,6 +73,17 @@ export function fanOutAgentLifecycle(
 			`[agent-lifecycle] failed to schedule naming for workspace ${workspaceId}:`,
 			err,
 		);
+	}
+
+	if (eventType === "Stop" || eventType === "PermissionRequest") {
+		try {
+			notifyPhones(ctx, { ...event, eventType });
+		} catch (err) {
+			console.warn(
+				`[agent-lifecycle] failed to notify phones for workspace ${workspaceId}:`,
+				err,
+			);
+		}
 	}
 
 	if (eventType !== "Start") return;
