@@ -174,13 +174,18 @@ export const connectorsRouter = {
 
 	rename: protectedProcedure
 		.input(
-			z.object({
-				organizationId: z.uuid(),
-				connectionId: z.uuid(),
-				label: z.string().trim().min(1).max(64).optional(),
-				/** @deprecated desktop 1.36.0 sends this; use `label`. */
-				nickname: z.string().max(64).nullable().optional(),
-			}),
+			z
+				.object({
+					organizationId: z.uuid(),
+					connectionId: z.uuid(),
+					label: z.string().trim().min(1).max(64).optional(),
+					/** @deprecated desktop 1.36.0 sends this; use `label`. */
+					nickname: z.string().max(64).nullable().optional(),
+				})
+				.refine(
+					(input) => input.label !== undefined || input.nickname !== undefined,
+					{ message: "Pass label." },
+				),
 		)
 		.mutation(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);

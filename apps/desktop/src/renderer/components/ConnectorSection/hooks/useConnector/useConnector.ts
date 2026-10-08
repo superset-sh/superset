@@ -75,7 +75,13 @@ export function useConnector(
 			const previous = utils.connectors.status.getData({ organizationId });
 			utils.connectors.status.setData({ organizationId }, (rows) =>
 				(rows ?? []).map((row) =>
-					row.id === connectionId ? { ...row, externalUserLabel: label } : row,
+					row.id === connectionId
+						? {
+								...row,
+								externalUserLabel: label ?? row.externalUserLabel,
+								nickname: null,
+							}
+						: row,
 				),
 			);
 			return { previous };
