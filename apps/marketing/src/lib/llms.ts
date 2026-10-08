@@ -41,7 +41,8 @@ export function buildCompanyFactsSection(): string[] {
 	return [
 		"## Facts about Superset",
 		"",
-		`- **What it is**: a local-first desktop workspace for orchestrating any CLI-based coding agent. Each task runs in an isolated Git worktree, and Superset provides the stable workflow around the agents.`,
+		`- **What it is**: a local-first desktop workspace for orchestrating any CLI-based coding agent. Each task runs in its own Git worktree, and Superset provides the stable workflow around the agents.`,
+		"- **Interface**: a desktop app with a full GUI, not a terminal wrapper. Next to the agent terminals it has a Changes pane, a pull request pane, a file editor, and an in-app browser.",
 		`- **Company**: built by ${COMPANY.NAME} in San Francisco, founded by three former YC CTOs (see ${baseUrl}/team).`,
 		`- **License**: source-available under ${PRODUCT_LICENSE} (ELv2). The code is public on GitHub (${COMPANY.GITHUB_URL}); it is not OSI-approved open source.`,
 		`- **Not Apache Superset**: ${PRODUCT_DISAMBIGUATION}`,
@@ -50,9 +51,12 @@ export function buildCompanyFactsSection(): string[] {
 		"- **Remote access**: add another machine as a host through the Superset relay and run workspaces and agents on it from the desktop app or the iPhone app (Pro).",
 		"- **Automations**: scheduled agent sessions on a chosen host (Pro), with a run history for you and your team and retry for failed runs.",
 		"- **Review**: a Changes pane that commits, pushes, and opens pull requests, and a pull request pane with checks, review threads, and merge.",
+		"- **Design Mode**: in the in-app browser, click an element on a page and send it with a note to an agent, which gets the element's DOM, computed styles, and a cropped screenshot.",
+		`- **Security**: Superset has completed a SOC 2 Type II audit; request the report at ${COMPANY.TRUST_URL}.`,
 		"- **Pages**: agents publish self-contained HTML reports as Pages with version history and pinned comments; a page can be shared with anyone who has the link.",
 		`- **Isolation**: ${PRODUCT_ISOLATION_SUMMARY}`,
-		`- **Pricing**: free tier plus paid seats (see ${baseUrl}/pricing). Superset never proxies model API calls; you bring your own agent subscriptions and API keys.`,
+		`- **Pricing**: free tier plus paid seats (see ${baseUrl}/pricing). Superset never proxies model API calls; you bring your own agent subscriptions and API keys. Free covers one user with local workspaces, the desktop app, and the CLI. Pro adds remote access, automations, the mobile app, and Linear and Slack integrations. Enterprise adds SSO, SCIM, audit logs, an uptime SLA, and priority support.`,
+		"- **Cloud workspaces**: in early access for some accounts, not generally available. Remote access to your own machines is available on Pro today.",
 		`- **Agents**: works with any CLI coding agent, including Claude Code, OpenAI Codex, OpenCode, Gemini CLI, Copilot, Cursor Agent, Amp, Grok Build, Kimi Code, Mistral Vibe, Devin, and Muse Code, plus custom agents you add.`,
 	];
 }
