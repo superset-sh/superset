@@ -11208,6 +11208,9 @@ msgstr "ウィンドウ変更時"
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "お使いのマシンです。リポジトリ、ワークツリー、ターミナルの出力、エージェントのセッションは既定でローカルに留まります。クラウド同期の対象はアカウントと組織のメタデータのみです。SupersetはAPI呼び出しを一切中継しません。"
 
+msgid "Onboarding redesign"
+msgstr "オンボーディングの再設計"
+
 msgid "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 msgstr "1つのチャットがタスクを計画し、ワークツリーをまたいで並列エージェントに展開し、結果をまとめて返します。"
 
@@ -13868,8 +13871,8 @@ msgstr "APIキーを取り消す"
 msgid "Revoke key"
 msgstr "キーを取り消す"
 
-msgid "Rewrote it and added the next steps below. Published as version 3."
-msgstr "見出しを書き直し、下に次のステップを追加しました。バージョン3として公開しました。"
+msgid "Rewrote it and published version 2."
+msgstr "書き直してバージョン2を公開しました。"
 
 msgid "Rich input"
 msgstr "リッチ入力"
@@ -15553,6 +15556,9 @@ msgstr "エージェントかターミナルを開始して、このワークス
 msgid "Start browsing"
 msgstr "ブラウジングを開始"
 
+msgid "Start building in two."
+msgstr "ツーステップで開発を始めよう。"
+
 msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
 msgstr "スマートフォンからコーディングエージェントを起動し、ライブで見守り、差分をレビュー。App Store で配信中。Android 版は近日公開。"
 
@@ -15663,6 +15669,9 @@ msgstr "ステップ {0} / 2"
 
 msgid "Step {step}: {name}"
 msgstr "ステップ{step}: {name}"
+
+msgid "Steps 3 and 4 repeat until the page is right."
+msgstr "ページが仕上がるまでステップ3と4を繰り返します。"
 
 msgid "Still can't reach the host."
 msgstr "ホストにまだ接続できません。"

@@ -11208,6 +11208,9 @@ msgstr "Při změně okna"
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "Na vašem počítači. Repozitáře, worktree, výstup terminálu i relace agentů zůstávají ve výchozím stavu lokálně; cloudová synchronizace se týká jen metadat účtu a organizace. Superset nepřeposílá žádná API volání."
 
+msgid "Onboarding redesign"
+msgstr "Redesign onboardingu"
+
 msgid "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 msgstr "Jeden chat, který naplánuje úkol, rozešle paralelní agenty do worktree a výsledky zase složí dohromady."
 
@@ -13868,8 +13871,8 @@ msgstr "Zneplatnit API klíč"
 msgid "Revoke key"
 msgstr "Zneplatnit klíč"
 
-msgid "Rewrote it and added the next steps below. Published as version 3."
-msgstr "Přepsal jsem nadpis a níže přidal další kroky. Publikováno jako verze 3."
+msgid "Rewrote it and published version 2."
+msgstr "Přepsáno a publikována verze 2."
 
 msgid "Rich input"
 msgstr "Rozšířený vstup"
@@ -15553,6 +15556,9 @@ msgstr "Spusťte agenta nebo terminál a začněte v tomto pracovním prostoru p
 msgid "Start browsing"
 msgstr "Začněte prohlížet"
 
+msgid "Start building in two."
+msgstr "Začněte stavět ve dvou."
+
 msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
 msgstr "Spouštějte programovací agenty, sledujte je živě a kontrolujte diff z telefonu. K dispozici v App Store; Android již brzy."
 
@@ -15663,6 +15669,9 @@ msgstr "Krok {0} ze 2"
 
 msgid "Step {step}: {name}"
 msgstr "Krok {step}: {name}"
+
+msgid "Steps 3 and 4 repeat until the page is right."
+msgstr "Kroky 3 a 4 se opakují, dokud stránka není správně."
 
 msgid "Still can't reach the host."
 msgstr "Host je stále nedostupný."

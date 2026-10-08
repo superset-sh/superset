@@ -11208,6 +11208,9 @@ msgstr "При смене окна"
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "На вашей машине. Репозитории, worktree, вывод терминала и сессии агентов по умолчанию остаются локальными; облачная синхронизация покрывает только метаданные аккаунта и организации. Superset не проксирует вызовы API."
 
+msgid "Onboarding redesign"
+msgstr "Редизайн онбординга"
+
 msgid "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 msgstr "Один чат, который планирует задачу, разводит параллельных агентов по worktree и сводит результаты обратно."
 
@@ -13868,8 +13871,8 @@ msgstr "Отозвать ключ API"
 msgid "Revoke key"
 msgstr "Отозвать ключ"
 
-msgid "Rewrote it and added the next steps below. Published as version 3."
-msgstr "Переписал заголовок и добавил следующие шаги ниже. Опубликовано как версия 3."
+msgid "Rewrote it and published version 2."
+msgstr "Переписал и опубликовал версию 2."
 
 msgid "Rich input"
 msgstr "Расширенный ввод"
@@ -15553,6 +15556,9 @@ msgstr "Запустите агента или терминал, чтобы на
 msgid "Start browsing"
 msgstr "Начните просмотр"
 
+msgid "Start building in two."
+msgstr "Начните разработку за два."
+
 msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
 msgstr "Запускайте агентов для программирования, следите за ними в реальном времени и проверяйте diff с телефона. Доступно в App Store; версия для Android скоро появится."
 
@@ -15663,6 +15669,9 @@ msgstr "Шаг {0} из 2"
 
 msgid "Step {step}: {name}"
 msgstr "Шаг {step}: {name}"
+
+msgid "Steps 3 and 4 repeat until the page is right."
+msgstr "Шаги 3 и 4 повторяются, пока страница не станет как надо."
 
 msgid "Still can't reach the host."
 msgstr "Хост по-прежнему недоступен."

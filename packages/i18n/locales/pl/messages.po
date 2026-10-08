@@ -11208,6 +11208,9 @@ msgstr "Przy zmianie okna"
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "Na Twojej maszynie. Repozytoria, worktree, wyjście terminala i sesje agentów domyślnie zostają lokalnie; synchronizacja z chmurą obejmuje wyłącznie metadane konta i organizacji. Superset nie pośredniczy w żadnych wywołaniach API."
 
+msgid "Onboarding redesign"
+msgstr "Przeprojektowanie onboardingu"
+
 msgid "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 msgstr "Jeden czat, który planuje zadanie, rozsyła równoległych agentów po worktree i zbiera wyniki z powrotem."
 
@@ -13868,8 +13871,8 @@ msgstr "Unieważnij klucz API"
 msgid "Revoke key"
 msgstr "Unieważnij klucz"
 
-msgid "Rewrote it and added the next steps below. Published as version 3."
-msgstr "Przepisałem nagłówek i dodałem kolejne kroki poniżej. Opublikowano jako wersję 3."
+msgid "Rewrote it and published version 2."
+msgstr "Przepisałem i opublikowałem wersję 2."
 
 msgid "Rich input"
 msgstr "Rozbudowane pole tekstowe"
@@ -15553,6 +15556,9 @@ msgstr "Uruchom agenta lub terminal, aby zacząć pracę w tym obszarze roboczym
 msgid "Start browsing"
 msgstr "Zacznij przeglądać"
 
+msgid "Start building in two."
+msgstr "Zacznij budować w dwóch."
+
 msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
 msgstr "Uruchamiaj agentów programistycznych, śledź ich na żywo i przeglądaj diff z telefonu. Dostępne w App Store; Android już wkrótce."
 
@@ -15663,6 +15669,9 @@ msgstr "Krok {0} z 2"
 
 msgid "Step {step}: {name}"
 msgstr "Krok {step}: {name}"
+
+msgid "Steps 3 and 4 repeat until the page is right."
+msgstr "Kroki 3 i 4 powtarzają się, aż strona będzie dobra."
 
 msgid "Still can't reach the host."
 msgstr "Host nadal jest nieosiągalny."

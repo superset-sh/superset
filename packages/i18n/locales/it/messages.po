@@ -11208,6 +11208,9 @@ msgstr "Al cambio di finestra"
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "Sulla tua macchina. Repo, worktree, output del terminale e sessioni degli agenti restano locali per impostazione predefinita; la sincronizzazione cloud copre solo i metadati di account e organizzazione. Superset non fa da proxy per nessuna chiamata API."
 
+msgid "Onboarding redesign"
+msgstr "Riprogettazione dell'onboarding"
+
 msgid "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 msgstr "Un'unica chat che pianifica un task, distribuisce agenti in parallelo tra i worktree e riunisce i risultati."
 
@@ -13868,8 +13871,8 @@ msgstr "Revoca la chiave API"
 msgid "Revoke key"
 msgstr "Revoca la chiave"
 
-msgid "Rewrote it and added the next steps below. Published as version 3."
-msgstr "Ho riscritto il titolo e aggiunto i prossimi passi sotto. Pubblicato come versione 3."
+msgid "Rewrote it and published version 2."
+msgstr "Riscritto e pubblicata la versione 2."
 
 msgid "Rich input"
 msgstr "Input avanzato"
@@ -15553,6 +15556,9 @@ msgstr "Avvia un agente o un terminale per iniziare a lavorare in questo workspa
 msgid "Start browsing"
 msgstr "Inizia a navigare"
 
+msgid "Start building in two."
+msgstr "Inizia a costruire in due."
+
 msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
 msgstr "Avvia agenti di programmazione, seguili in tempo reale e rivedi il diff dal telefono. Disponibile su App Store; Android è in arrivo."
 
@@ -15663,6 +15669,9 @@ msgstr "Passaggio {0} di 2"
 
 msgid "Step {step}: {name}"
 msgstr "Passaggio {step}: {name}"
+
+msgid "Steps 3 and 4 repeat until the page is right."
+msgstr "I passaggi 3 e 4 si ripetono finché la pagina non è giusta."
 
 msgid "Still can't reach the host."
 msgstr "L'host resta irraggiungibile."

@@ -11208,6 +11208,9 @@ msgstr "On window change"
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 
+msgid "Onboarding redesign"
+msgstr "Onboarding redesign"
+
 msgid "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 msgstr "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 
@@ -13868,8 +13871,8 @@ msgstr "Revoke API key"
 msgid "Revoke key"
 msgstr "Revoke key"
 
-msgid "Rewrote it and added the next steps below. Published as version 3."
-msgstr "Rewrote it and added the next steps below. Published as version 3."
+msgid "Rewrote it and published version 2."
+msgstr "Rewrote it and published version 2."
 
 msgid "Rich input"
 msgstr "Rich input"
@@ -15553,6 +15556,9 @@ msgstr "Start an agent or a terminal to begin working in this workspace."
 msgid "Start browsing"
 msgstr "Start browsing"
 
+msgid "Start building in two."
+msgstr "Start building in two."
+
 msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
 msgstr "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
 
@@ -15663,6 +15669,9 @@ msgstr "Step {0} of 2"
 
 msgid "Step {step}: {name}"
 msgstr "Step {step}: {name}"
+
+msgid "Steps 3 and 4 repeat until the page is right."
+msgstr "Steps 3 and 4 repeat until the page is right."
 
 msgid "Still can't reach the host."
 msgstr "Still can't reach the host."

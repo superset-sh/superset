@@ -11208,6 +11208,9 @@ msgstr "Bei Fensterwechsel"
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "Auf deinem Rechner. Repos, Worktrees, Terminal-Ausgaben und Agenten-Sitzungen bleiben standardmäßig lokal; die Cloud-Synchronisierung umfasst nur Konto- und Organisations-Metadaten. Superset leitet keine API-Aufrufe weiter."
 
+msgid "Onboarding redesign"
+msgstr "Onboarding-Redesign"
+
 msgid "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 msgstr "Ein Chat, der eine Aufgabe plant, parallele Agenten über Worktrees verteilt und die Ergebnisse wieder zusammenführt."
 
@@ -13868,8 +13871,8 @@ msgstr "API-Schlüssel widerrufen"
 msgid "Revoke key"
 msgstr "Schlüssel widerrufen"
 
-msgid "Rewrote it and added the next steps below. Published as version 3."
-msgstr "Überschrift umgeschrieben und die nächsten Schritte darunter ergänzt. Als Version 3 veröffentlicht."
+msgid "Rewrote it and published version 2."
+msgstr "Umgeschrieben und Version 2 veröffentlicht."
 
 msgid "Rich input"
 msgstr "Rich-Eingabe"
@@ -15553,6 +15556,9 @@ msgstr "Starte einen Agenten oder ein Terminal, um in diesem Arbeitsbereich zu a
 msgid "Start browsing"
 msgstr "Losbrowsen"
 
+msgid "Start building in two."
+msgstr "In zwei Schritten loslegen."
+
 msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
 msgstr "Coding-Agents starten, live verfolgen und den Diff vom Handy aus prüfen. Im App Store erhältlich; Android folgt bald."
 
@@ -15663,6 +15669,9 @@ msgstr "Schritt {0} von 2"
 
 msgid "Step {step}: {name}"
 msgstr "Schritt {step}: {name}"
+
+msgid "Steps 3 and 4 repeat until the page is right."
+msgstr "Schritte 3 und 4 wiederholen sich, bis die Seite passt."
 
 msgid "Still can't reach the host."
 msgstr "Der Host ist weiterhin nicht erreichbar."

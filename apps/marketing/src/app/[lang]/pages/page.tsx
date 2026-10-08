@@ -7,19 +7,9 @@ import Link from "next/link";
 import { CTASection } from "@/app/[lang]/components/CTASection";
 import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
-import { CommentGraphic } from "./components/CommentGraphic";
-import { CreateGraphic } from "./components/CreateGraphic";
-import { IterateGraphic } from "./components/IterateGraphic";
+import { HowItWorks } from "./components/HowItWorks";
 import { PagesDemoVideo } from "./components/PagesDemoVideo";
-import { ShareGraphic } from "./components/ShareGraphic";
-import { FEATURES, LOOP_STEPS, type LoopStepId } from "./constants";
-
-const STEP_GRAPHICS: Record<LoopStepId, () => React.JSX.Element> = {
-	create: CreateGraphic,
-	share: ShareGraphic,
-	comment: CommentGraphic,
-	iterate: IterateGraphic,
-};
+import { FEATURES } from "./constants";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
@@ -106,29 +96,7 @@ export default async function PagesPage() {
 					<h2 className="mt-4 font-medium text-3xl text-foreground tracking-tight sm:text-4xl">
 						<Trans>Leave a comment. The agent does the rest.</Trans>
 					</h2>
-					<ol className="mt-12 grid gap-x-8 gap-y-14 md:grid-cols-2">
-						{LOOP_STEPS.map((step, index) => {
-							const Graphic = STEP_GRAPHICS[step.id];
-							return (
-								<li key={step.id}>
-									<Graphic />
-									<div className="mt-6 flex gap-4">
-										<span className="pt-1 font-mono text-brand text-sm">
-											{String(index + 1).padStart(2, "0")}
-										</span>
-										<div className="space-y-2">
-											<h3 className="font-medium text-foreground text-xl tracking-tight">
-												{t(step.title)}
-											</h3>
-											<p className="max-w-md text-muted-foreground leading-relaxed">
-												{t(step.description)}
-											</p>
-										</div>
-									</div>
-								</li>
-							);
-						})}
-					</ol>
+					<HowItWorks />
 				</section>
 
 				<section className="mt-24 sm:mt-32">

@@ -11208,6 +11208,9 @@ msgstr "창 변경 시"
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "본인의 머신에서 실행됩니다. 리포지토리, worktree, 터미널 출력, 에이전트 세션은 기본적으로 로컬에 머물고, 클라우드 동기화는 계정과 조직 메타데이터만 다룹니다. Superset은 어떤 API 호출도 중계하지 않습니다."
 
+msgid "Onboarding redesign"
+msgstr "온보딩 리디자인"
+
 msgid "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 msgstr "하나의 채팅이 작업을 계획하고, worktree 전반에 에이전트를 병렬로 펼치고, 결과를 다시 모읍니다."
 
@@ -13868,8 +13871,8 @@ msgstr "API 키 해지"
 msgid "Revoke key"
 msgstr "키 해지"
 
-msgid "Rewrote it and added the next steps below. Published as version 3."
-msgstr "제목을 다시 쓰고 아래에 다음 단계를 추가했습니다. 버전 3으로 게시했습니다."
+msgid "Rewrote it and published version 2."
+msgstr "다시 작성하고 버전 2를 게시했습니다."
 
 msgid "Rich input"
 msgstr "리치 입력"
@@ -15553,6 +15556,9 @@ msgstr "에이전트나 터미널을 시작해 이 워크스페이스에서 작�
 msgid "Start browsing"
 msgstr "탐색 시작"
 
+msgid "Start building in two."
+msgstr "두 단계로 빌드를 시작하세요."
+
 msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
 msgstr "휴대폰에서 코딩 에이전트를 시작하고, 실시간으로 따라가고, diff를 리뷰하세요. App Store에서 받을 수 있으며 Android는 출시 예정입니다."
 
@@ -15663,6 +15669,9 @@ msgstr "2단계 중 {0}단계"
 
 msgid "Step {step}: {name}"
 msgstr "{step}단계: {name}"
+
+msgid "Steps 3 and 4 repeat until the page is right."
+msgstr "페이지가 완성될 때까지 3단계와 4단계를 반복합니다."
 
 msgid "Still can't reach the host."
 msgstr "아직 호스트에 연결할 수 없습니다."

@@ -11208,6 +11208,9 @@ msgstr "Khi thay đổi cửa sổ"
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "Trên máy của bạn. Repo, worktree, output terminal và phiên agent mặc định vẫn ở cục bộ; đồng bộ cloud chỉ gồm metadata tài khoản và tổ chức. Superset không proxy bất kỳ lệnh gọi API nào."
 
+msgid "Onboarding redesign"
+msgstr "Thiết kế lại onboarding"
+
 msgid "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 msgstr "Một khung chat lên kế hoạch cho tác vụ, tỏa ra nhiều agent song song trên các worktree và gom kết quả lại."
 
@@ -13868,8 +13871,8 @@ msgstr "Thu hồi khóa API"
 msgid "Revoke key"
 msgstr "Thu hồi khóa"
 
-msgid "Rewrote it and added the next steps below. Published as version 3."
-msgstr "Đã viết lại tiêu đề và thêm các bước tiếp theo bên dưới. Đã xuất bản thành phiên bản 3."
+msgid "Rewrote it and published version 2."
+msgstr "Đã viết lại và xuất bản phiên bản 2."
 
 msgid "Rich input"
 msgstr "Nhập nâng cao"
@@ -15553,6 +15556,9 @@ msgstr "Hãy khởi động một agent hoặc terminal để bắt đầu làm 
 msgid "Start browsing"
 msgstr "Bắt đầu duyệt web"
 
+msgid "Start building in two."
+msgstr "Bắt đầu xây dựng trong hai bước."
+
 msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
 msgstr "Khởi chạy agent lập trình, theo dõi trực tiếp và xem xét diff từ điện thoại. Đã có trên App Store; Android sắp ra mắt."
 
@@ -15663,6 +15669,9 @@ msgstr "Bước {0} / 2"
 
 msgid "Step {step}: {name}"
 msgstr "Bước {step}: {name}"
+
+msgid "Steps 3 and 4 repeat until the page is right."
+msgstr "Bước 3 và 4 lặp lại cho đến khi trang ổn."
 
 msgid "Still can't reach the host."
 msgstr "Vẫn không thể kết nối tới host."

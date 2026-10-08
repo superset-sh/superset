@@ -11208,6 +11208,9 @@ msgstr "視窗變更時"
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "在你自己的機器上。儲存庫、worktree、終端輸出和代理程式會話預設都留在本地；雲端同步只涉及帳戶和組織的後設資料。Superset不代理任何API呼叫。"
 
+msgid "Onboarding redesign"
+msgstr "新手引導改版"
+
 msgid "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 msgstr "一個聊天視窗規劃任務，把並行代理程式分派到各個worktree，再把結果彙總回來。"
 
@@ -13868,8 +13871,8 @@ msgstr "吊銷API金鑰"
 msgid "Revoke key"
 msgstr "吊銷金鑰"
 
-msgid "Rewrote it and added the next steps below. Published as version 3."
-msgstr "已重寫標題，並在下方加入後續步驟。已發布為第 3 版。"
+msgid "Rewrote it and published version 2."
+msgstr "已重寫並發布第 2 版。"
 
 msgid "Rich input"
 msgstr "富輸入"
@@ -15553,6 +15556,9 @@ msgstr "啟動一個代理程式或終端，開始在此工作區中工作。"
 msgid "Start browsing"
 msgstr "開始瀏覽"
 
+msgid "Start building in two."
+msgstr "兩步開始建置。"
+
 msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
 msgstr "在手機上啟動程式開發 agent、即時追蹤並審查差異。現已在 App Store 上架；Android 版即將推出。"
 
@@ -15663,6 +15669,9 @@ msgstr "第{0}步，共2步"
 
 msgid "Step {step}: {name}"
 msgstr "第{step}步：{name}"
+
+msgid "Steps 3 and 4 repeat until the page is right."
+msgstr "步驟 3 和 4 會重複，直到頁面滿意為止。"
 
 msgid "Still can't reach the host."
 msgstr "仍然無法連線到主機。"

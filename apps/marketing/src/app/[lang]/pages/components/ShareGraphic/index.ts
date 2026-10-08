@@ -1,1 +1,0 @@
-export { ShareGraphic } from "./ShareGraphic";

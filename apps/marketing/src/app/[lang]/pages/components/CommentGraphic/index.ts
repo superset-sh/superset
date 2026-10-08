@@ -1,1 +1,0 @@
-export { CommentGraphic } from "./CommentGraphic";

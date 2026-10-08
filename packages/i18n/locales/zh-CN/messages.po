@@ -11208,6 +11208,9 @@ msgstr "窗口更改时"
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "在你自己的机器上。仓库、worktree、终端输出和智能体会话默认都留在本地；云端同步只涉及账户和组织的元数据。Superset不代理任何API调用。"
 
+msgid "Onboarding redesign"
+msgstr "新手引导改版"
+
 msgid "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 msgstr "一个聊天窗口规划任务，把并行智能体分派到各个worktree，再把结果汇总回来。"
 
@@ -13868,8 +13871,8 @@ msgstr "吊销API密钥"
 msgid "Revoke key"
 msgstr "吊销密钥"
 
-msgid "Rewrote it and added the next steps below. Published as version 3."
-msgstr "已重写标题，并在下方添加了后续步骤。已发布为版本 3。"
+msgid "Rewrote it and published version 2."
+msgstr "已重写并发布版本 2。"
 
 msgid "Rich input"
 msgstr "富输入"
@@ -15553,6 +15556,9 @@ msgstr "启动一个智能体或终端，开始在此工作区中工作。"
 msgid "Start browsing"
 msgstr "开始浏览"
 
+msgid "Start building in two."
+msgstr "两步开始构建。"
+
 msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
 msgstr "在手机上启动编程智能体、实时跟进并审查差异。现已上架 App Store；Android 版即将推出。"
 
@@ -15663,6 +15669,9 @@ msgstr "第{0}步，共2步"
 
 msgid "Step {step}: {name}"
 msgstr "第{step}步：{name}"
+
+msgid "Steps 3 and 4 repeat until the page is right."
+msgstr "第 3 步和第 4 步会重复，直到页面满意为止。"
 
 msgid "Still can't reach the host."
 msgstr "仍然无法连接到主机。"

@@ -11208,6 +11208,9 @@ msgstr "Lors du changement de fenêtre"
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "Sur votre machine. Les dépôts, les worktrees, la sortie du terminal et les sessions d'agents restent locaux par défaut ; la synchronisation cloud ne couvre que les métadonnées de compte et d'organisation. Superset ne relaie aucun appel d'API."
 
+msgid "Onboarding redesign"
+msgstr "Refonte de l'onboarding"
+
 msgid "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 msgstr "Un seul chat qui planifie une tâche, déploie des agents en parallèle sur plusieurs worktrees et rassemble les résultats."
 
@@ -13868,8 +13871,8 @@ msgstr "Révoquer la clé API"
 msgid "Revoke key"
 msgstr "Révoquer la clé"
 
-msgid "Rewrote it and added the next steps below. Published as version 3."
-msgstr "J'ai réécrit le titre et ajouté les prochaines étapes en dessous. Publié en version 3."
+msgid "Rewrote it and published version 2."
+msgstr "Réécrit et publié en version 2."
 
 msgid "Rich input"
 msgstr "Saisie enrichie"
@@ -15553,6 +15556,9 @@ msgstr "Démarrez un agent ou un terminal pour commencer à travailler dans cet 
 msgid "Start browsing"
 msgstr "Commencer à naviguer"
 
+msgid "Start building in two."
+msgstr "Commencez à construire en deux."
+
 msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
 msgstr "Lancez des agents de code, suivez-les en direct et relisez le diff depuis votre téléphone. Disponible sur l'App Store ; Android arrive bientôt."
 
@@ -15663,6 +15669,9 @@ msgstr "Étape {0} sur 2"
 
 msgid "Step {step}: {name}"
 msgstr "Étape {step} : {name}"
+
+msgid "Steps 3 and 4 repeat until the page is right."
+msgstr "Les étapes 3 et 4 se répètent jusqu'à ce que la page soit juste."
 
 msgid "Still can't reach the host."
 msgstr "L'hôte reste injoignable."

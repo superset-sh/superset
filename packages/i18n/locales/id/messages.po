@@ -11208,6 +11208,9 @@ msgstr "Saat jendela berubah"
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "Di mesin Anda. Repo, worktree, output terminal, dan sesi agen tetap lokal secara bawaan; sinkronisasi cloud hanya mencakup metadata akun dan organisasi. Superset tidak mem-proxy panggilan API apa pun."
 
+msgid "Onboarding redesign"
+msgstr "Desain ulang onboarding"
+
 msgid "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 msgstr "Satu chat yang merencanakan tugas, menyebar agen paralel ke seluruh worktree, dan menyatukan hasilnya kembali."
 
@@ -13868,8 +13871,8 @@ msgstr "Cabut kunci API"
 msgid "Revoke key"
 msgstr "Cabut kunci"
 
-msgid "Rewrote it and added the next steps below. Published as version 3."
-msgstr "Judul sudah ditulis ulang dan langkah berikutnya ditambahkan di bawah. Diterbitkan sebagai versi 3."
+msgid "Rewrote it and published version 2."
+msgstr "Sudah ditulis ulang dan versi 2 diterbitkan."
 
 msgid "Rich input"
 msgstr "Input kaya"
@@ -15553,6 +15556,9 @@ msgstr "Mulai sebuah agen atau terminal untuk mulai bekerja di workspace ini."
 msgid "Start browsing"
 msgstr "Mulai menjelajah"
 
+msgid "Start building in two."
+msgstr "Mulai membangun dalam dua."
+
 msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
 msgstr "Mulai agen coding, ikuti secara langsung, dan tinjau diff dari ponsel Anda. Tersedia di App Store; Android segera hadir."
 
@@ -15663,6 +15669,9 @@ msgstr "Langkah {0} dari 2"
 
 msgid "Step {step}: {name}"
 msgstr "Langkah {step}: {name}"
+
+msgid "Steps 3 and 4 repeat until the page is right."
+msgstr "Langkah 3 dan 4 diulang sampai halamannya pas."
 
 msgid "Still can't reach the host."
 msgstr "Host masih tidak dapat dijangkau."

@@ -1,1 +1,0 @@
-export { CreateGraphic } from "./CreateGraphic";
