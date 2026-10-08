@@ -9,7 +9,6 @@
 		"pin": "bun run src/pin.ts",
 		"assets": "bun run src/assets/produce.ts",
 		"release": "bun run src/environments/release.ts",
-		"seed": "bun run src/environments/seed.ts",
 		"test": "bun test --isolate",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},

@@ -183,7 +183,6 @@ jobs:
       - name: Release
         working-directory: packages/sandbox
         env:
-          SUPERSET_INTERNAL_ORGANIZATION_ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
           SUPERSET_INTERNAL_ENVIRONMENT_ID: 1dcfb8ac-da71-4860-b2a2-9cf24878f703
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}

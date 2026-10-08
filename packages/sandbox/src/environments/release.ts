@@ -12,12 +12,14 @@
  *      forks start from
  *   4. a probe fork of that golden, checked as a workspace: host-service,
  *      the desktop stream, the checkout, the firewall, the gate
- *   5. the rows, in one transaction: the shared `Default` environment and
- *      every environment that has a bundle -> the new bundle, `Default` ->
- *      image, the internal organization's environment -> the new golden + the
- *      setup and start overrides; the previous golden deleted
+ *   5. the rows, in one transaction: every environment that has a bundle ->
+ *      the new bundle, the internal environment -> the new golden + the setup
+ *      and start overrides; the previous golden deleted
  *
- *   SUPERSET_INTERNAL_ORGANIZATION_ID=… SUPERSET_INTERNAL_ENVIRONMENT_ID=… bun run release [--production] [--skip-image] [--keep-old]
+ *   SUPERSET_INTERNAL_ENVIRONMENT_ID=… bun run release [--production] [--skip-image] [--keep-old]
+ *
+ * Without SUPERSET_INTERNAL_ENVIRONMENT_ID the release creates the internal
+ * environment, in SUPERSET_INTERNAL_ORGANIZATION_ID.
  *
  * Needs VERCEL_SANDBOX_*, SANDBOX_GATE_SECRET, CDN_R2_* and, for the image,
  * Docker with Buildx. Rows go to DATABASE_URL, or with
@@ -31,11 +33,7 @@
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-	SANDBOX_IMAGE_NAME,
-	SHARED_ENVIRONMENT_NAME,
-	SHARED_ENVIRONMENT_ORGANIZATION_ID,
-} from "@superset/shared/constants";
+import { SANDBOX_IMAGE_NAME } from "@superset/shared/constants";
 import {
 	SANDBOX_CONTRACT_VERSION,
 	SANDBOX_PATHS,
@@ -57,7 +55,6 @@ const PRODUCTION = process.argv.includes("--production");
 const ENVIRONMENT_ID = process.env.SUPERSET_INTERNAL_ENVIRONMENT_ID;
 const INTERNAL_NAME =
 	process.env.SUPERSET_INTERNAL_ENVIRONMENT_NAME ?? "Satya's Superset";
-const ORGANIZATION_ID = process.env.SUPERSET_INTERNAL_ORGANIZATION_ID;
 const ENV_FILE = process.env.SUPERSET_INTERNAL_ENV_FILE;
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 const REPO_URL = "https://github.com/superset-sh/superset.git";
@@ -76,7 +73,6 @@ function fail(reason: string): never {
 	process.exit(1);
 }
 
-if (!ORGANIZATION_ID) fail("SUPERSET_INTERNAL_ORGANIZATION_ID is required");
 const credentials = {
 	token: process.env.VERCEL_SANDBOX_TOKEN ?? "",
 	teamId: process.env.VERCEL_SANDBOX_TEAM_ID ?? "",
@@ -118,6 +114,25 @@ if (PRODUCTION) {
 } else if (!process.env.DATABASE_URL) {
 	fail("DATABASE_URL is required (or pass --production)");
 }
+
+const { db, dbWs } = await import("@superset/db/client");
+const { environments, environmentRepositories, githubRepositories } =
+	await import("@superset/db/schema");
+const { and, eq, isNotNull, isNull } = await import("drizzle-orm");
+
+const previous = ENVIRONMENT_ID
+	? await db.query.environments.findFirst({
+			where: eq(environments.id, ENVIRONMENT_ID),
+		})
+	: undefined;
+if (ENVIRONMENT_ID && !previous)
+	fail(`environment ${ENVIRONMENT_ID} does not exist`);
+const ORGANIZATION_ID =
+	previous?.organizationId ?? process.env.SUPERSET_INTERNAL_ORGANIZATION_ID;
+if (!ORGANIZATION_ID)
+	fail(
+		"SUPERSET_INTERNAL_ORGANIZATION_ID is required to create the internal environment",
+	);
 
 // 1. runtime asset and bundle
 const { producers } = await import("../assets/produce");
@@ -437,11 +452,6 @@ await deleteSandbox(probe);
 log(`probe: ${probe} deleted`);
 
 // 5. rows
-const { db, dbWs } = await import("@superset/db/client");
-const { environments, environmentRepositories, githubRepositories } =
-	await import("@superset/db/schema");
-const { and, eq, isNotNull, isNull, or } = await import("drizzle-orm");
-const { seedSharedEnvironments } = await import("./seed");
 
 // The golden baked the monorepo at its path; a fork asks for the same, and
 // the box acts on the monorepo's own .superset/config.json.
@@ -456,21 +466,6 @@ if (!monorepo)
 		`rows: ${REPO_FULL_NAME} is not connected to organization ${ORGANIZATION_ID}; install the GitHub App there first; ${golden} left for inspection`,
 	);
 
-const previous = ENVIRONMENT_ID
-	? await db.query.environments.findFirst({
-			where: (row, { and: both, eq: equals }) =>
-				both(
-					equals(row.id, ENVIRONMENT_ID),
-					equals(row.organizationId, ORGANIZATION_ID as string),
-				),
-		})
-	: undefined;
-if (ENVIRONMENT_ID && !previous)
-	fail(
-		`rows: environment ${ENVIRONMENT_ID} is not in organization ${ORGANIZATION_ID}; ${golden} left for inspection`,
-	);
-
-await seedSharedEnvironments(SANDBOX_IMAGE_NAME);
 const fromGolden = {
 	provider: "vercel" as const,
 	sourceKind: "fork" as const,
@@ -485,13 +480,7 @@ const { internal, bundled } = await dbWs.transaction(async (tx) => {
 		.update(environments)
 		.set({ bundleSha: bundle.sha256 })
 		.where(
-			and(
-				isNull(environments.archivedAt),
-				or(
-					isNotNull(environments.bundleSha),
-					eq(environments.organizationId, SHARED_ENVIRONMENT_ORGANIZATION_ID),
-				),
-			),
+			and(isNull(environments.archivedAt), isNotNull(environments.bundleSha)),
 		)
 		.returning({ id: environments.id });
 	const [internal] = previous
@@ -520,7 +509,7 @@ const { internal, bundled } = await dbWs.transaction(async (tx) => {
 	return { internal, bundled };
 });
 log(
-	`rows: ${SHARED_ENVIRONMENT_NAME} -> image ${SANDBOX_IMAGE_NAME}; ${bundled.length} environments -> bundle ${bundle.sha256.slice(0, 12)}`,
+	`rows: ${bundled.length} environments -> bundle ${bundle.sha256.slice(0, 12)}`,
 );
 log(
 	`rows: ${internal.name} (${internal.id}) -> fork of ${golden}, bundle ${bundle.sha256.slice(0, 12)}`,
