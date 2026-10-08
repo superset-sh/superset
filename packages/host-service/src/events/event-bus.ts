@@ -225,6 +225,11 @@ export class EventBus {
 		}
 	}
 
+	/** For git state changes GitWatcher cannot see, such as a ref fetched into the common dir. */
+	broadcastGitChanged(workspaceId: string): void {
+		this.broadcast({ type: "git:changed", workspaceId });
+	}
+
 	/**
 	 * Fan out an agent lifecycle event (hook completion) to all connected
 	 * clients. The workspace-client filters by `workspaceId` on the receiving

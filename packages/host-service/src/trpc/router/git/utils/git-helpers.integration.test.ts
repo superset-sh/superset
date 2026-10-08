@@ -173,6 +173,15 @@ describe("resolveBaseComparison (integration)", () => {
 		});
 	});
 
+	test("falls back to origin/main when origin/HEAD is unset", async () => {
+		await git.raw(["symbolic-ref", "--delete", "refs/remotes/origin/HEAD"]);
+		expect(await resolveBaseComparison(git)).toEqual({
+			branchName: "main",
+			baseRef: "origin/main",
+			fetchTarget: { remote: "origin", branch: "main" },
+		});
+	});
+
 	test("returns null when no default branch can be resolved", async () => {
 		const emptyRepo = mkTmp();
 		try {

@@ -91,6 +91,17 @@ describe("scheduleBaseRefFetch", () => {
 		expect(fetches).toBe(1);
 	});
 
+	test("reports whether a fetch landed, so the caller can invalidate status", async () => {
+		const { git } = createGit();
+		const target = { remote: "origin", branch: "reports-branch" };
+		expect(await scheduleBaseRefFetch(git, "/repo/wt-reports", target)).toBe(
+			true,
+		);
+		expect(await scheduleBaseRefFetch(git, "/repo/wt-reports", target)).toBe(
+			false,
+		);
+	});
+
 	test("never rejects when the fetch fails", async () => {
 		const { git, fetchCalls } = createGit({
 			fetch: () => Promise.reject(new Error("offline")),
@@ -98,11 +109,12 @@ describe("scheduleBaseRefFetch", () => {
 		const originalWarn = console.warn;
 		console.warn = () => {};
 		try {
-			// Resolves (does not throw) despite the underlying fetch rejecting.
-			await scheduleBaseRefFetch(git, "/repo/wt-fail", {
-				remote: "origin",
-				branch: "fail-branch",
-			});
+			expect(
+				await scheduleBaseRefFetch(git, "/repo/wt-fail", {
+					remote: "origin",
+					branch: "fail-branch",
+				}),
+			).toBe(false);
 		} finally {
 			console.warn = originalWarn;
 		}

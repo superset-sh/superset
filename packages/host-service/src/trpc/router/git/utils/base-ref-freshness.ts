@@ -4,7 +4,9 @@ import type { SimpleGit } from "simple-git";
 // The Changes panel diffs `<remote>/<base>...HEAD` but never fetches the base,
 // so after a rebase onto a newer upstream the stale merge-base counts every
 // upstream commit as a workspace change. This refreshes the base ref in the
-// background; GitWatcher picks up the ref change and re-triggers the query.
+// background. Remote-tracking refs live in the common git dir, which
+// GitWatcher does not watch for a linked worktree, so the caller must
+// invalidate status itself when this resolves true.
 const BASE_REF_FETCH_TTL_MS = 5 * 60_000;
 
 export interface BaseRefFetchTarget {
@@ -15,7 +17,7 @@ export interface BaseRefFetchTarget {
 // Keyed by common git dir so N worktrees of one repo share one TTL window.
 // Bounded by (repo, base-ref) pairs, not workspace lifecycles.
 const lastFetchStartedAt = new Map<string, number>();
-const inFlightFetches = new Map<string, Promise<void>>();
+const inFlightFetches = new Map<string, Promise<boolean>>();
 
 // TTL-cached per worktree path: resolving spawns a git subprocess on the
 // event loop BEFORE the fetch-TTL check, i.e. every status poll pays it even
@@ -44,8 +46,8 @@ async function resolveCommonDir(
 /**
  * Fetch the base branch's remote-tracking ref if the TTL has lapsed. Failures
  * consume the TTL too, so an unreachable remote isn't retried every poll.
- * Fire-and-forget (the status path never awaits); the returned promise never
- * rejects and exists only so tests can await it.
+ * The status path never awaits it. The promise never rejects and resolves
+ * true when a fetch (this call's or the in-flight one it joined) succeeded.
  */
 export function scheduleBaseRefFetch(
 	git: SimpleGit,
@@ -53,7 +55,7 @@ export function scheduleBaseRefFetch(
 	target: BaseRefFetchTarget,
 	fetchBaseRef: () => Promise<unknown> = () =>
 		git.fetch([target.remote, target.branch, "--quiet", "--no-tags"]),
-): Promise<void> {
+): Promise<boolean> {
 	return (async () => {
 		const commonDir = await resolveCommonDir(git, worktreePath);
 		const key = `${commonDir}#${target.remote}/${target.branch}`;
@@ -63,12 +65,12 @@ export function scheduleBaseRefFetch(
 
 		const last = lastFetchStartedAt.get(key);
 		if (last !== undefined && Date.now() - last < BASE_REF_FETCH_TTL_MS) {
-			return;
+			return false;
 		}
 
 		lastFetchStartedAt.set(key, Date.now());
 		const fetchPromise = fetchBaseRef()
-			.then(() => undefined)
+			.then(() => true)
 			.finally(() => {
 				inFlightFetches.delete(key);
 			});
@@ -81,5 +83,6 @@ export function scheduleBaseRefFetch(
 			branch: target.branch,
 			error,
 		});
+		return false;
 	});
 }
