@@ -755,6 +755,93 @@ async function main() {
 		memberSelf,
 	);
 
+	const watchMinted = (await (
+		await fetch(`${base}/v2/page/${PUBLIC_PAGE}/storage/ticket?watch=1`, {
+			method: "POST",
+			headers: { authorization: `Bearer ${authorJwt}` },
+		})
+	).json()) as { ticket: string };
+	const watcher = listen(
+		socketFor(PUBLIC_PAGE, watchMinted.ticket),
+		"https://app.superset.sh",
+	);
+	const watcherSees = await watcher.waitFor(
+		(m) =>
+			m.type === "presence" &&
+			(m.viewers as { name: string }[]).some((v) => v.name === "Grace"),
+	);
+	check(
+		"the app's own watch socket is admitted from the app origin and hears who is here",
+		Boolean(watcherSees),
+		watcher.inbox,
+	);
+	const afterWatch = await member.waitFor((m) => m.type === "presence");
+	check(
+		"a watch socket is never listed as a viewer",
+		!((afterWatch?.viewers as { userId: string }[]) ?? []).some(
+			(v) => v.userId === AUTHOR,
+		),
+		afterWatch,
+	);
+	watcher.socket.send(
+		JSON.stringify({
+			type: "call",
+			id: "w1",
+			request: { op: "getAll", key: "vote" },
+		}),
+	);
+	const watcherCall = await watcher.waitFor((m) => m.id === "w1");
+	check(
+		"a watch socket cannot use page storage",
+		watcherCall?.ok === false && watcherCall?.code === "unauthenticated",
+		watcherCall,
+	);
+	const cursorsBefore = member.inbox.filter((m) => m.type === "cursor").length;
+	watcher.socket.send(
+		JSON.stringify({ type: "cursor", cursor: { path: "", x: 0.5, y: 0.5 } }),
+	);
+	await new Promise((r) => setTimeout(r, 300));
+	check(
+		"a watch socket's cursor goes nowhere",
+		member.inbox.filter((m) => m.type === "cursor").length === cursorsBefore,
+	);
+	watcher.socket.close();
+
+	const secondGuestId = crypto.randomUUID();
+	const numbered = [];
+	for (const id of [secondGuestId, secondGuestId]) {
+		const minted = (await (await guestTicket(PUBLIC_PAGE, id)).json()) as {
+			ticket: string;
+		};
+		const tab = listen(socketFor(PUBLIC_PAGE, minted.ticket), publicOrigin);
+		await tab.waitFor((m) => m.type === "hello");
+		numbered.push(tab);
+	}
+	const numbers = await member.waitFor(
+		(m) =>
+			m.type === "presence" &&
+			(m.viewers as { guest: boolean }[]).filter((v) => v.guest).length === 3,
+	);
+	const guestNumbers = (
+		(numbers?.viewers ?? []) as {
+			userId: string;
+			guestNumber: number | null;
+		}[]
+	)
+		.filter((v) => v.guestNumber !== null)
+		.map(
+			(v) =>
+				`${v.userId === `guest:${GUEST}` ? "first" : "second"}=${v.guestNumber}`,
+		)
+		.sort();
+	check(
+		"guests are numbered, and one guest in two tabs keeps one number",
+		JSON.stringify(guestNumbers) ===
+			JSON.stringify(["first=1", "second=2", "second=2"]),
+		guestNumbers,
+	);
+	for (const tab of numbered) tab.socket.close();
+
 	guest.socket.send(
 		JSON.stringify({
 			type: "call",

@@ -178,6 +178,21 @@ describe("page connect tickets", () => {
 		expect(await verifyPageConnectTicket(SECRET, ticket, NOW)).toEqual(guest);
 	});
 
+	test("round-trips a watch ticket and reads an old one as not watching", async () => {
+		const watching = await signPageConnectTicket(SECRET, {
+			...claims,
+			watch: true,
+		});
+		expect(await verifyPageConnectTicket(SECRET, watching, NOW)).toEqual({
+			...claims,
+			watch: true,
+		});
+		const plain = await signPageConnectTicket(SECRET, claims);
+		expect(
+			(await verifyPageConnectTicket(SECRET, plain, NOW))?.watch,
+		).toBeUndefined();
+	});
+
 	test("refuses tampered org ids rather than trusting the shape", async () => {
 		const ticket = await signPageConnectTicket(SECRET, claims);
 		const [payload] = ticket.split(".");

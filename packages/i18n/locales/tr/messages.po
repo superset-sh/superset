@@ -7948,6 +7948,9 @@ msgstr "GTM ve Yapay Zekâ Otomasyon Mimarı, Mistral AI"
 msgid "Guest"
 msgstr "Misafir"
 
+msgid "Guest {number}"
+msgstr "Misafir {number}"
+
 msgid "Guide"
 msgstr "Rehber"
 

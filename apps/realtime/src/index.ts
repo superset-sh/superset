@@ -112,6 +112,7 @@ app.post("/v2/page/:pageId/storage/ticket", async (c) => {
 		return c.json({ error: "Forbidden" }, 403);
 	}
 
+	const watch = c.req.query("watch") === "1";
 	const nonce = crypto.randomUUID();
 	const ticket = await signPageConnectTicket(c.env.NUDGE_SECRET, {
 		pageId,
@@ -120,8 +121,9 @@ app.post("/v2/page/:pageId/storage/ticket", async (c) => {
 		image: auth.image ?? null,
 		organizationIds: auth.organizationIds,
 		author: manifest.createdByUserId === auth.sub,
-		writable: writableFor(manifest, viewer),
+		writable: !watch && writableFor(manifest, viewer),
 		guest: false,
+		watch,
 		nonce,
 		exp: Math.floor(Date.now() / 1000) + PAGE_STORAGE_TICKET_SECONDS,
 	});
@@ -136,6 +138,7 @@ app.post("/v2/page/:pageId/storage/guest-ticket", async (c) => {
 	if (!UUID.test(pageId)) return c.json({ error: "Not found" }, 404);
 	const body = (await c.req.json().catch(() => null)) as {
 		guestId?: unknown;
+		watch?: unknown;
 	} | null;
 	const guestId = body?.guestId;
 	if (typeof guestId !== "string" || !UUID.test(guestId)) {
@@ -165,6 +168,7 @@ app.post("/v2/page/:pageId/storage/guest-ticket", async (c) => {
 		author: false,
 		writable: false,
 		guest: true,
+		watch: body?.watch === true,
 		nonce: crypto.randomUUID(),
 		exp: Math.floor(Date.now() / 1000) + PAGE_STORAGE_TICKET_SECONDS,
 	});
@@ -230,6 +234,7 @@ app.get("/v2/page/:pageId/storage/socket", async (c) => {
 			image: claims.image,
 			organizationIds: claims.organizationIds,
 			guest: claims.guest,
+			watch: claims.watch === true,
 			nonce: claims.nonce,
 		}),
 	);

@@ -8,15 +8,18 @@ export async function pageStorageSocketUrl({
 	pageId,
 	realtimeUrl,
 	token,
+	watch = false,
 }: {
 	pageId: string;
 	realtimeUrl: string;
 	token: () => Promise<string | null>;
+	watch?: boolean;
 }): Promise<string | null> {
 	const jwt = await token().catch(() => null);
 	if (!jwt) return null;
 
-	return socketUrl(pageId, realtimeUrl, pageStorageTicketPath(pageId), {
+	const path = pageStorageTicketPath(pageId);
+	return socketUrl(pageId, realtimeUrl, watch ? `${path}?watch=1` : path, {
 		method: "POST",
 		headers: { authorization: `Bearer ${jwt}` },
 	});
@@ -26,15 +29,17 @@ export async function pageGuestSocketUrl({
 	pageId,
 	realtimeUrl,
 	guestId,
+	watch = false,
 }: {
 	pageId: string;
 	realtimeUrl: string;
 	guestId: string;
+	watch?: boolean;
 }): Promise<string | null> {
 	return socketUrl(pageId, realtimeUrl, pageGuestTicketPath(pageId), {
 		method: "POST",
 		headers: { "content-type": "application/json" },
-		body: JSON.stringify({ guestId }),
+		body: JSON.stringify({ guestId, watch }),
 	});
 }
 

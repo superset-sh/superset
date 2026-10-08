@@ -54,6 +54,8 @@ interface Pinned {
 	author: boolean;
 	writable: boolean;
 	guest: boolean;
+	watcher: boolean;
+	guestNumber: number | null;
 	window: number;
 	calls: number;
 }
@@ -196,6 +198,7 @@ export class PageHub extends Server<RealtimeEnv> {
 			image: string | null;
 			organizationIds: string[];
 			guest?: boolean;
+			watch?: boolean;
 			nonce: string;
 		};
 		try {
@@ -205,21 +208,22 @@ export class PageHub extends Server<RealtimeEnv> {
 			return;
 		}
 
+		const watcher = claims.watch === true;
 		const origin = ctx.request.headers.get("origin");
 		const expected = pageFrameOrigin(this.env.USERCONTENT_URL, this.name);
-		if (origin !== expected) {
+		if (!watcher && origin !== expected) {
 			connection.close(4403, "origin");
 			return;
 		}
 
 		const guest = claims.guest === true;
 		if (!guest) {
-			await this.admit(connection, claims, false);
+			await this.admit(connection, claims, false, watcher);
 			return;
 		}
 		let guests = this.connectingGuests;
 		for (const other of this.getConnections<Pinned>()) {
-			if (other.state?.guest) guests++;
+			if (other.state?.guest && other.state.watcher === watcher) guests++;
 		}
 		if (guests >= MAX_PAGE_GUESTS) {
 			connection.close(4429, "full");
@@ -227,7 +231,7 @@ export class PageHub extends Server<RealtimeEnv> {
 		}
 		this.connectingGuests++;
 		try {
-			await this.admit(connection, claims, true);
+			await this.admit(connection, claims, true, watcher);
 		} finally {
 			this.connectingGuests--;
 		}
@@ -243,6 +247,7 @@ export class PageHub extends Server<RealtimeEnv> {
 			nonce: string;
 		},
 		guest: boolean,
+		watcher: boolean,
 	): Promise<void> {
 		if (!(await this.spendNonce(claims.nonce, Date.now()))) {
 			connection.close(4401, "ticket spent");
@@ -267,9 +272,12 @@ export class PageHub extends Server<RealtimeEnv> {
 			name: claims.name,
 			image: claims.image,
 			organizationIds: claims.organizationIds,
-			author: !guest && manifest.createdByUserId === claims.userId,
-			writable: !guest && writableFor(manifest, viewer),
+			author: !guest && !watcher && manifest.createdByUserId === claims.userId,
+			writable: !guest && !watcher && writableFor(manifest, viewer),
 			guest,
+			watcher,
+			guestNumber:
+				guest && !watcher ? this.guestNumberFor(claims.userId) : null,
 			window: 0,
 			calls: 0,
 		};
@@ -291,7 +299,7 @@ export class PageHub extends Server<RealtimeEnv> {
 			await this.ctx.storage.setAlarm(Date.now() + SWEEP_MS);
 		}
 
-		if (guest) return;
+		if (guest || watcher) return;
 		const now = Date.now();
 		this.ctx.storage.sql.exec(
 			`INSERT INTO visits (user_id, name, image, first_seen_at, last_seen_at)
@@ -313,8 +321,8 @@ export class PageHub extends Server<RealtimeEnv> {
 		this.cursorBudgets.delete(connection.id);
 		const pinned = connection.state;
 		if (!pinned) return;
-		this.announce(connection.id);
-		if (pinned.guest) return;
+		if (!pinned.watcher) this.announce(connection.id);
+		if (pinned.guest || pinned.watcher) return;
 		this.schema();
 		this.ctx.storage.sql.exec(
 			"UPDATE visits SET last_seen_at = ? WHERE user_id = ?",
@@ -348,7 +356,7 @@ export class PageHub extends Server<RealtimeEnv> {
 		}
 		if (call.type !== "call" || typeof call.id !== "string") return;
 
-		if (pinned.guest) {
+		if (pinned.guest || pinned.watcher) {
 			this.send(connection, {
 				type: "result",
 				id: call.id,
@@ -523,9 +531,10 @@ export class PageHub extends Server<RealtimeEnv> {
 
 	private relayCursor(
 		connection: Connection<Pinned>,
-		pinned: { userId: string },
+		pinned: { userId: string; watcher: boolean },
 		raw: unknown,
 	): void {
+		if (pinned.watcher) return;
 		const cursor = parsePageCursor(raw);
 		if (cursor === undefined) return;
 
@@ -545,11 +554,24 @@ export class PageHub extends Server<RealtimeEnv> {
 		} satisfies PageStorageSocketMessage);
 		for (const other of this.getConnections<Pinned>()) {
 			const state = other.state;
-			if (!state || state.userId === pinned.userId) continue;
+			if (!state || state.watcher || state.userId === pinned.userId) continue;
 			try {
 				other.send(payload);
 			} catch {}
 		}
+	}
+
+	private guestNumberFor(userId: string): number {
+		const taken = new Set<number>();
+		for (const connection of this.getConnections<Pinned>()) {
+			const state = connection.state;
+			if (!state?.guest || state.watcher || !state.guestNumber) continue;
+			if (state.userId === userId) return state.guestNumber;
+			taken.add(state.guestNumber);
+		}
+		let number = 1;
+		while (taken.has(number)) number++;
+		return number;
 	}
 
 	private announce(leaving?: string): void {
@@ -559,12 +581,14 @@ export class PageHub extends Server<RealtimeEnv> {
 			const state = connection.state;
 			if (!state || connection.id === leaving) continue;
 			connections.push(connection);
+			if (state.watcher) continue;
 			viewers.push({
 				id: connection.id,
 				userId: state.userId,
 				name: state.name,
 				image: state.image,
 				guest: state.guest,
+				guestNumber: state.guestNumber ?? null,
 				cursor: this.cursors.get(connection.id) ?? null,
 			});
 		}
@@ -590,7 +614,7 @@ export class PageHub extends Server<RealtimeEnv> {
 		const records = this.named(key);
 		const payload = JSON.stringify({ type: "records", key, records });
 		for (const connection of this.getConnections<Pinned>()) {
-			if (connection.state?.guest) continue;
+			if (connection.state?.guest || connection.state?.watcher) continue;
 			try {
 				connection.send(payload);
 			} catch {}

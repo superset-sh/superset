@@ -82,6 +82,7 @@ describe("what a host accepts from the frame", () => {
 				name: "Ada",
 				image: null,
 				guest: false,
+				guestNumber: null,
 				cursor: null,
 			},
 		]);

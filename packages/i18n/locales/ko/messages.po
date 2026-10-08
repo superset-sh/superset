@@ -7948,6 +7948,9 @@ msgstr "GTM 및 AI 자동화 아키텍트, Mistral AI"
 msgid "Guest"
 msgstr "게스트"
 
+msgid "Guest {number}"
+msgstr "게스트 {number}"
+
 msgid "Guide"
 msgstr "가이드"
 

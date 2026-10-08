@@ -7948,6 +7948,9 @@ msgstr "GTM- und KI-Automatisierungsarchitekt, Mistral AI"
 msgid "Guest"
 msgstr "Gast"
 
+msgid "Guest {number}"
+msgstr "Gast {number}"
+
 msgid "Guide"
 msgstr "Leitfaden"
 

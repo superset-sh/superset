@@ -7948,6 +7948,9 @@ msgstr "Arsitek GTM & Otomatisasi AI, Mistral AI"
 msgid "Guest"
 msgstr "Tamu"
 
+msgid "Guest {number}"
+msgstr "Tamu {number}"
+
 msgid "Guide"
 msgstr "Panduan"
 

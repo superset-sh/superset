@@ -10,6 +10,7 @@ export interface PagePresenceViewer {
 	name: string;
 	image: string | null;
 	guest: boolean;
+	guestNumber: number | null;
 	cursor: PageCursor | null;
 }
 
@@ -77,6 +78,10 @@ export function presenceViewersFrom(raw: unknown): PagePresenceViewer[] {
 						userId: viewer.userId,
 						name: viewer.name,
 						guest: viewer.guest === true,
+						guestNumber:
+							Number.isInteger(viewer.guestNumber) && viewer.guestNumber > 0
+								? viewer.guestNumber
+								: null,
 						image:
 							typeof viewer.image === "string" &&
 							viewer.image.startsWith("https:")

@@ -4,11 +4,17 @@ import {
 	type PageCursorPoint,
 	type PagePresenceViewer,
 	presenceColor,
-	presenceViewersFrom,
 } from "@superset/shared/page-presence";
+import { openPresenceWatch } from "@superset/shared/page-presence-watch";
 import type { PageStorageFrameMessage } from "@superset/shared/page-storage";
-import { forwardRef, useImperativeHandle, useState } from "react";
-import { View } from "react-native";
+import {
+	forwardRef,
+	useEffect,
+	useImperativeHandle,
+	useRef,
+	useState,
+} from "react";
+import { AppState, View } from "react-native";
 import { PresenceAvatars } from "./components/PresenceAvatars";
 import { PresenceCursor } from "./components/PresenceCursor";
 
@@ -18,28 +24,49 @@ export interface PagePresenceHandle {
 
 interface PagePresenceProps {
 	insetTop: number;
+	watchTicket?: () => Promise<string | null>;
 }
 
 export const PagePresence = forwardRef<PagePresenceHandle, PagePresenceProps>(
-	function PagePresence({ insetTop }, ref) {
+	function PagePresence({ insetTop, watchTicket }, ref) {
 		const { t } = useLingui();
 		const [viewers, setViewers] = useState<PagePresenceViewer[]>([]);
 		const [cursors, setCursors] = useState<PageCursorPoint[]>([]);
+		const watchTicketRef = useRef(watchTicket);
+		watchTicketRef.current = watchTicket;
+		const watching = Boolean(watchTicket);
+
+		useEffect(() => {
+			if (!watching) return;
+			const watch = openPresenceWatch({
+				url: async () => (await watchTicketRef.current?.()) ?? null,
+				onViewers: setViewers,
+			});
+			const subscription = AppState.addEventListener("change", (state) => {
+				if (state === "active") watch.wake();
+			});
+			return () => {
+				subscription.remove();
+				watch.stop();
+				setViewers([]);
+			};
+		}, [watching]);
 
 		useImperativeHandle(ref, () => ({
 			receive: (message) => {
-				if (message.type === "presence") {
-					setViewers(presenceViewersFrom(message.viewers));
-				}
 				if (message.type === "cursors") {
 					setCursors(cursorPointsFrom(message.cursors));
 				}
 			},
 		}));
 
-		const guestName = t({ message: "Guest" });
-		const nameOf = (viewer: PagePresenceViewer) =>
-			viewer.guest || !viewer.name ? guestName : viewer.name;
+		const nameOf = (viewer: PagePresenceViewer) => {
+			const number = viewer.guestNumber;
+			if (!viewer.guest && viewer.name) return viewer.name;
+			return number
+				? t({ message: `Guest ${number}` })
+				: t({ message: "Guest" });
+		};
 		const byId = new Map(viewers.map((viewer) => [viewer.id, viewer]));
 
 		const seen = new Set<string>();

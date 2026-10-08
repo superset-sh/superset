@@ -85,6 +85,16 @@ export function PageViewer({
 			}),
 		[resolvedPageId],
 	);
+	const presenceTicket = useCallback(
+		() =>
+			pageStorageSocketUrl({
+				pageId: resolvedPageId ?? "",
+				realtimeUrl: env.REALTIME_URL,
+				token: async () => getJwt(),
+				watch: true,
+			}),
+		[resolvedPageId],
+	);
 	const scrollKey = `${resolvedPageId ?? slug}:${pull.data?.version ?? 0}`;
 
 	const onResolvedRef = useRef(onResolved);
@@ -165,7 +175,9 @@ export function PageViewer({
 							onScrollYChange={(y) => scrollPositions.set(scrollKey, y)}
 							onFramePointerDown={onFramePointerDown}
 							onLinkClick={onLinkClick}
-							{...(resolvedPageId && !previewing ? { storageTicket } : {})}
+							{...(resolvedPageId && !previewing
+								? { storageTicket, presenceTicket }
+								: {})}
 						/>
 					</div>
 					<AllCommentsButton />

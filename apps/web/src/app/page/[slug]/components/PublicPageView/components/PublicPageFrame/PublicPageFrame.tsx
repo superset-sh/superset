@@ -30,6 +30,17 @@ export function PublicPageFrame({ pageId, src, title }: PublicPageFrameProps) {
 		[pageId],
 	);
 
+	const watchTicket = useCallback(
+		() =>
+			pageGuestSocketUrl({
+				pageId,
+				realtimeUrl: env.NEXT_PUBLIC_REALTIME_URL,
+				guestId: guestId(),
+				watch: true,
+			}),
+		[pageId],
+	);
+
 	usePageStorageConnect({ frameRef, frameOrigin, ticket });
 
 	return (
@@ -40,6 +51,7 @@ export function PublicPageFrame({ pageId, src, title }: PublicPageFrameProps) {
 				pageId={pageId}
 				frameRef={frameRef}
 				frameOrigin={frameOrigin}
+				watchTicket={watchTicket}
 			/>
 		</div>
 	);

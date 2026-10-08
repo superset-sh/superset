@@ -27,12 +27,23 @@ export function PageCommentsFrame({
 		[pageId],
 	);
 
+	const presenceTicket = useCallback(
+		() =>
+			pageStorageSocketUrl({
+				pageId,
+				realtimeUrl: env.NEXT_PUBLIC_REALTIME_URL,
+				token: () => getAuthToken().catch(() => null),
+				watch: true,
+			}),
+		[pageId],
+	);
+
 	return (
 		<PageCommentsView
 			pageId={pageId}
 			src={src}
 			title={title}
-			{...(previewing ? {} : { storageTicket })}
+			{...(previewing ? {} : { storageTicket, presenceTicket })}
 		/>
 	);
 }

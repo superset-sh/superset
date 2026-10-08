@@ -44,6 +44,7 @@ interface PageCommentsViewProps {
 	onFramePointerDown?: () => void;
 	onLinkClick?: (click: PageLinkClick) => void;
 	storageTicket?: () => Promise<string | null>;
+	presenceTicket?: () => Promise<string | null>;
 }
 
 export function PageCommentsView({
@@ -56,6 +57,7 @@ export function PageCommentsView({
 	onFramePointerDown,
 	onLinkClick,
 	storageTicket,
+	presenceTicket,
 }: PageCommentsViewProps) {
 	const onLinkClickRef = useRef(onLinkClick);
 	onLinkClickRef.current = onLinkClick;
@@ -399,6 +401,7 @@ export function PageCommentsView({
 				pageId={pageId}
 				frameRef={frameRef}
 				frameOrigin={frameOrigin}
+				watchTicket={presenceTicket}
 			/>
 
 			<div className="pointer-events-none absolute inset-0">

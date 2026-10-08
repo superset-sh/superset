@@ -7948,6 +7948,9 @@ msgstr "Kiến trúc sư GTM & tự động hóa AI, Mistral AI"
 msgid "Guest"
 msgstr "Khách"
 
+msgid "Guest {number}"
+msgstr "Khách {number}"
+
 msgid "Guide"
 msgstr "Hướng dẫn"
 

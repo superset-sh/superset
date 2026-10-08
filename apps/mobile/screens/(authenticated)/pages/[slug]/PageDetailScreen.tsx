@@ -125,6 +125,17 @@ export function PageDetailScreen({
 		[pageId],
 	);
 
+	const presenceTicket = useCallback(
+		() =>
+			pageStorageSocketUrl({
+				pageId: pageId ?? "",
+				realtimeUrl: env.EXPO_PUBLIC_REALTIME_URL,
+				token: () => getHostAuthToken(),
+				watch: true,
+			}),
+		[pageId],
+	);
+
 	const send = useCallback(
 		(message: Parameters<PageFrameHandle["send"]>[0]) =>
 			frameRef.current?.send(message),
@@ -393,7 +404,11 @@ export function PageDetailScreen({
 						) : null}
 					</View>
 
-					<PagePresence ref={presenceRef} insetTop={headerHeight} />
+					<PagePresence
+						ref={presenceRef}
+						insetTop={headerHeight}
+						{...(pageId ? { watchTicket: presenceTicket } : {})}
+					/>
 
 					{commentMode && !selection ? (
 						<View
