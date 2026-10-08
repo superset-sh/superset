@@ -6,7 +6,7 @@ import { getHostId } from "@superset/shared/host-info";
 import { createTRPCClient, httpBatchLink, TRPCClientError } from "@trpc/client";
 import SuperJSON from "superjson";
 import type { ApiClient } from "../api-client";
-import { SUPERSET_HOME_DIR } from "../config";
+import { getSupersetHomeDir } from "../settings/paths";
 import type {
 	HostServiceClient,
 	ResolvedHostTarget,
@@ -22,10 +22,13 @@ interface Ticket {
 	expiresAt: number;
 }
 
-const TICKETS_PATH = join(SUPERSET_HOME_DIR, "cloud-workspace-tickets.json");
 const TICKET_MARGIN_MS = 60_000;
 /** A stopped sandbox behind a cached ticket should fail over to a wake, not hang. */
 const REACH_TIMEOUT_MS = 8_000;
+
+function ticketsPath(): string {
+	return join(getSupersetHomeDir(), "cloud-workspace-tickets.json");
+}
 
 /**
  * host-service inside a cloud workspace's sandbox, reached through the gate
@@ -148,9 +151,10 @@ function targetFor(workspaceId: string, ticket: Ticket): ResolvedHostTarget {
 }
 
 function readTickets(): Record<string, Ticket> {
-	if (!existsSync(TICKETS_PATH)) return {};
+	const path = ticketsPath();
+	if (!existsSync(path)) return {};
 	try {
-		return JSON.parse(readFileSync(TICKETS_PATH, "utf8"));
+		return JSON.parse(readFileSync(path, "utf8"));
 	} catch {
 		return {};
 	}
@@ -166,9 +170,10 @@ function saveTicket(key: string, ticket: Ticket): void {
 		token: ticket.token,
 		expiresAt: ticket.expiresAt,
 	};
+	const path = ticketsPath();
 	try {
-		writeFileSync(TICKETS_PATH, JSON.stringify(kept), { mode: 0o600 });
-		chmodSync(TICKETS_PATH, 0o600);
+		writeFileSync(path, JSON.stringify(kept), { mode: 0o600 });
+		chmodSync(path, 0o600);
 	} catch {
 		// A ticket that cannot be cached is minted again next call.
 	}

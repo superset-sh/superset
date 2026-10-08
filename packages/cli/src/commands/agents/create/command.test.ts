@@ -1,4 +1,6 @@
-import { afterEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
+import { withLocalHostService } from "../../../lib/host/test-helpers";
+import createAgentCommand from "./command";
 
 let runInput: Record<string, unknown> | undefined;
 let transcriptInput: Record<string, unknown> | undefined;
@@ -6,63 +8,24 @@ let transcriptText = "";
 let transcriptFails = false;
 let bindings: Array<Record<string, unknown>> = [];
 
-const hostTarget = () => ({
-	hostId: "host-1",
-	client: {
-		terminal: {
-			transcript: {
-				query: async (input: Record<string, unknown>) => {
-					transcriptInput = input;
-					if (transcriptFails) throw new Error("host unreachable");
-					return { text: transcriptText, source: "stream", streamBytes: 42 };
-				},
-			},
-		},
-		terminalAgents: {
-			listByWorkspace: { query: async () => bindings },
-		},
-		settings: {
-			agentConfigs: {
-				list: {
-					query: async () => [
-						{ id: "config-1", presetId: "claude", label: "Claude" },
-					],
-				},
-			},
-		},
-		agents: {
-			run: {
-				mutate: async (input: Record<string, unknown>) => {
-					runInput = input;
-					return {
-						kind: "terminal",
-						sessionId: "terminal-1",
-						label: "Codex",
-					};
-				},
-			},
-		},
+const WORKSPACE_ID = "00000000-0000-4000-8000-000000000001";
+
+withLocalHostService("org-1", {
+	"workspace.list": () => [{ id: WORKSPACE_ID }],
+	"terminal.transcript": (input) => {
+		transcriptInput = input;
+		if (transcriptFails) throw new Error("host unreachable");
+		return { text: transcriptText, source: "stream", streamBytes: 42 };
+	},
+	"terminalAgents.listByWorkspace": () => bindings,
+	"settings.agentConfigs.list": () => [
+		{ id: "config-1", presetId: "claude", label: "Claude" },
+	],
+	"agents.run": (input) => {
+		runInput = input;
+		return { kind: "terminal", sessionId: "terminal-1", label: "Codex" };
 	},
 });
-
-mock.module("../../../lib/host-workspaces", () => ({
-	resolveWorkspaceTarget: async () => ({
-		hostId: "host-1",
-		workspace: { id: "00000000-0000-4000-8000-000000000001" },
-		target: hostTarget(),
-	}),
-}));
-
-mock.module("../../../lib/host-target", () => ({
-	requireHostTarget: () => "host-1",
-	resolveHostTarget: hostTarget,
-}));
-
-mock.module("../../../lib/upload-attachments", () => ({
-	uploadAttachments: async () => [],
-}));
-
-const { default: createAgentCommand } = await import("./command");
 
 function invoke(
 	effort?: string,
@@ -75,8 +38,8 @@ function invoke(
 		} as never,
 		args: {} as never,
 		options: {
-			workspace: "00000000-0000-4000-8000-000000000001",
-			host: "host-1",
+			workspace: WORKSPACE_ID,
+			local: true,
 			agent: "codex",
 			effort,
 			...overrides,
@@ -101,7 +64,7 @@ describe("agents create", () => {
 		});
 
 		expect(runInput).toEqual({
-			workspaceId: "00000000-0000-4000-8000-000000000001",
+			workspaceId: WORKSPACE_ID,
 			agent: "codex",
 			prompt: "Review this diff",
 			model: "gpt-5.6-sol",
@@ -114,7 +77,7 @@ describe("agents create", () => {
 		await invoke("xhigh");
 
 		expect(runInput).toEqual({
-			workspaceId: "00000000-0000-4000-8000-000000000001",
+			workspaceId: WORKSPACE_ID,
 			agent: "codex",
 			prompt: "Review this diff",
 			model: undefined,
@@ -127,7 +90,7 @@ describe("agents create", () => {
 		await invoke();
 
 		expect(runInput).toEqual({
-			workspaceId: "00000000-0000-4000-8000-000000000001",
+			workspaceId: WORKSPACE_ID,
 			agent: "codex",
 			prompt: "Review this diff",
 			model: undefined,
@@ -140,7 +103,7 @@ describe("agents create", () => {
 		await invoke(undefined, { resumeSession: "abc-123" });
 
 		expect(runInput).toEqual({
-			workspaceId: "00000000-0000-4000-8000-000000000001",
+			workspaceId: WORKSPACE_ID,
 			agent: "codex",
 			prompt: "",
 			resumeSessionId: "abc-123",
@@ -154,7 +117,7 @@ describe("agents create", () => {
 		await invoke(undefined, { forkSession: "thread-source" });
 
 		expect(runInput).toEqual({
-			workspaceId: "00000000-0000-4000-8000-000000000001",
+			workspaceId: WORKSPACE_ID,
 			agent: "codex",
 			prompt: "",
 			forkSessionId: "thread-source",
@@ -192,7 +155,7 @@ describe("agents create", () => {
 		await invoke(undefined, { fromTerminal: "terminal-source" });
 
 		expect(transcriptInput).toEqual({
-			workspaceId: "00000000-0000-4000-8000-000000000001",
+			workspaceId: WORKSPACE_ID,
 			terminalId: "terminal-source",
 		});
 		const prompt = String(runInput?.prompt);

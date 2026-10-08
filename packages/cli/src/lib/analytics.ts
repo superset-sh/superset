@@ -1,17 +1,12 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ApiClient } from "./api-client";
-import { SUPERSET_HOME_DIR } from "./config";
 import { env } from "./env";
-
-const REPORTED_COMMANDS_PATH = join(
-	SUPERSET_HOME_DIR,
-	"reported-commands.json",
-);
+import { getSupersetHomeDir } from "./settings/paths";
 
 export function isFirstReportToday(
 	command: string,
-	path = REPORTED_COMMANDS_PATH,
+	path = join(getSupersetHomeDir(), "reported-commands.json"),
 ): boolean {
 	const day = new Date().toISOString().slice(0, 10);
 	let commands: string[] = [];
