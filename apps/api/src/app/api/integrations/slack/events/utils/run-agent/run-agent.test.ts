@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import type Anthropic from "@anthropic-ai/sdk";
+import Anthropic from "@anthropic-ai/sdk";
+import * as pluginsProxy from "@superset/trpc/plugins-proxy";
+import { stub } from "../../../../../../../../test/stub";
+import * as slackClient from "../slack-client";
+import * as mcpClients from "./mcp-clients";
 
 const create = mock(
 	async (
@@ -43,38 +47,10 @@ const pluginListTools = mock(
 const pluginCallTool = mock(
 	async (..._args: unknown[]): Promise<Record<string, unknown>> => ({}),
 );
-mock.module("@/env", () => ({ env: { ANTHROPIC_API_KEY: "test" } }));
-class FakeAPIError extends Error {
-	status?: number;
-	headers?: Headers;
-}
-class FakeConnectionError extends FakeAPIError {}
-class FakeTimeoutError extends FakeConnectionError {}
-class FakePluginTargetError extends Error {
-	constructor(
-		message: string,
-		readonly status: number,
-	) {
-		super(message);
-	}
-}
-class FakeAmbiguousPluginError extends Error {}
 // The real in-memory client/server pair runs; only target resolution and the
 // two request handlers behind it are faked.
-mock.module("@superset/trpc/plugins-proxy", () => ({
-	AmbiguousPluginError: FakeAmbiguousPluginError,
-	PluginTargetError: FakePluginTargetError,
+stub(pluginsProxy, {
 	resolveTarget,
-	targetKey: (target: {
-		connectionId?: string;
-		accounts?: { connectionId: string }[];
-	}) =>
-		target.accounts
-			? target.accounts
-					.map((account) => account.connectionId)
-					.sort()
-					.join("+")
-			: (target.connectionId ?? ""),
 	buildPluginServer: async (target: { plugin: string }) => {
 		const { Server } = await import(
 			"@modelcontextprotocol/sdk/server/index.js"
@@ -101,27 +77,14 @@ mock.module("@superset/trpc/plugins-proxy", () => ({
 		}));
 		return server;
 	},
-}));
-mock.module("@anthropic-ai/sdk", () => ({
-	default: class {
-		static APIError = FakeAPIError;
-		static APIConnectionError = FakeConnectionError;
-		static APIConnectionTimeoutError = FakeTimeoutError;
-		messages = { create };
-	},
-}));
+});
+stub(Anthropic.Messages.prototype, { create });
 class FakeWebClient {
 	conversations = { replies };
 	users = { info: async () => ({}) };
 }
-mock.module("@slack/web-api", () => ({ WebClient: FakeWebClient }));
-// bun shares mock.module registrations across test files in one process, so
-// pin the factory here rather than inheriting whichever file mocked it last.
-mock.module("../slack-client", () => ({
-	createSlackClient: () => new FakeWebClient(),
-	isUnpostableChannelError: () => false,
-}));
-mock.module("./mcp-clients", () => ({
+stub(slackClient, { createSlackClient: () => new FakeWebClient() });
+stub(mcpClients, {
 	createSupersetMcpClient: async () => ({
 		client: { callTool, listTools },
 		cleanup,
@@ -134,7 +97,7 @@ mock.module("./mcp-clients", () => ({
 		prefix: name.split("_")[0],
 		toolName: name.slice(name.indexOf("_") + 1),
 	}),
-}));
+});
 const {
 	fetchThreadContext,
 	formatErrorForSlack,
@@ -329,7 +292,7 @@ describe("agent loop", () => {
 
 	test("a model request timeout is not retried; a 5xx is retried once", async () => {
 		create.mockImplementationOnce(async () => {
-			throw new FakeTimeoutError("Request timed out.");
+			throw new Anthropic.APIConnectionTimeoutError();
 		});
 		await runSlackAgent(params).catch(() => {});
 		// The error rewrite also calls create; count only agent-loop requests.
@@ -339,7 +302,7 @@ describe("agent loop", () => {
 
 		create.mockReset();
 		create.mockImplementationOnce(async () => {
-			throw Object.assign(new FakeAPIError("overloaded"), { status: 500 });
+			throw new Anthropic.APIError(500, undefined, "overloaded", undefined);
 		});
 		create.mockImplementationOnce(async () => ({
 			stop_reason: "end_turn",
@@ -351,7 +314,7 @@ describe("agent loop", () => {
 
 		create.mockReset();
 		create.mockImplementationOnce(async () => {
-			throw new FakeConnectionError("socket hang up");
+			throw new Anthropic.APIConnectionError({ message: "socket hang up" });
 		});
 		create.mockImplementationOnce(async () => ({
 			stop_reason: "end_turn",

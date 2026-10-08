@@ -1,9 +1,5 @@
-import { describe, expect, mock, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { createHmac } from "node:crypto";
-
-mock.module("@/env", () => ({
-	env: { BETTER_AUTH_SECRET: "test-secret" },
-}));
 
 const { createSignedState, pluginStateSchema, verifySignedState } =
 	await import("./oauth-state");

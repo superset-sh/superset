@@ -1,20 +1,28 @@
-import { describe, expect, mock, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
+import { db, dbWs } from "@superset/db/client";
 import type { TRPCError } from "@trpc/server";
+import { stub } from "../../../test/stub";
+import { posthog } from "../../lib/analytics";
 
 let dbTouched = false;
 
-const forbidDb = new Proxy(
-	{},
-	{
-		get: () => {
-			dbTouched = true;
-			throw new Error("reached the database");
-		},
-	},
-);
+const reached = () => {
+	dbTouched = true;
+	throw new Error("reached the database");
+};
+const forbidden = {
+	query: new Proxy({}, { get: reached }),
+	select: reached,
+	insert: reached,
+	update: reached,
+	delete: reached,
+	execute: reached,
+	transaction: reached,
+};
 
-mock.module("@superset/db/client", () => ({ db: forbidDb, dbWs: forbidDb }));
-mock.module("../../lib/analytics", () => ({ posthog: { capture: () => {} } }));
+stub(db, forbidden);
+stub(dbWs, forbidden);
+stub(posthog, { capture: () => {} });
 
 const { pageCommentRouter } = await import("./page-comment");
 const { createCallerFactory, createTRPCContext, createTRPCRouter } =

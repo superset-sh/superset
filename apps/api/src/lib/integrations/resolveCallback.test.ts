@@ -1,14 +1,9 @@
-import { describe, expect, mock, test } from "bun:test";
-
-mock.module("@/env", () => ({
-	env: {
-		BETTER_AUTH_SECRET: "test-secret",
-		NEXT_PUBLIC_API_URL: "https://api.test",
-	},
-}));
+import { describe, expect, test } from "bun:test";
+import * as dbUtils from "@superset/db/utils";
+import { stub } from "../../../test/stub";
 
 let members: Array<{ userId: string; organizationId: string }> = [];
-mock.module("@superset/db/utils", () => ({
+stub(dbUtils, {
 	findOrgMembership: async ({
 		userId,
 		organizationId,
@@ -19,7 +14,7 @@ mock.module("@superset/db/utils", () => ({
 		members.find(
 			(m) => m.userId === userId && m.organizationId === organizationId,
 		) ?? null,
-}));
+});
 
 const { resolveCallback } = await import("./resolveCallback");
 const { setStateCookie, STATE_COOKIES } = await import("./oauthFlow");

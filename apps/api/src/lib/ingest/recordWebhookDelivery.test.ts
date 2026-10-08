@@ -1,5 +1,7 @@
 import { describe, expect, mock, test } from "bun:test";
+import { db } from "@superset/db/client";
 import { DrizzleQueryError } from "drizzle-orm";
+import { stub } from "../../../test/stub";
 
 const execute = mock(
 	async (_query: unknown): Promise<{ rows: unknown[] }> => ({
@@ -7,10 +9,7 @@ const execute = mock(
 	}),
 );
 
-mock.module("@superset/db/client", () => ({
-	db: { execute },
-	dbWs: { execute },
-}));
+stub(db, { execute });
 
 const { recordWebhookDelivery } = await import("./recordWebhookDelivery");
 

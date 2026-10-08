@@ -1,14 +1,11 @@
-import {
-	afterEach,
-	beforeEach,
-	describe,
-	expect,
-	mock,
-	spyOn,
-	test,
-} from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { db } from "@superset/db/client";
+import * as accountPurge from "@superset/trpc/account-purge";
 import type { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
+import * as singleFlight from "@/lib/singleFlight";
+import * as verifyQstash from "@/lib/verifyQstash";
+import { stub } from "../../../../../../test/stub";
 
 interface FakeUser {
 	id: string;
@@ -29,39 +26,35 @@ const dialect = new PgDialect();
 const params = (condition: SQL) => dialect.sqlToQuery(condition).params;
 const userById = (id: string) => fakeUsers.find((user) => user.id === id);
 
-mock.module("@/lib/verifyQstash", () => ({
+stub(verifyQstash, {
 	verifyQstashRequest: async () => null,
-}));
+});
 
 // Evaluates the route's own predicate: the cutoff is read back out of the
 // query so the test exercises the window arithmetic, not a copy of it.
-mock.module("@superset/db/client", () => ({
-	db: {
-		select: () => ({
-			from: () => ({
-				where: (condition: SQL) => {
-					const cutoff = new Date(params(condition)[0] as string);
-					const matching = fakeUsers
-						.filter(
-							(user) =>
-								user.deletedAt === null && user.deletionRequestedAt < cutoff,
-						)
-						.sort(
-							(a, b) =>
-								a.deletionRequestedAt.getTime() -
-								b.deletionRequestedAt.getTime(),
-						);
-					return {
-						orderBy: async () => matching.map(({ id }) => ({ id })),
-					};
-				},
-			}),
+stub(db, {
+	select: () => ({
+		from: () => ({
+			where: (condition: SQL) => {
+				const cutoff = new Date(params(condition)[0] as string);
+				const matching = fakeUsers
+					.filter(
+						(user) =>
+							user.deletedAt === null && user.deletionRequestedAt < cutoff,
+					)
+					.sort(
+						(a, b) =>
+							a.deletionRequestedAt.getTime() - b.deletionRequestedAt.getTime(),
+					);
+				return {
+					orderBy: async () => matching.map(({ id }) => ({ id })),
+				};
+			},
 		}),
-	},
-	dbWs: {},
-}));
+	}),
+});
 
-mock.module("@/lib/singleFlight", () => ({
+stub(singleFlight, {
 	singleFlight: async (_job: string, fn: (tx: unknown) => Promise<unknown>) => {
 		if (lockHeld) return { ran: false };
 		const tx = {
@@ -77,9 +70,9 @@ mock.module("@/lib/singleFlight", () => ({
 		};
 		return { ran: true, result: await fn(tx) };
 	},
-}));
+});
 
-mock.module("@superset/trpc/account-purge", () => ({
+stub(accountPurge, {
 	findOrganizationSolelyOwnedBy: async (userId: string) =>
 		soleOwnerOf.get(userId) ?? null,
 	purgeAccount: async (userId: string) => {
@@ -88,7 +81,7 @@ mock.module("@superset/trpc/account-purge", () => ({
 		const user = userById(userId);
 		if (user) user.deletedAt = NOW;
 	},
-}));
+});
 
 const { POST } = await import("./route");
 

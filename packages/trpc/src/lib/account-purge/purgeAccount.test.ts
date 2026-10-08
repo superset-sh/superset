@@ -1,7 +1,11 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { stripeClient } from "@superset/auth/stripe";
+import { db, dbWs } from "@superset/db/client";
 import type { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { setTestEnv } from "../../../test/env";
+import { stub } from "../../../test/stub";
+import * as pageStore from "../page-store";
 
 interface FakeOrganization {
 	id: string;
@@ -46,117 +50,102 @@ setTestEnv({
 	POSTHOG_API_KEY: "phx_test",
 });
 
-mock.module("@superset/db/client", () => {
-	const tx = {
-		delete: () => ({ where: async () => {} }),
-		update: () => ({ set: () => ({ where: async () => {} }) }),
-	};
-	return {
-		db: {
-			query: {
-				members: {
-					findMany: async () =>
-						organizations
-							.filter((org) => org.memberIds.includes(USER_ID))
-							.map((org) => ({ organizationId: org.id, userId: USER_ID })),
+const tx = {
+	delete: () => ({ where: async () => {} }),
+	update: () => ({ set: () => ({ where: async () => {} }) }),
+};
+
+stub(db.query.members, {
+	findMany: async () =>
+		organizations
+			.filter((org) => org.memberIds.includes(USER_ID))
+			.map((org) => ({ organizationId: org.id, userId: USER_ID })),
+});
+stub(db.query.subscriptions, {
+	findFirst: async ({ where }: { where: SQL }) => {
+		const subscription = organizationById(firstParam(where)).subscription;
+		return subscription && { ...subscription, status: "active" };
+	},
+});
+stub(db.query.organizations, {
+	findFirst: async ({ where }: { where: SQL }) => {
+		const organization = organizationById(firstParam(where));
+		return {
+			id: organization.id,
+			stripeCustomerId: organization.stripeCustomerId,
+		};
+	},
+});
+stub(db, {
+	select: () => ({
+		from: () => ({
+			where: async (condition: SQL) => [
+				{
+					value: organizationById(firstParam(condition)).memberIds.length - 1,
 				},
-				subscriptions: {
-					findFirst: async ({ where }: { where: SQL }) => {
-						const subscription = organizationById(
-							firstParam(where),
-						).subscription;
-						return subscription && { ...subscription, status: "active" };
-					},
-				},
-				organizations: {
-					findFirst: async ({ where }: { where: SQL }) => {
-						const organization = organizationById(firstParam(where));
-						return {
-							id: organization.id,
-							stripeCustomerId: organization.stripeCustomerId,
-						};
-					},
-				},
-			},
-			select: () => ({
-				from: () => ({
-					where: async (condition: SQL) => [
-						{
-							value:
-								organizationById(firstParam(condition)).memberIds.length - 1,
-						},
-					],
-				}),
-			}),
-			delete: () => ({
-				where: async (condition: SQL) => {
-					log.push(`organization.delete ${firstParam(condition)}`);
-				},
-			}),
+			],
+		}),
+	}),
+	delete: () => ({
+		where: async (condition: SQL) => {
+			log.push(`organization.delete ${firstParam(condition)}`);
 		},
-		dbWs: {
-			transaction: async (run: (transaction: typeof tx) => Promise<void>) => {
-				await run(tx);
-				log.push("tombstone");
-			},
-		},
-	};
+	}),
+});
+stub(dbWs, {
+	transaction: async (run: (transaction: typeof tx) => Promise<void>) => {
+		await run(tx);
+		log.push("tombstone");
+	},
 });
 
-mock.module("../page-store", () => ({
+stub(pageStore, {
 	purgePageStorageForUser: async (userId: string) => {
 		log.push(`page-storage.purge ${userId}`);
 		if (failPageStoragePurge) throw failPageStoragePurge;
 		return { pages: 0, cleared: 0 };
 	},
-	callPageStore: async () => ({ ok: true }),
-	deletePageStorage: async () => {},
-	notifyPageHub: () => {},
-}));
+});
 
-mock.module("@superset/auth/stripe", () => ({
-	stripeClient: {
-		subscriptions: {
-			retrieve: async () => ({ items: { data: [{ id: "si_1" }] } }),
-			update: async (
-				id: string,
-				params: { items: Array<{ quantity: number }> },
-			) => {
-				log.push(`subscription.update ${id} ${params.items[0]?.quantity}`);
-			},
-			list: async ({ customer }: { customer: string }) => ({
-				data: customerById(customer).activeSubscriptionIds.map((id) => ({
-					id,
-				})),
-			}),
-			cancel: async (id: string) => {
-				log.push(`subscription.cancel ${id}`);
-			},
-		},
-		charges: {
-			list: ({ customer }: { customer: string }) => {
-				log.push(`charges.list ${customer}`);
-				const { charges } = customerById(customer);
-				return (async function* () {
-					yield* charges;
-				})();
-			},
-		},
-		customers: {
-			del: async (id: string) => {
-				if (failCustomerDelete) throw failCustomerDelete;
-				const customer = customerById(id);
-				if (customer.deleted) {
-					throw Object.assign(new Error(`No such customer: '${id}'`), {
-						code: "resource_missing",
-					});
-				}
-				customer.deleted = true;
-				log.push(`customer.delete ${id}`);
-			},
-		},
+stub(stripeClient.subscriptions, {
+	retrieve: async () => ({ items: { data: [{ id: "si_1" }] } }),
+	update: async (
+		id: string,
+		params: { items: Array<{ quantity: number }> },
+	) => {
+		log.push(`subscription.update ${id} ${params.items[0]?.quantity}`);
 	},
-}));
+	list: async ({ customer }: { customer: string }) => ({
+		data: customerById(customer).activeSubscriptionIds.map((id) => ({
+			id,
+		})),
+	}),
+	cancel: async (id: string) => {
+		log.push(`subscription.cancel ${id}`);
+	},
+});
+stub(stripeClient.charges, {
+	list: ({ customer }: { customer: string }) => {
+		log.push(`charges.list ${customer}`);
+		const { charges } = customerById(customer);
+		return (async function* () {
+			yield* charges;
+		})();
+	},
+});
+stub(stripeClient.customers, {
+	del: async (id: string) => {
+		if (failCustomerDelete) throw failCustomerDelete;
+		const customer = customerById(id);
+		if (customer.deleted) {
+			throw Object.assign(new Error(`No such customer: '${id}'`), {
+				code: "resource_missing",
+			});
+		}
+		customer.deleted = true;
+		log.push(`customer.delete ${id}`);
+	},
+});
 
 const { purgeAccount } = await import("./purgeAccount");
 const purge = () => purgeAccount(USER_ID);
