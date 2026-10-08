@@ -2243,9 +2243,6 @@ msgstr "Anthropic tento token odmítl."
 msgid "any account"
 msgstr "libovolný účet"
 
-msgid "Any agent can publish with the Superset CLI or over MCP."
-msgstr "Každý agent může publikovat přes Superset CLI nebo přes MCP."
-
 msgid "Any channel"
 msgstr "Jakýkoli kanál"
 
@@ -3580,9 +3577,6 @@ msgstr "Zvolte, kdy vás Superset upozorní."
 
 msgid "Choose where agents started from comments, design mode, and Pages open."
 msgstr "Vyberte, kde se otevřou agenti spuštění z komentářů, režimu návrhu a stránek Pages."
-
-msgid "Choose who can open each page, from just you to anyone with the link."
-msgstr "Vyberte, kdo může každou stránku otevřít, od jen vás po kohokoli s odkazem."
 
 msgid "Churn"
 msgstr "Odchody"
@@ -12498,9 +12492,6 @@ msgstr "Náhled oznámení: varování"
 msgid "Preview: GitHub star nag toast"
 msgstr "Náhled: připomínka hvězdičky na GitHubu"
 
-msgid "Previews in Slack"
-msgstr "Náhledy ve Slacku"
-
 msgid "Previous"
 msgstr "Předchozí"
 
@@ -12754,6 +12745,9 @@ msgstr "Veřejný žebříček"
 
 msgid "Publish again and the link stays the same. Earlier versions are kept in the history."
 msgstr "Publikujte znovu a odkaz zůstane stejný. Starší verze zůstávají v historii."
+
+msgid "Publish from the Superset CLI or over MCP."
+msgstr "Publikujte ze Superset CLI nebo přes MCP."
 
 msgid "Published"
 msgstr "Publikováno"
@@ -14812,9 +14806,6 @@ msgstr "Sdílet"
 msgid "Share agent work as a link your team can comment on."
 msgstr "Sdílejte práci agenta jako odkaz, který může váš tým komentovat."
 
-msgid "Share as wide as you need"
-msgstr "Sdílejte tak široce, jak potřebujete"
-
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Sdílejte návrhy a zprávy. Zpětnou vazbu nechte na svém agentovi."
 
@@ -14847,9 +14838,6 @@ msgstr "Sdílené komponenty aplikace"
 
 msgid "Shared component library."
 msgstr "Sdílená knihovna komponent."
-
-msgid "Shared links unfurl with a thumbnail of the page."
-msgstr "Sdílené odkazy se zobrazují s náhledem stránky."
 
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "Sdílené JSON soubory motivů, které si můžete naimportovat do Superset."

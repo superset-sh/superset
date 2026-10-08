@@ -13,7 +13,8 @@ export function HowItWorks() {
 	const reducedMotion = useReducedMotion();
 	const [active, setActive] = useState(0);
 	const [pinned, setPinned] = useState(false);
-	const autoplay = inView && !pinned && !reducedMotion;
+	const [hovering, setHovering] = useState(false);
+	const autoplay = inView && !pinned && !hovering && !reducedMotion;
 
 	useEffect(() => {
 		if (!autoplay) return;
@@ -39,6 +40,8 @@ export function HowItWorks() {
 				active={active}
 				autoplay={autoplay}
 				onSelect={select}
+				onPreview={setActive}
+				onHoverChange={setHovering}
 			/>
 			<StepStage step={LOOP_STEPS[active]?.id ?? "create"} />
 		</div>

@@ -2243,9 +2243,6 @@ msgstr "Anthropic rejected this token."
 msgid "any account"
 msgstr "any account"
 
-msgid "Any agent can publish with the Superset CLI or over MCP."
-msgstr "Any agent can publish with the Superset CLI or over MCP."
-
 msgid "Any channel"
 msgstr "Any channel"
 
@@ -3580,9 +3577,6 @@ msgstr "Choose when Superset pings you."
 
 msgid "Choose where agents started from comments, design mode, and Pages open."
 msgstr "Choose where agents started from comments, design mode, and Pages open."
-
-msgid "Choose who can open each page, from just you to anyone with the link."
-msgstr "Choose who can open each page, from just you to anyone with the link."
 
 msgid "Churn"
 msgstr "Churn"
@@ -12498,9 +12492,6 @@ msgstr "Preview notice: warning"
 msgid "Preview: GitHub star nag toast"
 msgstr "Preview: GitHub star nag toast"
 
-msgid "Previews in Slack"
-msgstr "Previews in Slack"
-
 msgid "Previous"
 msgstr "Previous"
 
@@ -12754,6 +12745,9 @@ msgstr "Public leaderboard"
 
 msgid "Publish again and the link stays the same. Earlier versions are kept in the history."
 msgstr "Publish again and the link stays the same. Earlier versions are kept in the history."
+
+msgid "Publish from the Superset CLI or over MCP."
+msgstr "Publish from the Superset CLI or over MCP."
 
 msgid "Published"
 msgstr "Published"
@@ -14812,9 +14806,6 @@ msgstr "Share"
 msgid "Share agent work as a link your team can comment on."
 msgstr "Share agent work as a link your team can comment on."
 
-msgid "Share as wide as you need"
-msgstr "Share as wide as you need"
-
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Share designs and reports. Let your agent handle the feedback."
 
@@ -14847,9 +14838,6 @@ msgstr "Shared app components"
 
 msgid "Shared component library."
 msgstr "Shared component library."
-
-msgid "Shared links unfurl with a thumbnail of the page."
-msgstr "Shared links unfurl with a thumbnail of the page."
 
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "Shared theme JSON files you can import into Superset."

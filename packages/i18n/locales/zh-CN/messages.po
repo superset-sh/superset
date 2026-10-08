@@ -2243,9 +2243,6 @@ msgstr "Anthropic拒绝了此令牌。"
 msgid "any account"
 msgstr "任意账号"
 
-msgid "Any agent can publish with the Superset CLI or over MCP."
-msgstr "任何智能体都可以用 Superset CLI 或通过 MCP 发布。"
-
 msgid "Any channel"
 msgstr "任意频道"
 
@@ -3580,9 +3577,6 @@ msgstr "选择Superset在什么时候通知你。"
 
 msgid "Choose where agents started from comments, design mode, and Pages open."
 msgstr "选择从评论、设计模式和 Pages 启动的智能体的打开位置。"
-
-msgid "Choose who can open each page, from just you to anyone with the link."
-msgstr "为每个页面选择谁能打开，从仅你自己到任何拿到链接的人。"
 
 msgid "Churn"
 msgstr "流失"
@@ -12498,9 +12492,6 @@ msgstr "通知预览：警告"
 msgid "Preview: GitHub star nag toast"
 msgstr "预览：GitHub 星标提醒弹窗"
 
-msgid "Previews in Slack"
-msgstr "在 Slack 中预览"
-
 msgid "Previous"
 msgstr "上一页"
 
@@ -12754,6 +12745,9 @@ msgstr "公开排行榜"
 
 msgid "Publish again and the link stays the same. Earlier versions are kept in the history."
 msgstr "再次发布时链接不变。旧版本会保留在历史记录中。"
+
+msgid "Publish from the Superset CLI or over MCP."
+msgstr "通过 Superset CLI 或 MCP 发布。"
 
 msgid "Published"
 msgstr "发布时间"
@@ -14812,9 +14806,6 @@ msgstr "分享"
 msgid "Share agent work as a link your team can comment on."
 msgstr "以链接形式分享智能体的成果，让团队可以评论。"
 
-msgid "Share as wide as you need"
-msgstr "按需选择分享范围"
-
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "分享设计和报告，让你的智能体处理反馈。"
 
@@ -14847,9 +14838,6 @@ msgstr "共享应用组件"
 
 msgid "Shared component library."
 msgstr "共享组件库。"
-
-msgid "Shared links unfurl with a thumbnail of the page."
-msgstr "分享的链接会展开为页面缩略图。"
 
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "可导入Superset的共享主题JSON文件。"

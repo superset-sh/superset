@@ -2243,9 +2243,6 @@ msgstr "Anthropic bu token'ı reddetti."
 msgid "any account"
 msgstr "herhangi bir hesap"
 
-msgid "Any agent can publish with the Superset CLI or over MCP."
-msgstr "Her ajan Superset CLI ile veya MCP üzerinden yayınlayabilir."
-
 msgid "Any channel"
 msgstr "Tüm kanallar"
 
@@ -3580,9 +3577,6 @@ msgstr "Superset'in sizi ne zaman uyaracağını seçin."
 
 msgid "Choose where agents started from comments, design mode, and Pages open."
 msgstr "Yorumlardan, tasarım modundan ve Pages üzerinden başlatılan ajanların nerede açılacağını seçin."
-
-msgid "Choose who can open each page, from just you to anyone with the link."
-msgstr "Her sayfayı kimin açabileceğini seçin: yalnızca sizden bağlantıya sahip herkese kadar."
 
 msgid "Churn"
 msgstr "Kayıp"
@@ -12498,9 +12492,6 @@ msgstr "Bildirim önizlemesi: uyarı"
 msgid "Preview: GitHub star nag toast"
 msgstr "Önizleme: GitHub yıldız hatırlatma bildirimi"
 
-msgid "Previews in Slack"
-msgstr "Slack'te önizlemeler"
-
 msgid "Previous"
 msgstr "Önceki"
 
@@ -12754,6 +12745,9 @@ msgstr "Herkese açık lider tablosu"
 
 msgid "Publish again and the link stays the same. Earlier versions are kept in the history."
 msgstr "Yeniden yayınlayın, bağlantı aynı kalır. Önceki sürümler geçmişte saklanır."
+
+msgid "Publish from the Superset CLI or over MCP."
+msgstr "Superset CLI'dan veya MCP üzerinden yayınlayın."
 
 msgid "Published"
 msgstr "Yayınlanma"
@@ -14812,9 +14806,6 @@ msgstr "Paylaş"
 msgid "Share agent work as a link your team can comment on."
 msgstr "Ajan çalışmalarını ekibinizin yorum yapabileceği bir bağlantı olarak paylaşın."
 
-msgid "Share as wide as you need"
-msgstr "İhtiyacınız kadar geniş paylaşın"
-
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Tasarımları ve raporları paylaşın. Geri bildirimleri ajanınız ele alsın."
 
@@ -14847,9 +14838,6 @@ msgstr "Paylaşılan uygulama bileşenleri"
 
 msgid "Shared component library."
 msgstr "Paylaşılan bileşen kitaplığı."
-
-msgid "Shared links unfurl with a thumbnail of the page."
-msgstr "Paylaşılan bağlantılar sayfanın küçük resmiyle açılır."
 
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "Superset'e içe aktarabileceğiniz paylaşılan tema JSON dosyaları."

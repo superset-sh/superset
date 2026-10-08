@@ -51,16 +51,9 @@ export const FEATURES: PagesItem[] = [
 		}),
 	},
 	{
-		title: msg({ message: "Share as wide as you need" }),
-		description: msg({
-			message:
-				"Choose who can open each page, from just you to anyone with the link.",
-		}),
-	},
-	{
 		title: msg({ message: "Works with any agent" }),
 		description: msg({
-			message: "Any agent can publish with the Superset CLI or over MCP.",
+			message: "Publish from the Superset CLI or over MCP.",
 		}),
 	},
 	{
@@ -74,12 +67,6 @@ export const FEATURES: PagesItem[] = [
 		description: msg({
 			message:
 				"A page can save each reader's answer, so a poll works with no backend.",
-		}),
-	},
-	{
-		title: msg({ message: "Previews in Slack" }),
-		description: msg({
-			message: "Shared links unfurl with a thumbnail of the page.",
 		}),
 	},
 ];

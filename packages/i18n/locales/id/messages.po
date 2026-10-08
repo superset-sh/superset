@@ -2243,9 +2243,6 @@ msgstr "Anthropic menolak token ini."
 msgid "any account"
 msgstr "akun apa pun"
 
-msgid "Any agent can publish with the Superset CLI or over MCP."
-msgstr "Agen apa pun bisa menerbitkan dengan Superset CLI atau lewat MCP."
-
 msgid "Any channel"
 msgstr "Channel mana pun"
 
@@ -3580,9 +3577,6 @@ msgstr "Pilih kapan Superset memberi tahu Anda."
 
 msgid "Choose where agents started from comments, design mode, and Pages open."
 msgstr "Pilih tempat membuka agen yang dimulai dari komentar, mode desain, dan Pages."
-
-msgid "Choose who can open each page, from just you to anyone with the link."
-msgstr "Pilih siapa yang bisa membuka tiap halaman, dari hanya Anda sampai siapa pun yang punya tautan."
 
 msgid "Churn"
 msgstr "Churn"
@@ -12498,9 +12492,6 @@ msgstr "Pratinjau pemberitahuan: peringatan"
 msgid "Preview: GitHub star nag toast"
 msgstr "Pratinjau: pengingat bintang GitHub"
 
-msgid "Previews in Slack"
-msgstr "Pratinjau di Slack"
-
 msgid "Previous"
 msgstr "Sebelumnya"
 
@@ -12754,6 +12745,9 @@ msgstr "Papan peringkat publik"
 
 msgid "Publish again and the link stays the same. Earlier versions are kept in the history."
 msgstr "Terbitkan lagi dan tautannya tetap sama. Versi sebelumnya disimpan di riwayat."
+
+msgid "Publish from the Superset CLI or over MCP."
+msgstr "Terbitkan dari Superset CLI atau lewat MCP."
 
 msgid "Published"
 msgstr "Diterbitkan"
@@ -14812,9 +14806,6 @@ msgstr "Bagikan"
 msgid "Share agent work as a link your team can comment on."
 msgstr "Bagikan hasil kerja agen sebagai tautan yang bisa dikomentari tim Anda."
 
-msgid "Share as wide as you need"
-msgstr "Bagikan seluas yang Anda perlukan"
-
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Bagikan desain dan laporan. Biarkan agen Anda menangani masukan."
 
@@ -14847,9 +14838,6 @@ msgstr "Komponen aplikasi bersama"
 
 msgid "Shared component library."
 msgstr "Pustaka komponen bersama."
-
-msgid "Shared links unfurl with a thumbnail of the page."
-msgstr "Tautan yang dibagikan menampilkan thumbnail halaman."
 
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "File JSON tema bersama yang bisa Anda impor ke Superset."

@@ -15,9 +15,18 @@ interface StepListProps {
 	active: number;
 	autoplay: boolean;
 	onSelect: (index: number) => void;
+	onPreview: (index: number) => void;
+	onHoverChange: (hovering: boolean) => void;
 }
 
-export function StepList({ steps, active, autoplay, onSelect }: StepListProps) {
+export function StepList({
+	steps,
+	active,
+	autoplay,
+	onSelect,
+	onPreview,
+	onHoverChange,
+}: StepListProps) {
 	const { t } = useLingui();
 
 	const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -38,6 +47,8 @@ export function StepList({ steps, active, autoplay, onSelect }: StepListProps) {
 				role="tablist"
 				aria-orientation="vertical"
 				onKeyDown={onKeyDown}
+				onMouseEnter={() => onHoverChange(true)}
+				onMouseLeave={() => onHoverChange(false)}
 				className="flex flex-1 flex-col divide-y divide-border"
 			>
 				{steps.map((step, index) => {
@@ -50,6 +61,7 @@ export function StepList({ steps, active, autoplay, onSelect }: StepListProps) {
 							aria-selected={selected}
 							tabIndex={selected ? 0 : -1}
 							onClick={() => onSelect(index)}
+							onMouseEnter={() => onPreview(index)}
 							className={`relative flex flex-1 gap-4 px-6 py-5 text-left transition-colors ${selected ? "bg-muted/60" : "hover:bg-muted/30"}`}
 						>
 							<span className="pt-1 font-mono text-brand text-xs">

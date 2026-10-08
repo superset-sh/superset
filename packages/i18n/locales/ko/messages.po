@@ -2243,9 +2243,6 @@ msgstr "Anthropic이 이 토큰을 거부했습니다."
 msgid "any account"
 msgstr "모든 계정"
 
-msgid "Any agent can publish with the Superset CLI or over MCP."
-msgstr "어떤 에이전트든 Superset CLI나 MCP로 게시할 수 있습니다."
-
 msgid "Any channel"
 msgstr "모든 채널"
 
@@ -3580,9 +3577,6 @@ msgstr "Superset이 언제 알릴지 선택하세요."
 
 msgid "Choose where agents started from comments, design mode, and Pages open."
 msgstr "댓글, 디자인 모드 및 Pages에서 시작한 에이전트를 열 위치를 선택하세요."
-
-msgid "Choose who can open each page, from just you to anyone with the link."
-msgstr "나만 보기부터 링크가 있는 누구나까지, 페이지마다 열람 범위를 정하세요."
 
 msgid "Churn"
 msgstr "이탈"
@@ -12498,9 +12492,6 @@ msgstr "알림 미리보기: 경고"
 msgid "Preview: GitHub star nag toast"
 msgstr "미리보기: GitHub 스타 요청 토스트"
 
-msgid "Previews in Slack"
-msgstr "Slack에서 미리보기"
-
 msgid "Previous"
 msgstr "이전"
 
@@ -12754,6 +12745,9 @@ msgstr "공개 리더보드"
 
 msgid "Publish again and the link stays the same. Earlier versions are kept in the history."
 msgstr "다시 게시해도 링크는 그대로입니다. 이전 버전은 기록에 남습니다."
+
+msgid "Publish from the Superset CLI or over MCP."
+msgstr "Superset CLI나 MCP로 게시하세요."
 
 msgid "Published"
 msgstr "게시일"
@@ -14812,9 +14806,6 @@ msgstr "공유"
 msgid "Share agent work as a link your team can comment on."
 msgstr "에이전트의 작업을 팀이 댓글을 달 수 있는 링크로 공유하세요."
 
-msgid "Share as wide as you need"
-msgstr "필요한 만큼 넓게 공유"
-
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "디자인과 보고서를 공유하세요. 피드백 처리는 에이전트에게 맡기세요."
 
@@ -14847,9 +14838,6 @@ msgstr "공용 앱 컴포넌트"
 
 msgid "Shared component library."
 msgstr "공유 컴포넌트 라이브러리입니다."
-
-msgid "Shared links unfurl with a thumbnail of the page."
-msgstr "공유한 링크는 페이지 썸네일과 함께 펼쳐집니다."
 
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "Superset으로 가져올 수 있는 공유 테마 JSON 파일입니다."

@@ -2243,9 +2243,6 @@ msgstr "Anthropic a rejeté ce jeton."
 msgid "any account"
 msgstr "n'importe quel compte"
 
-msgid "Any agent can publish with the Superset CLI or over MCP."
-msgstr "N'importe quel agent peut publier avec la CLI Superset ou via MCP."
-
 msgid "Any channel"
 msgstr "Tout canal"
 
@@ -3580,9 +3577,6 @@ msgstr "Choisissez quand Superset vous notifie."
 
 msgid "Choose where agents started from comments, design mode, and Pages open."
 msgstr "Choisissez où ouvrir les agents lancés depuis les commentaires, le mode design et Pages."
-
-msgid "Choose who can open each page, from just you to anyone with the link."
-msgstr "Choisissez qui peut ouvrir chaque page, de vous seul à toute personne ayant le lien."
 
 msgid "Churn"
 msgstr "Attrition"
@@ -12498,9 +12492,6 @@ msgstr "Aperçu de notification : avertissement"
 msgid "Preview: GitHub star nag toast"
 msgstr "Aperçu : toast de rappel d'étoile GitHub"
 
-msgid "Previews in Slack"
-msgstr "Aperçus dans Slack"
-
 msgid "Previous"
 msgstr "Précédent"
 
@@ -12754,6 +12745,9 @@ msgstr "Classement public"
 
 msgid "Publish again and the link stays the same. Earlier versions are kept in the history."
 msgstr "Publiez à nouveau, le lien reste le même. Les versions précédentes sont conservées dans l'historique."
+
+msgid "Publish from the Superset CLI or over MCP."
+msgstr "Publiez depuis la CLI Superset ou via MCP."
 
 msgid "Published"
 msgstr "Publiée"
@@ -14812,9 +14806,6 @@ msgstr "Partager"
 msgid "Share agent work as a link your team can comment on."
 msgstr "Partagez le travail de l'agent sous forme de lien que votre équipe peut commenter."
 
-msgid "Share as wide as you need"
-msgstr "Partagez aussi largement que nécessaire"
-
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Partagez des maquettes et des rapports. Laissez votre agent traiter les retours."
 
@@ -14847,9 +14838,6 @@ msgstr "Composants d'application partagés"
 
 msgid "Shared component library."
 msgstr "Bibliothèque de composants partagée."
-
-msgid "Shared links unfurl with a thumbnail of the page."
-msgstr "Les liens partagés s'affichent avec une miniature de la page."
 
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "Des fichiers JSON de thèmes partagés que vous pouvez importer dans Superset."

@@ -2243,9 +2243,6 @@ msgstr "Anthropic đã từ chối token này."
 msgid "any account"
 msgstr "bất kỳ tài khoản nào"
 
-msgid "Any agent can publish with the Superset CLI or over MCP."
-msgstr "Mọi agent đều có thể xuất bản bằng Superset CLI hoặc qua MCP."
-
 msgid "Any channel"
 msgstr "Kênh bất kỳ"
 
@@ -3580,9 +3577,6 @@ msgstr "Chọn khi nào Superset báo cho bạn."
 
 msgid "Choose where agents started from comments, design mode, and Pages open."
 msgstr "Chọn nơi mở tác nhân được khởi chạy từ bình luận, chế độ thiết kế và Pages."
-
-msgid "Choose who can open each page, from just you to anyone with the link."
-msgstr "Chọn ai có thể mở từng trang, từ chỉ mình bạn đến bất kỳ ai có liên kết."
 
 msgid "Churn"
 msgstr "Rời bỏ"
@@ -12498,9 +12492,6 @@ msgstr "Xem trước thông báo: cảnh báo"
 msgid "Preview: GitHub star nag toast"
 msgstr "Xem trước: lời nhắc gắn sao GitHub"
 
-msgid "Previews in Slack"
-msgstr "Xem trước trong Slack"
-
 msgid "Previous"
 msgstr "Trước"
 
@@ -12754,6 +12745,9 @@ msgstr "Bảng xếp hạng công khai"
 
 msgid "Publish again and the link stays the same. Earlier versions are kept in the history."
 msgstr "Xuất bản lại và liên kết vẫn giữ nguyên. Các phiên bản trước được lưu trong lịch sử."
+
+msgid "Publish from the Superset CLI or over MCP."
+msgstr "Xuất bản từ Superset CLI hoặc qua MCP."
 
 msgid "Published"
 msgstr "Phát hành"
@@ -14812,9 +14806,6 @@ msgstr "Chia sẻ"
 msgid "Share agent work as a link your team can comment on."
 msgstr "Chia sẻ công việc của agent dưới dạng liên kết để nhóm bạn bình luận."
 
-msgid "Share as wide as you need"
-msgstr "Chia sẻ rộng tùy ý"
-
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Chia sẻ thiết kế và báo cáo. Hãy để agent của bạn xử lý phản hồi."
 
@@ -14847,9 +14838,6 @@ msgstr "Component dùng chung của ứng dụng"
 
 msgid "Shared component library."
 msgstr "Thư viện component dùng chung."
-
-msgid "Shared links unfurl with a thumbnail of the page."
-msgstr "Liên kết được chia sẻ hiển thị hình thu nhỏ của trang."
 
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "Các tệp JSON chủ đề được chia sẻ, bạn có thể nhập vào Superset."

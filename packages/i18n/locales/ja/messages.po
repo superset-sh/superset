@@ -2243,9 +2243,6 @@ msgstr "Anthropicがこのトークンを拒否しました。"
 msgid "any account"
 msgstr "すべてのアカウント"
 
-msgid "Any agent can publish with the Superset CLI or over MCP."
-msgstr "どのエージェントも Superset CLI か MCP で公開できます。"
-
 msgid "Any channel"
 msgstr "すべてのチャンネル"
 
@@ -3580,9 +3577,6 @@ msgstr "Supersetから通知するタイミングを選びます。"
 
 msgid "Choose where agents started from comments, design mode, and Pages open."
 msgstr "コメント、デザインモード、Pages から起動したエージェントを開く場所を選択します。"
-
-msgid "Choose who can open each page, from just you to anyone with the link."
-msgstr "自分だけからリンクを知っている全員まで、ページごとに公開範囲を選べます。"
 
 msgid "Churn"
 msgstr "解約"
@@ -12498,9 +12492,6 @@ msgstr "通知プレビュー: 警告"
 msgid "Preview: GitHub star nag toast"
 msgstr "プレビュー: GitHub スター催促トースト"
 
-msgid "Previews in Slack"
-msgstr "Slack でプレビュー"
-
 msgid "Previous"
 msgstr "前へ"
 
@@ -12754,6 +12745,9 @@ msgstr "公開リーダーボード"
 
 msgid "Publish again and the link stays the same. Earlier versions are kept in the history."
 msgstr "もう一度公開してもリンクは変わりません。以前のバージョンは履歴に残ります。"
+
+msgid "Publish from the Superset CLI or over MCP."
+msgstr "Superset CLI か MCP 経由で公開できます。"
 
 msgid "Published"
 msgstr "公開日"
@@ -14812,9 +14806,6 @@ msgstr "共有"
 msgid "Share agent work as a link your team can comment on."
 msgstr "エージェントの成果を、チームがコメントできるリンクで共有しましょう。"
 
-msgid "Share as wide as you need"
-msgstr "必要な範囲に共有"
-
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "デザインやレポートを共有しましょう。フィードバックへの対応はエージェントに任せられます。"
 
@@ -14847,9 +14838,6 @@ msgstr "共有アプリコンポーネント"
 
 msgid "Shared component library."
 msgstr "共有コンポーネントライブラリ。"
-
-msgid "Shared links unfurl with a thumbnail of the page."
-msgstr "共有したリンクは、ページのサムネイル付きで展開されます。"
 
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "Supersetにインポートできる、共有されたテーマJSONファイル。"

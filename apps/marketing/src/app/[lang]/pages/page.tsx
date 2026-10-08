@@ -103,7 +103,7 @@ export default async function PagesPage() {
 					<h2 className="font-medium text-3xl text-foreground tracking-tight sm:text-4xl">
 						<Trans>What every page gets.</Trans>
 					</h2>
-					<div className="mt-12 grid gap-px overflow-hidden border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+					<div className="mt-12 grid gap-px overflow-hidden border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
 						{FEATURES.map((feature) => (
 							<div key={feature.title.id} className="bg-background p-6 sm:p-8">
 								<h3 className="font-medium text-foreground">

@@ -2243,9 +2243,6 @@ msgstr "Anthropic heeft dit token geweigerd."
 msgid "any account"
 msgstr "elk account"
 
-msgid "Any agent can publish with the Superset CLI or over MCP."
-msgstr "Elke agent kan publiceren met de Superset CLI of via MCP."
-
 msgid "Any channel"
 msgstr "Elk kanaal"
 
@@ -3580,9 +3577,6 @@ msgstr "Kies wanneer Superset je een seintje geeft."
 
 msgid "Choose where agents started from comments, design mode, and Pages open."
 msgstr "Kies waar agents worden geopend die vanuit opmerkingen, de ontwerpmodus en Pages worden gestart."
-
-msgid "Choose who can open each page, from just you to anyone with the link."
-msgstr "Kies wie elke pagina mag openen, van alleen jij tot iedereen met de link."
 
 msgid "Churn"
 msgstr "Opzeggingen"
@@ -12498,9 +12492,6 @@ msgstr "Meldingsvoorbeeld: waarschuwing"
 msgid "Preview: GitHub star nag toast"
 msgstr "Voorbeeld: GitHub-sterherinnering"
 
-msgid "Previews in Slack"
-msgstr "Voorbeelden in Slack"
-
 msgid "Previous"
 msgstr "Vorige"
 
@@ -12754,6 +12745,9 @@ msgstr "Openbare ranglijst"
 
 msgid "Publish again and the link stays the same. Earlier versions are kept in the history."
 msgstr "Publiceer opnieuw en de link blijft hetzelfde. Eerdere versies blijven bewaard in de geschiedenis."
+
+msgid "Publish from the Superset CLI or over MCP."
+msgstr "Publiceer vanuit de Superset CLI of via MCP."
 
 msgid "Published"
 msgstr "Gepubliceerd"
@@ -14812,9 +14806,6 @@ msgstr "Delen"
 msgid "Share agent work as a link your team can comment on."
 msgstr "Deel het werk van je agent als link waar je team op kan reageren."
 
-msgid "Share as wide as you need"
-msgstr "Deel zo breed als je wilt"
-
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Deel ontwerpen en rapporten. Laat je agent de feedback verwerken."
 
@@ -14847,9 +14838,6 @@ msgstr "Gedeelde app-componenten"
 
 msgid "Shared component library."
 msgstr "Gedeelde componentbibliotheek."
-
-msgid "Shared links unfurl with a thumbnail of the page."
-msgstr "Gedeelde links tonen een miniatuur van de pagina."
 
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "Gedeelde thema-JSON-bestanden die je in Superset kunt importeren."
