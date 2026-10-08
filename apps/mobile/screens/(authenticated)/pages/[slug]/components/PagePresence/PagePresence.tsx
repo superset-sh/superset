@@ -1,14 +1,21 @@
 import { useLingui } from "@lingui/react/macro";
+import type {
+	FrameMessage,
+	HostMessageBody,
+} from "@superset/shared/page-comments-runtime";
 import {
 	cursorPointsFrom,
 	type PageCursorPoint,
 	type PagePresenceViewer,
 	presenceColor,
 } from "@superset/shared/page-presence";
-import { openPresenceWatch } from "@superset/shared/page-presence-watch";
-import type { PageStorageFrameMessage } from "@superset/shared/page-storage";
+import {
+	openPagePresence,
+	type PagePresenceState,
+} from "@superset/shared/page-presence-client";
 import {
 	forwardRef,
+	useCallback,
 	useEffect,
 	useImperativeHandle,
 	useRef,
@@ -19,45 +26,61 @@ import { PresenceAvatars } from "./components/PresenceAvatars";
 import { PresenceCursor } from "./components/PresenceCursor";
 
 export interface PagePresenceHandle {
-	receive: (message: PageStorageFrameMessage) => void;
+	receive: (message: FrameMessage) => void;
+	retrack: () => void;
 }
 
 interface PagePresenceProps {
 	insetTop: number;
-	watchTicket?: () => Promise<string | null>;
+	url: () => Promise<string | null>;
+	send: (message: HostMessageBody) => void;
 }
 
+const EMPTY: PagePresenceState = { viewers: [], cursors: new Map() };
+
 export const PagePresence = forwardRef<PagePresenceHandle, PagePresenceProps>(
-	function PagePresence({ insetTop, watchTicket }, ref) {
+	function PagePresence({ insetTop, url, send }, ref) {
 		const { t } = useLingui();
-		const [viewers, setViewers] = useState<PagePresenceViewer[]>([]);
-		const [cursors, setCursors] = useState<PageCursorPoint[]>([]);
-		const watchTicketRef = useRef(watchTicket);
-		watchTicketRef.current = watchTicket;
-		const watching = Boolean(watchTicket);
+		const [state, setState] = useState<PagePresenceState>(EMPTY);
+		const [points, setPoints] = useState<PageCursorPoint[]>([]);
+		const urlRef = useRef(url);
+		urlRef.current = url;
 
 		useEffect(() => {
-			if (!watching) return;
-			const watch = openPresenceWatch({
-				url: async () => (await watchTicketRef.current?.()) ?? null,
-				onViewers: setViewers,
+			const client = openPagePresence({
+				url: () => urlRef.current(),
+				onChange: setState,
 			});
-			const subscription = AppState.addEventListener("change", (state) => {
-				if (state === "active") watch.wake();
+			const subscription = AppState.addEventListener("change", (next) => {
+				if (next === "active") client.wake();
 			});
 			return () => {
 				subscription.remove();
-				watch.stop();
-				setViewers([]);
+				client.stop();
 			};
-		}, [watching]);
+		}, []);
+
+		const retrack = useCallback(() => {
+			const present = new Set(state.viewers.map((viewer) => viewer.id));
+			send({
+				type: "track-cursors",
+				cursors: [...state.cursors]
+					.filter(([id]) => present.has(id))
+					.map(([id, cursor]) => ({ id, ...cursor })),
+			});
+		}, [state, send]);
+
+		useEffect(() => {
+			retrack();
+		}, [retrack]);
 
 		useImperativeHandle(ref, () => ({
 			receive: (message) => {
-				if (message.type === "cursors") {
-					setCursors(cursorPointsFrom(message.cursors));
+				if (message.type === "cursor-points") {
+					setPoints(cursorPointsFrom(message.points));
 				}
 			},
+			retrack,
 		}));
 
 		const nameOf = (viewer: PagePresenceViewer) => {
@@ -67,10 +90,10 @@ export const PagePresence = forwardRef<PagePresenceHandle, PagePresenceProps>(
 				? t({ message: `Guest ${number}` })
 				: t({ message: "Guest" });
 		};
-		const byId = new Map(viewers.map((viewer) => [viewer.id, viewer]));
+		const byId = new Map(state.viewers.map((viewer) => [viewer.id, viewer]));
 
 		const seen = new Set<string>();
-		const people = viewers.flatMap((viewer) => {
+		const people = state.viewers.flatMap((viewer) => {
 			if (seen.has(viewer.userId)) return [];
 			seen.add(viewer.userId);
 			return [
@@ -90,14 +113,14 @@ export const PagePresence = forwardRef<PagePresenceHandle, PagePresenceProps>(
 					className="absolute inset-x-0 bottom-0 overflow-hidden"
 					style={{ top: insetTop }}
 				>
-					{cursors.map((cursor) => {
-						const viewer = byId.get(cursor.id);
+					{points.map((point) => {
+						const viewer = byId.get(point.id);
 						if (!viewer) return null;
 						return (
 							<PresenceCursor
-								key={cursor.id}
-								x={cursor.x}
-								y={cursor.y}
+								key={point.id}
+								x={point.x}
+								y={point.y}
 								name={nameOf(viewer)}
 								color={presenceColor(viewer.userId)}
 							/>

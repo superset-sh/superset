@@ -1,6 +1,6 @@
 export {
-	type PageViewer,
-	readPageViewers,
-	setPageViewers,
-	usePageViewers,
+	joinPagePresence,
+	setPagePointer,
+	usePagePresence,
+	wakePagePresence,
 } from "./pagePresenceStore";

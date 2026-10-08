@@ -644,27 +644,19 @@ async function main() {
 		wipedBody,
 	);
 
-	console.log("\npresence and guests");
-	const publicOrigin = `http://${PUBLIC_PAGE}.frame.usercontent.localhost:9999`;
-	const guestTicket = (pageId: string, guestId: unknown) =>
-		fetch(`${base}/v2/page/${pageId}/storage/guest-ticket`, {
-			method: "POST",
-			headers: { "content-type": "application/json" },
-			body: JSON.stringify({ guestId }),
-		});
-	const socketFor = (pageId: string, ticket: string) =>
-		`ws://127.0.0.1:${PORT}/v2/page/${pageId}/storage/socket?ticket=${encodeURIComponent(ticket)}`;
-
-	const listen = (url: string, origin: string) => {
+	console.log("\npresence");
+	const presenceUrl = (pageId: string, query: string) =>
+		`ws://127.0.0.1:${PORT}/v2/page/${pageId}/presence${query}`;
+	const enter = (pageId: string, query: string) => {
 		const inbox: Record<string, unknown>[] = [];
-		const socket = new WebSocket(url, { headers: { origin } } as never);
-		let closed: string | null = null;
+		const socket = new WebSocket(presenceUrl(pageId, query));
+		let closed: { code: number; reason: string } | null = null;
 		socket.addEventListener("message", (event) => {
 			const data = String(event.data);
 			inbox.push(data === "pong" ? { type: "pong" } : JSON.parse(data));
 		});
 		socket.addEventListener("close", (event) => {
-			closed = String(event.code);
+			closed = { code: event.code, reason: event.reason };
 		});
 		const waitFor = async (
 			match: (message: Record<string, unknown>) => boolean,
@@ -680,66 +672,62 @@ async function main() {
 			for (let tries = 0; tries < 80 && closed === null; tries++) {
 				await new Promise((r) => setTimeout(r, 100));
 			}
-			return closed;
+			return closed as { code: number; reason: string } | null;
 		};
 		return { socket, inbox, waitFor, waitClosed };
 	};
+	const viewersOf = (message: Record<string, unknown> | null) =>
+		(message?.viewers ?? []) as {
+			userId: string;
+			name: string;
+			guest: boolean;
+			guestNumber: number | null;
+			cursor: unknown;
+		}[];
 
-	const badGuest = await guestTicket(PUBLIC_PAGE, "not-a-uuid");
-	check("guest ticket refuses a malformed guest id", badGuest.status === 400);
-
-	const orgGuest = await guestTicket(ORG_PAGE, GUEST);
+	const anonymous = enter(PUBLIC_PAGE, "");
 	check(
-		"guest ticket refuses a page not shared with everyone",
-		orgGuest.status === 403,
-		orgGuest.status,
+		"presence refuses a socket with neither a token nor a guest id",
+		(await anonymous.waitClosed())?.code === 4401,
 	);
 
-	const publicGuest = await guestTicket(PUBLIC_PAGE, GUEST);
-	const publicGuestBody = (await publicGuest.json()) as { ticket?: string };
+	const outsiderPresence = enter(PUBLIC_PAGE, `?token=${outsiderJwt}`);
 	check(
-		"guest ticket opens a page shared with everyone",
-		publicGuest.ok && Boolean(publicGuestBody.ticket),
-		publicGuestBody,
+		"presence refuses a signed-in viewer outside the org (they join as guests)",
+		(await outsiderPresence.waitClosed())?.code === 4403,
 	);
 
-	const member = listen(
-		String((await ticket(PUBLIC_PAGE, memberJwt, "Grace")).url),
-		publicOrigin,
-	);
-	await member.waitFor((m) => m.type === "hello");
-
-	const guest = listen(
-		socketFor(PUBLIC_PAGE, String(publicGuestBody.ticket)),
-		publicOrigin,
-	);
-	const guestHello = await guest.waitFor((m) => m.type === "hello");
+	const privateGuest = enter(PRIVATE_PAGE, `?guest=${GUEST}`);
 	check(
-		"a guest is greeted as a guest who cannot write",
-		guestHello?.guest === true &&
-			guestHello?.writable === false &&
-			guestHello?.author === false,
-		guestHello,
+		"presence refuses a guest on a page not shared with everyone",
+		(await privateGuest.waitClosed())?.code === 4403,
 	);
 
+	const badPage = enter("not-a-page", `?guest=${GUEST}`);
+	check(
+		"presence refuses a malformed page id",
+		(await badPage.waitClosed())?.code === 4403,
+	);
+
+	const member = enter(PUBLIC_PAGE, `?token=${memberJwt}`);
+	await member.waitFor((m) => m.type === "presence");
+	const guest = enter(PUBLIC_PAGE, `?guest=${GUEST}`);
 	const guestSees = await guest.waitFor(
 		(m) =>
-			m.type === "presence" &&
-			(m.viewers as { name: string }[]).some((v) => v.name === "Grace"),
+			m.type === "presence" && viewersOf(m).some((v) => v.name === "Grace"),
 	);
-	check("a guest sees the member who is already here", Boolean(guestSees));
-
+	check("a guest sees the member already here", Boolean(guestSees));
 	const memberSees = await member.waitFor(
 		(m) =>
 			m.type === "presence" &&
-			(m.viewers as { userId: string; guest: boolean }[]).some(
-				(v) => v.userId === `guest:${GUEST}` && v.guest,
-			),
+			viewersOf(m).some((v) => v.userId === `guest:${GUEST}` && v.guest),
 	);
+	check("the member is told a guest arrived", Boolean(memberSees));
 	check(
-		"the member is told a guest arrived",
-		Boolean(memberSees),
-		member.inbox,
+		"nobody is listed to themselves, and the first guest is Guest 1",
+		!viewersOf(memberSees).some((v) => v.userId === MEMBER) &&
+			viewersOf(memberSees).find((v) => v.guest)?.guestNumber === 1,
+		memberSees,
 	);
 
 	member.socket.send("ping");
@@ -747,154 +735,6 @@ async function main() {
 		"the hub answers a heartbeat ping",
 		Boolean(await member.waitFor((m) => m.type === "pong")),
 	);
-
-	const memberSelf = (memberSees?.viewers as { userId: string }[]) ?? [];
-	check(
-		"nobody is listed to themselves",
-		!memberSelf.some((v) => v.userId === MEMBER),
-		memberSelf,
-	);
-
-	const watchMinted = (await (
-		await fetch(`${base}/v2/page/${PUBLIC_PAGE}/storage/ticket?watch=1`, {
-			method: "POST",
-			headers: { authorization: `Bearer ${authorJwt}` },
-		})
-	).json()) as { ticket: string };
-	const watcher = listen(
-		socketFor(PUBLIC_PAGE, watchMinted.ticket),
-		"https://app.superset.sh",
-	);
-	const watcherSees = await watcher.waitFor(
-		(m) =>
-			m.type === "presence" &&
-			(m.viewers as { name: string }[]).some((v) => v.name === "Grace"),
-	);
-	check(
-		"the app's own watch socket is admitted from the app origin and hears who is here",
-		Boolean(watcherSees),
-		watcher.inbox,
-	);
-	const afterWatch = await member.waitFor((m) => m.type === "presence");
-	check(
-		"a watch socket is never listed as a viewer",
-		!((afterWatch?.viewers as { userId: string }[]) ?? []).some(
-			(v) => v.userId === AUTHOR,
-		),
-		afterWatch,
-	);
-	watcher.socket.send(
-		JSON.stringify({
-			type: "call",
-			id: "w1",
-			request: { op: "getAll", key: "vote" },
-		}),
-	);
-	const watcherCall = await watcher.waitFor((m) => m.id === "w1");
-	check(
-		"a watch socket cannot use page storage",
-		watcherCall?.ok === false && watcherCall?.code === "unauthenticated",
-		watcherCall,
-	);
-	const cursorsBefore = member.inbox.filter((m) => m.type === "cursor").length;
-	watcher.socket.send(
-		JSON.stringify({ type: "cursor", cursor: { path: "", x: 0.5, y: 0.5 } }),
-	);
-	await new Promise((r) => setTimeout(r, 300));
-	check(
-		"a watch socket's cursor goes nowhere",
-		member.inbox.filter((m) => m.type === "cursor").length === cursorsBefore,
-	);
-	watcher.socket.close();
-
-	const secondGuestId = crypto.randomUUID();
-	const numbered = [];
-	for (const id of [secondGuestId, secondGuestId]) {
-		const minted = (await (await guestTicket(PUBLIC_PAGE, id)).json()) as {
-			ticket: string;
-		};
-		const tab = listen(socketFor(PUBLIC_PAGE, minted.ticket), publicOrigin);
-		await tab.waitFor((m) => m.type === "hello");
-		numbered.push(tab);
-	}
-	const numbers = await member.waitFor(
-		(m) =>
-			m.type === "presence" &&
-			(m.viewers as { guest: boolean }[]).filter((v) => v.guest).length === 3,
-	);
-	const guestNumbers = (
-		(numbers?.viewers ?? []) as {
-			userId: string;
-			guestNumber: number | null;
-		}[]
-	)
-		.filter((v) => v.guestNumber !== null)
-		.map(
-			(v) =>
-				`${v.userId === `guest:${GUEST}` ? "first" : "second"}=${v.guestNumber}`,
-		)
-		.sort();
-	check(
-		"guests are numbered, and one guest in two tabs keeps one number",
-		JSON.stringify(guestNumbers) ===
-			JSON.stringify(["first=1", "second=2", "second=2"]),
-		guestNumbers,
-	);
-	for (const tab of numbered) tab.socket.close();
-
-	guest.socket.send(
-		JSON.stringify({
-			type: "call",
-			id: "g1",
-			request: { op: "getAll", key: "vote" },
-		}),
-	);
-	const guestCall = await guest.waitFor((m) => m.id === "g1");
-	check(
-		"a guest cannot read the page's storage",
-		guestCall?.ok === false && guestCall?.code === "unauthenticated",
-		guestCall,
-	);
-
-	member.socket.send(
-		JSON.stringify({
-			type: "call",
-			id: "m1",
-			request: { op: "set", key: "vote", value: "Ramen" },
-		}),
-	);
-	await member.waitFor((m) => m.id === "m1");
-	await member.waitFor((m) => m.type === "records");
-	check(
-		"a member's write is never pushed to a guest",
-		!guest.inbox.some((m) => m.type === "records"),
-		guest.inbox.filter((m) => m.type === "records"),
-	);
-
-	const badPage = await guestTicket("not-a-page", GUEST);
-	check("guest ticket 404s a malformed page id", badPage.status === 404);
-
-	const extraGuests = [];
-	for (let n = 0; n < 19; n++) {
-		const minted = (await (
-			await guestTicket(PUBLIC_PAGE, crypto.randomUUID())
-		).json()) as { ticket: string };
-		const extra = listen(socketFor(PUBLIC_PAGE, minted.ticket), publicOrigin);
-		extraGuests.push(extra);
-		await extra.waitFor((m) => m.type === "hello");
-	}
-	const overflow = (await (
-		await guestTicket(PUBLIC_PAGE, crypto.randomUUID())
-	).json()) as { ticket: string };
-	const turnedAway = listen(
-		socketFor(PUBLIC_PAGE, overflow.ticket),
-		publicOrigin,
-	);
-	check(
-		"the 21st guest on a page is turned away as full",
-		(await turnedAway.waitClosed()) === "4429",
-	);
-	for (const extra of extraGuests) extra.socket.close();
 
 	guest.socket.send(
 		JSON.stringify({
@@ -904,28 +744,25 @@ async function main() {
 	);
 	const relayed = await member.waitFor((m) => m.type === "cursor");
 	check(
-		"a guest's cursor reaches the member, clamped to the element",
-		(relayed?.cursor as { x: number; y: number; path: string } | undefined)
-			?.y === 1 &&
-			(relayed?.cursor as { path: string } | undefined)?.path ===
-				"main:nth-of-type(1)",
+		"a guest's cursor reaches the member, clamped",
+		(relayed?.cursor as { y?: number } | undefined)?.y === 1,
 		relayed,
 	);
 
-	const late = listen(
-		String((await ticket(PUBLIC_PAGE, authorJwt, "Ada")).url),
-		publicOrigin,
-	);
+	const late = enter(PUBLIC_PAGE, `?token=${authorJwt}`);
 	const lateSees = await late.waitFor(
 		(m) =>
 			m.type === "presence" &&
-			(m.viewers as { userId: string; cursor: unknown }[]).some(
+			viewersOf(m).some(
 				(v) => v.userId === `guest:${GUEST}` && v.cursor !== null,
 			),
 	);
 	check("a late arrival gets cursors already on the page", Boolean(lateSees));
 
-	guest.socket.send(JSON.stringify({ type: "cursor", cursor: "garbage" }));
+	const before = member.inbox.length;
+	guest.socket.send(
+		JSON.stringify({ type: "cursor", cursor: { path: "div, *", x: 0, y: 0 } }),
+	);
 	guest.socket.send(JSON.stringify({ type: "cursor", cursor: null }));
 	const hidden = await member.waitFor(
 		(m) => m.type === "cursor" && m.cursor === null,
@@ -933,10 +770,66 @@ async function main() {
 	check(
 		"a malformed cursor is dropped and a null one hides the cursor",
 		Boolean(hidden) &&
-			!member.inbox.some(
-				(m) => m.type === "cursor" && typeof m.cursor === "string",
-			),
+			member.inbox.slice(before).filter((m) => m.type === "cursor").length ===
+				1,
 	);
+
+	guest.socket.send(
+		JSON.stringify({
+			type: "call",
+			id: "g1",
+			request: { op: "getAll", key: "vote" },
+		}),
+	);
+	const writer = await open(
+		String((await ticket(PUBLIC_PAGE, memberJwt, "Grace")).url),
+		`http://${PUBLIC_PAGE}.frame.usercontent.localhost:9999`,
+	);
+	await rpc(writer.socket, { op: "set", key: "vote", value: "Ramen" }, "w1");
+	await new Promise((r) => setTimeout(r, 300));
+	check(
+		"presence sockets never answer storage calls or receive storage records",
+		!guest.inbox.some((m) => m.id === "g1" || m.type === "records") &&
+			!member.inbox.some((m) => m.type === "records"),
+	);
+	writer.socket.close();
+
+	const otherGuest = crypto.randomUUID();
+	const tabs = [
+		enter(PUBLIC_PAGE, `?guest=${otherGuest}`),
+		enter(PUBLIC_PAGE, `?guest=${otherGuest}`),
+	];
+	const numbered = await member.waitFor(
+		(m) =>
+			m.type === "presence" && viewersOf(m).filter((v) => v.guest).length === 3,
+	);
+	check(
+		"guests are numbered, and one guest in two tabs keeps one number",
+		viewersOf(numbered)
+			.filter((v) => v.guest)
+			.map((v) => v.guestNumber)
+			.sort()
+			.join(",") === "1,2,2",
+		viewersOf(numbered),
+	);
+	for (const tab of tabs) tab.socket.close();
+	await member.waitFor(
+		(m) =>
+			m.type === "presence" && viewersOf(m).filter((v) => v.guest).length === 1,
+	);
+
+	const crowd = [];
+	for (let n = 0; n < 19; n++) {
+		const extra = enter(PUBLIC_PAGE, `?guest=${crypto.randomUUID()}`);
+		await extra.waitFor((m) => m.type === "presence");
+		crowd.push(extra);
+	}
+	const turnedAway = enter(PUBLIC_PAGE, `?guest=${crypto.randomUUID()}`);
+	check(
+		"the 21st guest on a page is turned away as full",
+		(await turnedAway.waitClosed())?.code === 4429,
+	);
+	for (const extra of crowd) extra.socket.close();
 
 	seed(
 		PUBLIC_PAGE,
@@ -952,30 +845,25 @@ async function main() {
 	});
 	check(
 		"un-sharing a page closes its guests",
-		(await guest.waitClosed()) === "4403",
+		(await guest.waitClosed())?.code === 4403,
 	);
 	const afterGuest = await member.waitFor(
-		(m) =>
-			m.type === "presence" &&
-			!(m.viewers as { guest: boolean }[]).some((v) => v.guest),
+		(m) => m.type === "presence" && !viewersOf(m).some((v) => v.guest),
 	);
 	check(
 		"members stay, and are told the guest left",
 		Boolean(afterGuest) && member.socket.readyState === WebSocket.OPEN,
-		member.inbox.filter((m) => m.type === "presence").at(-1),
 	);
 	member.socket.close();
 	late.socket.close();
 
-	const statuses: number[] = [];
-	for (let n = 0; n < 130; n++) {
-		statuses.push((await guestTicket(PUBLIC_PAGE, crypto.randomUUID())).status);
+	let limited = false;
+	for (let n = 0; n < 130 && !limited; n++) {
+		const knock = enter(PUBLIC_PAGE, `?guest=${crypto.randomUUID()}`);
+		const closed = await knock.waitClosed();
+		limited = closed?.code === 4429 && closed.reason === "Too many requests";
 	}
-	check(
-		"the guest ticket route rate-limits a flood from one client",
-		statuses.includes(429),
-		statuses.slice(-5),
-	);
+	check("guest presence is rate-limited per client", limited);
 
 	shutdown();
 

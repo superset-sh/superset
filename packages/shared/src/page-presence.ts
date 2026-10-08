@@ -87,7 +87,7 @@ export function presenceViewersFrom(raw: unknown): PagePresenceViewer[] {
 							viewer.image.startsWith("https:")
 								? viewer.image
 								: null,
-						cursor: null,
+						cursor: parsePageCursor(viewer.cursor) ?? null,
 					},
 				]
 			: [],
@@ -103,4 +103,24 @@ export function cursorPointsFrom(raw: unknown): PageCursorPoint[] {
 			? [{ id: cursor.id, x: cursor.x, y: cursor.y }]
 			: [],
 	);
+}
+
+export function pagePresenceUrl({
+	realtimeUrl,
+	pageId,
+	token,
+	guestId,
+}: {
+	realtimeUrl: string;
+	pageId: string;
+	token?: string;
+	guestId?: string;
+}): string {
+	const url = new URL(
+		`/v2/page/${encodeURIComponent(pageId)}/presence`,
+		realtimeUrl.replace(/^http/, "ws"),
+	);
+	if (token) url.searchParams.set("token", token);
+	if (guestId) url.searchParams.set("guest", guestId);
+	return url.toString();
 }

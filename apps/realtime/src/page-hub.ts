@@ -53,21 +53,29 @@ interface Pinned {
 	organizationIds: string[];
 	author: boolean;
 	writable: boolean;
-	guest: boolean;
-	watcher: boolean;
-	guestNumber: number | null;
 	window: number;
 	calls: number;
+	presence?: boolean;
+	guest?: boolean;
+	guestNumber?: number | null;
+}
+
+interface PresenceClaims {
+	userId: string;
+	name: string;
+	image: string | null;
+	organizationIds: string[];
+	guest: boolean;
 }
 
 export const CLAIMS_HEADER = "x-superset-page-claims";
 
 const CALLS_PER_WINDOW = 60;
 const WINDOW_MS = 10_000;
+const MANIFEST_TTL_MS = 60_000;
 const CURSORS_PER_SECOND = 40;
 const SWEEP_MS = 30_000;
 const SILENT_MS = 75_000;
-const MANIFEST_TTL_MS = 60_000;
 
 export class PageHub extends Server<RealtimeEnv> {
 	static options = { hibernate: true };
@@ -76,8 +84,8 @@ export class PageHub extends Server<RealtimeEnv> {
 	private manifest: PageManifest | null = null;
 	private manifestReadAt = 0;
 	private cursors = new Map<string, PageCursor>();
-	private connectingGuests = 0;
 	private cursorBudgets = new Map<string, { second: number; sent: number }>();
+	private connectingGuests = 0;
 
 	constructor(ctx: DurableObjectState, env: RealtimeEnv) {
 		super(ctx, env);
@@ -197,9 +205,9 @@ export class PageHub extends Server<RealtimeEnv> {
 			name: string;
 			image: string | null;
 			organizationIds: string[];
-			guest?: boolean;
-			watch?: boolean;
 			nonce: string;
+			presence?: boolean;
+			guest?: boolean;
 		};
 		try {
 			claims = JSON.parse(raw);
@@ -208,47 +216,24 @@ export class PageHub extends Server<RealtimeEnv> {
 			return;
 		}
 
-		const watcher = claims.watch === true;
+		if (claims.presence === true) {
+			await this.joinPresence(connection, {
+				userId: claims.userId,
+				name: claims.name,
+				image: claims.image,
+				organizationIds: claims.organizationIds,
+				guest: claims.guest === true,
+			});
+			return;
+		}
+
 		const origin = ctx.request.headers.get("origin");
 		const expected = pageFrameOrigin(this.env.USERCONTENT_URL, this.name);
-		if (!watcher && origin !== expected) {
+		if (origin !== expected) {
 			connection.close(4403, "origin");
 			return;
 		}
 
-		const guest = claims.guest === true;
-		if (!guest) {
-			await this.admit(connection, claims, false, watcher);
-			return;
-		}
-		let guests = this.connectingGuests;
-		for (const other of this.getConnections<Pinned>()) {
-			if (other.state?.guest && other.state.watcher === watcher) guests++;
-		}
-		if (guests >= MAX_PAGE_GUESTS) {
-			connection.close(4429, "full");
-			return;
-		}
-		this.connectingGuests++;
-		try {
-			await this.admit(connection, claims, true, watcher);
-		} finally {
-			this.connectingGuests--;
-		}
-	}
-
-	private async admit(
-		connection: Connection<Pinned>,
-		claims: {
-			userId: string;
-			name: string;
-			image: string | null;
-			organizationIds: string[];
-			nonce: string;
-		},
-		guest: boolean,
-		watcher: boolean,
-	): Promise<void> {
 		if (!(await this.spendNonce(claims.nonce, Date.now()))) {
 			connection.close(4401, "ticket spent");
 			return;
@@ -259,10 +244,7 @@ export class PageHub extends Server<RealtimeEnv> {
 			userId: claims.userId,
 			organizationIds: claims.organizationIds,
 		};
-		if (
-			!manifest ||
-			!(guest ? guestReadable(manifest) : readable(manifest, viewer))
-		) {
+		if (!manifest || !readable(manifest, viewer)) {
 			connection.close(4403, "forbidden");
 			return;
 		}
@@ -272,34 +254,13 @@ export class PageHub extends Server<RealtimeEnv> {
 			name: claims.name,
 			image: claims.image,
 			organizationIds: claims.organizationIds,
-			author: !guest && !watcher && manifest.createdByUserId === claims.userId,
-			writable: !guest && !watcher && writableFor(manifest, viewer),
-			guest,
-			watcher,
-			guestNumber:
-				guest && !watcher ? this.guestNumberFor(claims.userId) : null,
+			author: manifest.createdByUserId === claims.userId,
+			writable: writableFor(manifest, viewer),
 			window: 0,
 			calls: 0,
 		};
 		connection.setState(pinned);
 
-		this.send(connection, {
-			type: "hello",
-			viewer: {
-				userId: pinned.userId,
-				name: pinned.name,
-				image: pinned.image,
-			},
-			author: pinned.author,
-			writable: pinned.writable,
-			guest,
-		});
-		this.announce();
-		if ((await this.ctx.storage.getAlarm()) === null) {
-			await this.ctx.storage.setAlarm(Date.now() + SWEEP_MS);
-		}
-
-		if (guest || watcher) return;
 		const now = Date.now();
 		this.ctx.storage.sql.exec(
 			`INSERT INTO visits (user_id, name, image, first_seen_at, last_seen_at)
@@ -314,15 +275,95 @@ export class PageHub extends Server<RealtimeEnv> {
 			now,
 			now,
 		);
+
+		this.send(connection, {
+			type: "hello",
+			viewer: {
+				userId: pinned.userId,
+				name: pinned.name,
+				image: pinned.image,
+			},
+			author: pinned.author,
+			writable: pinned.writable,
+		});
+	}
+
+	private async joinPresence(
+		connection: Connection<Pinned>,
+		claims: PresenceClaims,
+	): Promise<void> {
+		if (claims.guest) {
+			let guests = this.connectingGuests;
+			for (const other of this.getConnections<Pinned>()) {
+				if (other.state?.presence && other.state.guest) guests++;
+			}
+			if (guests >= MAX_PAGE_GUESTS) {
+				connection.close(4429, "full");
+				return;
+			}
+			this.connectingGuests++;
+		}
+		try {
+			const manifest = await this.readManifest();
+			const allowed =
+				manifest &&
+				(claims.guest ? guestReadable(manifest) : readable(manifest, claims));
+			if (!allowed) {
+				connection.close(4403, "forbidden");
+				return;
+			}
+			connection.setState({
+				userId: claims.userId,
+				name: claims.name,
+				image: claims.image,
+				organizationIds: claims.organizationIds,
+				author: false,
+				writable: false,
+				window: 0,
+				calls: 0,
+				presence: true,
+				guest: claims.guest,
+				guestNumber: claims.guest ? this.guestNumberFor(claims.userId) : null,
+			});
+		} finally {
+			if (claims.guest) this.connectingGuests--;
+		}
+		this.announce();
+		if ((await this.ctx.storage.getAlarm()) === null) {
+			await this.ctx.storage.setAlarm(Date.now() + SWEEP_MS);
+		}
+	}
+
+	async onAlarm(): Promise<void> {
+		const now = Date.now();
+		let remaining = 0;
+		let evicted = false;
+		for (const connection of this.getConnections<Pinned>()) {
+			const pinged = this.ctx.getWebSocketAutoResponseTimestamp(connection);
+			if (pinged && now - pinged.getTime() > SILENT_MS) {
+				this.cursors.delete(connection.id);
+				this.cursorBudgets.delete(connection.id);
+				try {
+					connection.close(4408, "silent");
+				} catch {}
+				evicted = true;
+				continue;
+			}
+			remaining++;
+		}
+		if (evicted) this.announce();
+		if (remaining > 0) await this.ctx.storage.setAlarm(now + SWEEP_MS);
 	}
 
 	async onClose(connection: Connection<Pinned>): Promise<void> {
-		this.cursors.delete(connection.id);
-		this.cursorBudgets.delete(connection.id);
 		const pinned = connection.state;
 		if (!pinned) return;
-		if (!pinned.watcher) this.announce(connection.id);
-		if (pinned.guest || pinned.watcher) return;
+		if (pinned.presence) {
+			this.cursors.delete(connection.id);
+			this.cursorBudgets.delete(connection.id);
+			this.announce(connection.id);
+			return;
+		}
 		this.schema();
 		this.ctx.storage.sql.exec(
 			"UPDATE visits SET last_seen_at = ? WHERE user_id = ?",
@@ -350,22 +391,11 @@ export class PageHub extends Server<RealtimeEnv> {
 			request?: unknown;
 			cursor?: unknown;
 		};
-		if (call.type === "cursor") {
-			this.relayCursor(connection, pinned, call.cursor);
+		if (pinned.presence) {
+			if (call.type === "cursor") this.relayCursor(connection, call.cursor);
 			return;
 		}
 		if (call.type !== "call" || typeof call.id !== "string") return;
-
-		if (pinned.guest || pinned.watcher) {
-			this.send(connection, {
-				type: "result",
-				id: call.id,
-				ok: false,
-				code: "unauthenticated",
-				message: "A guest cannot use this page's storage",
-			});
-			return;
-		}
 
 		if (!this.allow(connection, pinned)) {
 			this.send(connection, {
@@ -500,105 +530,16 @@ export class PageHub extends Server<RealtimeEnv> {
 		const current = connection.state;
 		if (!current) return false;
 		connection.setState({
-			...current,
+			userId: current.userId,
+			name: current.name,
+			image: current.image,
 			organizationIds: [...current.organizationIds],
+			author: current.author,
+			writable: current.writable,
 			window,
 			calls,
 		});
 		return calls <= CALLS_PER_WINDOW;
-	}
-
-	async onAlarm(): Promise<void> {
-		const now = Date.now();
-		let remaining = 0;
-		let evicted = false;
-		for (const connection of this.getConnections<Pinned>()) {
-			const pinged = this.ctx.getWebSocketAutoResponseTimestamp(connection);
-			if (pinged && now - pinged.getTime() > SILENT_MS) {
-				this.cursors.delete(connection.id);
-				this.cursorBudgets.delete(connection.id);
-				try {
-					connection.close(4408, "silent");
-				} catch {}
-				evicted = true;
-				continue;
-			}
-			remaining++;
-		}
-		if (evicted) this.announce();
-		if (remaining > 0) await this.ctx.storage.setAlarm(now + SWEEP_MS);
-	}
-
-	private relayCursor(
-		connection: Connection<Pinned>,
-		pinned: { userId: string; watcher: boolean },
-		raw: unknown,
-	): void {
-		if (pinned.watcher) return;
-		const cursor = parsePageCursor(raw);
-		if (cursor === undefined) return;
-
-		const second = Math.floor(Date.now() / 1000);
-		const budget = this.cursorBudgets.get(connection.id);
-		const sent = budget?.second === second ? budget.sent + 1 : 1;
-		this.cursorBudgets.set(connection.id, { second, sent });
-		if (sent > CURSORS_PER_SECOND) return;
-
-		if (cursor) this.cursors.set(connection.id, cursor);
-		else this.cursors.delete(connection.id);
-
-		const payload = JSON.stringify({
-			type: "cursor",
-			id: connection.id,
-			cursor,
-		} satisfies PageStorageSocketMessage);
-		for (const other of this.getConnections<Pinned>()) {
-			const state = other.state;
-			if (!state || state.watcher || state.userId === pinned.userId) continue;
-			try {
-				other.send(payload);
-			} catch {}
-		}
-	}
-
-	private guestNumberFor(userId: string): number {
-		const taken = new Set<number>();
-		for (const connection of this.getConnections<Pinned>()) {
-			const state = connection.state;
-			if (!state?.guest || state.watcher || !state.guestNumber) continue;
-			if (state.userId === userId) return state.guestNumber;
-			taken.add(state.guestNumber);
-		}
-		let number = 1;
-		while (taken.has(number)) number++;
-		return number;
-	}
-
-	private announce(leaving?: string): void {
-		const viewers: PagePresenceViewer[] = [];
-		const connections: Connection<Pinned>[] = [];
-		for (const connection of this.getConnections<Pinned>()) {
-			const state = connection.state;
-			if (!state || connection.id === leaving) continue;
-			connections.push(connection);
-			if (state.watcher) continue;
-			viewers.push({
-				id: connection.id,
-				userId: state.userId,
-				name: state.name,
-				image: state.image,
-				guest: state.guest,
-				guestNumber: state.guestNumber ?? null,
-				cursor: this.cursors.get(connection.id) ?? null,
-			});
-		}
-		for (const connection of connections) {
-			const userId = connection.state?.userId;
-			this.send(connection, {
-				type: "presence",
-				viewers: viewers.filter((viewer) => viewer.userId !== userId),
-			});
-		}
 	}
 
 	private send(
@@ -614,9 +555,80 @@ export class PageHub extends Server<RealtimeEnv> {
 		const records = this.named(key);
 		const payload = JSON.stringify({ type: "records", key, records });
 		for (const connection of this.getConnections<Pinned>()) {
-			if (connection.state?.guest || connection.state?.watcher) continue;
+			if (connection.state?.presence) continue;
 			try {
 				connection.send(payload);
+			} catch {}
+		}
+	}
+
+	private relayCursor(connection: Connection<Pinned>, raw: unknown): void {
+		const sender = connection.state;
+		const cursor = parsePageCursor(raw);
+		if (!sender || cursor === undefined) return;
+
+		const second = Math.floor(Date.now() / 1000);
+		const budget = this.cursorBudgets.get(connection.id);
+		const sent = budget?.second === second ? budget.sent + 1 : 1;
+		this.cursorBudgets.set(connection.id, { second, sent });
+		if (sent > CURSORS_PER_SECOND) return;
+
+		if (cursor) this.cursors.set(connection.id, cursor);
+		else this.cursors.delete(connection.id);
+
+		const payload = JSON.stringify({
+			type: "cursor",
+			id: connection.id,
+			cursor,
+		});
+		for (const other of this.getConnections<Pinned>()) {
+			const state = other.state;
+			if (!state?.presence || state.userId === sender.userId) continue;
+			try {
+				other.send(payload);
+			} catch {}
+		}
+	}
+
+	private guestNumberFor(userId: string): number {
+		const taken = new Set<number>();
+		for (const connection of this.getConnections<Pinned>()) {
+			const state = connection.state;
+			if (!state?.presence || !state.guest || !state.guestNumber) continue;
+			if (state.userId === userId) return state.guestNumber;
+			taken.add(state.guestNumber);
+		}
+		let number = 1;
+		while (taken.has(number)) number++;
+		return number;
+	}
+
+	private announce(leaving?: string): void {
+		const viewers: PagePresenceViewer[] = [];
+		const connections: Connection<Pinned>[] = [];
+		for (const connection of this.getConnections<Pinned>()) {
+			const state = connection.state;
+			if (!state?.presence || connection.id === leaving) continue;
+			connections.push(connection);
+			viewers.push({
+				id: connection.id,
+				userId: state.userId,
+				name: state.name,
+				image: state.image,
+				guest: state.guest === true,
+				guestNumber: state.guestNumber ?? null,
+				cursor: this.cursors.get(connection.id) ?? null,
+			});
+		}
+		for (const connection of connections) {
+			const userId = connection.state?.userId;
+			try {
+				connection.send(
+					JSON.stringify({
+						type: "presence",
+						viewers: viewers.filter((viewer) => viewer.userId !== userId),
+					}),
+				);
 			} catch {}
 		}
 	}

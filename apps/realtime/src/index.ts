@@ -4,11 +4,7 @@ import {
 	PAGE_STORAGE_TICKET_SECONDS,
 	type PageStorageReadback,
 } from "@superset/shared/page-storage";
-import {
-	guestReadable,
-	readable,
-	writableFor,
-} from "@superset/shared/page-storage-access";
+import { readable, writableFor } from "@superset/shared/page-storage-access";
 import type { PageStorageHubRequest } from "@superset/shared/page-storage-hub";
 import {
 	isRealtimeNudgeKind,
@@ -112,7 +108,6 @@ app.post("/v2/page/:pageId/storage/ticket", async (c) => {
 		return c.json({ error: "Forbidden" }, 403);
 	}
 
-	const watch = c.req.query("watch") === "1";
 	const nonce = crypto.randomUUID();
 	const ticket = await signPageConnectTicket(c.env.NUDGE_SECRET, {
 		pageId,
@@ -121,55 +116,8 @@ app.post("/v2/page/:pageId/storage/ticket", async (c) => {
 		image: auth.image ?? null,
 		organizationIds: auth.organizationIds,
 		author: manifest.createdByUserId === auth.sub,
-		writable: !watch && writableFor(manifest, viewer),
-		guest: false,
-		watch,
+		writable: writableFor(manifest, viewer),
 		nonce,
-		exp: Math.floor(Date.now() / 1000) + PAGE_STORAGE_TICKET_SECONDS,
-	});
-
-	return c.json({ ticket });
-});
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-
-app.post("/v2/page/:pageId/storage/guest-ticket", async (c) => {
-	const pageId = c.req.param("pageId");
-	if (!UUID.test(pageId)) return c.json({ error: "Not found" }, 404);
-	const body = (await c.req.json().catch(() => null)) as {
-		guestId?: unknown;
-		watch?: unknown;
-	} | null;
-	const guestId = body?.guestId;
-	if (typeof guestId !== "string" || !UUID.test(guestId)) {
-		return c.json({ error: "guestId required" }, 400);
-	}
-
-	const ip = c.req.header("cf-connecting-ip") ?? "unknown";
-	const [byIp, byPage] = await Promise.all([
-		c.env.GUEST_TICKETS_BY_IP.limit({ key: ip }),
-		c.env.GUEST_TICKETS_BY_PAGE.limit({ key: pageId }),
-	]);
-	if (!byIp.success || !byPage.success) {
-		return c.json({ error: "Too many requests" }, 429);
-	}
-
-	const stub = await getServerByName(c.env.PageHub, pageId);
-	const manifest = await stub.readManifest();
-	if (!manifest) return c.json({ error: "Not found" }, 404);
-	if (!guestReadable(manifest)) return c.json({ error: "Forbidden" }, 403);
-
-	const ticket = await signPageConnectTicket(c.env.NUDGE_SECRET, {
-		pageId,
-		userId: `guest:${guestId}`,
-		name: "",
-		image: null,
-		organizationIds: [],
-		author: false,
-		writable: false,
-		guest: true,
-		watch: body?.watch === true,
-		nonce: crypto.randomUUID(),
 		exp: Math.floor(Date.now() / 1000) + PAGE_STORAGE_TICKET_SECONDS,
 	});
 
@@ -233,14 +181,66 @@ app.get("/v2/page/:pageId/storage/socket", async (c) => {
 			name: claims.name,
 			image: claims.image,
 			organizationIds: claims.organizationIds,
-			guest: claims.guest,
-			watch: claims.watch === true,
 			nonce: claims.nonce,
 		}),
 	);
 	const origin = c.req.header("origin");
 	if (origin) headers.set("origin", origin);
 	return stub.fetch("https://realtime/subscribe", { headers });
+});
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+app.get("/v2/page/:pageId/presence", async (c) => {
+	if (c.req.header("Upgrade")?.toLowerCase() !== "websocket") {
+		return c.json({ error: "WebSocket upgrade required" }, 426);
+	}
+	const pageId = c.req.param("pageId");
+	if (!UUID.test(pageId)) return acceptAndClose(4403, "Not found");
+
+	let claims: {
+		userId: string;
+		name: string;
+		image: string | null;
+		organizationIds: string[];
+		guest: boolean;
+	};
+	const token = extractToken(c);
+	const guestId = c.req.query("guest");
+	if (token) {
+		const auth = await verifyJWT(token, c.env.NEXT_PUBLIC_API_URL);
+		if (!auth) return acceptAndClose(4401, "Unauthorized");
+		claims = {
+			userId: auth.sub,
+			name: auth.name ?? "Someone",
+			image: auth.image ?? null,
+			organizationIds: auth.organizationIds,
+			guest: false,
+		};
+	} else if (guestId && UUID.test(guestId)) {
+		const ip = c.req.header("cf-connecting-ip") ?? "unknown";
+		const [byIp, byPage] = await Promise.all([
+			c.env.GUEST_PRESENCE_BY_IP.limit({ key: ip }),
+			c.env.GUEST_PRESENCE_BY_PAGE.limit({ key: pageId }),
+		]);
+		if (!byIp.success || !byPage.success) {
+			return acceptAndClose(4429, "Too many requests");
+		}
+		claims = {
+			userId: `guest:${guestId}`,
+			name: "",
+			image: null,
+			organizationIds: [],
+			guest: true,
+		};
+	} else {
+		return acceptAndClose(4401, "Unauthorized");
+	}
+
+	const stub = await getServerByName(c.env.PageHub, pageId);
+	const headers = new Headers({ Upgrade: "websocket" });
+	headers.set(CLAIMS_HEADER, JSON.stringify({ ...claims, presence: true }));
+	return stub.fetch("https://realtime/presence", { headers });
 });
 
 // ── Emit: the API, after a write ────────────────────────────────────

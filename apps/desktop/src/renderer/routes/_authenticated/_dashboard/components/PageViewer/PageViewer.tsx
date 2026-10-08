@@ -3,6 +3,7 @@ import { usePageComments } from "@superset/cloud-client";
 import { errorMessage } from "@superset/i18n/errors";
 import { pageCommentUser } from "@superset/shared/page-comments";
 import type { PageLinkClick } from "@superset/shared/page-comments-runtime";
+import { pagePresenceUrl } from "@superset/shared/page-presence";
 import { pageStorageSocketUrl } from "@superset/shared/page-storage-ticket";
 import {
 	AllCommentsButton,
@@ -85,16 +86,16 @@ export function PageViewer({
 			}),
 		[resolvedPageId],
 	);
-	const presenceTicket = useCallback(
-		() =>
-			pageStorageSocketUrl({
-				pageId: resolvedPageId ?? "",
-				realtimeUrl: env.REALTIME_URL,
-				token: async () => getJwt(),
-				watch: true,
-			}),
-		[resolvedPageId],
-	);
+	const presenceUrl = useCallback(async () => {
+		const token = getJwt();
+		return token && resolvedPageId
+			? pagePresenceUrl({
+					realtimeUrl: env.REALTIME_URL,
+					pageId: resolvedPageId,
+					token,
+				})
+			: null;
+	}, [resolvedPageId]);
 	const scrollKey = `${resolvedPageId ?? slug}:${pull.data?.version ?? 0}`;
 
 	const onResolvedRef = useRef(onResolved);
@@ -176,7 +177,7 @@ export function PageViewer({
 							onFramePointerDown={onFramePointerDown}
 							onLinkClick={onLinkClick}
 							{...(resolvedPageId && !previewing
-								? { storageTicket, presenceTicket }
+								? { storageTicket, presenceUrl }
 								: {})}
 						/>
 					</div>

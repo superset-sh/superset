@@ -7,7 +7,7 @@ import {
 	type FrameRect,
 	PENDING_ANCHOR_ID,
 } from "@superset/shared/page-comments-runtime";
-import { pageStorageSocketUrl } from "@superset/shared/page-storage-ticket";
+import { pagePresenceUrl } from "@superset/shared/page-presence";
 import * as Haptics from "expo-haptics";
 import {
 	Stack,
@@ -115,26 +115,16 @@ export function PageDetailScreen({
 		[threads],
 	);
 
-	const storageTicket = useCallback(
-		() =>
-			pageStorageSocketUrl({
-				pageId: pageId ?? "",
-				realtimeUrl: env.EXPO_PUBLIC_REALTIME_URL,
-				token: () => getHostAuthToken(),
-			}),
-		[pageId],
-	);
-
-	const presenceTicket = useCallback(
-		() =>
-			pageStorageSocketUrl({
-				pageId: pageId ?? "",
-				realtimeUrl: env.EXPO_PUBLIC_REALTIME_URL,
-				token: () => getHostAuthToken(),
-				watch: true,
-			}),
-		[pageId],
-	);
+	const presenceUrl = useCallback(async () => {
+		const token = await getHostAuthToken().catch(() => null);
+		return token && pageId
+			? pagePresenceUrl({
+					realtimeUrl: env.EXPO_PUBLIC_REALTIME_URL,
+					pageId,
+					token,
+				})
+			: null;
+	}, [pageId]);
 
 	const send = useCallback(
 		(message: Parameters<PageFrameHandle["send"]>[0]) =>
@@ -164,6 +154,7 @@ export function PageDetailScreen({
 					: []),
 			],
 		});
+		presenceRef.current?.retrack();
 	}, [unresolvedThreads, selection, frameEpoch, send]);
 
 	const selectionRect = selection
@@ -189,6 +180,7 @@ export function PageDetailScreen({
 
 	const onFrameMessage = useCallback((message: FrameMessage) => {
 		if (message.type === "ready") setFrameEpoch((epoch) => epoch + 1);
+		if (message.type === "cursor-points") presenceRef.current?.receive(message);
 		if (message.type === "scroll") scrollYRef.current = message.y;
 		if (message.type === "rects") {
 			const next: Record<string, FrameRect> = {};
@@ -358,10 +350,6 @@ export function PageDetailScreen({
 						src={viewUrl}
 						insetTop={headerHeight}
 						onMessage={onFrameMessage}
-						onStorageMessage={(message) =>
-							presenceRef.current?.receive(message)
-						}
-						{...(pageId ? { storageTicket } : {})}
 						onLoadEnd={() => {
 							setLoadedSrc(viewUrl);
 							setFrameEpoch((epoch) => epoch + 1);
@@ -404,11 +392,14 @@ export function PageDetailScreen({
 						) : null}
 					</View>
 
-					<PagePresence
-						ref={presenceRef}
-						insetTop={headerHeight}
-						{...(pageId ? { watchTicket: presenceTicket } : {})}
-					/>
+					{pageId ? (
+						<PagePresence
+							ref={presenceRef}
+							insetTop={headerHeight}
+							url={presenceUrl}
+							send={send}
+						/>
+					) : null}
 
 					{commentMode && !selection ? (
 						<View

@@ -1,11 +1,7 @@
 "use client";
 
-import { pageGuestSocketUrl } from "@superset/shared/page-storage-ticket";
-import {
-	PageFrame,
-	PagePresence,
-	usePageStorageConnect,
-} from "@superset/ui/page-comments";
+import { pagePresenceUrl } from "@superset/shared/page-presence";
+import { PageFrame, PagePresence } from "@superset/ui/page-comments";
 import { useCallback, useMemo, useRef } from "react";
 import { env } from "@/env";
 
@@ -20,28 +16,15 @@ interface PublicPageFrameProps {
 export function PublicPageFrame({ pageId, src, title }: PublicPageFrameProps) {
 	const frameRef = useRef<HTMLIFrameElement>(null);
 	const frameOrigin = useMemo(() => new URL(src).origin, [src]);
-	const ticket = useCallback(
-		() =>
-			pageGuestSocketUrl({
-				pageId,
+	const presenceUrl = useCallback(
+		async () =>
+			pagePresenceUrl({
 				realtimeUrl: env.NEXT_PUBLIC_REALTIME_URL,
+				pageId,
 				guestId: guestId(),
 			}),
 		[pageId],
 	);
-
-	const watchTicket = useCallback(
-		() =>
-			pageGuestSocketUrl({
-				pageId,
-				realtimeUrl: env.NEXT_PUBLIC_REALTIME_URL,
-				guestId: guestId(),
-				watch: true,
-			}),
-		[pageId],
-	);
-
-	usePageStorageConnect({ frameRef, frameOrigin, ticket });
 
 	return (
 		<div className="relative h-full w-full">
@@ -51,7 +34,7 @@ export function PublicPageFrame({ pageId, src, title }: PublicPageFrameProps) {
 				pageId={pageId}
 				frameRef={frameRef}
 				frameOrigin={frameOrigin}
-				watchTicket={watchTicket}
+				url={presenceUrl}
 			/>
 		</div>
 	);

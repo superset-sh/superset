@@ -35,7 +35,3 @@ export function pageStorageTicketPath(pageId: string): string {
 export function pageStorageSocketPath(pageId: string): string {
 	return `/v2/page/${encodeURIComponent(pageId)}/storage/socket`;
 }
-
-export function pageGuestTicketPath(pageId: string): string {
-	return `/v2/page/${encodeURIComponent(pageId)}/storage/guest-ticket`;
-}

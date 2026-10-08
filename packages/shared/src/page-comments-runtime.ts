@@ -1,4 +1,4 @@
-import { PAGE_ELEMENT_PATH_RUNTIME_SOURCE } from "./page-element-path";
+import type { PageCursor, PageCursorPoint } from "./page-presence";
 import {
 	PAGE_PINCH_ZOOM_RUNTIME_SOURCE,
 	type PageViewportZoom,
@@ -43,7 +43,9 @@ export type HostMessageBody =
 	| { type: "enable-pinch-zoom" }
 	| { type: "set-mode"; enabled: boolean; locked: boolean }
 	| { type: "track"; anchors: { id: string; anchor: CommentAnchor }[] }
-	| { type: "restore-scroll"; y: number };
+	| { type: "restore-scroll"; y: number }
+	| { type: "set-pointer-reporting"; enabled: boolean }
+	| { type: "track-cursors"; cursors: ({ id: string } & PageCursor)[] };
 
 export type HostMessage = HostMessageBody & { channel: typeof HOST_CHANNEL };
 
@@ -69,6 +71,16 @@ export type FrameMessage =
 			channel: typeof FRAME_CHANNEL;
 			type: "rects";
 			entries: { id: string; rect: FrameRect | null }[];
+	  }
+	| {
+			channel: typeof FRAME_CHANNEL;
+			type: "pointer";
+			cursor: PageCursor | null;
+	  }
+	| {
+			channel: typeof FRAME_CHANNEL;
+			type: "cursor-points";
+			points: PageCursorPoint[];
 	  };
 
 /**
@@ -94,14 +106,48 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 	let lastScrollPost = 0;
 	let settleTimer = 0;
 	const SCROLL_POST_IDLE_MS = 150;
+	let reportPointer = false;
+	let pointer = null;
+	let pointerFrame = 0;
+	let lastPointer = "null";
+	let remoteCursors = [];
+	let cursorsShown = false;
 
 	const post = (message) => {
 		parent.postMessage({ channel: FRAME, ...message }, "*");
 	};
 
-	const paths = ${PAGE_ELEMENT_PATH_RUNTIME_SOURCE};
-	const pathOf = paths.pathOf;
-	const resolve = paths.resolve;
+	const pathOf = (el) => {
+		const parts = [];
+		let node = el;
+		while (node && node.nodeType === 1 && node !== document.body) {
+			const parent = node.parentElement;
+			if (!parent) return "";
+			let index = 1;
+			for (let s = node.previousElementSibling; s; s = s.previousElementSibling) {
+				if (s.tagName === node.tagName) index += 1;
+			}
+			parts.unshift(node.tagName.toLowerCase() + ":nth-of-type(" + index + ")");
+			node = parent;
+		}
+		return parts.join(" > ");
+	};
+
+	const resolveCache = new Map();
+
+	const resolve = (path) => {
+		if (!path) return null;
+		const cached = resolveCache.get(path);
+		if (cached && cached.isConnected) return cached;
+		try {
+			const el = document.body.querySelector(":scope > " + path);
+			if (el) resolveCache.set(path, el);
+			else resolveCache.delete(path);
+			return el;
+		} catch {
+			return null;
+		}
+	};
 
 	const rectOf = (el) => {
 		const r = el.getBoundingClientRect();
@@ -150,12 +196,51 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 		post({ type: "scroll", y: scrollY });
 	};
 
+	const cursorAt = (x, y) => {
+		const el = targetAt(x, y);
+		const path = el ? pathOf(el) : "";
+		const r = (path ? el : document.documentElement).getBoundingClientRect();
+		return {
+			path,
+			x: r.width > 0 ? fraction(x - r.left, r.width) : 0,
+			y: r.height > 0 ? fraction(y - r.top, r.height) : 0,
+		};
+	};
+
+	const sendPointer = () => {
+		pointerFrame = 0;
+		const cursor = reportPointer && pointer && document.visibilityState === "visible"
+			? cursorAt(pointer.x, pointer.y)
+			: null;
+		const encoded = JSON.stringify(cursor);
+		if (encoded === lastPointer) return;
+		lastPointer = encoded;
+		post({ type: "pointer", cursor });
+	};
+
+	const queuePointer = () => {
+		if (!pointerFrame) pointerFrame = requestAnimationFrame(sendPointer);
+	};
+
+	const syncCursors = () => {
+		const points = [];
+		for (const cursor of remoteCursors) {
+			const el = cursor.path ? resolve(cursor.path) : document.documentElement;
+			if (!el) continue;
+			const r = el.getBoundingClientRect();
+			points.push({ id: cursor.id, x: r.left + cursor.x * r.width, y: r.top + cursor.y * r.height });
+		}
+		cursorsShown = points.length > 0;
+		post({ type: "cursor-points", points });
+	};
+
 	const schedule = () => {
 		if (frame) return;
 		frame = requestAnimationFrame(() => {
 			frame = 0;
 			const pinned = tracked.length > 0;
 			if (pinned) syncRects();
+			if (remoteCursors.length || cursorsShown) syncCursors();
 			if (restoreY !== null && Date.now() > restoreDeadline) restoreY = null;
 			if (restoreY !== null || scrollY === lastScrollY) return;
 			if (pinned || Date.now() - lastScrollPost >= SCROLL_POST_IDLE_MS) {
@@ -274,8 +359,29 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 	}, () => locked);
 
 	addEventListener(
+		"pointermove",
+		(event) => {
+			if (!reportPointer || event.pointerType === "touch") return;
+			pointer = { x: event.clientX, y: event.clientY };
+			queuePointer();
+		},
+		{ capture: true, passive: true },
+	);
+	addEventListener(
+		"pointerout",
+		(event) => {
+			if (event.relatedTarget) return;
+			pointer = null;
+			queuePointer();
+		},
+		true,
+	);
+	document.addEventListener("visibilitychange", queuePointer);
+
+	addEventListener(
 		"scroll",
 		() => {
+			if (pointer) queuePointer();
 			if (enabled && lastHoverPath !== null) {
 				lastHoverPath = null;
 				post({ type: "hover", rect: null });
@@ -297,7 +403,7 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 	new MutationObserver((records) => {
 		for (const record of records) {
 			if (record.type === "childList") {
-				paths.forget();
+				resolveCache.clear();
 				break;
 			}
 		}
@@ -327,6 +433,15 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 		}
 		if (data.type === "track") {
 			tracked = Array.isArray(data.anchors) ? data.anchors : [];
+			schedule();
+		}
+		if (data.type === "set-pointer-reporting" && event.source === parent) {
+			reportPointer = Boolean(data.enabled);
+			if (!reportPointer) pointer = null;
+			queuePointer();
+		}
+		if (data.type === "track-cursors" && event.source === parent) {
+			remoteCursors = Array.isArray(data.cursors) ? data.cursors : [];
 			schedule();
 		}
 		if (data.type === "restore-scroll") {

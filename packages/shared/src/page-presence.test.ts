@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	cursorPointsFrom,
 	MAX_PAGE_CURSOR_PATH_LENGTH,
+	pagePresenceUrl,
 	parsePageCursor,
 	presenceColor,
 	presenceViewersFrom,
@@ -97,5 +98,24 @@ describe("what a host accepts from the frame", () => {
 				{ x: 1, y: 1 },
 			]),
 		).toEqual([{ id: "c1", x: 1, y: 2 }]);
+	});
+});
+
+describe("pagePresenceUrl", () => {
+	test("dials the page's presence socket with a token or a guest id", () => {
+		expect(
+			pagePresenceUrl({
+				realtimeUrl: "https://realtime.superset.sh",
+				pageId: "p1",
+				token: "jwt",
+			}),
+		).toBe("wss://realtime.superset.sh/v2/page/p1/presence?token=jwt");
+		expect(
+			pagePresenceUrl({
+				realtimeUrl: "http://localhost:4698",
+				pageId: "p1",
+				guestId: "g1",
+			}),
+		).toBe("ws://localhost:4698/v2/page/p1/presence?guest=g1");
 	});
 });

@@ -1,9 +1,6 @@
-import { PAGE_ELEMENT_PATH_RUNTIME_SOURCE } from "./page-element-path";
-import { PAGE_CURSOR_SEND_INTERVAL_MS } from "./page-presence";
 import {
 	MAX_PAGE_STORAGE_KEY_LENGTH,
 	MAX_PAGE_STORAGE_VALUE_BYTES,
-	PAGE_STORAGE_HOST_FLAG,
 	STORAGE_FRAME_CHANNEL,
 	STORAGE_HOST_CHANNEL,
 } from "./page-storage";
@@ -11,20 +8,11 @@ import {
 const HELLO_TIMEOUT_MS = 2000;
 const POLL_INTERVAL_MS = 60000;
 const CALL_TIMEOUT_MS = 15000;
-const RETRY_BASE_MS = 1000;
-const RETRY_MAX_MS = 30000;
-const HEARTBEAT_MS = 25000;
 
 export function pageStorageRuntimeSource({
 	helloTimeoutMs = HELLO_TIMEOUT_MS,
-	cursorIntervalMs = PAGE_CURSOR_SEND_INTERVAL_MS,
-	retryBaseMs = RETRY_BASE_MS,
-	heartbeatMs = HEARTBEAT_MS,
 }: {
 	helloTimeoutMs?: number;
-	cursorIntervalMs?: number;
-	retryBaseMs?: number;
-	heartbeatMs?: number;
 } = {}): string {
 	return `(() => {
 	const FRAME = ${JSON.stringify(STORAGE_FRAME_CHANNEL)};
@@ -34,13 +22,7 @@ export function pageStorageRuntimeSource({
 	const HELLO_TIMEOUT_MS = ${helloTimeoutMs};
 	const POLL_INTERVAL_MS = ${POLL_INTERVAL_MS};
 	const CALL_TIMEOUT_MS = ${CALL_TIMEOUT_MS};
-	const CURSOR_INTERVAL_MS = ${cursorIntervalMs};
-	const RETRY_BASE_MS = ${retryBaseMs};
-	const RETRY_MAX_MS = ${RETRY_MAX_MS};
-	const HEARTBEAT_MS = ${heartbeatMs};
-	const HOSTED = parent !== window || Boolean(window[${JSON.stringify(PAGE_STORAGE_HOST_FLAG)}]);
 	const DOCUMENT = Math.random().toString(36).slice(2, 10);
-	const paths = ${PAGE_ELEMENT_PATH_RUNTIME_SOURCE};
 
 	const pending = new Map();
 	const watchers = new Map();
@@ -50,19 +32,6 @@ export function pageStorageRuntimeSource({
 	let available = false;
 	let identity = null;
 	let revoked = false;
-	let refused = false;
-	let retryTimer = 0;
-	let attempts = 0;
-	let heartbeat = 0;
-	let awaitingPong = false;
-	let ponged = false;
-	const remote = new Map();
-	let tracking = false;
-	let pointer = null;
-	let lastCursor = "null";
-	let lastCursorAt = 0;
-	let cursorTimer = 0;
-	let placeFrame = 0;
 
 	const ready = new Promise((resolve) => {
 		settleReady = resolve;
@@ -100,25 +69,8 @@ export function pageStorageRuntimeSource({
 			return;
 		}
 		if (data.type === "records") {
-			if (!available) return;
 			const fns = watchers.get(data.key);
 			if (fns) for (const fn of fns) fn.push(data.records);
-			return;
-		}
-		if (data.type === "presence") {
-			const viewers = Array.isArray(data.viewers) ? data.viewers : [];
-			remote.clear();
-			for (const viewer of viewers) {
-				if (viewer.cursor) remote.set(viewer.id, viewer.cursor);
-			}
-			post({ type: "presence", viewers });
-			schedulePlace();
-			return;
-		}
-		if (data.type === "cursor") {
-			if (data.cursor) remote.set(data.id, data.cursor);
-			else remote.delete(data.id);
-			schedulePlace();
 			return;
 		}
 		if (data.type === "revoked") {
@@ -127,137 +79,12 @@ export function pageStorageRuntimeSource({
 		}
 	};
 
-	const cursorAt = (x, y) => {
-		const root = document.documentElement;
-		const hit = document.elementFromPoint(x, y);
-		const path = hit && hit !== root && hit !== document.body ? paths.pathOf(hit) : "";
-		const r = (path ? hit : root).getBoundingClientRect();
-		return {
-			path,
-			x: r.width > 0 ? (x - r.left) / r.width : 0,
-			y: r.height > 0 ? (y - r.top) / r.height : 0,
-		};
-	};
-
-	const sendCursor = () => {
-		cursorTimer = 0;
-		if (!socket || socket.readyState !== 1) return;
-		const cursor = pointer && document.visibilityState === "visible"
-			? cursorAt(pointer.x, pointer.y)
-			: null;
-		const encoded = JSON.stringify(cursor);
-		if (encoded === lastCursor) return;
-		lastCursor = encoded;
-		lastCursorAt = Date.now();
-		socket.send(JSON.stringify({ type: "cursor", cursor }));
-	};
-
-	const queueCursor = () => {
-		if (cursorTimer) return;
-		cursorTimer = setTimeout(
-			sendCursor,
-			Math.max(0, lastCursorAt + CURSOR_INTERVAL_MS - Date.now()),
-		);
-	};
-
-	const place = () => {
-		placeFrame = 0;
-		paths.forget();
-		const cursors = [];
-		for (const [id, cursor] of remote) {
-			const el = cursor.path ? paths.resolve(cursor.path) : document.documentElement;
-			if (!el) continue;
-			const r = el.getBoundingClientRect();
-			cursors.push({ id, x: r.left + cursor.x * r.width, y: r.top + cursor.y * r.height });
-		}
-		post({ type: "cursors", cursors });
-	};
-
-	const schedulePlace = () => {
-		if (!placeFrame) placeFrame = requestAnimationFrame(place);
-	};
-
-	const track = () => {
-		if (tracking) return;
-		tracking = true;
-		addEventListener("pointermove", (event) => {
-			if (event.pointerType === "touch") return;
-			pointer = { x: event.clientX, y: event.clientY };
-			queueCursor();
-		}, { capture: true, passive: true });
-		addEventListener("pointerout", (event) => {
-			if (event.relatedTarget) return;
-			pointer = null;
-			queueCursor();
-		}, true);
-		addEventListener("scroll", () => {
-			if (pointer) queueCursor();
-			if (remote.size) schedulePlace();
-		}, { capture: true, passive: true });
-		addEventListener("resize", () => {
-			if (remote.size) schedulePlace();
-		});
-		addEventListener("visibilitychange", queueCursor);
-	};
-
-	const forgetPresence = () => {
-		lastCursor = "null";
-		remote.clear();
-		post({ type: "presence", viewers: [] });
-		post({ type: "cursors", cursors: [] });
-	};
-
-	const lost = (ws, code) => {
-		if (ws !== socket) return;
-		socket = null;
-		available = false;
-		if (heartbeat) clearTimeout(heartbeat);
-		heartbeat = 0;
-		awaitingPong = false;
-		ponged = false;
-		if (code === 4403 || code === 4429) refused = true;
-		forgetPresence();
-		settle(false);
-		if (!revoked) settleAll("unavailable", "The page's storage socket closed");
-		retry();
-		try { ws.close(); } catch {}
-	};
-
-	const beat = (ws) => {
-		heartbeat = setTimeout(() => {
-			if (ws !== socket) return;
-			if (awaitingPong && ponged) { lost(ws); return; }
-			awaitingPong = true;
-			try { ws.send("ping"); } catch {}
-			beat(ws);
-		}, HEARTBEAT_MS);
-	};
-
 	const openSocket = (url) => {
-		const ws = new WebSocket(url);
-		socket = ws;
-		ws.addEventListener("message", (event) => {
-			if (ws !== socket) return;
-			if (event.data === "pong") {
-				awaitingPong = false;
-				ponged = true;
-				return;
-			}
+		socket = new WebSocket(url);
+		socket.addEventListener("message", (event) => {
 			let data;
 			try { data = JSON.parse(event.data); } catch { return; }
 			if (data.type === "hello") {
-				attempts = 0;
-				if (!heartbeat) {
-					awaitingPong = true;
-					try { ws.send("ping"); } catch {}
-					beat(ws);
-				}
-				track();
-				if (pointer) queueCursor();
-				if (data.guest) {
-					settle(false);
-					return;
-				}
 				identity = { viewer: data.viewer, author: data.author, writable: data.writable };
 				available = true;
 				settle(true);
@@ -266,52 +93,28 @@ export function pageStorageRuntimeSource({
 			}
 			deliver(data);
 		});
-		ws.addEventListener("close", (event) => lost(ws, event && event.code));
-		ws.addEventListener("error", () => {
-			if (ws === socket) settle(false);
+		socket.addEventListener("close", () => {
+			socket = null;
+			available = false;
+			settle(false);
+			if (!revoked) settleAll("unavailable", "The page's storage socket closed");
+		});
+		socket.addEventListener("error", () => {
+			settle(false);
 		});
 	};
 
-	const retry = () => {
-		if (!HOSTED || revoked || refused || socket || retryTimer) return;
-		const delay = Math.min(RETRY_MAX_MS, RETRY_BASE_MS * 2 ** attempts);
-		attempts += 1;
-		retryTimer = setTimeout(() => {
-			retryTimer = 0;
-			if (socket) return;
-			post({ type: "hello" });
-			retry();
-		}, delay);
-	};
-
-	const retryNow = () => {
-		if (!HOSTED || revoked || refused || socket) return;
-		if (retryTimer) clearTimeout(retryTimer);
-		retryTimer = 0;
-		attempts = 0;
-		post({ type: "hello" });
-		retry();
-	};
-
-	if (!HOSTED) {
+	if (parent === window) {
 		settle(false);
 	} else {
 		const deadline = Date.now() + HELLO_TIMEOUT_MS;
 		const knock = () => {
 			if (!settleReady) return;
-			if (Date.now() > deadline) {
-				settle(false);
-				retry();
-				return;
-			}
+			if (Date.now() > deadline) { settle(false); return; }
 			post({ type: "hello" });
 			setTimeout(knock, 200);
 		};
 		knock();
-		addEventListener("online", retryNow);
-		addEventListener("visibilitychange", () => {
-			if (document.visibilityState === "visible") retryNow();
-		});
 	}
 
 	addEventListener("message", (event) => {

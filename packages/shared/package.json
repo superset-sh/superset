@@ -45,9 +45,9 @@
 			"types": "./src/page-presence.ts",
 			"default": "./src/page-presence.ts"
 		},
-		"./page-presence-watch": {
-			"types": "./src/page-presence-watch.ts",
-			"default": "./src/page-presence-watch.ts"
+		"./page-presence-client": {
+			"types": "./src/page-presence-client.ts",
+			"default": "./src/page-presence-client.ts"
 		},
 		"./page-comments": {
 			"types": "./src/page-comments/index.ts",

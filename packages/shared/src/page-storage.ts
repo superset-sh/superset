@@ -1,12 +1,5 @@
-import type {
-	PageCursor,
-	PageCursorPoint,
-	PagePresenceViewer,
-} from "./page-presence";
-
 export const STORAGE_FRAME_CHANNEL = "superset-storage/frame";
 export const STORAGE_HOST_CHANNEL = "superset-storage/host";
-export const PAGE_STORAGE_HOST_FLAG = "__supersetStorageHost";
 
 export const MAX_PAGE_STORAGE_VALUE_BYTES = 64 * 1024;
 export const MAX_PAGE_STORAGE_KEYS_PER_USER = 500;
@@ -71,7 +64,6 @@ export type PageStorageSocketMessage =
 			viewer: PageStorageViewer;
 			author: boolean;
 			writable: boolean;
-			guest?: boolean;
 	  }
 	| { type: "result"; id: string; ok: true; result: PageStorageResult }
 	| {
@@ -82,14 +74,7 @@ export type PageStorageSocketMessage =
 			message: string;
 	  }
 	| { type: "records"; key: string; records: PageStorageRecord[] }
-	| { type: "presence"; viewers: PagePresenceViewer[] }
-	| { type: "cursor"; id: string; cursor: PageCursor | null }
 	| { type: "revoked" };
-
-export type PageCursorSocketMessage = {
-	type: "cursor";
-	cursor: PageCursor | null;
-};
 
 export type PageStorageHostMessage = {
 	channel: typeof STORAGE_HOST_CHANNEL;
@@ -104,16 +89,6 @@ export type PageStorageFrameMessage =
 			type: "call";
 			id: string;
 			request: PageStorageOp;
-	  }
-	| {
-			channel: typeof STORAGE_FRAME_CHANNEL;
-			type: "presence";
-			viewers: PagePresenceViewer[];
-	  }
-	| {
-			channel: typeof STORAGE_FRAME_CHANNEL;
-			type: "cursors";
-			cursors: PageCursorPoint[];
 	  };
 
 export function pageStorageValueBytes(value: unknown): number {

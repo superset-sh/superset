@@ -129,7 +129,6 @@ describe("page connect tickets", () => {
 		organizationIds: ["org-1"],
 		author: true,
 		writable: true,
-		guest: false,
 		nonce: "n-1",
 		exp: EXP,
 	};
@@ -162,35 +161,6 @@ describe("page connect tickets", () => {
 			nonce: "",
 		});
 		expect(await verifyPageConnectTicket(SECRET, ticket, NOW)).toBeNull();
-	});
-
-	test("round-trips a guest, who has no organizations", async () => {
-		const guest = {
-			...claims,
-			userId: "guest:1",
-			name: "",
-			organizationIds: [],
-			author: false,
-			writable: false,
-			guest: true,
-		};
-		const ticket = await signPageConnectTicket(SECRET, guest);
-		expect(await verifyPageConnectTicket(SECRET, ticket, NOW)).toEqual(guest);
-	});
-
-	test("round-trips a watch ticket and reads an old one as not watching", async () => {
-		const watching = await signPageConnectTicket(SECRET, {
-			...claims,
-			watch: true,
-		});
-		expect(await verifyPageConnectTicket(SECRET, watching, NOW)).toEqual({
-			...claims,
-			watch: true,
-		});
-		const plain = await signPageConnectTicket(SECRET, claims);
-		expect(
-			(await verifyPageConnectTicket(SECRET, plain, NOW))?.watch,
-		).toBeUndefined();
 	});
 
 	test("refuses tampered org ids rather than trusting the shape", async () => {
