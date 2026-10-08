@@ -14367,6 +14367,9 @@ msgstr "Běží na tomto zařízení"
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Běžící procesy v terminálu poběží dál, ale starší výstup po restartu aplikace už nemusí být k dispozici."
 
+msgid "Running workspaces use changes in new terminals. Restart a workspace to apply them to terminals and agents that are already open."
+msgstr "Spuštěné pracovní prostory používají změny v nových terminálech. Restartujte pracovní prostor, aby se změny projevily i v již otevřených terminálech a agentech."
+
 msgid "Runs a local command on your machine"
 msgstr "Spouští lokální příkaz na vašem počítači"
 

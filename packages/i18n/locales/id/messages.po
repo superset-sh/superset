@@ -14367,6 +14367,9 @@ msgstr "Berjalan di perangkat ini"
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Proses terminal yang berjalan tetap lanjut, tapi output lama mungkin tidak tersedia lagi setelah aplikasi dimulai ulang."
 
+msgid "Running workspaces use changes in new terminals. Restart a workspace to apply them to terminals and agents that are already open."
+msgstr "Workspace yang sedang berjalan memakai perubahan di terminal baru. Mulai ulang workspace untuk menerapkannya ke terminal dan agen yang sudah terbuka."
+
 msgid "Runs a local command on your machine"
 msgstr "Menjalankan perintah lokal di mesin Anda"
 

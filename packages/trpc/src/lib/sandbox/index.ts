@@ -43,6 +43,7 @@ export {
 	promoteSandboxToEnvironment,
 	provisionSandbox,
 	pushManagedEnv,
+	pushManagedEnvIfRunning,
 	type SandboxClaim,
 	type SandboxEnvironment,
 	SandboxNotReadyError,

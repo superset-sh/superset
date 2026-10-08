@@ -14367,6 +14367,9 @@ msgstr "Đang chạy trên thiết bị này"
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Các tiến trình terminal đang chạy vẫn tiếp tục, nhưng kết quả cũ có thể không còn sau khi khởi động lại ứng dụng."
 
+msgid "Running workspaces use changes in new terminals. Restart a workspace to apply them to terminals and agents that are already open."
+msgstr "Các workspace đang chạy dùng thay đổi trong terminal mới. Khởi động lại workspace để áp dụng cho các terminal và agent đang mở."
+
 msgid "Runs a local command on your machine"
 msgstr "Chạy một lệnh cục bộ trên máy bạn"
 

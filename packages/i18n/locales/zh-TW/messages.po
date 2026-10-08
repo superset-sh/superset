@@ -14367,6 +14367,9 @@ msgstr "在此裝置上執行"
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "執行中的終端處理程序會繼續，但重啟應用後可能無法再看到較早的輸出。"
 
+msgid "Running workspaces use changes in new terminals. Restart a workspace to apply them to terminals and agents that are already open."
+msgstr "執行中的工作區會在新終端中使用變更。若要將變更套用到已開啟的終端和代理程式，請重新啟動工作區。"
+
 msgid "Runs a local command on your machine"
 msgstr "在你的機器上執行本地命令"
 
