@@ -8,6 +8,7 @@ import {
 import { markNeedsReauth } from "../../../lib/connectors/refresh";
 import type { AccountRef } from "./account-argument";
 import {
+	accountArgFromCall,
 	accountArgName,
 	accountInstructions,
 	accountLabel,
@@ -383,22 +384,12 @@ function multiServer(
 		return { tools: withAccountArgument(tools, accountsByTool, argName) };
 	});
 
-	const layoutForCall = async (): Promise<AccountLayout | null> => {
-		const cached = cachedLayout(target);
-		if (cached) return cached;
-		try {
-			const { tools, accountsByTool } = await gather();
-			return rememberLayout(target, accountArgName(tools), accountsByTool);
-		} catch {
-			return null;
-		}
-	};
-
 	server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
-		const layout = await layoutForCall();
+		const args = request.params.arguments ?? {};
+		const layout = cachedLayout(target);
 		if (
-			layout?.accountsByTool.size === 0 &&
-			request.params.name === "authenticate"
+			request.params.name === "authenticate" &&
+			(layout ? layout.accountsByTool.size === 0 : !hasAccountArgument(args))
 		) {
 			return errorResult(
 				`Ask the user to reconnect each ${target.connectorLabel} account, then retry: ${await reconnectLinks()}.`,
@@ -407,8 +398,13 @@ function multiServer(
 		const choice = chooseAccount(
 			target.connectorLabel,
 			target.accounts,
-			request.params.arguments ?? {},
-			layout?.argName ?? accountArgName(target.hosted?.getTools() ?? []),
+			args,
+			layout?.argName ??
+				accountArgFromCall(
+					args,
+					target.accounts,
+					accountArgName(target.hosted?.getTools() ?? []),
+				),
 		);
 		if (!choice.ok) return errorResult(choice.message);
 

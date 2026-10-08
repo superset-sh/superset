@@ -95,6 +95,45 @@ export function withAccountArgument(
 	});
 }
 
+function matchingAccounts(
+	accounts: readonly AccountRef[],
+	wanted: string,
+): AccountRef[] {
+	const folded = wanted.toLowerCase();
+	const byId = accounts.filter((account) => account.connectionId === wanted);
+	return byId.length > 0
+		? byId
+		: accounts.filter(
+				(account) =>
+					accountLabel(account).toLowerCase() === folded ||
+					(account.userLabel ?? "").toLowerCase() === folded,
+			);
+}
+
+function argNameRank(name: string): number {
+	if (name === PRIMARY) return 0;
+	if (name === `${PRIMARY}_id`) return 1;
+	return Number(name.slice(PRIMARY.length + 1));
+}
+
+export function accountArgFromCall(
+	args: Record<string, unknown>,
+	accounts: readonly AccountRef[],
+	fallback: string,
+): string {
+	const present = Object.keys(args)
+		.filter((name) => ACCOUNT_ARG_NAME.test(name))
+		.sort((a, b) => argNameRank(a) - argNameRank(b));
+	return (
+		present.find(
+			(name) =>
+				matchingAccounts(accounts, String(args[name] ?? "").trim()).length > 0,
+		) ??
+		present[0] ??
+		fallback
+	);
+}
+
 export type AccountChoice =
 	| { ok: true; connectionId: string; rest: Record<string, unknown> }
 	| { ok: false; message: string };
@@ -117,16 +156,7 @@ export function chooseAccount(
 	}
 
 	const wanted = String(raw).trim();
-	const folded = wanted.toLowerCase();
-	const byId = accounts.filter((account) => account.connectionId === wanted);
-	const byLabel =
-		byId.length > 0
-			? byId
-			: accounts.filter(
-					(account) =>
-						accountLabel(account).toLowerCase() === folded ||
-						(account.userLabel ?? "").toLowerCase() === folded,
-				);
+	const byLabel = matchingAccounts(accounts, wanted);
 
 	if (byLabel.length > 1) {
 		return {

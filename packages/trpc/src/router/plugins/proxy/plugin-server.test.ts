@@ -593,3 +593,55 @@ describe("superset-home review", () => {
 		}
 	});
 });
+
+describe("a call with no cached tool list", () => {
+	test("resolves only the named account", async () => {
+		const resolved: string[] = [];
+		const { client, close } = await connect({
+			...multiTarget(async (id) => {
+				resolved.push(id);
+				return hostedTarget(id, []);
+			}),
+			version: "cold-1",
+		});
+
+		try {
+			const result = await client.callTool({
+				name: "send_email",
+				arguments: { superset_account: "id-work", body: "hi" },
+			});
+			expect(result.isError).toBeFalsy();
+			expect(resolved).toEqual(["id-work"]);
+		} finally {
+			await close();
+		}
+	});
+
+	test("reads the key whose value names an account, leaving a vendor value alone", async () => {
+		const calls: Call[] = [];
+		const { client, close } = await connect({
+			...multiTarget(async (id) => hostedTarget(id, calls)),
+			version: "cold-2",
+		});
+
+		try {
+			await client.callTool({
+				name: "send_email",
+				arguments: {
+					superset_account: "ACC-123",
+					superset_account_id: "id-work",
+					body: "hi",
+				},
+			});
+			expect(calls).toEqual([
+				{
+					name: "send_email",
+					args: { superset_account: "ACC-123", body: "hi" },
+					credential: "token-id-work",
+				},
+			]);
+		} finally {
+			await close();
+		}
+	});
+});
