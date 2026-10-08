@@ -1,5 +1,5 @@
 {
-  "id": "ed4900b1-82a5-46ec-a6e3-3a720bb94325",
+  "id": "121f67a4-f135-4848-b731-11e53a486951",
   "prevId": "73e1e80b-3a32-4670-ac2a-694f7600202a",
   "version": "7",
   "dialect": "postgresql",
@@ -6337,6 +6337,36 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "cloud_workspace_activity_target_user_id_idx": {
+          "name": "cloud_workspace_activity_target_user_id_idx",
+          "columns": [
+            {
+              "expression": "target_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cloud_workspace_activity_target_team_id_idx": {
+          "name": "cloud_workspace_activity_target_team_id_idx",
+          "columns": [
+            {
+              "expression": "target_team_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -6892,6 +6922,21 @@
           "columns": [
             {
               "expression": "invitation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cloud_workspace_shares_shared_by_user_id_idx": {
+          "name": "cloud_workspace_shares_shared_by_user_id_idx",
+          "columns": [
+            {
+              "expression": "shared_by_user_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -9500,6 +9545,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "page_shares_shared_by_user_id_idx": {
+          "name": "page_shares_shared_by_user_id_idx",
+          "columns": [
+            {
+              "expression": "shared_by_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -9761,8 +9821,8 @@
           "notNull": true,
           "default": "'just_me'"
         },
-        "org_role": {
-          "name": "org_role",
+        "organization_role": {
+          "name": "organization_role",
           "type": "page_share_role",
           "typeSchema": "public",
           "primaryKey": false,

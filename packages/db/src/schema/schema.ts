@@ -1998,7 +1998,9 @@ export const pages = pgTable(
 		description: text(),
 		visibility: pageVisibility().notNull().default("just_me"),
 		/** What general access lets org members and public readers do; public readers can never comment. */
-		orgRole: pageShareRole("org_role").notNull().default("comment"),
+		organizationRole: pageShareRole("organization_role")
+			.notNull()
+			.default("comment"),
 		sharedVersion: integer("shared_version"),
 		takenDownAt: timestamp("taken_down_at", { withTimezone: true }),
 		takenDownByUserId: uuid("taken_down_by_user_id").references(
