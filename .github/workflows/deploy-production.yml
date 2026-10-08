@@ -661,6 +661,8 @@ jobs:
               - 'packages/shared/src/realtime.ts'
               - 'packages/shared/src/page-storage.ts'
               - 'packages/shared/src/page-storage-hub.ts'
+              - 'packages/shared/src/page-storage-access.ts'
+              - 'packages/shared/src/page-presence.ts'
               - 'packages/shared/src/usercontent/**'
               - '!packages/shared/src/usercontent/**/*.test.ts'
               - 'packages/shared/src/verify-jwt.ts'

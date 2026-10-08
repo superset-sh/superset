@@ -769,6 +769,46 @@ async function main() {
 		guestCall,
 	);
 
+	member.socket.send(
+		JSON.stringify({
+			type: "call",
+			id: "m1",
+			request: { op: "set", key: "vote", value: "Ramen" },
+		}),
+	);
+	await member.waitFor((m) => m.id === "m1");
+	await member.waitFor((m) => m.type === "records");
+	check(
+		"a member's write is never pushed to a guest",
+		!guest.inbox.some((m) => m.type === "records"),
+		guest.inbox.filter((m) => m.type === "records"),
+	);
+
+	const badPage = await guestTicket("not-a-page", GUEST);
+	check("guest ticket 404s a malformed page id", badPage.status === 404);
+
+	const extraGuests = [];
+	for (let n = 0; n < 19; n++) {
+		const minted = (await (
+			await guestTicket(PUBLIC_PAGE, crypto.randomUUID())
+		).json()) as { ticket: string };
+		const extra = listen(socketFor(PUBLIC_PAGE, minted.ticket), publicOrigin);
+		extraGuests.push(extra);
+		await extra.waitFor((m) => m.type === "hello");
+	}
+	const overflow = (await (
+		await guestTicket(PUBLIC_PAGE, crypto.randomUUID())
+	).json()) as { ticket: string };
+	const turnedAway = listen(
+		socketFor(PUBLIC_PAGE, overflow.ticket),
+		publicOrigin,
+	);
+	check(
+		"the 21st guest on a page is turned away as full",
+		(await turnedAway.waitClosed()) === "4429",
+	);
+	for (const extra of extraGuests) extra.socket.close();
+
 	guest.socket.send(
 		JSON.stringify({
 			type: "cursor",

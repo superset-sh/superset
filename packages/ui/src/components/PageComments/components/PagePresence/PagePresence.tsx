@@ -2,6 +2,10 @@
 
 import { useLingui } from "@lingui/react/macro";
 import {
+	FRAME_CHANNEL,
+	type FrameMessage,
+} from "@superset/shared/page-comments-runtime";
+import {
 	cursorPointsFrom,
 	type PageCursorPoint,
 	type PagePresenceViewer,
@@ -21,25 +25,32 @@ interface PagePresenceProps {
 	pageId?: string;
 	frameRef: RefObject<HTMLIFrameElement | null>;
 	frameOrigin: string;
-	viewportRef?: RefObject<PageViewportZoom | null>;
 }
 
 export function PagePresence({
 	pageId,
 	frameRef,
 	frameOrigin,
-	viewportRef,
 }: PagePresenceProps) {
 	const { t } = useLingui();
+	const [view] = useState(() => Symbol("page-presence"));
 	const [viewers, setViewers] = useState<PagePresenceViewer[]>([]);
 	const [cursors, setCursors] = useState<PageCursorPoint[]>([]);
+	const [viewport, setViewport] = useState<PageViewportZoom | null>(null);
 
 	useEffect(() => {
 		const onMessage = (event: MessageEvent) => {
 			if (event.origin !== frameOrigin) return;
 			if (event.source !== frameRef.current?.contentWindow) return;
-			const data = event.data as PageStorageFrameMessage | undefined;
-			if (!data || data.channel !== STORAGE_FRAME_CHANNEL) return;
+			const data = event.data as
+				| PageStorageFrameMessage
+				| FrameMessage
+				| undefined;
+			if (data?.channel === FRAME_CHANNEL && data.type === "viewport-zoom") {
+				setViewport(data.viewport);
+				return;
+			}
+			if (data?.channel !== STORAGE_FRAME_CHANNEL) return;
 			if (data.type === "presence") {
 				setViewers(presenceViewersFrom(data.viewers));
 			}
@@ -56,6 +67,7 @@ export function PagePresence({
 		const seen = new Set<string>();
 		setPageViewers(
 			pageId,
+			view,
 			viewers.flatMap((viewer) => {
 				if (seen.has(viewer.userId)) return [];
 				seen.add(viewer.userId);
@@ -69,15 +81,14 @@ export function PagePresence({
 				];
 			}),
 		);
-	}, [pageId, viewers, guestName]);
+	}, [pageId, view, viewers, guestName]);
 
 	useEffect(() => {
 		if (!pageId) return;
-		return () => setPageViewers(pageId, []);
-	}, [pageId]);
+		return () => setPageViewers(pageId, view, []);
+	}, [pageId, view]);
 
 	const byId = new Map(viewers.map((viewer) => [viewer.id, viewer]));
-	const viewport = viewportRef?.current;
 
 	return (
 		<div className="pointer-events-none absolute inset-0 overflow-hidden">

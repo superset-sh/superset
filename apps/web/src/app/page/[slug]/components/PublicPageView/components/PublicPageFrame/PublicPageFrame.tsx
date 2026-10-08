@@ -36,6 +36,7 @@ export function PublicPageFrame({ pageId, src, title }: PublicPageFrameProps) {
 		<div className="relative h-full w-full">
 			<PageFrame ref={frameRef} src={src} title={title} />
 			<PagePresence
+				key={src}
 				pageId={pageId}
 				frameRef={frameRef}
 				frameOrigin={frameOrigin}

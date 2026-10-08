@@ -22,6 +22,7 @@ interface Harness {
 	fromHub(body: Record<string, unknown>): void;
 	dispatch(type: string, event: Record<string, unknown>): void;
 	closeSocket(code?: number): void;
+	stopAnsweringPings(): void;
 	nextFrame(): void;
 	socketOpened: () => string | null;
 }
@@ -45,6 +46,7 @@ function mount({
 	const listeners = new Map<string, ((event: unknown) => void)[]>();
 	const frames: (() => void)[] = [];
 	let socketListeners = new Map<string, ((event: unknown) => void)[]>();
+	let answering = answerPings;
 	let socketUrl: string | null = null;
 
 	const win: Record<string, unknown> = webView
@@ -70,7 +72,7 @@ function mount({
 		}
 		send(payload: string) {
 			sent.push(payload === "ping" ? { type: "ping" } : JSON.parse(payload));
-			if (payload === "ping" && answerPings) {
+			if (payload === "ping" && answering) {
 				for (const fn of socketListeners.get("message") ?? []) {
 					fn({ data: "pong" });
 				}
@@ -124,6 +126,9 @@ function mount({
 		},
 		dispatch(type, event) {
 			for (const fn of listeners.get(type) ?? []) fn(event);
+		},
+		stopAnsweringPings() {
+			answering = false;
 		},
 		closeSocket(code = 1006) {
 			for (const fn of socketListeners.get("close") ?? []) fn({ code });
@@ -410,6 +415,18 @@ const lastPosted = (h: Harness, type: string) =>
 	h.posted.filter((m) => m.type === type).at(-1);
 
 describe("page storage runtime, presence", () => {
+	test("a guest never hands storage records to the page", async () => {
+		const h = connected(true);
+		await h.storage.ready;
+		const seen: unknown[][] = [];
+		h.storage.subscribe("votes", (records) => seen.push(records));
+		await flush();
+
+		h.fromHub({ type: "records", key: "votes", records: [{ value: "x" }] });
+		await flush();
+		expect(seen).toEqual([]);
+	});
+
 	test("a guest keeps storage unavailable but still hears who is here", async () => {
 		const h = connected(true);
 		expect(await h.storage.ready).toBe(false);
@@ -550,27 +567,41 @@ describe("page storage runtime, reconnecting", () => {
 		expect(await pending).toBe("v");
 	});
 
-	test("a socket the hub refused is not dialled again", async () => {
-		const h = mount();
-		h.toFrame({ type: "connect", url: "wss://realtime/socket" });
-		greet(h);
-		await h.storage.ready;
+	test("a socket the hub refused, or a full page, is not dialled again", async () => {
+		for (const code of [4403, 4429]) {
+			const h = mount();
+			h.toFrame({ type: "connect", url: "wss://realtime/socket" });
+			greet(h);
+			await h.storage.ready;
 
-		const before = hellos(h);
-		h.closeSocket(4403);
-		await sleep(10);
-		expect(hellos(h)).toBe(before);
+			const before = hellos(h);
+			h.closeSocket(code);
+			await sleep(10);
+			expect(hellos(h)).toBe(before);
+		}
 	});
 
 	test("a socket that stops answering pings is replaced", async () => {
+		const h = mount({ heartbeatMs: 2, answerPings: true });
+		h.toFrame({ type: "connect", url: "wss://realtime/socket" });
+		greet(h);
+		await h.storage.ready;
+		await until(() => pings(h) >= 2);
+
+		const before = hellos(h);
+		h.stopAnsweringPings();
+		await until(() => hellos(h) > before);
+	});
+
+	test("a hub that has never answered a ping, like an older worker, is kept", async () => {
 		const h = mount({ heartbeatMs: 2 });
 		h.toFrame({ type: "connect", url: "wss://realtime/socket" });
 		greet(h);
 		await h.storage.ready;
 
 		const before = hellos(h);
-		await until(() => hellos(h) > before);
-		expect(pings(h)).toBeGreaterThan(0);
+		await until(() => pings(h) >= 4);
+		expect(hellos(h)).toBe(before);
 	});
 
 	test("a socket that answers pings is kept", async () => {

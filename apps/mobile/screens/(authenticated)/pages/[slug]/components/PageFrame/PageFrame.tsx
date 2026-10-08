@@ -104,6 +104,7 @@ export const PageFrame = forwardRef<PageFrameHandle, PageFrameProps>(
 			}
 			if (data.channel === FRAME_CHANNEL) onMessage(data);
 			if (data.channel !== STORAGE_FRAME_CHANNEL) return;
+			if (!sameOrigin(event.nativeEvent.url, src)) return;
 			if (data.type === "hello") void connectStorage();
 			else onStorageMessage?.(data);
 		};

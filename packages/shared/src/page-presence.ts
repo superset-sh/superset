@@ -23,6 +23,9 @@ export const MAX_PAGE_CURSOR_PATH_LENGTH = 1024;
 export const MAX_PAGE_GUESTS = 20;
 export const PAGE_CURSOR_SEND_INTERVAL_MS = 60;
 
+const CURSOR_PATH =
+	/^(?:[a-z][a-z0-9-]*:nth-of-type\(\d{1,6}\)(?: > [a-z][a-z0-9-]*:nth-of-type\(\d{1,6}\))*)?$/;
+
 export function parsePageCursor(raw: unknown): PageCursor | null | undefined {
 	if (raw === null) return null;
 	if (!raw || typeof raw !== "object") return undefined;
@@ -30,6 +33,7 @@ export function parsePageCursor(raw: unknown): PageCursor | null | undefined {
 	if (
 		typeof path !== "string" ||
 		path.length > MAX_PAGE_CURSOR_PATH_LENGTH ||
+		!CURSOR_PATH.test(path) ||
 		typeof x !== "number" ||
 		typeof y !== "number" ||
 		!Number.isFinite(x) ||

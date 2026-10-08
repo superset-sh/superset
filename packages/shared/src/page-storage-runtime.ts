@@ -55,6 +55,7 @@ export function pageStorageRuntimeSource({
 	let attempts = 0;
 	let heartbeat = 0;
 	let awaitingPong = false;
+	let ponged = false;
 	const remote = new Map();
 	let tracking = false;
 	let pointer = null;
@@ -99,6 +100,7 @@ export function pageStorageRuntimeSource({
 			return;
 		}
 		if (data.type === "records") {
+			if (!available) return;
 			const fns = watchers.get(data.key);
 			if (fns) for (const fn of fns) fn.push(data.records);
 			return;
@@ -212,7 +214,8 @@ export function pageStorageRuntimeSource({
 		if (heartbeat) clearTimeout(heartbeat);
 		heartbeat = 0;
 		awaitingPong = false;
-		if (code === 4403) refused = true;
+		ponged = false;
+		if (code === 4403 || code === 4429) refused = true;
 		forgetPresence();
 		settle(false);
 		if (!revoked) settleAll("unavailable", "The page's storage socket closed");
@@ -223,7 +226,7 @@ export function pageStorageRuntimeSource({
 	const beat = (ws) => {
 		heartbeat = setTimeout(() => {
 			if (ws !== socket) return;
-			if (awaitingPong) { lost(ws); return; }
+			if (awaitingPong && ponged) { lost(ws); return; }
 			awaitingPong = true;
 			try { ws.send("ping"); } catch {}
 			beat(ws);
@@ -237,6 +240,7 @@ export function pageStorageRuntimeSource({
 			if (ws !== socket) return;
 			if (event.data === "pong") {
 				awaitingPong = false;
+				ponged = true;
 				return;
 			}
 			let data;

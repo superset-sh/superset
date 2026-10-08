@@ -395,10 +395,10 @@ export function PageCommentsView({
 			</div>
 
 			<PagePresence
+				key={src}
 				pageId={pageId}
 				frameRef={frameRef}
 				frameOrigin={frameOrigin}
-				viewportRef={viewportRef}
 			/>
 
 			<div className="pointer-events-none absolute inset-0">

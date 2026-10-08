@@ -29,6 +29,28 @@ describe("parsePageCursor", () => {
 			}),
 		).toBeUndefined();
 		expect(parsePageCursor("cursor")).toBeUndefined();
+		expect(
+			parsePageCursor({ path: "div, body *:has(img)", x: 0, y: 0 }),
+		).toBeUndefined();
+	});
+
+	test("accepts only the element paths the runtime itself builds", () => {
+		expect(
+			parsePageCursor({
+				path: "main:nth-of-type(1) > my-card:nth-of-type(12) > h2:nth-of-type(1)",
+				x: 0.5,
+				y: 0.5,
+			}),
+		).toEqual({
+			path: "main:nth-of-type(1) > my-card:nth-of-type(12) > h2:nth-of-type(1)",
+			x: 0.5,
+			y: 0.5,
+		});
+		expect(parsePageCursor({ path: "", x: 0, y: 0 })).toEqual({
+			path: "",
+			x: 0,
+			y: 0,
+		});
 	});
 });
 

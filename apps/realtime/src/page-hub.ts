@@ -74,6 +74,7 @@ export class PageHub extends Server<RealtimeEnv> {
 	private manifest: PageManifest | null = null;
 	private manifestReadAt = 0;
 	private cursors = new Map<string, PageCursor>();
+	private connectingGuests = 0;
 	private cursorBudgets = new Map<string, { second: number; sent: number }>();
 
 	constructor(ctx: DurableObjectState, env: RealtimeEnv) {
@@ -136,11 +137,7 @@ export class PageHub extends Server<RealtimeEnv> {
 
 	async readManifest(force = false): Promise<PageManifest | null> {
 		const now = Date.now();
-		if (
-			!force &&
-			this.manifest &&
-			now - this.manifestReadAt < MANIFEST_TTL_MS
-		) {
+		if (!force && now - this.manifestReadAt < MANIFEST_TTL_MS) {
 			return this.manifest;
 		}
 		const object = await this.env.PRIVATE.get(pageManifestKey(this.name));
@@ -158,6 +155,7 @@ export class PageHub extends Server<RealtimeEnv> {
 			for (const connection of this.getConnections<Pinned>()) {
 				this.revoke(connection);
 			}
+			this.announce();
 			return;
 		}
 		for (const connection of this.getConnections<Pinned>()) {
@@ -171,9 +169,12 @@ export class PageHub extends Server<RealtimeEnv> {
 					});
 			if (!allowed) this.revoke(connection);
 		}
+		this.announce();
 	}
 
 	private revoke(connection: Connection<Pinned>): void {
+		this.cursors.delete(connection.id);
+		this.cursorBudgets.delete(connection.id);
 		this.send(connection, { type: "revoked" });
 		connection.close(4403, "revoked");
 	}
@@ -211,12 +212,43 @@ export class PageHub extends Server<RealtimeEnv> {
 			return;
 		}
 
+		const guest = claims.guest === true;
+		if (!guest) {
+			await this.admit(connection, claims, false);
+			return;
+		}
+		let guests = this.connectingGuests;
+		for (const other of this.getConnections<Pinned>()) {
+			if (other.state?.guest) guests++;
+		}
+		if (guests >= MAX_PAGE_GUESTS) {
+			connection.close(4429, "full");
+			return;
+		}
+		this.connectingGuests++;
+		try {
+			await this.admit(connection, claims, true);
+		} finally {
+			this.connectingGuests--;
+		}
+	}
+
+	private async admit(
+		connection: Connection<Pinned>,
+		claims: {
+			userId: string;
+			name: string;
+			image: string | null;
+			organizationIds: string[];
+			nonce: string;
+		},
+		guest: boolean,
+	): Promise<void> {
 		if (!(await this.spendNonce(claims.nonce, Date.now()))) {
 			connection.close(4401, "ticket spent");
 			return;
 		}
 
-		const guest = claims.guest === true;
 		const manifest = await this.readManifest();
 		const viewer = {
 			userId: claims.userId,
@@ -228,17 +260,6 @@ export class PageHub extends Server<RealtimeEnv> {
 		) {
 			connection.close(4403, "forbidden");
 			return;
-		}
-
-		if (guest) {
-			let guests = 0;
-			for (const other of this.getConnections<Pinned>()) {
-				if (other.state?.guest) guests++;
-			}
-			if (guests >= MAX_PAGE_GUESTS) {
-				connection.close(4429, "full");
-				return;
-			}
 		}
 
 		const pinned: Pinned = {
@@ -569,6 +590,7 @@ export class PageHub extends Server<RealtimeEnv> {
 		const records = this.named(key);
 		const payload = JSON.stringify({ type: "records", key, records });
 		for (const connection of this.getConnections<Pinned>()) {
+			if (connection.state?.guest) continue;
 			try {
 				connection.send(payload);
 			} catch {}

@@ -129,18 +129,16 @@ app.post("/v2/page/:pageId/storage/ticket", async (c) => {
 	return c.json({ ticket });
 });
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
 app.post("/v2/page/:pageId/storage/guest-ticket", async (c) => {
 	const pageId = c.req.param("pageId");
+	if (!UUID.test(pageId)) return c.json({ error: "Not found" }, 404);
 	const body = (await c.req.json().catch(() => null)) as {
 		guestId?: unknown;
 	} | null;
 	const guestId = body?.guestId;
-	if (
-		typeof guestId !== "string" ||
-		!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(
-			guestId,
-		)
-	) {
+	if (typeof guestId !== "string" || !UUID.test(guestId)) {
 		return c.json({ error: "guestId required" }, 400);
 	}
 
