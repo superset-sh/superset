@@ -6,7 +6,7 @@ const meta = {
 	component: PullRequestEvidence,
 	decorators: [
 		(Story) => (
-			<div className="w-[22rem]">
+			<div className="w-full max-w-[434px]">
 				<Story />
 			</div>
 		),
@@ -35,6 +35,15 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const WithPages: Story = {};
+export const NarrowRail: Story = {
+	decorators: [
+		(Story) => (
+			<div className="w-[352px]">
+				<Story />
+			</div>
+		),
+	],
+};
 export const Loading: Story = {
 	args: { pages: [], totalCount: undefined, isPending: true },
 };
