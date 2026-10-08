@@ -1497,10 +1497,7 @@ export class AcpAdapter implements HarnessAdapter {
 			turnId,
 			item,
 			fieldTypes: Object.fromEntries(
-				Object.entries(properties).map(([id, property]) => [
-					id,
-					property.type,
-				]),
+				Object.entries(properties).map(([id, property]) => [id, property.type]),
 			),
 		});
 		this.emitItem(item, turnId);

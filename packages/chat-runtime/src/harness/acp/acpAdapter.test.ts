@@ -882,9 +882,7 @@ describe("AcpAdapter", () => {
 		});
 		await flush();
 
-		const approval = itemsOf(events).find(
-			(i) => i.kind === "approval_request",
-		);
+		const approval = itemsOf(events).find((i) => i.kind === "approval_request");
 		expect(approval).toMatchObject({
 			targetItemId: "tc-ask",
 			form: {
@@ -932,15 +930,17 @@ describe("AcpAdapter", () => {
 					confirm: { type: "boolean", title: "Confirm" },
 					count: { type: "integer" },
 					ratio: { type: "number" },
-					size: { type: "string", enum: ["s", "l"], enumNames: ["Small", "Large"] },
+					size: {
+						type: "string",
+						enum: ["s", "l"],
+						enumNames: ["Small", "Large"],
+					},
 				},
 			},
 		});
 		await flush();
 
-		const approval = itemsOf(events).find(
-			(i) => i.kind === "approval_request",
-		);
+		const approval = itemsOf(events).find((i) => i.kind === "approval_request");
 		expect(approval).toMatchObject({
 			targetItemId: null,
 			form: {
