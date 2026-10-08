@@ -291,11 +291,6 @@ export const SANDBOX_IMAGE_NAME = "superset-hostsvc";
 export const CLOUD_WORKSPACE_PROVISION_TRANSACTION =
 	"cloud-workspace.provision";
 
-export const SHARED_ENVIRONMENT_ORGANIZATION_ID =
-	"00000000-0000-0000-0000-000000000000";
-
-export const SHARED_ENVIRONMENT_NAME = "Default";
-
 // Terminal identity presented to shell programs via TERM_PROGRAM. kitty:
 // agent TUIs (claude-code especially) tune wheel-scroll compensation per
 // TERM_PROGRAM, and our terminals install the full-fidelity wheel handler
