@@ -7,6 +7,7 @@ import {
 	type FrameRect,
 	PENDING_ANCHOR_ID,
 } from "@superset/shared/page-comments-runtime";
+import { pageStorageSocketUrl } from "@superset/shared/page-storage-ticket";
 import * as Haptics from "expo-haptics";
 import {
 	Stack,
@@ -21,12 +22,18 @@ import { View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
+import { env } from "@/lib/env";
 import { errorCopy } from "@/lib/errors";
+import { getHostAuthToken } from "@/lib/host/client";
 import { pageUrlForSlug } from "@/lib/web-links";
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import { usePageQuery } from "../hooks/usePages";
 import { CommentPin } from "./components/CommentPin";
 import { PageFrame, type PageFrameHandle } from "./components/PageFrame";
+import {
+	PagePresence,
+	type PagePresenceHandle,
+} from "./components/PagePresence";
 import { usePageCommentStore } from "./stores/pageCommentStore";
 import { pinPointOf, stackPins } from "./utils/pinLayout";
 
@@ -69,6 +76,7 @@ export function PageDetailScreen({
 	}>();
 	const headerHeight = useHeaderHeight();
 	const frameRef = useRef<PageFrameHandle>(null);
+	const presenceRef = useRef<PagePresenceHandle>(null);
 	const scrollYRef = useRef(0);
 	const restoredScroll = useRef(false);
 
@@ -105,6 +113,16 @@ export function PageDetailScreen({
 	const unresolvedThreads = useMemo(
 		() => threads.filter((thread) => !thread.resolved),
 		[threads],
+	);
+
+	const storageTicket = useCallback(
+		() =>
+			pageStorageSocketUrl({
+				pageId: pageId ?? "",
+				realtimeUrl: env.EXPO_PUBLIC_REALTIME_URL,
+				token: () => getHostAuthToken(),
+			}),
+		[pageId],
 	);
 
 	const send = useCallback(
@@ -329,6 +347,10 @@ export function PageDetailScreen({
 						src={viewUrl}
 						insetTop={headerHeight}
 						onMessage={onFrameMessage}
+						onStorageMessage={(message) =>
+							presenceRef.current?.receive(message)
+						}
+						{...(pageId ? { storageTicket } : {})}
 						onLoadEnd={() => {
 							setLoadedSrc(viewUrl);
 							setFrameEpoch((epoch) => epoch + 1);
@@ -370,6 +392,8 @@ export function PageDetailScreen({
 							/>
 						) : null}
 					</View>
+
+					<PagePresence ref={presenceRef} insetTop={headerHeight} />
 
 					{commentMode && !selection ? (
 						<View
