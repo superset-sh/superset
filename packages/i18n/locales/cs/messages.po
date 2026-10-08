@@ -1767,6 +1767,9 @@ msgstr "Doplň testy pro nejrizikovější netestovaný kód…"
 msgid "Add tests where they're missing"
 msgstr "Doplnit testy tam, kde chybí"
 
+msgid "Add themes and agents to Superset."
+msgstr "Přidejte do Supersetu motivy a agenty."
+
 msgid "Add this label"
 msgstr "Přidat tento štítek"
 
@@ -8259,6 +8262,9 @@ msgstr "Jak se lidé dostávají na superset.sh a do dokumentace a kolik z toho 
 
 msgid "How should the agent's actions be approved?"
 msgstr "Jak schvalovat akce agenta?"
+
+msgid "How Superset compares to other tools."
+msgstr "Jak si Superset stojí vedle jiných nástrojů."
 
 msgid "How the command opens."
 msgstr "Jak se příkaz otevře."
@@ -16015,9 +16021,6 @@ msgstr "Superset Mobile, cloudové workspaces, automatizace a prioritní podpora
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset potřebuje Plný přístup k disku, aby mohl číst data jiného prohlížeče. Povolte ho v Nastavení systému a zkontrolujte to znovu."
 
-msgid "Superset next to other tools."
-msgstr "Superset ve srovnání s jinými nástroji."
-
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset získá pouze oprávnění, o která tento konektor žádá. Kdykoli je můžete odvolat odpojením."
 
@@ -16829,9 +16832,6 @@ msgstr "Karta náhledu motivu"
 
 msgid "Themes"
 msgstr "Motivy"
-
-msgid "Themes and agents for Superset."
-msgstr "Motivy a agenti pro Superset."
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "Tyto příkazy se spustí automaticky při vytvoření pracovního prostoru. <0>Přečtěte si dokumentaci<1/></0>"
@@ -18210,9 +18210,6 @@ msgstr "Čeká na váš vstup"
 msgid "Waitlist signups"
 msgstr "Zápisy na čekací listinu"
 
-msgid "Walkthroughs on YouTube."
-msgstr "Ukázky na YouTube."
-
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Chcete něco dřív? <0>Napište nám na Discordu</0>. Spousta z toho, co je tady, začala jako přání uživatele."
 
@@ -18224,6 +18221,9 @@ msgstr "Došlo k varování."
 
 msgid "Watch a design review go from comment to new version."
 msgstr "Podívejte se, jak se design review dostane od komentáře k nové verzi."
+
+msgid "Watch walkthroughs on YouTube."
+msgstr "Podívejte se na ukázky na YouTube."
 
 msgid "Watchers"
 msgstr "Sledující"

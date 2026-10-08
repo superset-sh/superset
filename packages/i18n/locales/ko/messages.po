@@ -1767,6 +1767,9 @@ msgstr "테스트가 없는 가장 위험한 코드에 테스트 추가…"
 msgid "Add tests where they're missing"
 msgstr "빠진 테스트 추가하기"
 
+msgid "Add themes and agents to Superset."
+msgstr "Superset에 테마와 에이전트를 추가하세요."
+
 msgid "Add this label"
 msgstr "이 라벨 추가"
 
@@ -8259,6 +8262,9 @@ msgstr "사람들이 superset.sh와 문서에 어떻게 도달하는지, 그중 
 
 msgid "How should the agent's actions be approved?"
 msgstr "에이전트의 작업을 어떻게 승인할까요?"
+
+msgid "How Superset compares to other tools."
+msgstr "Superset과 다른 도구 비교."
 
 msgid "How the command opens."
 msgstr "명령이 열리는 방식입니다."
@@ -16015,9 +16021,6 @@ msgstr "Superset Mobile, 클라우드 워크스페이스, 자동화, 우선 지�
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "다른 브라우저의 데이터를 읽으려면 Superset에 전체 디스크 접근 권한이 필요합니다. 시스템 설정에서 권한을 허용한 다음 다시 확인하세요."
 
-msgid "Superset next to other tools."
-msgstr "다른 도구와 비교한 Superset."
-
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset는 이 커넥터가 요청한 권한만 받습니다. 언제든지 연결을 해제해 취소할 수 있습니다."
 
@@ -16829,9 +16832,6 @@ msgstr "테마 미리 보기 카드"
 
 msgid "Themes"
 msgstr "테마"
-
-msgid "Themes and agents for Superset."
-msgstr "Superset용 테마와 에이전트."
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "워크스페이스를 만들 때 이 명령이 자동으로 실행됩니다. <0>문서 보기<1/></0>"
@@ -18210,9 +18210,6 @@ msgstr "입력을 기다리는 중"
 msgid "Waitlist signups"
 msgstr "대기자 명단 가입"
 
-msgid "Walkthroughs on YouTube."
-msgstr "YouTube 사용 안내 영상."
-
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "더 빨리 필요한 기능이 있나요? <0>Discord에서 알려 주세요</0>. 여기 있는 항목 상당수가 사용자 요청에서 시작했습니다."
 
@@ -18224,6 +18221,9 @@ msgstr "경고가 발생했습니다."
 
 msgid "Watch a design review go from comment to new version."
 msgstr "디자인 리뷰가 댓글에서 새 버전으로 이어지는 과정을 확인하세요."
+
+msgid "Watch walkthroughs on YouTube."
+msgstr "YouTube에서 사용 안내 영상을 보세요."
 
 msgid "Watchers"
 msgstr "관찰자"

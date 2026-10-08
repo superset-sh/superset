@@ -1767,6 +1767,9 @@ msgstr "Add tests for the riskiest untested code…"
 msgid "Add tests where they're missing"
 msgstr "Add tests where they're missing"
 
+msgid "Add themes and agents to Superset."
+msgstr "Add themes and agents to Superset."
+
 msgid "Add this label"
 msgstr "Add this label"
 
@@ -8259,6 +8262,9 @@ msgstr "How people reach superset.sh and the docs, and how much of it is search 
 
 msgid "How should the agent's actions be approved?"
 msgstr "How should the agent's actions be approved?"
+
+msgid "How Superset compares to other tools."
+msgstr "How Superset compares to other tools."
 
 msgid "How the command opens."
 msgstr "How the command opens."
@@ -16015,9 +16021,6 @@ msgstr "Superset Mobile, cloud workspaces, automations, and priority support."
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 
-msgid "Superset next to other tools."
-msgstr "Superset next to other tools."
-
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 
@@ -16829,9 +16832,6 @@ msgstr "Theme Preview Card"
 
 msgid "Themes"
 msgstr "Themes"
-
-msgid "Themes and agents for Superset."
-msgstr "Themes and agents for Superset."
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
@@ -18210,9 +18210,6 @@ msgstr "Waiting for your input"
 msgid "Waitlist signups"
 msgstr "Waitlist signups"
 
-msgid "Walkthroughs on YouTube."
-msgstr "Walkthroughs on YouTube."
-
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 
@@ -18224,6 +18221,9 @@ msgstr "Warning occurred."
 
 msgid "Watch a design review go from comment to new version."
 msgstr "Watch a design review go from comment to new version."
+
+msgid "Watch walkthroughs on YouTube."
+msgstr "Watch walkthroughs on YouTube."
 
 msgid "Watchers"
 msgstr "Watchers"

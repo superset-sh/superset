@@ -1767,6 +1767,9 @@ msgstr "Thêm test cho phần code rủi ro nhất chưa được test…"
 msgid "Add tests where they're missing"
 msgstr "Thêm test ở những chỗ còn thiếu"
 
+msgid "Add themes and agents to Superset."
+msgstr "Thêm giao diện và agent vào Superset."
+
 msgid "Add this label"
 msgstr "Thêm nhãn này"
 
@@ -8259,6 +8262,9 @@ msgstr "Mọi người đến superset.sh và tài liệu như thế nào, và b
 
 msgid "How should the agent's actions be approved?"
 msgstr "Thao tác của tác tử nên được phê duyệt thế nào?"
+
+msgid "How Superset compares to other tools."
+msgstr "Superset so với các công cụ khác như thế nào."
 
 msgid "How the command opens."
 msgstr "Cách mở lệnh."
@@ -16015,9 +16021,6 @@ msgstr "Superset Mobile, workspace đám mây, tự động hóa và hỗ trợ 
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset cần quyền Full Disk Access để đọc dữ liệu của trình duyệt khác. Cấp quyền trong System Settings rồi kiểm tra lại."
 
-msgid "Superset next to other tools."
-msgstr "So sánh Superset với các công cụ khác."
-
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset chỉ nhận các quyền mà trình kết nối này yêu cầu. Ngắt kết nối bất cứ lúc nào để thu hồi."
 
@@ -16829,9 +16832,6 @@ msgstr "Theme Preview Card"
 
 msgid "Themes"
 msgstr "Chủ đề"
-
-msgid "Themes and agents for Superset."
-msgstr "Giao diện và agent cho Superset."
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "Các lệnh này chạy tự động khi một workspace được tạo. <0>Đọc tài liệu<1/></0>"
@@ -18210,9 +18210,6 @@ msgstr "Đang chờ bạn phản hồi"
 msgid "Waitlist signups"
 msgstr "Đăng ký danh sách chờ"
 
-msgid "Walkthroughs on YouTube."
-msgstr "Video hướng dẫn trên YouTube."
-
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Muốn có sớm hơn? <0>Hãy nói với chúng tôi trên Discord</0>. Phần lớn những gì ở đây bắt đầu từ yêu cầu của người dùng."
 
@@ -18224,6 +18221,9 @@ msgstr "Có cảnh báo."
 
 msgid "Watch a design review go from comment to new version."
 msgstr "Xem một buổi duyệt thiết kế đi từ bình luận đến phiên bản mới."
+
+msgid "Watch walkthroughs on YouTube."
+msgstr "Xem video hướng dẫn trên YouTube."
 
 msgid "Watchers"
 msgstr "Người theo dõi"
