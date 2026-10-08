@@ -148,7 +148,9 @@ Summarize each task's outcome, workspace/branch, files changed, checks, blockers
 
 A run across several workspaces is worth a page. One link carrying every outcome, branch, and
 check reads better than a long terminal block, it survives the session, and reviewers can pin
-a comment to the row they disagree with:
+a comment to the row they disagree with. Build it with the page skill's kit: a stats row for
+landed, blocked and failed, then one table row per worker with a status badge. When the merge
+order is still open, give each worker a merge, redo or drop vote:
 
 ```bash
 superset pages publish run-summary.html --workspace <id> --title "Parallel run: auth refactor"

@@ -1,0 +1,177 @@
+<!doctype html>
+<!-- Template: decision doc. One sp-vote per open question; keep each data-key stable across versions. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Page watch storage</title>
+  </head>
+  <body class="auto">
+    <main class="sp-page">
+      <header class="sp-header">
+        <p class="sp-kicker">Decision needed</p>
+        <h1>Where page watches live</h1>
+        <p class="sp-lede">Watches are lost when the host restarts. Pick where they persist before we build it.</p>
+        <ul class="sp-meta">
+          <li>proposed by the agent in <code>watch-persistence</code></li>
+          <li>8 Oct 2026</li>
+        </ul>
+      </header>
+
+      <section>
+        <h2>Context</h2>
+        <p>Each host keeps up to 20 watches in memory. A restart drops them, and comments go unanswered until someone republishes.</p>
+      </section>
+
+      <section>
+        <h2>Options</h2>
+        <div class="sp-grid">
+          <section class="sp-card">
+            <h3>SQLite per host</h3>
+            <p><span class="sp-badge sp-ok">Simple</span> <span class="sp-badge sp-warn">Host-bound</span></p>
+            <p>Survives a restart. A watch still dies with its machine.</p>
+          </section>
+          <section class="sp-card">
+            <h3>Shared Postgres</h3>
+            <p><span class="sp-badge sp-ok">Any host</span> <span class="sp-badge sp-bad">New table</span></p>
+            <p>Another host can take over a watch. Needs a migration and a lease.</p>
+          </section>
+        </div>
+        <div class="sp-callout sp-info">
+          <strong class="sp-callout-title">Recommendation</strong>
+          <p>SQLite per host. Watches are tied to a terminal on that host anyway.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Open</h2>
+        <section class="sp-vote" data-key="decision:watch-store">
+          <h3>Where do watches persist?</h3>
+          <button class="sp-option" data-value="sqlite"><span>SQLite per host</span><span class="sp-option-count"></span><span class="sp-bar"></span></button>
+          <button class="sp-option" data-value="postgres"><span>Shared Postgres</span><span class="sp-option-count"></span><span class="sp-bar"></span></button>
+          <button class="sp-button sp-vote-close" hidden>Close with my vote</button>
+          <p class="sp-vote-status"></p>
+        </section>
+      </section>
+
+      <section>
+        <h2>Settled</h2>
+        <ul>
+          <li>A watch stays bound to one terminal.</li>
+        </ul>
+      </section>
+    </main>
+    <script>
+      (async () => {
+        const store = window.superset?.storage;
+        const live = Boolean(store && (await store.ready));
+        const me = live ? store.viewer?.userId : null;
+        const failed = (error) => `Not saved (${error?.code ?? "error"}). Try again.`;
+
+        const tally = (records) => {
+          const counts = new Map();
+          for (const record of records) {
+            const choice = record.value?.choice;
+            if (choice) counts.set(choice, [...(counts.get(choice) ?? []), record.name]);
+          }
+          return counts;
+        };
+
+        for (const block of document.querySelectorAll(".sp-vote[data-key]")) {
+          const key = block.dataset.key;
+          const options = [...block.querySelectorAll(".sp-option[data-value]")];
+          const close = block.querySelector(".sp-vote-close");
+          const status = block.querySelector(".sp-vote-status");
+          let votes = [];
+          let final = null;
+          let note = "";
+
+          const render = () => {
+            const counts = tally(votes);
+            const mine = votes.find((record) => record.userId === me)?.value?.choice;
+            for (const option of options) {
+              const names = counts.get(option.dataset.value) ?? [];
+              option.querySelector(".sp-option-count").textContent = names.length
+                ? `${names.length}: ${names.join(", ")}`
+                : "0";
+              option
+                .querySelector(".sp-bar")
+                .style.setProperty("--sp-value", `${votes.length ? (100 * names.length) / votes.length : 0}%`);
+              option.setAttribute("aria-pressed", String((final?.choice ?? mine) === option.dataset.value));
+              option.disabled = !live || !store.writable || Boolean(final);
+            }
+            if (close) close.hidden = !live || !store.author || Boolean(final) || !mine;
+            if (status) {
+              status.textContent = final
+                ? `Closed: ${final.choice}`
+                : note || (live ? "" : "Voting opens on the published page.");
+            }
+          };
+
+          render();
+          if (!live) continue;
+          for (const option of options) {
+            option.addEventListener("click", async () => {
+              try {
+                await store.set(key, { choice: option.dataset.value });
+                votes = await store.getAll(key);
+                note = "";
+              } catch (error) {
+                note = failed(error);
+              }
+              render();
+            });
+          }
+          close?.addEventListener("click", async () => {
+            const choice = votes.find((record) => record.userId === me)?.value?.choice;
+            if (!choice) return;
+            try {
+              await store.set(`${key}:final`, { choice });
+              final = { choice };
+            } catch (error) {
+              note = failed(error);
+            }
+            render();
+          });
+          store.subscribe(key, (records) => {
+            votes = records;
+            render();
+          });
+          store.subscribe(`${key}:final`, (records) => {
+            final = records.find((record) => record.value?.choice)?.value ?? null;
+            render();
+          });
+        }
+
+        for (const button of document.querySelectorAll(".sp-claim[data-key]")) {
+          const key = button.dataset.key;
+          let claims = [];
+
+          const render = () => {
+            const names = claims.filter((record) => record.value).map((record) => record.name);
+            button.textContent = names.length ? `Claimed: ${names.join(", ")}` : "Claim";
+            button.setAttribute("aria-pressed", String(claims.some((record) => record.userId === me)));
+            button.disabled = !live || !store.writable;
+          };
+
+          render();
+          if (!live) continue;
+          button.addEventListener("click", async () => {
+            try {
+              if (claims.some((record) => record.userId === me)) await store.remove(key);
+              else await store.set(key, true);
+              claims = await store.getAll(key);
+            } catch (error) {
+              button.title = failed(error);
+            }
+            render();
+          });
+          store.subscribe(key, (records) => {
+            claims = records;
+            render();
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>

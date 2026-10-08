@@ -1,0 +1,62 @@
+<!doctype html>
+<!-- Template: verification evidence. Lead with the verdict; every claim gets a screenshot or a number. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chat shimmer check</title>
+  </head>
+  <body class="auto">
+    <main class="sp-page">
+      <header class="sp-header">
+        <p class="sp-kicker">Verification</p>
+        <h1>The chat shimmer no longer drops frames</h1>
+        <p class="sp-lede">Checked in the desktop app over CDP at three widths, light and dark, before and after the change.</p>
+        <ul class="sp-meta">
+          <li>branch <code>chat-shimmer-motion</code></li>
+          <li>commit <code>a1b2c3d</code></li>
+          <li>macOS, desktop dev build</li>
+        </ul>
+      </header>
+
+      <div class="sp-stats">
+        <div class="sp-stat sp-ok"><span class="sp-stat-value">17 ms</span><span class="sp-stat-label">median frame</span><span class="sp-stat-delta">was 51 ms</span></div>
+        <div class="sp-stat sp-ok"><span class="sp-stat-value">6 / 6</span><span class="sp-stat-label">scenarios pass</span></div>
+        <div class="sp-stat"><span class="sp-stat-value">0</span><span class="sp-stat-label">console errors</span></div>
+      </div>
+
+      <section>
+        <h2>Scenarios</h2>
+        <div class="sp-scroll">
+          <table>
+            <thead><tr><th>Scenario</th><th>Width</th><th>Result</th></tr></thead>
+            <tbody>
+              <tr><td>Streaming reply, light</td><td>1280</td><td><span class="sp-badge sp-ok">Pass</span></td></tr>
+              <tr><td>Streaming reply, dark</td><td>1280</td><td><span class="sp-badge sp-ok">Pass</span></td></tr>
+              <tr><td>Narrow pane</td><td>420</td><td><span class="sp-badge sp-warn">Pass, see note</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>Before and after</h2>
+        <div class="sp-compare">
+          <figure class="sp-side sp-bad">
+            <figcaption>Before</figcaption>
+            <img class="sp-shot" src="before.png" alt="Shimmer smeared across two lines" />
+          </figure>
+          <figure class="sp-side sp-ok">
+            <figcaption>After</figcaption>
+            <img class="sp-shot" src="after.png" alt="Shimmer on one line" />
+          </figure>
+        </div>
+      </section>
+
+      <div class="sp-callout sp-warn">
+        <strong class="sp-callout-title">Not tested</strong>
+        <p>Windows, and replies longer than one screen.</p>
+      </div>
+    </main>
+  </body>
+</html>

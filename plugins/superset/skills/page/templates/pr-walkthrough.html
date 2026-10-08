@@ -1,0 +1,81 @@
+<!doctype html>
+<!-- Template: PR walkthrough. Keep the section order; replace every example with the real change. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Move conflicts</title>
+  </head>
+  <body class="auto">
+    <main class="sp-page">
+      <header class="sp-header">
+        <p class="sp-kicker">PR #8326 walkthrough</p>
+        <h1>A taken move destination is a conflict, not a 500</h1>
+        <p class="sp-lede">
+          Moving a file onto a path that exists now returns a 409 the desktop shows inline. Before,
+          the host threw and the client showed a generic error.
+        </p>
+        <ul class="sp-meta">
+          <li>branch <code>fix-move-conflict</code></li>
+          <li>3 commits</li>
+          <li>4 files, +48 / -12</li>
+          <li>8 Oct 2026</li>
+        </ul>
+      </header>
+
+      <div class="sp-callout sp-info">
+        <strong class="sp-callout-title">Start here</strong>
+        <p><code>src/move.ts</code> is the whole behaviour change. The rest is the error type and its test.</p>
+      </div>
+
+      <section>
+        <h2>What changed and why</h2>
+        <p>
+          The move handler checked for an existing target and threw a plain <code>Error</code>,
+          which the router turned into a 500. It now returns a typed conflict, so the client can tell
+          "taken" apart from "broken".
+        </p>
+      </section>
+
+      <section>
+        <h2>Read in this order</h2>
+        <ul class="sp-files">
+          <li class="sp-modified"><code>packages/host-service/src/move.ts</code><span class="sp-diffstat"><ins>+8</ins> <del>-12</del></span></li>
+          <li class="sp-added"><code>packages/host-service/src/conflict.ts</code><span class="sp-diffstat"><ins>+24</ins></span></li>
+          <li class="sp-added"><code>packages/host-service/src/move.test.ts</code><span class="sp-diffstat"><ins>+14</ins></span></li>
+          <li class="sp-modified"><code>apps/desktop/src/renderer/moveFile.ts</code><span class="sp-diffstat"><ins>+2</ins></span></li>
+        </ul>
+        <figure class="sp-code">
+          <figcaption>packages/host-service/src/move.ts</figcaption>
+          <pre class="sp-diff"><code>  const target = resolve(destination);
+<del>  if (exists(target)) throw new Error("destination taken");</del>
+<ins>  if (exists(target)) return conflict(target);</ins></code></pre>
+        </figure>
+      </section>
+
+      <section>
+        <h2>Risky spots</h2>
+        <div class="sp-callout sp-warn">
+          <strong class="sp-callout-title">Released clients</strong>
+          <p>Older desktop builds read any non-200 as failure, so they still show the generic error. Nothing breaks.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>How it was tested</h2>
+        <ul class="sp-checklist">
+          <li class="sp-done">Unit test for the conflict path</li>
+          <li class="sp-done">Moved a file onto an existing one in the desktop app</li>
+          <li class="sp-partial">Mobile not checked: it has no move action yet</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Follow-ups</h2>
+        <ul>
+          <li>Show the conflicting file's name in the toast.</li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>

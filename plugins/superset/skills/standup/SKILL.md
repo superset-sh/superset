@@ -38,8 +38,9 @@ superset pages publish standup.html --workspace <id> --title "Standup" --label "
 
 Publishing the same file from the same workspace each morning versions one page instead of
 scattering a new one daily, so the history becomes the record of the week. A digest often runs
-from outside any workspace, and a publish with no workspace is refused, so pass `--workspace`
-explicitly. Offer it; never publish one unasked.
+from outside any workspace, and a publish with no workspace makes a new page every time, so pass
+`--workspace` explicitly. Compose it from the page skill's kit: a stats row for what needs the
+user, then a table per section with status badges. Offer it; never publish one unasked.
 
 ## Rules
 
