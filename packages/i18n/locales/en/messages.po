@@ -18331,9 +18331,6 @@ msgstr "What do you want to do?"
 msgid "What early users say"
 msgstr "What early users say"
 
-msgid "What every page gets."
-msgstr "What every page gets."
-
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "What Google shows us for and how much of it is not our own name."
 
@@ -18856,8 +18853,8 @@ msgstr "Your account is deactivated and will be permanently deleted soon. Reacti
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "Your account is managed by your organization. Contact your admin to create a new organization."
 
-msgid "Your agent publishes its work as a page. Your team pins comments on it, and the agent makes the changes."
-msgstr "Your agent publishes its work as a page. Your team pins comments on it, and the agent makes the changes."
+msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
+msgstr "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
 
 msgid "Your agent's work, as a link your team can comment on."
 msgstr "Your agent's work, as a link your team can comment on."

@@ -18331,9 +18331,6 @@ msgstr "Wat wil je doen?"
 msgid "What early users say"
 msgstr "Wat de eerste gebruikers zeggen"
 
-msgid "What every page gets."
-msgstr "Wat elke pagina krijgt."
-
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Waarvoor Google ons toont en hoeveel daarvan niet onze eigen naam is."
 
@@ -18856,8 +18853,8 @@ msgstr "Je account is gedeactiveerd en wordt binnenkort definitief verwijderd. R
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "Je account wordt beheerd door je organisatie. Neem contact op met je beheerder om een nieuwe organisatie aan te maken."
 
-msgid "Your agent publishes its work as a page. Your team pins comments on it, and the agent makes the changes."
-msgstr "Je agent publiceert zijn werk als pagina. Je team plaatst opmerkingen en de agent voert de wijzigingen door."
+msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
+msgstr "Je agent publiceert zijn werk als pagina. Je team geeft commentaar en de agent voert de wijzigingen door."
 
 msgid "Your agent's work, as a link your team can comment on."
 msgstr "Het werk van je agent, als link waar je team op kan reageren."

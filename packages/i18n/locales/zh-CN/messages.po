@@ -18331,9 +18331,6 @@ msgstr "你想做什么？"
 msgid "What early users say"
 msgstr "早期用户怎么说"
 
-msgid "What every page gets."
-msgstr "每个页面都有的功能。"
-
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google 为哪些搜索展示我们，其中有多少不是我们自己的名字。"
 
@@ -18856,8 +18853,8 @@ msgstr "你的账户已停用，并将很快被永久删除。重新激活即可
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "你的账户由你所在的组织管理。请联系管理员来创建新组织。"
 
-msgid "Your agent publishes its work as a page. Your team pins comments on it, and the agent makes the changes."
-msgstr "你的智能体把工作发布成页面。团队在上面留评论，智能体负责修改。"
+msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
+msgstr "你的智能体把工作发布成页面。团队发表评论，智能体负责修改。"
 
 msgid "Your agent's work, as a link your team can comment on."
 msgstr "你的智能体的成果，一个团队可以评论的链接。"

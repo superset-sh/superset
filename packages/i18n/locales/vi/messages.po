@@ -18331,9 +18331,6 @@ msgstr "Bạn muốn làm gì?"
 msgid "What early users say"
 msgstr "Người dùng đầu tiên nói gì"
 
-msgid "What every page gets."
-msgstr "Những gì mỗi trang đều có."
-
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google hiển thị chúng tôi cho những tìm kiếm nào và bao nhiêu trong đó không phải tên của chúng tôi."
 
@@ -18856,7 +18853,7 @@ msgstr "Tài khoản của bạn đã bị vô hiệu hóa và sẽ sớm bị x
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "Tài khoản của bạn do tổ chức quản lý. Hãy liên hệ admin để tạo tổ chức mới."
 
-msgid "Your agent publishes its work as a page. Your team pins comments on it, and the agent makes the changes."
+msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
 msgstr "Agent của bạn xuất bản công việc thành một trang. Nhóm bạn bình luận, và agent thực hiện thay đổi."
 
 msgid "Your agent's work, as a link your team can comment on."

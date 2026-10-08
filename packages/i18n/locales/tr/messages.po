@@ -18331,9 +18331,6 @@ msgstr "Ne yapmak istiyorsunuz?"
 msgid "What early users say"
 msgstr "İlk kullanıcılar ne diyor"
 
-msgid "What every page gets."
-msgstr "Her sayfada olanlar."
-
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google bizi hangi aramalarda gösteriyor ve bunun ne kadarı kendi adımız değil."
 
@@ -18856,8 +18853,8 @@ msgstr "Hesabınız devre dışı bırakıldı ve yakında kalıcı olarak silin
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "Hesabınız kuruluşunuz tarafından yönetiliyor. Yeni bir kuruluş oluşturmak için yöneticinizle iletişime geçin."
 
-msgid "Your agent publishes its work as a page. Your team pins comments on it, and the agent makes the changes."
-msgstr "Ajanınız çalışmasını bir sayfa olarak yayınlar. Ekibiniz yorum bırakır, değişiklikleri ajan yapar."
+msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
+msgstr "Ajanınız çalışmasını bir sayfa olarak yayınlar. Ekibiniz yorum yapar, değişiklikleri ajan yapar."
 
 msgid "Your agent's work, as a link your team can comment on."
 msgstr "Ajanınızın işi, ekibinizin yorum yapabileceği bir bağlantı olarak."

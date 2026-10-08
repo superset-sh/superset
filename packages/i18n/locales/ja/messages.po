@@ -18331,9 +18331,6 @@ msgstr "何をしますか?"
 msgid "What early users say"
 msgstr "初期ユーザーの声"
 
-msgid "What every page gets."
-msgstr "すべてのページにあるもの。"
-
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google が私たちをどの検索で表示しているか、そのうち自社名以外がどれだけか。"
 
@@ -18856,8 +18853,8 @@ msgstr "アカウントは無効化されており、まもなく完全に削除
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "アカウントは組織によって管理されています。新しい組織を作成するには管理者に連絡してください。"
 
-msgid "Your agent publishes its work as a page. Your team pins comments on it, and the agent makes the changes."
-msgstr "エージェントが作業をページとして公開します。チームがコメントを付けると、エージェントが修正します。"
+msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
+msgstr "エージェントが作業をページとして公開します。チームがコメントすると、エージェントが修正します。"
 
 msgid "Your agent's work, as a link your team can comment on."
 msgstr "エージェントの成果を、チームがコメントできるリンクに。"

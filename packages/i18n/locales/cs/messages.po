@@ -18331,9 +18331,6 @@ msgstr "Co chcete udělat?"
 msgid "What early users say"
 msgstr "Co říkají první uživatelé"
 
-msgid "What every page gets."
-msgstr "Co má každá stránka."
-
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Na co nás Google zobrazuje a kolik z toho není naše vlastní jméno."
 
@@ -18856,7 +18853,7 @@ msgstr "Váš účet je deaktivovaný a brzy bude trvale smazán. Obnovte ho a b
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "Váš účet spravuje vaše organizace. O vytvoření nové organizace požádejte svého správce."
 
-msgid "Your agent publishes its work as a page. Your team pins comments on it, and the agent makes the changes."
+msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
 msgstr "Váš agent publikuje svou práci jako stránku. Tým ji okomentuje a agent provede změny."
 
 msgid "Your agent's work, as a link your team can comment on."

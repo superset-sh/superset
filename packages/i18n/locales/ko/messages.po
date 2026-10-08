@@ -18331,9 +18331,6 @@ msgstr "무엇을 하고 싶으신가요?"
 msgid "What early users say"
 msgstr "초기 사용자들의 이야기"
 
-msgid "What every page gets."
-msgstr "모든 페이지에 들어 있는 것."
-
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google이 어떤 검색어로 우리를 보여주는지, 그중 우리 이름이 아닌 비중은 얼마인지."
 
@@ -18856,7 +18853,7 @@ msgstr "계정이 비활성화되었으며 곧 영구적으로 삭제됩니다. 
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "계정이 조직에서 관리됩니다. 새 조직을 만들려면 관리자에게 문의하세요."
 
-msgid "Your agent publishes its work as a page. Your team pins comments on it, and the agent makes the changes."
+msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
 msgstr "에이전트가 작업을 페이지로 게시합니다. 팀이 댓글을 달면 에이전트가 수정합니다."
 
 msgid "Your agent's work, as a link your team can comment on."

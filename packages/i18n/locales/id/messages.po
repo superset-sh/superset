@@ -18331,9 +18331,6 @@ msgstr "Apa yang ingin Anda lakukan?"
 msgid "What early users say"
 msgstr "Kata para pengguna awal"
 
-msgid "What every page gets."
-msgstr "Yang didapat setiap halaman."
-
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Untuk pencarian apa Google menampilkan kami dan seberapa banyak yang bukan nama kami sendiri."
 
@@ -18856,8 +18853,8 @@ msgstr "Akun Anda dinonaktifkan dan akan segera dihapus permanen. Aktifkan kemba
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "Akun Anda dikelola oleh organisasi Anda. Hubungi admin Anda untuk membuat organisasi baru."
 
-msgid "Your agent publishes its work as a page. Your team pins comments on it, and the agent makes the changes."
-msgstr "Agen Anda menerbitkan pekerjaannya sebagai halaman. Tim Anda memberi komentar, lalu agen membuat perubahannya."
+msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
+msgstr "Agen Anda menerbitkan pekerjaannya sebagai halaman. Tim Anda berkomentar, lalu agen membuat perubahannya."
 
 msgid "Your agent's work, as a link your team can comment on."
 msgstr "Hasil kerja agen Anda, sebagai tautan yang bisa dikomentari tim Anda."

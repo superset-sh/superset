@@ -18331,9 +18331,6 @@ msgstr "Что нужно сделать?"
 msgid "What early users say"
 msgstr "Что говорят первые пользователи"
 
-msgid "What every page gets."
-msgstr "Что есть у каждой страницы."
-
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "По каким запросам Google показывает нас и какая часть из них не наше имя."
 
@@ -18856,8 +18853,8 @@ msgstr "Аккаунт деактивирован и скоро будет бе�
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "Вашим аккаунтом управляет ваша организация. Обратитесь к администратору, чтобы создать новую организацию."
 
-msgid "Your agent publishes its work as a page. Your team pins comments on it, and the agent makes the changes."
-msgstr "Ваш агент публикует свою работу как страницу. Команда оставляет комментарии, а агент вносит изменения."
+msgid "Your agent publishes its work as a page. Your team comments on it, and the agent makes the changes."
+msgstr "Ваш агент публикует свою работу как страницу. Команда её комментирует, а агент вносит изменения."
 
 msgid "Your agent's work, as a link your team can comment on."
 msgstr "Работа вашего агента в виде ссылки, которую команда может комментировать."
