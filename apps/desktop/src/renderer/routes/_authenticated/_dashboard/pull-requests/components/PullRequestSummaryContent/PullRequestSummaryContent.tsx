@@ -40,7 +40,7 @@ export function PullRequestSummaryContent({
 			</div>
 			{children ? <div className="mt-8">{children}</div> : null}
 			{commentTarget ? (
-				<div className="mt-6">
+				<div className={children ? "mt-6" : "mt-2"}>
 					<PullRequestConversationComposer target={commentTarget} />
 				</div>
 			) : null}

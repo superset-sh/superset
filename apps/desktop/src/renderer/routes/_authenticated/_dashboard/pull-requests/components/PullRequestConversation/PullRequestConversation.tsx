@@ -52,7 +52,7 @@ export function PullRequestConversation({
 				</span>
 			</CollapsibleTrigger>
 			<CollapsibleContent>
-				<div className="pb-4">
+				<div>
 					{comments.length === 0 ? (
 						<p className="py-4 text-center text-sm text-muted-foreground">
 							<Trans>No comments</Trans>
