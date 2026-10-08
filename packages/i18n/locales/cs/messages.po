@@ -1032,6 +1032,9 @@ msgstr "{previewSize} px · výška řádku {0}"
 msgid "{provider} logo"
 msgstr "logo {provider}"
 
+msgid "{pullRequestCount, plural, one {# PR} other {# PRs}}"
+msgstr "{pullRequestCount, plural, one {# PR} few {# PR} many {# PR} other {# PR}}"
+
 msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
 msgstr "{queued, plural, one {# zpráva čeká ve frontě} few {# zprávy čekají ve frontě} many {# zprávy čeká ve frontě} other {# zpráv čeká ve frontě}}"
 
@@ -12798,6 +12801,9 @@ msgstr "Otázky"
 
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "Dotazy, zpětná vazba, podpora nebo cokoli jiného. Napište nám a předáme to správnému člověku."
+
+msgid "Queue paused"
+msgstr "Fronta pozastavena"
 
 msgid "Queue paused because you interrupted"
 msgstr "Fronta pozastavena, protože jste přerušili agenta"

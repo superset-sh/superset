@@ -1032,6 +1032,9 @@ msgstr "{previewSize}px · высота строки {0}"
 msgid "{provider} logo"
 msgstr "логотип {provider}"
 
+msgid "{pullRequestCount, plural, one {# PR} other {# PRs}}"
+msgstr "{pullRequestCount, plural, one {# PR} few {# PR} many {# PR} other {# PR}}"
+
 msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
 msgstr "{queued, plural, one {# сообщение ждёт в очереди} few {# сообщения ждут в очереди} many {# сообщений ждут в очереди} other {# сообщения ждут в очереди}}"
 
@@ -12798,6 +12801,9 @@ msgstr "Вопросы"
 
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "Вопросы, отзывы, поддержка или что угодно ещё. Напишите, и мы направим сообщение нужному человеку."
+
+msgid "Queue paused"
+msgstr "Очередь приостановлена"
 
 msgid "Queue paused because you interrupted"
 msgstr "Очередь приостановлена, потому что вы прервали агента"

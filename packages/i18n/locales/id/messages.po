@@ -1032,6 +1032,9 @@ msgstr "{previewSize}px · tinggi baris {0}"
 msgid "{provider} logo"
 msgstr "Logo {provider}"
 
+msgid "{pullRequestCount, plural, one {# PR} other {# PRs}}"
+msgstr "{pullRequestCount, plural, other {# PR}}"
+
 msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
 msgstr "{queued, plural, one {# pesan menunggu dalam antrean} other {# pesan menunggu dalam antrean}}"
 
@@ -12798,6 +12801,9 @@ msgstr "Pertanyaan"
 
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "Pertanyaan, masukan, dukungan, atau apa pun. Kirim pesan dan kami akan meneruskannya ke orang yang tepat."
+
+msgid "Queue paused"
+msgstr "Antrean dijeda"
 
 msgid "Queue paused because you interrupted"
 msgstr "Antrean dijeda karena Anda menginterupsi"

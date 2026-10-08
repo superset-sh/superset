@@ -1032,6 +1032,9 @@ msgstr "{previewSize}px · chiều cao dòng {0}"
 msgid "{provider} logo"
 msgstr "Logo {provider}"
 
+msgid "{pullRequestCount, plural, one {# PR} other {# PRs}}"
+msgstr "{pullRequestCount, plural, other {# PR}}"
+
 msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
 msgstr "{queued, plural, one {# tin nhắn đang chờ trong hàng đợi} other {# tin nhắn đang chờ trong hàng đợi}}"
 
@@ -12798,6 +12801,9 @@ msgstr "Câu hỏi"
 
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "Câu hỏi, góp ý, hỗ trợ hay bất cứ điều gì. Gửi một tin nhắn và chúng tôi sẽ chuyển đến đúng người."
+
+msgid "Queue paused"
+msgstr "Hàng đợi đã tạm dừng"
 
 msgid "Queue paused because you interrupted"
 msgstr "Hàng đợi đã tạm dừng vì bạn đã ngắt"

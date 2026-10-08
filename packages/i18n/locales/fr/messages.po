@@ -1032,6 +1032,9 @@ msgstr "{previewSize} px · interligne {0}"
 msgid "{provider} logo"
 msgstr "Logo {provider}"
 
+msgid "{pullRequestCount, plural, one {# PR} other {# PRs}}"
+msgstr "{pullRequestCount, plural, one {# PR} other {# PR}}"
+
 msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
 msgstr "{queued, plural, one {# message en attente dans la file} other {# messages en attente dans la file}}"
 
@@ -12798,6 +12801,9 @@ msgstr "Questions"
 
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "Questions, retours, support ou autre. Écrivez-nous et nous transmettrons votre message à la bonne personne."
+
+msgid "Queue paused"
+msgstr "File en pause"
 
 msgid "Queue paused because you interrupted"
 msgstr "File en pause car vous avez interrompu"

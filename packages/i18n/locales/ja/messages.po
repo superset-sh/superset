@@ -1032,6 +1032,9 @@ msgstr "{previewSize}px · 行の高さ {0}"
 msgid "{provider} logo"
 msgstr "{provider}のロゴ"
 
+msgid "{pullRequestCount, plural, one {# PR} other {# PRs}}"
+msgstr "{pullRequestCount, plural, other {# 件の PR}}"
+
 msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
 msgstr "{queued, plural, one {キューで待機中のメッセージ #件} other {キューで待機中のメッセージ #件}}"
 
@@ -12798,6 +12801,9 @@ msgstr "よくある質問"
 
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "ご質問、フィードバック、サポート、その他何でも。メッセージをお送りいただければ、適切な担当者にお繋ぎします。"
+
+msgid "Queue paused"
+msgstr "キューを一時停止中"
 
 msgid "Queue paused because you interrupted"
 msgstr "中断したためキューを一時停止しました"

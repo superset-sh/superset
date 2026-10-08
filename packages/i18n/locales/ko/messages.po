@@ -1032,6 +1032,9 @@ msgstr "{previewSize}px · 줄 높이 {0}"
 msgid "{provider} logo"
 msgstr "{provider} 로고"
 
+msgid "{pullRequestCount, plural, one {# PR} other {# PRs}}"
+msgstr "{pullRequestCount, plural, other {PR #개}}"
+
 msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
 msgstr "{queued, plural, one {대기열에서 대기 중인 메시지 #개} other {대기열에서 대기 중인 메시지 #개}}"
 
@@ -12798,6 +12801,9 @@ msgstr "자주 묻는 질문"
 
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "질문, 피드백, 지원 등 무엇이든 좋습니다. 메시지를 보내 주시면 담당자에게 전달하겠습니다."
+
+msgid "Queue paused"
+msgstr "대기열 일시 중지됨"
 
 msgid "Queue paused because you interrupted"
 msgstr "중단했기 때문에 대기열이 일시 중지되었습니다"

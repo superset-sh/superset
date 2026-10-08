@@ -9,6 +9,8 @@ import type { Decision } from "@superset/chat/protocol";
 import { useChatSession, useTimeline } from "@superset/chat/react";
 import { randomUUID } from "expo-crypto";
 import { useRouter } from "expo-router";
+import { useHeaderHeight } from "expo-router/react-navigation";
+import { GitPullRequest } from "lucide-react-native";
 import {
 	forwardRef,
 	useCallback,
@@ -39,18 +41,21 @@ import {
 	lastReplyKeys,
 } from "../../utils/chatRows";
 import { ChatRowView } from "../ChatRowView";
+import { DockChip } from "./components/DockChip";
 import { QueuedPrompts } from "./components/QueuedPrompts";
+import { ScrollToBottom } from "./components/ScrollToBottom";
 import { StickToBottom } from "./components/StickToBottom";
 
 const CONFIG_OPTIONS_GRACE_MS = 1000;
 
-function reasoningTexts(
+function activityTexts(
 	activity: ChatRow[],
 	snapshot: Parameters<typeof displayText>[0],
 ): Record<string, string> {
 	return Object.fromEntries(
 		activity.flatMap((row) =>
-			row.kind === "item" && row.item.kind === "reasoning"
+			row.kind === "item" &&
+			(row.item.kind === "reasoning" || row.item.kind === "agent_message")
 				? [[row.item.id, displayText(snapshot, row.item.id)]]
 				: [],
 		),
@@ -74,6 +79,8 @@ interface ChatSessionViewProps {
 	hostUrl: string;
 	onOpenSession: (sessionId: string) => void;
 	onTap?: () => void;
+	pullRequestLabel?: string;
+	onOpenPullRequests?: () => void;
 }
 
 /**
@@ -85,7 +92,16 @@ export const ChatSessionView = forwardRef<
 	ChatSessionViewHandle,
 	ChatSessionViewProps
 >(function ChatSessionView(
-	{ sessionId, workspaceId, host, hostUrl, onOpenSession, onTap },
+	{
+		sessionId,
+		workspaceId,
+		host,
+		hostUrl,
+		onOpenSession,
+		onTap,
+		pullRequestLabel,
+		onOpenPullRequests,
+	},
 	ref,
 ) {
 	const { t } = useLingui();
@@ -114,7 +130,9 @@ export const ChatSessionView = forwardRef<
 		() => deriveQueuedPrompts(chat.snapshot),
 		[chat.snapshot],
 	);
+	const [queueOpen, setQueueOpen] = useState(false);
 	const session = chat.snapshot.session;
+	const queuePaused = session?.queuePaused === true;
 	const harness = session?.harness;
 	const turnId = runningTurnId(chat.snapshot.turns);
 
@@ -283,6 +301,7 @@ export const ChatSessionView = forwardRef<
 	);
 
 	const router = useRouter();
+	const headerHeight = useHeaderHeight();
 	const latest = useRef({ rows, snapshot: chat.snapshot });
 	latest.current = { rows, snapshot: chat.snapshot };
 	const openActivity = useCallback(
@@ -292,7 +311,7 @@ export const ChatSessionView = forwardRef<
 			if (row?.kind !== "activity") return;
 			useChatActivityStore
 				.getState()
-				.open(key, row.rows, reasoningTexts(row.rows, snapshot));
+				.open(key, row.rows, activityTexts(row.rows, snapshot));
 			router.push(`/(authenticated)/workspace/${workspaceId}/activity`);
 		},
 		[router, workspaceId],
@@ -304,7 +323,7 @@ export const ChatSessionView = forwardRef<
 		if (row?.kind !== "activity") return;
 		useChatActivityStore
 			.getState()
-			.publish(row.rows, reasoningTexts(row.rows, chat.snapshot));
+			.publish(row.rows, activityTexts(row.rows, chat.snapshot));
 	}, [openActivityKey, rows, chat.snapshot]);
 
 	const renderRow = useCallback(
@@ -359,14 +378,18 @@ export const ChatSessionView = forwardRef<
 	return (
 		<View className="flex-1">
 			{banner ? (
-				<View className="bg-secondary mt-2 self-center rounded-full px-3.5 py-1.5">
+				<View
+					className="bg-secondary absolute z-10 self-center rounded-full px-3.5 py-1.5"
+					style={{ top: headerHeight + 8 }}
+				>
 					<Text className="text-foreground text-xs font-medium">{banner}</Text>
 				</View>
 			) : null}
 			<GestureDetector gesture={tap}>
 				<View className="flex-1">
 					<Conversation
-						contentContainerClassName="px-4 pt-4"
+						contentContainerClassName="px-4"
+						contentContainerStyle={{ paddingTop: headerHeight + 16 }}
 						data={rows}
 						keyExtractor={(row) => row.key}
 						ListHeaderComponent={
@@ -386,6 +409,7 @@ export const ChatSessionView = forwardRef<
 						renderItem={renderRow}
 					>
 						<StickToBottom inset={dockHeight} />
+						<ScrollToBottom inset={dockHeight} />
 					</Conversation>
 				</View>
 			</GestureDetector>
@@ -394,25 +418,50 @@ export const ChatSessionView = forwardRef<
 				onLayout={(event) => setDockHeight(event.nativeEvent.layout.height)}
 				pointerEvents="box-none"
 			>
-				<QueuedPrompts
-					onRemove={(itemId) =>
-						void chat
-							.removeQueuedPrompt(itemId)
-							.catch(failAlert(t({ message: "Could not delete" })))
-					}
-					onResume={() =>
-						void chat
-							.resumeQueue()
-							.catch(failAlert(t({ message: "Could not resume" })))
-					}
-					onSteer={(itemId) =>
-						void chat
-							.steerQueuedPrompt(itemId)
-							.catch(failAlert(t({ message: "Could not steer" })))
-					}
-					paused={session?.queuePaused === true}
-					prompts={queued}
-				/>
+				{queueOpen && queued.length > 0 ? (
+					<QueuedPrompts
+						onRemove={(itemId) =>
+							void chat
+								.removeQueuedPrompt(itemId)
+								.catch(failAlert(t({ message: "Could not delete" })))
+						}
+						onResume={() =>
+							void chat
+								.resumeQueue()
+								.catch(failAlert(t({ message: "Could not resume" })))
+						}
+						onSteer={(itemId) =>
+							void chat
+								.steerQueuedPrompt(itemId)
+								.catch(failAlert(t({ message: "Could not steer" })))
+						}
+						paused={queuePaused}
+						prompts={queued}
+					/>
+				) : null}
+				{pullRequestLabel || queued.length > 0 ? (
+					<View className="flex-row gap-2" pointerEvents="box-none">
+						{pullRequestLabel && onOpenPullRequests ? (
+							<DockChip
+								icon={GitPullRequest}
+								label={pullRequestLabel}
+								onPress={onOpenPullRequests}
+							/>
+						) : null}
+						{queued.length > 0 ? (
+							<DockChip
+								count={queued.length}
+								label={
+									queuePaused
+										? t({ message: "Queue paused" })
+										: t({ message: "Queued" })
+								}
+								onPress={() => setQueueOpen((open) => !open)}
+								selected={queueOpen}
+							/>
+						) : null}
+					</View>
+				) : null}
 			</View>
 		</View>
 	);

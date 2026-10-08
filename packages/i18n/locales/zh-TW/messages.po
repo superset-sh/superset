@@ -1032,6 +1032,9 @@ msgstr "{previewSize}px · 行高{0}"
 msgid "{provider} logo"
 msgstr "{provider}標誌"
 
+msgid "{pullRequestCount, plural, one {# PR} other {# PRs}}"
+msgstr "{pullRequestCount, plural, other {# 個 PR}}"
+
 msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
 msgstr "{queued, plural, one {佇列中有 # 則訊息等待} other {佇列中有 # 則訊息等待}}"
 
@@ -12798,6 +12801,9 @@ msgstr "常見問題"
 
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "問題、回饋、支援，或者別的什麼都行。寫給我們，我們會轉給合適的人。"
+
+msgid "Queue paused"
+msgstr "佇列已暫停"
 
 msgid "Queue paused because you interrupted"
 msgstr "由於你中斷了操作，佇列已暫停"

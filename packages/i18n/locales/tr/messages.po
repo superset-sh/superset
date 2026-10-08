@@ -1032,6 +1032,9 @@ msgstr "{previewSize}px · {0} satır yüksekliği"
 msgid "{provider} logo"
 msgstr "{provider} logosu"
 
+msgid "{pullRequestCount, plural, one {# PR} other {# PRs}}"
+msgstr "{pullRequestCount, plural, one {# PR} other {# PR}}"
+
 msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
 msgstr "{queued, plural, one {Kuyrukta bekleyen # mesaj} other {Kuyrukta bekleyen # mesaj}}"
 
@@ -12798,6 +12801,9 @@ msgstr "Sorular"
 
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "Sorular, geri bildirim, destek veya başka herhangi bir şey. Bir not gönderin, doğru kişiye yönlendirelim."
+
+msgid "Queue paused"
+msgstr "Kuyruk duraklatıldı"
 
 msgid "Queue paused because you interrupted"
 msgstr "Kesintiye uğrattığınız için kuyruk duraklatıldı"

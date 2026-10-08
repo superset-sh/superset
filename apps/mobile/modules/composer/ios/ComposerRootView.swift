@@ -12,13 +12,11 @@ enum ComposerMetrics {
   static let maxWidth: CGFloat = 720
   /// Gap between the composer and the bottom safe area, per frame 1.
   static let bottomGap: CGFloat = 8
-  static let pillRadius: CGFloat = 26
+  static let pillRadius: CGFloat = 28
   static let cardRadius: CGFloat = 28
-  /// Proportions taken from the reference crops rather than guessed: the
-  /// circle is ~0.6 of the row's height and sits ~15% of that height in from
-  /// the edge. Sizing the circle to the row with only 4pt of padding — the
-  /// first attempt — reads as the controls being jammed against the sides.
-  static let controlDiameter: CGFloat = 32
+  /// Sized to the Claude app's composer controls: 32pt read as too small to hit
+  /// on a phone. Keep `rowPadding` at 8 or the controls jam against the sides.
+  static let controlDiameter: CGFloat = 38
   static let rowSpacing: CGFloat = 8
   static let rowPadding: CGFloat = 8
   static let textInset: CGFloat = 8
@@ -543,7 +541,7 @@ struct ComposerRootView: View {
       if model.showsAttachments {
         Button { model.onAttachmentsPress?() } label: {
           Image(systemName: "plus")
-            .font(.system(size: 17, weight: .regular))
+            .font(.system(size: 20, weight: .regular))
         }
         .buttonStyle(.composerControl)
         .accessibilityLabel(composerLocalized("Add attachment"))
@@ -615,7 +613,7 @@ struct ComposerRootView: View {
     case .idle:
       Button { model.dictation.start() } label: {
         Image(systemName: "mic")
-          .font(.system(size: 17, weight: .regular))
+          .font(.system(size: 20, weight: .regular))
       }
       .buttonStyle(.composerControl)
       .accessibilityLabel(composerLocalized("Dictate"))
@@ -640,7 +638,7 @@ struct ComposerRootView: View {
         ComposerSpinner()
       } else {
         Image(systemName: "arrow.up")
-          .font(.system(size: 16, weight: .semibold))
+          .font(.system(size: 19, weight: .semibold))
       }
     }
     // While busy the button drops back to the ordinary control fill, so the
@@ -655,7 +653,7 @@ struct ComposerRootView: View {
   private var stopButton: some View {
     Button { model.onStop?() } label: {
       Image(systemName: "stop.fill")
-        .font(.system(size: 13, weight: .semibold))
+        .font(.system(size: 15, weight: .semibold))
     }
     .buttonStyle(.composerSend)
     .accessibilityLabel(composerLocalized("Stop"))
