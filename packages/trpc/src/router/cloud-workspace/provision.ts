@@ -132,7 +132,7 @@ async function provision(
 				columns: { status: true },
 			});
 			if (current?.status === "deleted") {
-				await deleteSandbox(providerSandboxId);
+				await deleteSandbox(providerSandboxId, row.provider);
 			}
 			await naming.catch(() => {});
 			return "skipped";
@@ -162,6 +162,7 @@ async function provision(
 		const keepForDiagnosis = error instanceof SandboxNotReadyError;
 		await (keepForDiagnosis ? stopSandbox : deleteSandbox)(
 			providerSandboxId,
+			row.provider,
 		).catch((teardownError) => {
 			console.error(
 				`[cloud-workspace] ${keepForDiagnosis ? "could not stop" : "leaked"} sandbox ${providerSandboxId}`,

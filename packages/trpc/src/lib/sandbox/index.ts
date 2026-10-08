@@ -17,6 +17,20 @@ export {
 	type RemoteBranchPage,
 } from "./list-branches";
 export {
+	deleteEnvironment,
+	deleteSandbox,
+	describeSandbox,
+	isSandboxProvider,
+	promoteSandboxToEnvironment,
+	provisionSandbox,
+	restartSandbox,
+	sandboxExists,
+	sleepSandbox,
+	stopAndSnapshot,
+	stopSandbox,
+	wakeSandbox,
+} from "./provider";
+export {
 	type RefreshSandboxCredentialsOutcome,
 	refreshSandboxCredentials,
 } from "./refresh-credentials";
@@ -37,21 +51,15 @@ export {
 	workspaceRepositories,
 } from "./repositories";
 export {
-	deleteSandbox,
-	describeSandbox,
-	HOST_SERVICE_PORT,
-	promoteSandboxToEnvironment,
-	provisionSandbox,
-	pushManagedEnv,
 	type SandboxClaim,
 	type SandboxEnvironment,
 	SandboxNotReadyError,
 	SandboxUnavailableError,
-	sandboxExists,
+} from "./types";
+export {
+	HOST_SERVICE_PORT,
+	pushManagedEnv,
 	settleSandbox,
-	stopAndSnapshot,
-	stopSandbox,
 	stripWorkspaceIdentity,
 	waitForStopSnapshot,
-	wakeSandbox,
 } from "./vercel";

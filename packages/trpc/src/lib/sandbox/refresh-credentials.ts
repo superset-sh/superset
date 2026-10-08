@@ -11,7 +11,7 @@ import { cloudWorkspaces } from "@superset/db/schema";
 import { eq } from "drizzle-orm";
 import { sandboxHostSecretFor } from "./access";
 import { buildSandboxClaim } from "./claim";
-import { applySandboxPolicy } from "./vercel";
+import { applySandboxPolicy } from "./provider";
 
 export type RefreshSandboxCredentialsOutcome =
 	| "applied"
@@ -37,6 +37,7 @@ export async function refreshSandboxCredentials(args: {
 	if (!row?.providerSandboxId || row.status !== "ready") return "not-ready";
 	const { claim } = await buildSandboxClaim({ row });
 	return applySandboxPolicy({
+		provider: row.provider,
 		providerSandboxId: row.providerSandboxId,
 		networkPolicy: claim.networkPolicy,
 	});

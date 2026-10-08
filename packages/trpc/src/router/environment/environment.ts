@@ -22,7 +22,7 @@ import { z } from "zod";
 import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
 import {
 	buildSandboxClaim,
-	deleteSandbox,
+	deleteEnvironment,
 	loadRepositories,
 	primaryRepository,
 	promoteSandboxToEnvironment,
@@ -509,20 +509,22 @@ export const environmentRouter = {
 					return saved;
 				})
 				.catch(async (error: unknown) => {
-					await deleteSandbox(goldenName).catch((cleanup: unknown) =>
-						console.error(
-							`[environment/promote] could not delete unused golden ${goldenName}`,
-							cleanup,
-						),
+					await deleteEnvironment(goldenName, workspace.provider).catch(
+						(cleanup: unknown) =>
+							console.error(
+								`[environment/promote] could not delete unused golden ${goldenName}`,
+								cleanup,
+							),
 					);
 					throw error;
 				});
 			if (target?.sourceKind === "fork") {
-				await deleteSandbox(target.sourceRef).catch((error: unknown) =>
-					console.error(
-						`[environment/promote] ${target.id} replaced; could not delete its previous golden ${target.sourceRef}`,
-						error,
-					),
+				await deleteEnvironment(target.sourceRef, target.provider).catch(
+					(error: unknown) =>
+						console.error(
+							`[environment/promote] ${target.id} replaced; could not delete its previous golden ${target.sourceRef}`,
+							error,
+						),
 				);
 			}
 			return row;
@@ -616,11 +618,12 @@ export const environmentRouter = {
 				.returning({
 					sourceKind: environments.sourceKind,
 					sourceRef: environments.sourceRef,
+					provider: environments.provider,
 				});
 			// A golden is one environment's alone, and an archived environment
 			// never forks from it again; without this it bills storage forever.
 			if (archived?.sourceKind === "fork") {
-				await deleteSandbox(archived.sourceRef);
+				await deleteEnvironment(archived.sourceRef, archived.provider);
 			}
 			return { archived: true };
 		}),

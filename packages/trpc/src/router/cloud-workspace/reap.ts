@@ -1,7 +1,11 @@
 import { db } from "@superset/db/client";
 import { cloudWorkspaces } from "@superset/db/schema";
 import { eq } from "drizzle-orm";
-import { deleteSandbox, stopSandbox } from "../../lib/sandbox";
+import {
+	deleteSandbox,
+	isSandboxProvider,
+	stopSandbox,
+} from "../../lib/sandbox";
 import { publishCloudWorkspaceJob } from "./jobs";
 
 /** How long an archived workspace keeps its box running, so an undo finds it live. */
@@ -26,15 +30,15 @@ export async function reapArchivedCloudWorkspace(
 		!row ||
 		row.status !== "deleted" ||
 		row.deletedAt?.toISOString() !== input.archivedAt ||
-		row.provider !== "vercel"
+		!isSandboxProvider(row.provider)
 	) {
 		return "skipped";
 	}
 	if (input.stage === "delete") {
-		await deleteSandbox(row.providerSandboxId);
+		await deleteSandbox(row.providerSandboxId, row.provider);
 		return "reaped";
 	}
-	await stopSandbox(row.providerSandboxId);
+	await stopSandbox(row.providerSandboxId, row.provider);
 	return "stopped";
 }
 
@@ -58,6 +62,7 @@ function queueReapStage(
 export async function queueReap(
 	input: Omit<ReapArchivedCloudWorkspaceInput, "stage">,
 	providerSandboxId: string,
+	provider = "vercel",
 ): Promise<void> {
 	await queueReapStage({ ...input, stage: "delete" }, ARCHIVE_GRACE_SECONDS);
 	await queueReapStage(
@@ -68,6 +73,6 @@ export async function queueReap(
 			`[cloud-workspace] could not queue the stop for ${input.cloudWorkspaceId}`,
 			error,
 		);
-		await stopSandbox(providerSandboxId);
+		await stopSandbox(providerSandboxId, provider);
 	});
 }
