@@ -1,21 +1,22 @@
-import { Trans } from "@lingui/react/macro";
 import type { RendererContext } from "@superset/panes";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import type {
+	ChatPaneData,
 	OpenFile,
 	PaneViewerData,
+	TerminalPaneData,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
-import type { TerminalPaneData } from "../../../../types";
 import { TerminalPane } from "../TerminalPane";
-import { AcpChatPane } from "./components/AcpChatPane";
-import { AcpChatPending } from "./components/AcpChatPane/components/AcpChatPending";
-import { useAgentSurface } from "./hooks/useAgentSurface";
-import { useAgentSurfaceSwitch } from "./hooks/useAgentSurfaceSwitch";
+
+type ChatOnTerminalPaneData = TerminalPaneData &
+	Omit<ChatPaneData, "sessionId"> & {
+		agentSurface?: "cli" | "acp";
+		acpSessionId?: string | null;
+	};
 
 /**
- * A terminal pane, shown on whichever surface its agent calls for. The choice
- * needs the agent binding, which is a hook, so it lives here rather than in the
- * pane registry's render callback.
+ * Chats used to be shown on the terminal pane. A layout saved then still holds
+ * them there, so each one moves to its own chat pane the first time it renders.
  */
 export function AgentTerminalPane({
 	ctx,
@@ -28,81 +29,42 @@ export function AgentTerminalPane({
 	onOpenFile: OpenFile;
 	onRevealPath: (path: string) => void;
 }) {
-	const data = ctx.pane.data as TerminalPaneData;
-	const { agent, surface } = useAgentSurface(workspaceId, data);
-	const { switchSurface } = useAgentSurfaceSwitch(workspaceId);
+	const data = ctx.pane.data as ChatOnTerminalPaneData;
+	const isSavedChat = data.agentSurface === "acp";
 
-	// A pane that derives onto the chat has recorded nothing: the agent identity
-	// the chat resumes from is not in its data, and the pty it is replacing is
-	// still running the agent. Adopting the surface does both, through the same
-	// path an explicit toggle takes. Keyed by terminal id so a relaunch can be
-	// adopted again, and so this runs once per terminal rather than per render.
-	const adopted = useRef<string | null>(null);
-	const unrecorded = data.agentSurface === undefined;
 	useEffect(() => {
-		if (!unrecorded || surface !== "acp" || !agent) return;
-		if (adopted.current === data.terminalId) return;
-		adopted.current = data.terminalId;
-		void switchSurface(ctx, "acp", agent);
-	}, [unrecorded, surface, agent, data.terminalId, ctx, switchSurface]);
+		if (!isSavedChat) return;
+		const {
+			agentSurface: _surface,
+			acpSessionId,
+			createOnAttach: _create,
+			...chat
+		} = data;
+		const state = ctx.store.getState();
+		state.setPanePinned({ paneId: ctx.pane.id, pinned: false });
+		state.replacePane({
+			tabId: ctx.tab.id,
+			paneId: ctx.pane.id,
+			newPane: {
+				kind: "chat-v3",
+				pinned: ctx.pane.pinned,
+				...(ctx.pane.titleOverride
+					? { titleOverride: ctx.pane.titleOverride }
+					: {}),
+				data: { ...chat, sessionId: acpSessionId ?? null } as ChatPaneData,
+			},
+		});
+	}, [
+		isSavedChat,
+		data,
+		ctx.store,
+		ctx.tab.id,
+		ctx.pane.id,
+		ctx.pane.titleOverride,
+		ctx.pane.pinned,
+	]);
 
-	// Unmounted, not hidden: its pty is stopped on the chat surface, and a
-	// mounted TerminalPane would auto-resume the agent straight back into it.
-	if (surface === "acp") {
-		if (!data.agent) {
-			return (
-				<AcpChatPending>
-					<Trans>Opening the chat…</Trans>
-				</AcpChatPending>
-			);
-		}
-		return (
-			<AcpChatPane
-				key={data.terminalId}
-				agent={data.agent}
-				onFirstPromptSent={() => {
-					if (
-						data.pendingPrompt === undefined &&
-						data.pendingAttachments === undefined
-					)
-						return;
-					const {
-						pendingPrompt: _sent,
-						pendingAttachments: _attached,
-						...rest
-					} = data;
-					ctx.actions.updateData(rest);
-				}}
-				pendingFirstPrompt={
-					data.pendingPrompt || data.pendingAttachments?.length
-						? [
-								...(data.pendingPrompt
-									? [{ type: "text" as const, text: data.pendingPrompt }]
-									: []),
-								...(data.pendingAttachments ?? []).map((attachment) => ({
-									type: "attachment" as const,
-									...attachment,
-								})),
-							]
-						: null
-				}
-				modelId={data.chatModelId}
-				modeId={data.chatModeId}
-				onAgentSessionChanged={(sessionId) => {
-					if (!data.agent) return;
-					ctx.actions.updateData({
-						...data,
-						agent: { ...data.agent, sessionId },
-					});
-				}}
-				onSessionCreated={(acpSessionId) =>
-					ctx.actions.updateData({ ...data, acpSessionId })
-				}
-				sessionId={data.acpSessionId ?? null}
-				workspaceId={workspaceId}
-			/>
-		);
-	}
+	if (isSavedChat) return null;
 
 	return (
 		<TerminalPane

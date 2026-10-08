@@ -48,6 +48,13 @@ final class ComposerModel {
   /// chevron button reporting its id. Empty for agents that have none.
   var launchOptions: [ComposerMenuOption] = []
 
+  /// The agent's permission modes, drawn as one menu beside `+`. Empty hides it.
+  var modeOptions: [ComposerModeOption] = []
+  var selectedModeId: String?
+
+  /// The agent is working. With an empty draft, send turns into stop.
+  var canStop = false
+
   /// A submit is in flight. The caller owns this — only it knows when delivery
   /// finished — and while it is true the send button shows a spinner and the
   /// mic gets out of the way.
@@ -123,6 +130,8 @@ final class ComposerModel {
   @ObservationIgnored var onDictationError: ((String) -> Void)?
   @ObservationIgnored var onModelPress: (() -> Void)?
   @ObservationIgnored var onLaunchOptionPress: ((String) -> Void)?
+  @ObservationIgnored var onModeSelect: ((String) -> Void)?
+  @ObservationIgnored var onStop: (() -> Void)?
   @ObservationIgnored var onChipPress: ((String) -> Void)?
   @ObservationIgnored var onQuickKeyPress: ((String) -> Void)?
   /// The session strip reports by id and knows nothing else. Selecting swaps

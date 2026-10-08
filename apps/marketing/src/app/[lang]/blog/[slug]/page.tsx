@@ -82,8 +82,10 @@ export default async function BlogPostPage({ params }: PageProps) {
 	);
 }
 
-export async function generateStaticParams() {
-	return getAllSlugs().map((slug) => ({ slug }));
+export function generateStaticParams() {
+	return getAllSlugs()
+		.slice(0, 1)
+		.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({

@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
-import simpleGit, { type SimpleGit } from "simple-git";
+import { type SimpleGit, simpleGit } from "simple-git";
 import { workspaces } from "../../src/db/schema";
 import { safeResolveWorktreePath } from "../../src/trpc/router/workspace-creation/shared/worktree-paths";
 import { cloudFlows } from "../helpers/cloud-fakes";

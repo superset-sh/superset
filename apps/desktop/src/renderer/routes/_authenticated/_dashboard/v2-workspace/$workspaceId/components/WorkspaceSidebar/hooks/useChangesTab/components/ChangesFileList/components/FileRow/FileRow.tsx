@@ -44,9 +44,9 @@ import {
 	getChangesetFileKey,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
+import { DiffStatText } from "../../../../../../../DiffStatText";
 import { useFileDrag } from "../../hooks/useFileDrag";
 import { useStagingMutations } from "../../hooks/useStagingMutations";
-import { DiffStatText } from "../DiffStatText";
 import { PathActionsMenuItems } from "../PathActionsMenuItems";
 import { StageToggleButton } from "../StageToggleButton";
 

@@ -110,11 +110,10 @@ export function useWorkspaceHeaderActions(
 		);
 	};
 
-	const shareWorkspace = () => {
+	// `anchor` places the iPad share popover; iPhone ignores it.
+	const shareWorkspace = (anchor?: number) => {
 		if (!workspace) return;
-		void Share.share({
-			url: workspaceShareUrl(workspace.id),
-		});
+		void Share.share({ url: workspaceShareUrl(workspace.id) }, { anchor });
 	};
 
 	return {

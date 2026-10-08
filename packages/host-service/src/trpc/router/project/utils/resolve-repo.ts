@@ -419,10 +419,11 @@ export async function cloneTemplateInto(
 	try {
 		// --depth=1 since we're throwing away the template's history anyway.
 		const env = await cloneEnv(credentials, templateUrl);
-		const cloneGit = createUserSimpleGit();
-		await (env ? cloneGit.env(env) : cloneGit).clone(templateUrl, targetPath, [
-			"--depth=1",
-		]);
+		await createUserSimpleGit(undefined, { env }).clone(
+			templateUrl,
+			targetPath,
+			["--depth=1"],
+		);
 		await rm(join(targetPath, ".git"), { recursive: true, force: true });
 
 		await gitInitMainBranch(targetPath);
@@ -483,8 +484,10 @@ export async function cloneRepoInto(
 
 	try {
 		const env = await cloneEnv(credentials, repoCloneUrl);
-		const git = createUserSimpleGit(undefined, { abort: signal });
-		await (env ? git.env(env) : git).clone(repoCloneUrl, targetPath);
+		await createUserSimpleGit(undefined, { abort: signal, env }).clone(
+			repoCloneUrl,
+			targetPath,
+		);
 		signal?.throwIfAborted();
 	} catch (err) {
 		await rollbackTargetDir(targetPath);

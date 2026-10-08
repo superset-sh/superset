@@ -1,20 +1,12 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, test } from "bun:test";
+import { db } from "@superset/db/client";
+import { stub } from "../../../test/stub";
+import * as crypto from "../../router/plugins/crypto";
 
-// A refresh is a token-endpoint call plus what gets written back, so the
-// endpoint and the update are the two things stubbed here. `mock.module` is
-// process-wide, so each stub lists every export the real module has.
-//
-// The lookup rule lives here too rather than in its own file: these stubs are
-// stateful, and a second file stubbing the same modules would both lose the
-// race for whichever registration bun pins and leave its own `rows` binding
-// unread by the pinned closure.
-//
-// `./index`, `./client-identity` and the manifest module are deliberately NOT
-// stubbed: a partial stub of any of them pins process-wide and breaks every
-// other file that imports the rest. A real registry connector with a static
-// client is used instead, so `resolveEndpoints` runs for real and reaches no
-// network, and the token endpoint is intercepted at `globalThis.fetch` — the
-// same seam `connectors.test.ts` uses.
+// A refresh is a token-endpoint call plus what gets written back. A real
+// registry connector with a static client is used, so `resolveEndpoints` runs
+// for real and reaches no network, and the token endpoint is intercepted at
+// `globalThis.fetch`.
 
 let rows: Array<Record<string, unknown>> = [];
 let stored: Record<string, unknown> | null = null;
@@ -51,23 +43,14 @@ const updateChain = {
 	where: () => updateResult,
 };
 
-mock.module("@superset/db/client", () => ({
-	db: {
-		select: () => selectChain,
-		update: () => updateChain,
-		query: {},
-	},
-	dbWs: {
-		transaction: () => Promise.reject(new Error("dbWs is stubbed in tests")),
-	},
-}));
+stub(db, { select: () => selectChain, update: () => updateChain });
 
-mock.module("../../router/plugins/crypto", () => ({
+stub(crypto, {
 	decryptSecret: (value: string) => Promise.resolve(value),
 	decryptOptional: (value: string | null) => Promise.resolve(value),
 	encryptSecret: (value: string) => Promise.resolve(value),
 	encryptOptional: (value: string | null) => Promise.resolve(value),
-}));
+});
 
 const {
 	ConnectorUnavailableError,

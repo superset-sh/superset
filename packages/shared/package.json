@@ -5,6 +5,10 @@
 	"type": "module",
 	"exports": {
 		"./terminal-colors": "./src/terminal-colors.ts",
+		"./voice": {
+			"types": "./src/voice/index.ts",
+			"default": "./src/voice/index.ts"
+		},
 		"./connectors": {
 			"types": "./src/connectors/index.ts",
 			"default": "./src/connectors/index.ts"
@@ -36,6 +40,14 @@
 		"./page-storage": {
 			"types": "./src/page-storage.ts",
 			"default": "./src/page-storage.ts"
+		},
+		"./page-presence": {
+			"types": "./src/page-presence.ts",
+			"default": "./src/page-presence.ts"
+		},
+		"./page-presence-client": {
+			"types": "./src/page-presence-client.ts",
+			"default": "./src/page-presence-client.ts"
 		},
 		"./page-comments": {
 			"types": "./src/page-comments/index.ts",
@@ -112,6 +124,10 @@
 		"./sandbox-contract": {
 			"types": "./src/sandbox-contract.ts",
 			"default": "./src/sandbox-contract.ts"
+		},
+		"./pull-request-diff": {
+			"types": "./src/pull-request-diff/index.ts",
+			"default": "./src/pull-request-diff/index.ts"
 		},
 		"./pull-request": {
 			"types": "./src/pull-request.ts",
@@ -381,11 +397,11 @@
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
-		"test": "bun test"
+		"test": "bun test --isolate"
 	},
 	"dependencies": {
 		"@date-fns/tz": "1.4.1",
-		"@lingui/core": "6.6.0",
+		"@lingui/core": "6.8.0",
 		"@superset/i18n": "workspace:*",
 		"culori": "4.0.2",
 		"drizzle-orm": "0.45.2",
@@ -393,7 +409,7 @@
 		"jose": "6.2.2",
 		"rrule": "2.8.1",
 		"semver": "7.7.4",
-		"zod": "4.4.3"
+		"zod": "4.6.5"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
@@ -401,7 +417,7 @@
 		"@types/friendly-words": "1.2.2",
 		"@types/semver": "7.7.1",
 		"@xterm/xterm": "6.1.0-beta.302",
-		"bun-types": "1.3.14",
-		"typescript": "6.0.3"
+		"bun-types": "1.4.2",
+		"typescript": "7.0.2"
 	}
 }

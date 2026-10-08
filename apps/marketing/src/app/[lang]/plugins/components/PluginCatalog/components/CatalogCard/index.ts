@@ -1,0 +1,1 @@
+export { CatalogCard } from "./CatalogCard";

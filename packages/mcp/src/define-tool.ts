@@ -41,7 +41,7 @@ export interface McpToolCallEvent {
 	toolName: string;
 	userId: string;
 	organizationId: string;
-	source: "api-key" | "oauth";
+	source: McpContext["source"];
 	clientLabel: string | null;
 	durationMs: number;
 	success: boolean;

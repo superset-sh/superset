@@ -1,5 +1,5 @@
 import { command } from "../../../lib/command";
-import { SUPERSET_CONFIG_PATH } from "../../../lib/config";
+import { getSupersetConfigPath } from "../../../lib/config";
 import {
 	type ConfigCheckResult,
 	checkConfigFile,
@@ -22,7 +22,7 @@ export default command({
 		"Validate the config file under ~/.superset before a hand edit or a bad restore surfaces as an auth failure; exits 1 on an error",
 	skipMiddleware: true,
 	run: async () => {
-		const result = checkConfigFile(SUPERSET_CONFIG_PATH);
+		const result = checkConfigFile(getSupersetConfigPath());
 		if (!result.valid) process.exitCode = 1;
 		return { data: result, message: describe(result) };
 	},

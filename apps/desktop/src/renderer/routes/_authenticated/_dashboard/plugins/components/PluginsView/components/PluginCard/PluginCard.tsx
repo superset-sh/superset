@@ -14,9 +14,9 @@ import {
 	LuPlay,
 	LuTrash2,
 } from "react-icons/lu";
-import { PluginIcon } from "renderer/routes/_authenticated/_dashboard/plugins/components/PluginIcon";
+import { PluginIcon } from "renderer/components/PluginIcon";
+import type { CatalogPlugin } from "renderer/hooks/usePluginCatalog";
 import { PluginKindBadges } from "renderer/routes/_authenticated/_dashboard/plugins/components/PluginKindBadges";
-import type { CatalogPlugin } from "renderer/routes/_authenticated/_dashboard/plugins/hooks/usePluginCatalog";
 
 interface PluginCardProps {
 	plugin: CatalogPlugin;

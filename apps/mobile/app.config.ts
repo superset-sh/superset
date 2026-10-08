@@ -4,6 +4,7 @@ import { IOS_APP } from "@superset/shared/constants";
 import { config } from "dotenv";
 import type { ConfigContext } from "expo/config";
 import { withIosAccentColor } from "./config-plugins/withIosAccentColor";
+import { withSceneLifecycle } from "./config-plugins/withSceneLifecycle";
 
 // Load .env file
 config({
@@ -36,7 +37,7 @@ export default ({ config }: ConfigContext) => ({
 	locales: Object.fromEntries(
 		SUPPORTED_LOCALES.map((locale) => [locale, `./locales/${locale}.json`]),
 	),
-	version: "1.1.3",
+	version: "1.1.4",
 	orientation: "portrait",
 	icon: "./assets/icon.png",
 	userInterfaceStyle: "dark",
@@ -70,6 +71,8 @@ export default ({ config }: ConfigContext) => ({
 			],
 			ITSAppUsesNonExemptEncryption: false,
 			NSSupportsLiveActivities: true,
+			// Voice mode keeps its WebRTC call up with the phone locked.
+			UIBackgroundModes: ["audio"],
 			// Dictation is native now (`modules/composer`), so no config plugin
 			// contributes this any more — `expo-speech-recognition` used to, and
 			// went with `GlassComposer`. Without it `SFSpeechRecognizer`'s
@@ -96,6 +99,8 @@ export default ({ config }: ConfigContext) => ({
 		// where the rest of that chrome is dark. The composer states its own
 		// tint (`ComposerRootView`) rather than inheriting this.
 		[withIosAccentColor, { color: "#262626" }],
+		// iOS 27 SDK: an app without the UIScene life cycle traps on launch.
+		withSceneLifecycle,
 		"@bacons/apple-targets",
 		"expo-router",
 		[
@@ -141,6 +146,17 @@ export default ({ config }: ConfigContext) => ({
 			},
 		],
 		"expo-document-picker",
+		// Listed after expo-image-picker on purpose: both write the microphone
+		// string and the last one wins, so this names both uses.
+		[
+			"@config-plugins/react-native-webrtc",
+			{
+				cameraPermission:
+					"Superset uses the camera so you can attach photos to chat messages.",
+				microphonePermission:
+					"Superset uses the microphone for voice mode and to dictate chat messages.",
+			},
+		],
 		["expo-notifications", { enableBackgroundRemoteNotifications: false }],
 		// The composer is built on Liquid Glass, which silently no-ops before
 		// iOS 26 — an iOS 26 floor means one visual language instead of a glass

@@ -10,4 +10,6 @@ export interface RealtimeEnv {
 	OrgHub: DurableObjectNamespace<OrgHub>;
 	PageHub: DurableObjectNamespace<PageHub>;
 	PRIVATE: R2Bucket;
+	GUEST_PRESENCE_BY_IP: RateLimit;
+	GUEST_PRESENCE_BY_PAGE: RateLimit;
 }

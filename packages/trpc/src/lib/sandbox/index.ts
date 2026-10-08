@@ -7,6 +7,7 @@ export {
 	resolveSandboxCaller,
 	SANDBOX_ALLOWED_PROCEDURES,
 	type SandboxCaller,
+	sandboxCredentialWorkspaceId,
 } from "./api-credential";
 export { buildSandboxClaim } from "./claim";
 export { deriveSandboxCredentials } from "./credentials";

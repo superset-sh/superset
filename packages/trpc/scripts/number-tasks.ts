@@ -63,7 +63,7 @@ for (const { organization_id: organizationId } of pending.rows) {
 				reserved_key: string;
 				reserved_last_number: number;
 			}>(
-				sql`SELECT * FROM reserve_task_numbers(${organizationId}, ${rows.length})`,
+				sql`SELECT * FROM reserve_task_numbers(${organizationId}, NULL, ${rows.length})`,
 			);
 			if (!reserved) throw new Error(`No numbers for ${organizationId}`);
 			const offset = reserved.reserved_last_number - rows.length;

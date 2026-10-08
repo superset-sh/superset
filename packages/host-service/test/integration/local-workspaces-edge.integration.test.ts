@@ -12,9 +12,10 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
-import { terminalSessions, workspaces } from "../../src/db/schema";
+import { projects, terminalSessions, workspaces } from "../../src/db/schema";
 import {
 	runSandboxSelfSeed,
 	sandboxRepositoryWorkspaceId,
@@ -724,6 +725,35 @@ describe("local workspaces: sessions and sandbox seed", () => {
 					row.id === sandboxRepositoryWorkspaceId(identity.workspaceId, "docs"),
 			),
 		).toMatchObject({ type: "local", worktreePath: "/workspace/docs" });
+		const primaryProjectId =
+			rows.find((row) => row.id === identity.workspaceId)?.projectId ?? "";
+		const readPrimaryProject = () =>
+			host.db
+				.select()
+				.from(projects)
+				.where(eq(projects.id, primaryProjectId))
+				.get();
+		const repoIdentity = {
+			repoProvider: "github",
+			repoOwner: "acme",
+			repoName: "repo",
+			repoUrl: "https://github.com/acme/repo",
+			remoteName: "origin",
+		};
+		expect(readPrimaryProject()).toMatchObject(repoIdentity);
+		host.db
+			.update(projects)
+			.set({
+				repoProvider: null,
+				repoOwner: null,
+				repoName: null,
+				repoUrl: null,
+				remoteName: null,
+			})
+			.where(eq(projects.id, primaryProjectId))
+			.run();
+		runSandboxSelfSeed(host.db, identity);
+		expect(readPrimaryProject()).toMatchObject(repoIdentity);
 		// A sandbox's only workspace can still be retired record-only.
 		const preview = await host.trpc.workspaceCleanup.inspect.query({
 			workspaceId: identity.workspaceId,

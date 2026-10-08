@@ -1,8 +1,10 @@
-import { getLocaleMessages, SUPPORTED_LOCALES } from "@superset/i18n";
+import { DEFAULT_LOCALE, getLocaleMessages } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
+import { cacheLife } from "next/cache";
 import { IBM_Plex_Mono, Inter } from "next/font/google";
 import Script from "next/script";
+import { Suspense } from "react";
 import { CookieConsent } from "@/components/CookieConsent";
 import {
 	OrganizationJsonLd,
@@ -10,13 +12,11 @@ import {
 	WebsiteJsonLd,
 } from "@/components/JsonLd";
 import { REDDIT_PIXEL_ID } from "@/lib/constants";
-import { isMobileLaunched } from "@/lib/site-flags";
 
 import { CTAButtons } from "./components/CTAButtons";
 import { Footer } from "./components/Footer";
 import { GitHubStarCounter } from "./components/GitHubStarCounter";
 import { Header } from "./components/Header";
-import { MobileLaunchProvider } from "./providers/MobileLaunchProvider";
 import "../globals.css";
 import { initServerI18n } from "../i18n-server";
 import { Providers } from "../providers";
@@ -105,11 +105,14 @@ export const metadata: Metadata = {
 	manifest: "/manifest.json",
 };
 
-// Declares the locale space for the [lang] segment. Pages themselves stay
-// dynamic (the nav resolves the viewer's session), but Next validates and
-// types the param set from this.
+async function currentYear(): Promise<number> {
+	"use cache";
+	cacheLife("days");
+	return new Date().getFullYear();
+}
+
 export function generateStaticParams() {
-	return SUPPORTED_LOCALES.map((lang) => ({ lang }));
+	return [{ lang: DEFAULT_LOCALE }];
 }
 
 export default async function RootLayout({
@@ -119,11 +122,11 @@ export default async function RootLayout({
 }>) {
 	const locale = await initServerI18n();
 	const messages = await getLocaleMessages(locale);
-	const isLaunched = await isMobileLaunched();
 
 	return (
 		<html
 			lang={locale}
+			style={{ colorScheme: "dark" }}
 			className={`dark overscroll-none ${ibmPlexMono.variable} ${inter.variable}`}
 			suppressHydrationWarning
 		>
@@ -155,14 +158,18 @@ export default async function RootLayout({
 			</head>
 			<body className="overscroll-none font-sans">
 				<Providers locale={locale} messages={messages}>
-					<MobileLaunchProvider isLaunched={isLaunched}>
-						<Header
-							ctaButtons={<CTAButtons />}
-							starCounter={<GitHubStarCounter />}
-						/>
-						{children}
-						<Footer locale={locale} />
-					</MobileLaunchProvider>
+					<Header
+						ctaButtons={
+							<Suspense fallback={null}>
+								<CTAButtons />
+							</Suspense>
+						}
+						starCounter={<GitHubStarCounter />}
+					/>
+					{children}
+					<Suspense fallback={null}>
+						<Footer locale={locale} year={await currentYear()} />
+					</Suspense>
 					<CookieConsent />
 				</Providers>
 			</body>

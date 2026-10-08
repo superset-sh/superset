@@ -58,7 +58,7 @@ export async function fetchStats(
 
 /**
  * Only a real NOT_FOUND means the profile is missing. Transient failures throw
- * so ISR keeps serving the stale page instead of caching a 404 for a live one.
+ * so a caller never caches a 404 for a live profile.
  */
 export async function fetchParticipant(
 	handle: string,
@@ -105,26 +105,21 @@ export async function fetchSearch(
 	query: string,
 	options: MetricQuery = {},
 	signal?: AbortSignal,
-): Promise<StandingRow[]> {
+): Promise<StandingRow[] | null> {
 	try {
 		return await leaderboardClient.leaderboard.public.search.query(
 			{ query, ...options },
 			{ signal },
 		);
 	} catch (error) {
-		if (signal?.aborted) return [];
+		if (signal?.aborted) return null;
 		console.error("[marketing/leaderboard] search error:", error);
-		return [];
+		return null;
 	}
 }
 
 export async function fetchPublicHandles(): Promise<
 	Array<{ handle: string; lastPublishedAt: Date | null }>
 > {
-	try {
-		return await leaderboardClient.leaderboard.public.handles.query();
-	} catch (error) {
-		console.error("[marketing/leaderboard] handles error:", error);
-		return [];
-	}
+	return leaderboardClient.leaderboard.public.handles.query();
 }

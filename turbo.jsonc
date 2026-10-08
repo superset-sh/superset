@@ -56,6 +56,10 @@
 			"dependsOn": ["^build"],
 			"outputs": ["coverage/**"]
 		},
+		"test:integration:terminal": {
+			"dependsOn": ["^build"],
+			"cache": false
+		},
 		"build:types": {
 			// Emits declarations from source, so it needs the same upstream
 			// generated inputs a build does — the compiled Lingui catalogs in

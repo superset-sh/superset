@@ -99,6 +99,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 	const [openDialog, setOpenDialog] = useState<OpenDialog>(null);
 	const [nameValue, setNameValue] = useState("");
 	const [slugValue, setSlugValue] = useState("");
+	const [taskKeyValue, setTaskKeyValue] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	// Populate form once the team row arrives (and re-populate on navigation to
@@ -111,6 +112,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 		if (!team) return;
 		setNameValue(team.name);
 		setSlugValue(team.slug);
+		setTaskKeyValue(team.taskKey ?? "");
 	}, [team?.id]);
 
 	const formatDate = (date: Date) =>
@@ -118,9 +120,13 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 
 	const trimmedName = nameValue.trim();
 	const trimmedSlug = slugValue.trim();
+	const taskKey = taskKeyValue.trim().toUpperCase();
+	const isTaskKeyDirty =
+		!!team && taskKey.length > 0 && taskKey !== team.taskKey;
+	const isTeamDirty =
+		!!team && (trimmedName !== team.name || trimmedSlug !== team.slug);
 	const isDirty =
-		!!team &&
-		(trimmedName !== team.name || trimmedSlug !== team.slug) &&
+		(isTeamDirty || isTaskKeyDirty) &&
 		trimmedName.length > 0 &&
 		trimmedSlug.length > 0;
 
@@ -128,18 +134,24 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 		if (!team || !isDirty) return;
 		setIsSubmitting(true);
 		try {
-			const result = await authClient.organization.updateTeam({
-				teamId,
-				data: { name: trimmedName, slug: trimmedSlug },
-			});
-			if (result.error) {
-				toast.error(
-					result.error.message ??
-						t({
-							message: "Failed to save team",
-						}),
-				);
-				return;
+			if (isTeamDirty) {
+				const result = await authClient.organization.updateTeam({
+					teamId,
+					data: { name: trimmedName, slug: trimmedSlug },
+				});
+				if (result.error) {
+					toast.error(
+						result.error.message ??
+							t({
+								message: "Failed to save team",
+							}),
+					);
+					return;
+				}
+			}
+			if (isTaskKeyDirty) {
+				await apiTrpcClient.team.setTaskKey.mutate({ teamId, key: taskKey });
+				setTaskKeyValue(taskKey);
 			}
 			await utils.organization.listTeams.invalidate();
 			toast.success(t({ message: "Saved" }));
@@ -274,6 +286,24 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 									<p className="text-xs text-muted-foreground">
 										<Trans>
 											URL-friendly identifier, unique within your organization.
+										</Trans>
+									</p>
+								</div>
+								<div className="space-y-1.5">
+									<Label htmlFor="team-task-key-edit">
+										<Trans>Task key</Trans>
+									</Label>
+									<Input
+										id="team-task-key-edit"
+										className="w-28 font-mono uppercase"
+										maxLength={5}
+										value={taskKeyValue}
+										onChange={(event) => setTaskKeyValue(event.target.value)}
+									/>
+									<p className="text-xs text-muted-foreground">
+										<Trans>
+											Prefix of this team's task IDs. Changing it renames every
+											task in the team.
 										</Trans>
 									</p>
 								</div>

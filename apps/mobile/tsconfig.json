@@ -6,13 +6,17 @@
 		"paths": {
 			"@/*": ["./*"],
 			"@superset/alert-prompt": ["./modules/alert-prompt/src/index.ts"],
+			"@superset/chat-runtime": [
+				"./node_modules/@superset/chat-runtime/src/index.ts"
+			],
 			"@superset/attachments-sheet": [
 				"./modules/attachments-sheet/src/index.ts"
 			],
 			"@superset/composer": ["./modules/composer/src/index.tsx"],
 			"@superset/symbol-button": ["./modules/symbol-button/src/index.tsx"],
 			"@superset/live-activity": ["./modules/live-activity/src/index.ts"],
-			"@superset/title-press": ["./modules/title-press/src/index.tsx"]
+			"@superset/title-press": ["./modules/title-press/src/index.tsx"],
+			"@superset/voice": ["./modules/voice/src/index.ts"]
 		},
 		"allowImportingTsExtensions": true
 	},

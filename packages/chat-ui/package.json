@@ -4,16 +4,18 @@
 	"version": "0.1.0",
 	"type": "module",
 	"exports": {
-		"./*": "./src/components/*/index.ts"
+		"./*": "./src/components/*/index.ts",
+		"./utils/*": "./src/utils/*/index.ts"
 	},
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
-		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
+		"test": "bun test --isolate --pass-with-no-tests"
 	},
 	"dependencies": {
 		"@lexical/react": "0.41.0",
-		"@lingui/core": "6.6.0",
-		"@lingui/react": "6.6.0",
+		"@lingui/core": "6.8.0",
+		"@lingui/react": "6.8.0",
 		"@shadcn/react": "0.2.1",
 		"@superset/chat": "workspace:*",
 		"@superset/i18n": "workspace:*",
@@ -23,15 +25,18 @@
 		"streamdown": "2.5.0"
 	},
 	"devDependencies": {
+		"@happy-dom/global-registrator": "20.0.2",
 		"@storybook/react-vite": "10.4.2",
 		"@superset/typescript": "workspace:*",
+		"@testing-library/dom": "10.4.1",
+		"@testing-library/react": "16.3.0",
 		"@types/node": "24.12.0",
 		"@types/react": "19.2.14",
 		"@types/react-dom": "19.2.3",
 		"react": "19.2.3",
 		"react-dom": "19.2.3",
 		"storybook": "10.4.2",
-		"typescript": "6.0.3"
+		"typescript": "7.0.2"
 	},
 	"peerDependencies": {
 		"react": "19.2.3"

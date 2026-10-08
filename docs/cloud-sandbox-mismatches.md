@@ -166,9 +166,9 @@ A box acts in its own organization only. In `packages/trpc/src/trpc.ts`,
 organization header that names one, and `protectedProcedure` keeps the box's
 organization as the active one; `user.myOrganizations` lists only the box's.
 Archiving the box from inside it
-(`workspaces delete`) ends the session that ran the command: expect no output,
-put the box's own id last when deleting several, and unarchive from a
-signed-in client.
+(`workspaces archive`) cuts off the box's API access at once and stops the box
+about a minute later: put the box's own id last when archiving several, and
+unarchive from a signed-in client.
 
 **Docker is installed but not started.** An environment whose repository needs
 containers starts it from its own `start` command, which is also where it
@@ -179,6 +179,20 @@ waits for the daemon:
             "until docker info >/dev/null 2>&1; do sleep 0.2; done",
             "docker compose up"] }
 ```
+
+**`gh` runs in a clean login shell, so the sandbox's `GH_TOKEN` never reaches
+it.** Host-service shells out to `gh` for pull-request reads and writes
+(`pullRequests.getContent`, `addComment`, `setDraft`, the content read behind
+the PR page) through `getToolEnvironment()`, which rebuilds the environment
+from a login shell the way a person's machine would have it. On a machine a
+person owns that is where `gh auth login` left its credentials. A sandbox has
+no `gh auth login`; its GitHub access is the `GH_TOKEN` the provider injects
+into the *process* environment, which the clean shell drops. The PR page then
+fails its first content read with a gh auth error. **What we did:** the review
+run wrote a temporary `~/.config/gh/hosts.yml` from the token and deleted it
+afterwards. The durable fix is for `getToolEnvironment()` to carry `GH_TOKEN`
+(and `GITHUB_TOKEN`) through from the host-service process when the shell did
+not provide one.
 
 ## Runtime environment
 
@@ -270,6 +284,25 @@ lists before it runs (`cloudDispatch.ts`); `superset agents create` into such a
 box still fails. Still owed: `agents.run` fills the table itself (a host-service
 release), and a decision on which agents a box offers — the list fills every
 preset, but the image installs only Claude and Codex.
+
+**Runtime files the desktop passes as env have to ship in the tarball.** The
+bundle does not inline host-service's migration folders, so the desktop hands
+them over as env (`HOST_MIGRATIONS_FOLDER`,
+`SUPERSET_CHAT_V3_MIGRATIONS`). The sandbox boot sets only the first. Without
+chat.db's migrations, every `/chat-v3` request threw on the first migrate, and
+ACP chat in a cloud workspace showed "started but never prompted" over
+`Unexpected token 'I', "Internal S"... is not valid JSON`. Fixed: the runtime
+tarball (and the CLI bundle, same gap) ships `chat-migrations/` next to
+`host-service.js`, which looks there when the env is unset. Reaches a box only
+through a host-service runtime release.
+
+**Packages host-service resolves at runtime have to be installed in the
+tarball.** The ACP harnesses find their adapter (`@agentclientprotocol/*-acp`,
+`pi-acp`) with `require.resolve`, so the bundle cannot inline it, and the
+tarball installed only the natives. The harness registry came up empty and ACP
+chat on a box failed with `unknown harness claude-acp`. Fixed: the runtime bake
+installs each adapter at host-service's pinned version and fails if one is
+missing. The CLI bundle has the same gap.
 
 ## Lifecycle
 

@@ -6,15 +6,17 @@ import SwiftUI
 enum ComposerMetrics {
   /// Measured off frame 1: the pill's left edge sits ~12pt in, not 16.
   static let horizontalMargin: CGFloat = 12
+  /// Widest the cluster gets — tabs, keys, card — so an iPad or a wide
+  /// window centers it instead of stretching the card edge to edge. Matches
+  /// the app's `READABLE_WIDTH`; a phone never reaches it.
+  static let maxWidth: CGFloat = 720
   /// Gap between the composer and the bottom safe area, per frame 1.
   static let bottomGap: CGFloat = 8
-  static let pillRadius: CGFloat = 26
+  static let pillRadius: CGFloat = 28
   static let cardRadius: CGFloat = 28
-  /// Proportions taken from the reference crops rather than guessed: the
-  /// circle is ~0.6 of the row's height and sits ~15% of that height in from
-  /// the edge. Sizing the circle to the row with only 4pt of padding — the
-  /// first attempt — reads as the controls being jammed against the sides.
-  static let controlDiameter: CGFloat = 32
+  /// Sized to the Claude app's composer controls: 32pt read as too small to hit
+  /// on a phone. Keep `rowPadding` at 8 or the controls jam against the sides.
+  static let controlDiameter: CGFloat = 38
   static let rowSpacing: CGFloat = 8
   static let rowPadding: CGFloat = 8
   static let textInset: CGFloat = 8
@@ -298,6 +300,7 @@ struct ComposerRootView: View {
               model.commitSlashCommand(command)
             }
             .padding(.horizontal, ComposerMetrics.horizontalMargin)
+            .frame(maxWidth: ComposerMetrics.maxWidth)
             .transition(.composerContent)
           }
           VStack(spacing: ComposerMetrics.quickKeyGap) {
@@ -332,6 +335,7 @@ struct ComposerRootView: View {
             surface
               .padding(.horizontal, ComposerMetrics.horizontalMargin)
           }
+          .frame(maxWidth: ComposerMetrics.maxWidth)
           .padding(.bottom, ComposerMetrics.bottomGap)
           // Its own size, not its position — the keyboard moves this cluster
           // but does not resize it, so the caller gets a value that only
@@ -537,10 +541,18 @@ struct ComposerRootView: View {
       if model.showsAttachments {
         Button { model.onAttachmentsPress?() } label: {
           Image(systemName: "plus")
-            .font(.system(size: 17, weight: .regular))
+            .font(.system(size: 20, weight: .regular))
         }
         .buttonStyle(.composerControl)
         .accessibilityLabel(composerLocalized("Add attachment"))
+      }
+
+      if isExpanded && !model.modeOptions.isEmpty {
+        ComposerModeMenu(
+          options: model.modeOptions,
+          selectedId: model.selectedModeId,
+          onSelect: { model.onModeSelect?($0) }
+        )
       }
 
       if !isExpanded {
@@ -559,6 +571,8 @@ struct ComposerRootView: View {
       // rather than competing with the recording pill.
       if model.hasContent && !model.isDictating {
         sendButton
+      } else if model.canStop && !model.isDictating {
+        stopButton
       }
     }
     .padding(ComposerMetrics.rowPadding)
@@ -599,7 +613,7 @@ struct ComposerRootView: View {
     case .idle:
       Button { model.dictation.start() } label: {
         Image(systemName: "mic")
-          .font(.system(size: 17, weight: .regular))
+          .font(.system(size: 20, weight: .regular))
       }
       .buttonStyle(.composerControl)
       .accessibilityLabel(composerLocalized("Dictate"))
@@ -624,7 +638,7 @@ struct ComposerRootView: View {
         ComposerSpinner()
       } else {
         Image(systemName: "arrow.up")
-          .font(.system(size: 16, weight: .semibold))
+          .font(.system(size: 19, weight: .semibold))
       }
     }
     // While busy the button drops back to the ordinary control fill, so the
@@ -633,6 +647,16 @@ struct ComposerRootView: View {
     .buttonStyle(isBusy ? .composerControl : .composerSend)
     .disabled(isBusy)
     .accessibilityLabel(sendLabel)
+    .transition(.opacity)
+  }
+
+  private var stopButton: some View {
+    Button { model.onStop?() } label: {
+      Image(systemName: "stop.fill")
+        .font(.system(size: 15, weight: .semibold))
+    }
+    .buttonStyle(.composerSend)
+    .accessibilityLabel(composerLocalized("Stop"))
     .transition(.opacity)
   }
 

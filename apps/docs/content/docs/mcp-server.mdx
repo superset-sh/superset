@@ -19,7 +19,7 @@ Superset provides an [MCP (Model Context Protocol)](https://modelcontextprotocol
 | **Workspaces** | list (per host), create on a host, update, delete |
 | **Agents** | list agents on a host, launch an agent session in a workspace |
 | **Terminals** | create in a workspace, list, send input, read screen, close |
-| **Pages** | list, get, list versions, pull content, publish; list/reply/resolve page comments |
+| **Pages** | list, get, list versions, pull content, publish, read storage; list/reply/resolve page comments |
 | **Automations** | list, get metadata, get/set prompt body, create, update metadata, pause, resume, run on demand, list runs, delete |
 | **Projects** | list projects on a host |
 | **Hosts** | list hosts (registered machines) you have access to |
@@ -336,6 +336,7 @@ API keys grant full access to your organization. Keep them secret and never comm
 | `pages_get` | Get one page's metadata by id or slug (title, visibility, URL, served version) |
 | `pages_versions` | List a page's version history, newest first |
 | `pages_pull` | Get a download URL for a page's HTML, plus that version's metadata |
+| `pages_storage` | Read what viewers stored on a page, by key or per person |
 | `pages_publish` | Publish an HTML document (passed inline, not as a path) and get its shareable URL |
 | `pages_comments_list` | List comment threads on a page, with replies and resolved state |
 | `pages_comments_reply` | Post a reply into a comment thread |

@@ -799,20 +799,48 @@ superset workspaces create --project prj_… --name "perf-spike" --branch perf/s
 </Command>
 
 <Command
-	name="superset workspaces delete <id...>"
+	name="superset workspaces archive <id...>"
 	args={[
-		{ name: "id", required: true, variadic: true, description: "Workspace IDs to delete." },
+		{ name: "id", required: true, variadic: true, description: "Workspace IDs to archive." },
 	]}
 	options={[
 		{ flag: "--host <id>", description: "Host the workspaces live on." },
-		{ flag: "--local", description: "Target this machine (the default)." },
+		{ flag: "--local", description: "Target this machine." },
 	]}
 	output={`{ deleted: string[]; warnings: string[] }`}
 >
-Delete one or more workspaces on the target host (default: this machine).
+Archive one or more workspaces. Without `--host` or `--local`, this targets
+cloud workspaces if your account has them, else this machine. The old name
+`delete` remains an alias.
+
+- **Cloud workspace:** the sandbox stops within a minute and is deleted after
+  7 days. A restore within those 7 days keeps its disk; after that, the
+  workspace starts again from a fresh sandbox.
+- **Worktree workspace on a host:** its folder is removed, with any uncommitted
+  changes. Its branch stays, so a restore brings back only committed work. A
+  workspace that shares the project's own checkout keeps that folder.
+
+`deleted` lists the archived IDs; the field keeps its old name so existing
+scripts still work.
 
 ```bash
-superset workspaces delete ws_a ws_b ws_c
+superset workspaces archive ws_a ws_b ws_c
+```
+</Command>
+
+<Command
+	name="superset workspaces sleep [id]"
+	args={[
+		{ name: "id", description: "Cloud workspace ID. Defaults to the cloud workspace the command runs in." },
+	]}
+	output={`{ id: string; stopped: boolean }`}
+>
+Put a cloud workspace to sleep. Its sandbox stops, every terminal and agent in
+it ends, and it costs storage only. Files are kept, and opening the workspace
+wakes it. An agent can run this as its last step, inside its own workspace.
+
+```bash
+superset workspaces sleep ws_a
 ```
 </Command>
 
@@ -1356,24 +1384,51 @@ Delete a page and every version. Interactive terminals ask for confirmation
 unless `--yes` is passed; non-interactive input does not prompt.
 </Command>
 
+<Command
+	name="superset pages storage <page>"
+	args={[
+		{ name: "page", required: true, description: "Page ID or slug." },
+	]}
+	options={[
+		{ flag: "--key <key>", description: "Show each person's value for this key." },
+	]}
+	output="{ pageId, keys: Array<{ key, records, updatedAt }> } | { pageId, key, records: Array<{ userId, name, image, value, updatedAt }> }"
+>
+Read what viewers stored with `window.superset.storage` on a page.
+Without `--key`, lists each key with its record count (KEY, RECORDS, UPDATED).
+With `--key`, lists each person's value for that key (NAME, VALUE, UPDATED).
+On a `just_me` page only the creator can read storage. On an `org` or
+`everyone` page, members of the page's organization can read it, even when the
+page is public.
+
+```bash
+superset pages storage weekly-report
+superset pages storage weekly-report --key votes --json
+```
+</Command>
+
 ---
 
 ### tasks (alias: `t`)
 
-Tasks are units of work in your organization's task tracker.
+Tasks are units of work in your organization's task tracker. When the
+organization tracks tasks in Linear (an owner's setting), these commands work on
+its Linear issues through your own Linear connection; otherwise on Superset
+tasks. A command works on one tracker only: in an organization that tracks in
+Linear, Superset tasks are not listed or resolved, and the reverse. Pass
+`--tracker superset|linear` to reach the other one for a single command.
 
 <Command
 	name="superset tasks list"
 	options={[
-		{ flag: "--status <id>", description: "Filter by status ID." },
+		{ flag: "--tracker <superset|linear>", description: "Override the organization's task tracker." },
+		{ flag: "--team <key>", description: "Filter by team key or name." },
+		{ flag: "--status <id>", description: "Filter by status ID. For Linear: all | active | backlog | unstarted | started | completed | canceled (default active)." },
 		{ flag: "--priority <urgent|high|medium|low|none>", description: "Filter by priority." },
 		{ flag: "--assignee <userId>", description: "Filter by assignee user ID." },
 		{ flag: "--assignee-me, -m", description: "Tasks assigned to the current user." },
 		{ flag: "--creator-me", description: "Tasks created by the current user." },
 		{ flag: "--search <query>, -s", description: "Substring search on title or description." },
-		{ flag: "--project <id>", description: "Filter by Linear project id." },
-		{ flag: "--project-name <name>", description: "Filter by Linear project name (prefix, case-insensitive)." },
-		{ flag: "--cycle <id>", description: "Filter by Linear cycle id." },
 		{ flag: "--due-from <date>", description: "Tasks due on or after this date (YYYY-MM-DD)." },
 		{ flag: "--due-to <date>", description: "Tasks due on or before this date (YYYY-MM-DD)." },
 		{ flag: "--sort-by <field>", description: "createdAt | updatedAt | dueDate | priority. Default: createdAt." },
@@ -1396,7 +1451,10 @@ superset t list -s "auth" --json
 <Command
 	name="superset tasks get <idOrSlug>"
 	args={[
-		{ name: "idOrSlug", required: true, description: "Task ID or slug." },
+		{ name: "idOrSlug", required: true, description: "Task ID or slug, or a Linear identifier (ENG-123)." },
+	]}
+	options={[
+		{ flag: "--tracker <superset|linear>", description: "Override the organization's task tracker." },
 	]}
 	output="Task"
 >
@@ -1411,6 +1469,8 @@ superset tasks get fix-login-bug
 <Command
 	name="superset tasks create"
 	options={[
+		{ flag: "--tracker <superset|linear>", description: "Override the organization's task tracker." },
+		{ flag: "--team <key>", description: "Team key or name. Superset tasks go to the default team without it; Linear needs it when the workspace has several teams." },
 		{ flag: "--title <title>", required: true, description: "Task title." },
 		{ flag: "--description <text>", description: "Task description." },
 		{ flag: "--priority <urgent|high|medium|low|none>", description: "Priority." },
@@ -1432,9 +1492,10 @@ superset tasks create --title "Audit auth flow" --priority high
 <Command
 	name="superset tasks update <idOrSlug>"
 	args={[
-		{ name: "idOrSlug", required: true, description: "Task ID or slug." },
+		{ name: "idOrSlug", required: true, description: "Task ID or slug, or a Linear identifier (ENG-123)." },
 	]}
 	options={[
+		{ flag: "--tracker <superset|linear>", description: "Override the organization's task tracker." },
 		{ flag: "--title <title>", description: "New title." },
 		{ flag: "--description <text>", description: "New description." },
 		{ flag: "--priority <urgent|high|medium|low|none>", description: "New priority." },
@@ -1459,9 +1520,12 @@ superset tasks update fix-login-bug --priority urgent
 	args={[
 		{ name: "idOrSlug", required: true, variadic: true, description: "Task IDs or slugs to delete." },
 	]}
+	options={[
+		{ flag: "--tracker <superset|linear>", description: "Override the organization's task tracker." },
+	]}
 	output={`{ deleted: string[]; failed: string[] }`}
 >
-Delete one or more tasks.
+Delete one or more tasks. Linear issues are archived.
 
 ```bash
 superset tasks delete tsk_a tsk_b
@@ -1476,12 +1540,18 @@ superset tasks delete tsk_a tsk_b
   type: string;
   position: number;
 }>`}
-	humanColumns={["NAME", "TYPE", "POS", "ID"]}
+	options={[
+		{ flag: "--tracker <superset|linear>", description: "Override the organization's task tracker." },
+		{ flag: "--team <key>", description: "Linear team key (Linear only)." },
+	]}
+	humanColumns={["TEAM", "NAME", "TYPE", "POS", "ID"]}
 	quiet="status IDs"
 >
-List task statuses in the active organization. Use the returned IDs with
-`tasks list --status`, `tasks create --status-id`, or
-`tasks update --status-id`.
+List task statuses in the active organization. Superset status IDs work with
+`tasks list --status`, `tasks create --status-id` and `tasks update --status-id`.
+Linear statuses belong to a team: pass their names or IDs to `--status-id` on
+create and update; `tasks list --status` takes a category (`active`, `started`, …)
+for Linear.
 
 ```bash
 superset tasks statuses list

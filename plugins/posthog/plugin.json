@@ -1,0 +1,35 @@
+{
+	"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+	"name": "posthog",
+	"version": "1.0.0",
+	"description": "Ask PostHog about your product: query events and insights, look up people, and check feature flags.",
+	"author": {
+		"name": "Superset",
+		"url": "https://superset.sh"
+	},
+	"homepage": "https://docs.superset.sh",
+	"repository": "https://github.com/superset-sh/superset",
+	"license": "MIT",
+	"keywords": ["posthog", "analytics", "events", "feature-flags", "product"],
+	"extensions": {
+		"superset": {
+			"interface": {
+				"displayName": "PostHog",
+				"category": "Data & APIs",
+				"icon": "posthog"
+			},
+			"connector": {
+				"slug": "posthog_mcp"
+			},
+			"bind": {
+				"headers": {
+					"Authorization": "Bearer ${config.access_token}"
+				}
+			},
+			"mcp": {
+				"type": "streamable-http",
+				"url": "https://mcp.posthog.com/mcp"
+			}
+		}
+	}
+}

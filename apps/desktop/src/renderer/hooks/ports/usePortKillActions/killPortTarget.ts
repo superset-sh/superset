@@ -17,6 +17,10 @@ export type LocalPortKill = (input: {
 	port: number;
 }) => Promise<PortKillResult>;
 
+type RemotePortKillClient = (hostUrl: string) => {
+	ports: { kill: { mutate: LocalPortKill } };
+};
+
 function toErrorMessage(error: unknown): string {
 	if (error instanceof Error) return error.message;
 	return String(error);
@@ -25,6 +29,7 @@ function toErrorMessage(error: unknown): string {
 export async function killPortTarget(
 	target: PortKillTarget,
 	localKill?: LocalPortKill,
+	getRemoteClient: RemotePortKillClient = getHostServiceClientByUrl,
 ): Promise<PortKillResult> {
 	const payload = {
 		workspaceId: target.workspaceId,
@@ -34,9 +39,7 @@ export async function killPortTarget(
 
 	try {
 		if (target.hostUrl) {
-			return await getHostServiceClientByUrl(target.hostUrl).ports.kill.mutate(
-				payload,
-			);
+			return await getRemoteClient(target.hostUrl).ports.kill.mutate(payload);
 		}
 
 		if (!localKill) {

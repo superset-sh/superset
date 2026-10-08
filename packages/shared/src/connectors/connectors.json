@@ -16,6 +16,7 @@
 						"openid",
 						"email",
 						"https://www.googleapis.com/auth/calendar.readonly",
+						"https://www.googleapis.com/auth/calendar.events",
 						"https://www.googleapis.com/auth/gmail.readonly",
 						"https://www.googleapis.com/auth/gmail.compose",
 						"https://www.googleapis.com/auth/gmail.modify",
@@ -621,15 +622,15 @@
 					"scopes": ["mcp"],
 					"identity": {
 						"mcp": "https://mcp.stripe.com",
-						"tool": "get_stripe_account_info",
+						"tool": "list_available_accounts_or_orgs",
 						"arguments": {},
 						"account": {
-							"id": "$.id",
-							"label": "$.settings.dashboard.display_name"
+							"id": "$.accounts[0].stripe_context",
+							"label": "$.accounts[0].name"
 						},
 						"user": {
-							"id": "$.id",
-							"label": "$.email"
+							"id": "$.accounts[0].stripe_context",
+							"label": "$.accounts[0].name"
 						}
 					},
 					"bind": {
@@ -662,6 +663,137 @@
 						},
 						"user": {
 							"id": "$.accounts[?(@.isPrimary)].accountEmail"
+						}
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				}
+			]
+		},
+		"neon_mcp": {
+			"displayName": "Neon",
+			"icon": "neon",
+			"category": "Data & APIs",
+			"scope": "user",
+			"methods": [
+				{
+					"type": "oauth2",
+					"label": "OAuth 2.0",
+					"client": "dynamic",
+					"authorization_url": "https://mcp.neon.tech/mcp",
+					"scopes": ["read", "write"],
+					"identity": {
+						"mcp": "https://mcp.neon.tech/mcp",
+						"tool": "list_organizations",
+						"arguments": {},
+						"account": {
+							"id": "$[0].id",
+							"label": "$[0].name"
+						},
+						"user": {
+							"id": "$[0].id",
+							"label": "$[0].name"
+						}
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				}
+			]
+		},
+		"posthog_mcp": {
+			"displayName": "PostHog",
+			"icon": "posthog",
+			"category": "Data & APIs",
+			"scope": "user",
+			"methods": [
+				{
+					"type": "oauth2",
+					"label": "OAuth 2.0",
+					"client": "dynamic",
+					"authorization_url": "https://mcp.posthog.com/mcp",
+					"scopes": [
+						"openid",
+						"profile",
+						"email",
+						"user:read",
+						"organization:read",
+						"project:read",
+						"query:read",
+						"insight:read",
+						"insight:write",
+						"dashboard:read",
+						"dashboard:write",
+						"event_definition:read",
+						"property_definition:read",
+						"person:read",
+						"person:write",
+						"cohort:read",
+						"feature_flag:read",
+						"feature_flag:write",
+						"experiment:read",
+						"error_tracking:read",
+						"logs:read",
+						"session_recording:read",
+						"survey:read",
+						"annotation:read",
+						"action:read",
+						"web_analytics:read",
+						"activity_log:read"
+					],
+					"identity": {
+						"url": "https://oauth.posthog.com/oauth/userinfo/",
+						"method": "GET",
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						},
+						"account": {
+							"id": "$.sub",
+							"label": "$.email"
+						},
+						"user": {
+							"id": "$.sub",
+							"label": "$.email"
+						}
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				}
+			]
+		},
+		"vercel_mcp": {
+			"displayName": "Vercel",
+			"icon": "vercel",
+			"category": "Developer tools",
+			"scope": "user",
+			"methods": [
+				{
+					"type": "oauth2",
+					"label": "OAuth 2.0",
+					"client": "dynamic",
+					"authorization_url": "https://mcp.vercel.com",
+					"scopes": ["openid", "email", "profile", "offline_access"],
+					"identity": {
+						"url": "https://api.vercel.com/login/oauth/userinfo",
+						"method": "GET",
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						},
+						"account": {
+							"id": "$.sub",
+							"label": "$.email"
+						},
+						"user": {
+							"id": "$.sub",
+							"label": "$.preferred_username"
 						}
 					},
 					"bind": {

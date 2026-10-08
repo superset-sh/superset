@@ -286,7 +286,7 @@ Không cần tài khoản Neon hay thông tin xác thực bên thứ ba. `setup.
 một stack Postgres + Electric cục bộ qua Docker và seed sẵn một tài khoản dev. Đăng nhập
 bằng nút **"Sign in as dev"** (hoặc `admin@local.test` / `supersetdev`).
 
-Yêu cầu trước: [Bun](https://bun.sh/) v1.3.14+ (ghim trong `.bun-version`), `docker`, `jq` và `caddy`, thứ mà `bun dev` chạy làm proxy HTTPS cục bộ (`brew install jq caddy && caddy trust`).
+Yêu cầu trước: [Bun](https://bun.sh/) v1.4.2+ (ghim trong `.bun-version`), `docker`, `jq` và `caddy`, thứ mà `bun dev` chạy làm proxy HTTPS cục bộ (`brew install jq caddy && caddy trust`).
 
 Xem [**DEVELOPMENT.md**](../DEVELOPMENT.md) để có hướng dẫn đầy đủ: script thiết lập làm gì, thiết lập thủ công với dịch vụ thật, các lệnh thường dùng, xử lý sự cố và cách build ứng dụng desktop. Quy trình đóng góp nằm trong [**CONTRIBUTING.md**](../CONTRIBUTING.md).
 

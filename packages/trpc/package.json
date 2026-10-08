@@ -8,6 +8,10 @@
 			"types": "./src/index.ts",
 			"default": "./src/index.ts"
 		},
+		"./i18n-error": {
+			"types": "./src/i18n-error.ts",
+			"default": "./src/i18n-error.ts"
+		},
 		"./billing": {
 			"types": "./src/lib/billing/plan.ts",
 			"default": "./src/lib/billing/plan.ts"
@@ -31,6 +35,10 @@
 		"./lib/github-user": {
 			"types": "./src/lib/github-user/index.ts",
 			"default": "./src/lib/github-user/index.ts"
+		},
+		"./linear-lookup": {
+			"types": "./src/router/integration/linear/lookup.ts",
+			"default": "./src/router/integration/linear/lookup.ts"
 		},
 		"./page-schema": {
 			"types": "./src/router/page/schema.ts",
@@ -132,7 +140,7 @@
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
-		"test": "bun test"
+		"test": "bun test --isolate"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "0.78.0",
@@ -143,7 +151,7 @@
 		"@googleapis/gmail": "18.0.0",
 		"@linear/sdk": "68.1.1",
 		"@microsoft/microsoft-graph-client": "3.0.7",
-		"@modelcontextprotocol/sdk": "1.30.0",
+		"@modelcontextprotocol/sdk": "1.31.0",
 		"@notionhq/client": "5.25.2",
 		"@octokit/app": "16.1.2",
 		"@sentry/core": "10.68.0",
@@ -169,12 +177,12 @@
 		"posthog-node": "5.28.8",
 		"resend": "6.18.0",
 		"superjson": "2.2.6",
-		"zod": "4.4.3"
+		"zod": "4.6.5"
 	},
 	"devDependencies": {
 		"@microsoft/microsoft-graph-types": "2.43.1",
 		"@superset/typescript": "workspace:*",
 		"@types/node": "24.12.0",
-		"typescript": "6.0.3"
+		"typescript": "7.0.2"
 	}
 }

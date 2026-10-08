@@ -1,4 +1,4 @@
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Trans } from "@lingui/react/macro";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -18,7 +18,6 @@ interface AssigneePropertyProps {
 }
 
 export function AssigneeProperty({ task }: AssigneePropertyProps) {
-	const { t } = useLingui();
 	const { tasks: taskActions } = useOptimisticActions();
 	const [open, setOpen] = useState(false);
 
@@ -33,7 +32,7 @@ export function AssigneeProperty({ task }: AssigneePropertyProps) {
 	);
 
 	const handleSelectUser = (userId: string | null) => {
-		if (userId === task.assigneeId && !task.assigneeExternalId) {
+		if (userId === task.assigneeId) {
 			setOpen(false);
 			return;
 		}
@@ -66,29 +65,6 @@ export function AssigneeProperty({ task }: AssigneePropertyProps) {
 							)}
 							<span>{task.assignee.name}</span>
 						</>
-					) : task.assigneeExternalId ? (
-						<>
-							{task.assigneeAvatarUrl ? (
-								<img
-									src={task.assigneeAvatarUrl}
-									alt=""
-									className="size-[18px] rounded-full"
-								/>
-							) : (
-								<div className="flex size-[18px] items-center justify-center rounded-full bg-muted text-[10px]">
-									{task.assigneeDisplayName?.charAt(0).toUpperCase() ?? "?"}
-								</div>
-							)}
-							<span>
-								{task.assigneeDisplayName ||
-									t({
-										message: "External",
-									})}{" "}
-								<span className="text-muted-foreground">
-									<Trans>(external)</Trans>
-								</span>
-							</span>
-						</>
 					) : (
 						<>
 							<HiOutlineUserCircle className="size-[18px] text-muted-foreground" />
@@ -103,7 +79,6 @@ export function AssigneeProperty({ task }: AssigneePropertyProps) {
 				<AssigneeMenuItems
 					users={users}
 					currentAssigneeId={task.assigneeId}
-					hasExternalAssignee={!!task.assigneeExternalId}
 					onSelect={handleSelectUser}
 					MenuItem={DropdownMenuItem}
 					MenuSeparator={DropdownMenuSeparator}

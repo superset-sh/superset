@@ -20,7 +20,12 @@ import {
 } from "./access";
 import { HostTunnel } from "./host-tunnel";
 import { placeHost, readPlacement } from "./placement";
-import { isTrpcPath, trpcErrorResponse } from "./trpc-error";
+import {
+	HOST_TRPC_ROUTERS,
+	type HostTrpcRouter,
+	hostTrpcRouter,
+	trpcErrorResponse,
+} from "./trpc-error";
 import type { RelayEnv } from "./types";
 
 type AppContext = {
@@ -240,11 +245,17 @@ app.get("/hosts/:hostId/_whoowns", async (c) => {
 const authMiddleware: MiddlewareHandler<AppContext> = async (c, next) => {
 	const hostId = c.req.param("hostId");
 	if (!hostId) return c.json({ error: "Missing hostId" }, 400);
+	const path = pathAfterHost(c);
+	if (path !== "" && (!path.startsWith("/") || path.startsWith("//"))) {
+		return c.json({ error: "Invalid path" }, 400);
+	}
 	const result = await authenticate(c, hostId, "reach");
 	if (isDenial(result)) {
-		if (isTrpcPath(pathAfterHost(c))) {
+		const router = hostTrpcRouter(path);
+		if (router) {
 			return trpcErrorResponse(
 				c,
+				router,
 				result.status === 403 ? "FORBIDDEN" : "UNAUTHORIZED",
 				result.message,
 			);
@@ -259,17 +270,25 @@ const authMiddleware: MiddlewareHandler<AppContext> = async (c, next) => {
 
 app.use("/hosts/:hostId/*", authMiddleware);
 
-app.all("/hosts/:hostId/trpc/*", async (c) => {
+const proxyHostHttp = async (
+	c: Context<AppContext>,
+	router: HostTrpcRouter,
+) => {
 	const hostId = c.get("hostId");
 	const url = new URL(c.req.url);
-	const path = pathAfterHost(c) || "/";
+	const path = pathAfterHost(c);
 	const query = url.search.slice(1);
 
 	const headers = buildUpstreamHeaders(c.req.raw.headers, c.get("auth").sub);
 
 	const stub = await tunnelStub(c, hostId);
 	if (!stub) {
-		return trpcErrorResponse(c, "SERVICE_UNAVAILABLE", "Host is not online");
+		return trpcErrorResponse(
+			c,
+			router,
+			"SERVICE_UNAVAILABLE",
+			"Host is not online",
+		);
 	}
 	const caller = c.get("caller");
 	const result = await stub.proxyHttp(caller, {
@@ -285,6 +304,7 @@ app.all("/hosts/:hostId/trpc/*", async (c) => {
 			);
 			return trpcErrorResponse(
 				c,
+				router,
 				refused.status === 403 ? "FORBIDDEN" : "INTERNAL_SERVER_ERROR",
 				refused.message,
 			);
@@ -292,20 +312,30 @@ app.all("/hosts/:hostId/trpc/*", async (c) => {
 		if (result.reason === "dial-failed") {
 			return trpcErrorResponse(
 				c,
+				router,
 				"BAD_GATEWAY",
 				"Host could not reach the relay",
 			);
 		}
 		const connected = await stub.isConnected(caller);
 		return connected.access === "allowed" && connected.connected
-			? trpcErrorResponse(c, "BAD_GATEWAY", "Request timed out")
-			: trpcErrorResponse(c, "SERVICE_UNAVAILABLE", "Host is not online");
+			? trpcErrorResponse(c, router, "BAD_GATEWAY", "Request timed out")
+			: trpcErrorResponse(
+					c,
+					router,
+					"SERVICE_UNAVAILABLE",
+					"Host is not online",
+				);
 	}
 	return new Response(result.body.byteLength > 0 ? result.body : null, {
 		status: result.status,
 		headers: result.headers,
 	});
-});
+};
+
+for (const router of HOST_TRPC_ROUTERS) {
+	app.all(`/hosts/:hostId${router.prefix}/*`, (c) => proxyHostHttp(c, router));
+}
 
 app.get("/hosts/:hostId/*", async (c) => {
 	if (!isWsUpgrade(c)) {
@@ -314,7 +344,6 @@ app.get("/hosts/:hostId/*", async (c) => {
 	const hostId = c.get("hostId");
 	const url = new URL(c.req.url);
 	const path = pathAfterHost(c) || "/";
-	if (path.startsWith("//")) return c.json({ error: "Invalid path" }, 400);
 	const query = url.search.slice(1);
 	const ticket = crypto.randomUUID();
 

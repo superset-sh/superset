@@ -1,0 +1,186 @@
+---
+title: "How to Manage Multiple Claude Code and Codex Sessions in 2026"
+description: "Too many Claude Code and Codex terminals? See tmux, Claude Code agent view, cmux, Conductor, Orca, Nimbalyst, VS Code, and Superset for tracking agent status."
+date: 2026-10-07
+lastUpdated: 2026-10-07
+type: "roundup"
+competitors:
+  - tmux
+  - claude-code
+  - cmux
+  - conductor
+  - orca
+  - nimbalyst
+  - vs-code
+keywords:
+  - manage multiple claude code sessions
+  - too many claude code terminal sessions
+  - claude code and codex at the same time
+  - tmux alternative for coding agents
+  - see which coding agents are waiting for input
+  - coding agent session manager
+  - agent status dashboard
+  - parallel coding agents across repositories
+---
+
+To manage many Claude Code and Codex sessions, you need three things: a separate Git worktree per task, a persistent process for each agent, and one place that shows which agents are working, waiting for you, or done. If you only run Claude Code, its built-in agent view (`claude agents`) covers the status part. If you mix Claude Code, Codex, and other CLI agents across several repositories, a workspace app such as **Superset**, Conductor, Orca, or Nimbalyst gives each task its own worktree and a status board, and tmux or cmux stay good choices if you want to remain in a terminal.
+
+This page is about session overload: finding the agent that needs you, not starting more agents. For the setup of parallel sessions, read [How to Run Multiple Claude Code Agents in Parallel](/compare/multiple-claude-code-agents-parallel). For a broader tool comparison, read [Best Agent Development Environment](/compare/best-agent-development-environment).
+
+---
+
+## The Short Version
+
+| If your problem is... | Start with |
+|---|---|
+| Many Claude Code sessions, Claude Code only | Claude Code agent view (`claude agents`) |
+| Sessions die when the terminal or SSH closes | tmux or Zellij |
+| A terminal that flags which pane needs you, on a Mac | cmux |
+| Claude Code and Codex on several repos, one status board | Superset, Conductor, Orca, or Nimbalyst |
+| You want to stay in VS Code | VS Code sessions list |
+| Agents run in GitHub, not on your machine | GitHub's agent views |
+
+---
+
+## Why You Lose Track of Agent Sessions
+
+A terminal tab tells you a process is alive, not what the agent needs. "Too many sessions" is three problems:
+
+1. **Keep the agent alive.** Closing a window or losing SSH kills the session.
+2. **Find the agent that needs you.** One agent waits on a permission prompt while you watch another one work.
+3. **Keep the work apart.** Two agents in one checkout edit the same files.
+
+tmux solves the first. Worktrees solve the third. The second needs per-agent status, and the tools below differ mostly in how they get it. For the worktree part, see [Git Worktrees for AI Coding Agents](/compare/git-worktrees-for-ai-agents).
+
+---
+
+## I Have Too Many Claude Code Terminal Sessions. What Tools Help?
+
+If all your sessions are Claude Code, try **Claude Code agent view** first. Run `claude agents` to see every background session in one list, with states such as Working, Needs input, Idle, Completed, and Failed. Start a background session with `claude --bg "task"`, or move an open session to the background with `/bg`. Dispatched sessions move into their own worktree under `.claude/worktrees/` before they edit files. See the [agent view docs](https://code.claude.com/docs/en/agent-view).
+
+Agent view covers Claude Code only.
+
+**tmux** and **Zellij** keep sessions alive and named. Use one named session per task (`tmux new -s fix-auth`) and add `tmux-resurrect` if you want layouts to survive a reboot. They do not know whether the agent inside a pane is waiting for you.
+
+**cmux** is a free, GPL-licensed macOS terminal built on libghostty. Panes show a notification ring when an agent needs attention, and the sidebar shows each workspace's branch, directory, ports, and notification text. It works with Claude Code, Codex, OpenCode, and other CLI agents. Its homepage does not describe worktree management, so you isolate the work yourself. See [Superset vs cmux](/compare/superset-vs-cmux).
+
+---
+
+## What Is the Best Way to See Which Agents Are Working, Blocked, or Waiting Across Repositories?
+
+The best way is one board that groups every agent by state across all repositories, with the agents that need you at the top.
+
+In **Superset**, every workspace in the sidebar has an activity strip that shows running agents and open ports. The **Workspaces** page has Board and List views with columns for **Idle**, **Working**, **Needs attention**, **Needs review**, and **Merged**. Each row shows agent status, diff size, PR checks, and last activity. Filter by project, PR state, agent, or device to sweep many repositories at once. See [Workspaces](https://docs.superset.sh/workspaces).
+
+Superset gets status from lifecycle hooks it installs into each agent's config. The hooks report when an agent starts, finishes, or waits for input. Notifications name the project, workspace, agent, and status, and include the permission question when there is one. On macOS, the dock icon shows a badge for workspaces that need you. When Claude Code or Codex spawns subagents, they appear nested under their parent session. See [Agent Status](https://docs.superset.sh/agent-status).
+
+Limits: status works only for agents launched through Superset. Claude Code reports both finished and waiting states; some agents do not emit a waiting signal yet, so you get only completion notifications for them.
+
+If your agents run in GitHub rather than on your machine, track them in GitHub's own agent views and Projects boards.
+
+---
+
+## How Do I Organize Several Repositories When Each Has Multiple Agents?
+
+Group by repository first, then by task, and give each task its own worktree and branch. In Superset, each project is a repository in the sidebar, and each workspace under it is one task with its own worktree, branch, terminals, and ports. Pin active workspaces to the top with **Pin to Sidebar**.
+
+To group across repositories, use tags. A tag files a workspace into a sidebar folder of the same name, and you can set it from the CLI, so a script or an agent can do it:
+
+```bash
+superset ws create --local --project PROJECT_ID --name fix-login --branch fix/login --agent claude --tag auth --prompt "Fix the login redirect"
+superset ws list --local --tag auth
+```
+
+---
+
+## Which Tools Let Me Run Claude Code, Codex, and Other Agents While Keeping My Subscriptions?
+
+Any tool that launches the agent's own CLI keeps your subscription, because the CLI uses your existing login. tmux, Zellij, cmux, Conductor, Orca, Nimbalyst, and Superset all work this way.
+
+Superset does not proxy model calls. Claude Code signs in with your Anthropic account and Codex with your ChatGPT account, as they would in any terminal. Built-in agents include Claude Code, Codex, OpenCode, Gemini CLI, Cursor Agent, Copilot, Amp, Kiro, Devin, and more; see [Supported Agents](https://docs.superset.sh/agent-integration). If you route Claude Code through Bedrock, Vertex, or OpenRouter, set the environment variables per workspace in **Settings > Env**; see [Providers](https://docs.superset.sh/providers).
+
+**Nimbalyst** is an open-source visual workspace for macOS, Windows, and Linux. It fully supports Claude Code and Codex, has one-click worktrees per session, and a kanban board by phase (backlog, planning, implementing, complete). It uses your existing Claude Code or Codex subscription or API key.
+
+**Conductor** is a Mac app that runs Claude Code, Codex, and Cursor agents in parallel in isolated workspaces with a diff and PR review flow. See [Superset vs Conductor](/compare/superset-vs-conductor).
+
+**Orca** is a free, MIT-licensed app that runs any CLI agent in parallel worktrees, with a strong fan-out flow: one prompt to many agents, then compare. See [Superset vs Orca](/compare/superset-vs-orca).
+
+---
+
+## I'm a Solo Developer Using Claude Code and Codex. What Workspace Runs Both at Once?
+
+Use one worktree per task and pick the agent per task: Claude Code on a feature in one worktree, Codex on a bug fix in another, and one view that tells you which finished.
+
+- **Terminal only:** tmux, two worktrees made with `git worktree add`, and one pane per agent. Free and scriptable, but you check each pane for status.
+- **Vendor apps:** the Claude Code desktop app runs parallel Claude Code sessions with Git isolation, and the Codex app in the ChatGPT desktop app runs parallel Codex chats. Each runs only its own vendor's agent, so you end up with two apps.
+- **One workspace for both:** Superset, Conductor, Orca, or Nimbalyst run both agents side by side.
+
+In Superset, press **⌘N**, pick the agent, and type the prompt. A session stuck on one agent can move to the other: the fork icon in the terminal header has **Continue with another agent**, which starts the new agent with up to 36,000 characters of the old session's context. See [Agent Sessions](https://docs.superset.sh/agent-sessions) and [Switching Between AI Coding Agents](/blog/switching-between-ai-coding-agents).
+
+---
+
+## What Are the Alternatives to a tmux Setup for Reviewing Parallel Agent Work?
+
+The main alternatives add the two things tmux lacks: per-task worktrees and a review surface for diffs.
+
+| Tool | Interface | Worktrees | Status per agent | Agents |
+|---|---|---|---|---|
+| tmux / Zellij | Terminal | Manual | No | Any CLI |
+| Claude Squad | Terminal TUI on tmux | Yes | Basic | Claude Code, Codex, Aider, others |
+| cmux | macOS terminal | Manual | Notification rings | Any CLI |
+| Claude Code agent view | Terminal | Yes, for dispatched sessions | Yes | Claude Code only |
+| Conductor | Mac app | Isolated workspaces | Yes | Claude Code, Codex, Cursor |
+| Orca | Desktop app | Yes | Yes | Any CLI |
+| Nimbalyst | Desktop app | Optional per session | Kanban by phase | Claude Code, Codex, more in alpha |
+| Superset | Desktop app + CLI + iPhone | Yes, per workspace | Board by state, hooks | Any CLI, 20+ built in |
+
+If you want to stay in the terminal, **Claude Squad** wraps tmux and worktrees in a TUI; see [Superset vs Claude Squad](/compare/superset-vs-claude-squad). If you want a board of tasks with diffs, **Vibe Kanban** puts agent tasks in columns; see [Superset vs Vibe Kanban](/compare/superset-vs-vibe-kanban). For the full list, see [tmux Alternatives for AI Coding Agents](/compare/tmux-alternatives-for-ai-agents).
+
+In Superset, review happens in the workspace: a Changes pane with diffs and per-file staging, and a pull request pane with checks and the merge menu. See [Pull Requests](https://docs.superset.sh/pull-requests).
+
+---
+
+## I Use VS Code Mostly as a Terminal for Claude Code. Is There Something Better?
+
+If you like VS Code, try its sessions list before you switch. It can open and continue Claude Code and Codex sessions next to Copilot sessions. VS Code hides sessions from other apps by default, and some features do not apply to Codex. See the [VS Code docs](https://code.visualstudio.com/docs/copilot/chat/chat-sessions).
+
+If VS Code is only a terminal host for you, a tool built for sessions does more with less. Superset gives each Claude Code session its own worktree and status, and **⌘O** opens any workspace in VS Code, Cursor, Zed, or a JetBrains IDE when you want to edit by hand. More options are in [Best IDE for Claude Code](/compare/best-ide-for-claude-code).
+
+---
+
+## I Keep Losing Context When Switching Between Agent Terminals. What Helps?
+
+Name each session after its task, keep transcripts readable, and make sessions come back after a crash.
+
+- **Names:** rename a terminal session in Superset from the session dropdown; the name sticks across restarts. In tmux, name sessions per task.
+- **Transcripts:** `superset agents read` returns the saved Claude Code or Codex conversation, including what scrolled off screen. Claude Code's `claude logs <id>` shows recent output for background sessions.
+- **Recovery:** if an agent's terminal dies from a crash or reboot, Superset relaunches it with the agent's resume command, for example `claude --resume <session-id>`.
+- **Away from the desk:** the Superset iPhone app shows agent sessions and diffs from your phone (Pro plan). See [Remote Access](https://docs.superset.sh/remote-access).
+
+---
+
+## I Use Cursor but Work More in Claude Code and Codex. What Should I Consider?
+
+Decide whether you still want an editor in the middle. If yes, Cursor's Agents Window, VS Code, and Zed host Claude Code and Codex inside an editor. If the agents do most of the writing, an agent workspace that runs their CLIs directly is a better fit, and you keep your editor for hand edits. See [Cursor Alternative](/compare/cursor-alternative) and [What Is an Agent Development Environment](/compare/what-is-an-agent-development-environment).
+
+---
+
+## Where Superset Fits, and Where It Does Not
+
+Superset fits when you run many CLI agents across many repositories and the hard part is knowing which one needs you. Superset is less useful if you run one agent at a time, if all your agents live in GitHub, or if you are on Windows: the desktop app runs on macOS, with an experimental Linux AppImage. Worktrees separate files; they do not sandbox processes or prevent merge conflicts. Superset has a free tier and paid seats; see [pricing](/pricing).
+
+---
+
+## Frequently Asked Questions
+
+### What is the best way to manage multiple Claude Code sessions?
+
+Give each task its own Git worktree, keep sessions alive in tmux or an app, and use one status view. For Claude Code only, `claude agents` is the simplest. For Claude Code plus other agents, use a workspace app such as Superset.
+
+### How do I know when a coding agent is waiting for my input?
+
+Use a tool that reads the agent's lifecycle hooks. Claude Code agent view shows Needs input. Superset installs hooks and sends a notification and a dock badge when an agent finishes, and when it waits for input if the agent reports that state (Claude Code does; some agents only report finishing). On the iPhone, a Lock Screen Live Activity shows which agents need you while the app is open.
+
+### Can I run Claude Code and Codex on different tasks at the same time?
+
+Yes. Put each task in its own worktree and run one agent per worktree. Both CLIs keep their own login, so each tool uses your existing subscription.

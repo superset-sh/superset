@@ -72,6 +72,7 @@ async function handle(req: Request): Promise<Response> {
 		ctx = await resolveMcpContext(req, {
 			apiUrl: env.NEXT_PUBLIC_API_URL,
 			relayUrl: env.RELAY_URL,
+			realtimeUrl: env.REALTIME_URL,
 		});
 	} catch (error) {
 		if (isMcpUnauthorized(error)) {
@@ -111,7 +112,7 @@ async function handle(req: Request): Promise<Response> {
 	const response = await transport.handleRequest(req, {
 		authInfo: {
 			token: ctx.bearerToken,
-			clientId: ctx.source === "api-key" ? "api-key" : "oauth",
+			clientId: ctx.source,
 			scopes: ["mcp:full"],
 			extra: { mcpContext: ctx },
 		},

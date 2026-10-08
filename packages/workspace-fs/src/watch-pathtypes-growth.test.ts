@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { FsWatcherManager, type FsWatcherManagerOptions } from "./watch";
+import type { NativeWatchBackend, NativeWatchEvent } from "./watch-backend";
 
 /**
  * INTEGRATION reproduction of finding #3 in
@@ -216,42 +217,49 @@ describe("FsWatcherManager.pathTypes — monotonic growth", () => {
 		const rootPath = await createTempRoot();
 		tempRoots.push(rootPath);
 
-		const FILE_PATHS_MAX = 50;
+		// A real backend does not deliver events in write order (chokidar on
+		// Linux emits per file after async stats, and adds late `change`s), so
+		// the LRU order is driven here instead.
+		let emitNative: ((events: NativeWatchEvent[]) => void) | undefined;
+		const backend: NativeWatchBackend = {
+			name: "scripted",
+			async subscribe({ onEvents }) {
+				emitNative = onEvents;
+				return { unsubscribe: async () => {} };
+			},
+		};
+
+		const FILE_PATHS_MAX = 5;
 		const manager = createManager({
-			debounceMs: 50,
+			debounceMs: 10,
 			filePathsMax: FILE_PATHS_MAX,
+			backend,
 		});
-		await manager.subscribe({ absolutePath: rootPath }, () => {});
+		let createCount = 0;
+		await manager.subscribe({ absolutePath: rootPath }, (batch) => {
+			for (const event of batch.events) {
+				if (event.kind === "create") createCount++;
+			}
+		});
 
-		const total = FILE_PATHS_MAX + 20;
-
-		for (let i = 0; i < total; i++) {
-			await fs.writeFile(path.join(rootPath, `cap-${i}.tmp`), `${i}`);
-		}
-
-		// Wait for the last write to land — that guarantees both the eviction
-		// has fired (we're well past the cap) and the most-recent path is
-		// tracked. The original 10k+ test relied on sheer scale to flush in
-		// time; with a small cap we need an explicit settle.
-		const firstPath = path.join(rootPath, "cap-0.tmp");
-		const lastPath = path.join(rootPath, `cap-${total - 1}.tmp`);
-		await waitForCondition(
-			() => getPathTypes(manager, rootPath).has(lastPath),
-			30_000,
+		const total = FILE_PATHS_MAX + 3;
+		const filePaths = Array.from({ length: total }, (_, i) =>
+			path.join(rootPath, `cap-${i}.tmp`),
 		);
+		await Promise.all(
+			filePaths.map((filePath, i) => fs.writeFile(filePath, `${i}`)),
+		);
+		for (const filePath of filePaths) {
+			emitNative?.([{ type: "create", path: filePath }]);
+		}
+		await waitForCondition(() => createCount >= total);
 
-		// File entries are the LRU-capped axis; directories are tracked
-		// separately and aren't counted toward the cap.
-		const cappedFileSize = getFilePathsSize(manager, rootPath);
-		expect(cappedFileSize).toBeLessThanOrEqual(FILE_PATHS_MAX);
-
-		// Earliest paths should have been evicted.
-		expect(getPathTypes(manager, rootPath).has(firstPath)).toBe(false);
-
-		// Most-recent paths should still be in the map (already verified by
-		// waitForCondition above, but assert for clarity).
-		expect(getPathTypes(manager, rootPath).has(lastPath)).toBe(true);
-	}, 60_000);
+		expect(getFilePathsSize(manager, rootPath)).toBe(FILE_PATHS_MAX);
+		const tracked = getPathTypes(manager, rootPath);
+		expect(filePaths.filter((filePath) => tracked.has(filePath))).toEqual(
+			filePaths.slice(total - FILE_PATHS_MAX),
+		);
+	});
 
 	it("repeated create/delete with unique names grows pathTypes monotonically until delete catches up", async () => {
 		// The most realistic leak scenario: a process keeps creating files

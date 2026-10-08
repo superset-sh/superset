@@ -63,27 +63,16 @@ async function loadProject(ctx: { organizationIds: string[] }, id: string) {
 	return project;
 }
 
-/** A task imported from Linear can be assigned to someone with no Superset account. */
 function toAssignee(task: {
 	assigneeId: string | null;
 	assigneeName: string | null;
 	assigneeImage: string | null;
-	assigneeExternalId: string | null;
-	assigneeDisplayName: string | null;
-	assigneeAvatarUrl: string | null;
 }) {
 	if (task.assigneeId && task.assigneeName) {
 		return {
 			id: task.assigneeId,
 			name: task.assigneeName,
 			image: task.assigneeImage,
-		};
-	}
-	if (task.assigneeExternalId && task.assigneeDisplayName) {
-		return {
-			id: task.assigneeExternalId,
-			name: task.assigneeDisplayName,
-			image: task.assigneeAvatarUrl,
 		};
 	}
 	return null;
@@ -171,9 +160,6 @@ export const taskProjectRouter = {
 						assigneeId: tasks.assigneeId,
 						assigneeName: users.name,
 						assigneeImage: users.image,
-						assigneeExternalId: tasks.assigneeExternalId,
-						assigneeDisplayName: tasks.assigneeDisplayName,
-						assigneeAvatarUrl: tasks.assigneeAvatarUrl,
 					})
 					.from(taskProjectTasks)
 					.innerJoin(tasks, eq(tasks.id, taskProjectTasks.taskId))

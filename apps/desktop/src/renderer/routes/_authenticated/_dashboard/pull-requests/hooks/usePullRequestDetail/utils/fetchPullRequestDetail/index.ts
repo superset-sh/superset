@@ -1,0 +1,1 @@
+export { fetchPullRequestDetail } from "./fetchPullRequestDetail";

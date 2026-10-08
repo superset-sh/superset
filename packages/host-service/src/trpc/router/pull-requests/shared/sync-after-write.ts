@@ -9,7 +9,7 @@ import {
 } from "./linked-workspaces";
 import { evictPullRequestContent } from "./pull-request-content-cache";
 
-type PullRequestWrite = "merge" | "close" | "reopen";
+type PullRequestWrite = "merge" | "close" | "reopen" | "ready" | "draft";
 
 interface SyncPullRequestAfterWriteInput {
 	repo: RepoIdentity;
@@ -69,17 +69,20 @@ function recordWrittenState(
 	action: PullRequestWrite,
 ): void {
 	const now = Date.now();
+	const isDraft =
+		action === "ready" ? false : action === "draft" ? true : row.isDraft;
 	const state =
 		action === "merge"
 			? "merged"
 			: action === "close"
 				? "closed"
-				: row.isDraft
+				: isDraft
 					? "draft"
 					: "open";
 	db.update(pullRequests)
 		.set({
 			state,
+			isDraft,
 			// Observation time until a fetch carries GitHub's own, never cleared.
 			mergedAt: action === "merge" ? (row.mergedAt ?? now) : row.mergedAt,
 			updatedAt: now,

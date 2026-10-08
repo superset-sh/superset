@@ -1,0 +1,1 @@
+export { registerDraftEdit } from "./draftEdit";

@@ -1,28 +1,30 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import {
+	afterAll,
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	test,
+} from "bun:test";
+import { writeConfig } from "../../lib/config";
 import { readSettingsRow } from "../../lib/settings";
 import { writeSettings } from "../../lib/settings/local-settings";
 import {
 	createLocalSettingsDb,
 	withTempSupersetHome,
 } from "../../lib/settings/test-helpers";
+import addCommand from "./add/command";
+import deleteCommand from "./delete/command";
+import editCommand from "./edit/command";
+import listCommand from "./list/command";
 
-let activeOrganizationId: string | undefined = "org-a";
 let desktopRefreshed = false;
 
-const realConfig = await import("../../lib/config");
-mock.module("../../lib/config", () => ({
-	...realConfig,
-	readConfig: () => ({ organizationId: activeOrganizationId }),
-}));
-
-mock.module("../../lib/settings/notify", () => ({
-	notifyDesktopSettingsChanged: async () => desktopRefreshed,
-}));
-
-const { default: addCommand } = await import("./add/command");
-const { default: listCommand } = await import("./list/command");
-const { default: editCommand } = await import("./edit/command");
-const { default: deleteCommand } = await import("./delete/command");
+const desktop = Bun.serve({
+	port: 0,
+	fetch: () => new Response(null, { status: desktopRefreshed ? 200 : 503 }),
+});
+afterAll(() => desktop.stop(true));
 
 const home = withTempSupersetHome("superset-cli-scripts-manage-");
 let previousOrgOverride: string | undefined;
@@ -60,12 +62,14 @@ function seedImported() {
 beforeEach(() => {
 	previousOrgOverride = process.env.SUPERSET_ORGANIZATION_ID;
 	delete process.env.SUPERSET_ORGANIZATION_ID;
-	activeOrganizationId = "org-a";
 	desktopRefreshed = false;
+	process.env.DESKTOP_NOTIFICATIONS_PORT = String(desktop.port);
 	createLocalSettingsDb(home.dir);
+	writeConfig({ organizationId: "org-a" });
 });
 
 afterEach(() => {
+	delete process.env.DESKTOP_NOTIFICATIONS_PORT;
 	if (previousOrgOverride === undefined)
 		delete process.env.SUPERSET_ORGANIZATION_ID;
 	else process.env.SUPERSET_ORGANIZATION_ID = previousOrgOverride;
@@ -173,7 +177,7 @@ describe("scripts edit", () => {
 
 	test("requires an active organization", async () => {
 		seedImported();
-		activeOrganizationId = undefined;
+		writeConfig({});
 		await expect(
 			run(editCommand, { args: { id: "gh-1" }, options: { name: "x" } }),
 		).rejects.toThrow(/No active organization/);

@@ -1,41 +1,100 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { SessionClient } from "@superset/chat/client";
-import type { SessionState, UserContent } from "@superset/chat/protocol";
+import {
+	deriveQueuedPrompts,
+	runningTurnId as findRunningTurnId,
+	launchConfigSelections,
+} from "@superset/chat/core";
+import type {
+	AvailableCommand,
+	Decision,
+	SessionConfigOption,
+	SessionState,
+	UserContent,
+} from "@superset/chat/protocol";
 import {
 	useApprovals,
 	useChatSession,
 	useTimeline,
 } from "@superset/chat/react";
-import { ChatHistorySidebar } from "@superset/ui/chat-history-sidebar";
-import { Spinner } from "@superset/ui/spinner";
+import { ComposerDropZone } from "@superset/chat-ui/ComposerDropZone";
+import { MessageScroller } from "@superset/chat-ui/MessageScroller";
+import type { PromptInputHandle } from "@superset/chat-ui/PromptInput";
+import { ChatHistorySidebarScroller } from "@superset/ui/chat-history-sidebar";
+import { toast } from "@superset/ui/sonner";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { OpenFile } from "../../../../../../types";
+import {
+	ChatPaneActionsProvider,
+	type OpenLink,
+	type OpenPage,
+} from "../../providers/ChatPaneActionsProvider";
 import type { ChatForkTarget } from "../../types";
 import { buildChatHandoffTranscript } from "../../utils/chatHandoffTranscript";
+import { heldPromptQueue } from "../../utils/heldPromptQueue";
+import { promptHistory } from "../../utils/promptHistory";
 import { railMessages } from "../../utils/railMessages";
-import { Composer } from "../Composer";
+import {
+	type AgentChoice,
+	type AgentSwitcher,
+	Composer,
+	prependToDraft,
+} from "../Composer";
+import { ConnectionNotice } from "../ConnectionNotice";
 import { SessionHeader } from "../SessionHeader";
 import { Transcript } from "../Transcript";
+import { useStableList } from "./hooks/useStableList";
+
+const RESUME_FOLLOW_PX = 24;
+const NO_COMMANDS: AvailableCommand[] = [];
+const NO_CONFIG_OPTIONS: SessionConfigOption[] = [];
+
+const MODEL_OPTIONS_GRACE_MS = 1000;
+
+function contentText(content: UserContent[]): string {
+	return content
+		.flatMap((part) => (part.type === "text" ? [part.text] : []))
+		.join("\n");
+}
 
 export function SessionView({
 	agentLabel,
+	agentSwitch,
 	canForkToWorktree,
 	client,
+	draftKey,
 	headerLeft,
-	pendingFirstPrompt,
-	onFirstPromptSent,
+	held,
+	isActive,
+	onModeChange,
+	pendingPrompts,
+	preferredModelLabel,
+	onPendingPromptsSent,
 	onFork,
 	onSessionState,
-	sessionId,
+	openFile,
+	openPage,
+	openLink,
 	workspaceId,
 }: {
 	client: SessionClient;
-	sessionId: string;
+	draftKey: string;
 	workspaceId: string;
 	headerLeft?: ReactNode;
-	pendingFirstPrompt: UserContent[] | null;
-	onFirstPromptSent: () => void;
+	held?: {
+		notice: ReactNode;
+		queued: UserContent[][];
+		onQueue: (content: UserContent[]) => void;
+	};
+	isActive?: boolean;
+	pendingPrompts: UserContent[][];
+	/** Selected by name once the agent lists its models, before the first prompt goes out. */
+	preferredModelLabel?: string;
+	onPendingPromptsSent: () => void;
 	onSessionState?: (session: SessionState | null) => void;
+	/** The mode the user picked, so a resumed session can start in it again. */
+	onModeChange?: (modeId: string) => void;
 	/**
 	 * Absent when the agent cannot branch its own session. The transcript is
 	 * built here because only this view holds the timeline; a branch into
@@ -45,127 +104,319 @@ export function SessionView({
 	canForkToWorktree?: boolean;
 	/** Names the speaker in a handed-over transcript. */
 	agentLabel?: string;
+	/** The transcript goes with the switch: the next agent cannot load this session. */
+	agentSwitch?: {
+		currentPresetId: string;
+		agents: AgentChoice[];
+		onSwitch: (
+			presetId: string,
+			model: { id: string; label: string } | null,
+			transcript: string,
+			currentModeId: string | undefined,
+		) => void;
+	};
+	openFile?: OpenFile;
+	openPage?: OpenPage;
+	openLink?: OpenLink;
 }) {
+	const { t } = useLingui();
 	const session = useChatSession({ client });
-	const timeline = useTimeline(session.snapshot);
-	const rail = useMemo(
-		() => railMessages(timeline, session.snapshot),
-		[timeline, session.snapshot],
-	);
-	const [scrollRequest, setScrollRequest] = useState<{
-		itemId: string;
-		nonce: number;
-	}>();
-	const selectFromRail = useCallback((message: { id: string }) => {
-		setScrollRequest((previous) => ({
-			itemId: message.id,
-			nonce: (previous?.nonce ?? 0) + 1,
-		}));
-	}, []);
-	const approvals = useApprovals(session.snapshot);
-
-	const firstPromptSentRef = useRef(false);
+	const composerRef =
+		useRef<Pick<PromptInputHandle, "appendText" | "focus">>(null);
+	const { outbox, discardPrompt } = session;
 	useEffect(() => {
-		if (!pendingFirstPrompt || firstPromptSentRef.current) return;
-		if (session.status !== "ready") return;
-		firstPromptSentRef.current = true;
-		session.sendPrompt(pendingFirstPrompt);
-		onFirstPromptSent();
-	}, [pendingFirstPrompt, session, onFirstPromptSent]);
+		const failed = outbox.filter(
+			(entry) =>
+				entry.state === "failed" &&
+				entry.content.every((part) => part.type === "text"),
+		);
+		if (failed.length === 0) return;
+		for (const entry of failed) {
+			discardPrompt(entry.clientId);
+			composerRef.current?.appendText(contentText(entry.content));
+		}
+		composerRef.current?.focus();
+		toast.error(
+			t({ message: "Couldn't send your message. It's back in the composer." }),
+		);
+	}, [outbox, discardPrompt, t]);
+	const outboxRef = useRef(outbox);
+	outboxRef.current = outbox;
+	useEffect(
+		() => () => {
+			const unsent = outboxRef.current
+				.filter(
+					(entry) =>
+						entry.state === "failed" ||
+						(entry.state === "queued" && entry.attempts === 0),
+				)
+				.map((entry) => contentText(entry.content))
+				.filter(Boolean);
+			if (unsent.length > 0) prependToDraft(draftKey, unsent.join("\n\n"));
+		},
+		[draftKey],
+	);
+	const timeline = useTimeline(session.snapshot);
+	const rail = useStableList(
+		useMemo(() => railMessages(timeline), [timeline]),
+		(previous, next) =>
+			previous.id === next.id &&
+			previous.role === next.role &&
+			previous.preview === next.preview,
+	);
+	const approvals = useApprovals(session.snapshot);
+	const harness = session.snapshot.session?.harness;
+	const history = useStableList(
+		useMemo(() => promptHistory(timeline, harness), [timeline, harness]),
+	);
+
+	const configOptions = session.snapshot.session?.configOptions;
+	const agentStatus = session.snapshot.session?.status;
+	const [modelSettled, setModelSettled] = useState(
+		preferredModelLabel === undefined,
+	);
+	const modelRequested = useRef(false);
+	useEffect(() => {
+		if (modelSettled || session.status !== "ready") return;
+		if (configOptions === undefined) {
+			// An agent that reports no options never sends them.
+			if (agentStatus !== "idle") return;
+			const timer = setTimeout(
+				() => setModelSettled(true),
+				MODEL_OPTIONS_GRACE_MS,
+			);
+			return () => clearTimeout(timer);
+		}
+		if (modelRequested.current) return;
+		const [selection] = launchConfigSelections(configOptions, {
+			modelLabel: preferredModelLabel ?? null,
+			effortLabel: null,
+		});
+		if (!selection) {
+			setModelSettled(true);
+			return;
+		}
+		modelRequested.current = true;
+		void session
+			.setConfigOption(selection.configId, selection.value)
+			.finally(() => setModelSettled(true));
+	}, [agentStatus, configOptions, modelSettled, preferredModelLabel, session]);
+
+	const pendingSentRef = useRef(false);
+	useEffect(() => {
+		if (held || pendingPrompts.length === 0 || pendingSentRef.current) return;
+		if (session.status !== "ready" || !modelSettled) return;
+		pendingSentRef.current = true;
+		for (const prompt of pendingPrompts) session.sendPrompt(prompt);
+		onPendingPromptsSent();
+	}, [held, pendingPrompts, session, onPendingPromptsSent, modelSettled]);
 
 	const sessionState = session.snapshot.session;
 	useEffect(() => {
 		onSessionState?.(sessionState ?? null);
 	}, [sessionState, onSessionState]);
 
-	const runningTurnId = useMemo(() => {
-		for (const turn of session.snapshot.turns.values()) {
-			if (turn.status === "running") return turn.id;
-		}
-		return null;
-	}, [session.snapshot.turns]);
+	const runningTurnId = useMemo(
+		() => findRunningTurnId(session.snapshot.turns),
+		[session.snapshot.turns],
+	);
 
-	// The stream is ready well before the agent is: the harness still has to
-	// spawn and, when resuming, replay the whole transcript. Showing an empty
-	// pane through that reads as a broken chat rather than a loading one.
-	const booting = sessionState?.status === "starting" && timeline.length === 0;
+	const snapshotItems = session.snapshot.items;
+	const queuedPrompts = useStableList(
+		useMemo(
+			() => deriveQueuedPrompts({ items: snapshotItems }),
+			[snapshotItems],
+		),
+	);
 
+	const timelineRef = useRef(timeline);
+	timelineRef.current = timeline;
+	const snapshotRef = useRef(session.snapshot);
+	snapshotRef.current = session.snapshot;
+	const forkWithTranscript = useCallback(
+		(target: ChatForkTarget) =>
+			onFork?.(
+				target,
+				buildChatHandoffTranscript(
+					timelineRef.current,
+					snapshotRef.current,
+					agentLabel ?? "Agent",
+				),
+			),
+		[onFork, agentLabel],
+	);
+	const agentSwitcher = useMemo<AgentSwitcher | undefined>(
+		() =>
+			agentSwitch && {
+				currentPresetId: agentSwitch.currentPresetId,
+				agents: agentSwitch.agents,
+				onSwitch: (presetId, model) =>
+					agentSwitch.onSwitch(
+						presetId,
+						model,
+						buildChatHandoffTranscript(
+							timelineRef.current,
+							snapshotRef.current,
+							agentLabel ?? "Agent",
+						),
+						snapshotRef.current.session?.modeId,
+					),
+			},
+		[agentSwitch, agentLabel],
+	);
+	const {
+		cancelTurn,
+		loadOlder,
+		respondToApproval,
+		sendPrompt,
+		setConfigOption,
+		setMode,
+	} = session;
+	const onRespond = useCallback(
+		(approvalId: string, decision: Decision) =>
+			void respondToApproval(approvalId, decision),
+		[respondToApproval],
+	);
+	const onSetConfigOption = useCallback(
+		(configId: string, value: string) => void setConfigOption(configId, value),
+		[setConfigOption],
+	);
+	const onSetMode = useCallback(
+		(modeId: string) => {
+			onModeChange?.(modeId);
+			void setMode(modeId);
+		},
+		[onModeChange, setMode],
+	);
+	const holdPrompt = held?.onQueue;
+	const onSend = useCallback(
+		(content: UserContent[], { steer }: { steer: boolean }) =>
+			holdPrompt
+				? holdPrompt(content)
+				: sendPrompt(
+						content,
+						steer && runningTurnId
+							? { expectedTurnId: runningTurnId }
+							: undefined,
+					),
+		[holdPrompt, sendPrompt, runningTurnId],
+	);
+	const awaitingBackground = sessionState?.awaitingBackground === true;
+	const onCancelTurn = useMemo(
+		() =>
+			runningTurnId && !awaitingBackground && !held
+				? () => void cancelTurn(runningTurnId, { pauseQueue: true })
+				: null,
+		[runningTurnId, awaitingBackground, cancelTurn, held],
+	);
+	const promptQueue = useMemo(
+		() => ({
+			prompts: queuedPrompts,
+			paused: sessionState?.queuePaused === true,
+			actionable: sessionState?.queueControls === true,
+			remove: session.removeQueuedPrompt,
+			resume: session.resumeQueue,
+			steer: session.steerQueuedPrompt,
+		}),
+		[
+			queuedPrompts,
+			sessionState?.queuePaused,
+			sessionState?.queueControls,
+			session.removeQueuedPrompt,
+			session.resumeQueue,
+			session.steerQueuedPrompt,
+		],
+	);
+
+	const heldQueued = held?.queued;
+	const heldQueue = useMemo(
+		() => (heldQueued ? heldPromptQueue(heldQueued) : undefined),
+		[heldQueued],
+	);
+	const connecting =
+		session.unreachable ||
+		(session.status === "ready" && session.connection === "closed");
+	const booting = sessionState?.status === "starting";
+
+	// w-full because the pane lays its children out in a row: without it this
+	// sizes to its content and leaves the right of the pane empty.
 	return (
-		// w-full because the pane lays its children out in a row: without it this
-		// sizes to its content and leaves the right of the pane empty.
-		<div className="flex h-full min-h-0 w-full min-w-0 flex-col">
-			{/* Only worth a row when it carries a control: the pane header above
-			    already names the agent, and harness/status/connection repeated
-			    under it read louder than the transcript. */}
-			{headerLeft && (
-				<SessionHeader
-					connection={session.connection}
-					left={headerLeft}
-					session={session.snapshot.session}
-				/>
-			)}
-			{session.status === "loading" || booting ? (
-				<div className="flex flex-1 flex-col items-center justify-center gap-3">
-					<Spinner className="size-5" />
-					{booting && (
-						<span className="text-muted-foreground text-xs">
-							<Trans>Opening the conversation…</Trans>
-						</span>
-					)}
-				</div>
-			) : (
-				<div className="flex min-h-0 flex-1">
-					<Transcript
-						approvals={approvals}
-						canForkToWorktree={canForkToWorktree}
-						groups={timeline}
-						hasOlder={session.hasOlder}
-						onDiscardPrompt={session.discardPrompt}
-						onFork={
-							onFork
-								? (target) =>
-										onFork(
-											target,
-											buildChatHandoffTranscript(
-												timeline,
-												session.snapshot,
-												agentLabel ?? "Agent",
-											),
-										)
-								: undefined
-						}
-						onLoadOlder={() => void session.loadOlder()}
-						onRespond={(approvalId, decision) =>
-							void session.respondToApproval(approvalId, decision)
-						}
-						onRetryPrompt={session.retryPrompt}
-						outbox={session.outbox}
-						scrollRequest={scrollRequest}
-						snapshot={session.snapshot}
+		<ChatPaneActionsProvider
+			openFile={openFile}
+			openPage={openPage}
+			openLink={openLink}
+			workspaceId={workspaceId}
+		>
+			<ComposerDropZone className="flex h-full min-h-0 w-full min-w-0 flex-col">
+				{/* Only worth a row when it carries a control: the pane header above
+				    already names the agent, and harness/status/connection repeated
+				    under it read louder than the transcript. */}
+				{headerLeft && (
+					<SessionHeader
+						connection={session.connection}
+						left={headerLeft}
+						session={session.snapshot.session}
 					/>
-					{rail.length > 1 && (
-						<ChatHistorySidebar
-							className="hidden shrink-0 self-start py-6 pr-3 lg:block"
-							messages={rail}
-							onMessageSelect={selectFromRail}
+				)}
+				<MessageScroller.Provider
+					autoScroll
+					defaultScrollPosition="end"
+					scrollEdgeThreshold={RESUME_FOLLOW_PX}
+					scrollPreviousItemPeek={0}
+				>
+					<div className="@container relative flex min-h-0 flex-1">
+						<Transcript
+							approvals={approvals}
+							canForkToWorktree={canForkToWorktree}
+							groups={timeline}
+							hasOlder={session.hasOlder}
+							onDiscardPrompt={session.discardPrompt}
+							onFork={onFork ? forkWithTranscript : undefined}
+							onLoadOlder={loadOlder}
+							onRespond={onRespond}
+							onRetryPrompt={session.retryPrompt}
+							outbox={session.outbox}
+							snapshot={session.snapshot}
 						/>
-					)}
-				</div>
-			)}
-			<Composer
-				availableCommands={session.snapshot.session?.availableCommands ?? []}
-				configOptions={session.snapshot.session?.configOptions ?? []}
-				onSetConfigOption={(configId, value) =>
-					void session.setConfigOption(configId, value)
-				}
-				disabled={session.status !== "ready"}
-				draftKey={`chat-v3-draft:${sessionId}`}
-				onCancelTurn={
-					runningTurnId ? () => void session.cancelTurn(runningTurnId) : null
-				}
-				onSend={(content) => session.sendPrompt(content)}
-				workspaceId={workspaceId}
-			/>
-		</div>
+						{rail.length > 1 && (
+							<ChatHistorySidebarScroller
+								className="absolute inset-y-0 left-0 my-auto hidden h-fit max-h-full flex-col pl-3 @[56rem]:flex"
+								messages={rail}
+							/>
+						)}
+					</div>
+				</MessageScroller.Provider>
+				{held ? (
+					<ConnectionNotice>{held.notice}</ConnectionNotice>
+				) : (
+					(connecting || booting) && (
+						<ConnectionNotice>
+							{connecting ? (
+								<Trans>Connecting to the host service…</Trans>
+							) : (
+								<Trans>Starting the agent…</Trans>
+							)}
+						</ConnectionNotice>
+					)
+				)}
+				<Composer
+					agentSwitcher={agentSwitcher}
+					availableCommands={sessionState?.availableCommands ?? NO_COMMANDS}
+					configOptions={sessionState?.configOptions ?? NO_CONFIG_OPTIONS}
+					onSetConfigOption={onSetConfigOption}
+					modes={sessionState?.availableModes}
+					currentModeId={sessionState?.modeId}
+					onSetMode={onSetMode}
+					draftKey={draftKey}
+					inputRef={composerRef}
+					history={history}
+					isActive={isActive}
+					onCancelTurn={onCancelTurn}
+					onSend={onSend}
+					promptQueue={heldQueue ?? (held ? undefined : promptQueue)}
+					workspaceId={workspaceId}
+				/>
+			</ComposerDropZone>
+		</ChatPaneActionsProvider>
 	);
 }

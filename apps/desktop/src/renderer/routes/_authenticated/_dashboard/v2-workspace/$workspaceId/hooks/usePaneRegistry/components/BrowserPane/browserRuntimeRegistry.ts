@@ -78,7 +78,12 @@ export const BROWSER_ZOOM = Object.freeze({ min: 0.25, max: 5, step: 0.1 });
 
 export type BrowserZoomDirection = "in" | "out" | "reset";
 
-class BrowserRuntimeRegistryImpl {
+type BrowserIpcClient = Pick<
+	typeof electronTrpcClient,
+	"browser" | "browserHistory"
+>;
+
+export class BrowserRuntimeRegistryImpl {
 	private entries = new Map<string, RegistryEntry>();
 	private listenersByPaneId = new Map<string, Set<() => void>>();
 	private foundInPageListenersByPaneId = new Map<
@@ -133,7 +138,7 @@ class BrowserRuntimeRegistryImpl {
 		return root;
 	}
 
-	constructor() {
+	constructor(private readonly ipc: BrowserIpcClient = electronTrpcClient) {
 		// Webviews are hoisted to <body>, out of reach of the stylesheet rule
 		// that handles iframes, so the passthrough state is mirrored onto them.
 		pointerPassthrough.subscribe((active) =>
@@ -151,7 +156,7 @@ class BrowserRuntimeRegistryImpl {
 			}
 		});
 
-		electronTrpcClient.browser.onAgentActivePanes.subscribe(undefined, {
+		this.ipc.browser.onAgentActivePanes.subscribe(undefined, {
 			onData: ({ paneIds }: { paneIds: string[] }) => {
 				this.agentActivePaneIds = new Set(paneIds);
 				for (const [paneId, entry] of this.entries) {
@@ -325,7 +330,7 @@ class BrowserRuntimeRegistryImpl {
 			const webContentsId = webview.getWebContentsId();
 			if (entry.webContentsId !== webContentsId) {
 				entry.webContentsId = webContentsId;
-				electronTrpcClient.browser.register
+				this.ipc.browser.register
 					.mutate({ paneId, webContentsId, workspaceId: entry.workspaceId })
 					.catch((err) => {
 						console.error("[browserRuntimeRegistry] register failed:", err);
@@ -356,7 +361,7 @@ class BrowserRuntimeRegistryImpl {
 			this.refreshZoomState(paneId);
 			const { currentUrl, pageTitle, faviconUrl } = entry.state;
 			if (currentUrl && currentUrl !== "about:blank") {
-				electronTrpcClient.browserHistory.upsert
+				this.ipc.browserHistory.upsert
 					.mutate({ url: currentUrl, title: pageTitle, faviconUrl })
 					.catch((err) => {
 						console.error("[browserRuntimeRegistry] upsert history:", err);
@@ -390,7 +395,7 @@ class BrowserRuntimeRegistryImpl {
 			this.setState(paneId, { faviconUrl: favicon });
 			const { currentUrl, pageTitle } = entry.state;
 			if (currentUrl && currentUrl !== "about:blank") {
-				electronTrpcClient.browserHistory.upsert
+				this.ipc.browserHistory.upsert
 					.mutate({ url: currentUrl, title: pageTitle, faviconUrl: favicon })
 					.catch((err) => {
 						console.error("[browserRuntimeRegistry] upsert favicon:", err);
@@ -540,7 +545,7 @@ class BrowserRuntimeRegistryImpl {
 		if (entry.workspaceId !== workspaceId) {
 			entry.workspaceId = workspaceId;
 			if (entry.webContentsId != null) {
-				electronTrpcClient.browser.register
+				this.ipc.browser.register
 					.mutate({
 						paneId,
 						webContentsId: entry.webContentsId,
@@ -626,7 +631,7 @@ class BrowserRuntimeRegistryImpl {
 		this.entries.delete(paneId);
 		this.listenersByPaneId.delete(paneId);
 		this.foundInPageListenersByPaneId.delete(paneId);
-		electronTrpcClient.browser.unregister.mutate({ paneId }).catch((err) => {
+		this.ipc.browser.unregister.mutate({ paneId }).catch((err) => {
 			console.error(
 				`[browserRuntimeRegistry] unregister failed for ${paneId}:`,
 				err,

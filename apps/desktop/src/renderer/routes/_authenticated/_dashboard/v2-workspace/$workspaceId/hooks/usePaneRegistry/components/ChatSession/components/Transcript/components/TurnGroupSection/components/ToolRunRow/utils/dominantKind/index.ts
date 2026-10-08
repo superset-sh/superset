@@ -1,0 +1,1 @@
+export { dominantKind } from "./dominantKind";

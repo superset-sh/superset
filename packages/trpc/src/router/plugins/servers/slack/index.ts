@@ -4,6 +4,5 @@ import { callTool, getTools } from "./tools";
 export const slackServer = {
 	getTools,
 	callTool,
-	credential: (secrets: ConnectionSecrets) =>
-		secrets.config.bot_token ?? secrets.accessToken,
+	credential: (secrets: ConnectionSecrets) => secrets.accessToken,
 };

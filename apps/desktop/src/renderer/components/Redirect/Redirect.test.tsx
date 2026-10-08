@@ -1,14 +1,5 @@
-import { afterAll, afterEach, describe, expect, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, describe, expect, test } from "bun:test";
 
-// happy-dom over the preloaded plain-object document — Redirect renders
-// through a real TanStack router, which needs a DOM. Bun runs test files
-// sequentially in one process and happy-dom's globals are process-wide, so
-// we MUST unregister in afterAll (below) to restore the shared mock document
-// for the other renderer suites — otherwise readonly DOM globals leak and
-// break unrelated tests that assign e.g. globalThis.localStorage.
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
@@ -35,10 +26,6 @@ const Redirect = TypedRedirect as (props: {
 }) => React.ReactElement | null;
 
 afterEach(cleanup);
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
-
 /**
  * Build a router that renders `children` in the ALWAYS-MOUNTED root component
  * (so a redirect element survives the navigation it triggers), plus inert

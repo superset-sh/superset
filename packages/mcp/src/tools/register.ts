@@ -27,6 +27,7 @@ import * as pagesGet from "./pages/get";
 import * as pagesList from "./pages/list";
 import * as pagesPublish from "./pages/publish";
 import * as pagesPull from "./pages/pull";
+import * as pagesStorage from "./pages/storage";
 import * as pagesVersions from "./pages/versions";
 import * as projectsList from "./projects/list";
 import * as tasksCreate from "./tasks/create";
@@ -80,6 +81,7 @@ const REGISTRARS = [
 	pagesGet,
 	pagesVersions,
 	pagesPull,
+	pagesStorage,
 	pagesPublish,
 	pagesCommentsList,
 	pagesCommentsReply,

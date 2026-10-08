@@ -56,17 +56,9 @@ function IssueDetailPage() {
 				search: search.search ?? "",
 				typeTab: "issues",
 				projectFilters: resolveProjectFilterParams(search.projects, null, []),
-				linearProjectFilter: search.linearProject ?? null,
 				includeClosedIssues: search.state === "all",
 			}),
-		[
-			search.assignee,
-			search.linearProject,
-			search.search,
-			search.projects,
-			search.state,
-			search.tab,
-		],
+		[search.assignee, search.search, search.projects, search.state, search.tab],
 	);
 
 	const { data, isLoading, error, refetch } = useQuery({

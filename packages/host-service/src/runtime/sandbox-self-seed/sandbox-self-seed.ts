@@ -8,6 +8,7 @@ import {
 	type CloudAgentLaunch,
 	readCloudAgentLaunch,
 } from "@superset/shared/cloud-agent-launch";
+import { parseGitHubRemote } from "@superset/shared/github-remote";
 import {
 	SANDBOX_PATHS,
 	type SandboxRepository,
@@ -293,7 +294,7 @@ export async function launchSandboxAgentOnce(
 ): Promise<void> {
 	if (!identity.launch) return;
 	if (existsSync(identity.launchMarkerPath)) return;
-	const { agent, prompt, model, effort, mode, attachmentFileIds } =
+	const { agent, prompt, model, effort, mode, attachmentFileIds, surface } =
 		identity.launch;
 	// The agent needs the environment the control plane pushes after boot and
 	// the branch the boot runner is checking out beside us; both are seconds.
@@ -334,9 +335,11 @@ export async function launchSandboxAgentOnce(
 			agent,
 			prompt,
 			model,
-			effort,
+			// A launch that carries an effort opens a terminal.
+			effort: surface === "chat" ? undefined : effort,
 			mode,
 			...(attachmentIds?.length ? { attachmentIds } : {}),
+			...(surface ? { surface } : {}),
 		});
 		console.log(
 			`[sandbox] launched ${agent} for workspace ${identity.workspaceId}`,
@@ -385,12 +388,31 @@ export function runSandboxSelfSeed(
 			index === 0
 				? identity.workspaceId
 				: sandboxRepositoryWorkspaceId(identity.workspaceId, repo.path);
+		const parsed = parseGitHubRemote(repo.url);
+		const repoFields = parsed
+			? {
+					repoProvider: parsed.provider,
+					repoOwner: parsed.owner,
+					repoName: parsed.name,
+					repoUrl: parsed.url,
+					remoteName: "origin",
+				}
+			: {};
 		const existing = db
-			.select({ id: workspaces.id })
+			.select({ projectId: workspaces.projectId })
 			.from(workspaces)
 			.where(eq(workspaces.id, id))
 			.get();
-		if (existing) return;
+		if (existing) {
+			// Boxes seeded before the repo identity was recorded.
+			if (parsed && existing.projectId) {
+				db.update(projects)
+					.set({ ...repoFields, updatedAt: now })
+					.where(eq(projects.id, existing.projectId))
+					.run();
+			}
+			return;
+		}
 		const projectId = crypto.randomUUID();
 		const worktreePath = sandboxCheckoutDir(root, repo.path);
 		db.insert(projects)
@@ -398,6 +420,7 @@ export function runSandboxSelfSeed(
 				id: projectId,
 				repoPath: worktreePath,
 				name: index === 0 ? identity.projectName : repo.path,
+				...repoFields,
 				createdAt: now,
 				updatedAt: now,
 			})

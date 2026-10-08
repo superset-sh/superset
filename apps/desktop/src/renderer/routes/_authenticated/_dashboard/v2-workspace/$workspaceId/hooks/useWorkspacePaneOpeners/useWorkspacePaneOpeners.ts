@@ -9,7 +9,6 @@ import { useSettings } from "renderer/stores/settings";
 import type { StoreApi } from "zustand/vanilla";
 import type {
 	BrowserPaneData,
-	ChatV3PaneData,
 	CommentPaneData,
 	DiffFocusSide,
 	DiffPaneData,
@@ -54,7 +53,6 @@ export function useWorkspacePaneOpeners({
 		changeKey?: string,
 	) => void;
 	addTerminalTab: () => Promise<void>;
-	addChatV3Tab: () => void;
 	addBrowserTab: () => void;
 	openChangesPane: () => void;
 	/** Close the visible Changes pane, or open/focus one when none is showing. */
@@ -161,17 +159,6 @@ export function useWorkspacePaneOpeners({
 		}
 	}, [addBlankTerminalTab, executePreset, newTabPresets]);
 
-	const addChatV3Tab = useCallback(() => {
-		store.getState().addTab({
-			panes: [
-				{
-					kind: "chat-v3",
-					data: { sessionId: null } as ChatV3PaneData,
-				},
-			],
-		});
-	}, [store]);
-
 	const defaultBrowserUrl = useDefaultBrowserUrl();
 	const addBrowserTab = useCallback(() => {
 		store.getState().addTab({
@@ -254,7 +241,6 @@ export function useWorkspacePaneOpeners({
 	return {
 		openDiffPane,
 		addTerminalTab,
-		addChatV3Tab,
 		addBrowserTab,
 		openChangesPane,
 		toggleChangesPane,

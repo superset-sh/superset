@@ -26,6 +26,7 @@ interface PullRequestsViewProps {
 	/** The open PR's own project id — distinct from the list's `projects`
 	 *  filter, and must survive filter-driven re-navigations. */
 	selectedPrProjectId?: string | null;
+	selectedPrRepo?: string | null;
 }
 
 export function PullRequestsView({
@@ -36,6 +37,7 @@ export function PullRequestsView({
 	initialState,
 	selectedPrNumber = null,
 	selectedPrProjectId = null,
+	selectedPrRepo = null,
 }: PullRequestsViewProps) {
 	const navigate = useNavigate();
 	const {
@@ -75,13 +77,15 @@ export function PullRequestsView({
 				? navigate({
 						to: "/pull-requests/$prNumber",
 						params: { prNumber: String(selectedPrNumber) },
-						search: selectedPrProjectId
-							? { ...search, project: selectedPrProjectId }
-							: search,
+						search: {
+							...search,
+							project: selectedPrProjectId ?? undefined,
+							repo: selectedPrRepo ?? undefined,
+						},
 						replace: true,
 					})
 				: navigate({ to: "/pull-requests", search, replace: true }),
-		[navigate, selectedPrNumber, selectedPrProjectId],
+		[navigate, selectedPrNumber, selectedPrProjectId, selectedPrRepo],
 	);
 	const {
 		isReady: areProjectsReady,

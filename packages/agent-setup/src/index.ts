@@ -78,6 +78,7 @@ export { getCommandShellArgs, getShellArgs, getShellEnv };
 export { getWrapperPath } from "./agent-wrappers-common";
 export {
 	getAgentSetupTemplatesDir,
+	getBundledMarketplaceDir,
 	setAgentSetupTemplatesDir,
 } from "./config";
 export {
@@ -90,8 +91,12 @@ export {
 	writeSharedDisabledSkillIds,
 } from "./disabled-skills";
 export {
+	type EnabledPlugin,
+	type InstalledPluginEntry,
 	installedPluginsFilePath,
+	readEnabledPlugins,
 	readInstalledPluginSources,
+	writeInstalledPlugins,
 } from "./installed-plugins";
 export {
 	hashMcpServerValue,
@@ -105,11 +110,12 @@ export {
 } from "./managed-skills";
 export { getBinDir, resolveSupersetHomeDir } from "./paths";
 export {
-	mcpHeadersHelperCommand,
-	pluginConnectionsFilePath,
-	readPluginConnections,
-	writePluginConnections,
-} from "./plugin-connections";
+	assertSafePluginSegment,
+	isSafePluginSegment,
+	pluginCacheDir,
+	pluginCachePath,
+} from "./plugin-cache";
+export { mcpHeadersHelperCommand } from "./plugin-connections";
 export {
 	type McpReconcileReport,
 	reconcileMcpServers,

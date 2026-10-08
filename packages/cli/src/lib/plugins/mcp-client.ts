@@ -36,7 +36,9 @@ export async function connectPluginMcp(
 	try {
 		await client.connect(
 			new StreamableHTTPClientTransport(pluginMcpUrl(ref, connection), {
-				requestInit: { headers: { Authorization: `Bearer ${bearer}` } },
+				requestInit: bearer
+					? { headers: { Authorization: `Bearer ${bearer}` } }
+					: {},
 			}),
 		);
 	} catch (error) {

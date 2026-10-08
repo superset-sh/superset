@@ -130,7 +130,7 @@ export function CloudWorkspaceListRow({
 								onSetInSidebar(false);
 							}}
 							className={cn(
-								"gap-1 text-xs whitespace-nowrap",
+								"gap-1 text-xs whitespace-nowrap transition-none",
 								!isInSidebar && "invisible",
 							)}
 						>
@@ -144,7 +144,7 @@ export function CloudWorkspaceListRow({
 								onSetInSidebar(true);
 							}}
 							className={cn(
-								"text-xs whitespace-nowrap",
+								"text-xs whitespace-nowrap transition-none",
 								isInSidebar && "invisible",
 							)}
 						>

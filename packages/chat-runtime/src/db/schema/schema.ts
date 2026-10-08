@@ -1,3 +1,4 @@
+import type { SessionStatus } from "@superset/chat/protocol";
 import {
 	index,
 	integer,
@@ -30,7 +31,7 @@ export const chatSessionsLocal = sqliteTable(
 		harness: text().notNull(),
 		harnessSessionId: text("harness_session_id"),
 		epoch: text().notNull(),
-		status: text().notNull(),
+		status: text().$type<SessionStatus>().notNull(),
 		title: text(),
 		queuedCount: integer("queued_count").notNull().default(0),
 		updatedAt: integer("updated_at").notNull(),

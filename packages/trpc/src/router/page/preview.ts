@@ -53,10 +53,10 @@ export async function previewAccess(
 }
 
 /**
- * What a link to a page may show outside the app, to an audience the caller
- * has already tied to `organizationId` (a Slack workspace connected to it).
- * `userId` is the reader when the caller has resolved one; only a `just_me`
- * page needs it.
+ * What a link to a page may show in place of the page, to an audience the
+ * caller has already tied to `organizationId` (a Slack workspace connected to
+ * it, or a signed-in member). `userId` is the reader when the caller has
+ * resolved one; only a `just_me` page needs it.
  */
 export async function pagePreview({
 	slug,

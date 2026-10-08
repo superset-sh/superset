@@ -12,7 +12,10 @@ import {
 import { encryptSecret } from "@superset/trpc/integrations/plugins";
 
 import { env } from "@/env";
-import { beginOAuthFlow, STATE_COOKIES } from "@/lib/integrations/oauthFlow";
+import {
+	beginOAuthFlow,
+	connectorStateCookie,
+} from "@/lib/integrations/oauthFlow";
 import { requireOrgMember } from "@/lib/integrations/requireOrgMember";
 
 export async function GET(
@@ -55,7 +58,7 @@ export async function GET(
 		const codeVerifier = wantsPkce ? createCodeVerifier() : null;
 
 		return await beginOAuthFlow({
-			cookie: STATE_COOKIES.connectors,
+			cookie: connectorStateCookie(slug),
 			payload: {
 				organizationId: member.organizationId,
 				userId: member.userId,

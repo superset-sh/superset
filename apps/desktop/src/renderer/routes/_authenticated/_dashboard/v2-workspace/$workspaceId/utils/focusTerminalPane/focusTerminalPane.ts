@@ -15,7 +15,7 @@ export function findTerminalPaneLocation(
 ): TerminalPaneLocation | null {
 	for (const tab of state.tabs) {
 		for (const pane of Object.values(tab.panes)) {
-			if (pane.kind !== "terminal") continue;
+			if (pane.kind !== "terminal" && pane.kind !== "chat-v3") continue;
 			const data = pane.data as Partial<TerminalPaneData>;
 			if (data.terminalId !== terminalId) continue;
 			return { tabId: tab.id, paneId: pane.id };

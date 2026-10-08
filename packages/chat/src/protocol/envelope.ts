@@ -41,6 +41,19 @@ export const availableCommandSchema = z.looseObject({
 });
 export type AvailableCommand = z.infer<typeof availableCommandSchema>;
 
+export const backgroundTaskKindSchema = z.enum(["process", "subagent"]);
+export type BackgroundTaskKind = z.infer<typeof backgroundTaskKindSchema>;
+
+export const backgroundTaskSchema = z.looseObject({
+	id: z.string().min(1),
+	kind: backgroundTaskKindSchema,
+	name: z.string(),
+	detail: z.string().optional(),
+	canStop: z.boolean(),
+	startedAtMs: z.number(),
+});
+export type BackgroundTask = z.infer<typeof backgroundTaskSchema>;
+
 export const sessionStateSchema = z.looseObject({
 	status: sessionStatusSchema,
 	harness: z.string().min(1),
@@ -57,6 +70,10 @@ export const sessionStateSchema = z.looseObject({
 	 * session, and the caller has to know which one it ended up on.
 	 */
 	harnessSessionId: z.string().optional(),
+	queuePaused: z.boolean().optional(),
+	queueControls: z.boolean().optional(),
+	backgroundTasks: z.array(backgroundTaskSchema).optional(),
+	awaitingBackground: z.boolean().optional(),
 });
 export type SessionState = z.infer<typeof sessionStateSchema>;
 
@@ -91,7 +108,12 @@ export const durableEventSchema = z.discriminatedUnion("type", [
 ]);
 export type DurableEvent = z.infer<typeof durableEventSchema>;
 
-export const deltaChannelSchema = z.enum(["text", "tool_input", "terminal"]);
+export const deltaChannelSchema = z.enum([
+	"text",
+	"tool_input",
+	"terminal",
+	"background",
+]);
 export type DeltaChannel = z.infer<typeof deltaChannelSchema>;
 
 export const deltaSchema = z.discriminatedUnion("type", [
@@ -107,6 +129,11 @@ export const deltaSchema = z.discriminatedUnion("type", [
 	}),
 	z.looseObject({
 		type: z.literal("terminal"),
+		itemId: z.string().min(1),
+		append: z.string(),
+	}),
+	z.looseObject({
+		type: z.literal("background"),
 		itemId: z.string().min(1),
 		append: z.string(),
 	}),

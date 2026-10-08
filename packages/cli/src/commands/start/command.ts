@@ -1,7 +1,7 @@
 import * as p from "@clack/prompts";
 import { boolean, CLIError, number, string } from "@superset/cli-framework";
 import { command } from "../../lib/command";
-import { SUPERSET_CONFIG_PATH } from "../../lib/config";
+import { getSupersetConfigPath } from "../../lib/config";
 import { waitForUnresponsiveHost } from "../../lib/host/liveness";
 import {
 	isProcessAlive,
@@ -65,7 +65,7 @@ export default command({
 				organizationId: organization.id,
 				sessionToken: ctx.bearer,
 				authConfigPath:
-					ctx.authSource === "oauth" ? SUPERSET_CONFIG_PATH : undefined,
+					ctx.authSource === "oauth" ? getSupersetConfigPath() : undefined,
 				api: ctx.api,
 				port: options.port,
 				daemon: options.daemon ?? false,

@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import ts from "typescript";
+import ts from "@typescript/typescript6";
 
 const renderer = resolve(import.meta.dir, "../..");
 

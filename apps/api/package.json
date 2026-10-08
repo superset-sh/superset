@@ -8,14 +8,14 @@
 		"clean": "git clean -xdf .cache .next .turbo node_modules",
 		"dev": "dotenv -e ../../.env -- sh -c 'exec next dev --port ${API_PORT:-3001}'",
 		"start": "next start --port 3001",
-		"test": "bun test src",
+		"test": "bun test --isolate src",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "0.78.0",
 		"@better-auth/oauth-provider": "1.6.22",
 		"@linear/sdk": "68.1.1",
-		"@modelcontextprotocol/sdk": "1.30.0",
+		"@modelcontextprotocol/sdk": "1.31.0",
 		"@notionhq/client": "5.25.2",
 		"@octokit/app": "16.1.2",
 		"@octokit/rest": "22.0.1",
@@ -48,7 +48,7 @@
 		"resend": "6.18.0",
 		"rrule": "2.8.1",
 		"stripe": "20.4.1",
-		"zod": "4.4.3"
+		"zod": "4.6.5"
 	},
 	"devDependencies": {
 		"@lingui/swc-plugin": "6.6.0",
@@ -60,6 +60,6 @@
 		"@types/react-dom": "19.2.3",
 		"babel-plugin-react-compiler": "1.0.0",
 		"dotenv": "17.3.1",
-		"typescript": "6.0.3"
+		"typescript": "7.0.2"
 	}
 }

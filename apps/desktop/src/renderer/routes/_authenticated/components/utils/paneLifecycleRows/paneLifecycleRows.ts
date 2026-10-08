@@ -3,6 +3,7 @@ import type { Pane, WorkspaceState } from "@superset/panes";
 export interface PaneLifecycleRow {
 	workspaceId: unknown;
 	paneLayout: unknown;
+	rightPaneLayout?: unknown;
 }
 
 export interface RemovedPaneLocation {
@@ -20,6 +21,16 @@ export function extractWorkspaceIds(rows: PaneLifecycleRow[]): Set<string> {
 	return workspaceIds;
 }
 
+function* rowPanes(row: PaneLifecycleRow): Generator<Pane<unknown>> {
+	for (const value of [row.paneLayout, row.rightPaneLayout]) {
+		const layout = value as WorkspaceState<unknown> | undefined;
+		if (!layout?.tabs) continue;
+		for (const tab of layout.tabs) {
+			yield* Object.values(tab.panes);
+		}
+	}
+}
+
 export function extractPaneLocations(
 	rows: PaneLifecycleRow[],
 	getTrackedPaneId: (pane: Pane<unknown>) => string | null,
@@ -28,16 +39,10 @@ export function extractPaneLocations(
 
 	for (const row of rows) {
 		if (typeof row.workspaceId !== "string") continue;
-
-		const layout = row.paneLayout as WorkspaceState<unknown> | undefined;
-		if (!layout?.tabs) continue;
-
-		for (const tab of layout.tabs) {
-			for (const pane of Object.values(tab.panes)) {
-				const trackedPaneId = getTrackedPaneId(pane);
-				if (trackedPaneId) {
-					locations.set(trackedPaneId, row.workspaceId);
-				}
+		for (const pane of rowPanes(row)) {
+			const trackedPaneId = getTrackedPaneId(pane);
+			if (trackedPaneId) {
+				locations.set(trackedPaneId, row.workspaceId);
 			}
 		}
 	}
@@ -52,15 +57,10 @@ export function extractPaneIds(
 	const ids = new Set<string>();
 
 	for (const row of rows) {
-		const layout = row.paneLayout as WorkspaceState<unknown> | undefined;
-		if (!layout?.tabs) continue;
-
-		for (const tab of layout.tabs) {
-			for (const pane of Object.values(tab.panes)) {
-				const trackedPaneId = getTrackedPaneId(pane);
-				if (trackedPaneId) {
-					ids.add(trackedPaneId);
-				}
+		for (const pane of rowPanes(row)) {
+			const trackedPaneId = getTrackedPaneId(pane);
+			if (trackedPaneId) {
+				ids.add(trackedPaneId);
 			}
 		}
 	}

@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -42,6 +48,35 @@ describe("getInstalledChromiumBrowsers", () => {
 
 		expect(browsers.map((browser) => browser.key)).toEqual(["chrome"]);
 		expect(browsers[0]?.name).toBe("Google Chrome");
+	});
+
+	it("detects Aside, Helium, and Opera by their macOS user-data dirs", () => {
+		const home = makeHome();
+		for (const dir of [
+			"Aside",
+			"net.imput.helium",
+			"com.operasoftware.Opera",
+		]) {
+			mkdirSync(path.join(home, "Library/Application Support", dir), {
+				recursive: true,
+			});
+		}
+
+		const keys = browserLocations("darwin")
+			.filter((location) => existsSync(path.join(home, location.relativePath)))
+			.map((location) => location.key);
+
+		expect(keys).toEqual(["aside", "helium", "opera"]);
+	});
+
+	it("gives every macOS browser a unique key and a Keychain service", () => {
+		const locations = browserLocations("darwin");
+		expect(new Set(locations.map((location) => location.key)).size).toBe(
+			locations.length,
+		);
+		for (const location of locations) {
+			expect(location.safeStorageService).toBeTruthy();
+		}
 	});
 
 	it("returns nothing when no Chromium browser is installed", () => {
@@ -121,6 +156,22 @@ describe("listProfilesWithHistory", () => {
 		expect(profiles.map((profile) => profile.directoryName)).toEqual([
 			"Default",
 		]);
+	});
+
+	it("lists a profile stored in the user-data dir itself, as Opera does", () => {
+		const userDataDir = path.join(makeHome(), "com.operasoftware.Opera");
+		writeHistory(userDataDir);
+		mkdirSync(path.join(userDataDir, "Extensions"), { recursive: true });
+
+		const profiles = listProfilesWithHistory({
+			key: "opera",
+			name: "Opera",
+			userDataDir,
+		});
+
+		expect(profiles).toHaveLength(1);
+		expect(profiles[0]?.profileDir).toBe(userDataDir);
+		expect(profiles[0]?.displayName).toBe("Default");
 	});
 
 	it("falls back to the directory name without Local State", () => {

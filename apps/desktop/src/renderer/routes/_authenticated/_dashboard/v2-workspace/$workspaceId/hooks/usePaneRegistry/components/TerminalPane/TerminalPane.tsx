@@ -51,6 +51,10 @@ import {
 	runUrlLinkAction,
 	type TerminalLinkActionDeps,
 } from "../../utils/runTerminalLinkAction";
+import {
+	PasteUploadLimitError,
+	uploadPastedFiles,
+} from "../../utils/uploadPastedFiles";
 import { TerminalAgentAutoResume } from "./components/TerminalAgentAutoResume";
 import { TerminalCopiedIndicator } from "./components/TerminalCopiedIndicator";
 import { TerminalNarrowedBanner } from "./components/TerminalNarrowedBanner";
@@ -63,7 +67,6 @@ import {
 	terminalRichInputOpenStore,
 	useTerminalRichInputOpen,
 } from "./richInputOpenStore";
-import { PasteUploadLimitError, uploadPastedFiles } from "./uploadPastedFiles";
 import { shellEscapePaths } from "./utils";
 
 interface TerminalPaneProps {

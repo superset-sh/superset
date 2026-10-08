@@ -8,18 +8,11 @@ import {
 	test,
 } from "bun:test";
 
-mock.module("renderer/lib/trpc-client", () => ({
-	electronTrpcClient: {
-		keyboardLayout: {
-			changes: { subscribe: () => {} },
-		},
-	},
-}));
-
-const { terminalRuntimeRegistry } = await import("./terminal-runtime-registry");
-const { terminalMeasurementsChanged, tryPersistRuntimeState } = await import(
-	"./terminal-runtime"
-);
+import {
+	terminalMeasurementsChanged,
+	tryPersistRuntimeState,
+} from "./terminal-runtime";
+import { terminalRuntimeRegistry } from "./terminal-runtime-registry";
 
 test("new theme assignments reset query overrides while identical assignments preserve them", async () => {
 	const { getDefaultTerminalAppearance } = await import("./appearance");
@@ -94,7 +87,10 @@ function createFakeStorage(): FakeStorageState {
 	return { values, storage };
 }
 
-const originalLocalStorage = globalThis.localStorage;
+const originalLocalStorage = Object.getOwnPropertyDescriptor(
+	globalThis,
+	"localStorage",
+);
 let fakeStorage: FakeStorageState;
 
 beforeEach(() => {
@@ -106,10 +102,11 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-	Object.defineProperty(globalThis, "localStorage", {
-		configurable: true,
-		value: originalLocalStorage,
-	});
+	if (originalLocalStorage) {
+		Object.defineProperty(globalThis, "localStorage", originalLocalStorage);
+	} else {
+		Reflect.deleteProperty(globalThis, "localStorage");
+	}
 });
 
 describe("terminalRuntimeRegistry eviction cleanup", () => {

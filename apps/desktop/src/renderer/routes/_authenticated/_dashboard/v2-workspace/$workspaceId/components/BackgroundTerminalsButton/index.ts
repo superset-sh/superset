@@ -1,1 +1,0 @@
-export { BackgroundTerminalsButton } from "./BackgroundTerminalsButton";

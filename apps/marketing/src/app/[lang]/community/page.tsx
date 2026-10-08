@@ -2,11 +2,11 @@ import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { getI18nInstance } from "@superset/i18n/server";
 import { COMPANY } from "@superset/shared/constants";
-import { githubRepoSlug } from "@superset/shared/github-stars";
 import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
 import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
+import { getGitHubStars } from "../utils/getGitHubStars";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
@@ -25,29 +25,6 @@ export async function generateMetadata(): Promise<Metadata> {
 		),
 		alternates: localizedAlternates(lang, "/community"),
 	};
-}
-
-interface GitHubRepoResponse {
-	stargazers_count: number;
-}
-
-async function getGitHubStars(): Promise<number | null> {
-	try {
-		const response = await fetch(
-			`https://api.github.com/repos/${githubRepoSlug()}`,
-			{
-				headers: { Accept: "application/vnd.github.v3+json" },
-				next: { revalidate: 3600 },
-			},
-		);
-
-		if (!response.ok) return null;
-
-		const data: GitHubRepoResponse = await response.json();
-		return data.stargazers_count;
-	} catch {
-		return null;
-	}
 }
 
 const COMMUNITY_LINKS = [

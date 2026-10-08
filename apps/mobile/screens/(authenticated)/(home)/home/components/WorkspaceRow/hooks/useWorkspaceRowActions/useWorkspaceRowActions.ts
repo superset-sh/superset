@@ -122,8 +122,9 @@ export function useWorkspaceRowActions(
 	const copyId = () =>
 		void Clipboard.setStringAsync(workspace.id).then(onCopied);
 
-	const shareWorkspace = () =>
-		void Share.share({ url: workspaceShareUrl(workspace.id) });
+	// `anchor` places the iPad share popover; iPhone ignores it.
+	const shareWorkspace = (anchor?: number) =>
+		void Share.share({ url: workspaceShareUrl(workspace.id) }, { anchor });
 
 	return {
 		renameWorkspace,

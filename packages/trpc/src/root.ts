@@ -32,6 +32,7 @@ import { teamRouter } from "./router/team";
 import { userRouter } from "./router/user";
 import { v2ProjectRouter } from "./router/v2-project";
 import { v2WorkspaceRouter } from "./router/v2-workspace";
+import { voiceRouter } from "./router/voice";
 import { createCallerFactory, createTRPCRouter } from "./trpc";
 
 export const appRouter = createTRPCRouter({
@@ -65,6 +66,7 @@ export const appRouter = createTRPCRouter({
 	agentCredential: agentCredentialRouter,
 	githubUser: githubUserRouter,
 	user: userRouter,
+	voice: voiceRouter,
 	// TODO(2026-10-11): drop; desktops and phones before 1.29 call these names.
 	v2Host: {
 		list: hostManagementRouter.roster,

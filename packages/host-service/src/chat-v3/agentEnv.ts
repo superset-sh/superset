@@ -39,6 +39,8 @@ function withSupersetBinFirst(
 function withoutAmbientKeys(
 	env: Record<string, string>,
 ): Record<string, string> {
+	// In a sandbox these are the creator's sign-in, filled in by the firewall.
+	if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") return env;
 	const { ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN, ...rest } = env;
 	return rest;
 }
@@ -54,6 +56,7 @@ export async function buildChatAgentEnv(options: {
 	db: HostDb;
 	cwd: string;
 	workspaceId: string;
+	terminalId?: string;
 }): Promise<Record<string, string>> {
 	await waitForTerminalBaseEnv();
 	const paths = workspacePaths(options.db, options.workspaceId);
@@ -62,6 +65,7 @@ export async function buildChatAgentEnv(options: {
 			...buildHostLaunchEnv({
 				cwd: options.cwd,
 				workspaceId: options.workspaceId,
+				terminalId: options.terminalId,
 				workspacePath: paths.workspacePath || options.cwd,
 				rootPath: paths.rootPath,
 			}),

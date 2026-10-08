@@ -1,4 +1,4 @@
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Trans } from "@lingui/react/macro";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import {
 	DropdownMenu,
@@ -20,7 +20,6 @@ interface AssigneeCellProps {
 }
 
 export function AssigneeCell({ info }: AssigneeCellProps) {
-	const { t } = useLingui();
 	const { tasks: taskActions } = useOptimisticActions();
 	const [open, setOpen] = useState(false);
 
@@ -36,7 +35,7 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 	);
 
 	const handleSelectUser = (userId: string | null) => {
-		if (userId === assigneeId && !task.assigneeExternalId) {
+		if (userId === assigneeId) {
 			setOpen(false);
 			return;
 		}
@@ -61,17 +60,6 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 							fullName={task.assignee.name}
 							image={task.assignee.image}
 						/>
-					) : task.assigneeExternalId ? (
-						<Avatar
-							size="xs"
-							fullName={
-								task.assigneeDisplayName ||
-								t({
-									message: "External",
-								})
-							}
-							image={task.assigneeAvatarUrl}
-						/>
 					) : (
 						<HiOutlineUserCircle className="size-5 text-muted-foreground" />
 					)}
@@ -90,7 +78,6 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 				<AssigneeMenuItems
 					users={users}
 					currentAssigneeId={assigneeId}
-					hasExternalAssignee={!!task.assigneeExternalId}
 					onSelect={handleSelectUser}
 					MenuItem={DropdownMenuItem}
 					MenuSeparator={DropdownMenuSeparator}

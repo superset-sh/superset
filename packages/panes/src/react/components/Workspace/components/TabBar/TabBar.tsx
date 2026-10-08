@@ -14,6 +14,12 @@ import {
 	useState,
 } from "react";
 import { useDrop } from "react-dnd";
+import type { StoreApi } from "zustand/vanilla";
+import type { WorkspaceStore } from "../../../../../core/store";
+import {
+	transferPaneToNewTab,
+	transferTabToIndex,
+} from "../../../../../core/transfer";
 import type { Tab } from "../../../../../types";
 import type { PaneRegistry } from "../../../../types";
 import { PANE_DRAG_TYPE } from "../Tab/components/Pane/components/PaneHeader";
@@ -21,6 +27,7 @@ import { TAB_DRAG_TYPE, TabItem } from "./components/TabItem";
 import { computeInsertIndex, TAB_WIDTH } from "./utils";
 
 interface TabBarProps<TData> {
+	store: StoreApi<WorkspaceStore<TData>>;
 	tabs: Tab<TData>[];
 	registry: PaneRegistry<TData>;
 	activeTabId: string | null;
@@ -38,8 +45,8 @@ interface TabBarProps<TData> {
 	renderTabAccessory?: (tab: Tab<TData>) => ReactNode;
 }
 
-type TabDragItem = { tabId: string };
-type PaneDragItem = { paneId: string };
+type TabDragItem = { tabId: string; store?: unknown };
+type PaneDragItem = { paneId: string; store?: unknown };
 
 function AddTabButton<_TData>({
 	renderAddTabMenu,
@@ -72,6 +79,7 @@ function AddTabButton<_TData>({
 }
 
 export function TabBar<TData>({
+	store,
 	tabs,
 	registry,
 	activeTabId,
@@ -119,6 +127,26 @@ export function TabBar<TData>({
 				insertIndexRef.current = null;
 				setInsertIndex(null);
 
+				const source = item.store as typeof store | undefined;
+				if (source && source !== store) {
+					if (monitor.getItemType() === PANE_DRAG_TYPE && "paneId" in item) {
+						transferPaneToNewTab({
+							source,
+							target: store,
+							paneId: item.paneId,
+							toIndex: idx,
+						});
+					} else if ("tabId" in item) {
+						transferTabToIndex({
+							source,
+							target: store,
+							tabId: item.tabId,
+							toIndex: idx,
+						});
+					}
+					return;
+				}
+
 				if (monitor.getItemType() === PANE_DRAG_TYPE && "paneId" in item) {
 					onMovePaneToNewTab(item.paneId, idx);
 					return;
@@ -141,7 +169,7 @@ export function TabBar<TData>({
 				isOver: monitor.isOver(),
 			}),
 		}),
-		[tabs, onReorderTab, onMovePaneToNewTab],
+		[store, tabs, onReorderTab, onMovePaneToNewTab],
 	);
 
 	// Clear indicator when cursor leaves the tab bar
@@ -200,6 +228,7 @@ export function TabBar<TData>({
 							<TabItem
 								tab={tab}
 								tabs={tabs}
+								store={store}
 								registry={registry}
 								index={i}
 								isActive={tab.id === activeTabId}

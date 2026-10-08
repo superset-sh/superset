@@ -135,7 +135,11 @@ function hasTruthyField(item: unknown, field: string): boolean {
 }
 
 export function readPath(source: unknown, path: string): unknown {
-	const trimmed = path.startsWith("$.") ? path.slice(2) : path;
+	const trimmed = path.startsWith("$.")
+		? path.slice(2)
+		: path.startsWith("$[")
+			? path.slice(1)
+			: path;
 	let current: unknown = source;
 
 	for (const segment of trimmed.split(DOT_OUTSIDE_BRACKETS)) {

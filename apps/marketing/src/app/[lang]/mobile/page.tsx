@@ -7,7 +7,6 @@ import { PhoneShowcase } from "@/app/[lang]/components/PhoneShowcase";
 import { StoreBadges } from "@/app/[lang]/components/StoreBadges";
 import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
-import { isMobileLaunched } from "@/lib/site-flags";
 import { AppStoreQr } from "./components/AppStoreQr";
 import { MobileTestimonials } from "./components/MobileTestimonials";
 import { MobileWaitlist } from "./components/MobileWaitlist";
@@ -15,20 +14,15 @@ import { MobileWaitlist } from "./components/MobileWaitlist";
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
 	const i18n = getI18nInstance(lang);
-	const isLaunched = await isMobileLaunched();
 	return {
 		title: i18n._(msg({ message: "Superset for iPhone" })),
+		description: i18n._(
+			msg({
+				message:
+					"Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon.",
+			}),
+		),
 		alternates: localizedAlternates(lang, "/mobile"),
-		...(isLaunched
-			? {
-					description: i18n._(
-						msg({
-							message:
-								"Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon.",
-						}),
-					),
-				}
-			: { robots: { index: false, follow: true } }),
 	};
 }
 

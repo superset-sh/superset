@@ -1,18 +1,23 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { cn } from "@superset/ui/utils";
 import {
 	LuPanelRight,
 	LuPanelRightClose,
 	LuPanelRightOpen,
 } from "react-icons/lu";
-import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { HotkeyLabel } from "renderer/hotkeys";
 
-export function RightSidebarToggle() {
-	const { preferences, setRightSidebarOpen } = useV2UserPreferences();
-	const isOpen = preferences.rightSidebarOpen;
+interface RightSidebarToggleProps {
+	isOpen: boolean;
+	onToggle: () => void;
+	compact?: boolean;
+}
 
-	const toggle = () => setRightSidebarOpen((prev) => !prev);
-
+export function RightSidebarToggle({
+	isOpen,
+	onToggle,
+	compact = false,
+}: RightSidebarToggleProps) {
 	const getToggleIcon = (isHovering: boolean) => {
 		if (!isOpen) {
 			return isHovering ? (
@@ -33,8 +38,11 @@ export function RightSidebarToggle() {
 			<TooltipTrigger asChild>
 				<button
 					type="button"
-					onClick={toggle}
-					className="no-drag group flex items-center justify-center size-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+					onClick={onToggle}
+					className={cn(
+						"no-drag group flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors",
+						compact ? "size-7" : "size-8",
+					)}
 				>
 					<span className="group-hover:hidden">{getToggleIcon(false)}</span>
 					<span className="hidden group-hover:block">

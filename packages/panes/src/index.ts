@@ -13,6 +13,13 @@ export {
 	getSpatialNeighborPaneId,
 	removePaneFromLayout,
 } from "./core/store/utils";
+export {
+	transferAllTabs,
+	transferPaneToNewTab,
+	transferPaneToSplit,
+	transferTabToIndex,
+	transferTabToSplit,
+} from "./core/transfer";
 export type {
 	ContextMenuActionConfig,
 	PaneActionConfig,

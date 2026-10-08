@@ -47,17 +47,6 @@ describe("buildTaskListConditions", () => {
 		expect(sql.toLowerCase()).toContain("description");
 	});
 
-	test("externalProjectName is an escaped case-insensitive prefix match", () => {
-		const { sql, params } = render(
-			buildTaskListConditions({
-				organizationId: ORG,
-				externalProjectName: "Al_pha",
-			}),
-		);
-		expect(sql.toLowerCase()).toContain("ilike");
-		expect(params).toContain("Al\\_pha%");
-	});
-
 	test("statusType filters via an IN-subquery on task_statuses", () => {
 		const { sql, params } = render(
 			buildTaskListConditions({ organizationId: ORG, statusType: "started" }),

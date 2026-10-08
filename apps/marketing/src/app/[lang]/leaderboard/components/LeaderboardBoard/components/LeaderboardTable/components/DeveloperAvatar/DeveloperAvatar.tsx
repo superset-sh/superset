@@ -11,7 +11,7 @@ export function DeveloperAvatar({ handle }: { handle: string }) {
 			width={SIZE}
 			height={SIZE}
 			unoptimized
-			className="size-8 shrink-0 rounded-[2px] bg-foreground/[0.04]"
+			className="size-8 shrink-0 rounded-[2px] bg-foreground/[0.04] [image-rendering:pixelated]"
 		/>
 	);
 }

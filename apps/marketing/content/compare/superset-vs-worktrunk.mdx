@@ -1,0 +1,120 @@
+---
+title: "Superset vs Worktrunk (2026): Worktree CLI or Desktop Agent Workspace?"
+description: "Compare Worktrunk, a Git worktree CLI for parallel AI agents, with Superset, a desktop app that adds terminals, diff review, PRs, and remote hosts."
+date: 2026-10-07
+lastUpdated: 2026-10-07
+type: "1v1"
+competitors:
+  - worktrunk
+keywords:
+  - worktrunk alternative
+  - superset vs worktrunk
+  - worktrunk vs superset
+  - wt worktree cli
+  - git worktree ai agents
+  - parallel coding agents
+---
+
+Worktrunk and Superset both put each coding agent in its own Git worktree. Worktrunk is a free, open-source CLI (`wt`) that makes worktrees as easy to create, merge, and remove as branches, and it runs on macOS, Linux, and Windows. Superset is a desktop app that builds on the same worktree model and adds terminals, diff review, a pull request pane, a browser pane, remote hosts, and an iPhone app. If you live in the terminal and want a light tool, Worktrunk may be all you need. If you want one window to review and ship the work of many agents, try Superset. Some people use both.
+
+## At a Glance
+
+| Requirement | Superset | Worktrunk |
+|---|---|---|
+| Form | Desktop app with a full GUI | Command-line tool (`wt`) with a status table and an interactive picker |
+| Parallel work | One workspace per task, each with its own Git worktree and branch | One worktree per branch, created with `wt switch -c` |
+| Agents | Any CLI agent, such as Claude Code, Codex, and OpenCode | Any agent you start with `-x`; plugins for Claude Code, Codex, OpenCode, Pi, oh-my-pi, and Gemini CLI |
+| Agent status | Workspaces page grouped by state (Needs attention, Working, Needs review, Idle, Merged) | Activity markers in `wt list` for working and waiting agents |
+| Review | Changes pane to commit, push, and open PRs; PR pane with checks, review threads, and merge | `wt merge` squashes, rebases, merges, and cleans up; picker previews diff, log, PR, and comments |
+| Dev-server ports | Setup scripts per workspace; detected ports and a browser pane | `hash_port` template filter gives each worktree its own port |
+| Setup and teardown | Project setup and teardown commands | Hooks on create, pre-merge, post-merge, and more |
+| Commit messages | Written by you or your agent | LLM commit messages generated from the diff |
+| Remote and mobile | Remote hosts with per-member access (Pro); iPhone app (iOS 26+, Pro) | Local only; see their docs |
+| Platforms | macOS; experimental Linux AppImage; no Windows | macOS, Linux, Windows (as `git-wt` through Winget) |
+| Pricing | Free; Pro $20 per user/month, or $15 billed yearly; Enterprise custom | Free |
+| License | Source-available, Elastic License 2.0 | MIT OR Apache-2.0 |
+
+## What Is Worktrunk?
+
+[Worktrunk](https://worktrunk.dev) describes itself as "a CLI for Git worktree management, designed for parallel AI agent workflows." Its goal is to make Git worktrees as easy to use as branches. You install it with Homebrew, Cargo, Winget, or pacman, then run `wt config shell install` so `wt switch` can change your shell's directory.
+
+The core commands cover the full worktree lifecycle:
+
+- `wt switch -c -x claude feat` creates a worktree and branch, then starts an agent in it.
+- `wt list` shows every worktree with its status. `--full` adds CI status and AI summaries.
+- `wt merge main` squashes, rebases, merges, and removes the worktree in one step.
+- `wt remove` removes a worktree and its branch.
+
+Hooks run your commands when a worktree is created or merged, and the `hash_port` filter gives each worktree a stable, unique dev-server port. Agent plugins add activity markers to `wt list`, and the Claude Code plugin also routes Claude Code's own worktrees through Worktrunk. Its [FAQ](https://worktrunk.dev/faq/) states that it runs no daemons and does not change your global Git config. The [GitHub repository](https://github.com/max-sixty/worktrunk) has about 9,000 stars.
+
+## Do I need a desktop app if I already use Worktrunk?
+
+Not always. Worktrunk handles the part of parallel agent work that plain `git worktree` makes tedious: naming, paths, setup commands, ports, merging, and cleanup. If you run two or three agents in tmux panes and review diffs with your own Git tools, Worktrunk covers that well with no account and no GUI.
+
+Superset is worth a look when the bottleneck moves from creating worktrees to reviewing their output. In Superset, each workspace keeps its terminals, agent session, diff, and pull request together. You can see which agents need you on one page, read and comment on the diff, commit and push from the Changes pane, and follow checks and review threads in the PR pane. The [Git worktrees guide](/compare/git-worktrees-for-ai-agents) explains the shared model both tools rely on.
+
+## How do they handle ports and setup for each worktree?
+
+Both tools solve the same problem: a worktree separates files, but two dev servers still fight over one port. Worktrunk's answer is configuration. You write hooks for install and setup steps, and use `hash_port` in a template so each branch gets its own port.
+
+Superset runs a project's setup commands when it creates a workspace and its teardown commands when you delete one. It detects the ports a workspace opens, and the browser pane lets you preview the app next to the agent. With Design Mode, you can pick an element on the page and send it to the agent. See [how to isolate parallel coding agents](/compare/isolate-parallel-coding-agents) for a port plan that works with either tool.
+
+## Can I use Worktrunk and Superset together?
+
+Yes, with some care. Both create standard Git worktrees, so Git sees them all. A Worktrunk user can keep using `wt` for quick branches in the terminal and open Superset for longer tasks that need review, remote hosts, or the phone. Superset's terminals are normal shells, so `wt` commands work inside them.
+
+Keep one tool in charge of each worktree's lifecycle. If Superset created a workspace, delete it from Superset so its teardown commands run. If Worktrunk created a worktree, remove it with `wt remove` so its hooks run.
+
+## Which works away from my laptop?
+
+Worktrunk is a local CLI. Its metadata stays in your repository's `.git` directory, and its docs do not describe remote hosts or a mobile app. You can still run it over SSH on another machine.
+
+Superset can add remote hosts through its relay, with access granted per member on Pro. The iPhone app on the App Store (iOS 26+, Pro) lets you check agents, read diffs, and send follow-ups to a host that stays online, with a Lock Screen Live Activity. Android is on a waitlist.
+
+## Pricing
+
+Worktrunk is free and open source under MIT OR Apache-2.0. We found no paid tier.
+
+Superset has a Free plan for one user. Pro costs $20 per user per month, or $15 per user per month billed yearly, and adds automations, remote hosts, the iPhone app, and GitHub, Linear, and Slack integrations. Enterprise pricing is custom. See [pricing](/pricing). With either tool, you pay your agent provider separately. Superset does not proxy model calls.
+
+## Choose Worktrunk if / Choose Superset if
+
+**Choose Worktrunk if:**
+
+- You work in the terminal and want worktrees to feel like branches.
+- You need Windows support today.
+- You want a permissive open-source license and no account.
+- You like to script your workflow with hooks and templates, such as `hash_port`.
+
+**Choose Superset if:**
+
+- You run many agents and the hard part is reviewing and shipping their work.
+- You want diffs, commits, pull requests, checks, and review threads in one app.
+- You want a browser pane next to the agent, with Design Mode.
+- You need remote hosts shared with a team, scheduled automations, or an iPhone app.
+
+## Verdict
+
+Worktrunk is a strong, focused CLI. For worktree creation, ports, hooks, and cleanup, it does a lot with little setup, and it wins on platform support and license. Superset covers the same worktree lifecycle inside a desktop app and adds the review, PR, remote, and mobile layers that Worktrunk leaves to other tools. Try one real task in each and compare how long the review and merge step takes.
+
+## Frequently Asked Questions
+
+### Is Worktrunk a Superset alternative?
+
+In part. Worktrunk replaces the worktree management side of Superset: creating, switching, merging, and removing worktrees for agents. It does not provide a GUI for diff review, pull requests, a browser pane, remote hosts, or a phone app.
+
+### Does Worktrunk support Claude Code and Codex?
+
+Yes. You can start any agent with `wt switch -x`. Worktrunk ships plugins that add activity markers for Claude Code, Codex, OpenCode, Pi, oh-my-pi, and Gemini CLI. The Claude Code plugin also adds worktree routing, a `/wt-switch-create` skill, and a statusline.
+
+### Can I run Worktrunk inside Superset?
+
+Yes. Superset terminals are normal shells, so `wt` works in them. Let one tool own each worktree's creation and removal so the right setup and cleanup steps run.
+
+### Does Superset run on Windows?
+
+No. Superset runs on macOS, with an experimental Linux AppImage. Worktrunk runs on macOS, Linux, and Windows.
+
+### Is Superset open source?
+
+Superset is source-available under Elastic License 2.0. Worktrunk is open source under MIT OR Apache-2.0.

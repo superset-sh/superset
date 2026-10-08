@@ -208,6 +208,15 @@ export const workspaceLocalStateSchema = z.object({
 		suppressedPullRequestUrl: z.string().nullable().default(null),
 	}),
 	paneLayout: paneWorkspaceStateSchema,
+	rightPaneLayout: paneWorkspaceStateSchema.optional(),
+	rightSidebarOpen: z.boolean().optional(),
+	rightPaneAreaExpansion: z
+		.object({
+			movedTabIds: z.array(z.string()),
+			centerActiveTabId: z.string().nullable(),
+			rightActiveTabId: z.string().nullable(),
+		})
+		.optional(),
 	viewedFiles: z.array(z.string()).default([]),
 	recentlyViewedFiles: z
 		.array(
@@ -495,6 +504,7 @@ export const v2UserPreferencesSchema = z.object({
 	rightSidebarOpen: z.boolean().default(true),
 	rightSidebarTab: z.enum(["changes", "files"]).default("changes"),
 	rightSidebarWidth: z.number().default(340),
+	rightPaneAreaWidth: z.number().optional(),
 	deleteLocalBranch: z.boolean().default(false),
 	showPresetsBar: z.boolean().default(true),
 	changesViewMode: changesViewModeSchema.default("folders"),
@@ -563,6 +573,10 @@ export function healWorkspaceLocalState(raw: unknown): WorkspaceLocalStateRow {
 		// undefined node. Passed through untouched before, which white-screened
 		// the workspace view on a corrupt layout.
 		paneLayout: sanitizePaneLayout(r.paneLayout),
+		rightPaneLayout:
+			r.rightPaneLayout === undefined
+				? undefined
+				: sanitizePaneLayout(r.rightPaneLayout),
 		viewedFiles:
 			r.viewedFiles ?? WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.viewedFiles,
 		recentlyViewedFiles:

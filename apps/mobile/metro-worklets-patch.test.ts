@@ -20,9 +20,9 @@ const lockfile = readFileSync(join(repoRoot, "bun.lock"), "utf8");
 
 describe("metro Bundle Mode SHA-1 patch", () => {
 	test("every resolved metro version is patched", () => {
-		const resolved = [...lockfile.matchAll(/"metro": \["metro@([^"]+)"/g)].map(
-			(match) => `metro@${match[1]}`,
-		);
+		const resolved = [
+			...lockfile.matchAll(/"(?:[^"]+\/)?metro": \["metro@([^"]+)"/g),
+		].map((match) => `metro@${match[1]}`);
 
 		expect(resolved.length).toBeGreaterThan(0);
 		for (const version of resolved) {

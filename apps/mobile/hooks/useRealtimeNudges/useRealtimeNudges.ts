@@ -6,6 +6,7 @@ import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useSession } from "@/lib/auth/client";
 import { openNudgeSocket } from "@/lib/realtime";
+import { emitRealtimeNudge } from "@/lib/realtime/nudgeBus";
 import type { CloudWorkspaceRow } from "../useCloudWorkspaces";
 import { patchCloudWorkspaceRows } from "./patchCloudWorkspaceRows";
 
@@ -61,6 +62,7 @@ export function useRealtimeNudges(): void {
 			onMessage: (message) => {
 				patch(queryClient, organizationId, message.updates);
 				invalidate(queryClient, organizationId, message.kinds);
+				emitRealtimeNudge(message);
 			},
 			onReopen: () => invalidate(queryClient, organizationId, ALL_KINDS),
 		});

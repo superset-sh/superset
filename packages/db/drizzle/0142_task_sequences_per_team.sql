@@ -1,0 +1,2 @@
+ALTER TABLE "task_sequences" DROP CONSTRAINT "task_sequences_organization_unique";--> statement-breakpoint
+ALTER TABLE "task_sequences" ADD CONSTRAINT "task_sequences_organization_key_unique" UNIQUE("organization_id","key");

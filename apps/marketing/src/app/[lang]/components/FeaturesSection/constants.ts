@@ -58,7 +58,7 @@ export const FEATURES: Feature[] = [
 		}),
 		description: msg({
 			message:
-				"Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready.",
+				"Each agent runs in its own isolated Git worktree. No overwriting each other's files. Review and merge work when you're ready.",
 		}),
 	},
 	{

@@ -6,7 +6,7 @@ This guide is for contributors building Superset from source. If you just want t
 
 | Tool | Install |
 |:-----|:--------|
-| [Bun](https://bun.sh/) v1.3.14+ (pinned in `.bun-version`) | `curl -fsSL https://bun.sh/install \| bash` |
+| [Bun](https://bun.sh/) v1.4.2+ (pinned in `.bun-version`) | `curl -fsSL https://bun.sh/install \| bash` |
 | [Docker](https://docs.docker.com/get-docker/) | Docker Desktop or OrbStack |
 | `jq` | `brew install jq` |
 | Git 2.20+ and [`gh`](https://cli.github.com/) | `brew install gh` |

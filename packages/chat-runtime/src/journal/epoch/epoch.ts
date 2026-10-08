@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { SessionStatus } from "@superset/chat/protocol";
 import type { ChatDb } from "../../db";
 import {
 	insertSessionRow,
@@ -12,7 +13,7 @@ export type ChatSessionInit = {
 	scopeId: string;
 	harness: string;
 	harnessSessionId?: string | null;
-	status?: string;
+	status?: SessionStatus;
 	title?: string | null;
 };
 

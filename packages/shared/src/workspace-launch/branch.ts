@@ -20,6 +20,10 @@ export const BRANCH_PREFIX_MODES = [
 
 export type BranchPrefixMode = (typeof BRANCH_PREFIX_MODES)[number];
 
+// Git refuses a ref that ends in "." and a component that ends in ".lock".
+// Applied after truncation, which can cut a name right after either.
+const TRAILING_INVALID_REF_CHARS = /(?:[-.]|\.lock)+$/;
+
 interface SanitizeSegmentOptions {
 	preserveCase?: boolean;
 }
@@ -46,9 +50,9 @@ export function sanitizeSegment(
 		.replace(/\.{2,}/g, ".")
 		.replace(/@\{/g, "@")
 		.replace(/-+/g, "-")
-		.replace(/^[-.]|[-.]+$/g, "")
-		.replace(/\.lock$/g, "")
-		.slice(0, maxLength);
+		.replace(/^[-.]+/, "")
+		.slice(0, maxLength)
+		.replace(TRAILING_INVALID_REF_CHARS, "");
 }
 
 export function sanitizeAuthorPrefix(name: string): string {
@@ -79,7 +83,7 @@ export function truncateBranchName(
 	branchName: string,
 	maxLength = DEFAULT_BRANCH_NAME_MAX_LENGTH,
 ): string {
-	return branchName.slice(0, maxLength).replace(/\/+$/g, "");
+	return branchName.slice(0, maxLength).replace(/(?:[./]|\.lock)+$/, "");
 }
 
 export function sanitizeBranchNameWithMaxLength(

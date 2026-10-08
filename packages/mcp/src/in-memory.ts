@@ -13,6 +13,7 @@ export interface InMemoryClientOptions {
 	organizationId: string;
 	clientLabel: string;
 	relayUrl: string;
+	realtimeUrl: string;
 	onToolCall?: McpToolCallEmitter;
 }
 
@@ -30,6 +31,7 @@ export async function createInMemoryMcpClient({
 	organizationId,
 	clientLabel,
 	relayUrl,
+	realtimeUrl,
 	onToolCall,
 }: InMemoryClientOptions): Promise<{
 	client: Client;
@@ -74,6 +76,7 @@ export async function createInMemoryMcpClient({
 		requestId: crypto.randomUUID(),
 		bearerToken,
 		relayUrl,
+		realtimeUrl,
 	};
 
 	const server = createMcpServer({ onToolCall });

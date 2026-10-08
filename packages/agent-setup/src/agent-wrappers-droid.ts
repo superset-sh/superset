@@ -1,4 +1,3 @@
-import os from "node:os";
 import path from "node:path";
 import {
 	buildWrapperScript,
@@ -15,6 +14,7 @@ import {
 	removeManagedJsonHooks,
 } from "./managed-json-hooks";
 import { getNotifyScriptPath } from "./notify-hook";
+import { resolveUserHomeDir } from "./paths";
 
 interface DroidHookDefinition {
 	matcher?: string;
@@ -23,7 +23,7 @@ interface DroidHookDefinition {
 }
 
 export function getDroidSettingsJsonPath(): string {
-	return path.join(os.homedir(), ".factory", "settings.json");
+	return path.join(resolveUserHomeDir(), ".factory", "settings.json");
 }
 
 export function createDroidWrapper(): void {

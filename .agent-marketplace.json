@@ -116,6 +116,46 @@
 			"category": "communication",
 			"source": "./plugins/superhuman",
 			"version": "1.0.0"
+		},
+		{
+			"name": "neon",
+			"description": "Work with your Neon Postgres: inspect projects and branches, read schemas, and run SQL.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "data & apis",
+			"source": "./plugins/neon",
+			"version": "1.0.0"
+		},
+		{
+			"name": "posthog",
+			"description": "Ask PostHog about your product: query events and insights, look up people, and check feature flags.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "data & apis",
+			"source": "./plugins/posthog",
+			"version": "1.0.0"
+		},
+		{
+			"name": "google-calendar",
+			"description": "Read and manage your Google Calendar: find events, check free time, and schedule meetings.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "productivity",
+			"source": "./plugins/google-calendar",
+			"version": "1.0.0"
+		},
+		{
+			"name": "vercel",
+			"description": "Work with Vercel: inspect projects and deployments, read build and runtime logs, and search Vercel's docs.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "development",
+			"source": "./plugins/vercel",
+			"version": "1.0.0"
 		}
 	],
 	"featured": ["github", "linear"],

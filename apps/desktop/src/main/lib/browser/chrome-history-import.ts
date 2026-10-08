@@ -140,6 +140,20 @@ export function listChromeImportSources(): ChromeImportSource[] {
 }
 
 /**
+ * Sources whose logins can be imported: only browsers that still have a
+ * Keychain key, checked once per browser.
+ */
+export async function listLoginImportSources(
+	hasKey: (browserKey: string) => Promise<boolean>,
+	sources: ChromeImportSource[] = listChromeImportSources(),
+): Promise<ChromeImportSource[]> {
+	const browserKeys = [...new Set(sources.map((source) => source.browserKey))];
+	const results = await Promise.all(browserKeys.map(hasKey));
+	const keyed = new Set(browserKeys.filter((_, index) => results[index]));
+	return sources.filter((source) => keyed.has(source.browserKey));
+}
+
+/**
  * Resolves a source id back to its profile directory, but only if it matches a
  * currently-detected profile. This prevents the renderer from asking us to read
  * an arbitrary path via the import mutation.

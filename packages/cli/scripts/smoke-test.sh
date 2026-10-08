@@ -112,4 +112,13 @@ if [[ "$healthy" != 1 ]]; then
 	exit 1
 fi
 echo "[smoke] host service boot OK"
+
+if ! curl -fsS -m 10 -H "Authorization: Bearer smoke-test-secret" \
+	"http://127.0.0.1:$HSPORT/chat-v3/trpc/listSessions?input=%7B%7D" >/dev/null; then
+	echo "[smoke] FAIL — chat.db did not open" >&2
+	echo "----- host.log -----" >&2
+	cat "$HSDIR/host.log" >&2
+	exit 1
+fi
+echo "[smoke] chat.db open OK"
 echo "[smoke] all checks passed"

@@ -1,5 +1,6 @@
 export type {
 	ChatCommands,
+	ChatSessionListEntry,
 	CommandsOptions,
 	CreateSessionCommandInput,
 	CreateSessionResult,

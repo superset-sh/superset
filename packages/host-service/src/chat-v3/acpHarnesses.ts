@@ -5,9 +5,11 @@ import type { HarnessFactory } from "@superset/chat-runtime";
 import { createAcpAdapter } from "@superset/chat-runtime";
 import type { HostDb } from "../db";
 import { resolveAttachmentPath } from "../trpc/router/attachments/storage";
+import { captureSessionAccount } from "../trpc/router/usage/session-account/session-account";
 import { ACP_HARNESSES } from "./acpCatalogue";
 import { resolveAgentCli } from "./agentCli";
 import { buildChatAgentEnv } from "./agentEnv";
+import type { ChatAgentBridge } from "./chatAgentBridge";
 
 async function resolveAttachment(attachmentId: string) {
 	const resolved = resolveAttachmentPath(attachmentId);
@@ -28,6 +30,7 @@ function resolveAdapterEntry(packageName: string): string {
 export function acpHarnessFactory(
 	harness: string,
 	db: HostDb,
+	agents?: ChatAgentBridge,
 ): HarnessFactory | null {
 	const entry = ACP_HARNESSES[harness];
 	if (!entry) return null;
@@ -46,6 +49,10 @@ export function acpHarnessFactory(
 			command: entry.binary,
 			cwd: options.cwd,
 			resolveAttachment,
+			...(entry.fullAccessModeId
+				? { defaultModeId: entry.fullAccessModeId }
+				: {}),
+			onSpawn: (pid) => agents?.spawned(options.sessionId, pid),
 			launch: async () => {
 				const cli = await resolveAgentCli({
 					binary: entry.binary,
@@ -56,9 +63,24 @@ export function acpHarnessFactory(
 							db,
 							cwd: options.cwd,
 							workspaceId: options.scopeId,
+							terminalId: options.terminalId,
 						}),
 				});
 				const env = cli.env;
+				void captureSessionAccount(
+					entry.binary,
+					(entry.binary === "codex" ? env.CODEX_HOME : env.CLAUDE_CONFIG_DIR) ??
+						"",
+					Boolean(
+						entry.binary === "codex"
+							? env.OPENAI_API_KEY
+							: env.ANTHROPIC_API_KEY,
+					),
+				)
+					.then((account) => {
+						if (account) agents?.accountCaptured(options.sessionId, account);
+					})
+					.catch(() => undefined);
 				if (!adapterEntry) {
 					return { command: cli.command, args: entry.args, env };
 				}
@@ -80,10 +102,13 @@ export function acpHarnessFactory(
 		});
 }
 
-export function acpHarnessEntries(db: HostDb): [string, HarnessFactory][] {
+export function acpHarnessEntries(
+	db: HostDb,
+	agents?: ChatAgentBridge,
+): [string, HarnessFactory][] {
 	const entries: [string, HarnessFactory][] = [];
 	for (const harness of Object.keys(ACP_HARNESSES)) {
-		const factory = acpHarnessFactory(harness, db);
+		const factory = acpHarnessFactory(harness, db, agents);
 		if (factory) entries.push([harness, factory]);
 	}
 	return entries;

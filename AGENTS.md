@@ -125,7 +125,7 @@ superset ws create --local --project PROJECT_ID --branch BRANCH --agent claude -
 superset agents create --workspace WORKSPACE_ID --agent claude --prompt "..."
 superset ws list --local
 superset terminals read --workspace WORKSPACE_ID --terminal TERMINAL_ID
-superset ws delete --local WORKSPACE_ID
+superset ws archive --local WORKSPACE_ID
 ```
 
 In order: an isolated workspace with an agent already working in it, another agent in an existing
@@ -188,6 +188,26 @@ Never comment unless the thing can never be self-describing in the code. Name it
 or type it first; a comment is the last resort for what the code genuinely cannot say — a
 constraint that lives outside the repo, or a trap the next reader would walk into. Rationale goes
 in the commit message and the PR.
+
+## Tests
+
+CI runs every suite on each push, and the whole run is meant to stay near two minutes. A test
+earns its place by catching a regression quickly.
+
+- **No real waiting.** A test that needs more than bun's default 5 s timeout is too slow. Do not
+  raise the timeout: pass the delay, clock or retry count in and test with a small value. Never
+  wait for a real network or process timeout to fire.
+- **One test per behaviour.** Stress, fuzz and "adversarial" suites that build many real git
+  repositories or processes do not go in the repo. When a probe finds a bug, keep the one
+  regression test for it.
+- **Any order, clean checkout.** Suites run with `bun test --isolate`, in an order that differs
+  between machines, with no root `.env`. Do not `mock.module` a module that other files import for
+  real (`env`, a client, a logger). Give the code its input instead: a parameter, a placeholder in
+  the package's test preload, or a local server.
+- **A flaky test is a broken test.** Fix the cause or delete it. Do not add retries or longer
+  timeouts.
+- **Node-only suites** (real PTYs, `node:test`) are `*.node-test.ts` files run by a turbo task, so
+  they run beside the bun suites and not after them.
 
 ## Further reading
 

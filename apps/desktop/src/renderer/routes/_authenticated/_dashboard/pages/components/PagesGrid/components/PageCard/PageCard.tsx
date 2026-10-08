@@ -21,7 +21,7 @@ import {
 	Trash2,
 } from "lucide-react";
 import { type MouseEvent, useState } from "react";
-import { PageThumbnail } from "./components/PageThumbnail";
+import { PageThumbnail } from "renderer/routes/_authenticated/_dashboard/components/PageThumbnail";
 
 export interface PageCardItem {
 	id: string;

@@ -1,0 +1,1 @@
+export { TeamStrip } from "./TeamStrip";

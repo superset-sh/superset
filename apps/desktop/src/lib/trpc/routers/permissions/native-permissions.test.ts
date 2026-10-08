@@ -1,17 +1,5 @@
-import { describe, expect, it, mock } from "bun:test";
-
-mock.module("electron", () => ({
-	shell: {
-		openExternal: mock(async () => {}),
-	},
-	systemPreferences: {
-		askForMediaAccess: mock(async () => false),
-		getMediaAccessStatus: mock(() => "not-determined"),
-		isTrustedAccessibilityClient: mock(() => false),
-	},
-}));
-
-const {
+import { describe, expect, it } from "bun:test";
+import {
 	checkAccessibility,
 	checkMicrophone,
 	PERMISSION_SETTINGS_URLS,
@@ -20,7 +8,7 @@ const {
 	requestFullDiskAccess,
 	requestLocalNetwork,
 	requestMicrophone,
-} = await import("./native-permissions");
+} from "./native-permissions";
 
 function createShellRecorder() {
 	const openedUrls: string[] = [];

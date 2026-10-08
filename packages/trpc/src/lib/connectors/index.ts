@@ -472,12 +472,12 @@ async function mcpIdentity(
 		const text = await response.text();
 		if (!response.ok)
 			throw new Error(
-				`Connector "${slug}" identity probe failed: ${response.status} ${text.slice(0, 200)}`,
+				`Connector "${slug}" identity probe failed at ${method}: ${response.status} ${text.slice(0, 200)}`,
 			);
 		const message = readJsonRpc(text, id);
 		if (message.error)
 			throw new Error(
-				`Connector "${slug}" identity probe failed: ${message.error.message}`,
+				`Connector "${slug}" identity probe failed at ${method}: ${message.error.message}`,
 			);
 		return message.result ?? {};
 	};
@@ -495,6 +495,22 @@ async function mcpIdentity(
 		const result = (await request("tools/call", {
 			name: probe.tool,
 			arguments: probe.arguments,
+		}).catch(async (error: unknown) => {
+			const listed = await request("tools/list", {}).then(
+				(tools) =>
+					(tools.tools as { name?: string; inputSchema?: unknown }[]).map(
+						(tool) =>
+							tool.name === probe.tool
+								? `${tool.name} ${JSON.stringify(tool.inputSchema)}`
+								: tool.name,
+					),
+				(listError: unknown) => [
+					`tools/list failed: ${listError instanceof Error ? listError.message : String(listError)}`,
+				],
+			);
+			throw new Error(
+				`${error instanceof Error ? error.message : String(error)}; server said ${JSON.stringify(init).slice(0, 1500)}; tools: ${listed.join(", ").slice(0, 1500)}`,
+			);
 		})) as {
 			structuredContent?: Record<string, unknown>;
 			content?: { type: string; text?: string }[];
@@ -511,7 +527,13 @@ async function mcpIdentity(
 		if (result.structuredContent) return result.structuredContent;
 		if (!firstText)
 			throw new Error(`Connector "${slug}" identity tool returned no content.`);
-		return JSON.parse(firstText) as Record<string, unknown>;
+		try {
+			return JSON.parse(firstText) as Record<string, unknown>;
+		} catch {
+			throw new Error(
+				`Connector "${slug}" identity tool returned text that is not JSON: ${firstText.slice(0, 400)}`,
+			);
+		}
 	} finally {
 		if (session)
 			await credentialFetch(
@@ -529,6 +551,16 @@ async function mcpIdentity(
 				`Connector "${slug}" identity`,
 			).catch(() => {});
 	}
+}
+
+/** A value's keys and types without its contents, so an error can show what came back and leak nothing. */
+function shapeOf(value: unknown): unknown {
+	if (Array.isArray(value)) return value.slice(0, 1).map(shapeOf);
+	if (value && typeof value === "object")
+		return Object.fromEntries(
+			Object.entries(value).map(([key, entry]) => [key, shapeOf(entry)]),
+		);
+	return typeof value;
 }
 
 export async function probeIdentity(
@@ -591,7 +623,7 @@ export async function probeIdentity(
 	const accountId = read(probe.account.id);
 	if (!accountId)
 		throw new Error(
-			`Connector "${slug}" identity probe returned nothing at ${probe.account.id}.`,
+			`Connector "${slug}" identity probe returned nothing at ${probe.account.id}. The result has the shape ${JSON.stringify(shapeOf(payload)).slice(0, 800)}`,
 		);
 
 	const userId = probe.user ? read(probe.user.id) : null;

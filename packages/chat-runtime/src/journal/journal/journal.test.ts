@@ -12,6 +12,7 @@ import {
 	userMessage,
 } from "../../testing/fixtures";
 import { createBunChatDb, createTestRuntime } from "../../testing/testRuntime";
+import type { ChatSessionChange } from "./journal";
 
 const SESSION = "session-1";
 
@@ -104,6 +105,63 @@ describe("ChatJournal", () => {
 			status: "idle",
 			title: "Fix the build",
 		});
+	});
+
+	test("reports changes to the session listing, not every append", () => {
+		const changes: ChatSessionChange[] = [];
+		const watched = createTestRuntime({
+			onSessionChanged: (change) => {
+				changes.push(change);
+			},
+		});
+		watched.journal.open(init());
+		watched.journal.append(SESSION, {
+			type: "session",
+			session: sessionState({ status: "starting" }),
+		});
+		watched.journal.append(SESSION, {
+			type: "session",
+			session: sessionState({ status: "running" }),
+		});
+		watched.journal.append(SESSION, {
+			type: "item",
+			item: agentMessage("a", "a"),
+			turnId: "turn-1",
+		});
+		watched.journal.append(SESSION, {
+			type: "session",
+			session: sessionState({ status: "running", title: "Renamed" }),
+		});
+		watched.journal.append(SESSION, {
+			type: "session",
+			session: sessionState({ status: "idle" }),
+		});
+		watched.journal.discard(SESSION);
+
+		expect(changes).toHaveLength(5);
+		for (const change of changes) {
+			expect(change).toEqual({
+				sessionId: SESSION,
+				scopeId: "workspace-1",
+				occurredAt: expect.any(Number),
+			});
+		}
+	});
+
+	test("a throwing session listener does not fail the append", () => {
+		const watched = createTestRuntime({
+			onSessionChanged: () => {
+				throw new Error("listener failed");
+			},
+		});
+		watched.journal.open(init());
+		const cursor = watched.journal.append(SESSION, {
+			type: "session",
+			session: sessionState({ status: "running" }),
+		});
+
+		expect(cursor.seq).toBe(1);
+		expect(watched.sessions.get(SESSION)?.status).toBe("running");
 	});
 
 	test("projects queued_count from queued user messages", () => {

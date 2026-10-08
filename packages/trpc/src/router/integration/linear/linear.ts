@@ -8,6 +8,7 @@ import { protectedProcedure } from "../../../trpc";
 import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
 import { linearLiveRouter } from "./live";
 import { callLinear, callLinearForConnection } from "./refresh";
+import { trackTasksInSupersetWithoutLinear } from "./tracker";
 
 export const linearRouter = {
 	...linearLiveRouter,
@@ -52,6 +53,7 @@ export const linearRouter = {
 				);
 			} catch {}
 			await db.delete(connections).where(eq(connections.id, connection.id));
+			await trackTasksInSupersetWithoutLinear(input.organizationId);
 			return { success: true };
 		}),
 

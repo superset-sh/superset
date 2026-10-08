@@ -30,6 +30,16 @@ export interface PageStorageRecord {
 	updatedAt: string;
 }
 
+export interface PageStorageKeySummary {
+	key: string;
+	records: number;
+	updatedAt: string;
+}
+
+export type PageStorageReadback =
+	| { pageId: string; keys: PageStorageKeySummary[] }
+	| { pageId: string; key: string; records: PageStorageRecord[] };
+
 export type PageStorageOp =
 	| { op: "get"; key: string }
 	| { op: "getAll"; key: string }

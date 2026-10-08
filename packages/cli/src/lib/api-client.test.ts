@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
+import { formatError } from "@superset/cli-framework";
 import type { AppRouter } from "@superset/trpc";
 import { TRPCClientError } from "@trpc/client";
-import { formatError } from "../../../cli-framework/src/runner";
 import {
 	ApiHttpError,
 	createApiClient,

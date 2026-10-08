@@ -9,14 +9,19 @@
 /** Watchdog window for Squirrel to terminate the app itself during an install. */
 export const UPDATE_INSTALL_EXIT_GRACE_MS = 15_000;
 
+/** Quit Completely hides the windows while it cleans up; never wait longer. */
+export const FULL_CLEANUP_TIMEOUT_MS = 15_000;
+
 export interface QuitCleanupDeps {
 	isDev: boolean;
 	/** Tray "Quit Completely": stop background services too. */
 	forceFullCleanup: boolean;
 	/** An update is downloaded/installing, so this quit hands off to Squirrel. */
 	isUpdateInstalling: boolean;
-	stopHostServices: () => void;
+	/** Returns the pids of the host-services it sent SIGTERM to. */
+	stopHostServices: () => number[];
 	teardownTerminalHost: () => Promise<void>;
+	stopPtyDaemons: (stoppedHostServicePids: number[]) => Promise<void>;
 	disposeTerminalHostClient: () => void;
 	disposeTray: () => void;
 	forceExit: (code: number) => void;
@@ -31,6 +36,7 @@ export async function runQuitCleanup(deps: QuitCleanupDeps): Promise<void> {
 		isUpdateInstalling,
 		stopHostServices,
 		teardownTerminalHost,
+		stopPtyDaemons,
 		disposeTerminalHostClient,
 		disposeTray,
 		forceExit,
@@ -41,8 +47,29 @@ export async function runQuitCleanup(deps: QuitCleanupDeps): Promise<void> {
 	} = deps;
 
 	try {
-		stopHostServices();
-		if (isDev || forceFullCleanup) {
+		const stoppedHostServicePids = stopHostServices();
+		if (forceFullCleanup) {
+			let settled = false;
+			await Promise.race([
+				Promise.all([
+					teardownTerminalHost(),
+					stopPtyDaemons(stoppedHostServicePids),
+				]).finally(() => {
+					settled = true;
+				}),
+				new Promise<void>((resolve) => {
+					scheduleTimer(() => {
+						if (!settled) {
+							logError(
+								"[main] Full cleanup during quit timed out after ms:",
+								FULL_CLEANUP_TIMEOUT_MS,
+							);
+						}
+						resolve();
+					}, FULL_CLEANUP_TIMEOUT_MS);
+				}),
+			]);
+		} else if (isDev) {
 			await teardownTerminalHost();
 		} else if (isUpdateInstalling) {
 			disposeTerminalHostClient();

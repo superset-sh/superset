@@ -1,19 +1,18 @@
-import { useLingui } from "@lingui/react/macro";
-import { cn } from "@superset/ui/utils";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { PageHeader } from "renderer/routes/_authenticated/_dashboard/components/PageHeader";
-import { WorkItemDetailState } from "renderer/routes/_authenticated/_dashboard/components/WorkItemDetailState";
 import { useProjectHost } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectHost";
-import { PullRequestDetailHeader } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestDetailHeader";
+import { PullRequestActions } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestActions";
+import { PullRequestDetailContent } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestDetailContent";
+import {
+	type PullRequestDetailTab,
+	PullRequestDetailTabs,
+} from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestDetailTabs";
 import { PullRequestListToggle } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestListToggle";
-import { PullRequestSummaryContent } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestSummaryContent";
 import { usePullRequestDetail } from "renderer/routes/_authenticated/_dashboard/pull-requests/hooks/usePullRequestDetail";
-import { resolvePullRequestDetail } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/resolvePullRequestDetail";
 import { parsePositiveIntegerParam } from "renderer/routes/_authenticated/_dashboard/utils/parsePositiveIntegerParam";
 import { Route as PullRequestsLayoutRoute } from "../layout";
-import { PullRequestCodeTab } from "./components/PullRequestCodeTab";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/pull-requests/$prNumber/",
@@ -21,136 +20,79 @@ export const Route = createFileRoute(
 	component: PullRequestDetailPage,
 });
 
-type DetailTab = "summary" | "code";
-
 function PullRequestDetailPage() {
-	const { t } = useLingui();
-	const detailTabs: ReadonlyArray<{ value: DetailTab; label: string }> = [
-		{
-			value: "summary",
-			label: t({
-				message: "Summary",
-			}),
-		},
-		{
-			value: "code",
-			label: t({
-				message: "Code",
-			}),
-		},
-	];
 	const { prNumber: prNumberRaw } = Route.useParams();
 	const prNumber = parsePositiveIntegerParam(prNumberRaw);
 	const search = PullRequestsLayoutRoute.useSearch();
 	const projectId = search.project ?? null;
-	const {
-		hostId,
-		isReady: areProjectsReady,
-		project,
-	} = useProjectHost(projectId);
-	const hostUrl = useHostUrl(hostId ?? undefined);
-	const [activeTab, setActiveTab] = useState<DetailTab>("summary");
+	const { hostId } = useProjectHost(projectId);
+	const hostUrl = useHostUrl(hostId);
+	const [tabChoice, setTabChoice] = useState<{
+		prNumber: number | null;
+		tab: PullRequestDetailTab;
+	}>({ prNumber, tab: "summary" });
+	const activeTab = tabChoice.prNumber === prNumber ? tabChoice.tab : "summary";
+	const setActiveTab = (tab: PullRequestDetailTab) =>
+		setTabChoice({ prNumber, tab });
 
-	const { data, isLoading, error, refetch } = usePullRequestDetail({
+	const detail = usePullRequestDetail({
 		projectId,
 		hostUrl,
 		prNumber,
-		enabled: !!project,
+		repoFullName: search.repo,
 	});
+	const data = detail.data ?? null;
+	const diffStat =
+		data?.additions !== undefined && data.deletions !== undefined
+			? { additions: data.additions, deletions: data.deletions }
+			: null;
+	// A host that predates addComment/setDraft answers the content read without
+	// the extended fields; it would answer the writes with "No procedure found".
+	const hostSupportsWrites = data?.mergeability !== undefined;
+	const commentTarget =
+		hostSupportsWrites && detail.projectId && hostUrl && prNumber !== null
+			? { projectId: detail.projectId, hostUrl, prNumber }
+			: null;
 
 	// The list pane is always visible in the split view (or reachable via the
 	// list-collapse toggle in the shared layout), so there's no "back"
-	// affordance here — just the PR identity and its actions.
-	const header = (
-		<div className="flex shrink-0 flex-col border-b border-border">
-			<PageHeader
-				contentClassName="gap-1"
-				start={
-					<>
-						<PullRequestListToggle />
-						<div className="ml-2 flex items-center gap-1">
-							{detailTabs.map(({ value, label }) => (
-								<button
-									key={value}
-									type="button"
-									onClick={() => setActiveTab(value)}
-									aria-current={activeTab === value ? "true" : undefined}
-									className={cn(
-										"rounded-md px-2 py-1 text-xs font-medium transition-colors",
-										activeTab === value
-											? "bg-accent text-foreground"
-											: "text-muted-foreground hover:text-foreground",
-									)}
-								>
-									{label}
-								</button>
-							))}
-						</div>
-					</>
-				}
-			/>
-			<PullRequestDetailHeader
-				projectId={projectId}
-				hostId={hostId}
-				hostUrl={hostUrl}
-				prNumber={prNumber}
-				data={data}
-				isLoading={isLoading}
-			/>
-		</div>
-	);
-
-	const resolved = resolvePullRequestDetail({
-		prNumber,
-		projectId,
-		areProjectsReady,
-		hasProject: !!project,
-		hostUrl,
-		isLoading,
-		error,
-		data,
-		refetch: () => void refetch(),
-	});
-
-	if (resolved.status === "fallback") {
-		return (
-			<div className="flex min-h-0 flex-1 flex-col">
-				{header}
-				<WorkItemDetailState
-					message={resolved.message}
-					isLoading={resolved.isLoading}
-					isError={resolved.isError}
-					onRetry={resolved.onRetry}
-				/>
-			</div>
-		);
-	}
-
+	// affordance here — the top bar is the tabs and the actions.
 	return (
-		<div className="@container flex min-h-0 flex-1 flex-col">
-			{header}
-			{/* Kept mounted (hidden via CSS, not unmounted) so Radix's
-			 *  ScrollArea instance survives a tab switch and away — swapping
-			 *  it out of a ternary would reset scrollTop every time the
-			 *  reviewer comes back from the Code tab. The Code tab itself
-			 *  still mounts/unmounts with the ternary below: it isn't a
-			 *  simple scroll container (its own virtualized diff viewer
-			 *  manages scrolling internally), and keeping its polling/agent
-			 *  subscriptions alive while hidden isn't worth the tradeoff. */}
-			<div
-				className={cn("min-h-0 flex-1", activeTab !== "summary" && "hidden")}
-			>
-				<PullRequestSummaryContent data={resolved.data} />
-			</div>
-			{activeTab === "code" && (
-				<PullRequestCodeTab
-					projectId={resolved.projectId}
-					prNumber={resolved.data.number}
-					prUrl={resolved.data.url}
-					hostUrl={resolved.hostUrl}
-					hostId={hostId}
-				/>
-			)}
+		<div className="flex min-h-0 flex-1 flex-col">
+			<PageHeader contentClassName="gap-2">
+				{/* Own row so the tabs can give up width to the actions on a narrow
+				    pane instead of running under them. */}
+				<div className="@container/topbar flex h-full min-w-0 flex-1 items-center gap-2">
+					<div className="flex min-w-0 shrink items-center gap-1 overflow-x-auto [scrollbar-width:none]">
+						<PullRequestListToggle />
+						<PullRequestDetailTabs
+							activeTab={activeTab}
+							onTabChange={setActiveTab}
+							diffStat={diffStat}
+							className="ml-2"
+						/>
+					</div>
+					<div className="drag h-full min-w-4 flex-1" />
+					<PullRequestActions
+						projectId={detail.projectId}
+						hostId={hostId}
+						hostUrl={hostUrl}
+						prNumber={prNumber}
+						data={detail.data}
+						isLoading={detail.isLoading}
+					/>
+				</div>
+			</PageHeader>
+			<PullRequestDetailContent
+				activeTab={activeTab}
+				detail={detail}
+				projectId={detail.projectId}
+				repoFullName={detail.repoFullName}
+				prNumber={prNumber}
+				hostUrl={hostUrl}
+				hostId={hostId}
+				commentTarget={commentTarget}
+			/>
 		</div>
 	);
 }

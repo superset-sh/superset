@@ -94,6 +94,7 @@ export const sandboxIdentitySchema = z.object({
 	 * whose hooks run unless the environment names another.
 	 */
 	SUPERSET_SANDBOX_REPOSITORIES: z.string().min(2),
+	SUPERSET_SANDBOX_PLUGINS: z.string().min(2).optional(),
 	/** The environment row's source (image name or golden), for telemetry. */
 	SUPERSET_SANDBOX_IMAGE_TAG: z.string().min(1),
 	SUPERSET_SANDBOX_PROVIDER: z.string().min(1),
@@ -113,6 +114,7 @@ export const sandboxIdentitySchema = z.object({
 	SUPERSET_SANDBOX_AGENT_MODE: z.string().optional(),
 	/** Comma-separated cloud upload ids the box pulls before launching. */
 	SUPERSET_SANDBOX_AGENT_ATTACHMENTS: z.string().optional(),
+	SUPERSET_SANDBOX_AGENT_SURFACE: z.enum(["terminal", "chat"]).optional(),
 });
 
 export type SandboxIdentity = z.infer<typeof sandboxIdentitySchema>;
@@ -141,6 +143,15 @@ export const sandboxRepositoriesSchema = z
 	.array(sandboxRepositorySchema)
 	.min(1);
 export type SandboxRepository = z.infer<typeof sandboxRepositorySchema>;
+
+export const sandboxPluginSchema = z.object({
+	marketplace: z.string().min(1),
+	name: z.string().min(1),
+	version: z.string().min(1),
+	enabled: z.boolean(),
+});
+export const sandboxPluginsSchema = z.array(sandboxPluginSchema);
+export type SandboxPlugin = z.infer<typeof sandboxPluginSchema>;
 
 /**
  * Where a repository lands. A lone repository is the workspace root itself;
@@ -202,7 +213,7 @@ export function renderContractShell(): string {
 		SUPERSET_CONTRACT_VERSION: SANDBOX_CONTRACT_VERSION,
 		SUPERSET_USER: SANDBOX_USER,
 		SUPERSET_WORKSPACE_DIR: SANDBOX_PATHS.workspace,
-		SUPERSET_HOME_DIR: SANDBOX_PATHS.home,
+		SUPERSET_USER_HOME: SANDBOX_PATHS.home,
 		SUPERSET_BUNDLE_ROOT: SANDBOX_PATHS.bundleRoot,
 		SUPERSET_HOST_ROOT: SANDBOX_PATHS.hostRoot,
 		SUPERSET_CONF: SANDBOX_PATHS.conf,

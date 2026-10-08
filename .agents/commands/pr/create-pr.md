@@ -72,6 +72,17 @@ gh pr create \
 
 If `--draft` was passed, add `--draft`.
 
+Then assign the PR to `superset-home`, unless `--draft` was passed. This starts
+a review of the PR in a cloud workspace; the findings are published as a
+Superset page and linked in a PR comment.
+
+```
+gh pr edit <number> --add-assignee superset-home
+```
+
+Assigning needs write access to the repository. If it fails, the PR is still
+created: say so and continue. Do not run `gh pr create` again.
+
 ## 4. Report back
 
 Print the PR URL as a plain link on its own line. One short sentence

@@ -7,12 +7,10 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { cn } from "@superset/ui/utils";
-import { useNavigate } from "@tanstack/react-router";
 import { ChevronDown, Play, Settings, Square, X } from "lucide-react";
-import { useCallback } from "react";
 import { useHotkeyDisplay } from "renderer/hotkeys";
-import { useSetSettingsSearchQuery } from "renderer/stores/settings-state";
 import type { WorkspaceRunDefinition } from "shared/workspace-run-definition";
+import { useConfigureWorkspaceRun } from "../../hooks/useConfigureWorkspaceRun";
 
 interface V2WorkspaceRunButtonProps {
 	/** Null for project-less "session" workspaces (no project scripts page). */
@@ -35,32 +33,10 @@ export function V2WorkspaceRunButton({
 	onForceStop,
 }: V2WorkspaceRunButtonProps) {
 	const { t } = useLingui();
-	const navigate = useNavigate();
-	const setSettingsSearchQuery = useSetSettingsSearchQuery();
 	const hotkeyText = useHotkeyDisplay("RUN_WORKSPACE_COMMAND").text;
 	const hasRunCommand = (definition?.commands ?? []).length > 0;
 
-	const handleConfigureClick = useCallback(() => {
-		if (definition?.source === "terminal-preset") {
-			void navigate({
-				to: "/settings/terminal",
-				search: { editPresetId: definition.presetId },
-			});
-			return;
-		}
-
-		// Sessions have no project settings page; global presets are the only
-		// configurable run source, handled by the terminal-preset branch above.
-		if (projectId === null) {
-			void navigate({ to: "/settings/terminal" });
-			return;
-		}
-		setSettingsSearchQuery("scripts");
-		void navigate({
-			to: "/settings/projects/$projectId",
-			params: { projectId },
-		});
-	}, [definition, navigate, projectId, setSettingsSearchQuery]);
+	const handleConfigureClick = useConfigureWorkspaceRun(projectId, definition);
 
 	const label = isRunning
 		? t({ message: "Stop" })

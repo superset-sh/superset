@@ -22,3 +22,7 @@ export function writableFor(
 ): boolean {
 	return readable(manifest, actor);
 }
+
+export function guestReadable(manifest: PageManifest): boolean {
+	return manifest.visibility === "everyone" && Boolean(manifest.organizationId);
+}

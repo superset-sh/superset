@@ -4,7 +4,7 @@ import { mkdir, readFile, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TRPCError } from "@trpc/server";
-import simpleGit, { type SimpleGit } from "simple-git";
+import { type SimpleGit, simpleGit } from "simple-git";
 import type { HostServiceContext } from "../../../types";
 import { gitRouter } from "./git";
 import { gitStatusStore } from "./utils/git-status-store";

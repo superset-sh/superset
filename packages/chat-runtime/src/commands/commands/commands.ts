@@ -6,9 +6,12 @@ import type {
 	GetItemsInput,
 	GetSessionInput,
 	PromptInput,
+	QueuedPromptInput,
 	RespondToApprovalInput,
+	ResumeQueueInput,
 	SetConfigOptionInput,
 	SetModeInput,
+	StopBackgroundTaskInput,
 } from "@superset/chat/protocol";
 import {
 	cancelTurnInputSchema,
@@ -19,9 +22,12 @@ import {
 	getSessionInputSchema,
 	listSessionsInputSchema,
 	promptInputSchema,
+	queuedPromptInputSchema,
 	respondToApprovalInputSchema,
+	resumeQueueInputSchema,
 	setConfigOptionInputSchema,
 	setModeInputSchema,
+	stopBackgroundTaskInputSchema,
 } from "@superset/chat/protocol";
 import { z } from "zod";
 import type { ChatDb, ChatSessionRow } from "../../db";
@@ -29,7 +35,11 @@ import type { ChatJournal } from "../../journal";
 import type { ChatSessionStore } from "../../projection";
 import type { PageResult } from "../../replay";
 import { readPage } from "../../replay";
-import type { LiveSessionRegistry, PromptResult } from "../../sessions";
+import type {
+	LiveSessionRegistry,
+	PromptResult,
+	QueueState,
+} from "../../sessions";
 
 export const createSessionCommandSchema = createSessionInputSchema
 	.omit({ workspaceId: true })
@@ -66,19 +76,32 @@ export type GetSessionResult = {
 	live: boolean;
 };
 
+export type GetQueueResult = QueueState & { live: boolean };
+
+export type ChatSessionListEntry = ChatSessionRow & {
+	live: boolean;
+	terminalId: string | null;
+};
+
 export type ChatCommands = {
 	createSession(input: CreateSessionCommandInput): CreateSessionResult;
 	prompt(input: PromptInput): PromptResult;
+	removeQueuedPrompt(input: QueuedPromptInput): void;
+	steerQueuedPrompt(input: QueuedPromptInput): void;
+	resumeQueue(input: ResumeQueueInput): void;
 	cancelTurn(input: CancelTurnInput): void;
+	stopBackgroundTask(input: StopBackgroundTaskInput): Promise<boolean>;
 	respondToApproval(input: RespondToApprovalInput): void;
 	setMode(input: SetModeInput): void;
 	setConfigOption(input: SetConfigOptionInput): void;
 	closeSession(input: CloseSessionInput): Promise<void>;
+	closeScope(scopeId: string): Promise<void>;
 	forkSession(
 		input: ForkSessionCommandInput,
 	): Promise<CreateSessionResult | null>;
 	getSession(input: GetSessionInput): GetSessionResult;
-	listSessions(input: ListSessionsCommandInput): ChatSessionRow[];
+	getQueue(input: GetSessionInput): GetQueueResult;
+	listSessions(input: ListSessionsCommandInput): ChatSessionListEntry[];
 	getItems(input: z.input<typeof getItemsInputSchema>): PageResult;
 };
 
@@ -94,12 +117,21 @@ export type CommandsOptions = {
 export function createCommands(options: CommandsOptions): ChatCommands {
 	const mintSessionId = options.mintSessionId ?? randomUUID;
 
-	const listSessions = (input: ListSessionsCommandInput): ChatSessionRow[] => {
+	const listSessions = (
+		input: ListSessionsCommandInput,
+	): ChatSessionListEntry[] => {
 		const parsed = listSessionsCommandSchema.parse(input);
 		const rows = parsed.scopeId
 			? options.sessions.listByScope(parsed.scopeId)
 			: options.sessions.list();
-		return rows.slice(0, parsed.limit);
+		return rows.slice(0, parsed.limit).map((row) => {
+			const live = options.live.get(row.sessionId);
+			return {
+				...row,
+				live: live !== null,
+				terminalId: live?.terminalId ?? null,
+			};
+		});
 	};
 
 	return {
@@ -124,6 +156,7 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 						modeId: parsed.modeId,
 						modelId: parsed.modelId,
 						resume: parsed.resume,
+						terminalId: parsed.terminalId,
 					});
 				} catch (error) {
 					options.journal.discard(sessionId);
@@ -138,14 +171,51 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 			return options.dedupe.run(`prompt:${parsed.commandId}`, () =>
 				options.live
 					.require(parsed.sessionId)
-					.prompt(parsed.content, parsed.clientId),
+					.prompt(
+						parsed.content,
+						parsed.clientId,
+						parsed.steer?.expectedTurnId,
+					),
+			);
+		},
+
+		removeQueuedPrompt(input) {
+			const parsed: QueuedPromptInput = queuedPromptInputSchema.parse(input);
+			options.dedupe.run(`removeQueuedPrompt:${parsed.commandId}`, () => {
+				options.live.require(parsed.sessionId).removeQueued(parsed.itemId);
+			});
+		},
+
+		steerQueuedPrompt(input) {
+			const parsed: QueuedPromptInput = queuedPromptInputSchema.parse(input);
+			options.dedupe.run(`steerQueuedPrompt:${parsed.commandId}`, () => {
+				options.live.require(parsed.sessionId).steerQueued(parsed.itemId);
+			});
+		},
+
+		resumeQueue(input) {
+			const parsed: ResumeQueueInput = resumeQueueInputSchema.parse(input);
+			options.dedupe.run(`resumeQueue:${parsed.commandId}`, () => {
+				options.live.require(parsed.sessionId).resumeQueue();
+			});
+		},
+
+		stopBackgroundTask(input) {
+			const parsed: StopBackgroundTaskInput =
+				stopBackgroundTaskInputSchema.parse(input);
+			return options.dedupe.run(`stopBackgroundTask:${parsed.commandId}`, () =>
+				options.live
+					.require(parsed.sessionId)
+					.stopBackgroundTask(parsed.taskId),
 			);
 		},
 
 		cancelTurn(input) {
 			const parsed: CancelTurnInput = cancelTurnInputSchema.parse(input);
 			options.dedupe.run(`cancelTurn:${parsed.commandId}`, () => {
-				options.live.require(parsed.sessionId).cancelTurn(parsed.turnId);
+				options.live
+					.require(parsed.sessionId)
+					.cancelTurn(parsed.turnId, parsed.pauseQueue);
 			});
 		},
 
@@ -183,7 +253,8 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 		 */
 		async forkSession(input) {
 			const parsed = forkSessionCommandSchema.parse(input);
-			const forked = await options.live.require(parsed.sessionId).fork();
+			const live = options.live.require(parsed.sessionId);
+			const forked = await live.fork();
 			if (!forked) return null;
 			const source = options.sessions.get(parsed.sessionId);
 			if (!source) return null;
@@ -193,12 +264,23 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 				cwd: parsed.cwd,
 				harness: parsed.harness ?? source.harness,
 				resume: { harnessSessionId: forked },
+				terminalId: live.terminalId,
 			});
 		},
 
-		closeSession(input) {
+		async closeSession(input) {
 			const parsed: CloseSessionInput = closeSessionInputSchema.parse(input);
-			return options.live.dispose(parsed.sessionId);
+			const wasLive = options.live.get(parsed.sessionId) !== null;
+			try {
+				await options.live.dispose(parsed.sessionId);
+			} finally {
+				if (wasLive) options.journal.announce(parsed.sessionId);
+			}
+		},
+
+		async closeScope(scopeId) {
+			const closed = await options.live.disposeScope(scopeId);
+			for (const sessionId of closed) options.journal.announce(sessionId);
 		},
 
 		getSession(input) {
@@ -214,6 +296,13 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 						}
 					: null,
 			};
+		},
+
+		getQueue(input) {
+			const parsed: GetSessionInput = getSessionInputSchema.parse(input);
+			const session = options.live.get(parsed.sessionId);
+			if (!session) return { live: false, paused: false, prompts: [] };
+			return { live: true, ...session.queueState };
 		},
 
 		listSessions,

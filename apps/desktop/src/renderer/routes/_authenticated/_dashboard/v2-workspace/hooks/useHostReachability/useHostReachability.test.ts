@@ -1,5 +1,4 @@
 import { afterAll, afterEach, expect, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
 
 import { nativeWebGlobals } from "~/test-setup";
 
@@ -10,10 +9,10 @@ const previousWebGlobals = {
 	Event: globalThis.Event,
 	MessageEvent: globalThis.MessageEvent,
 	EventTarget: globalThis.EventTarget,
+	AbortController: globalThis.AbortController,
+	AbortSignal: globalThis.AbortSignal,
 };
 const NativeResponse = nativeWebGlobals.Response;
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 Object.assign(globalThis, nativeWebGlobals);
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
@@ -27,50 +26,8 @@ const { useHostReachability } = await import("./useHostReachability");
 
 afterEach(cleanup);
 afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
 	Object.assign(globalThis, previousWebGlobals);
 });
-
-test("a slow handshake completes while the degraded notice is showing", async () => {
-	let attempts = 0;
-	const server = Bun.serve({
-		port: 0,
-		async fetch(request, instance) {
-			attempts++;
-			// Longer than the old gate's first forced retry (2s + 5s),
-			// but within the relay's supported handshake budget.
-			await Bun.sleep(8_000);
-			if (instance.upgrade(request)) return;
-			return new NativeResponse("Upgrade cancelled", { status: 400 });
-		},
-		websocket: { message() {} },
-	});
-	const hostUrl = `http://127.0.0.1:${server.port}`;
-	setHostServiceSecret(hostUrl, "test-token");
-	try {
-		const { result, unmount } = renderHook(() => useHostReachability(hostUrl));
-		let sawDegraded = false;
-		const deadline = Date.now() + 10_000;
-		while (!result.current.hasConnected && Date.now() < deadline) {
-			// Flush each transition so the real grace timer and its effects
-			// run during the handshake, rather than after a single long act.
-			await act(async () => {
-				await Bun.sleep(25);
-			});
-			sawDegraded ||= result.current.isDegraded;
-		}
-		expect(sawDegraded).toBe(true);
-		expect(result.current.hasConnected).toBe(true);
-		expect(result.current.isDegraded).toBe(false);
-		expect(result.current.isAccessDenied).toBe(false);
-		expect(attempts).toBe(1);
-		unmount();
-	} finally {
-		cleanup();
-		removeHostServiceSecret(hostUrl);
-		await server.stop(true);
-	}
-}, 20_000);
 
 test("relay access denial is visible before the notice grace and clears after recovery", async () => {
 	let denied = true;

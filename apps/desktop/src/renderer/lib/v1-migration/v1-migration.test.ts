@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import type { HostServiceClient } from "renderer/lib/host-service-client";
 import { resolvePresetImport } from "./presets";
 import {
@@ -491,18 +491,9 @@ describe("isForcedFlipVersion", () => {
 });
 
 describe("completion markers", () => {
-	// completion.ts reads the global localStorage inside try/catch; give the
-	// bun test runtime a Map-backed shim.
-	const store = new Map<string, string>();
-	// @ts-expect-error minimal Storage shim for tests
-	globalThis.localStorage = {
-		getItem: (k: string) => store.get(k) ?? null,
-		setItem: (k: string, v: string) => void store.set(k, String(v)),
-		removeItem: (k: string) => void store.delete(k),
-		get length() {
-			return store.size;
-		},
-	};
+	afterEach(() => {
+		localStorage.clear();
+	});
 
 	test("continuity peek is non-destructive; consume is one-shot", () => {
 		markV1MigrationComplete("org-peek");

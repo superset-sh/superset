@@ -14,9 +14,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiCheck, HiChevronDown, HiOutlineUserCircle } from "react-icons/hi2";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
-import { TASK_PICKER_INPUT } from "../../../../hooks/useTasksData";
-
-type Tab = "all" | "internal" | "external";
 
 interface AssigneeFilterProps {
 	value: string | null;
@@ -27,7 +24,6 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
-	const [tab, setTab] = useState<Tab>("all");
 
 	const { data: members } =
 		cloudTrpc.organization.listMembers.useQuery(undefined);
@@ -36,27 +32,6 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 		() => (members ?? []).map((member) => member.user),
 		[members],
 	);
-
-	const { data: taskPage } =
-		cloudTrpc.task.listPage.useQuery(TASK_PICKER_INPUT);
-
-	const externalAssignees = useMemo(() => {
-		if (!taskPage) return [];
-		const seen = new Map<
-			string,
-			{ id: string; name: string | null; avatar: string | null }
-		>();
-		for (const { task } of taskPage.items) {
-			if (task.assigneeExternalId && !seen.has(task.assigneeExternalId)) {
-				seen.set(task.assigneeExternalId, {
-					id: task.assigneeExternalId,
-					name: task.assigneeDisplayName,
-					avatar: task.assigneeAvatarUrl,
-				});
-			}
-		}
-		return [...seen.values()];
-	}, [taskPage]);
 
 	const selectedUser = useMemo(() => {
 		if (value === null) return null;
@@ -69,24 +44,9 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 				image: null,
 			};
 		}
-		if (value.startsWith("ext:")) {
-			const extId = value.slice(4);
-			const ext = externalAssignees.find((e) => e.id === extId);
-			return ext
-				? {
-						id: value,
-						name:
-							ext.name ||
-							t({
-								message: "External",
-							}),
-						image: ext.avatar,
-					}
-				: null;
-		}
 		const user = users.find((u) => u.id === value);
 		return user ? { id: user.id, name: user.name, image: user.image } : null;
-	}, [value, users, externalAssignees, t]);
+	}, [value, users, t]);
 
 	const query = search.toLowerCase();
 
@@ -100,17 +60,7 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 		[users, query],
 	);
 
-	const filteredExternal = useMemo(
-		() =>
-			externalAssignees.filter(
-				(e) => !query || e.name?.toLowerCase().includes(query),
-			),
-		[externalAssignees, query],
-	);
-
-	const visibleUsers = tab === "external" ? [] : filteredUsers;
-	const visibleExternal = tab === "internal" ? [] : filteredExternal;
-	const hasResults = visibleUsers.length > 0 || visibleExternal.length > 0;
+	const hasResults = filteredUsers.length > 0;
 
 	const [canScroll, setCanScroll] = useState(false);
 	const listRef = useRef<HTMLDivElement>(null);
@@ -134,10 +84,7 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 
 	const handleOpenChange = (next: boolean) => {
 		setOpen(next);
-		if (!next) {
-			setSearch("");
-			setTab("all");
-		}
+		if (!next) setSearch("");
 	};
 
 	return (
@@ -195,28 +142,6 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 						value={search}
 						onValueChange={setSearch}
 					/>
-					<div className="flex items-center gap-0.5 border-b px-2 py-1.5">
-						{(["all", "internal", "external"] as const).map((tabValue) => (
-							<button
-								key={tabValue}
-								type="button"
-								onClick={() => setTab(tabValue)}
-								className={`flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
-									tab === tabValue
-										? "bg-accent text-accent-foreground"
-										: "text-muted-foreground hover:text-foreground"
-								}`}
-							>
-								{tabValue === "all" ? (
-									<Trans>All</Trans>
-								) : tabValue === "internal" ? (
-									<Trans>Internal</Trans>
-								) : (
-									<Trans>External</Trans>
-								)}
-							</button>
-						))}
-					</div>
 					<div className="relative">
 						<CommandList
 							ref={listRef}
@@ -247,19 +172,11 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 								</CommandEmpty>
 							)}
 
-							{visibleUsers.length > 0 && (
+							{filteredUsers.length > 0 && (
 								<>
 									<CommandSeparator />
-									<CommandGroup
-										heading={
-											tab === "all" && visibleExternal.length > 0
-												? t({
-														message: "Internal",
-													})
-												: undefined
-										}
-									>
-										{visibleUsers.map((user) => (
+									<CommandGroup>
+										{filteredUsers.map((user) => (
 											<CommandItem
 												key={user.id}
 												onSelect={() => handleSelect(user.id)}
@@ -276,48 +193,6 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 													</span>
 												</div>
 												{user.id === value && (
-													<HiCheck className="ml-auto size-3.5 shrink-0" />
-												)}
-											</CommandItem>
-										))}
-									</CommandGroup>
-								</>
-							)}
-
-							{visibleExternal.length > 0 && (
-								<>
-									<CommandSeparator />
-									<CommandGroup
-										heading={
-											tab === "all" && visibleUsers.length > 0
-												? t({
-														message: "External",
-													})
-												: undefined
-										}
-									>
-										{visibleExternal.map((ext) => (
-											<CommandItem
-												key={ext.id}
-												onSelect={() => handleSelect(`ext:${ext.id}`)}
-											>
-												<Avatar
-													size="xs"
-													fullName={
-														ext.name ||
-														t({
-															message: "External",
-														})
-													}
-													image={ext.avatar}
-												/>
-												<span className="text-sm truncate">
-													{ext.name ||
-														t({
-															message: "External",
-														})}
-												</span>
-												{value === `ext:${ext.id}` && (
 													<HiCheck className="ml-auto size-3.5 shrink-0" />
 												)}
 											</CommandItem>

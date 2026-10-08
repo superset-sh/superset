@@ -1,14 +1,19 @@
 import { LinearClient } from "@linear/sdk";
+import { db } from "@superset/db/client";
+import { organizations } from "@superset/db/schema";
+import { findOrgMembership } from "@superset/db/utils";
 import {
 	connectorMethod,
 	requireConnector,
 	upsertConnection,
 } from "@superset/trpc/connectors";
 import { linearTokenResponseSchema } from "@superset/trpc/integrations/linear";
+import { eq } from "drizzle-orm";
 import { env } from "@/env";
 import { STATE_COOKIES } from "@/lib/integrations/oauthFlow";
 import { resolveCallback } from "@/lib/integrations/resolveCallback";
 import { upsertIdentity } from "@/lib/integrations/upsertIdentity";
+import { linearStateSchema, verifySignedState } from "@/lib/oauth-state";
 
 const settingsUrl = `${env.NEXT_PUBLIC_WEB_URL}/integrations/linear`;
 
@@ -19,7 +24,7 @@ export async function GET(request: Request) {
 		cookie: STATE_COOKIES.linear,
 	});
 	if (callback instanceof Response) return callback;
-	const { organizationId, userId, params, exit, fail } = callback;
+	const { organizationId, userId, params, state, exit, fail } = callback;
 
 	const tokenResponse = await fetch("https://api.linear.app/oauth/token", {
 		method: "POST",
@@ -82,6 +87,16 @@ export async function GET(request: Request) {
 		handle: viewer.displayName,
 		displayName: viewer.name,
 	});
+
+	if (verifySignedState(state, linearStateSchema)?.trackTasksInLinear) {
+		const membership = await findOrgMembership({ userId, organizationId });
+		if (membership?.role === "owner") {
+			await db
+				.update(organizations)
+				.set({ taskTracker: "linear" })
+				.where(eq(organizations.id, organizationId));
+		}
+	}
 
 	return exit(settingsUrl);
 }

@@ -23,7 +23,7 @@ packages/host-service/src/chat-v3/          # thin mount only; "runtime/chat/" n
   - tRPC: mount `createChatRouter(runtime, { resolveCwd })` at `POST/GET /chat-v3/trpc/*` via `@trpc/server` fetch adapter on the existing Hono app (second tRPC endpoint — the established per-domain pattern; host auth middleware applied at the route).
   - Stream: `GET /chat-v3/sessions/:id/stream?since=&deltas=` — upgrade exactly like `/acp-sessions/:id/stream` does today, wrap the socket in `createWsSink`, call `runtime.subscribe(...)`, dispose subscription on close.
 - Lifecycle: build the runtime lazily on first chat request; `runtime.dispose()` in host-service shutdown hooks.
-- Relay compatibility: both routes ride the existing tunnel as-is (buffered HTTP for tRPC, WS upgrade for the stream) — nothing new relay-side.
+- Relay compatibility: the stream rides the relay's WebSocket catch-all as-is, but the relay forwards HTTP only on routes it names, so `/hosts/:hostId/chat-v3/trpc/*` needs its own route next to `/trpc/*` (added in #8159). Relay-written errors on that path are plain JSON, because the chat router has no transformer.
 
 ## B. `packages/chat` client + react entries (~2–3 days — the unbuilt M2 half)
 

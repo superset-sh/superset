@@ -10,7 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createUserSimpleGit } from "../../../runtime/git/simple-git";
-import { addBranchWorktree } from "./workspaces";
+import { addBranchWorktree } from "../workspace-creation/shared/add-branch-worktree";
 
 const TEST_DIR = join(
 	realpathSync(tmpdir()),

@@ -1,17 +1,9 @@
-import { afterAll, afterEach, describe, expect, mock, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, describe, expect, mock, test } from "bun:test";
 
-// happy-dom over the preloaded plain-object document: Radix needs a real DOM.
-// Globals are process-wide, so unregister in afterAll (see Redirect.test.tsx).
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
 
-// Queries go through `within(document.body)` rather than `screen`: in a full
-// suite run an earlier file may have loaded testing-library against a previous
-// happy-dom window, and `screen` stays bound to that stale body.
 const { act, cleanup, fireEvent, render, within } = await import(
 	"@testing-library/react"
 );
@@ -24,10 +16,6 @@ afterEach(() => {
 	cleanup();
 	document.body.style.pointerEvents = "";
 });
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
-
 /**
  * The sidebar's delete flow: a ContextMenu "Delete" item opens the confirm
  * pane. Selecting the item with Enter must not also confirm the pane — the

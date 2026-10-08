@@ -1,2 +1,6 @@
-export type { LiveSessionOptions, PromptResult } from "./liveSession";
+export type {
+	LiveSessionOptions,
+	PromptResult,
+	QueueState,
+} from "./liveSession";
 export { LiveSession } from "./liveSession";

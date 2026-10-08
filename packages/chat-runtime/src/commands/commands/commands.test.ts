@@ -43,6 +43,25 @@ function createSession(runtime: ChatRuntime, scopeId = "workspace-1") {
 }
 
 describe("chat commands", () => {
+	test("closeSession reports the session's workspace once its agent stops", async () => {
+		const { harnesses } = fakeHarnessRegistry(SCRIPT);
+		const scopes: string[] = [];
+		const runtime = createTestRuntime({
+			harnesses,
+			onSessionChanged: ({ scopeId }) => {
+				scopes.push(scopeId);
+			},
+		});
+		const created = createSession(runtime, "workspace-2");
+		scopes.length = 0;
+
+		await runtime.commands.closeSession({ sessionId: created.sessionId });
+		await runtime.commands.closeSession({ sessionId: created.sessionId });
+
+		expect(scopes).toEqual(["workspace-2"]);
+		await runtime.dispose();
+	});
+
 	test("createSession opens a journal and starts the harness", async () => {
 		const { runtime, adapterCount } = newRuntime();
 		const created = createSession(runtime);
@@ -188,6 +207,34 @@ describe("chat commands", () => {
 			runtime.commands.listSessions({ scopeId: "workspace-2" }),
 		).toHaveLength(1);
 		expect(runtime.commands.listSessions({ limit: 1 })).toHaveLength(1);
+		await runtime.dispose();
+	});
+
+	test("listSessions reports which sessions are live and their terminal", async () => {
+		const { runtime } = newRuntime();
+		const withTerminal = runtime.commands.createSession({
+			commandId: randomUUID(),
+			scopeId: "workspace-1",
+			harness: FAKE_HARNESS,
+			cwd: "/tmp/workspace",
+			terminalId: "terminal-1",
+		});
+		const closed = createSession(runtime);
+		await runtime.commands.closeSession({ sessionId: closed.sessionId });
+
+		const byId = new Map(
+			runtime.commands
+				.listSessions({})
+				.map((session) => [session.sessionId, session]),
+		);
+		expect(byId.get(withTerminal.sessionId)).toMatchObject({
+			live: true,
+			terminalId: "terminal-1",
+		});
+		expect(byId.get(closed.sessionId)).toMatchObject({
+			live: false,
+			terminalId: null,
+		});
 		await runtime.dispose();
 	});
 

@@ -3,31 +3,65 @@ import type {
 	AvailableCommand,
 	SessionConfigOption,
 	UserContent,
+	UserMessage,
 } from "@superset/chat/protocol";
 import type {
 	ComposerMentionEntry,
 	ComposerMentionProvider,
 	PromptInputCommand,
+	PromptInputHandle,
 } from "@superset/chat-ui/PromptInput";
-import { PromptInput } from "@superset/chat-ui/PromptInput";
-import { errorMessage } from "@superset/i18n/errors";
-import { toast } from "@superset/ui/sonner";
+import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { useCallback, useMemo, useRef } from "react";
-import { ModelPicker } from "./components/ModelPicker";
-
-const DRAFT_DEBOUNCE_MS = 300;
+import {
+	memo,
+	type KeyboardEvent as ReactKeyboardEvent,
+	type Ref,
+	useCallback,
+	useEffect,
+	useImperativeHandle,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+} from "react";
+import { useHotkey } from "renderer/hotkeys";
+import { AgentComposer } from "renderer/routes/_authenticated/components/AgentComposer";
+import { CHAT_COLUMN_CLASSNAME, CHAT_GUTTER_CLASSNAME } from "../../constants";
+import { type AgentSwitcher, ModelPicker } from "./components/ModelPicker";
+import { ModePicker, type SessionMode } from "./components/ModePicker";
+import { QueuedPrompts } from "./components/QueuedPrompts";
+import {
+	takeRecoveredDraftText,
+	useComposerDraft,
+} from "./hooks/useComposerDraft";
+import { useQueueActions } from "./hooks/useQueueActions";
+import { useUploadAttachments } from "./hooks/useUploadAttachments";
 
 export type ComposerProps = {
 	workspaceId: string;
 	draftKey: string;
+	inputRef?: Ref<Pick<PromptInputHandle, "appendText" | "focus">>;
 	availableCommands: AvailableCommand[];
 	configOptions?: SessionConfigOption[];
 	onSetConfigOption?: (configId: string, value: string) => unknown;
-	onSend: (content: UserContent[]) => unknown;
+	agentSwitcher?: AgentSwitcher;
+	modes?: SessionMode[];
+	currentModeId?: string;
+	onSetMode?: (modeId: string) => void;
+	onSend: (content: UserContent[], options: { steer: boolean }) => unknown;
+	history?: string[];
+	isActive?: boolean;
 	placeholder?: string;
 	disabled?: boolean;
 	onCancelTurn?: (() => void) | null;
+	promptQueue?: {
+		prompts: UserMessage[];
+		paused: boolean;
+		actionable: boolean;
+		remove: (itemId: string) => Promise<void>;
+		resume: () => Promise<void>;
+		steer: (itemId: string) => Promise<void>;
+	};
 };
 
 /**
@@ -48,21 +82,91 @@ function toMenuCommands(commands: AvailableCommand[]): PromptInputCommand[] {
 	}));
 }
 
-export function Composer({
+const FOCUS_HANDOFF_MS = 1000;
+let focusHandoff: { draftKey: string; at: number } | null = null;
+
+export const Composer = memo(function Composer({
+	agentSwitcher,
 	availableCommands,
 	configOptions,
+	currentModeId,
+	modes,
 	onSetConfigOption,
+	onSetMode,
 	disabled,
 	draftKey,
+	inputRef,
+	history,
+	isActive,
 	onCancelTurn,
 	onSend,
 	placeholder,
+	promptQueue,
 	workspaceId,
 }: ComposerProps) {
 	const { t } = useLingui();
 	const trpcUtils = workspaceTrpc.useUtils();
-	const uploadAttachment = workspaceTrpc.attachments.upload.useMutation();
-
+	const uploadAttachments = useUploadAttachments(workspaceId);
+	const { storedDraft, onChange, clearDraft } = useComposerDraft(draftKey);
+	const promptInputRef = useRef<PromptInputHandle>(null);
+	const queueActions = useQueueActions(promptQueue, promptInputRef);
+	useImperativeHandle(
+		inputRef,
+		() => ({
+			appendText: (text: string) => promptInputRef.current?.appendText(text),
+			focus: () => promptInputRef.current?.focus(),
+		}),
+		[],
+	);
+	const rootRef = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		const recovered = takeRecoveredDraftText(draftKey);
+		if (recovered) promptInputRef.current?.appendText(recovered);
+	}, [draftKey]);
+	useLayoutEffect(() => {
+		const handoff = focusHandoff;
+		if (handoff?.draftKey === draftKey) {
+			focusHandoff = null;
+			const focusIsFree =
+				!document.activeElement || document.activeElement === document.body;
+			if (focusIsFree && Date.now() - handoff.at < FOCUS_HANDOFF_MS) {
+				promptInputRef.current?.focus();
+			}
+		}
+		const root = rootRef.current;
+		return () => {
+			if (root?.contains(document.activeElement)) {
+				focusHandoff = { draftKey, at: Date.now() };
+			}
+		};
+	}, [draftKey]);
+	useHotkey("FOCUS_CHAT_INPUT", () => promptInputRef.current?.focus(), {
+		enabled: Boolean(isActive),
+	});
+	useHotkey(
+		"CHAT_ADD_ATTACHMENT",
+		() => promptInputRef.current?.openFileDialog(),
+		{ enabled: Boolean(isActive) },
+	);
+	useEffect(() => {
+		if (!isActive) return;
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key !== "/" || event.defaultPrevented) return;
+			if (event.metaKey || event.ctrlKey || event.altKey) return;
+			if (event.isComposing || event.getModifierState("AltGraph")) return;
+			const target = event.target;
+			if (
+				target instanceof HTMLElement &&
+				(target.isContentEditable ||
+					target.closest("input, textarea, select, [contenteditable]"))
+			)
+				return;
+			event.preventDefault();
+			promptInputRef.current?.focus();
+		};
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [isActive]);
 	const searchFiles = useCallback(
 		async (query: string) => {
 			const { matches } = await trpcUtils.filesystem.searchFiles.fetch({
@@ -93,7 +197,7 @@ export function Composer({
 			{
 				id: "files",
 				title: t({ message: "Files" }),
-				priority: 0,
+				priority: 1,
 				source: {
 					kind: "search",
 					search: searchFiles,
@@ -109,90 +213,109 @@ export function Composer({
 		[availableCommands],
 	);
 
-	// Debounced so a draft costs one write per pause rather than one per
-	// keystroke; the last value is flushed when the pane goes away.
-	const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const onChange = useCallback(
-		(text: string) => {
-			if (draftTimer.current) clearTimeout(draftTimer.current);
-			draftTimer.current = setTimeout(() => {
-				if (text === "") window.localStorage.removeItem(draftKey);
-				else window.localStorage.setItem(draftKey, text);
-			}, DRAFT_DEBOUNCE_MS);
-		},
-		[draftKey],
-	);
-
 	const handleSubmit = useCallback(
-		async ({ text, files }: { text: string; files: File[] }) => {
+		async ({
+			text,
+			files,
+			steer,
+		}: {
+			text: string;
+			files: File[];
+			steer: boolean;
+		}) => {
 			if (disabled || (text.trim() === "" && files.length === 0)) return;
-			let attachments: UserContent[];
-			try {
-				attachments = await Promise.all(
-					files.map(async (file) => {
-						const mimeType = file.type || "application/octet-stream";
-						const { attachmentId } = await uploadAttachment.mutateAsync({
-							data: { kind: "base64", data: await fileToBase64(file) },
-							mediaType: mimeType,
-							originalFilename: file.name,
-						});
-						return {
-							type: "attachment" as const,
-							attachmentId,
-							name: file.name,
-							mimeType,
-						};
-					}),
-				);
-			} catch (error) {
-				toast.error(t({ message: "Couldn't attach files" }), {
-					description: errorMessage(error, t({ message: "Unknown error" })),
-				});
+			const tags = await uploadAttachments(files);
+			if (!tags) {
+				promptInputRef.current?.appendText(text);
 				return;
 			}
-			onSend([
-				...(text.trim() === "" ? [] : [{ type: "text" as const, text }]),
-				...attachments,
-			]);
-			window.localStorage.removeItem(draftKey);
+			onSend(
+				[
+					{
+						type: "text",
+						text: [text.trim(), ...tags].filter(Boolean).join("\n"),
+					},
+				],
+				{ steer },
+			);
+			clearDraft();
 		},
-		[disabled, onSend, draftKey, uploadAttachment, t],
+		[disabled, onSend, uploadAttachments, clearDraft],
 	);
 
+	const queueListRef = useRef<HTMLUListElement>(null);
+	const focusQueue = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+		if (event.key !== "Tab" || !event.shiftKey || !promptQueue?.actionable)
+			return;
+		if (
+			!(event.target instanceof HTMLElement) ||
+			!event.target.closest(".prompt-input-editor")
+		)
+			return;
+		const rows =
+			queueListRef.current?.querySelectorAll<HTMLElement>("[data-queue-row]");
+		const newest = rows?.[rows.length - 1];
+		if (!newest) return;
+		event.preventDefault();
+		event.stopPropagation();
+		newest.focus();
+	};
+
 	return (
-		<div className="px-6 pt-1 pb-5">
-			<PromptInput
-				className="mx-auto w-full max-w-3xl"
+		<div
+			ref={rootRef}
+			className={cn(CHAT_GUTTER_CLASSNAME, "pt-1 pb-5")}
+			onKeyDownCapture={focusQueue}
+		>
+			{promptQueue && (
+				<div className={CHAT_COLUMN_CLASSNAME}>
+					<QueuedPrompts
+						{...queueActions}
+						actionable={promptQueue.actionable}
+						listRef={queueListRef}
+						onExit={() => promptInputRef.current?.focus()}
+						paused={promptQueue.paused}
+						prompts={promptQueue.prompts}
+					/>
+				</div>
+			)}
+			<AgentComposer
+				className={CHAT_COLUMN_CLASSNAME}
+				clearOnSubmit={!disabled}
 				commands={commands}
-				defaultValue={window.localStorage.getItem(draftKey) ?? undefined}
+				defaultValue={storedDraft}
+				history={history}
 				key={draftKey}
 				mentionProviders={mentionProviders}
 				onChange={onChange}
 				onStop={onCancelTurn ?? undefined}
 				onSubmit={handleSubmit}
+				ref={promptInputRef}
 				placeholder={
 					placeholder ??
 					t({ message: "Ask the agent, @mention files, run /commands" })
 				}
 				status={onCancelTurn ? "streaming" : "ready"}
-				toolbarEnd={
-					configOptions && onSetConfigOption ? (
-						<ModelPicker
-							configOptions={configOptions}
-							onSelect={onSetConfigOption}
-						/>
-					) : null
+				submitWhileStreaming={promptQueue !== undefined}
+				toolbar={
+					<div className="flex min-w-0 items-center gap-1">
+						{configOptions && onSetConfigOption ? (
+							<ModelPicker
+								agentSwitcher={agentSwitcher}
+								configOptions={configOptions}
+								onSelect={onSetConfigOption}
+							/>
+						) : null}
+						{modes && onSetMode ? (
+							<ModePicker
+								currentModeId={currentModeId}
+								modes={modes}
+								onSelect={onSetMode}
+							/>
+						) : null}
+					</div>
 				}
 			/>
 		</div>
 	);
-}
-
-async function fileToBase64(file: File): Promise<string> {
-	const bytes = new Uint8Array(await file.arrayBuffer());
-	let binary = "";
-	for (let i = 0; i < bytes.length; i += 0x8000) {
-		binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-	}
-	return btoa(binary);
-}
+});

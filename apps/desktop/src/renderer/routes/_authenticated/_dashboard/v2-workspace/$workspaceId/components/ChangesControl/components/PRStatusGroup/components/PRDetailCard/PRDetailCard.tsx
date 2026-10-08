@@ -11,7 +11,7 @@ import {
 } from "react-icons/lu";
 import type { ChecksRollup } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/computeChecksStatus";
 import { PRIcon, type PRState } from "renderer/screens/main/components/PRIcon";
-import type { PullRequest } from "../../../../utils/getPRFlowState";
+import type { PullRequest } from "../../../../../../utils/getPRFlowState";
 
 interface PRDetailCardProps {
 	pr: PullRequest;

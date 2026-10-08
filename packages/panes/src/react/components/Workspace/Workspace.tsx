@@ -2,6 +2,7 @@ import { cn } from "@superset/ui/utils";
 import { useEffect, useMemo, useRef } from "react";
 import { useDragLayer } from "react-dnd";
 import { useStore } from "zustand";
+import { isPaneInLinkedStore } from "../../../core/transfer";
 import type { Pane } from "../../../types";
 import type { WorkspaceProps } from "../../types";
 import { Tab } from "./components/Tab";
@@ -74,7 +75,7 @@ export function Workspace<TData>({
 			}
 		}
 		for (const [prevId, prevPane] of previousPanesRef.current) {
-			if (!current.has(prevId)) {
+			if (!current.has(prevId) && !isPaneInLinkedStore(prevId)) {
 				registry[prevPane.kind]?.onAfterRemove?.(prevPane);
 			}
 		}
@@ -106,6 +107,7 @@ export function Workspace<TData>({
 			)}
 		>
 			<TabBar
+				store={store}
 				tabs={tabs}
 				registry={registry}
 				activeTabId={activeTabId}

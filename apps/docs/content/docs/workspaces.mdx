@@ -31,7 +31,7 @@ New local worktrees use `<worktrees path>/<project name>/<branch>` directories. 
 
 ### Cloud Workspaces
 
-When cloud workspaces are available to your account, Superset creates a new working branch from the selected base. For multiple repositories, it uses the same working branch name in each. Attach images to the initial prompt to give the agent visual context when it starts.
+Cloud workspaces are in early access and not generally available. When they are available to your account, Superset creates a new working branch from the selected base. For multiple repositories, it uses the same working branch name in each. Attach images to the initial prompt to give the agent visual context when it starts.
 
 ## Import Worktrees
 
@@ -75,6 +75,14 @@ Toolbar controls live in two menus, shared by both layouts:
 
 - **Filter** - Project, PR state, Agent, Pinned (All workspaces / Pinned / Unpinned), and Device. Active filters show a count badge and sync to the URL.
 - **Display** - **Sort by**, the **Archived** window (Hidden, Past week, Past month, All), and, in Board view, **Lanes**: a checkbox per column to hide or show it. Lane visibility stays out of the URL and resets on restart.
+
+## Restore a Workspace
+
+Right-click an archived card in the **Deleted** or **Merged** lane (or an archived row in List view) and choose **Restore**. Superset re-creates the worktree at its original path on its original branch and makes the workspace live again.
+
+- Only committed work comes back; uncommitted and untracked changes were already lost when the workspace was deleted.
+- Restore fails and the workspace stays archived if the branch no longer exists locally or on the remote.
+- Restore is unavailable while the device is offline.
 
 ## Ahead/Behind Status
 

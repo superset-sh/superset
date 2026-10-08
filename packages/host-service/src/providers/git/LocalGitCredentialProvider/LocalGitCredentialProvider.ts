@@ -139,6 +139,9 @@ export class LocalGitCredentialProvider implements GitCredentialProvider {
 					resolve(match?.[1]?.trim() ?? null);
 				},
 			);
+			// git can exit before reading its input (EPIPE); the callback
+			// above already reports that.
+			child.stdin?.on("error", () => {});
 			child.stdin?.write(`protocol=https\nhost=${host}\n\n`);
 			child.stdin?.end();
 		});

@@ -49,12 +49,14 @@ function dropCloudQueriesForOrgSwitch(): void {
 	});
 }
 
-type CollectionsContextType = ReturnType<typeof getCollections> & {
+export type CollectionsContextType = ReturnType<typeof getCollections> & {
 	activeOrganizationId: string;
 	switchOrganization: (organizationId: string) => Promise<void>;
 };
 
-const CollectionsContext = createContext<CollectionsContextType | null>(null);
+export const CollectionsContext = createContext<CollectionsContextType | null>(
+	null,
+);
 
 export function preloadActiveOrganizationCollections(
 	activeOrganizationId: string | null | undefined,

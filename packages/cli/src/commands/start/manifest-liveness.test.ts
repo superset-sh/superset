@@ -13,8 +13,6 @@ process.env.SUPERSET_HOME_DIR = tempHome;
 // before the manifest check under test ever runs.
 delete process.env.SUPERSET_ORGANIZATION_ID;
 
-// Imports below must come after SUPERSET_HOME_DIR is set: config.ts and
-// manifest.ts both read it once at module load.
 const { readManifest, writeManifest } = await import("../../lib/host/manifest");
 const startCommand = (await import("./command")).default;
 

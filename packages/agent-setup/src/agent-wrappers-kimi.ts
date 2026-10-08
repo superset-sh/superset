@@ -1,4 +1,3 @@
-import os from "node:os";
 import path from "node:path";
 import {
 	buildWrapperScript,
@@ -11,6 +10,7 @@ import {
 	type ManagedTomlBlockSpec,
 	removeManagedTomlBlock,
 } from "./managed-toml-block";
+import { resolveUserHomeDir } from "./paths";
 
 export const KIMI_HOOKS_MARKER_START =
 	"# >>> superset-managed-kimi-hooks v1 (do not edit) >>>";
@@ -33,7 +33,8 @@ const KIMI_MANAGED_HOOK_COMMAND = getManagedNotifyHookCommand("kimi");
 
 export function getKimiConfigTomlPath(): string {
 	const configuredHome = process.env.KIMI_CODE_HOME?.trim();
-	const kimiHome = configuredHome || path.join(os.homedir(), ".kimi-code");
+	const kimiHome =
+		configuredHome || path.join(resolveUserHomeDir(), ".kimi-code");
 	return path.join(kimiHome, "config.toml");
 }
 

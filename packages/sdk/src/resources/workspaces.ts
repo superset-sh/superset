@@ -139,10 +139,10 @@ export class Workspaces extends APIResource {
 	}
 
 	/**
-	 * Delete a cloud workspace and tear down its sandbox. `deleted` is false
-	 * when no workspace has that id.
+	 * Archive a cloud workspace. Its sandbox stops within a minute and is
+	 * deleted after 7 days. `deleted` is false when no workspace has that id.
 	 *
-	 * Mirrors `superset workspaces delete`.
+	 * Mirrors `superset workspaces archive`.
 	 */
 	delete(
 		id: string,

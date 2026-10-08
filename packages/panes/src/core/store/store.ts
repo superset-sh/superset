@@ -111,7 +111,8 @@ export type CreateTabInput<TData> = {
 
 export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
 	addTab: (args: CreateTabInput<TData>) => void;
-	removeTab: (tabId: string) => void;
+	removeTab: (tabId: string, options?: { intent?: "close" | "remove" }) => void;
+	insertTab: (args: { tab: Tab<TData>; index?: number }) => void;
 	setActiveTab: (tabId: string) => void;
 	setTabTitleOverride: (args: {
 		tabId: string;
@@ -234,7 +235,7 @@ export function createWorkspaceStore<TData>(
 			}));
 		},
 
-		removeTab: (tabId) => {
+		removeTab: (tabId, options) => {
 			const tab = get().getTab(tabId);
 			if (!tab) return;
 			set((s) => {
@@ -248,7 +249,20 @@ export function createWorkspaceStore<TData>(
 					),
 				};
 			});
-			notifyClosed(Object.values(tab.panes));
+			if (options?.intent !== "remove") notifyClosed(Object.values(tab.panes));
+		},
+
+		insertTab: (args) => {
+			set((s) => {
+				if (s.tabs.some((t) => t.id === args.tab.id)) return s;
+				const nextTabs = [...s.tabs];
+				const index = Math.max(
+					0,
+					Math.min(args.index ?? nextTabs.length, nextTabs.length),
+				);
+				nextTabs.splice(index, 0, args.tab);
+				return { tabs: nextTabs, activeTabId: args.tab.id };
+			});
 		},
 
 		setActiveTab: (tabId) => {

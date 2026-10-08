@@ -57,6 +57,8 @@ export function tombstoneSidebarWorkspaceRecord(
 		// workspace would otherwise reappear pre-pinned.
 		draft.sidebarState.pinnedAt = null;
 		draft.paneLayout = createEmptyPaneLayout();
+		delete draft.rightPaneLayout;
+		delete draft.rightPaneAreaExpansion;
 	});
 }
 

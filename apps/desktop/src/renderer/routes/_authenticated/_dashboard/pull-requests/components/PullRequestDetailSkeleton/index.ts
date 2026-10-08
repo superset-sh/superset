@@ -1,0 +1,1 @@
+export { PullRequestDetailSkeleton } from "./PullRequestDetailSkeleton";

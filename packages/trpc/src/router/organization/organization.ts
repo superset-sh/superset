@@ -1,9 +1,11 @@
 import { auth } from "@superset/auth/server";
 import { stripeClient } from "@superset/auth/stripe";
 import { db } from "@superset/db/client";
+import { taskTrackerEnum } from "@superset/db/enums";
 import {
 	members,
 	organizations,
+	taskSequences,
 	teamMembers,
 	teams,
 	users,
@@ -22,6 +24,7 @@ import { canRemoveMember, type OrganizationRole } from "@superset/shared/auth";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, isNull, ne, sql } from "drizzle-orm";
 import { z } from "zod";
+import { userConnection } from "../../lib/connectors";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
 import {
 	jwtProcedure,
@@ -165,9 +168,11 @@ export const organizationRouter = {
 					id: teams.id,
 					name: teams.name,
 					slug: teams.slug,
+					taskKey: taskSequences.key,
 					createdAt: teams.createdAt,
 				})
 				.from(teams)
+				.leftJoin(taskSequences, eq(taskSequences.teamId, teams.id))
 				.where(eq(teams.organizationId, organizationId))
 				.orderBy(teams.name),
 			db
@@ -214,7 +219,7 @@ export const organizationRouter = {
 
 		const org = await db.query.organizations.findFirst({
 			where: eq(organizations.id, orgId),
-			columns: { id: true, name: true, slug: true },
+			columns: { id: true, name: true, slug: true, taskTracker: true },
 		});
 		return org ?? null;
 	}),
@@ -232,7 +237,7 @@ export const organizationRouter = {
 
 		const org = await db.query.organizations.findFirst({
 			where: eq(organizations.id, ctx.activeOrganizationId),
-			columns: { id: true, name: true, slug: true },
+			columns: { id: true, name: true, slug: true, taskTracker: true },
 		});
 		return org ?? null;
 	}),
@@ -252,7 +257,7 @@ export const organizationRouter = {
 
 			const org = await db.query.organizations.findFirst({
 				where: eq(organizations.id, input.id),
-				columns: { id: true, name: true, slug: true },
+				columns: { id: true, name: true, slug: true, taskTracker: true },
 			});
 			return org ?? null;
 		}),
@@ -395,6 +400,7 @@ export const organizationRouter = {
 					.regex(/[a-z0-9]$/, "Slug must end with a letter or number")
 					.optional(),
 				logo: z.string().url().optional(),
+				taskTracker: taskTrackerEnum.optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -419,6 +425,18 @@ export const organizationRouter = {
 					message: "Only owners can update organization settings",
 					i18nKey:
 						"serverError.organization.onlyOwnersCanUpdateOrganizationSettings",
+				});
+			}
+
+			if (
+				data.taskTracker === "linear" &&
+				!(await userConnection(id, "linear", ctx.session.user.id))
+			) {
+				throw userError({
+					code: "PRECONDITION_FAILED",
+					message:
+						"Connect your Linear account before tracking tasks in Linear.",
+					i18nKey: "serverError.organization.connectLinearToTrackTasks",
 				});
 			}
 

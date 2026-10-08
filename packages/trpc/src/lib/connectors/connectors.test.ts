@@ -264,10 +264,9 @@ describe("probeIdentity", () => {
 
 	test("stripe reads the account behind the token as text content", async () => {
 		const account = {
-			id: "acct_1Example",
-			object: "account",
-			email: "h@tegon.ai",
-			settings: { dashboard: { display_name: "Tegon" } },
+			accounts: [
+				{ stripe_context: "acct_1Example", livemode: true, name: "Tegon" },
+			],
 		};
 		const calls: { method?: string; name?: string }[] = [];
 		globalThis.fetch = (async (_url: string, init: RequestInit) => {
@@ -302,13 +301,76 @@ describe("probeIdentity", () => {
 
 		expect(calls[2]).toEqual({
 			method: "tools/call",
-			name: "get_stripe_account_info",
+			name: "list_available_accounts_or_orgs",
 		});
 		expect(identity.account).toEqual({ id: "acct_1Example", label: "Tegon" });
-		expect(identity.user).toEqual({ id: "acct_1Example", label: "h@tegon.ai" });
+		expect(identity.user).toEqual({ id: "acct_1Example", label: "Tegon" });
 	});
 
-	test("stripe survives an account with no dashboard display name", async () => {
+	test("neon_mcp reads the first organization from a text array", async () => {
+		const organizations = [{ id: "org-cold-bar", name: "Tegon" }];
+		const calls: { method?: string; name?: string }[] = [];
+		globalThis.fetch = (async (_url: string, init: RequestInit) => {
+			const body = init.body
+				? (JSON.parse(String(init.body)) as {
+						id?: number;
+						method?: string;
+						params?: { name?: string };
+					})
+				: {};
+			calls.push({ method: body.method, name: body.params?.name });
+			if (init.method === "DELETE") return new Response(null, { status: 204 });
+			if (body.id === undefined) return new Response(null, { status: 202 });
+			const result =
+				body.method === "tools/call"
+					? {
+							content: [{ type: "text", text: JSON.stringify(organizations) }],
+						}
+					: { protocolVersion: "2025-06-18" };
+			return new Response(
+				JSON.stringify({ jsonrpc: "2.0", id: body.id, result }),
+				{
+					status: 200,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
+		}) as unknown as typeof fetch;
+
+		const identity = await probeIdentity(
+			"neon_mcp",
+			connectorMethod(requireConnector("neon_mcp")),
+			"neon-test",
+		);
+
+		expect(calls[2]).toEqual({
+			method: "tools/call",
+			name: "list_organizations",
+		});
+		expect(identity.account).toEqual({ id: "org-cold-bar", label: "Tegon" });
+		expect(identity.user).toEqual({ id: "org-cold-bar", label: "Tegon" });
+	});
+
+	test("posthog_mcp asks the authorization server's userinfo endpoint", async () => {
+		const calls = respond({ sub: "user_01", email: "h@tegon.ai" });
+
+		const identity = await probeIdentity(
+			"posthog_mcp",
+			connectorMethod(requireConnector("posthog_mcp")),
+			"mcp-test",
+		);
+
+		expect(calls).toEqual([
+			{
+				url: "https://oauth.posthog.com/oauth/userinfo/",
+				method: "GET",
+				auth: "Bearer mcp-test",
+			},
+		]);
+		expect(identity.account).toEqual({ id: "user_01", label: "h@tegon.ai" });
+		expect(identity.user).toEqual({ id: "user_01", label: "h@tegon.ai" });
+	});
+
+	test("stripe survives an account with no name", async () => {
 		globalThis.fetch = (async (_url: string, init: RequestInit) => {
 			const body = init.body
 				? (JSON.parse(String(init.body)) as { id?: number; method?: string })
@@ -319,9 +381,7 @@ describe("probeIdentity", () => {
 				body.method === "tools/call"
 					? {
 							structuredContent: {
-								id: "acct_1Bare",
-								object: "account",
-								settings: {},
+								accounts: [{ stripe_context: "acct_1Bare", livemode: true }],
 							},
 						}
 					: { protocolVersion: "2025-06-18" };
@@ -342,6 +402,17 @@ describe("probeIdentity", () => {
 
 		expect(identity.account).toEqual({ id: "acct_1Bare", label: null });
 		expect(identity.user).toEqual({ id: "acct_1Bare", label: null });
+	});
+
+	test("a result with no account id names the shape that came back", async () => {
+		respond({ data: [{ account: "acct_1", secret: "s3cret" }] });
+		await expect(
+			probeIdentity(
+				"granola_mcp",
+				connectorMethod(requireConnector("granola_mcp")),
+				"mcp-test",
+			),
+		).rejects.toThrow('{"data":[{"account":"string","secret":"string"}]}');
 	});
 
 	test("granola_mcp asks the authorization server's userinfo endpoint", async () => {
@@ -386,6 +457,30 @@ describe("probeIdentity", () => {
 		]);
 		expect(identity.account).toEqual({ id: "42", label: "h@tegon.ai" });
 		expect(identity.user).toEqual({ id: "42", label: "h@tegon.ai" });
+	});
+
+	test("vercel_mcp asks the authorization server's userinfo endpoint", async () => {
+		const calls = respond({
+			sub: "user_abc",
+			email: "h@tegon.ai",
+			preferred_username: "harshith",
+		});
+
+		const identity = await probeIdentity(
+			"vercel_mcp",
+			connectorMethod(requireConnector("vercel_mcp")),
+			"vc-test",
+		);
+
+		expect(calls).toEqual([
+			{
+				url: "https://api.vercel.com/login/oauth/userinfo",
+				method: "GET",
+				auth: "Bearer vc-test",
+			},
+		]);
+		expect(identity.account).toEqual({ id: "user_abc", label: "h@tegon.ai" });
+		expect(identity.user).toEqual({ id: "user_abc", label: "harshith" });
 	});
 
 	test("superhuman_mcp reads the default account wherever the server lists it", async () => {

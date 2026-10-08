@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import simpleGit, { type SimpleGit } from "simple-git";
+import { type SimpleGit, simpleGit } from "simple-git";
 import type { HostDb } from "../../src/db";
 import { GitWatcher } from "../../src/events/git-watcher";
 import { WorkspaceFilesystemManager } from "../../src/runtime/filesystem";

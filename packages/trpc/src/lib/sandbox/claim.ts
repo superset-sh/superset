@@ -23,6 +23,7 @@ import { resolveEnvironment } from "../../router/environment/resolve-environment
 import { githubUserConnectionFor, githubUserTokenFor } from "../github-user";
 import { sandboxHostSecretFor } from "./access";
 import { deriveSandboxCredentials, gitAuthorFor } from "./credentials";
+import { creatorPlugins } from "./plugins";
 import { readRepoHooks } from "./repo-hooks";
 import {
 	installationTokenFor,
@@ -83,6 +84,7 @@ export async function buildSandboxClaim(args: {
 				}),
 			])
 		: [null, null, undefined];
+	const plugins = await creatorPlugins(creator);
 	// The creator's own token when they have connected GitHub: pushes and pull
 	// requests are theirs. The App's installation token otherwise.
 	const token =
@@ -106,6 +108,7 @@ export async function buildSandboxClaim(args: {
 		SUPERSET_SANDBOX_ORGANIZATION_ID: args.row.organizationId,
 		...(creator ? { SUPERSET_SANDBOX_CREATOR_USER_ID: creator } : {}),
 		SUPERSET_SANDBOX_REPOSITORIES: JSON.stringify(repositories),
+		SUPERSET_SANDBOX_PLUGINS: JSON.stringify(plugins),
 		SUPERSET_SANDBOX_IMAGE_TAG: environment.sourceRef,
 		SUPERSET_SANDBOX_PROVIDER: args.row.provider,
 		...(environment.bundleSha

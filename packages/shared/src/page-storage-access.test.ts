@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readable } from "./page-storage-access";
+import { guestReadable, readable } from "./page-storage-access";
 
 const base = {
 	v: 1 as const,
@@ -67,5 +67,18 @@ describe("readable", () => {
 				{ userId: "u1", organizationIds: [] },
 			),
 		).toBe(false);
+	});
+});
+
+describe("guestReadable", () => {
+	test("opens only a page shared with everyone", () => {
+		const page = { ...base, organizationId: "o1", createdByUserId: "u9" };
+		expect(guestReadable({ ...page, visibility: "everyone" })).toBe(true);
+		expect(guestReadable({ ...page, visibility: "org" })).toBe(false);
+		expect(guestReadable({ ...page, visibility: "just_me" })).toBe(false);
+	});
+
+	test("stays closed on a manifest with no organization", () => {
+		expect(guestReadable({ ...base, visibility: "everyone" })).toBe(false);
 	});
 });

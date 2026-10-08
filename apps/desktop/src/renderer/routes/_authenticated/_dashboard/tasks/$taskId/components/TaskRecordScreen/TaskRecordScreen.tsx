@@ -310,8 +310,8 @@ export function TaskRecordScreen({
 					})
 				}
 				onOpenExternal={
-					task.externalUrl
-						? () => task.externalUrl && openUrl.mutate(task.externalUrl)
+					importSource
+						? () => openUrl.mutate(importSource.externalUrl)
 						: undefined
 				}
 				onDelete={() => setIsConfirmingDelete(true)}

@@ -1,6 +1,8 @@
 import { useLingui } from "@lingui/react/macro";
 import { Link } from "expo-router";
-import type { ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
+import { View } from "react-native";
+import { anchorOf } from "@/screens/(authenticated)/components/ToolbarAnchor";
 
 export function WorkspaceRowMenu({
 	pinned,
@@ -27,10 +29,12 @@ export function WorkspaceRowMenu({
 	onRename: () => void;
 	onDelete: () => void;
 	onCopyId: () => void;
-	onShare: () => void;
+	/** Gets the row's tag, so iPad's share popover points at the row. */
+	onShare: (anchor?: number) => void;
 	children: ReactNode;
 }) {
 	const { t } = useLingui();
+	const rowRef = useRef<View>(null);
 	// Tap navigation lives on the row itself; the Link exists solely because
 	// Link.Menu must be a direct child of Link, so tap is a no-op here.
 	return (
@@ -39,7 +43,11 @@ export function WorkspaceRowMenu({
 			onPress={(event) => event.preventDefault()}
 			asChild
 		>
-			<Link.Trigger>{children}</Link.Trigger>
+			<Link.Trigger>
+				<View ref={rowRef} collapsable={false}>
+					{children}
+				</View>
+			</Link.Trigger>
 			<Link.Menu>
 				{/* Each action is its own direct child: Link.Menu drops anything
 				    wrapped in a Fragment. */}
@@ -82,7 +90,10 @@ export function WorkspaceRowMenu({
 					<Link.MenuAction icon="doc.on.doc" onPress={onCopyId}>
 						{t({ message: "Copy ID" })}
 					</Link.MenuAction>
-					<Link.MenuAction icon="square.and.arrow.up" onPress={onShare}>
+					<Link.MenuAction
+						icon="square.and.arrow.up"
+						onPress={() => onShare(anchorOf(rowRef))}
+					>
 						{t({ message: "Share" })}
 					</Link.MenuAction>
 				</Link.Menu>

@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import {
 	buildWrapperScript,
@@ -8,7 +7,7 @@ import {
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
 import { buildNestedDesiredEntries } from "./managed-json-hooks";
-import { getHooksDir } from "./paths";
+import { getHooksDir, resolveUserHomeDir } from "./paths";
 
 /** Muse Code reads its user settings from `$XDG_CONFIG_HOME/muse/settings.json`
  * (`~/.config/muse/settings.json` by default). */
@@ -16,7 +15,7 @@ export function getMuseSettingsJsonPath(): string {
 	const xdgConfigHome = process.env.XDG_CONFIG_HOME?.trim();
 	const configHome = xdgConfigHome?.length
 		? xdgConfigHome
-		: path.join(os.homedir(), ".config");
+		: path.join(resolveUserHomeDir(), ".config");
 	return path.join(configHome, "muse", "settings.json");
 }
 

@@ -98,6 +98,14 @@ Do NOT proceed with the PR. Instead, present findings to the user:
     EOF
     )"
 
+- Then assign the PR to `superset-home`. This starts a review of the PR in a cloud workspace;
+  the findings are published as a Superset page and linked in a PR comment.
+
+    gh pr edit <number> --add-assignee superset-home
+
+  Assigning needs write access to the repository. If it fails, the PR is still created: say so
+  and continue. Do not run `gh pr create` again.
+
 # PR Titles
 
 Prefer titles that front-load impact. Use type/scope only if the team finds it helpful.

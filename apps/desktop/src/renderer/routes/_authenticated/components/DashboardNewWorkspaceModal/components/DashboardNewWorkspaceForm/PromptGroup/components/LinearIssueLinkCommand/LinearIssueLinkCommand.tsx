@@ -54,7 +54,7 @@ export function LinearIssueLinkCommand({
 		cloudTrpc.integration.linear.issues.useQuery(
 			{
 				organizationId: organizationId ?? "",
-				status: showClosed ? "all" : "active",
+				status: showClosed ? "all" : "open",
 				assignee: debouncedQuery ? null : "me",
 				search: debouncedQuery || null,
 			},

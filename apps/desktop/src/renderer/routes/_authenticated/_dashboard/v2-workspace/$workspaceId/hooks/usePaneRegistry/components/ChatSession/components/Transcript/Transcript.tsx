@@ -1,15 +1,56 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type {
 	OutboxEntry,
 	SessionSnapshot,
 	TurnGroup,
 } from "@superset/chat/core";
 import type { ApprovalRequest, Decision } from "@superset/chat/protocol";
-import { Badge } from "@superset/ui/badge";
+import {
+	MessageScroller,
+	useMessageScroller,
+	useMessageScrollerScrollable,
+} from "@superset/chat-ui/MessageScroller";
+import { ScrollToBottomButton } from "@superset/chat-ui/ScrollToBottomButton";
 import { Button } from "@superset/ui/button";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Spinner } from "@superset/ui/spinner";
+import { cn } from "@superset/ui/utils";
+import {
+	type CSSProperties,
+	type KeyboardEvent,
+	type PointerEvent,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
+import { env } from "renderer/env.renderer";
+import {
+	CHAT_COLUMN_CLASSNAME,
+	CHAT_SCROLLER_GUTTER_CLASSNAME,
+} from "../../constants";
 import type { ChatForkTarget } from "../../types";
+import { pageLinkFinder } from "../../utils/pageLinks";
 import { TurnGroupSection } from "./components/TurnGroupSection";
+import { useLoadOlderOnReach } from "./hooks/useLoadOlderOnReach";
+import { useScrollAnchorKey } from "./hooks/useScrollAnchorKey";
+import { useScrollbarGutter } from "./hooks/useScrollbarGutter";
+import { lastReplyKeys } from "./utils/lastReplyKeys";
+import { type TranscriptRow, transcriptRows } from "./utils/transcriptRows";
+
+const findPageLinks = pageLinkFinder(env.NEXT_PUBLIC_WEB_URL);
+const REMEMBER_SIZE_CLASSNAME = "[contain-intrinsic-size:auto_240px]";
+const OFFSCREEN_CLASSNAME = "[content-visibility:auto]";
+const RECENT_ROWS_RENDERED_IN_FULL = 30;
+const SCROLL_KEYS = new Set([
+	"ArrowDown",
+	"ArrowUp",
+	"End",
+	"Home",
+	"PageDown",
+	"PageUp",
+	" ",
+]);
 
 export type TranscriptProps = {
 	groups: TurnGroup[];
@@ -17,44 +58,40 @@ export type TranscriptProps = {
 	approvals: ApprovalRequest[];
 	outbox: OutboxEntry[];
 	hasOlder: boolean;
-	onLoadOlder: () => void;
+	onLoadOlder: () => Promise<boolean>;
 	onRespond: (approvalId: string, decision: Decision) => void;
 	onFork?: ((target: ChatForkTarget) => void) | undefined;
 	canForkToWorktree?: boolean;
-	/**
-	 * An item the rail asked to see. Carries a nonce because selecting the
-	 * same message twice is a second request, not the same one.
-	 */
-	scrollRequest?: { itemId: string; nonce: number } | undefined;
 	onRetryPrompt: (clientId: string) => void;
 	onDiscardPrompt: (clientId: string) => void;
 };
 
-function latestUserItemId(groups: TurnGroup[]): string | null {
-	for (let groupIndex = groups.length - 1; groupIndex >= 0; groupIndex -= 1) {
-		const group = groups[groupIndex];
-		if (!group) continue;
-		for (let index = group.entries.length - 1; index >= 0; index -= 1) {
-			const entry = group.entries[index];
-			if (entry?.kind === "item" && entry.item.kind === "user_message") {
-				return entry.item.id;
-			}
-		}
-	}
-	return null;
+function isWork(row: TranscriptRow | undefined): boolean {
+	if (!row) return false;
+	if (row.kind === "working" || row.kind === "tool_run") return true;
+	return (
+		row.kind === "item" &&
+		(row.item.kind === "tool_call" || row.item.kind === "reasoning")
+	);
 }
 
-function outboxText(entry: OutboxEntry): string {
-	return entry.content
-		.filter((content) => content.type === "text")
-		.map((content) => content.text)
-		.join("\n");
+function proseTopPadding(
+	row: TranscriptRow,
+	previous: TranscriptRow | undefined,
+): string | false {
+	if (row.kind !== "item" || row.item.kind !== "agent_message") return false;
+	return isWork(previous) ? "pt-1" : "pt-3";
+}
+
+function rowMessageId(row: TranscriptRow): string {
+	if (row.kind === "item") return row.item.id;
+	if (row.kind === "tool_run") return row.items[0]?.id ?? row.key;
+	return row.key;
 }
 
 export function Transcript({
 	approvals,
 	canForkToWorktree,
-	scrollRequest,
 	groups,
 	hasOlder,
 	onDiscardPrompt,
@@ -65,23 +102,52 @@ export function Transcript({
 	outbox,
 	snapshot,
 }: TranscriptProps) {
-	const containerRef = useRef<HTMLDivElement | null>(null);
+	const { t } = useLingui();
+	const [viewportRef, scrollbarGutter] = useScrollbarGutter<HTMLDivElement>();
+	const olderPages = useLoadOlderOnReach({ hasOlder, onLoadOlder });
+	const scroller = useMessageScroller();
+	const scrollerRef = useRef(scroller);
+	scrollerRef.current = scroller;
+	const scrollable = useMessageScrollerScrollable();
+	const awayFromEndRef = useRef(scrollable.end);
+	awayFromEndRef.current = scrollable.end;
+	const readerScrolledAway = useRef(false);
+	useEffect(() => {
+		if (!scrollable.end) readerScrolledAway.current = false;
+	}, [scrollable.end]);
+	const markReaderScroll = useCallback(() => {
+		readerScrolledAway.current = true;
+	}, []);
+	const onViewportKeyDown = useCallback(
+		(event: KeyboardEvent<HTMLDivElement>) => {
+			if (SCROLL_KEYS.has(event.key)) readerScrolledAway.current = true;
+		},
+		[],
+	);
+	const onViewportPointerDown = useCallback(
+		(event: PointerEvent<HTMLDivElement>) => {
+			if (event.target !== event.currentTarget) return;
+			readerScrolledAway.current = true;
+			// The scroller counts only wheel, touch and scroll keys as the reader's own scroll.
+			event.currentTarget.dispatchEvent(
+				new WheelEvent("wheel", { bubbles: true }),
+			);
+		},
+		[],
+	);
+
 	const [entryOverrides, setEntryOverrides] = useState<
 		ReadonlyMap<string, boolean>
 	>(new Map());
-
 	const isEntryCollapsed = useCallback(
 		(entryKey: string, defaultCollapsed: boolean) =>
 			entryOverrides.get(entryKey) ?? defaultCollapsed,
 		[entryOverrides],
 	);
 	const onToggleEntry = useCallback((entryKey: string, collapsed: boolean) => {
-		setEntryOverrides((previous) => {
-			const next = new Map(previous);
-			next.set(entryKey, collapsed);
-			return next;
-		});
+		setEntryOverrides((previous) => new Map(previous).set(entryKey, collapsed));
 	}, []);
+
 	const pendingApprovalTargets = useMemo(() => {
 		const targets = new Set<string>();
 		for (const approval of approvals) {
@@ -91,97 +157,100 @@ export function Transcript({
 		return targets;
 	}, [approvals]);
 
-	const anchorItemId = latestUserItemId(groups);
-	useEffect(() => {
-		if (!anchorItemId) return;
-		containerRef.current
-			?.querySelector(`[data-item-id="${CSS.escape(anchorItemId)}"]`)
-			?.scrollIntoView({ block: "start" });
-	}, [anchorItemId]);
+	const rows = useMemo(
+		() => transcriptRows(groups, outbox, pendingApprovalTargets, findPageLinks),
+		[groups, outbox, pendingApprovalTargets],
+	);
 
-	// On the request object rather than its fields: the nonce is what makes
-	// choosing the same message twice a second scroll, and a dependency list
-	// of fields would drop it as redundant.
-	useEffect(() => {
-		if (!scrollRequest) return;
-		containerRef.current
-			?.querySelector(`[data-item-id="${CSS.escape(scrollRequest.itemId)}"]`)
-			?.scrollIntoView({ behavior: "smooth", block: "start" });
-	}, [scrollRequest]);
+	const lastReplies = useMemo(() => lastReplyKeys(rows), [rows]);
+
+	const anchorRowKey = useScrollAnchorKey(rows, outbox, {
+		turnRunning: groups.at(-1)?.turn?.status === "running",
+		readerScrolledAway,
+	});
 
 	const firstPendingApprovalId = approvals[0]?.id ?? null;
 	useEffect(() => {
-		if (!firstPendingApprovalId) return;
-		containerRef.current
-			?.querySelector(`[data-item-id="${CSS.escape(firstPendingApprovalId)}"]`)
-			?.scrollIntoView({ block: "nearest" });
+		if (!firstPendingApprovalId || !awayFromEndRef.current) return;
+		scrollerRef.current.scrollToMessage(firstPendingApprovalId, {
+			align: "nearest",
+		});
 	}, [firstPendingApprovalId]);
 
+	const contentChildren = rows.map((row, index) => (
+		<MessageScroller.Item
+			className={cn(
+				REMEMBER_SIZE_CLASSNAME,
+				index < rows.length - RECENT_ROWS_RENDERED_IN_FULL &&
+					OFFSCREEN_CLASSNAME,
+				"px-4 pb-1",
+				proseTopPadding(row, rows[index - 1]),
+			)}
+			key={row.key}
+			messageId={rowMessageId(row)}
+			scrollAnchor={row.key === anchorRowKey}
+		>
+			<TurnGroupSection
+				canForkToWorktree={canForkToWorktree}
+				lastReply={lastReplies.has(row.key)}
+				isEntryCollapsed={isEntryCollapsed}
+				onDiscardPrompt={onDiscardPrompt}
+				onFork={onFork}
+				onRespond={onRespond}
+				onRetryPrompt={onRetryPrompt}
+				onToggleEntry={onToggleEntry}
+				row={row}
+				snapshot={snapshot}
+			/>
+		</MessageScroller.Item>
+	));
+
 	return (
-		// The scroller spans the pane so its bar sits at the edge; the column
-		// inside it holds the reading measure.
-		<div className="min-h-0 flex-1 overflow-y-auto" ref={containerRef}>
-			<div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-6">
+		<MessageScroller.Root className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+			<MessageScroller.Viewport
+				aria-label={t({ message: "Messages" })}
+				className={cn(
+					"min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable_both-edges]",
+					CHAT_SCROLLER_GUTTER_CLASSNAME,
+				)}
+				onKeyDown={onViewportKeyDown}
+				onPointerDown={onViewportPointerDown}
+				onTouchMove={markReaderScroll}
+				onWheel={markReaderScroll}
+				ref={viewportRef}
+				style={
+					{ "--scrollbar-gutter": `${scrollbarGutter}px` } as CSSProperties
+				}
+			>
 				{hasOlder && (
-					<div className="flex items-center gap-2">
-						<Button onClick={onLoadOlder} size="sm" variant="ghost">
-							<Trans>Load earlier messages</Trans>
-						</Button>
+					<div
+						className={cn(
+							CHAT_COLUMN_CLASSNAME,
+							"flex h-10 items-center justify-center",
+						)}
+						ref={olderPages.sentinelRef}
+					>
+						{olderPages.failed ? (
+							<Button onClick={olderPages.retry} size="sm" variant="ghost">
+								<Trans>Couldn't load earlier messages. Retry</Trans>
+							</Button>
+						) : (
+							olderPages.loading && <Spinner className="size-4" />
+						)}
 					</div>
 				)}
-				{groups.map((group) => (
-					<TurnGroupSection
-						canForkToWorktree={canForkToWorktree}
-						group={group}
-						isEntryCollapsed={isEntryCollapsed}
-						key={group.turnId}
-						onFork={onFork}
-						onRespond={onRespond}
-						onToggleEntry={onToggleEntry}
-						pendingApprovalTargets={pendingApprovalTargets}
-						snapshot={snapshot}
-					/>
-				))}
-				{outbox.map((entry) => (
-					<div
-						className="flex flex-col items-end gap-1 self-end"
-						key={entry.clientId}
-					>
-						<div className="max-w-[80%] whitespace-pre-wrap break-words rounded-lg bg-primary/10 px-3 py-2 text-sm">
-							{outboxText(entry)}
-						</div>
-						<div className="flex items-center gap-2">
-							<Badge
-								variant={entry.state === "failed" ? "destructive" : "outline"}
-							>
-								{entry.state === "failed" ? (
-									<Trans>Failed to send</Trans>
-								) : (
-									<Trans>Sending</Trans>
-								)}
-							</Badge>
-							{entry.state === "failed" && (
-								<>
-									<Button
-										onClick={() => onRetryPrompt(entry.clientId)}
-										size="sm"
-										variant="ghost"
-									>
-										<Trans>Retry</Trans>
-									</Button>
-									<Button
-										onClick={() => onDiscardPrompt(entry.clientId)}
-										size="sm"
-										variant="ghost"
-									>
-										<Trans>Discard</Trans>
-									</Button>
-								</>
-							)}
-						</div>
-					</div>
-				))}
+				<MessageScroller.Content
+					className={cn(
+						CHAT_COLUMN_CLASSNAME,
+						"flex select-text flex-col pt-4 pb-8",
+					)}
+				>
+					{contentChildren}
+				</MessageScroller.Content>
+			</MessageScroller.Viewport>
+			<div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
+				<ScrollToBottomButton />
 			</div>
-		</div>
+		</MessageScroller.Root>
 	);
 }

@@ -1,1 +1,1 @@
-export { UserMessageRow } from "./UserMessageRow";
+export { type PendingPrompt, UserMessageRow } from "./UserMessageRow";

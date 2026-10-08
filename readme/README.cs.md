@@ -286,7 +286,7 @@ Není potřeba účet Neon ani přihlašovací údaje třetích stran. `setup.lo
 lokální stack Postgres + Electric přes Docker a naplní dev účet. Přihlaste se
 tlačítkem **"Sign in as dev"** (nebo `admin@local.test` / `supersetdev`).
 
-Předpoklady: [Bun](https://bun.sh/) v1.3.14+ (připnutý v `.bun-version`), `docker`, `jq` a `caddy`, který `bun dev` spouští jako lokální HTTPS proxy (`brew install jq caddy && caddy trust`).
+Předpoklady: [Bun](https://bun.sh/) v1.4.2+ (připnutý v `.bun-version`), `docker`, `jq` a `caddy`, který `bun dev` spouští jako lokální HTTPS proxy (`brew install jq caddy && caddy trust`).
 
 Kompletního průvodce najdete v [**DEVELOPMENT.md**](../DEVELOPMENT.md): co dělá skript nastavení, ruční nastavení proti skutečným službám, běžné příkazy, řešení problémů a jak sestavit desktopovou aplikaci. Proces přispívání je popsán v [**CONTRIBUTING.md**](../CONTRIBUTING.md).
 

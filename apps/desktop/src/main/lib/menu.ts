@@ -16,7 +16,6 @@ import { confirmAndQuitCompletely } from "./quit-completely";
 export function createApplicationMenu() {
 	const reloadAccelerator = "CmdOrCtrl+R";
 	const closeAccelerator = "CmdOrCtrl+Shift+Q";
-	const showHotkeysAccelerator = "CmdOrCtrl+/";
 	const openSettingsAccelerator = "CmdOrCtrl+,";
 	// macOS/VS Code convention for New Window. On Windows/Linux Ctrl+Shift+N is
 	// already New Workspace, so use Ctrl+Alt+N there.
@@ -39,13 +38,14 @@ export function createApplicationMenu() {
 					},
 				},
 				{ type: "separator" },
+				// No accelerator: on macOS it is always live and would bypass the
+				// user's OPEN_PROJECT / OPEN_IN_APP bindings (Settings > Keyboard).
 				{
 					label: i18n._(
 						msg({
-							message: "Open Repo...",
+							message: "Add Project from Folder...",
 						}),
 					),
-					accelerator: "CmdOrCtrl+O",
 					click: () => {
 						menuEmitter.emit("open-project");
 					},
@@ -237,7 +237,6 @@ export function createApplicationMenu() {
 							message: "Keyboard Shortcuts",
 						}),
 					),
-					accelerator: showHotkeysAccelerator,
 					click: () => {
 						menuEmitter.emit("open-settings", "keyboard");
 					},

@@ -6,6 +6,7 @@ export type OutboxEntry = {
 	commandId: string;
 	clientId: string;
 	content: UserContent[];
+	steer?: { expectedTurnId: string };
 	state: OutboxEntryState;
 	attempts: number;
 	lastError: string | null;
@@ -30,11 +31,15 @@ export class Outbox {
 		this.maxAttempts = options.maxAttempts ?? 5;
 	}
 
-	enqueue(content: UserContent[]): OutboxEntry {
+	enqueue(
+		content: UserContent[],
+		steer?: { expectedTurnId: string },
+	): OutboxEntry {
 		const entry: OutboxEntry = {
 			commandId: this.mintId(),
 			clientId: this.mintId(),
 			content,
+			...(steer ? { steer } : {}),
 			state: "queued",
 			attempts: 0,
 			lastError: null,

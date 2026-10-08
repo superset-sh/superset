@@ -237,7 +237,7 @@ export function listAccountRestartCandidates(
 						.map((row) => row.id),
 				);
 	for (const binding of store.list()) {
-		if (!binding.agentSessionId) continue;
+		if (!binding.agentSessionId || binding.chatSessionId) continue;
 		const config = resolveHostAgentConfig(
 			db,
 			binding.definitionId ?? binding.agentId,

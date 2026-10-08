@@ -1,0 +1,1 @@
+export { usePullRequestInfoVariant } from "./usePullRequestInfoVariant";

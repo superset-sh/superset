@@ -149,6 +149,10 @@ describe("readPath", () => {
 		expect(readPath(payload, "$.value[1].id")).toBe("second");
 	});
 
+	test("a path can start at a root array", () => {
+		expect(readPath([{ id: "first" }], "$[0].id")).toBe("first");
+	});
+
 	test("a filter picks the first element whose field is truthy", () => {
 		expect(readPath(payload, "$.accounts[?(@.isPrimary)].accountEmail")).toBe(
 			"work@example.com",

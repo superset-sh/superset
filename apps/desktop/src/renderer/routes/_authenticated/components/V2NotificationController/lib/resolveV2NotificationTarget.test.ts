@@ -131,4 +131,26 @@ describe("resolveV2NotificationTarget", () => {
 			}),
 		).toBe(false);
 	});
+
+	it("finds and reports visible a terminal in the right pane layout", () => {
+		const target = resolveV2NotificationTarget({
+			workspaceId: WORKSPACE_ID,
+			payload: payload({ terminalId: "terminal-1" }),
+			paneLayout: { version: 1, tabs: [], activeTabId: null },
+			rightPaneLayout: layout,
+		});
+
+		expect(target).toMatchObject({
+			tabId: "tab-active",
+			paneId: "pane-terminal",
+		});
+		expect(
+			isV2NotificationTargetVisible({
+				currentWorkspaceId: WORKSPACE_ID,
+				paneLayout: { version: 1, tabs: [], activeTabId: null },
+				rightPaneLayout: layout,
+				target,
+			}),
+		).toBe(true);
+	});
 });

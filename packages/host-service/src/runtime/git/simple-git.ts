@@ -1,17 +1,24 @@
-import { USER_GIT_ENV_SIMPLE_GIT_OPTIONS } from "@superset/shared/simple-git-options";
-import simpleGit, { type SimpleGit, type SimpleGitOptions } from "simple-git";
+import { userGitSimpleGitOptions } from "@superset/shared/simple-git-options";
+import { type SimpleGit, type SimpleGitOptions, simpleGit } from "simple-git";
 
 // Superset is a local Git client, so inherited user Git config/env is expected
-// behavior. simple-git 3.36 blocks these hooks by default; allow them centrally
+// behavior. simple-git blocks these hooks by default; allow them centrally
 // instead of deleting individual env vars and changing Git semantics.
-const SIMPLE_GIT_OPTIONS =
-	USER_GIT_ENV_SIMPLE_GIT_OPTIONS satisfies Partial<SimpleGitOptions>;
-
+// Pass `env` here rather than chaining `.env()`: simple-git 4 throws on a
+// guarded key that was not allowed when the instance was built.
 export function createUserSimpleGit(
 	baseDir?: string,
-	options?: Pick<SimpleGitOptions, "timeout" | "abort">,
+	options?: Pick<SimpleGitOptions, "timeout" | "abort"> & {
+		env?: Record<string, string | undefined>;
+	},
 ): SimpleGit {
-	return baseDir
-		? simpleGit(baseDir, { ...SIMPLE_GIT_OPTIONS, ...options })
-		: simpleGit({ ...SIMPLE_GIT_OPTIONS, ...options });
+	const { env, ...rest } = options ?? {};
+	const gitOptions = {
+		...(userGitSimpleGitOptions(
+			env ?? process.env,
+		) satisfies Partial<SimpleGitOptions>),
+		...rest,
+	};
+	const git = baseDir ? simpleGit(baseDir, gitOptions) : simpleGit(gitOptions);
+	return env ? git.env(env) : git;
 }

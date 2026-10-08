@@ -20,9 +20,12 @@ import {
 	CdpBusyError,
 	resolveGuestUrl,
 } from "./browser-manager";
-import { importCookiesIntoSession } from "./chrome-cookie-import";
 import {
-	listChromeImportSources,
+	hasSafeStorageKey,
+	importCookiesIntoSession,
+} from "./chrome-cookie-import";
+import {
+	listLoginImportSources,
 	resolveImportProfile,
 } from "./chrome-history-import";
 
@@ -287,7 +290,9 @@ export async function startBrowserBridge(): Promise<void> {
 
 	// Chromium browsers/profiles whose history and logins can be imported.
 	app.get("/import-sources", (_req, res) => {
-		res.json({ sources: listChromeImportSources() });
+		listLoginImportSources(hasSafeStorageKey)
+			.then((sources) => res.json({ sources }))
+			.catch((err) => res.status(500).json({ error: errorMessage(err) }));
 	});
 
 	// Import logins (cookies) from a system browser into this pane's session.

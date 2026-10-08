@@ -3,6 +3,7 @@ export type {
 	SandboxTarget,
 } from "./SandboxAccessProvider";
 export {
+	SandboxAccessContext,
 	SandboxAccessProvider,
 	useSandboxAccess,
 } from "./SandboxAccessProvider";

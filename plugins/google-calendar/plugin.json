@@ -1,0 +1,26 @@
+{
+	"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+	"name": "google-calendar",
+	"version": "1.0.0",
+	"description": "Read and manage your Google Calendar: find events, check free time, and schedule meetings.",
+	"author": {
+		"name": "Superset",
+		"url": "https://superset.sh"
+	},
+	"homepage": "https://docs.superset.sh",
+	"repository": "https://github.com/superset-sh/superset",
+	"license": "MIT",
+	"keywords": ["google", "calendar", "events", "meetings", "scheduling"],
+	"extensions": {
+		"superset": {
+			"interface": {
+				"displayName": "Google Calendar",
+				"category": "Productivity",
+				"icon": "google-calendar"
+			},
+			"connector": {
+				"slug": "google"
+			}
+		}
+	}
+}

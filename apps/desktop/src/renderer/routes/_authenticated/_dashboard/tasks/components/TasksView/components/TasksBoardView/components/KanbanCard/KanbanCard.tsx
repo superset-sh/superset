@@ -33,8 +33,8 @@ export function KanbanCard({ task, onClick, overlay }: KanbanCardProps) {
 		transition,
 	};
 
-	const assigneeName = task.assignee?.name ?? task.assigneeDisplayName ?? null;
-	const assigneeImage = task.assignee?.image ?? task.assigneeAvatarUrl ?? null;
+	const assigneeName = task.assignee?.name ?? null;
+	const assigneeImage = task.assignee?.image ?? null;
 	const labels = task.labels ?? [];
 	const createdDate = task.createdAt
 		? format(new Date(task.createdAt), "MMM d")

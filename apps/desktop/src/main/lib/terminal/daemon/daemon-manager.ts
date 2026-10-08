@@ -33,6 +33,27 @@ interface PendingCreateOrAttach {
 	promise: Promise<SessionResult>;
 }
 
+export interface DaemonTerminalManagerDeps {
+	getTerminalHostClient: typeof getTerminalHostClient;
+	disposeTerminalHostClient: typeof disposeTerminalHostClient;
+	buildTerminalEnv: typeof buildTerminalEnv;
+	getDefaultShell: typeof getDefaultShell;
+	portManager: Pick<
+		typeof portManager,
+		"upsertSession" | "unregisterSession" | "checkOutputForHint"
+	>;
+	createHistoryManager: () => Pick<HistoryManager, keyof HistoryManager>;
+}
+
+const defaultDeps: DaemonTerminalManagerDeps = {
+	getTerminalHostClient,
+	disposeTerminalHostClient,
+	buildTerminalEnv,
+	getDefaultShell,
+	portManager,
+	createHistoryManager: () => new HistoryManager(),
+};
+
 export class DaemonTerminalManager extends EventEmitter {
 	private client!: TerminalHostClient;
 	private sessions = new Map<string, SessionInfo>();
@@ -44,13 +65,16 @@ export class DaemonTerminalManager extends EventEmitter {
 	private daemonAliveSessionIds = new Set<string>();
 	private daemonSessionIdsHydrated = false;
 
-	private historyManager = new HistoryManager();
+	private readonly deps: DaemonTerminalManagerDeps;
+	private historyManager: Pick<HistoryManager, keyof HistoryManager>;
 
 	private coldRestoreInfo = new Map<string, ColdRestoreInfo>();
 	private cleanupTimeouts = new Map<string, NodeJS.Timeout>();
 
-	constructor() {
+	constructor(deps: Partial<DaemonTerminalManagerDeps> = {}) {
 		super();
+		this.deps = { ...defaultDeps, ...deps };
+		this.historyManager = this.deps.createHistoryManager();
 		this.initializeClient();
 	}
 
@@ -80,7 +104,7 @@ export class DaemonTerminalManager extends EventEmitter {
 	}
 
 	private initializeClient(): void {
-		this.client = getTerminalHostClient();
+		this.client = this.deps.getTerminalHostClient();
 		this.setupClientEventHandlers();
 	}
 
@@ -138,7 +162,7 @@ export class DaemonTerminalManager extends EventEmitter {
 
 			// Enable port scanning before user opens terminal tabs
 			for (const session of preservedSessions) {
-				portManager.upsertSession(
+				this.deps.portManager.upsertSession(
 					session.paneId,
 					session.workspaceId,
 					session.pid,
@@ -191,7 +215,7 @@ export class DaemonTerminalManager extends EventEmitter {
 				session.lastActive = Date.now();
 			}
 
-			portManager.checkOutputForHint(paneId, data);
+			this.deps.portManager.checkOutputForHint(paneId, data);
 			this.historyManager.writeToHistory(paneId, data, () =>
 				this.sessions.get(paneId),
 			);
@@ -210,7 +234,7 @@ export class DaemonTerminalManager extends EventEmitter {
 					session.pid = null;
 				}
 
-				portManager.unregisterSession(paneId);
+				this.deps.portManager.unregisterSession(paneId);
 				this.historyManager.closeHistoryWriter(paneId, exitCode);
 				const reason =
 					session?.exitReason ??
@@ -427,8 +451,8 @@ export class DaemonTerminalManager extends EventEmitter {
 				throwIfAborted(signal);
 			}
 
-			const shell = getDefaultShell();
-			const env = buildTerminalEnv({
+			const shell = this.deps.getDefaultShell();
+			const env = this.deps.buildTerminalEnv({
 				shell,
 				paneId,
 				tabId,
@@ -511,7 +535,7 @@ export class DaemonTerminalManager extends EventEmitter {
 				rows: effectiveRows,
 			});
 
-			portManager.upsertSession(paneId, workspaceId, response.pid);
+			this.deps.portManager.upsertSession(paneId, workspaceId, response.pid);
 
 			const snapshotAnsi = response.snapshot.snapshotAnsi || "";
 			const snapshotAnsiBytes = Buffer.byteLength(snapshotAnsi, "utf8");
@@ -714,7 +738,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			session.pid = null;
 		}
 
-		portManager.unregisterSession(paneId);
+		this.deps.portManager.unregisterSession(paneId);
 
 		if (deleteHistory && session) {
 			await this.historyManager.cleanupHistory(paneId, session.workspaceId);
@@ -847,7 +871,7 @@ export class DaemonTerminalManager extends EventEmitter {
 					session.pid = null;
 				}
 
-				portManager.unregisterSession(paneId);
+				this.deps.portManager.unregisterSession(paneId);
 				await this.historyManager.cleanupHistory(paneId, workspaceId);
 				await this.client.kill({ sessionId: paneId, deleteHistory: true });
 			}),
@@ -935,7 +959,7 @@ export class DaemonTerminalManager extends EventEmitter {
 		this.coldRestoreInfo.clear();
 		this.killedSessionTombstones.clear();
 		this.removeAllListeners();
-		disposeTerminalHostClient();
+		this.deps.disposeTerminalHostClient();
 	}
 
 	async forceKillAll(): Promise<void> {
@@ -966,7 +990,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			await this.client.killAll({});
 		}
 		for (const paneId of sessionIds) {
-			portManager.unregisterSession(paneId);
+			this.deps.portManager.unregisterSession(paneId);
 		}
 		this.daemonAliveSessionIds.clear();
 		this.daemonSessionIdsHydrated = true;
@@ -993,7 +1017,7 @@ export class DaemonTerminalManager extends EventEmitter {
 		this.historyManager.closeAllSync();
 		this.createOrAttachLimiter.reset();
 
-		disposeTerminalHostClient();
+		this.deps.disposeTerminalHostClient();
 		this.initializeClient();
 
 		console.log("[DaemonTerminalManager] Reset complete");

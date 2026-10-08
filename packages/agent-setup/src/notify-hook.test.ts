@@ -21,9 +21,13 @@ function renderNotifyHookScript(): string {
 		.replaceAll("{{DEFAULT_PORT}}", "48763");
 }
 
+const ambientEnvWithoutSuperset = Object.fromEntries(
+	Object.entries(process.env).filter(([key]) => !key.startsWith("SUPERSET_")),
+);
+
 function hookEnv(envOverrides: Record<string, string>) {
 	return {
-		...process.env,
+		...ambientEnvWithoutSuperset,
 		SUPERSET_AGENT_ID: "grok",
 		SUPERSET_DEBUG_HOOKS: "1",
 		SUPERSET_TERMINAL_ID: "terminal-test",
@@ -72,6 +76,7 @@ async function runNotifyHookAsync(
 function fakeHostService(ignored: boolean) {
 	const requests: Array<{ json: Record<string, unknown> }> = [];
 	const server = Bun.serve({
+		hostname: "127.0.0.1",
 		port: 0,
 		fetch: async (req) => {
 			requests.push((await req.json()) as (typeof requests)[number]);

@@ -1,5 +1,5 @@
 import type { SessionSnapshot, TurnGroup } from "@superset/chat/core";
-import { displayText } from "@superset/chat/core";
+import { displayText, userMessageText } from "@superset/chat/core";
 import type { UserMessage } from "@superset/chat/protocol";
 
 /**
@@ -19,11 +19,7 @@ export function buildChatHandoffTranscript(
 			if (entry.kind !== "item") continue;
 			const { item } = entry;
 			if (item.kind === "user_message") {
-				const text = (item as UserMessage).content
-					.filter((content) => content.type === "text")
-					.map((content) => content.text)
-					.join("\n")
-					.trim();
+				const text = userMessageText(item as UserMessage).trim();
 				if (text) lines.push(`User: ${text}`);
 				continue;
 			}

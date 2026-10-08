@@ -2,10 +2,12 @@ import type { LinearClient } from "@linear/sdk";
 import { taskPriorityValues } from "@superset/db/enums";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod";
+import { env } from "../../../env";
 import { userError } from "../../../i18n-error";
 import { protectedProcedure } from "../../../trpc";
 import { verifyOrgMembership } from "../utils";
 import {
+	archiveIssue,
 	createIssue,
 	getIssue,
 	getWorkspace,
@@ -39,7 +41,7 @@ export async function withLinear<T>(
 	if (result === null) {
 		throw userError({
 			code: "PRECONDITION_FAILED",
-			message: "Connect your Linear account to use Linear here.",
+			message: `Connect your Linear account to use Linear here: ${env.NEXT_PUBLIC_WEB_URL}/integrations/linear`,
 			i18nKey: "serverError.integration.linearNotConnected",
 		});
 	}
@@ -87,9 +89,13 @@ export const linearLiveRouter = {
 		.input(
 			organizationInput.extend({
 				issueId: z.string().min(1),
+				title: z.string().trim().min(1).optional(),
+				description: z.string().nullable().optional(),
 				stateId: z.string().optional(),
 				priority: z.enum(taskPriorityValues).optional(),
 				assigneeId: z.string().nullable().optional(),
+				dueDate: z.iso.date().nullable().optional(),
+				estimate: z.number().int().min(0).nullable().optional(),
 			}),
 		)
 		.mutation(({ ctx, input }) => {
@@ -98,6 +104,14 @@ export const linearLiveRouter = {
 				updateIssue(client, issueId, changes),
 			);
 		}),
+
+	archiveIssue: protectedProcedure
+		.input(organizationInput.extend({ issueId: z.string().min(1) }))
+		.mutation(({ ctx, input }) =>
+			withLinear(ctx.session.user.id, input.organizationId, (client) =>
+				archiveIssue(client, input.issueId),
+			),
+		),
 
 	createIssue: protectedProcedure
 		.input(
@@ -108,6 +122,8 @@ export const linearLiveRouter = {
 				stateId: z.string().optional(),
 				priority: z.enum(taskPriorityValues).optional(),
 				assigneeId: z.string().optional(),
+				dueDate: z.iso.date().optional(),
+				estimate: z.number().int().min(0).optional(),
 			}),
 		)
 		.mutation(({ ctx, input }) => {

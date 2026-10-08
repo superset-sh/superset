@@ -19,17 +19,19 @@ const OWNER_ACCESS = 0o700;
  * eval/report runners often do the same to an output folder. Both were
  * observed inside worktrees.
  *
- * Only EACCES takes the recovery path. Every other failure — ENOTEMPTY from a
- * live writer re-creating files, EBUSY, or an EPERM from an immutable flag
- * that chmod could not clear anyway — is rethrown untouched so the caller
- * reports it exactly as before.
+ * EACCES takes the recovery path, and so does ENOTEMPTY: Bun 1.4 reports the
+ * same read-only directory as ENOTEMPTY. A live writer re-creating files also
+ * fails the single retry with ENOTEMPTY, so it is still reported. Every other
+ * failure — EBUSY, or an EPERM from an immutable flag that chmod could not
+ * clear anyway — is rethrown untouched so the caller reports it exactly as
+ * before.
  */
 export async function removeDirectoryTree(path: string): Promise<void> {
 	try {
 		await rm(path, { recursive: true, force: true });
 		return;
 	} catch (error) {
-		if (!isPermissionDenied(error)) throw error;
+		if (!isPermissionDenied(error) && !isNotEmpty(error)) throw error;
 	}
 	await restoreOwnerDirectoryAccess(path);
 	// One retry, not a loop: the pass above is exhaustive over the tree, so a
@@ -48,6 +50,14 @@ export function isPermissionDenied(error: unknown): boolean {
 		typeof error === "object" &&
 		error !== null &&
 		(error as { code?: unknown }).code === "EACCES"
+	);
+}
+
+function isNotEmpty(error: unknown): boolean {
+	return (
+		typeof error === "object" &&
+		error !== null &&
+		(error as { code?: unknown }).code === "ENOTEMPTY"
 	);
 }
 

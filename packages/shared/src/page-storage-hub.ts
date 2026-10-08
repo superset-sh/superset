@@ -23,6 +23,11 @@ export function pageStorageNudgePath(pageId: string): string {
 	return `/v2/page/${encodeURIComponent(pageId)}/storage/manifest-changed`;
 }
 
+export function pageStorageRecordsPath(pageId: string, key?: string): string {
+	const path = `/v2/page/${encodeURIComponent(pageId)}/storage/records`;
+	return key === undefined ? path : `${path}?key=${encodeURIComponent(key)}`;
+}
+
 export function pageStorageTicketPath(pageId: string): string {
 	return `/v2/page/${encodeURIComponent(pageId)}/storage/ticket`;
 }

@@ -1,4 +1,12 @@
-import { ChatMarkdown } from "@superset/chat-ui/ChatMarkdown";
+import {
+	ChatMarkdown,
+	chatMarkdownFirstBlock,
+} from "@superset/chat-ui/ChatMarkdown";
+import { cn } from "@superset/ui/utils";
+import {
+	CHAT_MARKDOWN_COMPONENTS,
+	CHAT_REMARK_PLUGINS,
+} from "../../../../../../constants";
 
 /**
  * ACP carries tool-result text as markdown — Zed renders it that way, and
@@ -12,7 +20,14 @@ import { ChatMarkdown } from "@superset/chat-ui/ChatMarkdown";
  */
 export function TextContent({ text }: { text: string }) {
 	return (
-		<ChatMarkdown className="min-w-0 text-muted-foreground text-xs">
+		<ChatMarkdown
+			className={cn(
+				chatMarkdownFirstBlock,
+				"min-w-0 text-muted-foreground text-xs",
+			)}
+			components={CHAT_MARKDOWN_COMPONENTS}
+			remarkPlugins={CHAT_REMARK_PLUGINS}
+		>
 			{text}
 		</ChatMarkdown>
 	);

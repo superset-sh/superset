@@ -22,10 +22,11 @@ import {
 	ConnectConnectorDialog,
 	ConnectorRow,
 } from "renderer/components/ConnectorSection";
+import { PluginIcon } from "renderer/components/PluginIcon";
+import { pluginMentionText } from "renderer/components/PluginMention";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
-import { PluginIcon } from "renderer/routes/_authenticated/_dashboard/plugins/components/PluginIcon";
+import type { CatalogPlugin } from "renderer/hooks/usePluginCatalog";
 import { SkillIcon } from "renderer/routes/_authenticated/_dashboard/plugins/components/SkillIcon";
-import type { CatalogPlugin } from "renderer/routes/_authenticated/_dashboard/plugins/hooks/usePluginCatalog";
 import { usePluginMutations } from "renderer/routes/_authenticated/_dashboard/plugins/hooks/usePluginMutations";
 import { useNewWorkspaceDraftStore } from "renderer/stores/new-workspace-draft";
 import { ConnectedAccounts } from "./components/ConnectedAccounts";
@@ -42,15 +43,14 @@ export function PluginDetail({ plugin }: { plugin: CatalogPlugin }) {
 	const [isConnectOpen, setIsConnectOpen] = useState(false);
 
 	// Seeded before the navigation, not after: the draft store is only reset on
-	// close, so the create surface mounts with this already in the composer.
+	// close, so the create surface mounts with the plugin's @mention chip
+	// already in the composer.
 	const tryNow = useCallback(() => {
 		useNewWorkspaceDraftStore.getState().updateDraft({
-			prompt: t({
-				message: `Use the ${plugin.interface.displayName} plugin to `,
-			}),
+			prompt: `${pluginMentionText(plugin.name)} `,
 		});
 		openNewWorkspace();
-	}, [openNewWorkspace, plugin.interface.displayName, t]);
+	}, [openNewWorkspace, plugin.name]);
 
 	const wasInstalled = useRef(plugin.installed);
 	const needsConnection = Boolean(
@@ -151,7 +151,7 @@ export function PluginDetail({ plugin }: { plugin: CatalogPlugin }) {
 							</Button>
 						)}
 						{plugin.installed && (
-							<Button size="sm" onClick={tryNow}>
+							<Button size="sm" disabled={!plugin.enabled} onClick={tryNow}>
 								<LuSparkles className="size-4" />
 								<Trans>Try now</Trans>
 							</Button>

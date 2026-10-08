@@ -5,12 +5,17 @@ import { i18n } from "@superset/i18n";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { ToolContentList } from "../ToolContentList";
+import { OptionButtons } from "./components/OptionButtons";
+import type { ApprovalOption } from "./utils/optionRole";
 
 const DECISION_ANSWERED = msg({
 	message: "Answered",
 });
 
-function decisionLabel(decision: Decision | undefined): string {
+function decisionLabel(
+	decision: Decision | undefined,
+	options: readonly ApprovalOption[],
+): string {
 	if (!decision) return i18n._(DECISION_ANSWERED);
 	switch (decision.type) {
 		case "accept":
@@ -26,7 +31,10 @@ function decisionLabel(decision: Decision | undefined): string {
 		case "cancel":
 			return i18n._(msg({ message: "Canceled" }));
 		case "option":
-			return decision.optionId;
+			return (
+				options.find((option) => option.optionId === decision.optionId)
+					?.label ?? decision.optionId
+			);
 		default:
 			return i18n._(DECISION_ANSWERED);
 	}
@@ -40,6 +48,7 @@ export function ApprovalRow({
 	onRespond: (approvalId: string, decision: Decision) => void;
 }) {
 	const pending = item.status === "pending";
+	const options = item.options ?? [];
 	return (
 		<div
 			className={
@@ -49,6 +58,12 @@ export function ApprovalRow({
 			}
 		>
 			<div className="flex items-center gap-2">
+				{pending && (
+					<span
+						aria-hidden
+						className="size-2 shrink-0 rounded-full bg-warning ring-[3px] ring-warning/20"
+					/>
+				)}
 				<span className="text-sm font-medium">{item.title}</span>
 				{item.status === "stale" && (
 					<Badge variant="outline">
@@ -56,51 +71,41 @@ export function ApprovalRow({
 					</Badge>
 				)}
 				{item.status === "answered" && (
-					<Badge variant="secondary">{decisionLabel(item.decision)}</Badge>
+					<Badge variant="secondary">
+						{decisionLabel(item.decision, options)}
+					</Badge>
 				)}
 			</div>
 			{item.detail && <ToolContentList itemId={item.id} items={item.detail} />}
 			{pending &&
-				(item.options?.length ? (
-					<div className="flex flex-wrap gap-2">
-						{item.options.map((option) => (
+				(options.length > 0 ? (
+					<OptionButtons item={{ ...item, options }} onRespond={onRespond} />
+				) : (
+					<div className="flex flex-wrap items-center gap-2">
+						<Button
+							onClick={() => onRespond(item.id, { type: "decline" })}
+							size="sm"
+							variant="ghost"
+						>
+							<Trans>Deny</Trans>
+						</Button>
+						<div className="flex flex-1 flex-wrap justify-end gap-2">
 							<Button
-								key={option.optionId}
 								onClick={() =>
-									onRespond(item.id, {
-										type: "option",
-										optionId: option.optionId,
-									})
+									onRespond(item.id, { type: "accept_for_session" })
 								}
 								size="sm"
 								variant="outline"
 							>
-								{option.label}
+								<Trans>Allow for session</Trans>
 							</Button>
-						))}
-					</div>
-				) : (
-					<div className="flex flex-wrap gap-2">
-						<Button
-							onClick={() => onRespond(item.id, { type: "accept" })}
-							size="sm"
-						>
-							<Trans>Allow</Trans>
-						</Button>
-						<Button
-							onClick={() => onRespond(item.id, { type: "accept_for_session" })}
-							size="sm"
-							variant="outline"
-						>
-							<Trans>Allow for session</Trans>
-						</Button>
-						<Button
-							onClick={() => onRespond(item.id, { type: "decline" })}
-							size="sm"
-							variant="outline"
-						>
-							<Trans>Deny</Trans>
-						</Button>
+							<Button
+								onClick={() => onRespond(item.id, { type: "accept" })}
+								size="sm"
+							>
+								<Trans>Allow</Trans>
+							</Button>
+						</div>
 					</div>
 				))}
 		</div>

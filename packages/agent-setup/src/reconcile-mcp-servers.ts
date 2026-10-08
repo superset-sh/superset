@@ -3,6 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import type { PluginMcpServerConfig } from "@superset/shared/plugins";
 import {
+	CODEX_MARKER_END,
+	CODEX_MARKER_START,
 	hashMcpServerValue,
 	type SyncManagedMcpServersOptions,
 	syncManagedMcpServers,
@@ -48,7 +50,7 @@ function claudeStale(
 	} catch {
 		// No ledger: we have written nothing, so every desired entry is stale.
 	}
-	return Object.entries(desired)
+	const wrong = Object.entries(desired)
 		.filter(([name, config]) => {
 			if (!(name in current)) return true;
 			// Only ours is ours to correct. A value we did not write belongs to the
@@ -58,6 +60,12 @@ function claudeStale(
 			return hashMcpServerValue(current[name]) !== hashMcpServerValue(config);
 		})
 		.map(([name]) => name);
+	// An entry we wrote that the desired set no longer names has to come out,
+	// or a plugin uninstalled on the account keeps its server for good.
+	const removed = Object.keys(tracked).filter(
+		(name) => !(name in desired) && name in current,
+	);
+	return [...wrong, ...removed];
 }
 
 function codexStale(
@@ -73,9 +81,20 @@ function codexStale(
 	} catch {
 		// Absent: every desired entry is missing.
 	}
-	return Object.keys(desired).filter(
+	const missing = Object.keys(desired).filter(
 		(name) => !text.includes(`[mcp_servers.${name}]`),
 	);
+	// Same as Claude's removals, read off the managed block rather than a
+	// ledger: what is fenced is what we wrote.
+	const start = text.indexOf(CODEX_MARKER_START);
+	const end = text.indexOf(CODEX_MARKER_END);
+	const managed =
+		start === -1 || end === -1
+			? []
+			: [
+					...text.slice(start, end).matchAll(/^\[mcp_servers\.([^\]]+)\]/gm),
+				].map((match) => match[1] as string);
+	return [...missing, ...managed.filter((name) => !(name in desired))];
 }
 
 /**

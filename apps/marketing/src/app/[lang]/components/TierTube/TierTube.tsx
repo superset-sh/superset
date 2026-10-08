@@ -86,7 +86,7 @@ export function TierTube({
 	const showPace = isFleet && position > 0;
 
 	return (
-		<div className="border border-border">
+		<div className="@container border border-border">
 			<div className="relative h-12">
 				<div className="absolute inset-0 overflow-hidden">
 					<div className="absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 bg-foreground/[0.07]" />
@@ -142,7 +142,7 @@ export function TierTube({
 				})}
 			</div>
 
-			<div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border border-t border-border">
+			<div className="grid grid-cols-2 @min-[36rem]:grid-cols-4 gap-px bg-border border-t border-border">
 				{ZONES.map(({ tier, rgb }) => {
 					const reached = tier <= activeTier;
 					const isActive = tier === activeTier;

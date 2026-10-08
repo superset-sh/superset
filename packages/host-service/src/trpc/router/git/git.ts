@@ -157,7 +157,9 @@ function runStatusSnapshot(
 				);
 				if (result.baseRefFetchTarget) {
 					const target = result.baseRefFetchTarget;
-					const coordinatorGit = createUserSimpleGit(worktreePath).env(gitEnv);
+					const coordinatorGit = createUserSimpleGit(worktreePath, {
+						env: gitEnv,
+					});
 					// The coordinator maps live in this process, not in individual
 					// workers, so worktrees sharing one common Git dir share one TTL
 					// and in-flight fetch. The network fetch itself remains off-loop.

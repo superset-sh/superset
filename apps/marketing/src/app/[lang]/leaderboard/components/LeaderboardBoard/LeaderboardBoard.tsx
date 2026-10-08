@@ -2,7 +2,6 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useRef, useState } from "react";
-import { StatStrip } from "@/app/[lang]/components/StatStrip";
 import { TierTube } from "@/app/[lang]/components/TierTube";
 import type {
 	LeaderboardMetric,
@@ -17,11 +16,8 @@ import {
 	fetchStats,
 } from "@/app/[lang]/utils/fetchLeaderboard";
 import { fetchViewer } from "@/app/[lang]/utils/fetchViewer";
-import {
-	formatDayRange,
-	formatTokens,
-	formatUsd,
-} from "@/app/[lang]/utils/formatUsage";
+import { formatDayRange } from "@/app/[lang]/utils/formatUsage";
+import { LeaderboardSummary } from "./components/LeaderboardSummary";
 import { LeaderboardTable } from "./components/LeaderboardTable";
 import { MetricTabs } from "./components/MetricTabs";
 import { type RangeSelection, RangeTabs } from "./components/RangeTabs";
@@ -48,7 +44,7 @@ export function LeaderboardBoard({
 	headerLink,
 	pixelClassName,
 }: LeaderboardBoardProps) {
-	const { t, i18n } = useLingui();
+	const { i18n } = useLingui();
 	const [metric, setMetric] = useState<LeaderboardMetric>("tokens");
 	const [selection, setSelection] = useState<RangeSelection>({ period: "30d" });
 	const [standings, setStandings] = useState(initialStandings);
@@ -56,6 +52,10 @@ export function LeaderboardBoard({
 	const [loading, setLoading] = useState(false);
 	const [touched, setTouched] = useState(false);
 	const [loadingMore, setLoadingMore] = useState(false);
+	const [loadMoreError, setLoadMoreError] = useState(false);
+	const [error, setError] = useState(!initialStandings);
+	const [searchError, setSearchError] = useState(false);
+	const [searchAttempt, setSearchAttempt] = useState(0);
 	const [search, setSearch] = useState("");
 	const [viewerHandle, setViewerHandle] = useState<string | null>(null);
 	const [pinned, setPinned] = useState<StandingRow | null>(null);
@@ -76,16 +76,19 @@ export function LeaderboardBoard({
 	const [searching, setSearching] = useState(false);
 	const queryGeneration = useRef(0);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: Retry the same query when searchAttempt changes.
 	useEffect(() => {
 		const term = search.trim();
 		if (term.length === 0) {
 			setResults(null);
+			setSearchError(false);
 			setSearching(false);
 			return;
 		}
 
 		const controller = new AbortController();
 		setResults(null);
+		setSearchError(false);
 		setSearching(true);
 		const timer = setTimeout(() => {
 			fetchSearch(
@@ -94,7 +97,9 @@ export function LeaderboardBoard({
 				controller.signal,
 			)
 				.then((rows) => {
-					if (!controller.signal.aborted) setResults(rows);
+					if (controller.signal.aborted) return;
+					setSearchError(rows === null);
+					setResults(rows);
 				})
 				.finally(() => {
 					if (!controller.signal.aborted) setSearching(false);
@@ -105,7 +110,7 @@ export function LeaderboardBoard({
 			clearTimeout(timer);
 			controller.abort();
 		};
-	}, [search, selection, metric]);
+	}, [search, selection, metric, searchAttempt]);
 
 	useEffect(() => {
 		let live = true;
@@ -144,6 +149,8 @@ export function LeaderboardBoard({
 
 		const controller = new AbortController();
 		setLoading(true);
+		setError(false);
+		setStandings(null);
 
 		Promise.all([
 			fetchStandings(
@@ -153,26 +160,34 @@ export function LeaderboardBoard({
 			fetchStats(buildStandingsQuery(selection), controller.signal),
 		])
 			.then(([nextStandings, nextStats]) => {
-				if (nextStandings) setStandings(nextStandings);
-				if (nextStats) setStats(nextStats);
+				if (controller.signal.aborted) return;
+				setError(nextStandings === null);
+				setStandings(nextStandings);
+				setStats(nextStats);
 			})
-			.catch(() => {})
-			.finally(() => setLoading(false));
+			.finally(() => {
+				if (!controller.signal.aborted) setLoading(false);
+			});
 
 		return () => controller.abort();
 	}, [metric, selection, touched]);
 
 	const loadMore = async () => {
-		if (!standings || loadingMore) return;
+		if (!standings || loadingMore || loading) return;
 		const generation = queryGeneration.current;
 		setLoadingMore(true);
+		setLoadMoreError(false);
 		try {
 			const next = await fetchStandings({
 				...buildStandingsQuery(selection, metric),
 				limit: PAGE_SIZE,
 				offset: standings.rows.length,
 			});
-			if (!next || generation !== queryGeneration.current) return;
+			if (generation !== queryGeneration.current) return;
+			if (!next) {
+				setLoadMoreError(true);
+				return;
+			}
 			setStandings({
 				...next,
 				rows: [...standings.rows, ...next.rows],
@@ -186,120 +201,133 @@ export function LeaderboardBoard({
 		next: Partial<{ metric: LeaderboardMetric; selection: RangeSelection }>,
 	) => {
 		queryGeneration.current += 1;
+		setLoadMoreError(false);
 		setTouched(true);
 		if (next.metric) setMetric(next.metric);
 		if (next.selection) setSelection(next.selection);
 	};
 
+	const searchingByName = search.trim().length > 0;
+	const hasError = searchingByName ? searchError : error;
 	const range = standings?.range ?? null;
-	const totals = stats?.totals;
 	const shown = standings?.rows.length ?? 0;
 	const total = standings?.total ?? 0;
 
 	return (
-		<div className="space-y-8">
-			<div className="flex items-center justify-between gap-4">
-				<SearchBox value={search} onChange={setSearch} busy={searching} />
-				{headerLink}
-			</div>
-
+		<div className="space-y-6">
 			{header}
 
-			<TierTube
-				subject="fleet"
-				position={stats?.tiers?.position ?? 0}
-				counts={stats?.tiers?.distribution}
-				pixelClassName={pixelClassName}
-			/>
+			{stats && <LeaderboardSummary stats={stats} loading={loading} />}
 
-			{totals && (
-				<StatStrip
+			<div className="space-y-3 rounded-[2px] border border-border bg-foreground/[0.02] p-3 sm:p-4">
+				<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+					<MetricTabs
+						value={metric}
+						onChange={(next) => update({ metric: next })}
+					/>
+					<RangeTabs
+						value={selection}
+						onChange={(next) => update({ selection: next })}
+						earliest={new Date(`${earliest}T00:00:00`)}
+						latest={new Date()}
+					/>
+				</div>
+				<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+					<SearchBox value={search} onChange={setSearch} busy={searching} />
+					<span className="text-xs text-muted-foreground">
+						{loading ? (
+							<Trans>Loading…</Trans>
+						) : range ? (
+							formatDayRange(range, i18n.locale)
+						) : standings ? (
+							<Trans>All time</Trans>
+						) : null}
+					</span>
+				</div>
+			</div>
+			{hasError ? (
+				<div
+					role="alert"
+					className="border border-border p-8 text-center space-y-4"
+				>
+					<p>
+						<Trans>Something went wrong</Trans>
+					</p>
+					<button
+						type="button"
+						onClick={() => {
+							if (searchingByName) {
+								setSearchAttempt((attempt) => attempt + 1);
+								return;
+							}
+							setTouched(true);
+							setSelection((value) => ({ ...value }));
+						}}
+						className="min-h-11 border border-border px-5 text-sm text-brand hover:border-brand focus-visible:outline-2 focus-visible:outline-brand"
+					>
+						<Trans>Try again</Trans>
+					</button>
+				</div>
+			) : (
+				<LeaderboardTable
+					rows={searchingByName ? (results ?? []) : (standings?.rows ?? [])}
+					metric={metric}
+					isLoading={searchingByName ? searching || results === null : loading}
+					emptyReason={searchingByName ? "search" : "board"}
+					onClearSearch={() => setSearch("")}
 					pixelClassName={pixelClassName}
-					stats={[
-						{
-							label: t({
-								message: "Developers",
-							}),
-							value: String(totals.participants),
-						},
-						{
-							label: t({
-								message: "Tokens",
-							}),
-							value: formatTokens(totals.tokens, i18n.locale),
-						},
-						{
-							label: t({
-								message: "Cost",
-							}),
-							value: formatUsd(totals.usd, i18n.locale),
-							hint: t({
-								message: "API-equivalent",
-							}),
-						},
-						{
-							label: t({
-								message: "Cache read",
-							}),
-							value: `${
-								Number(totals.tokens) > 0
-									? Math.round(
-											(Number(stats?.tokenSplit.cachedInput ?? 0) /
-												Number(totals.tokens)) *
-												100,
-										)
-									: 0
-							}%`,
-							hint: t({
-								message: "of all tokens",
-							}),
-						},
-					]}
+					viewerHandle={viewerHandle}
+					pinnedRow={!searchingByName && !loading ? pinned : null}
 				/>
 			)}
 
-			<div className="flex flex-col items-center gap-4">
-				<MetricTabs
-					value={metric}
-					onChange={(next) => update({ metric: next })}
-				/>
-				<RangeTabs
-					value={selection}
-					onChange={(next) => update({ selection: next })}
-					earliest={new Date(`${earliest}T00:00:00`)}
-					latest={new Date()}
-				/>
-				<span className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground/70">
-					{range ? formatDayRange(range, i18n.locale) : <Trans>All time</Trans>}
-				</span>
-			</div>
-
-			<LeaderboardTable
-				rows={results ?? standings?.rows ?? []}
-				metric={metric}
-				isLoading={results === null && loading && !standings}
-				emptyReason={results !== null ? "search" : "board"}
-				pixelClassName={pixelClassName}
-				viewerHandle={viewerHandle}
-				pinnedRow={results === null ? pinned : null}
-			/>
-
-			{results === null && standings && total > shown && (
-				<div className="flex flex-col items-center gap-3">
-					<button
-						type="button"
-						onClick={loadMore}
-						disabled={loadingMore}
-						className="px-5 py-2 text-xs font-mono uppercase tracking-wider border border-border rounded-[2px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors disabled:opacity-50"
-					>
-						{loadingMore ? <Trans>Loading…</Trans> : <Trans>Load more</Trans>}
-					</button>
-					<span className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground/70">
-						<Trans>
-							{shown} of {total}
-						</Trans>
-					</span>
-				</div>
+			{!searchingByName &&
+				!hasError &&
+				!loading &&
+				standings &&
+				total > shown && (
+					<div className="flex flex-col items-center gap-3">
+						{loadMoreError && (
+							<p role="alert" className="text-sm text-muted-foreground">
+								<Trans>Something went wrong</Trans>
+							</p>
+						)}
+						<button
+							type="button"
+							onClick={loadMore}
+							disabled={loadingMore || loading}
+							className="px-5 py-2 text-xs font-mono uppercase tracking-wider border border-border rounded-[2px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors disabled:opacity-50"
+						>
+							{loadingMore ? (
+								<Trans>Loading…</Trans>
+							) : loadMoreError ? (
+								<Trans>Try again</Trans>
+							) : (
+								<Trans>Load more</Trans>
+							)}
+						</button>
+						<span className="text-xs text-muted-foreground">
+							<Trans>
+								{shown} of {total}
+							</Trans>
+						</span>
+					</div>
+				)}
+			{stats && (
+				<details className="group rounded-[2px] border border-border bg-background">
+					<summary className="cursor-pointer px-4 py-3 min-h-11 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-brand">
+						<Trans>Tier</Trans>
+					</summary>
+					<div className="px-4 pb-4 space-y-4">
+						<TierTube
+							subject="fleet"
+							position={stats.tiers?.position ?? 0}
+							counts={stats.tiers?.distribution}
+							pixelClassName={pixelClassName}
+						/>
+						{headerLink}
+					</div>
+				</details>
 			)}
 		</div>
 	);

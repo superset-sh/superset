@@ -1,4 +1,3 @@
-import os from "node:os";
 import path from "node:path";
 import {
 	buildWrapperScript,
@@ -15,6 +14,7 @@ import {
 	removeManagedJsonHooks,
 } from "./managed-json-hooks";
 import { getNotifyScriptPath } from "./notify-hook";
+import { resolveUserHomeDir } from "./paths";
 
 interface DevinHookDefinition {
 	matcher?: string;
@@ -31,7 +31,7 @@ export function getDevinConfigJsonPath(): string {
 	const xdgConfigHome = process.env.XDG_CONFIG_HOME?.trim();
 	const configHome = xdgConfigHome?.length
 		? xdgConfigHome
-		: path.join(os.homedir(), ".config");
+		: path.join(resolveUserHomeDir(), ".config");
 	return path.join(configHome, "devin", "config.json");
 }
 
