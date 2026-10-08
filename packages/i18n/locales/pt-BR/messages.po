@@ -8475,6 +8475,9 @@ msgstr "No app de desktop do Superset, abra <0>Configurações → Aparência �
 msgid "In the Superset desktop app, open Settings → Remote Access and turn on “Allow remote access to this device via relay”."
 msgstr "No app de desktop do Superset, abra Configurações → Acesso remoto e ative “Permitir acesso remoto a este dispositivo via relay”."
 
+msgid "In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers, and Asia as a whole now accounts for more users than the US."
+msgstr "Em menos de um ano, mais de 130.000 desenvolvedores em 176 países usaram o Superset e criaram mais de 1,5 milhão de áreas de trabalho de agentes. O Japão é o segundo maior mercado depois dos EUA, com mais de 12.000 desenvolvedores, e a Ásia como um todo já tem mais usuários que os EUA."
+
 msgid "In-app PR merge"
 msgstr "Merge de PR dentro do app"
 
@@ -11156,6 +11159,9 @@ msgstr "em {offScopeHostName} — não vai rodar aqui"
 
 msgid "On focus change"
 msgstr "Ao alterar o foco"
+
+msgid "On GitHub, it has 15k+ stars, 1,000+ forks, and 100+ contributors. It also hit #1 on Product Hunt."
+msgstr "No GitHub, tem mais de 15 mil estrelas, mais de 1.000 forks e mais de 100 colaboradores. Também chegou ao 1º lugar no Product Hunt."
 
 msgid "On our radar. Order and scope may change."
 msgstr "No nosso radar. Ordem e escopo podem mudar."
@@ -15751,8 +15757,8 @@ msgstr "superset"
 msgid "Superset"
 msgstr "Superset"
 
-msgid "Superset (YC S26) is the open-source IDE for the AI agents era, where engineers run hundreds of coding agents like Claude Code and Codex in parallel. In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers adopting it before it was even available in Japanese, and Asia as a whole now accounts for more users than the US. Superset is used by engineers at Netflix, Microsoft, NVIDIA, DoorDash, Wix, and Mistral AI globally, and across Asia at ByteDance, Toss, Kakao, Grab, LINE, and Rakuten. It has 14k+ GitHub stars, hit #1 on Product Hunt, and recently launched full Japanese language support."
-msgstr "O Superset (YC S26) é o IDE de código aberto para a era dos agentes de IA, em que engenheiros executam centenas de agentes de programação como Claude Code e Codex em paralelo. Em menos de um ano, mais de 130.000 desenvolvedores em 176 países usaram o Superset e criaram mais de 1,5 milhão de áreas de trabalho de agentes. O Japão é o segundo maior mercado depois dos EUA, com mais de 12.000 desenvolvedores adotando o Superset antes mesmo de ele estar disponível em japonês, e a Ásia como um todo já tem mais usuários que os EUA. O Superset é usado por engenheiros da Netflix, Microsoft, NVIDIA, DoorDash, Wix e Mistral AI no mundo todo e, na Ásia, da ByteDance, Toss, Kakao, Grab, LINE e Rakuten. Tem mais de 14 mil estrelas no GitHub, chegou ao 1º lugar no Product Hunt e acaba de lançar suporte completo ao japonês."
+msgid "Superset (YC S26) is the open-source IDE for the AI agents era, where engineers run hundreds of coding agents like Claude Code and Codex in parallel."
+msgstr "O Superset (YC S26) é o IDE de código aberto para a era dos agentes de IA, em que engenheiros executam centenas de agentes de programação como Claude Code e Codex em paralelo."
 
 msgid "Superset | Company Dashboard"
 msgstr "Superset | Painel da empresa"
@@ -15847,6 +15853,9 @@ msgstr "O código-fonte do Superset é público para consulta. Cada pull request
 msgid "Superset is the workbench for the F3 to F4 transition: parallel agents in isolated workspaces, fleets you can actually supervise, and a review surface for code you did not write."
 msgstr "O Superset é a bancada para a transição de F3 para F4: agentes em paralelo em áreas de trabalho isoladas, frotas que dá para supervisionar de verdade e uma superfície de revisão para código que você não escreveu."
 
+msgid "Superset is used by engineers at Netflix, Microsoft, NVIDIA, DoorDash, Wix, and Mistral AI globally, and across Asia at ByteDance, Toss, Kakao, Grab, LINE, and Rakuten."
+msgstr "O Superset é usado por engenheiros da Netflix, Microsoft, NVIDIA, DoorDash, Wix e Mistral AI no mundo todo e, na Ásia, da ByteDance, Toss, Kakao, Grab, LINE e Rakuten."
+
 msgid "Superset isn't on Windows yet"
 msgstr "Por enquanto o Superset é só para Mac"
 
@@ -15897,6 +15906,9 @@ msgstr "O Superset recebe apenas as permissões que este conector solicita. Desc
 
 msgid "Superset originals"
 msgstr "Originais do Superset"
+
+msgid "Superset raised an $11.5M seed round led by Union Square Ventures, with Y Combinator and Paul Graham. TechCrunch named it one of the standout startups from YC Demo Day."
+msgstr "O Superset captou uma rodada seed de US$ 11,5 milhões liderada pela Union Square Ventures, com Y Combinator e Paul Graham. O TechCrunch o apontou como uma das startups de destaque do YC Demo Day."
 
 msgid "Superset runs locally on your developers' machines. We don't store your code or AI conversations, and Superset has completed a SOC 2 Type II audit with an independent auditor. Request the report and review our security documentation at trust.superset.sh."
 msgstr "O Superset roda localmente nas máquinas do seu time. Não guardamos seu código nem suas conversas com a IA, e o Superset concluiu uma auditoria SOC 2 Tipo II com um auditor independente. Solicite o relatório e veja nossa documentação de segurança em trust.superset.sh."
