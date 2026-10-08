@@ -73,7 +73,7 @@ export const cloudWorkspaceStatusValues = [
 export const cloudWorkspaceStatusEnum = z.enum(cloudWorkspaceStatusValues);
 export type CloudWorkspaceStatus = z.infer<typeof cloudWorkspaceStatusEnum>;
 
-/** Who can see and open a cloud workspace: its creator alone, or its whole organization. */
+/** Who else can open a cloud workspace besides its creator and the people it is shared with. `just_me` predates sharing: it means no one else. */
 export const cloudWorkspaceVisibilityValues = ["just_me", "org"] as const;
 export const cloudWorkspaceVisibilityEnum = z.enum(
 	cloudWorkspaceVisibilityValues,
@@ -95,6 +95,8 @@ export const cloudWorkspaceActivityEventValues = [
 	"description_edited",
 	"run_finished",
 	"run_failed",
+	"shared",
+	"unshared",
 ] as const;
 export type CloudWorkspaceActivityEvent =
 	(typeof cloudWorkspaceActivityEventValues)[number];
@@ -248,6 +250,10 @@ export const desktopNoticeCtaActionValues = [
 export const pageVisibilityValues = ["just_me", "org", "everyone"] as const;
 export const pageVisibilityEnum = z.enum(pageVisibilityValues);
 export type PageVisibility = z.infer<typeof pageVisibilityEnum>;
+
+export const pageShareRoleValues = ["view", "comment"] as const;
+export const pageShareRoleEnum = z.enum(pageShareRoleValues);
+export type PageShareRole = z.infer<typeof pageShareRoleEnum>;
 
 export const pageReportReasonValues = [
 	"malware_or_phishing",
