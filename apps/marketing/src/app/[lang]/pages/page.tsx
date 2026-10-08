@@ -7,8 +7,19 @@ import Link from "next/link";
 import { CTASection } from "@/app/[lang]/components/CTASection";
 import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
+import { CommentGraphic } from "./components/CommentGraphic";
+import { CreateGraphic } from "./components/CreateGraphic";
+import { IterateGraphic } from "./components/IterateGraphic";
 import { PagesDemoVideo } from "./components/PagesDemoVideo";
-import { FEATURES, LOOP_STEPS } from "./constants";
+import { ShareGraphic } from "./components/ShareGraphic";
+import { FEATURES, LOOP_STEPS, type LoopStepId } from "./constants";
+
+const STEP_GRAPHICS: Record<LoopStepId, () => React.JSX.Element> = {
+	create: CreateGraphic,
+	share: ShareGraphic,
+	comment: CommentGraphic,
+	iterate: IterateGraphic,
+};
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
@@ -64,7 +75,10 @@ export default async function PagesPage() {
 							</a>
 						</div>
 					</div>
-					<div className="mt-14 overflow-hidden border border-border bg-[#141414]">
+					<div
+						aria-hidden="true"
+						className="mt-14 overflow-hidden border border-border bg-[#141414]"
+					>
 						<video
 							src="/pages/hero.mp4"
 							poster="/pages/hero-poster.webp"
@@ -72,7 +86,6 @@ export default async function PagesPage() {
 							loop
 							muted
 							playsInline
-							aria-hidden="true"
 							className="block aspect-[1600/838] w-full"
 						/>
 					</div>
@@ -94,23 +107,28 @@ export default async function PagesPage() {
 					<h2 className="mt-4 font-medium text-3xl text-foreground tracking-tight sm:text-4xl">
 						<Trans>Leave a comment. The agent does the rest.</Trans>
 					</h2>
-					<ol className="mt-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-						{LOOP_STEPS.map((step, index) => (
-							<li
-								key={step.title.id}
-								className="space-y-3 border-border border-t pt-6"
-							>
-								<span className="font-mono text-brand text-sm">
-									{String(index + 1).padStart(2, "0")}
-								</span>
-								<h3 className="font-medium text-foreground text-xl tracking-tight">
-									{t(step.title)}
-								</h3>
-								<p className="text-muted-foreground leading-relaxed">
-									{t(step.description)}
-								</p>
-							</li>
-						))}
+					<ol className="mt-12 grid gap-x-8 gap-y-14 md:grid-cols-2">
+						{LOOP_STEPS.map((step, index) => {
+							const Graphic = STEP_GRAPHICS[step.id];
+							return (
+								<li key={step.id}>
+									<Graphic />
+									<div className="mt-6 flex gap-4">
+										<span className="pt-1 font-mono text-brand text-sm">
+											{String(index + 1).padStart(2, "0")}
+										</span>
+										<div className="space-y-2">
+											<h3 className="font-medium text-foreground text-xl tracking-tight">
+												{t(step.title)}
+											</h3>
+											<p className="max-w-md text-muted-foreground leading-relaxed">
+												{t(step.description)}
+											</p>
+										</div>
+									</div>
+								</li>
+							);
+						})}
 					</ol>
 				</section>
 

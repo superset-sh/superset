@@ -1362,6 +1362,9 @@ msgstr "30G"
 msgid "3d ago"
 msgstr "3g fa"
 
+msgid "4 min ago"
+msgstr "4 min fa"
+
 msgid "4.5:1 (AA)"
 msgstr "4.5:1 (AA)"
 
@@ -3239,6 +3242,9 @@ msgstr "Posso usare le mie chiavi API?"
 
 msgid "Can merge without conflicts"
 msgstr "Può essere unita senza conflitti"
+
+msgid "Can the headline say what happens after sign-up?"
+msgstr "Il titolo può dire cosa succede dopo la registrazione?"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Puoi standardizzare i tooltip in tutta l'app?"
@@ -5886,6 +5892,9 @@ msgstr "Modalità design — clicca un elemento della pagina per inviarlo a un a
 
 msgid "Design mode failed"
 msgstr "Modalità design non riuscita"
+
+msgid "Design review"
+msgstr "Revisione del design"
 
 msgid "Desktop"
 msgstr "Desktop"
@@ -13868,6 +13877,9 @@ msgstr "Revoca la chiave API"
 msgid "Revoke key"
 msgstr "Revoca la chiave"
 
+msgid "Rewrote it and added the next steps below. Published as version 3."
+msgstr "Ho riscritto il titolo e aggiunto i prossimi passi sotto. Pubblicato come versione 3."
+
 msgid "Rich input"
 msgstr "Input avanzato"
 
@@ -15099,6 +15111,9 @@ msgstr "Fai accedere il profilo {0} a un altro account. Gli altri profili, il pr
 #. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 msgid "Sign the system-default {0} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected."
 msgstr "Fai accedere l'accesso {0} predefinito di sistema a un altro account. Sostituisce l'accesso predefinito attuale su questa macchina; i profili e gli agenti in esecuzione non vengono toccati."
+
+msgid "Sign up in one step"
+msgstr "Registrati in un passaggio"
 
 msgid "Sign up to get started with Superset"
 msgstr "Registrati per iniziare con Superset"
@@ -17437,6 +17452,9 @@ msgstr "Attiva “Consenti l'accesso remoto a questo dispositivo tramite relay�
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Trasforma le conversazioni Slack in task, esegui agenti dal tuo workspace e tieni aggiornati i colleghi dove nasce il lavoro."
+
+msgid "turn the onboarding findings into a page"
+msgstr "trasforma i risultati sull'onboarding in una pagina"
 
 msgid "Two Hands"
 msgstr "Due mani"

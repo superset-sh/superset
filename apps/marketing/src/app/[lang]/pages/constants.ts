@@ -1,13 +1,16 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 
+export type LoopStepId = "create" | "share" | "comment" | "iterate";
+
 interface PagesItem {
 	title: MessageDescriptor;
 	description: MessageDescriptor;
 }
 
-export const LOOP_STEPS: PagesItem[] = [
+export const LOOP_STEPS: (PagesItem & { id: LoopStepId })[] = [
 	{
+		id: "create",
 		title: msg({ message: "Create." }),
 		description: msg({
 			message:
@@ -15,6 +18,7 @@ export const LOOP_STEPS: PagesItem[] = [
 		}),
 	},
 	{
+		id: "share",
 		title: msg({ message: "Share." }),
 		description: msg({
 			message:
@@ -22,6 +26,7 @@ export const LOOP_STEPS: PagesItem[] = [
 		}),
 	},
 	{
+		id: "comment",
 		title: msg({ message: "Comment." }),
 		description: msg({
 			message:
@@ -29,6 +34,7 @@ export const LOOP_STEPS: PagesItem[] = [
 		}),
 	},
 	{
+		id: "iterate",
 		title: msg({ message: "Iterate." }),
 		description: msg({
 			message:

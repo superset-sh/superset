@@ -1362,6 +1362,9 @@ msgstr "30D"
 msgid "3d ago"
 msgstr "3d geleden"
 
+msgid "4 min ago"
+msgstr "4 min geleden"
+
 msgid "4.5:1 (AA)"
 msgstr "4,5:1 (AA)"
 
@@ -3239,6 +3242,9 @@ msgstr "Kan ik mijn eigen API-sleutels gebruiken?"
 
 msgid "Can merge without conflicts"
 msgstr "Kan zonder conflicten worden gemerged"
+
+msgid "Can the headline say what happens after sign-up?"
+msgstr "Kan de kop zeggen wat er na het aanmelden gebeurt?"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Kun je de tooltips in de hele app standaardiseren?"
@@ -5886,6 +5892,9 @@ msgstr "Designmodus — klik op een element op de pagina om het naar een agent t
 
 msgid "Design mode failed"
 msgstr "Designmodus mislukt"
+
+msgid "Design review"
+msgstr "Designreview"
 
 msgid "Desktop"
 msgstr "Bureaublad"
@@ -13868,6 +13877,9 @@ msgstr "API-sleutel intrekken"
 msgid "Revoke key"
 msgstr "Sleutel intrekken"
 
+msgid "Rewrote it and added the next steps below. Published as version 3."
+msgstr "Kop herschreven en de volgende stappen eronder toegevoegd. Gepubliceerd als versie 3."
+
 msgid "Rich input"
 msgstr "Uitgebreide invoer"
 
@@ -15099,6 +15111,9 @@ msgstr "Log het {0}-profiel in op een ander account. Andere profielen, de systee
 #. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 msgid "Sign the system-default {0} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected."
 msgstr "Log de systeemstandaard {0}-login in op een ander account. Die vervangt de huidige standaardlogin op deze machine; profielen en draaiende agents blijven ongemoeid."
+
+msgid "Sign up in one step"
+msgstr "Aanmelden in één stap"
 
 msgid "Sign up to get started with Superset"
 msgstr "Registreer je om met Superset te beginnen"
@@ -17437,6 +17452,9 @@ msgstr "Zet “Externe toegang tot dit apparaat via de relay toestaan” aan"
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Zet Slack-gesprekken om in taken, laat agents draaien vanuit je werkruimte en houd teamgenoten op de hoogte waar het werk begint."
+
+msgid "turn the onboarding findings into a page"
+msgstr "maak van de onboarding-bevindingen een pagina"
 
 msgid "Two Hands"
 msgstr "Twee handen"

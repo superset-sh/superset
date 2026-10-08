@@ -1362,6 +1362,9 @@ msgstr "30N"
 msgid "3d ago"
 msgstr "3 ngày trước"
 
+msgid "4 min ago"
+msgstr "4 phút trước"
+
 msgid "4.5:1 (AA)"
 msgstr "4.5:1 (AA)"
 
@@ -3239,6 +3242,9 @@ msgstr "Tôi có thể dùng khóa API của mình không?"
 
 msgid "Can merge without conflicts"
 msgstr "Có thể merge mà không xung đột"
+
+msgid "Can the headline say what happens after sign-up?"
+msgstr "Tiêu đề có thể cho biết điều gì xảy ra sau khi đăng ký không?"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Bạn chuẩn hóa tooltip trên toàn ứng dụng được không?"
@@ -5886,6 +5892,9 @@ msgstr "Chế độ thiết kế — nhấp vào phần tử bất kỳ trong tr
 
 msgid "Design mode failed"
 msgstr "Chế độ thiết kế thất bại"
+
+msgid "Design review"
+msgstr "Duyệt thiết kế"
 
 msgid "Desktop"
 msgstr "Màn hình nền"
@@ -13868,6 +13877,9 @@ msgstr "Thu hồi khóa API"
 msgid "Revoke key"
 msgstr "Thu hồi khóa"
 
+msgid "Rewrote it and added the next steps below. Published as version 3."
+msgstr "Đã viết lại tiêu đề và thêm các bước tiếp theo bên dưới. Đã xuất bản thành phiên bản 3."
+
 msgid "Rich input"
 msgstr "Nhập nâng cao"
 
@@ -15099,6 +15111,9 @@ msgstr "Đăng nhập hồ sơ {0} bằng một tài khoản khác. Các hồ s�
 #. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 msgid "Sign the system-default {0} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected."
 msgstr "Đăng nhập lần đăng nhập {0} mặc định của hệ thống bằng một tài khoản khác. Nó thay cho lần đăng nhập mặc định hiện tại trên máy này; các hồ sơ và agent đang chạy không bị ảnh hưởng."
+
+msgid "Sign up in one step"
+msgstr "Đăng ký trong một bước"
 
 msgid "Sign up to get started with Superset"
 msgstr "Đăng ký để bắt đầu với Superset"
@@ -17437,6 +17452,9 @@ msgstr "Bật “Cho phép truy cập từ xa vào thiết bị này qua relay�
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Biến hội thoại Slack thành tác vụ, chạy agent từ workspace của bạn và giữ đồng đội nắm thông tin ngay nơi công việc bắt đầu."
+
+msgid "turn the onboarding findings into a page"
+msgstr "biến kết quả nghiên cứu onboarding thành một trang"
 
 msgid "Two Hands"
 msgstr "Hai tay"

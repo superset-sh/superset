@@ -1362,6 +1362,9 @@ msgstr "30일"
 msgid "3d ago"
 msgstr "3일 전"
 
+msgid "4 min ago"
+msgstr "4분 전"
+
 msgid "4.5:1 (AA)"
 msgstr "4.5:1 (AA)"
 
@@ -3239,6 +3242,9 @@ msgstr "제 API 키를 사용할 수 있나요?"
 
 msgid "Can merge without conflicts"
 msgstr "충돌 없이 머지할 수 있습니다"
+
+msgid "Can the headline say what happens after sign-up?"
+msgstr "가입 후에 어떤 일이 일어나는지 제목에 담을 수 있을까요?"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "앱 전반의 툴팁을 표준화해 줄 수 있나요?"
@@ -5886,6 +5892,9 @@ msgstr "디자인 모드 — 페이지의 요소를 클릭하면 에이전트로
 
 msgid "Design mode failed"
 msgstr "디자인 모드 실패"
+
+msgid "Design review"
+msgstr "디자인 리뷰"
 
 msgid "Desktop"
 msgstr "데스크톱"
@@ -13868,6 +13877,9 @@ msgstr "API 키 해지"
 msgid "Revoke key"
 msgstr "키 해지"
 
+msgid "Rewrote it and added the next steps below. Published as version 3."
+msgstr "제목을 다시 쓰고 아래에 다음 단계를 추가했습니다. 버전 3으로 게시했습니다."
+
 msgid "Rich input"
 msgstr "리치 입력"
 
@@ -15099,6 +15111,9 @@ msgstr "{0} 프로필을 다른 계정으로 로그인합니다. 다른 프로�
 #. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 msgid "Sign the system-default {0} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected."
 msgstr "시스템 기본 {0} 로그인을 다른 계정으로 바꿉니다. 이 머신의 현재 기본 로그인을 대체하며, 프로필과 실행 중인 에이전트에는 영향을 주지 않습니다."
+
+msgid "Sign up in one step"
+msgstr "한 단계로 가입"
 
 msgid "Sign up to get started with Superset"
 msgstr "가입하고 Superset을 시작하세요"
@@ -17437,6 +17452,9 @@ msgstr "“릴레이를 통해 이 기기에 원격 액세스 허용” 켜기"
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Slack 대화를 작업으로 바꾸고, 워크스페이스에서 에이전트를 실행하고, 일이 시작되는 곳에서 팀원과 상황을 공유하세요."
+
+msgid "turn the onboarding findings into a page"
+msgstr "온보딩 조사 결과를 페이지로 만들어 줘"
 
 msgid "Two Hands"
 msgstr "양손"

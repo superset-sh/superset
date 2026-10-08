@@ -1362,6 +1362,9 @@ msgstr "30天"
 msgid "3d ago"
 msgstr "3天前"
 
+msgid "4 min ago"
+msgstr "4 分钟前"
+
 msgid "4.5:1 (AA)"
 msgstr "4.5:1 (AA)"
 
@@ -3239,6 +3242,9 @@ msgstr "我可以用自己的API密钥吗？"
 
 msgid "Can merge without conflicts"
 msgstr "可以无冲突合并"
+
+msgid "Can the headline say what happens after sign-up?"
+msgstr "标题能说明注册之后会发生什么吗？"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "能把整个应用的tooltip样式统一一下吗？"
@@ -5886,6 +5892,9 @@ msgstr "设计模式——点击页面中的任意元素即可发送给智能体
 
 msgid "Design mode failed"
 msgstr "设计模式失败"
+
+msgid "Design review"
+msgstr "设计评审"
 
 msgid "Desktop"
 msgstr "桌面端"
@@ -13868,6 +13877,9 @@ msgstr "吊销API密钥"
 msgid "Revoke key"
 msgstr "吊销密钥"
 
+msgid "Rewrote it and added the next steps below. Published as version 3."
+msgstr "已重写标题，并在下方添加了后续步骤。已发布为版本 3。"
+
 msgid "Rich input"
 msgstr "富输入"
 
@@ -15099,6 +15111,9 @@ msgstr "将{0}配置文件切换到另一个账户。其他配置文件、系统
 #. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 msgid "Sign the system-default {0} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected."
 msgstr "将系统默认的{0}登录切换到另一个账户。它会替换本机当前的默认登录；配置文件和运行中的智能体不受影响。"
+
+msgid "Sign up in one step"
+msgstr "一步完成注册"
 
 msgid "Sign up to get started with Superset"
 msgstr "注册以开始使用Superset"
@@ -17437,6 +17452,9 @@ msgstr "开启“允许通过中继远程访问本设备”"
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "把Slack对话变成任务，从工作区运行智能体，让队友在工作开始的地方保持同步。"
+
+msgid "turn the onboarding findings into a page"
+msgstr "把新手引导的调研结果做成页面"
 
 msgid "Two Hands"
 msgstr "双手齐开"

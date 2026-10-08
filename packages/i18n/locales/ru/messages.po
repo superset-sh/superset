@@ -1362,6 +1362,9 @@ msgstr "30 дн."
 msgid "3d ago"
 msgstr "3 д. назад"
 
+msgid "4 min ago"
+msgstr "4 мин назад"
+
 msgid "4.5:1 (AA)"
 msgstr "4.5:1 (AA)"
 
@@ -3239,6 +3242,9 @@ msgstr "Можно использовать свои ключи API?"
 
 msgid "Can merge without conflicts"
 msgstr "Можно объединить без конфликтов"
+
+msgid "Can the headline say what happens after sign-up?"
+msgstr "Может ли заголовок сказать, что происходит после регистрации?"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Можешь стандартизировать подсказки во всём приложении?"
@@ -5886,6 +5892,9 @@ msgstr "Режим дизайна — кликните по любому эле�
 
 msgid "Design mode failed"
 msgstr "Режим дизайна не сработал"
+
+msgid "Design review"
+msgstr "Дизайн-ревью"
 
 msgid "Desktop"
 msgstr "Десктоп"
@@ -13868,6 +13877,9 @@ msgstr "Отозвать ключ API"
 msgid "Revoke key"
 msgstr "Отозвать ключ"
 
+msgid "Rewrote it and added the next steps below. Published as version 3."
+msgstr "Переписал заголовок и добавил следующие шаги ниже. Опубликовано как версия 3."
+
 msgid "Rich input"
 msgstr "Расширенный ввод"
 
@@ -15099,6 +15111,9 @@ msgstr "Войдите профилем {0} в другой аккаунт. Др
 #. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 msgid "Sign the system-default {0} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected."
 msgstr "Войдите системным входом {0} по умолчанию в другой аккаунт. Это заменит текущий основной вход на этой машине; профили и работающие агенты не затрагиваются."
+
+msgid "Sign up in one step"
+msgstr "Регистрация в один шаг"
 
 msgid "Sign up to get started with Superset"
 msgstr "Зарегистрируйтесь, чтобы начать работу с Superset"
@@ -17437,6 +17452,9 @@ msgstr "Включите «Разрешить удалённый доступ к
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Превращайте обсуждения в Slack в задачи, запускайте агентов из рабочей области и держите команду в курсе там, где начинается работа."
+
+msgid "turn the onboarding findings into a page"
+msgstr "сделай страницу из выводов по онбордингу"
 
 msgid "Two Hands"
 msgstr "Две руки"

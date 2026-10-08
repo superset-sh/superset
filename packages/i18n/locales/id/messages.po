@@ -1362,6 +1362,9 @@ msgstr "30H"
 msgid "3d ago"
 msgstr "3h lalu"
 
+msgid "4 min ago"
+msgstr "4 mnt lalu"
+
 msgid "4.5:1 (AA)"
 msgstr "4.5:1 (AA)"
 
@@ -3239,6 +3242,9 @@ msgstr "Bisakah saya memakai kunci API saya sendiri?"
 
 msgid "Can merge without conflicts"
 msgstr "Dapat di-merge tanpa konflik"
+
+msgid "Can the headline say what happens after sign-up?"
+msgstr "Bisakah judulnya menjelaskan apa yang terjadi setelah mendaftar?"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Bisakah kamu menyeragamkan tooltip di seluruh aplikasi?"
@@ -5886,6 +5892,9 @@ msgstr "Mode desain — klik elemen mana pun di halaman untuk mengirimkannya ke 
 
 msgid "Design mode failed"
 msgstr "Mode desain gagal"
+
+msgid "Design review"
+msgstr "Tinjauan desain"
 
 msgid "Desktop"
 msgstr "Desktop"
@@ -13868,6 +13877,9 @@ msgstr "Cabut kunci API"
 msgid "Revoke key"
 msgstr "Cabut kunci"
 
+msgid "Rewrote it and added the next steps below. Published as version 3."
+msgstr "Judul sudah ditulis ulang dan langkah berikutnya ditambahkan di bawah. Diterbitkan sebagai versi 3."
+
 msgid "Rich input"
 msgstr "Input kaya"
 
@@ -15099,6 +15111,9 @@ msgstr "Masukkan profil {0} ke akun lain. Profil lain, bawaan sistem, dan agen y
 #. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 msgid "Sign the system-default {0} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected."
 msgstr "Masukkan login {0} bawaan sistem ke akun lain. Ini menggantikan sesi masuk bawaan di mesin ini; profil dan agen yang berjalan tidak terpengaruh."
+
+msgid "Sign up in one step"
+msgstr "Daftar dalam satu langkah"
 
 msgid "Sign up to get started with Superset"
 msgstr "Daftar untuk mulai memakai Superset"
@@ -17437,6 +17452,9 @@ msgstr "Aktifkan “Izinkan akses jarak jauh ke perangkat ini melalui relay”"
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Ubah percakapan Slack menjadi tugas, jalankan agen dari workspace Anda, dan libatkan rekan tim di tempat pekerjaan dimulai."
+
+msgid "turn the onboarding findings into a page"
+msgstr "ubah temuan onboarding menjadi halaman"
 
 msgid "Two Hands"
 msgstr "Dua tangan"

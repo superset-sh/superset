@@ -1362,6 +1362,9 @@ msgstr "30G"
 msgid "3d ago"
 msgstr "3g önce"
 
+msgid "4 min ago"
+msgstr "4 dk önce"
+
 msgid "4.5:1 (AA)"
 msgstr "4.5:1 (AA)"
 
@@ -3239,6 +3242,9 @@ msgstr "Kendi API anahtarlarımı kullanabilir miyim?"
 
 msgid "Can merge without conflicts"
 msgstr "Çakışma olmadan birleştirilebilir"
+
+msgid "Can the headline say what happens after sign-up?"
+msgstr "Başlık, kayıttan sonra ne olacağını söyleyebilir mi?"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Uygulama genelindeki tooltip'leri standartlaştırabilir misin?"
@@ -5886,6 +5892,9 @@ msgstr "Tasarım modu — ajana göndermek için sayfadaki herhangi bir öğeye 
 
 msgid "Design mode failed"
 msgstr "Tasarım modu başarısız"
+
+msgid "Design review"
+msgstr "Tasarım incelemesi"
 
 msgid "Desktop"
 msgstr "Masaüstü"
@@ -13868,6 +13877,9 @@ msgstr "API anahtarını iptal et"
 msgid "Revoke key"
 msgstr "Anahtarı iptal et"
 
+msgid "Rewrote it and added the next steps below. Published as version 3."
+msgstr "Başlığı yeniden yazdım ve altına sonraki adımları ekledim. Sürüm 3 olarak yayınlandı."
+
 msgid "Rich input"
 msgstr "Zengin giriş"
 
@@ -15099,6 +15111,9 @@ msgstr "{0} profilini farklı bir hesaba geçirin. Diğer profiller, sistem vars
 #. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 msgid "Sign the system-default {0} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected."
 msgstr "Sistem varsayılanı olan {0} oturumunu farklı bir hesaba geçirin. Bu makinedeki mevcut varsayılan oturumun yerini alır; profiller ve çalışan ajanlar etkilenmez."
+
+msgid "Sign up in one step"
+msgstr "Tek adımda kaydol"
 
 msgid "Sign up to get started with Superset"
 msgstr "Superset'i kullanmaya başlamak için kaydolun"
@@ -17437,6 +17452,9 @@ msgstr "“Bu cihaza röle üzerinden uzaktan erişime izin ver” seçeneğini 
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Slack konuşmalarını göreve dönüştürün, çalışma alanınızdan ajan çalıştırın ve takım arkadaşlarınızı işin başladığı yerde haberdar edin."
+
+msgid "turn the onboarding findings into a page"
+msgstr "onboarding bulgularını bir sayfaya dönüştür"
 
 msgid "Two Hands"
 msgstr "İki el"

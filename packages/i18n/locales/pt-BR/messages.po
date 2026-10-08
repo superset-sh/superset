@@ -1362,6 +1362,9 @@ msgstr "30D"
 msgid "3d ago"
 msgstr "há 3d"
 
+msgid "4 min ago"
+msgstr "há 4 min"
+
 msgid "4.5:1 (AA)"
 msgstr "4,5:1 (AA)"
 
@@ -3239,6 +3242,9 @@ msgstr "Posso usar minhas próprias chaves de API?"
 
 msgid "Can merge without conflicts"
 msgstr "Pode fazer merge sem conflitos"
+
+msgid "Can the headline say what happens after sign-up?"
+msgstr "O título pode dizer o que acontece depois do cadastro?"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Dá para padronizar os tooltips do app inteiro?"
@@ -5886,6 +5892,9 @@ msgstr "Modo design — clique em qualquer elemento da página para enviá-lo a 
 
 msgid "Design mode failed"
 msgstr "Falha no modo design"
+
+msgid "Design review"
+msgstr "Revisão de design"
 
 msgid "Desktop"
 msgstr "Área de trabalho"
@@ -13868,6 +13877,9 @@ msgstr "Revogar chave de API"
 msgid "Revoke key"
 msgstr "Revogar chave"
 
+msgid "Rewrote it and added the next steps below. Published as version 3."
+msgstr "Reescrevi o título e adicionei os próximos passos abaixo. Publicado como versão 3."
+
 msgid "Rich input"
 msgstr "Entrada avançada"
 
@@ -15099,6 +15111,9 @@ msgstr "Faz o perfil {0} entrar em outra conta. Outros perfis, o padrão do sist
 #. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 msgid "Sign the system-default {0} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected."
 msgstr "Faz o login padrão do sistema para {0} entrar em outra conta. Isso substitui o login padrão atual nesta máquina; perfis e agentes em execução não são afetados."
+
+msgid "Sign up in one step"
+msgstr "Cadastre-se em um passo"
 
 msgid "Sign up to get started with Superset"
 msgstr "Crie sua conta para começar no Superset"
@@ -17437,6 +17452,9 @@ msgstr "Ative “Permitir acesso remoto a este dispositivo via relay”"
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Transforme conversas do Slack em tarefas, execute agentes a partir da sua área de trabalho e mantenha o time informado onde o trabalho começa."
+
+msgid "turn the onboarding findings into a page"
+msgstr "transforme as descobertas do onboarding em uma página"
 
 msgid "Two Hands"
 msgstr "Duas mãos"

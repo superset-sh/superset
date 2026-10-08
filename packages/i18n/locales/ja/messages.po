@@ -1362,6 +1362,9 @@ msgstr "30日"
 msgid "3d ago"
 msgstr "3日前"
 
+msgid "4 min ago"
+msgstr "4分前"
+
 msgid "4.5:1 (AA)"
 msgstr "4.5:1 (AA)"
 
@@ -3239,6 +3242,9 @@ msgstr "自分のAPIキーを使えますか?"
 
 msgid "Can merge without conflicts"
 msgstr "コンフリクトなしでマージできます"
+
+msgid "Can the headline say what happens after sign-up?"
+msgstr "登録後に何が起きるか見出しで伝えられますか？"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "アプリ全体のtooltipを統一できますか?"
@@ -5886,6 +5892,9 @@ msgstr "デザインモード — ページ内の要素をクリックしてエ�
 
 msgid "Design mode failed"
 msgstr "デザインモードに失敗しました"
+
+msgid "Design review"
+msgstr "デザインレビュー"
 
 msgid "Desktop"
 msgstr "デスクトップ"
@@ -13868,6 +13877,9 @@ msgstr "APIキーを取り消す"
 msgid "Revoke key"
 msgstr "キーを取り消す"
 
+msgid "Rewrote it and added the next steps below. Published as version 3."
+msgstr "見出しを書き直し、下に次のステップを追加しました。バージョン3として公開しました。"
+
 msgid "Rich input"
 msgstr "リッチ入力"
 
@@ -15099,6 +15111,9 @@ msgstr "{0}プロファイルを別のアカウントにサインインし直し
 #. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 msgid "Sign the system-default {0} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected."
 msgstr "システムデフォルトの{0}ログインを別のアカウントにサインインし直します。このマシンの現在のデフォルトサインインが置き換わります。プロファイルと実行中のエージェントは影響を受けません。"
+
+msgid "Sign up in one step"
+msgstr "ワンステップで登録"
 
 msgid "Sign up to get started with Superset"
 msgstr "サインアップしてSupersetを始めましょう"
@@ -17437,6 +17452,9 @@ msgstr "「リレー経由でこのデバイスへのリモートアクセスを
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Slackの会話をタスクに変え、ワークスペースからエージェントを実行し、仕事が始まる場所でチームと共有できます。"
+
+msgid "turn the onboarding findings into a page"
+msgstr "オンボーディングの調査結果をページにして"
 
 msgid "Two Hands"
 msgstr "両手"

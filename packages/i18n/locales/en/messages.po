@@ -1362,6 +1362,9 @@ msgstr "30D"
 msgid "3d ago"
 msgstr "3d ago"
 
+msgid "4 min ago"
+msgstr "4 min ago"
+
 msgid "4.5:1 (AA)"
 msgstr "4.5:1 (AA)"
 
@@ -3239,6 +3242,9 @@ msgstr "Can I use my own API keys?"
 
 msgid "Can merge without conflicts"
 msgstr "Can merge without conflicts"
+
+msgid "Can the headline say what happens after sign-up?"
+msgstr "Can the headline say what happens after sign-up?"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Can you standardize the tooltips across the app?"
@@ -5886,6 +5892,9 @@ msgstr "Design mode — click any element in the page to send it to an agent."
 
 msgid "Design mode failed"
 msgstr "Design mode failed"
+
+msgid "Design review"
+msgstr "Design review"
 
 msgid "Desktop"
 msgstr "Desktop"
@@ -13868,6 +13877,9 @@ msgstr "Revoke API key"
 msgid "Revoke key"
 msgstr "Revoke key"
 
+msgid "Rewrote it and added the next steps below. Published as version 3."
+msgstr "Rewrote it and added the next steps below. Published as version 3."
+
 msgid "Rich input"
 msgstr "Rich input"
 
@@ -15099,6 +15111,9 @@ msgstr "Sign the {0} profile into a different account. Other profiles, the syste
 #. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 msgid "Sign the system-default {0} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected."
 msgstr "Sign the system-default {0} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected."
+
+msgid "Sign up in one step"
+msgstr "Sign up in one step"
 
 msgid "Sign up to get started with Superset"
 msgstr "Sign up to get started with Superset"
@@ -17437,6 +17452,9 @@ msgstr "Turn on “Allow remote access to this device via relay”"
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
+
+msgid "turn the onboarding findings into a page"
+msgstr "turn the onboarding findings into a page"
 
 msgid "Two Hands"
 msgstr "Two Hands"

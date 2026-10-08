@@ -1362,6 +1362,9 @@ msgstr "30 d"
 msgid "3d ago"
 msgstr "před 3 d"
 
+msgid "4 min ago"
+msgstr "před 4 min"
+
 msgid "4.5:1 (AA)"
 msgstr "4,5:1 (AA)"
 
@@ -3239,6 +3242,9 @@ msgstr "Můžu použít vlastní API klíče?"
 
 msgid "Can merge without conflicts"
 msgstr "Lze sloučit bez konfliktů"
+
+msgid "Can the headline say what happens after sign-up?"
+msgstr "Může nadpis říct, co se stane po registraci?"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Můžeš sjednotit tooltipy napříč aplikací?"
@@ -5886,6 +5892,9 @@ msgstr "Režim designu — klikněte na libovolný prvek stránky a pošlete ho 
 
 msgid "Design mode failed"
 msgstr "Režim designu selhal"
+
+msgid "Design review"
+msgstr "Design review"
 
 msgid "Desktop"
 msgstr "Plocha"
@@ -13868,6 +13877,9 @@ msgstr "Zneplatnit API klíč"
 msgid "Revoke key"
 msgstr "Zneplatnit klíč"
 
+msgid "Rewrote it and added the next steps below. Published as version 3."
+msgstr "Přepsal jsem nadpis a níže přidal další kroky. Publikováno jako verze 3."
+
 msgid "Rich input"
 msgstr "Rozšířený vstup"
 
@@ -15099,6 +15111,9 @@ msgstr "Přihlaste profil {0} k jinému účtu. Ostatních profilů, systémově
 #. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 msgid "Sign the system-default {0} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected."
 msgstr "Přihlaste systémově výchozí přihlášení {0} k jinému účtu. Nahradí to současné výchozí přihlášení na tomto počítači; profilů ani běžících agentů se to nedotkne."
+
+msgid "Sign up in one step"
+msgstr "Registrace v jednom kroku"
 
 msgid "Sign up to get started with Superset"
 msgstr "Zaregistrujte se a začněte se Superset"
@@ -17437,6 +17452,9 @@ msgstr "Zapněte „Povolit vzdálený přístup k tomuto zařízení přes rela
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Proměňte konverzace ve Slacku v úkoly, spouštějte agenty ze svého pracovního prostoru a držte kolegy v obraze tam, kde práce začíná."
+
+msgid "turn the onboarding findings into a page"
+msgstr "udělej z poznatků o onboardingu stránku"
 
 msgid "Two Hands"
 msgstr "Obě ruce"

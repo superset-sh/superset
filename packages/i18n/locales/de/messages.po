@@ -1362,6 +1362,9 @@ msgstr "30T"
 msgid "3d ago"
 msgstr "vor 3 Tagen"
 
+msgid "4 min ago"
+msgstr "vor 4 Min."
+
 msgid "4.5:1 (AA)"
 msgstr "4,5:1 (AA)"
 
@@ -3239,6 +3242,9 @@ msgstr "Kann ich meine eigenen API-Schlüssel nutzen?"
 
 msgid "Can merge without conflicts"
 msgstr "Kann ohne Konflikte zusammengeführt werden"
+
+msgid "Can the headline say what happens after sign-up?"
+msgstr "Kann die Überschrift sagen, was nach der Registrierung passiert?"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Kannst du die Tooltips in der ganzen App vereinheitlichen?"
@@ -5886,6 +5892,9 @@ msgstr "Design-Modus — klicke ein beliebiges Element auf der Seite an, um es a
 
 msgid "Design mode failed"
 msgstr "Design-Modus fehlgeschlagen"
+
+msgid "Design review"
+msgstr "Design-Review"
 
 msgid "Desktop"
 msgstr "Desktop"
@@ -13868,6 +13877,9 @@ msgstr "API-Schlüssel widerrufen"
 msgid "Revoke key"
 msgstr "Schlüssel widerrufen"
 
+msgid "Rewrote it and added the next steps below. Published as version 3."
+msgstr "Überschrift umgeschrieben und die nächsten Schritte darunter ergänzt. Als Version 3 veröffentlicht."
+
 msgid "Rich input"
 msgstr "Rich-Eingabe"
 
@@ -15099,6 +15111,9 @@ msgstr "Melde das {0}-Profil mit einem anderen Konto an. Andere Profile, der Sys
 #. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 msgid "Sign the system-default {0} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected."
 msgstr "Melde die systemweit voreingestellte {0}-Anmeldung mit einem anderen Konto an. Sie ersetzt die aktuelle Standardanmeldung auf diesem Rechner; Profile und laufende Agenten bleiben unberührt."
+
+msgid "Sign up in one step"
+msgstr "In einem Schritt registrieren"
 
 msgid "Sign up to get started with Superset"
 msgstr "Registriere dich, um mit Superset loszulegen"
@@ -17437,6 +17452,9 @@ msgstr "Aktiviere „Fernzugriff auf dieses Gerät über den Relay erlauben“"
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Mach aus Slack-Unterhaltungen Aufgaben, starte Agenten aus deinem Arbeitsbereich und halte dein Team dort auf dem Laufenden, wo die Arbeit beginnt."
+
+msgid "turn the onboarding findings into a page"
+msgstr "mach aus den Onboarding-Ergebnissen eine Seite"
 
 msgid "Two Hands"
 msgstr "Beidhändig"

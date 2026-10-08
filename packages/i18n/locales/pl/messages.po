@@ -1362,6 +1362,9 @@ msgstr "30D"
 msgid "3d ago"
 msgstr "3 dni temu"
 
+msgid "4 min ago"
+msgstr "4 min temu"
+
 msgid "4.5:1 (AA)"
 msgstr "4,5:1 (AA)"
 
@@ -3239,6 +3242,9 @@ msgstr "Czy mogę używać własnych kluczy API?"
 
 msgid "Can merge without conflicts"
 msgstr "Można scalić bez konfliktów"
+
+msgid "Can the headline say what happens after sign-up?"
+msgstr "Czy nagłówek może mówić, co dzieje się po rejestracji?"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Czy możesz ujednolicić tooltipy w całej aplikacji?"
@@ -5886,6 +5892,9 @@ msgstr "Tryb Design — kliknij dowolny element na stronie, aby wysłać go do a
 
 msgid "Design mode failed"
 msgstr "Tryb Design nie zadziałał"
+
+msgid "Design review"
+msgstr "Przegląd projektu"
 
 msgid "Desktop"
 msgstr "Pulpit"
@@ -13868,6 +13877,9 @@ msgstr "Unieważnij klucz API"
 msgid "Revoke key"
 msgstr "Unieważnij klucz"
 
+msgid "Rewrote it and added the next steps below. Published as version 3."
+msgstr "Przepisałem nagłówek i dodałem kolejne kroki poniżej. Opublikowano jako wersję 3."
+
 msgid "Rich input"
 msgstr "Rozbudowane pole tekstowe"
 
@@ -15099,6 +15111,9 @@ msgstr "Zaloguj profil {0} na inne konto. Pozostałe profile, domyślne logowani
 #. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 msgid "Sign the system-default {0} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected."
 msgstr "Zaloguj systemowo domyślne logowanie {0} na inne konto. Zastępuje bieżące domyślne logowanie na tej maszynie; profile i działający agenci pozostają bez zmian."
+
+msgid "Sign up in one step"
+msgstr "Rejestracja w jednym kroku"
 
 msgid "Sign up to get started with Superset"
 msgstr "Zarejestruj się, aby zacząć korzystać z Superset"
@@ -17437,6 +17452,9 @@ msgstr "Włącz „Zezwól na zdalny dostęp do tego urządzenia przez przekaźn
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Zamieniaj rozmowy na Slacku w zadania, uruchamiaj agentów ze swojego obszaru roboczego i informuj zespół tam, gdzie zaczyna się praca."
+
+msgid "turn the onboarding findings into a page"
+msgstr "zrób stronę z wniosków o onboardingu"
 
 msgid "Two Hands"
 msgstr "Dwie ręce"
