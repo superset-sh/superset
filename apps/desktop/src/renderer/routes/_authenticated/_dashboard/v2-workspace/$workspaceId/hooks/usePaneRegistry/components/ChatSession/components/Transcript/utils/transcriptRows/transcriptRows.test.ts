@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import type { OutboxEntry, TurnGroup } from "@superset/chat/core";
-import type { ToolCall, UserMessage } from "@superset/chat/protocol";
+import type {
+	ApprovalRequest,
+	ToolCall,
+	UserMessage,
+} from "@superset/chat/protocol";
 import { pageLinkFinder } from "../../../../utils/pageLinks";
 import { transcriptRows } from "./transcriptRows";
 
@@ -47,6 +51,43 @@ function publish(id: string, startedAtMs: number): ToolCall {
 }
 
 describe("transcriptRows", () => {
+	test("an approval is after its target only when the target row is right above", () => {
+		const approval: ApprovalRequest = {
+			id: "approval:tool-1",
+			kind: "approval_request",
+			targetItemId: "tool-1",
+			title: "superset pages publish report.html",
+			status: "answered",
+			startedAtMs: 6,
+		};
+		const between = {
+			id: "a1",
+			kind: "agent_message" as const,
+			text: "ok",
+			startedAtMs: 5,
+		};
+		const rowsFor = (entries: TurnGroup["entries"]) =>
+			transcriptRows(
+				[{ turnId: "t1", turn: null, entries }],
+				[],
+				new Set(),
+				find,
+			).find((row) => row.kind === "item" && row.item.id === approval.id);
+
+		const adjacent = rowsFor([
+			{ kind: "tool_run", items: [publish("tool-1", 4)] },
+			{ kind: "item", item: approval },
+		]);
+		const separated = rowsFor([
+			{ kind: "tool_run", items: [publish("tool-1", 4)] },
+			{ kind: "item", item: between },
+			{ kind: "item", item: approval },
+		]);
+
+		expect(adjacent).toMatchObject({ afterTarget: true });
+		expect(separated).not.toHaveProperty("afterTarget");
+	});
+
 	test("a prompt keeps one key from sending, through its echo, into its turn", () => {
 		const pending = transcriptRows([], [sending], new Set(), find);
 		const echoed = transcriptRows(

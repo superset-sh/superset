@@ -24,6 +24,7 @@ import { QuestionPage } from "./components/QuestionPage";
 import {
 	answerText,
 	type FormValues,
+	isInvalidNumber,
 	isPageAnswered,
 	questionPages,
 } from "./utils/questionPages";
@@ -128,11 +129,13 @@ export function QuestionForm({
 		);
 	}
 
-	const missingRequired = pages.some(
-		(entry) => entry.field.required && !isPageAnswered(entry, values),
+	const blocked = pages.some(
+		(entry) =>
+			(entry.field.required && !isPageAnswered(entry, values)) ||
+			isInvalidNumber(entry.field, values[entry.field.id]),
 	);
 	const submit = () => {
-		if (missingRequired) return;
+		if (blocked) return;
 		const filled = Object.fromEntries(
 			Object.entries(values).filter(([, value]) => answerText(value) !== ""),
 		);
@@ -266,7 +269,7 @@ export function QuestionForm({
 					)}
 					<Button
 						className="gap-1.5"
-						disabled={last && missingRequired}
+						disabled={last && blocked}
 						onClick={next}
 						size="sm"
 					>

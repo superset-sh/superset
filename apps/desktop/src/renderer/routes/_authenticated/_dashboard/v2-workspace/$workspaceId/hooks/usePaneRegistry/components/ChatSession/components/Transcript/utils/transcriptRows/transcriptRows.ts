@@ -4,7 +4,12 @@ import {
 	toolRunKey,
 	transcriptItemKey,
 } from "@superset/chat/core";
-import type { Item, ToolCall, UserMessage } from "@superset/chat/protocol";
+import type {
+	ApprovalRequest,
+	Item,
+	ToolCall,
+	UserMessage,
+} from "@superset/chat/protocol";
 import type { PageLink, PageLinkFinder } from "../../../../utils/pageLinks";
 import { turnPageLinks } from "../turnPageLinks";
 
@@ -25,6 +30,8 @@ export type TranscriptRow =
 			pages?: readonly PageLink[];
 			/** Slugs an agent message leaves to the earlier message that shows them. */
 			pagesShownEarlier?: string;
+			/** An approval whose target tool call is the row right above it. */
+			afterTarget?: boolean;
 	  }
 	| { kind: "outbox"; key: string; groupStart: boolean; entry: OutboxEntry }
 	| {
@@ -88,6 +95,16 @@ export function transcriptRows(
 				if (clientId) echoedClientIds.add(clientId);
 				const pages = links.fromTools.get(entry.item.id);
 				const pagesShownEarlier = links.shownEarlier.get(entry.item.id);
+				const targetId =
+					entry.item.kind === "approval_request"
+						? (entry.item as ApprovalRequest).targetItemId
+						: null;
+				const above = groupStart ? undefined : rows.at(-1);
+				const afterTarget =
+					targetId !== null &&
+					((above?.kind === "item" && above.item.id === targetId) ||
+						(above?.kind === "tool_run" &&
+							above.items.at(-1)?.id === targetId));
 				push({
 					kind: "item",
 					key: transcriptItemKey(entry.item),
@@ -95,6 +112,7 @@ export function transcriptRows(
 					item: entry.item,
 					...(pages ? { pages } : {}),
 					...(pagesShownEarlier ? { pagesShownEarlier } : {}),
+					...(afterTarget ? { afterTarget } : {}),
 				});
 				return;
 			}

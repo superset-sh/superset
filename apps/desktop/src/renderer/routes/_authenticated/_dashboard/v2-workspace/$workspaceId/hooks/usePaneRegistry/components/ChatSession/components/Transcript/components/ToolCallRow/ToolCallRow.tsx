@@ -52,8 +52,12 @@ export function ToolCallRow({
 	} else {
 		// The translator names a command "Terminal" until the command itself
 		// arrives a beat later; "Running" says more in the meantime.
+		const rawMcpTitle =
+			!item.title ||
+			item.title.startsWith("mcp__") ||
+			item.title === `${mcpServer?.tool} (${mcpServer?.name})`;
 		const label =
-			plugin && mcpServer && (!item.title || item.title.startsWith("mcp__"))
+			plugin && mcpServer && rawMcpTitle
 				? mcpServer.tool
 				: running && command && item.title === "Terminal"
 					? t({ message: "Running" })

@@ -253,8 +253,9 @@ function formField(
 			? (property.items?.anyOf ?? enumOptions(property.items?.enum))
 			: (property.oneOf ?? enumOptions(property.enum, property.enumNames));
 	if (!choices) {
-		const numeric = property.type === "number" || property.type === "integer";
-		return { ...base, input: numeric ? "number" : "text" };
+		if (property.type === "integer") return { ...base, input: "integer" };
+		if (property.type === "number") return { ...base, input: "number" };
+		return { ...base, input: "text" };
 	}
 	return {
 		...base,
@@ -276,14 +277,40 @@ function formContent(
 		const type = fieldTypes[id];
 		if (Array.isArray(value)) content[id] = value;
 		else if (type === "boolean") content[id] = value === "true";
-		else if (type === "number" || type === "integer") {
-			const parsed = Number(value);
-			if (value.trim() !== "" && Number.isFinite(parsed)) {
-				content[id] = type === "integer" ? Math.trunc(parsed) : parsed;
-			}
-		} else content[id] = value;
+		else if (type === "number" || type === "integer")
+			content[id] = Number(value);
+		else content[id] = value;
 	}
 	return content;
+}
+
+function formErrors(
+	values: Record<string, string | string[]>,
+	fields: readonly FormField[],
+	fieldTypes: Record<string, string | undefined>,
+): string[] {
+	const errors: string[] = [];
+	for (const field of fields) {
+		const value = values[field.id];
+		const empty =
+			value === undefined ||
+			(Array.isArray(value) ? value.length === 0 : value.trim() === "");
+		if (empty) {
+			if (field.required) errors.push(field.id);
+			continue;
+		}
+		const type = fieldTypes[field.id];
+		if (type !== "number" && type !== "integer") continue;
+		const parsed = Number(value);
+		if (
+			typeof value !== "string" ||
+			!Number.isFinite(parsed) ||
+			(type === "integer" && !Number.isInteger(parsed))
+		) {
+			errors.push(field.id);
+		}
+	}
+	return errors;
 }
 
 export class AcpAdapter implements HarnessAdapter {
@@ -401,6 +428,21 @@ export class AcpAdapter implements HarnessAdapter {
 	respondToApproval(approvalId: string, decision: Decision): void {
 		const pending = this.pendingApprovals.get(approvalId);
 		if (!pending || !this.client) return;
+		if (
+			decision.type === "form" &&
+			pending.item.form &&
+			formErrors(
+				decision.values,
+				pending.item.form.fields,
+				pending.fieldTypes ?? {},
+			).length > 0
+		) {
+			this.emitNotice(
+				"error",
+				"That answer is missing a required field or has an invalid number, so it was not sent.",
+			);
+			return;
+		}
 		this.pendingApprovals.delete(approvalId);
 		this.client.respond(
 			pending.requestId,
@@ -1617,13 +1659,22 @@ export class AcpAdapter implements HarnessAdapter {
 	private dropCancelledRequest(params: unknown): void {
 		const requestId = (params as { requestId?: unknown } | undefined)
 			?.requestId;
+		let dropped = false;
 		for (const [approvalId, pending] of [...this.pendingApprovals]) {
 			if (pending.requestId !== requestId) continue;
 			this.pendingApprovals.delete(approvalId);
+			dropped = true;
 			this.emitItem(
 				{ ...pending.item, status: "stale", completedAtMs: this.now() },
 				pending.turnId,
 			);
+		}
+		if (
+			dropped &&
+			this.pendingApprovals.size === 0 &&
+			this.currentTurn?.status === "running"
+		) {
+			this.emitSession({ status: "running" });
 		}
 	}
 

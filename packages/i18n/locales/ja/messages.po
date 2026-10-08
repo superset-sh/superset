@@ -6685,6 +6685,9 @@ msgstr "有効な繰り返しルールを入力してください。"
 msgid "Enter a value."
 msgstr "値を入力してください。"
 
+msgid "Enter a whole number"
+msgstr "整数を入力"
+
 msgid "Enter URL or search..."
 msgstr "URLを入力または検索..."
 

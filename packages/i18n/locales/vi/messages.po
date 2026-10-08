@@ -6685,6 +6685,9 @@ msgstr "Hãy nhập một quy tắc lặp hợp lệ."
 msgid "Enter a value."
 msgstr "Hãy nhập một giá trị."
 
+msgid "Enter a whole number"
+msgstr "Nhập một số nguyên"
+
 msgid "Enter URL or search..."
 msgstr "Nhập URL hoặc tìm kiếm..."
 

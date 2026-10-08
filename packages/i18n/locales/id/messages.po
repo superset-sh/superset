@@ -6685,6 +6685,9 @@ msgstr "Masukkan aturan pengulangan yang valid."
 msgid "Enter a value."
 msgstr "Masukkan sebuah nilai."
 
+msgid "Enter a whole number"
+msgstr "Masukkan bilangan bulat"
+
 msgid "Enter URL or search..."
 msgstr "Masukkan URL atau cari..."
 

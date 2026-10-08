@@ -496,19 +496,66 @@ describe("useChatSession", () => {
 		await stack.runtime.dispose();
 	});
 
-	test("ignores a body reply that was requested before a resync", async () => {
+	test("resyncs again for a reset that arrives during a resync", async () => {
+		const stack = await startStack();
+		let outlines = 0;
+		let hold: Promise<void> | null = null;
+		let release = () => {};
+		const transport = new Proxy(stack.transport, {
+			get: (target, prop, receiver) =>
+				prop === "getOutline"
+					? async (input: { sessionId: string }) => {
+							outlines += 1;
+							const result = await target.getOutline(input);
+							if (hold) await hold;
+							return result;
+						}
+					: Reflect.get(target, prop, receiver),
+		});
+		const client = stack.makeClient({ transport });
+		const view = render(<Probe client={client} />);
+		await domWaitFor(() => expect(session().status).toBe("ready"));
+		const seeded = outlines;
+
+		hold = new Promise((resolve) => {
+			release = resolve;
+		});
+		const reset = () =>
+			act(() => {
+				stack.runtime.subscriptions.publish({
+					v: 1,
+					sessionId: stack.sessionId,
+					ts: Date.now(),
+					reset: { reason: "journal_missing" },
+				});
+			});
+		reset();
+		await domWaitFor(() => expect(outlines).toBe(seeded + 1));
+		reset();
+		hold = null;
+		act(() => release());
+		await domWaitFor(() => expect(outlines).toBe(seeded + 2));
+		await domWaitFor(() => expect(session().snapshot.pendingReset).toBeNull());
+		view.unmount();
+		client.close();
+		await stack.runtime.dispose();
+	});
+
+	test("re-requests a body that was in flight across a resync", async () => {
 		const stack = await startStack();
 		let release = () => {};
 		const hold = new Promise<void>((resolve) => {
 			release = resolve;
 		});
+		const requests: string[][] = [];
 		const omitted = withOmittedTool(stack.transport);
 		const transport = new Proxy(omitted, {
 			get: (target, prop, receiver) =>
 				prop === "getItemBodies"
 					? async (input: { sessionId: string; itemIds: string[] }) => {
+							requests.push(input.itemIds);
 							const result = await target.getItemBodies(input);
-							await hold;
+							if (requests.length === 1) await hold;
 							return result;
 						}
 					: Reflect.get(target, prop, receiver),
@@ -518,7 +565,7 @@ describe("useChatSession", () => {
 		await domWaitFor(() => expect(session().status).toBe("ready"));
 
 		act(() => session().requestItemBodies(["tool-1"]));
-		await Bun.sleep(10);
+		await domWaitFor(() => expect(requests).toHaveLength(1));
 		act(() => {
 			stack.runtime.subscriptions.publish({
 				v: 1,
@@ -527,10 +574,17 @@ describe("useChatSession", () => {
 				reset: { reason: "journal_missing" },
 			});
 		});
-		await domWaitFor(() => expect(session().snapshot.pendingReset).toBeNull());
+		await domWaitFor(() => expect(requests).toEqual([["tool-1"], ["tool-1"]]));
+		await domWaitFor(() =>
+			expect(session().snapshot.items.get("tool-1")?.item).not.toEqual(
+				OMITTED_TOOL,
+			),
+		);
 		act(() => release());
 		await Bun.sleep(20);
-		expect(session().snapshot.items.get("tool-1")?.item).toEqual(OMITTED_TOOL);
+		expect(session().snapshot.items.get("tool-1")?.item).not.toEqual(
+			OMITTED_TOOL,
+		);
 		view.unmount();
 		client.close();
 		await stack.runtime.dispose();

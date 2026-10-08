@@ -152,7 +152,7 @@ export const formFieldSchema = z.looseObject({
 	id: z.string().min(1),
 	title: z.string().optional(),
 	description: z.string().optional(),
-	input: z.enum(["single", "multi", "text", "number", "boolean"]),
+	input: z.enum(["single", "multi", "text", "number", "integer", "boolean"]),
 	required: z.boolean().optional(),
 	options: z
 		.array(

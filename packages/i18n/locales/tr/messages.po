@@ -6685,6 +6685,9 @@ msgstr "Geçerli bir yineleme kuralı girin."
 msgid "Enter a value."
 msgstr "Bir değer girin."
 
+msgid "Enter a whole number"
+msgstr "Bir tam sayı girin"
+
 msgid "Enter URL or search..."
 msgstr "URL girin veya arayın..."
 

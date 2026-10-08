@@ -38,14 +38,14 @@ function text(itemId: string): Envelope {
 }
 
 describe("newerThan", () => {
-	test("keeps durable events past the outline cursor in the same epoch", () => {
+	test("keeps durable events past the outline cursor or from another epoch", () => {
 		const kept = newerThan(snapshot, [
 			durable("e1", 9),
 			durable("e1", 10),
 			durable("e1", 11),
 			durable("e2", 12),
 		]);
-		expect(kept).toEqual([durable("e1", 11)]);
+		expect(kept).toEqual([durable("e1", 11), durable("e2", 12)]);
 	});
 
 	test("drops text for items the outline already has as finished, and resets", () => {

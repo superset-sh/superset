@@ -6685,6 +6685,9 @@ msgstr "Podaj prawidłową regułę powtarzania."
 msgid "Enter a value."
 msgstr "Podaj wartość."
 
+msgid "Enter a whole number"
+msgstr "Wpisz liczbę całkowitą"
+
 msgid "Enter URL or search..."
 msgstr "Wpisz URL lub szukaj..."
 

@@ -12,6 +12,7 @@ import {
 import type { OutboxEntry, SessionSnapshot } from "../../core";
 import {
 	emptySnapshot,
+	hasOmittedBody,
 	Outbox,
 	reduceMany,
 	snapshotFromOutline,
@@ -19,7 +20,7 @@ import {
 } from "../../core";
 import type { Cursor } from "../../protocol/cursor";
 import type { DeltaChannel, Envelope } from "../../protocol/envelope";
-import { isDurableEnvelope } from "../../protocol/envelope";
+import { isDurableEnvelope, isResetEnvelope } from "../../protocol/envelope";
 import type { Decision, UserContent, UserMessage } from "../../protocol/items";
 
 import { newerThan } from "./utils/newerThan";
@@ -149,6 +150,7 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 	const cancelFlushRef = useRef<(() => void) | null>(null);
 	const nextBeforeRef = useRef<Cursor | null>(null);
 	const resyncingRef = useRef(false);
+	const resyncAgainRef = useRef(false);
 	const resyncBufferRef = useRef<Envelope[] | null>(null);
 	const clientRef = useRef(client);
 	clientRef.current = client;
@@ -258,6 +260,7 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 
 	const applySeed = useCallback(
 		(seed: Seed, merge: boolean, arrived: readonly Envelope[] = []) => {
+			const requested = requestedBodiesRef.current;
 			requestedBodiesRef.current = new Set();
 			bodyAttemptsRef.current = new Map();
 			seedGenerationRef.current += 1;
@@ -269,6 +272,13 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 					newerThan(seed.snapshot, arrived),
 				);
 				setSnapshot(seeded);
+				const stillOmitted = [...requested].filter((id) => {
+					const stored = seeded.items.get(id);
+					return stored !== undefined && hasOmittedBody(stored.item);
+				});
+				if (stillOmitted.length > 0) {
+					requestItemBodiesRef.current(stillOmitted);
+				}
 				return seeded;
 			}
 			nextBeforeRef.current = seed.nextBefore;
@@ -289,19 +299,31 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 		[],
 	);
 
-	const resync = useCallback(async () => {
-		if (resyncingRef.current) return;
-		resyncingRef.current = true;
-		resyncBufferRef.current = [];
-		try {
-			const seed = await fetchSeed(client, pageSize).catch(() => null);
-			if (clientRef.current !== client) return;
-			if (seed) applySeed(seed, true, resyncBufferRef.current);
-		} finally {
-			resyncingRef.current = false;
-			resyncBufferRef.current = null;
-		}
-	}, [client, pageSize, applySeed]);
+	const resync = useCallback(
+		async (afterReset = false) => {
+			if (resyncingRef.current) {
+				if (afterReset) resyncAgainRef.current = true;
+				return;
+			}
+			resyncingRef.current = true;
+			try {
+				do {
+					resyncAgainRef.current = false;
+					resyncBufferRef.current = [];
+					const seed = await fetchSeed(client, pageSize).catch(() => null);
+					if (clientRef.current !== client) return;
+					const seeded = seed
+						? applySeed(seed, true, resyncBufferRef.current)
+						: null;
+					if (seeded?.pendingReset) resyncAgainRef.current = true;
+				} while (resyncAgainRef.current);
+			} finally {
+				resyncingRef.current = false;
+				resyncBufferRef.current = null;
+			}
+		},
+		[client, pageSize, applySeed],
+	);
 
 	useEffect(() => {
 		if (snapshot.pendingReset) void resync();
@@ -371,9 +393,11 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 			stream = client.subscribe({
 				deltas,
 				since: seeded?.cursor ?? session.cursor,
-				onEnvelope: enqueue,
+				onEnvelope: (envelope) => {
+					if (!isResetEnvelope(envelope)) enqueue(envelope);
+				},
 				onReset: () => {
-					void resync();
+					void resync(true);
 				},
 				onStatusChange: setConnection,
 			});

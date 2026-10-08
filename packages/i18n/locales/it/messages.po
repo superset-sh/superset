@@ -6685,6 +6685,9 @@ msgstr "Inserisci una regola di ricorrenza valida."
 msgid "Enter a value."
 msgstr "Inserisci un valore."
 
+msgid "Enter a whole number"
+msgstr "Inserisci un numero intero"
+
 msgid "Enter URL or search..."
 msgstr "Inserisci un URL o cerca..."
 

@@ -6685,6 +6685,9 @@ msgstr "請輸入有效的重複規則。"
 msgid "Enter a value."
 msgstr "請輸入一個值。"
 
+msgid "Enter a whole number"
+msgstr "輸入整數"
+
 msgid "Enter URL or search..."
 msgstr "輸入URL或搜尋..."
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { FormField } from "@superset/chat/protocol";
-import { questionPages } from "./questionPages";
+import { isInvalidNumber, questionPages } from "./questionPages";
 
 const choice = (id: string): FormField => ({
 	id,
@@ -31,5 +31,14 @@ describe("questionPages", () => {
 			["priority", undefined],
 			["notes", undefined],
 		]);
+	});
+
+	it("flags a decimal in a whole-number field but not an empty one", () => {
+		const integer: FormField = { id: "count", input: "integer" };
+		const number: FormField = { id: "ratio", input: "number" };
+		expect(isInvalidNumber(integer, "3.9")).toBe(true);
+		expect(isInvalidNumber(integer, "4")).toBe(false);
+		expect(isInvalidNumber(integer, "")).toBe(false);
+		expect(isInvalidNumber(number, "3.9")).toBe(false);
 	});
 });

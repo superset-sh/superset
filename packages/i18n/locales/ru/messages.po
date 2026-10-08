@@ -6685,6 +6685,9 @@ msgstr "Введите корректное правило повторения.
 msgid "Enter a value."
 msgstr "Введите значение."
 
+msgid "Enter a whole number"
+msgstr "Введите целое число"
+
 msgid "Enter URL or search..."
 msgstr "Введите URL или запрос..."
 

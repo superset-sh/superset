@@ -6685,6 +6685,9 @@ msgstr "Enter a valid recurrence rule."
 msgid "Enter a value."
 msgstr "Enter a value."
 
+msgid "Enter a whole number"
+msgstr "Enter a whole number"
+
 msgid "Enter URL or search..."
 msgstr "Enter URL or search..."
 

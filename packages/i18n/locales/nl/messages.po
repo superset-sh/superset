@@ -6685,6 +6685,9 @@ msgstr "Voer een geldige herhalingsregel in."
 msgid "Enter a value."
 msgstr "Voer een waarde in."
 
+msgid "Enter a whole number"
+msgstr "Voer een geheel getal in"
+
 msgid "Enter URL or search..."
 msgstr "Voer URL of zoekterm in..."
 

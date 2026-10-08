@@ -6685,6 +6685,9 @@ msgstr "유효한 반복 규칙을 입력하세요."
 msgid "Enter a value."
 msgstr "값을 입력하세요."
 
+msgid "Enter a whole number"
+msgstr "정수 입력"
+
 msgid "Enter URL or search..."
 msgstr "URL 또는 검색어 입력..."
 

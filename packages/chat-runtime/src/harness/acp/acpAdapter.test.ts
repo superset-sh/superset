@@ -946,7 +946,7 @@ describe("AcpAdapter", () => {
 			form: {
 				fields: [
 					{ id: "confirm", input: "boolean", required: true },
-					{ id: "count", input: "number" },
+					{ id: "count", input: "integer" },
 					{ id: "ratio", input: "number" },
 					{
 						id: "size",
@@ -962,13 +962,57 @@ describe("AcpAdapter", () => {
 
 		adapter.respondToApproval(approval?.id ?? "", {
 			type: "form",
-			values: { confirm: "true", count: "3", ratio: "abc", size: "l" },
+			values: { confirm: "true", count: "3", ratio: "2.5", size: "l" },
 		});
 		await flush();
 
 		expect(agent.responseTo(requestId)?.result).toEqual({
 			action: "accept",
-			content: { confirm: true, count: 3, size: "l" },
+			content: { confirm: true, count: 3, ratio: 2.5, size: "l" },
+		});
+
+		await adapter.dispose();
+	});
+
+	it("keeps a form pending when an answer misses a required field or is not a whole number", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+
+		const requestId = agent.requestElicitation({
+			message: "Configure",
+			requestedSchema: {
+				type: "object",
+				required: ["confirm"],
+				properties: {
+					confirm: { type: "boolean" },
+					count: { type: "integer" },
+				},
+			},
+		});
+		await flush();
+		const approvalId =
+			itemsOf(events).find((i) => i.kind === "approval_request")?.id ?? "";
+
+		adapter.respondToApproval(approvalId, {
+			type: "form",
+			values: { count: "3" },
+		});
+		adapter.respondToApproval(approvalId, {
+			type: "form",
+			values: { confirm: "true", count: "3.9" },
+		});
+		await flush();
+		expect(agent.responseTo(requestId)).toBeUndefined();
+
+		adapter.respondToApproval(approvalId, {
+			type: "form",
+			values: { confirm: "false", count: "4" },
+		});
+		await flush();
+		expect(agent.responseTo(requestId)?.result).toEqual({
+			action: "accept",
+			content: { confirm: false, count: 4 },
 		});
 
 		await adapter.dispose();
@@ -1060,7 +1104,10 @@ describe("AcpAdapter", () => {
 
 	it("marks a form stale when the agent cancels its request", async () => {
 		const agent = new FakeAcpAgent();
+		agent.holdPrompts = true;
 		const { adapter, events } = startAdapter(agent);
+		await flush();
+		adapter.prompt([{ type: "text", text: "ask me" }]);
 		await flush();
 
 		const requestId = agent.requestElicitation({ message: "Which?" });
@@ -1072,6 +1119,10 @@ describe("AcpAdapter", () => {
 			(i) => i.kind === "approval_request",
 		);
 		expect(approvals.at(-1)).toMatchObject({ status: "stale" });
+		const statuses = events.flatMap((e) =>
+			e.kind === "session" && e.session.status ? [e.session.status] : [],
+		);
+		expect(statuses.at(-1)).toBe("running");
 
 		await adapter.dispose();
 	});

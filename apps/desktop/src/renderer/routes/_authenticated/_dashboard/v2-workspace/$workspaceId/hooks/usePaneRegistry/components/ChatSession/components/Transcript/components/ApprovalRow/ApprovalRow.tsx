@@ -49,10 +49,12 @@ function decisionLabel(
 }
 
 export function ApprovalRow({
+	afterTarget = false,
 	item,
 	onRespond,
 	target,
 }: {
+	afterTarget?: boolean;
 	item: ApprovalRequest;
 	onRespond: (approvalId: string, decision: Decision) => void;
 	target?: Item | undefined;
@@ -71,7 +73,7 @@ export function ApprovalRow({
 				"flex flex-col gap-2.5",
 				pending
 					? "rounded-xl border border-warning/30 bg-warning/[0.04] p-3"
-					: target
+					: afterTarget
 						? "px-1 py-0.5"
 						: "rounded-xl border border-border/60 bg-muted/20 px-3 py-2",
 			)}
@@ -92,19 +94,19 @@ export function ApprovalRow({
 						)}
 					</span>
 				) : (
-					!target && (
+					!afterTarget && (
 						<span className="min-w-0 flex-1 truncate text-muted-foreground">
 							{item.title}
 						</span>
 					)
 				)}
 				{item.status === "stale" && (
-					<Badge className={cn(!target && "ml-auto")} variant="outline">
+					<Badge className={cn(!afterTarget && "ml-auto")} variant="outline">
 						<Trans>Expired</Trans>
 					</Badge>
 				)}
 				{item.status === "answered" && (
-					<Badge className={cn(!target && "ml-auto")} variant="secondary">
+					<Badge className={cn(!afterTarget && "ml-auto")} variant="secondary">
 						{decisionLabel(item.decision, options)}
 					</Badge>
 				)}

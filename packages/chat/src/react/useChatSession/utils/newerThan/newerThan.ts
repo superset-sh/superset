@@ -14,8 +14,8 @@ export function newerThan(
 		if (isDurableEnvelope(envelope)) {
 			return (
 				!cursor ||
-				(envelope.cursor.epoch === cursor.epoch &&
-					envelope.cursor.seq > cursor.seq)
+				envelope.cursor.epoch !== cursor.epoch ||
+				envelope.cursor.seq > cursor.seq
 			);
 		}
 		if (!isDeltaEnvelope(envelope)) return false;

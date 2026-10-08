@@ -6685,6 +6685,9 @@ msgstr "Zadejte platné pravidlo opakování."
 msgid "Enter a value."
 msgstr "Zadejte hodnotu."
 
+msgid "Enter a whole number"
+msgstr "Zadejte celé číslo"
+
 msgid "Enter URL or search..."
 msgstr "Zadejte URL nebo hledejte..."
 

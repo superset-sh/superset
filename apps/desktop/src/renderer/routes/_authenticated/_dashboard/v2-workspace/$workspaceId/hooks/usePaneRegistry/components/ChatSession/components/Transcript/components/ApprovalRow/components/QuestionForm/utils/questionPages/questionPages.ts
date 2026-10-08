@@ -25,6 +25,20 @@ export function answerText(value: string | string[] | undefined): string {
 	return value?.trim() ?? "";
 }
 
+export function isInvalidNumber(
+	field: FormField,
+	value: string | string[] | undefined,
+): boolean {
+	if (field.input !== "number" && field.input !== "integer") return false;
+	const text = answerText(value);
+	if (text === "") return false;
+	const parsed = Number(text);
+	return (
+		!Number.isFinite(parsed) ||
+		(field.input === "integer" && !Number.isInteger(parsed))
+	);
+}
+
 export function isPageAnswered(
 	page: QuestionPage,
 	values: FormValues,

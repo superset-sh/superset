@@ -5,6 +5,7 @@ import { Check, PencilLine } from "lucide-react";
 import {
 	answerText,
 	type FormValues,
+	isInvalidNumber,
 	type QuestionPage as Page,
 } from "../../utils/questionPages";
 
@@ -30,12 +31,14 @@ export function QuestionPage({
 	const { t } = useLingui();
 	const { field, other } = page;
 	const multi = field.input === "multi";
-	const freeform = field.input === "text" || field.input === "number";
+	const numeric = field.input === "number" || field.input === "integer";
+	const freeform = field.input === "text" || numeric;
 	const current = values[field.id];
 	const isPicked = (value: string) =>
 		Array.isArray(current) ? current.includes(value) : current === value;
 	const textField = freeform ? field : other;
 	const typed = textField ? answerText(values[textField.id]) : "";
+	const invalid = isInvalidNumber(field, values[field.id]);
 
 	return (
 		<div className="flex flex-col gap-3">
@@ -105,27 +108,46 @@ export function QuestionPage({
 					>
 						<PencilLine className="size-[18px] shrink-0 p-0.5 text-muted-foreground" />
 						<input
+							aria-invalid={invalid || undefined}
 							aria-label={textField.description ?? textField.title ?? t`Other`}
 							className="h-6 min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
-							inputMode={field.input === "number" ? "decimal" : undefined}
+							inputMode={
+								field.input === "integer"
+									? "numeric"
+									: field.input === "number"
+										? "decimal"
+										: undefined
+							}
 							onChange={(event) => onType(textField.id, event.target.value)}
 							onKeyDown={(event) => {
 								event.stopPropagation();
 								if (event.key === "Enter") onEnter();
 							}}
 							placeholder={
-								field.input === "number"
-									? t`Enter a number`
-									: freeform
-										? t`Type your answer`
-										: multi
-											? t`Something else? Add it here`
-											: t`Something else? Type your own answer`
+								field.input === "integer"
+									? t`Enter a whole number`
+									: field.input === "number"
+										? t`Enter a number`
+										: freeform
+											? t`Type your answer`
+											: multi
+												? t`Something else? Add it here`
+												: t`Something else? Type your own answer`
 							}
-							type={field.input === "number" ? "number" : "text"}
+							step={field.input === "integer" ? 1 : "any"}
+							type={numeric ? "number" : "text"}
 							value={typed}
 						/>
 					</label>
+				)}
+				{invalid && (
+					<p className="px-3 text-destructive text-xs">
+						{field.input === "integer" ? (
+							<Trans>Enter a whole number</Trans>
+						) : (
+							<Trans>Enter a number</Trans>
+						)}
+					</p>
 				)}
 			</div>
 		</div>

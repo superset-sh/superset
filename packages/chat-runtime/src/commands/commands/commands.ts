@@ -183,6 +183,7 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 			replays.delete(key);
 			cachedEvents -= entry.seq;
 		}
+		if (cachedEvents > MAX_CACHED_REPLAY_EVENTS) replays.delete(sessionId);
 		return { ok: true, snapshot };
 	};
 

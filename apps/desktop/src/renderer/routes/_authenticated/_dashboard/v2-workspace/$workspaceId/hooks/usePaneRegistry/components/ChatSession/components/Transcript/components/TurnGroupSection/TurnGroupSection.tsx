@@ -90,6 +90,7 @@ export function TurnGroupSection({
 			return (
 				<>
 					<ItemRow
+						afterTarget={row.afterTarget}
 						approvalTarget={approvalTarget(snapshot, row.item)}
 						canForkToWorktree={canForkToWorktree}
 						lastReply={lastReply}
