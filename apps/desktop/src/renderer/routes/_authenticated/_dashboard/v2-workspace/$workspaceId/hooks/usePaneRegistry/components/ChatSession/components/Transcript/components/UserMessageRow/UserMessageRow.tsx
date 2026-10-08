@@ -1,5 +1,5 @@
 import { Trans } from "@lingui/react/macro";
-import { readBookkeeping } from "@superset/chat/core";
+import { readBookkeeping, userMessageText } from "@superset/chat/core";
 import type { UserMessage } from "@superset/chat/protocol";
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { Badge } from "@superset/ui/badge";
@@ -7,7 +7,6 @@ import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { useRef } from "react";
 import { parseAttachmentTags } from "../../../../utils/attachmentTags";
-import { userMessageText } from "../../../../utils/userMessageText";
 import { AttachmentImage } from "./components/AttachmentImage";
 import { useFitsOneLine } from "./hooks/useFitsOneLine";
 

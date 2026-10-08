@@ -196,7 +196,6 @@ export function DashboardSidebarHeader({
 		search: lastSearch,
 		typeTab: lastTypeTab,
 		projectFilters: lastProjectFilters,
-		linearProjectFilter: lastLinearProjectFilter,
 		includeClosedIssues: lastIncludeClosedIssues,
 	} = useTasksFilterStore();
 	const {
@@ -260,7 +259,6 @@ export function DashboardSidebarHeader({
 					search: lastSearch,
 					typeTab: lastTypeTab,
 					projectFilters: lastProjectFilters,
-					linearProjectFilter: lastLinearProjectFilter,
 					includeClosedIssues: lastIncludeClosedIssues,
 				}),
 			});

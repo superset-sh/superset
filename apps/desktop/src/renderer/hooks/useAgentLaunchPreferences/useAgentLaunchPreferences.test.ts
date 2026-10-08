@@ -1,5 +1,4 @@
-import { afterAll, afterEach, beforeEach, expect, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, beforeEach, expect, test } from "bun:test";
 import {
 	getAgentEffortSupport,
 	getAgentModelSupport,
@@ -8,8 +7,6 @@ import { useAgentEffortPreference } from "../useAgentEffortPreference/useAgentEf
 import { useAgentModelPreference } from "../useAgentModelPreference/useAgentModelPreference";
 import { useAgentLaunchPreferences } from "./useAgentLaunchPreferences";
 
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 const { act, cleanup, renderHook } = await import("@testing-library/react");
 const options = {
 	agentStorageKey: "test-agent",
@@ -20,10 +17,6 @@ const options = {
 };
 beforeEach(() => window.localStorage.clear());
 afterEach(cleanup);
-afterAll(() => {
-	if (!alreadyRegistered) GlobalRegistrator.unregister();
-});
-
 test("remembers the explicitly selected agent across creations", () => {
 	const first = renderHook(() => useAgentLaunchPreferences(options));
 	act(() => first.result.current.setSelectedAgent("cursor"));

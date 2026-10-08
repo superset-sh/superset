@@ -2,6 +2,7 @@ import { cloudTrpcClient } from "renderer/lib/cloud-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { combinePullRequestReadErrors } from "../../../../utils/combinePullRequestReadErrors";
 import { fromHostPullRequestContent } from "../../../../utils/fromHostPullRequestContent";
+import type { PullRequestDetail } from "../../usePullRequestDetail";
 
 export async function fetchPullRequestDetail({
 	projectId,
@@ -15,7 +16,7 @@ export async function fetchPullRequestDetail({
 	repoFullName: string | null;
 	organizationId: string | null;
 	prNumber: number;
-}) {
+}): Promise<PullRequestDetail> {
 	let repositoryError: unknown;
 	if (hostUrl && projectId) {
 		try {

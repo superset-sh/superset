@@ -12,6 +12,7 @@ jobs:
   deploy-database:
     name: Deploy Database Migrations
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment: production
     concurrency:
       group: production-database-migrations
@@ -67,6 +68,7 @@ jobs:
   deploy-api:
     name: Deploy API to Vercel
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
     environment: production
     needs: deploy-database
 
@@ -276,6 +278,7 @@ jobs:
   deploy-web:
     name: Deploy Web to Vercel
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
     environment: production
     needs: deploy-database
 
@@ -378,6 +381,7 @@ jobs:
   deploy-marketing:
     name: Deploy Marketing to Vercel
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
     environment: production
     needs: deploy-database
 
@@ -471,6 +475,7 @@ jobs:
   deploy-admin:
     name: Deploy Admin to Vercel
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
     environment: production
     needs: deploy-database
 
@@ -573,6 +578,7 @@ jobs:
   relay-changes:
     name: Detect Relay Changes
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     outputs:
@@ -596,6 +602,7 @@ jobs:
   deploy-relay:
     name: Deploy Relay to Cloudflare
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: production
     needs: relay-changes
     # Fail open: a broken detector must not leave a stale relay in production.
@@ -635,6 +642,7 @@ jobs:
   realtime-changes:
     name: Detect Realtime Changes
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     outputs:
@@ -653,6 +661,8 @@ jobs:
               - 'packages/shared/src/realtime.ts'
               - 'packages/shared/src/page-storage.ts'
               - 'packages/shared/src/page-storage-hub.ts'
+              - 'packages/shared/src/page-storage-access.ts'
+              - 'packages/shared/src/page-presence.ts'
               - 'packages/shared/src/usercontent/**'
               - '!packages/shared/src/usercontent/**/*.test.ts'
               - 'packages/shared/src/verify-jwt.ts'
@@ -662,6 +672,7 @@ jobs:
   deploy-realtime:
     name: Deploy Realtime Worker to Cloudflare
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: production
     needs: realtime-changes
     if: >-
@@ -700,6 +711,7 @@ jobs:
   deploy-content:
     name: Deploy Usercontent Worker to Cloudflare
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: production
 
     steps:
@@ -731,6 +743,7 @@ jobs:
   deploy-sandbox-gate:
     name: Deploy Gate Worker to Cloudflare
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: production
 
     steps:
@@ -762,6 +775,7 @@ jobs:
   deploy-docs:
     name: Deploy Docs to Vercel
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
     environment: production
     needs: deploy-database
 

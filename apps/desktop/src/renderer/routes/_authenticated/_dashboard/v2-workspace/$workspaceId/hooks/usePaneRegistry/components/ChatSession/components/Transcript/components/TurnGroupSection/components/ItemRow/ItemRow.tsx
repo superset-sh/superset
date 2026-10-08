@@ -21,6 +21,7 @@ export type ItemRowProps = {
 	onFork?: ((target: ChatForkTarget) => void) | undefined;
 	canForkToWorktree?: boolean;
 	lastReply?: boolean;
+	pagesShownEarlier?: string | undefined;
 };
 
 export const ItemRow = memo(function ItemRow({
@@ -30,6 +31,7 @@ export const ItemRow = memo(function ItemRow({
 	item,
 	onFork,
 	onRespond,
+	pagesShownEarlier,
 	pending,
 	text,
 }: ItemRowProps) {
@@ -46,6 +48,7 @@ export const ItemRow = memo(function ItemRow({
 					lastReply={lastReply}
 					item={item}
 					onFork={onFork}
+					pagesShownEarlier={pagesShownEarlier}
 					text={text}
 				/>
 			);

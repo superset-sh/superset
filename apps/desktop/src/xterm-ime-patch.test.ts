@@ -1,17 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { dirname, join } from "node:path";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import type { Terminal as XtermTerminal } from "@xterm/xterm";
 
-// Removal checklist: https://github.com/superset-sh/superset/issues/7490
-// Upstream fix: https://github.com/xtermjs/xterm.js/pull/6162
-// Once our pinned xterm release includes it, remove only the CompositionHelper
-// patch hunks. Keep these behavioral tests; patches/README.md has the checklist.
-// Exercise the installed bundles, so dropping the version-pinned dependency
-// patch fails behaviorally. DOM measurement is stubbed; actual glyph clipping
-// is covered by the D2Coding CDP reproduction linked in patches/README.md.
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 const canvases = [globalThis.HTMLCanvasElement, globalThis.OffscreenCanvas]
 	.filter(Boolean)
 	.map((canvas) => ({
@@ -29,7 +19,6 @@ afterAll(async () => {
 		if (descriptor) Object.defineProperty(prototype, "getContext", descriptor);
 		else delete (prototype as { getContext?: unknown }).getContext;
 	}
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
 });
 
 type Core = {

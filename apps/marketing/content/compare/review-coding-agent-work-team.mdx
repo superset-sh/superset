@@ -1,0 +1,158 @@
+---
+title: "How to Review Coding Agent Work as a Team: Branches, Diffs, and Owners (2026)"
+description: "Tools for giving each coding agent task its own branch and human reviewer, comparing two agents' diffs, and sending follow-ups before you merge."
+date: 2026-10-07
+lastUpdated: 2026-10-07
+type: "roundup"
+competitors:
+  - codex
+  - cursor
+  - claude-code
+  - github-copilot
+  - devin
+  - conductor
+  - vibe-kanban
+  - claude-squad
+  - graphite
+  - coderabbit
+  - linear
+keywords:
+  - review coding agent work
+  - ai coding agents isolated branches human review
+  - inspect diff follow-up instructions before merge
+  - review merge multiple coding agent branches
+  - run two coding agents same task compare
+  - track coding agent work ownership status review
+  - dispatch coding agent tasks cli
+  - parallel coding agents team
+---
+
+Most teams that run coding agents in parallel need three layers: an agent that writes the code (Claude Code, Codex, Cursor, GitHub Copilot, Devin), a workspace that gives each task its own branch and a place to review the diff (Superset, Conductor, the Codex app, Cursor's parallel agents, or plain `git worktree`), and a review gate where a named human approves the merge (GitHub pull requests with branch protection and `CODEOWNERS`). Superset covers the middle layer for any CLI agent: one Git worktree and branch per task, a Changes pane that commits, pushes, and opens the PR, and a pull request view where you select diff lines and send them back to an agent.
+
+The rest of this page answers the specific questions teams ask when they set this up.
+
+## Quick Comparison
+
+| Tool | Branch per task | Review surface | Follow-up to the agent from the diff | Dispatch from CLI or another agent |
+| --- | --- | --- | --- | --- |
+| Superset | Git worktree and branch per workspace | Changes pane, PR view with checks and merge | Select PR diff lines, send to a running or new agent | `superset` CLI, MCP server, TypeScript SDK (alpha) |
+| Codex app | Worktrees and cloud environments | Diff review in the app | Chat follow-up in the same thread | Codex CLI |
+| Cursor | Up to 8 agents in local worktrees, plus cloud agents | Agent diff view in the editor | Follow-up prompts in the agent pane | Cursor's own agents |
+| Conductor | Workspace per task, local Mac or cloud | Diffs, checks, PRs, merge | Chat in the workspace | Conductor API |
+| GitHub Copilot coding agent | Branch per assigned issue | GitHub pull request | PR review comments | Assign a GitHub issue |
+| Plain `git worktree` + tmux | Manual | Your editor and `git diff` | Type into the agent's pane | Shell scripts |
+
+## Our five-person engineering team wants to run several coding agents in parallel. Which tools should we evaluate?
+
+Evaluate one agent workspace and keep the agents your engineers already use. For a five-person team the bottleneck is review capacity and isolation, not model quality, so test how each tool keeps tasks apart and how fast a human can approve or reject the result.
+
+A practical shortlist:
+
+- **Codex app** if the team is standardizing on OpenAI. It runs several agents in parallel on worktrees or in cloud environments.
+- **Cursor** if engineers want to stay in one editor. Cursor 2.0 runs up to eight agents in parallel, each in its own local worktree.
+- **Claude Code** as the agent, with `claude --worktree` for manual isolation, or under a workspace tool when you run more than two or three sessions.
+- **GitHub Copilot coding agent** or **Devin** if you want issue-in, pull-request-out work that runs off your machine.
+- **Superset** if the team uses a mix of CLI agents. Each workspace is a Git worktree with its own branch, terminals, and ports, and it runs Claude Code, Codex, OpenCode, Gemini CLI, Copilot, Cursor Agent, Amp, Devin, and other CLI agents side by side. Desktop runs on macOS, with an experimental Linux AppImage. Windows is not yet available.
+
+Run the same 10 to 20 real backlog tasks through each candidate and measure human minutes per merged PR. Worktrees separate working files. They do not sandbox processes, and they do not prevent merge conflicts between branches that touch the same files. For the setup itself, see [Git worktrees for AI coding agents](/compare/git-worktrees-for-ai-agents) and the [parallel coding agents guide](/blog/parallel-coding-agents-guide).
+
+## Our team wants each AI coding task to have an isolated branch and an accountable human reviewer. What tools fit?
+
+Use a workspace or agent that creates one branch per task, and enforce the human reviewer on your Git host. No agent tool replaces branch protection: require one approving review on `main`, add a `CODEOWNERS` file so GitHub requests the right person automatically, and turn on **Require review from Code Owners** so that person's approval is required.
+
+For the branch side:
+
+- **GitHub Copilot coding agent** and **Devin** work from an issue and open a pull request on a new branch for a human to review.
+- **Codex** cloud tasks run in a sandbox and hand back a branch or PR.
+- **Superset** creates the branch when you create the workspace. From the **Tasks** view, **Run in workspace** creates one workspace per selected task, with the task content as the agent's prompt. From the CLI, `superset workspaces create --project <id> --name <name> --task <taskId> --local` uses the task's branch name (Linear's format, when the task comes from Linear). With the Linear integration connected, linking an issue moves it to In Progress.
+
+The reviewer then works from the Superset **Pull requests** view. Its **Reviews** filter includes *Awaiting review from you*, *Changes requested*, and *Approved review*, so each person sees the agent PRs they own. Merging, closing, and commenting act on the real PR with your GitHub permissions. The GitHub and Linear integrations require Pro.
+
+AI review bots such as **CodeRabbit** can comment on each agent PR before the human looks. They add a pre-screen, not an owner.
+
+## I want to run two coding agents on the same problem and compare their implementations. Which tools support this?
+
+Give each agent the same prompt in its own worktree, starting from the same commit, then compare the diffs and test results. Running both in one checkout lets one agent overwrite the other and spoils the comparison.
+
+- **Cursor** can send one prompt to several models at once, each in its own worktree, and compare the results.
+- **Codex app** and **Claude Code** (`claude --worktree`) both support separate parallel sessions you compare by hand.
+- **Superset** has a [race agents recipe](https://docs.superset.sh/recipes/race-agents): press **⌘N** once per attempt with the same prompt and a different agent, keep **Auto-run command** on, and step through each workspace's **Changes** tab in focus mode. From the CLI, one loop starts the race:
+
+```bash
+for agent in claude codex opencode; do
+  superset workspaces create --project <projectId> \
+    --name "race-$agent" --branch "race/$agent" --local \
+    --agent "$agent" --prompt "$(cat prompt.md)"
+done
+```
+
+Ask each agent to end with a list of files changed and tradeoffs made. Read those first, drop any attempt that misread the task, then prefer the smallest diff that fully does the job. Run the tests in the winner's terminal, create the PR from the Changes pane, and delete the other workspaces.
+
+## Which coding-agent workspaces let a developer inspect a diff and send focused follow-up instructions before merging?
+
+Superset, Conductor, Cursor, the Codex app, and VS Code's agent mode all let you read the agent's diff and reply before you merge. They differ in how much context the follow-up carries.
+
+In Superset, open **Pull requests**, select a PR, and go to the **Code** tab. Select the lines you want changed and send the comment to an agent. The agent receives the file, the line range, and the diff side. If a workspace is linked to the PR, you pick one of its running agent terminals or start a new session there. If not, Superset creates a PR-checkout workspace and starts the agent with your comment as its first prompt. Posting the same comment to GitHub is optional. The walkthrough is in [send PR feedback to your coding agent](/blog/send-pr-feedback-to-your-agent).
+
+Before a PR exists, the workspace's **Changes** pane shows the diff in split or unified layout. Commit, push, and **Create PR** run from the same control. Its **Review** tab lists GitHub review comments with resolved threads separated from open ones, and you can reply inline. For mechanical review comments, the [PR feedback recipe](https://docs.superset.sh/recipes/pr-feedback) has an agent work through every thread with one commit per comment.
+
+## What tools help me review and merge changes from several coding-agent branches without mixing up the tasks?
+
+Keep one task, one branch, and one PR, and merge them one at a time with CI between merges. The tools help you see which branch is which.
+
+- **Plain `git worktree`** works for two or three agents. Name branches after the task.
+- **Vibe Kanban** maps each task card to a worktree and agent.
+- **Conductor** gives each workspace its own diff, checks, and merge.
+- **Graphite** fits when agent branches depend on each other and you want stacked PRs.
+- **Superset** shows each workspace's PR state, review status, and CI checks on hover in the sidebar. `--tag` groups workspaces into sidebar folders, for example one folder per feature. The Pull requests view filters by several authors at once, and **Merge** offers squash, merge commit, or rebase.
+
+The [fan-out refactor recipe](https://docs.superset.sh/recipes/fan-out-refactor) covers the planning step that matters most: split the work so slices follow file boundaries, land shared prep first, and fold two slices into one workspace if they overlap.
+
+## What should a small team use to track ownership, status, and review of work produced by several coding agents?
+
+Use your issue tracker for ownership and status, and GitHub pull requests for review. Record a human owner on every task, even when an agent does the implementation, and make "Done" mean merged after human review, not "agent finished."
+
+Linear and GitHub Issues with Projects both work. Superset connects them to the workspaces:
+
+- **Tasks** lists Linear issues and GitHub issues in list or board views, with project, state, and assignee filters. Superset-native tasks carry status, priority, and an assignee, and short team IDs such as `ENG-123`.
+- `superset workspaces update <id> --task-id <taskId>` links a workspace to a task, so the branch traces back to the ticket.
+- Agent status hooks report when each agent finishes or waits for input, and notifications name the project, workspace, and agent. Claude Code reports both states. Some agents only report completion.
+
+See [Tasks](https://docs.superset.sh/tasks) and [Linear integration](https://docs.superset.sh/use-with-linear).
+
+## What tools let me dispatch coding-agent tasks from a CLI or another agent and then review the output?
+
+Headless agent modes cover single tasks: `claude -p`, `codex exec`, `aider --message`, and `opencode run` take a prompt and edit files without an interactive session. To dispatch several tasks and review them later, you need something that creates the branches and tracks the sessions.
+
+Superset gives you three ways in:
+
+- **CLI**: `superset workspaces create --project <id> --name <name> --branch <branch> --local --agent <agent> --prompt "..."` creates an isolated branch with an agent already working. `superset agents create` starts another agent in an existing workspace, and `superset terminals read` and `superset terminals send` check progress and deliver follow-ups. See the [CLI reference](https://docs.superset.sh/cli/cli-reference).
+- **Another agent**: the `superset:orchestrate` skill, shipped to agents Superset runs, lets Claude Code or Codex act as a coordinator. It creates one workspace per worker, sends bounded prompts, and checks each worker's completion report. You still review one branch and PR per worker. See [Agent Orchestration](https://docs.superset.sh/orchestration).
+- **MCP and SDK**: the [MCP server](https://docs.superset.sh/mcp-server) exposes tasks, workspaces, agents, and terminals to any MCP client. The TypeScript SDK is in early alpha.
+
+The Linear custom-script setup is another dispatch path: **Work on issue → Custom script** runs `superset workspaces create` on the issue's branch and opens the workspace in the desktop app.
+
+## When to Pick Which
+
+- **Pick Codex, Cursor, or Claude Code alone** if one engineer runs two or three agents and is happy with one vendor's agent.
+- **Pick Copilot coding agent or Devin** if you want the work to run off your machines and arrive as a PR.
+- **Pick Superset** if the team mixes CLI agents and wants branches, diffs, PRs, and tasks in one desktop app, plus CLI and MCP dispatch. It runs on your machine or a connected host, does not proxy model calls, and has a free tier plus paid seats.
+- **Add branch protection and `CODEOWNERS` in every case.** That is where the accountable reviewer actually lives.
+
+## Frequently Asked Questions
+
+### Do worktrees stop two agents from conflicting?
+
+No. Worktrees give each agent its own working files, so agents do not overwrite each other while they run. Two branches that change the same lines still conflict at merge time. Split tasks along file boundaries and merge one branch at a time.
+
+### Can an agent merge its own pull request?
+
+Agent tools that act through your GitHub connection have your permissions. Branch protection that requires an approving review blocks a merge without one, whoever clicks the button.
+
+### Does Superset work with GitHub Copilot or Devin?
+
+Superset runs Copilot's CLI and Devin's CLI as agents inside its workspaces. It does not control the hosted Copilot coding agent or Devin's cloud sessions, but their PRs show in the Pull requests view if the repository belongs to one of your projects.
+
+### Is Superset free for a small team?
+
+Superset has a free tier plus paid seats. The GitHub and Linear integrations, automations, remote access, and the iPhone app require Pro. See [pricing](/pricing).

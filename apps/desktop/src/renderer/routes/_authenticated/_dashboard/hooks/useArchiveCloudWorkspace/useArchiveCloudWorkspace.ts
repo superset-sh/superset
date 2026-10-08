@@ -15,7 +15,6 @@ import { moveCloudWorkspaceRow } from "renderer/routes/_authenticated/_dashboard
 
 interface ArchivedWorkspace {
 	id: string;
-	name: string;
 	toastId: string | number;
 }
 
@@ -57,11 +56,11 @@ export function useArchiveCloudWorkspace() {
 	const clearUndoable = (id: string) =>
 		setUndoable((current) => (current?.id === id ? null : current));
 
-	const undo = ({ id, name, toastId }: ArchivedWorkspace) => {
+	const undo = ({ id, toastId }: ArchivedWorkspace) => {
 		clearUndoable(id);
 		toast.dismiss(toastId);
 		unarchive(id, {
-			onSuccess: () => toast.success(t({ message: `Restored "${name}"` })),
+			onSuccess: () => toast.success(t({ message: "Workspace restored" })),
 		});
 	};
 
@@ -95,7 +94,7 @@ export function useArchiveCloudWorkspace() {
 		});
 	};
 
-	return ({ id, name }: { id: string; name: string }) => {
+	return (id: string) => {
 		if (archiving.includes(id)) return;
 		const target = navigateAwayFromWorkspace(id);
 		// Unarchive only succeeds once the row is archived, so the undo waits
@@ -106,7 +105,7 @@ export function useArchiveCloudWorkspace() {
 					returnIfStillAt(id, target);
 					return;
 				}
-				const toastId = toast(t({ message: `Archived "${name}"` }), {
+				const toastId = toast(t({ message: "Workspace archived" }), {
 					icon: createElement(LuArchive, { className: "size-4" }),
 					classNames: {
 						cancelButton:
@@ -125,12 +124,12 @@ export function useArchiveCloudWorkspace() {
 					},
 					action: {
 						label: t({ message: "Undo" }),
-						onClick: () => undo({ id, name, toastId }),
+						onClick: () => undo({ id, toastId }),
 					},
 					onDismiss: () => clearUndoable(id),
 					onAutoClose: () => clearUndoable(id),
 				});
-				setUndoable({ id, name, toastId });
+				setUndoable({ id, toastId });
 			})
 			.catch(() => returnIfStillAt(id, target));
 	};

@@ -1,5 +1,4 @@
 import { afterAll, afterEach, expect, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
 
 import { nativeWebGlobals } from "~/test-setup";
 
@@ -14,8 +13,6 @@ const previousWebGlobals = {
 	AbortSignal: globalThis.AbortSignal,
 };
 const NativeResponse = nativeWebGlobals.Response;
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 Object.assign(globalThis, nativeWebGlobals);
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
@@ -29,7 +26,6 @@ const { useHostReachability } = await import("./useHostReachability");
 
 afterEach(cleanup);
 afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
 	Object.assign(globalThis, previousWebGlobals);
 });
 

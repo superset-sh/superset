@@ -48,6 +48,7 @@ export function AttachmentImage({
 		<img
 			alt={name}
 			className="size-40 rounded-2xl border border-border object-cover"
+			draggable={false}
 			onError={() => setUnrenderable(true)}
 			src={`data:${type};base64,${data.content}`}
 		/>

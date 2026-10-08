@@ -30,7 +30,7 @@ Set TypingSpeed 2ms
 Hide
 Type `export PS1="\[\033[1;91m\]superset\[\033[0m\] \[\033[90m\]demo\[\033[0m\] \[\033[91m\]❯\[\033[0m\] "`
 Enter
-Type `superset() { case "$1.$2" in status.*) echo "Superset  ·  Kiets-Spaceship   running · healthy   ·  up 3h 12m"; printf '  endpoint  http://127.0.0.1:58968\n  org       Superset\n';; tasks.create) echo; echo "  ✓ Created  ENG-204  ·  Dark mode flickers on the dashboard"; echo "    · synced — already live in your Superset app";; tasks.list) printf 'ID       STATUS        PRIORITY   TITLE\nENG-204  todo          —          Dark mode flickers on the dashboard\nENG-201  in progress   medium     Stripe webhook retries on a 500\nENG-198  todo          low        Tidy the settings page copy\n';; tasks.update) echo; echo "  ✓ ENG-204  ·  priority is now urgent";; tasks.delete) echo "  ✓ Deleted  ENG-204";; agents.list) printf 'LABEL    PRESET   COMMAND\nClaude   claude   claude\nCodex    codex    codex\nCursor   cursor   cursor-agent\n';; workspaces.create) printf '\n  ✓ Created workspace  dark-mode-fix\n      branch   fix/dark-mode\n      agent    Claude — running, streaming live to your Superset app\n';; workspaces.open) echo; echo "  ✓ dark-mode-fix is now open in your Superset app — Claude is live there";; workspaces.delete) echo "  ✓ Deleted workspace  dark-mode-fix";; *) echo "superset: $*";; esac; }`
+Type `superset() { case "$1.$2" in status.*) echo "Superset  ·  Kiets-Spaceship   running · healthy   ·  up 3h 12m"; printf '  endpoint  http://127.0.0.1:58968\n  org       Superset\n';; tasks.create) echo; echo "  ✓ Created  ENG-204  ·  Dark mode flickers on the dashboard"; echo "    · synced — already live in your Superset app";; tasks.list) printf 'ID       STATUS        PRIORITY   TITLE\nENG-204  todo          —          Dark mode flickers on the dashboard\nENG-201  in progress   medium     Stripe webhook retries on a 500\nENG-198  todo          low        Tidy the settings page copy\n';; tasks.update) echo; echo "  ✓ ENG-204  ·  priority is now urgent";; tasks.delete) echo "  ✓ Deleted  ENG-204";; agents.list) printf 'LABEL    PRESET   COMMAND\nClaude   claude   claude\nCodex    codex    codex\nCursor   cursor   cursor-agent\n';; workspaces.create) printf '\n  ✓ Created workspace  dark-mode-fix\n      branch   fix/dark-mode\n      agent    Claude — running, streaming live to your Superset app\n';; workspaces.open) echo; echo "  ✓ dark-mode-fix is now open in your Superset app — Claude is live there";; workspaces.archive) echo "  ✓ Archived workspace  dark-mode-fix";; *) echo "superset: $*";; esac; }`
 Enter
 Type "clear"
 Enter
@@ -110,7 +110,7 @@ Type "# Demo's done — clean up:"
 Sleep 500ms
 Enter
 Sleep 300ms
-Type "superset workspaces delete dark-mode-fix"
+Type "superset workspaces archive dark-mode-fix"
 Enter
 Sleep 1.6s
 Type "superset tasks delete ENG-204"

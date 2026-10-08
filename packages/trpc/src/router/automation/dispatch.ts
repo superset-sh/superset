@@ -11,7 +11,6 @@ import {
 	v2UsersHosts,
 } from "@superset/db/schema";
 import { CLOUD_AGENT_PROMPT_MAX_LENGTH } from "@superset/shared/cloud-agent-launch";
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import {
 	buildHostRoutingKey,
@@ -23,7 +22,7 @@ import {
 	slugifyForBranch,
 } from "@superset/shared/workspace-launch";
 import { and, eq, sql } from "drizzle-orm";
-import { posthog } from "../../lib/analytics";
+import { acpChatEnabled } from "../../lib/acp-chat";
 import { nudge } from "../../lib/realtime";
 import { fetchRelayPresence } from "../../lib/relay-presence";
 import { runInCloud } from "./cloudDispatch";
@@ -727,13 +726,4 @@ async function runAgentOnHost(args: {
 			...(args.surface ? { surface: args.surface } : {}),
 		},
 	);
-}
-
-async function acpChatEnabled(userId: string): Promise<boolean> {
-	const enabled = await posthog
-		.isFeatureEnabled(FEATURE_FLAGS.ACP_CHAT, userId, {
-			sendFeatureFlagEvents: false,
-		})
-		.catch(() => undefined);
-	return enabled === true;
 }

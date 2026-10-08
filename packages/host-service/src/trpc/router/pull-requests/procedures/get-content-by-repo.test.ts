@@ -4,6 +4,7 @@ import type { HostServiceContext } from "../../../../types";
 import { createCallerFactory, router } from "../../../index";
 import * as projects from "../../workspace-creation/shared/project-helpers";
 import * as gh from "../../workspace-creation/utils/exec-gh";
+import { PULL_REQUEST_CONTENT_JSON_FIELDS } from "../shared/fetch-pull-request-content";
 import { evictPullRequestContent } from "../shared/pull-request-content-cache";
 import { getContent } from "./get-content";
 import { getContentByRepo } from "./get-content-by-repo";
@@ -41,6 +42,17 @@ const expectedContent = {
 	updatedAt: undefined,
 	checks: [],
 	checksStatus: "none" as const,
+	mergedAt: null,
+	closedAt: null,
+	mergeability: "unknown" as const,
+	mergeStateStatus: null,
+	additions: 0,
+	deletions: 0,
+	changedFiles: 0,
+	reviewDecision: null,
+	reviewers: [],
+	comments: [],
+	labels: [],
 };
 
 afterEach(() => mock.restore());
@@ -62,7 +74,7 @@ test("reads repository content without a project and preserves the legacy output
 		"--repo",
 		"owner/direct",
 		"--json",
-		"number,title,body,url,state,author,headRefName,baseRefName,headRepositoryOwner,isCrossRepository,isDraft,createdAt,updatedAt,statusCheckRollup",
+		PULL_REQUEST_CONTENT_JSON_FIELDS,
 	]);
 });
 
@@ -173,4 +185,83 @@ test("preserves the legacy project resolver error contract", async () => {
 		caller.getContent({ projectId: "missing", prNumber: 12 }),
 	).rejects.toMatchObject({ code: "NOT_FOUND", message: "Project not found" });
 	expect(exec).not.toHaveBeenCalled();
+});
+
+test("normalizes reviewers and comments from a populated gh payload", async () => {
+	spyOn(gh, "execGh").mockResolvedValue({
+		...rawContent,
+		author: { login: "octocat", name: "The Octocat" },
+		mergeable: "UNKNOWN",
+		mergeStateStatus: "UNSTABLE",
+		additions: 12,
+		deletions: -3,
+		changedFiles: 2.7,
+		reviewDecision: "CHANGES_REQUESTED",
+		reviewRequests: [
+			{ login: "Reviewer", name: "Rae Viewer" },
+			{ __typename: "Team", name: "core", slug: "core" },
+		],
+		reviews: [
+			{
+				id: "R1",
+				author: { login: "reviewer" },
+				body: "Please fix",
+				state: "CHANGES_REQUESTED",
+				submittedAt: "2026-10-01T10:00:00Z",
+			},
+			{
+				id: "R2",
+				author: { login: "pending" },
+				body: "",
+				state: "PENDING",
+				submittedAt: null,
+			},
+		],
+		comments: [
+			{
+				id: "C1",
+				author: null,
+				body: "Ghost says hi",
+				createdAt: "2026-10-01T09:00:00Z",
+				url: "https://github.com/owner/repo/pull/12#issuecomment-1",
+			},
+			{ id: "C2", author: { login: "late" }, body: "no time", createdAt: null },
+		],
+		labels: [{ name: "bug", color: "" }],
+	});
+	const content = await caller.getContentByRepo({
+		repoFullName: "owner/populated",
+		prNumber: 12,
+	});
+	expect(content).toMatchObject({
+		author: "octocat",
+		mergeability: "unknown",
+		mergeStateStatus: "UNSTABLE",
+		additions: 12,
+		deletions: 0,
+		changedFiles: 2,
+		reviewDecision: "CHANGES_REQUESTED",
+		reviewers: [{ login: "reviewer", name: null }],
+		labels: [{ name: "bug", color: null }],
+	});
+	expect(content.comments).toEqual([
+		{
+			id: "C1",
+			kind: "comment",
+			author: null,
+			body: "Ghost says hi",
+			createdAt: "2026-10-01T09:00:00Z",
+			reviewState: null,
+			url: "https://github.com/owner/repo/pull/12#issuecomment-1",
+		},
+		{
+			id: "R1",
+			kind: "review",
+			author: { login: "reviewer", name: null },
+			body: "Please fix",
+			createdAt: "2026-10-01T10:00:00Z",
+			reviewState: "CHANGES_REQUESTED",
+			url: null,
+		},
+	]);
 });

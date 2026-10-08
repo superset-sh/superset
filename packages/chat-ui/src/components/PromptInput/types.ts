@@ -9,6 +9,12 @@ export type ComposerChip = {
 	data?: unknown;
 };
 
+export type ComposerChipMatch = {
+	start: number;
+	end: number;
+	chip: ComposerChip;
+};
+
 export type ComposerActionContext = {
 	insertChip(chip: ComposerChip): void;
 	attachFiles(): void;
@@ -117,6 +123,9 @@ export type PromptInputProps = {
 	defaultValue?: string;
 	// Plain text of the composer as it is typed, for persisting a draft.
 	onChange?: (text: string) => void;
+	// Spans of a stored draft that were chips before it was serialized, so
+	// they come back as chips. Runs on the draft as read, never on typing.
+	findChips?: (text: string) => ComposerChipMatch[];
 	onSubmit?: (payload: PromptInputSubmitPayload) => void;
 	onStop?: () => void;
 	header?: ReactNode;

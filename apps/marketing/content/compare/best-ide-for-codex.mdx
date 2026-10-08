@@ -2,7 +2,7 @@
 title: "Best IDE for OpenAI Codex in 2026: Where to Run It"
 description: "The best places to run OpenAI Codex in 2026, from the CLI and IDE extension to the Codex cloud app, Conductor, and Superset for parallel worktree sessions."
 date: 2026-07-13
-lastUpdated: 2026-09-24
+lastUpdated: 2026-10-07
 type: "roundup"
 competitors:
   - vs-code
@@ -65,13 +65,13 @@ For the direct comparison, see [Superset vs Cursor](/compare/superset-vs-cursor)
 
 ### Conductor
 
-Conductor is a macOS app that runs Codex (along with Claude Code and Cursor) in parallel, each in an isolated Git worktree, with a review-and-merge flow. It is a focused way to run a few agents in parallel on a Mac. It is macOS only.
+Conductor is a macOS app that runs Codex (along with Claude Code, Cursor, and OpenCode) in parallel, each in an isolated Git worktree, with a review-and-merge flow. It is a focused way to run a few agents in parallel on a Mac. It is macOS only.
 
 For the direct comparison, see [Superset vs Conductor](/compare/superset-vs-conductor).
 
 ### Superset
 
-Superset runs the Codex CLI as a first-class agent, using separate Git worktrees and terminals for new local branch-based workspaces, so multiple Codex tasks can run on the same repository at once in separate working directories -- locally, or on your own remote hosts. Around that it adds a built-in diff and file editor, an in-app browser, port management, and MCP tooling. If your goal is parallel local Codex runs with real worktree isolation rather than cloud sandboxes, this is the fit. Worktrees separate working files but do not sandbox processes or prevent merge conflicts; see [workspace types](https://docs.superset.sh/workspaces).
+Superset runs the Codex CLI as a first-class agent, using separate Git worktrees and terminals for new local branch-based workspaces, so multiple Codex tasks can run on the same repository at once in separate working directories -- locally, or on your own remote hosts. Around that it adds a built-in diff and file editor, an in-app browser, port management, and MCP tooling. Interrupted Codex sessions resume with `codex resume`, subagents appear under their parent session, and the Usage tab tracks quotas and token spend per Codex login. The model picker includes GPT-6 Astra, Sol, and Luna, with Ultra effort on GPT-6 Astra. The iPhone app lets you check on Codex sessions and review diffs from your phone. If your goal is parallel local Codex runs with real worktree isolation rather than cloud sandboxes, this is the fit. Worktrees separate working files but do not sandbox processes or prevent merge conflicts; see [workspace types](https://docs.superset.sh/workspaces).
 
 ## How To Choose
 

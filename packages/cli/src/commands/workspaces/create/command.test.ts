@@ -1,4 +1,6 @@
-import { afterEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
+import { withLocalHostService } from "../../../lib/host/test-helpers";
+import createWorkspaceCommand from "./command";
 
 let localCreateError: Error | undefined;
 let createProcedure: string | undefined;
@@ -7,56 +9,23 @@ let sessionInput: Record<string, unknown> | undefined;
 
 let cloudAvailable = false;
 
-mock.module("../../../lib/cloud-workspaces", () => ({
-	resolveWorkspaceHost: async (flags: { host?: string; local?: boolean }) =>
-		flags.local
-			? "host-1"
-			: (flags.host ?? (cloudAvailable ? undefined : "host-1")),
-	resolveCloudEnvironment: () => {
-		throw new Error("Unexpected environment lookup");
+withLocalHostService("org-1", {
+	"workspaces.createLocal": (input) => {
+		createProcedure = "createLocal";
+		if (localCreateError) throw localCreateError;
+		createInput = input;
+		return { workspace: { name: "local" }, alreadyExists: false };
 	},
-}));
-
-mock.module("../../../lib/host-target", () => ({
-	requireHostTarget: () => "host-1",
-	resolveHostTarget: () => ({
-		hostId: "host-1",
-		client: {
-			workspaces: {
-				createLocal: {
-					mutate: async (input: Record<string, unknown>) => {
-						createProcedure = "createLocal";
-						if (localCreateError) throw localCreateError;
-						createInput = input;
-						return { workspace: { name: "local" }, alreadyExists: false };
-					},
-				},
-				createSession: {
-					mutate: async (input: Record<string, unknown>) => {
-						sessionInput = input;
-						return { workspace: { name: "scratch" } };
-					},
-				},
-				create: {
-					mutate: async (input: Record<string, unknown>) => {
-						createProcedure = "create";
-						createInput = input;
-						return {
-							workspace: { name: "agent-effort" },
-							alreadyExists: false,
-						};
-					},
-				},
-			},
-		},
-	}),
-}));
-
-mock.module("../../../lib/upload-attachments", () => ({
-	uploadAttachments: async () => [],
-}));
-
-const { default: createWorkspaceCommand } = await import("./command");
+	"workspaces.createSession": (input) => {
+		sessionInput = input;
+		return { workspace: { name: "scratch" } };
+	},
+	"workspaces.create": (input) => {
+		createProcedure = "create";
+		createInput = input;
+		return { workspace: { name: "agent-effort" }, alreadyExists: false };
+	},
+});
 
 function invoke(
 	overrides: {
@@ -75,6 +44,11 @@ function invoke(
 ) {
 	return createWorkspaceCommand.run({
 		ctx: {
+			api: {
+				cloudWorkspace: {
+					available: { query: async () => ({ available: cloudAvailable }) },
+				},
+			},
 			config: { organizationId: "org-1" },
 			bearer: "bearer",
 		} as never,

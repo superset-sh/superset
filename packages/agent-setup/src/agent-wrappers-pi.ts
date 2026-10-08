@@ -1,11 +1,11 @@
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import {
 	removeOwnedFileIfMarked,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
 import { getTemplatePath } from "./config";
+import { resolveUserHomeDir } from "./paths";
 
 export const PI_EXTENSION_FILE = "superset-hooks.ts";
 
@@ -24,7 +24,7 @@ export const PI_EXTENSION_MARKER = `${PI_EXTENSION_SIGNATURE} ${PI_EXTENSION_VER
  */
 export function getPiExtensionPath(): string {
 	return path.join(
-		os.homedir(),
+		resolveUserHomeDir(),
 		".pi",
 		"agent",
 		"extensions",

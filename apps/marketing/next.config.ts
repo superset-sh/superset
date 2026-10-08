@@ -26,7 +26,7 @@ const apiOrigin = process.env.NEXT_PUBLIC_API_URL
 // Third parties this site actually loads (probed against production):
 // - Google Ads gtag + Reddit pixel, injected in [lang]/layout.tsx
 // - Cloudflare Web Analytics, injected at the edge by the Cloudflare proxy
-// - Work at a Startup job board (+ its hCaptcha) on /join-us
+// - Work at a Startup job board (+ its hCaptcha) on /careers
 // - PostHog goes through the same-origin /ingest rewrite; ui_host is listed
 //   so the toolbar can still connect.
 // - Sentry browser SDK reports to *.ingest.sentry.io
@@ -67,6 +67,7 @@ const contentSecurityPolicy = [
 		"frame-src",
 		"https://td.doubleclick.net",
 		"https://www.googletagmanager.com",
+		"https://www.youtube-nocookie.com",
 		...hcaptcha,
 	].join(" "),
 	"img-src 'self' data: blob: https:",
@@ -165,6 +166,16 @@ const config: NextConfig = {
 			{
 				source: "/about",
 				destination: "/team",
+				permanent: true,
+			},
+			{
+				source: "/:lang(en)?/:page(join-us|career)",
+				destination: "/careers",
+				permanent: true,
+			},
+			{
+				source: `/:lang(${SUPPORTED_LOCALES.join("|")})/:page(join-us|career)`,
+				destination: "/:lang/careers",
 				permanent: true,
 			},
 			{

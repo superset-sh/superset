@@ -32,7 +32,9 @@ export interface SandboxAccessValue {
 	agentCredentialsChangedWorkspaceId: string | null;
 }
 
-const SandboxAccessContext = createContext<SandboxAccessValue | null>(null);
+export const SandboxAccessContext = createContext<SandboxAccessValue | null>(
+	null,
+);
 
 interface SandboxAccess {
 	url: string;

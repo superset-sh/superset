@@ -209,6 +209,7 @@ export const workspaceLocalStateSchema = z.object({
 	}),
 	paneLayout: paneWorkspaceStateSchema,
 	rightPaneLayout: paneWorkspaceStateSchema.optional(),
+	rightSidebarOpen: z.boolean().optional(),
 	rightPaneAreaExpansion: z
 		.object({
 			movedTabIds: z.array(z.string()),

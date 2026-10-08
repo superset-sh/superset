@@ -15,7 +15,11 @@ import {
 } from "drizzle-orm";
 import { QueryBuilder } from "drizzle-orm/pg-core";
 import { taskStatuses, tasks } from "./schema";
-import { type TaskPriority, taskPriorityValues } from "./schema/enums";
+import {
+	type IntegrationProvider,
+	type TaskPriority,
+	taskPriorityValues,
+} from "./schema/enums";
 import { escapeLikePattern } from "./utils/like";
 
 export const taskStatusTypeValues = [
@@ -46,8 +50,30 @@ export const taskLabelNames = sql<
 const { legacyLabels: _legacyLabels, ...taskTableColumns } =
 	getTableColumns(tasks);
 
+/** Columns the Linear mirror had. Released clients still read these keys, so a task carries them as nulls. */
+export const retiredTaskColumns = {
+	externalProvider: sql<IntegrationProvider | null>`null`,
+	externalId: sql<string | null>`null`,
+	externalKey: sql<string | null>`null`,
+	externalUrl: sql<string | null>`null`,
+	lastSyncedAt: sql<Date | null>`null`,
+	syncError: sql<string | null>`null`,
+	externalUpdatedAt: sql<Date | null>`null`,
+	externalProjectId: sql<string | null>`null`,
+	externalProjectName: sql<string | null>`null`,
+	externalCycleId: sql<string | null>`null`,
+	externalCycleName: sql<string | null>`null`,
+	assigneeExternalId: sql<string | null>`null`,
+	assigneeDisplayName: sql<string | null>`null`,
+	assigneeAvatarUrl: sql<string | null>`null`,
+};
+
 /** A task's columns with its label names, for selecting whole tasks. */
-export const taskColumns = { ...taskTableColumns, labels: taskLabelNames };
+export const taskColumns = {
+	...taskTableColumns,
+	...retiredTaskColumns,
+	labels: taskLabelNames,
+};
 
 /**
  * Sort by this rather than the column: with an org filter and a LIMIT, Postgres otherwise walks the
@@ -148,21 +174,12 @@ export function buildTaskListConditions(
 		}
 	}
 
-	if (filters.externalProjectId) {
-		conditions.push(eq(tasks.externalProjectId, filters.externalProjectId));
-	}
-
-	if (filters.externalProjectName) {
-		conditions.push(
-			ilike(
-				tasks.externalProjectName,
-				`${escapeLikePattern(filters.externalProjectName)}%`,
-			),
-		);
-	}
-
-	if (filters.externalCycleId) {
-		conditions.push(eq(tasks.externalCycleId, filters.externalCycleId));
+	if (
+		filters.externalProjectId ||
+		filters.externalProjectName ||
+		filters.externalCycleId
+	) {
+		conditions.push(sql`false`);
 	}
 
 	if (filters.dueDateFrom) {

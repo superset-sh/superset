@@ -15,6 +15,7 @@ function personaInput(status: VoiceStatus): PersonaInput | null {
 			return status;
 		case "connecting":
 		case "reconnecting":
+			return "thinking";
 		case "ended":
 			return "asleep";
 		case "idle":

@@ -1,10 +1,10 @@
 import { useLingui } from "@lingui/react/macro";
+import { userMessageText } from "@superset/chat/core";
 import type { UserMessage } from "@superset/chat/protocol";
 import type { PromptInputHandle } from "@superset/chat-ui/PromptInput";
 import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { type RefObject, useCallback } from "react";
-import { userMessageText } from "../../../../utils/userMessageText";
 import type { ComposerProps } from "../../Composer";
 
 const ALREADY_GONE = /is not queued$/;

@@ -20,7 +20,8 @@ export interface AudioLevels {
  * framework without touching the client above it.
  */
 export interface RealtimeTransport {
-	connect(args: { clientSecret: string }): Promise<void>;
+	/** The secret may still be on its way: local audio setup does not wait for it. */
+	connect(args: { clientSecret: string | Promise<string> }): Promise<void>;
 	send(event: RealtimeClientEvent): void;
 	onEvent(listener: (event: RealtimeServerEvent) => void): () => void;
 	onStateChange(listener: (state: TransportState) => void): () => void;

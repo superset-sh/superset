@@ -41,6 +41,14 @@
 			"types": "./src/page-storage.ts",
 			"default": "./src/page-storage.ts"
 		},
+		"./page-presence": {
+			"types": "./src/page-presence.ts",
+			"default": "./src/page-presence.ts"
+		},
+		"./page-presence-client": {
+			"types": "./src/page-presence-client.ts",
+			"default": "./src/page-presence-client.ts"
+		},
 		"./page-comments": {
 			"types": "./src/page-comments/index.ts",
 			"default": "./src/page-comments/index.ts"

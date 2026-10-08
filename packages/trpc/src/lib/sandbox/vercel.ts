@@ -101,6 +101,22 @@ export interface SandboxClaim {
 	ports?: readonly number[];
 }
 
+/** Vercel allows 5 tags per sandbox. */
+function sandboxTags(
+	kind: "workspace" | "environment",
+	identity: SandboxIdentity,
+): Record<string, string> {
+	const tags = { kind, org: identity.SUPERSET_SANDBOX_ORGANIZATION_ID };
+	// A golden's identity is the workspace it was built from, not its own.
+	if (kind === "environment") return tags;
+	const user = identity.SUPERSET_SANDBOX_CREATOR_USER_ID;
+	return {
+		...tags,
+		workspace: identity.SUPERSET_SANDBOX_WORKSPACE_ID,
+		...(user ? { user } : {}),
+	};
+}
+
 function publishedPorts(extra: readonly number[] = []): number[] {
 	return [...new Set([...SANDBOX_PUBLISHED_PORTS, ...extra])];
 }
@@ -174,7 +190,7 @@ export async function provisionSandbox(args: {
 		snapshotExpiration:
 			kind === "environment" ? 0 : WORKSPACE_SNAPSHOT_EXPIRATION_MS,
 		keepLastSnapshots: { count: 1 },
-		tags: { kind },
+		tags: sandboxTags(kind, args.claim.identity),
 	};
 	const sandbox =
 		(await getSandbox(args.name)) ??
@@ -457,7 +473,7 @@ export async function promoteSandboxToEnvironment(args: {
 		persistent: true,
 		snapshotExpiration: 0,
 		keepLastSnapshots: { count: 1 },
-		tags: { kind: "environment" },
+		tags: sandboxTags("environment", args.claim.identity),
 	});
 	await stripWorkspaceIdentity(golden);
 	const created = golden.currentSnapshotId;

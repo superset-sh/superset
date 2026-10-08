@@ -3,6 +3,7 @@ import { Button } from "@superset/ui/button";
 import {
 	CommentModeButton,
 	PageHeader as PageTitleBar,
+	PageViewers,
 } from "@superset/ui/page-comments";
 import { Spinner } from "@superset/ui/spinner";
 import { useNavigate } from "@tanstack/react-router";
@@ -65,11 +66,16 @@ export function PageDetailView({ slug }: PageDetailViewProps) {
 						currentUserId={currentUserId}
 						leading={backButton}
 						trailing={
-							<CommentModeButton
-								enabled={commentsEnabled}
-								openCount={threads.filter((thread) => !thread.resolved).length}
-								onToggle={() => setCommentsEnabled(!commentsEnabled)}
-							/>
+							<>
+								<PageViewers pageId={page.id} className="mr-1" />
+								<CommentModeButton
+									enabled={commentsEnabled}
+									openCount={
+										threads.filter((thread) => !thread.resolved).length
+									}
+									onToggle={() => setCommentsEnabled(!commentsEnabled)}
+								/>
+							</>
 						}
 						onSetVisibility={onSetVisibility}
 						onSetSharedVersion={onSetSharedVersion}

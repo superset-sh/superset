@@ -35,9 +35,11 @@ const OUT_MS = 160;
 export function ScrollToBottomButton({
 	visible,
 	onPress,
+	bottomInset = 0,
 }: {
 	visible: boolean;
 	onPress: () => void;
+	bottomInset?: number;
 }) {
 	// Mounted whenever a terminal is: fading out requires outliving the state
 	// change that hid it.
@@ -60,7 +62,7 @@ export function ScrollToBottomButton({
 		<Animated.View
 			className="absolute inset-x-0 bottom-3 items-center"
 			pointerEvents={visible ? "box-none" : "none"}
-			style={{ opacity: progress }}
+			style={{ opacity: progress, marginBottom: bottomInset }}
 		>
 			<Host style={{ width: SIZE, height: SIZE }} colorScheme="dark">
 				<SwiftUIButton

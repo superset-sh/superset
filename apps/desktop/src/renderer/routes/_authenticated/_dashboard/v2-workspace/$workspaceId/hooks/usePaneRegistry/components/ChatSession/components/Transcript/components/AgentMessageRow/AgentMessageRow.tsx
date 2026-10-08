@@ -30,6 +30,7 @@ export function AgentMessageRow({
 	lastReply,
 	item,
 	onFork,
+	pagesShownEarlier,
 	text,
 }: {
 	item: AgentMessage;
@@ -39,6 +40,8 @@ export function AgentMessageRow({
 	/** False when there is no project to cut a worktree from. */
 	canForkToWorktree?: boolean;
 	lastReply: boolean;
+	/** Slugs of the pages an earlier message of the turn already shows a card for. */
+	pagesShownEarlier?: string | undefined;
 }) {
 	const { t } = useLingui();
 	const { copied, copyToClipboard } = useCopyToClipboard(COPIED_MS);
@@ -59,6 +62,9 @@ export function AgentMessageRow({
 			<MarkdownView
 				className="text-foreground"
 				fading={fading}
+				final={!streaming && !paced.revealing}
+				pageCards
+				pagesShownEarlier={pagesShownEarlier}
 				text={paced.text}
 			/>
 			{lastReply && !streaming && (

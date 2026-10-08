@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { userMessageText } from "@superset/chat/core";
 import type { UserMessage } from "@superset/chat/protocol";
 import {
 	QueueItem,
@@ -15,7 +16,6 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { CornerDownRight, Ellipsis, ListEnd, Trash2 } from "lucide-react";
 import { parseAttachmentTags } from "../../../../../../utils/attachmentTags";
-import { userMessageText } from "../../../../../../utils/userMessageText";
 
 export function QueuedPromptRow({
 	prompt,

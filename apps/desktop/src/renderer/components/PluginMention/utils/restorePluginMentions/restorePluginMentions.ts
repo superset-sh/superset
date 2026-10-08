@@ -1,8 +1,7 @@
 import type { Editor } from "@tiptap/core";
 import { PLUGIN_MENTION_NODE_NAME } from "../../PluginMentionNode";
 import type { PluginMentionOption } from "../../types";
-
-const HANDLE = /(^|\s)@([a-z0-9][a-z0-9.-]*)(?![\p{L}\p{M}\p{N}_])/gu;
+import { findPluginMentions } from "../findPluginMentions";
 
 interface Replacement {
 	from: number;
@@ -41,15 +40,11 @@ export function restorePluginMentions(
 		}
 		if (!node.isText || !node.text) return;
 		if (node.marks.some((mark) => mark.type.name === "code")) return;
-		for (const match of node.text.matchAll(HANDLE)) {
-			const name = (match[2] ?? "").replace(/[.-]+$/, "");
-			const plugin = resolvePlugin(name);
-			if (!plugin) continue;
-			const from = pos + (match.index ?? 0) + (match[1]?.length ?? 0);
+		for (const match of findPluginMentions(node.text, resolvePlugin)) {
 			replacements.push({
-				from,
-				to: from + 1 + name.length,
-				attrs: { name: plugin.name, label: plugin.displayName },
+				from: pos + match.start,
+				to: pos + match.end,
+				attrs: { name: match.plugin.name, label: match.plugin.displayName },
 			});
 		}
 	});

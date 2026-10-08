@@ -1,6 +1,6 @@
+import { acpHarnessForPreset } from "@superset/chat/core";
 import { useTerminalAgentBinding } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { useAcpChatEnabled } from "renderer/hooks/useAcpChatEnabled";
-import { acpHarnessForPreset } from "renderer/lib/acpHarness";
 import type { ChatPaneData, TerminalPaneData } from "../../../../../../types";
 import type { AgentIdentity, AgentSurface } from "../useAgentSurfaceSwitch";
 

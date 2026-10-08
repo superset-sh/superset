@@ -1,7 +1,10 @@
 import type { OutboxEntry, SessionSnapshot } from "@superset/chat/core";
 import { displayText } from "@superset/chat/core";
 import type { Decision, UserMessage } from "@superset/chat/protocol";
+import type { ReactNode } from "react";
 import type { ChatForkTarget } from "../../../../types";
+import type { PageLink } from "../../../../utils/pageLinks";
+import { PageLinkCard } from "../../../PageLinkCard";
 import type { TranscriptRow } from "../../utils/transcriptRows";
 import { ItemRow } from "./components/ItemRow";
 import { ToolRunRow } from "./components/ToolRunRow";
@@ -16,6 +19,17 @@ function outboxMessage(entry: OutboxEntry): UserMessage {
 		startedAtMs: 0,
 		content: entry.content,
 	};
+}
+
+function pageCards(pages: readonly PageLink[] | undefined): ReactNode {
+	return pages?.map((page) => (
+		<PageLinkCard
+			className="mt-1 mb-1.5"
+			key={page.slug}
+			slug={page.slug}
+			url={page.url}
+		/>
+	));
 }
 
 export type TurnGroupSectionProps = {
@@ -60,15 +74,19 @@ export function TurnGroupSection({
 			);
 		case "item":
 			return (
-				<ItemRow
-					canForkToWorktree={canForkToWorktree}
-					lastReply={lastReply}
-					harness={harness}
-					item={row.item}
-					onFork={onFork}
-					onRespond={onRespond}
-					text={displayText(snapshot, row.item.id)}
-				/>
+				<>
+					<ItemRow
+						canForkToWorktree={canForkToWorktree}
+						lastReply={lastReply}
+						harness={harness}
+						item={row.item}
+						onFork={onFork}
+						onRespond={onRespond}
+						pagesShownEarlier={row.pagesShownEarlier}
+						text={displayText(snapshot, row.item.id)}
+					/>
+					{pageCards(row.pages)}
+				</>
 			);
 		case "outbox":
 			return (
@@ -86,12 +104,15 @@ export function TurnGroupSection({
 			);
 		case "tool_run":
 			return (
-				<ToolRunRow
-					collapsed={isEntryCollapsed(row.key, row.defaultCollapsed)}
-					items={row.items}
-					onToggle={onToggleEntry}
-					rowKey={row.key}
-				/>
+				<>
+					<ToolRunRow
+						collapsed={isEntryCollapsed(row.key, row.defaultCollapsed)}
+						items={row.items}
+						onToggle={onToggleEntry}
+						rowKey={row.key}
+					/>
+					{pageCards(row.pages)}
+				</>
 			);
 		case "turn_status":
 			return <TurnStatusRow message={row.message} status={row.status} />;

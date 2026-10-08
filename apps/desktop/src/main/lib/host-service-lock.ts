@@ -31,13 +31,24 @@ export interface SpawnLockHandle {
 	release(): void;
 }
 
-function lockPath(organizationId: string): string {
-	return join(manifestDir(organizationId), "spawn.lock");
+export interface SpawnLockDeps {
+	manifestDir: (organizationId: string) => string;
+	isProcessAlive: (pid: number) => boolean;
+	getHostId: () => string;
 }
 
-export function readSpawnLock(organizationId: string): SpawnLock | null {
+const defaultDeps: SpawnLockDeps = { manifestDir, isProcessAlive, getHostId };
+
+function lockPath(organizationId: string, deps: SpawnLockDeps): string {
+	return join(deps.manifestDir(organizationId), "spawn.lock");
+}
+
+export function readSpawnLock(
+	organizationId: string,
+	deps: SpawnLockDeps = defaultDeps,
+): SpawnLock | null {
 	try {
-		const raw = readFileSync(lockPath(organizationId), "utf-8");
+		const raw = readFileSync(lockPath(organizationId, deps), "utf-8");
 		const data = JSON.parse(raw);
 		if (
 			typeof data.ownerPid !== "number" ||
@@ -52,18 +63,24 @@ export function readSpawnLock(organizationId: string): SpawnLock | null {
 	}
 }
 
-function removeLock(organizationId: string): void {
+function removeLock(organizationId: string, deps: SpawnLockDeps): void {
 	try {
-		unlinkSync(lockPath(organizationId));
+		unlinkSync(lockPath(organizationId, deps));
 	} catch {
 		// Already gone — fine.
 	}
 }
 
-function tryCreateLock(organizationId: string): SpawnLockHandle | null {
-	const path = lockPath(organizationId);
+function tryCreateLock(
+	organizationId: string,
+	deps: SpawnLockDeps,
+): SpawnLockHandle | null {
+	const path = lockPath(organizationId, deps);
 	try {
-		mkdirSync(manifestDir(organizationId), { recursive: true, mode: 0o700 });
+		mkdirSync(deps.manifestDir(organizationId), {
+			recursive: true,
+			mode: 0o700,
+		});
 	} catch {
 		// Best-effort; openSync below surfaces a real failure.
 	}
@@ -79,7 +96,7 @@ function tryCreateLock(organizationId: string): SpawnLockHandle | null {
 	try {
 		const lock: SpawnLock = {
 			ownerPid: process.pid,
-			machineId: getHostId(),
+			machineId: deps.getHostId(),
 			acquiredAt: Date.now(),
 		};
 		writeSync(fd, JSON.stringify(lock));
@@ -92,7 +109,7 @@ function tryCreateLock(organizationId: string): SpawnLockHandle | null {
 
 	return {
 		release() {
-			removeLock(organizationId);
+			removeLock(organizationId, deps);
 		},
 	};
 }
@@ -105,20 +122,21 @@ function tryCreateLock(organizationId: string): SpawnLockHandle | null {
 export function acquireSpawnLock(
 	organizationId: string,
 	{ staleMs }: { staleMs: number },
+	deps: SpawnLockDeps = defaultDeps,
 ): SpawnLockHandle | null {
-	const handle = tryCreateLock(organizationId);
+	const handle = tryCreateLock(organizationId, deps);
 	if (handle) return handle;
 
 	// Lock exists — decide whether the holder is dead/wedged and stealable.
-	const existing = readSpawnLock(organizationId);
+	const existing = readSpawnLock(organizationId, deps);
 	const stealable =
 		!existing || // garbage / partial write
-		!isProcessAlive(existing.ownerPid) || // owner crashed mid-spawn
+		!deps.isProcessAlive(existing.ownerPid) || // owner crashed mid-spawn
 		Date.now() - existing.acquiredAt > staleMs; // owner wedged
 
 	if (!stealable) return null;
 
-	removeLock(organizationId);
+	removeLock(organizationId, deps);
 	// One retry after stealing; if a third party grabbed it first, back off.
-	return tryCreateLock(organizationId);
+	return tryCreateLock(organizationId, deps);
 }

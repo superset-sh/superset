@@ -88,6 +88,7 @@ export function AttachmentPills({
 										src={attachment.previewUrl}
 										alt={filename}
 										className="size-full object-cover"
+										draggable={false}
 										onError={() => onPreviewError?.(attachment.id)}
 									/>
 								)}

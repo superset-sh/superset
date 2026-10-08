@@ -24,11 +24,13 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { env } from "renderer/env.renderer";
 import {
 	CHAT_COLUMN_CLASSNAME,
 	CHAT_SCROLLER_GUTTER_CLASSNAME,
 } from "../../constants";
 import type { ChatForkTarget } from "../../types";
+import { pageLinkFinder } from "../../utils/pageLinks";
 import { TurnGroupSection } from "./components/TurnGroupSection";
 import { useLoadOlderOnReach } from "./hooks/useLoadOlderOnReach";
 import { useScrollAnchorKey } from "./hooks/useScrollAnchorKey";
@@ -36,6 +38,7 @@ import { useScrollbarGutter } from "./hooks/useScrollbarGutter";
 import { lastReplyKeys } from "./utils/lastReplyKeys";
 import { type TranscriptRow, transcriptRows } from "./utils/transcriptRows";
 
+const findPageLinks = pageLinkFinder(env.NEXT_PUBLIC_WEB_URL);
 const REMEMBER_SIZE_CLASSNAME = "[contain-intrinsic-size:auto_240px]";
 const OFFSCREEN_CLASSNAME = "[content-visibility:auto]";
 const RECENT_ROWS_RENDERED_IN_FULL = 30;
@@ -155,7 +158,7 @@ export function Transcript({
 	}, [approvals]);
 
 	const rows = useMemo(
-		() => transcriptRows(groups, outbox, pendingApprovalTargets),
+		() => transcriptRows(groups, outbox, pendingApprovalTargets, findPageLinks),
 		[groups, outbox, pendingApprovalTargets],
 	);
 

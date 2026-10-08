@@ -38,6 +38,7 @@ export function ScopeBar({
 	return (
 		<ScrollView
 			horizontal
+			className="grow-0"
 			showsHorizontalScrollIndicator={false}
 			contentContainerClassName="flex-row items-center gap-2 px-4 pb-2 pt-1"
 		>

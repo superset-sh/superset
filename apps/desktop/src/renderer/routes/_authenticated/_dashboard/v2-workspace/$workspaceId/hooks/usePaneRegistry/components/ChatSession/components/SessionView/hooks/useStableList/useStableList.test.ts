@@ -1,8 +1,5 @@
-import { afterAll, afterEach, expect, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, expect, test } from "bun:test";
 
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
@@ -10,10 +7,6 @@ const { cleanup, renderHook } = await import("@testing-library/react");
 const { useStableList } = await import("./useStableList");
 
 afterEach(cleanup);
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
-
 test("keeps the previous array while its entries are the same", () => {
 	const a = { id: "a" };
 	const b = { id: "b" };

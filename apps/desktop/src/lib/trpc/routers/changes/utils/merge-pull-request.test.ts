@@ -70,6 +70,7 @@ const openPullRequest = {
 	checks: [],
 };
 let mergePullRequest: typeof import("./merge-pull-request").mergePullRequest;
+let spies: { mockRestore: () => void }[] = [];
 
 describe("mergePullRequest", () => {
 	beforeAll(async () => {
@@ -80,61 +81,65 @@ describe("mergePullRequest", () => {
 		const gitUtilsModule = await import("../git-utils");
 		const worktreeStatusCachesModule = await import("./worktree-status-caches");
 
-		spyOn(gitModule, "getCurrentBranch").mockImplementation(((
-			...args: Parameters<typeof gitModule.getCurrentBranch>
-		) => getCurrentBranchMock(...args)) as typeof gitModule.getCurrentBranch);
-		spyOn(gitModule, "isUnbornHeadError").mockImplementation(
-			((error: unknown) =>
-				error instanceof Error &&
-				error.message.includes(
-					"ambiguous argument 'HEAD'",
-				)) as typeof gitModule.isUnbornHeadError,
-		);
-		spyOn(gitClientModule, "execGitWithShellPath").mockImplementation(((
-			...args: Parameters<typeof gitClientModule.execGitWithShellPath>
-		) =>
-			execGitWithShellPathMock(
-				...args,
-			)) as typeof gitClientModule.execGitWithShellPath);
-		spyOn(githubModule, "getPRForBranch").mockImplementation(((
-			...args: Parameters<typeof githubModule.getPRForBranch>
-		) => getPRForBranchMock(...args)) as typeof githubModule.getPRForBranch);
-		spyOn(githubModule, "getPullRequestRepoArgs").mockImplementation(((
-			...args: Parameters<typeof githubModule.getPullRequestRepoArgs>
-		) =>
-			getPullRequestRepoArgsMock(
-				...args,
-			)) as typeof githubModule.getPullRequestRepoArgs);
-		spyOn(githubModule, "getRepoContext").mockImplementation(((
-			...args: Parameters<typeof githubModule.getRepoContext>
-		) => getRepoContextMock(...args)) as typeof githubModule.getRepoContext);
-		spyOn(shellEnvModule, "execWithShellEnv").mockImplementation(((
-			...args: Parameters<typeof shellEnvModule.execWithShellEnv>
-		) =>
-			execWithShellEnvMock(...args)) as typeof shellEnvModule.execWithShellEnv);
-		spyOn(gitUtilsModule, "isNoPullRequestFoundMessage").mockImplementation(((
-			...args: Parameters<typeof gitUtilsModule.isNoPullRequestFoundMessage>
-		) =>
-			isNoPullRequestFoundMessageMock(
-				...args,
-			)) as typeof gitUtilsModule.isNoPullRequestFoundMessage);
-		spyOn(
-			worktreeStatusCachesModule,
-			"clearWorktreeStatusCaches",
-		).mockImplementation(((
-			...args: Parameters<
-				typeof worktreeStatusCachesModule.clearWorktreeStatusCaches
-			>
-		) =>
-			clearWorktreeStatusCachesMock(
-				...args,
-			)) as typeof worktreeStatusCachesModule.clearWorktreeStatusCaches);
+		spies = [
+			spyOn(gitModule, "getCurrentBranch").mockImplementation(((
+				...args: Parameters<typeof gitModule.getCurrentBranch>
+			) => getCurrentBranchMock(...args)) as typeof gitModule.getCurrentBranch),
+			spyOn(gitModule, "isUnbornHeadError").mockImplementation(
+				((error: unknown) =>
+					error instanceof Error &&
+					error.message.includes(
+						"ambiguous argument 'HEAD'",
+					)) as typeof gitModule.isUnbornHeadError,
+			),
+			spyOn(gitClientModule, "execGitWithShellPath").mockImplementation(((
+				...args: Parameters<typeof gitClientModule.execGitWithShellPath>
+			) =>
+				execGitWithShellPathMock(
+					...args,
+				)) as typeof gitClientModule.execGitWithShellPath),
+			spyOn(githubModule, "getPRForBranch").mockImplementation(((
+				...args: Parameters<typeof githubModule.getPRForBranch>
+			) => getPRForBranchMock(...args)) as typeof githubModule.getPRForBranch),
+			spyOn(githubModule, "getPullRequestRepoArgs").mockImplementation(((
+				...args: Parameters<typeof githubModule.getPullRequestRepoArgs>
+			) =>
+				getPullRequestRepoArgsMock(
+					...args,
+				)) as typeof githubModule.getPullRequestRepoArgs),
+			spyOn(githubModule, "getRepoContext").mockImplementation(((
+				...args: Parameters<typeof githubModule.getRepoContext>
+			) => getRepoContextMock(...args)) as typeof githubModule.getRepoContext),
+			spyOn(shellEnvModule, "execWithShellEnv").mockImplementation(((
+				...args: Parameters<typeof shellEnvModule.execWithShellEnv>
+			) =>
+				execWithShellEnvMock(
+					...args,
+				)) as typeof shellEnvModule.execWithShellEnv),
+			spyOn(gitUtilsModule, "isNoPullRequestFoundMessage").mockImplementation(((
+				...args: Parameters<typeof gitUtilsModule.isNoPullRequestFoundMessage>
+			) =>
+				isNoPullRequestFoundMessageMock(
+					...args,
+				)) as typeof gitUtilsModule.isNoPullRequestFoundMessage),
+			spyOn(
+				worktreeStatusCachesModule,
+				"clearWorktreeStatusCaches",
+			).mockImplementation(((
+				...args: Parameters<
+					typeof worktreeStatusCachesModule.clearWorktreeStatusCaches
+				>
+			) =>
+				clearWorktreeStatusCachesMock(
+					...args,
+				)) as typeof worktreeStatusCachesModule.clearWorktreeStatusCaches),
+		];
 
 		({ mergePullRequest } = await import("./merge-pull-request"));
 	});
 
 	afterAll(() => {
-		mock.restore();
+		for (const spy of spies) spy.mockRestore();
 	});
 
 	beforeEach(() => {

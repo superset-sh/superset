@@ -6,6 +6,7 @@ import {
 	buildPluginServer,
 	PluginTargetError,
 	resolveTarget,
+	targetKey,
 } from "@superset/trpc/plugins-proxy";
 
 export type ToolDefinition = Tool;
@@ -66,7 +67,7 @@ async function openSession(
 	]);
 	return {
 		client,
-		cacheKey: `${target.connectionId}:${target.plugin}@${target.version}`,
+		cacheKey: `${targetKey(target)}:${target.plugin}@${target.version}`,
 		close: async () => {
 			await client.close();
 			await server.close();

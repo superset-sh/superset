@@ -72,6 +72,7 @@ import {
 	findTerminalPaneLocation,
 	focusOrAddTerminalPane,
 } from "../../utils/focusTerminalPane";
+import { openPagePaneInStore } from "../../utils/openPagePaneInStore";
 import { openSubagentPaneInStore } from "../../utils/openSubagentPaneInStore";
 import { useAgentSessionLauncher } from "../useAgentSessionLauncher";
 import type { OpenReviewDiff } from "../useReviewCommentNavigation";
@@ -158,7 +159,7 @@ interface UsePaneRegistryOptions {
 	onOpenDiff: OpenReviewDiff;
 	onOpenComment: (comment: CommentPaneData) => void;
 	onOpenFile: OpenFile;
-	onRevealPath: (path: string) => void;
+	onRevealPath: (path: string, options?: { isDirectory?: boolean }) => void;
 	launcher: TerminalLauncher;
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	linkedStores?: StoreApi<WorkspaceStore<PaneViewerData>>[];
@@ -830,6 +831,7 @@ export function usePaneRegistry({
 					<ChatPane
 						ctx={ctx}
 						onOpenFile={onOpenFile}
+						onRevealPath={onRevealPath}
 						workspaceId={workspaceId}
 					/>
 				),
@@ -898,6 +900,7 @@ export function usePaneRegistry({
 						data={ctx.pane.data as PullRequestPaneData}
 						onOpenDiff={onOpenDiff}
 						onOpenComment={onOpenComment}
+						onOpenPage={(page) => openPagePaneInStore(ctx.store, page)}
 					/>
 				),
 				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => (

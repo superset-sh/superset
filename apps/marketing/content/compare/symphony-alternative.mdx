@@ -1,8 +1,8 @@
 ---
 title: "Best Symphony Alternatives in 2026"
-description: "The best alternatives to OpenAI's Symphony for orchestrating coding agents, including Superset, Agent Orchestrator, Gas Town, OpenHands, and Paperclip."
+description: "The best alternatives to OpenAI's Symphony for orchestrating coding agents, including Superset, Orchestrator, Gas Town, OpenHands, and Paperclip."
 date: 2026-08-07
-lastUpdated: 2026-08-07
+lastUpdated: 2026-10-07
 type: "roundup"
 competitors:
   - symphony
@@ -27,7 +27,7 @@ Symphony is OpenAI's open-source orchestration spec and reference daemon: ticket
 | Alternative | Best for | Agents | License |
 |---|---|---|---|
 | **Superset** | Parallel agents with visibility, review, and automations | Any CLI agent | Source-available (ELv2) |
-| **Agent Orchestrator** | Automated CI/review loops in a desktop app | 23 harnesses | Open source (Apache-2.0) |
+| **Orchestrator** | Project planning and worker-owned PR feedback | Broad agent catalog | Open source (Apache-2.0) |
 | **Gas Town** | Sustained autonomous fleets with a merge queue | Claude Code + presets | Open source (MIT) |
 | **OpenHands** | Self-hosted end-to-end autonomous runs | Own agent | Open source (MIT) |
 | **Paperclip** | Managing agent teams against goals and budgets | Adapter-based | Open source (MIT) |
@@ -44,11 +44,11 @@ Superset flips Symphony's trade: any agent (Codex included), full visibility, an
 
 For the direct comparison, see [Superset vs Symphony](/compare/superset-vs-symphony).
 
-### Agent Orchestrator
+### Orchestrator
 
-Agent Orchestrator (Apache-2.0) automates the part of Symphony most teams actually want -- agents that respond to CI failures and review comments without a human relaying logs -- as config-driven reactions in a desktop app, across 23 agent harnesses, while leaving merging to you.
+Orchestrator (formerly Agent Orchestrator, Apache-2.0) pairs a project planning agent with worktree workers and a live Kanban. It returns CI failures and review comments to the worker that owns a PR, and offers file review, recurring automations, and a mobile companion.
 
-See [Superset vs Agent Orchestrator](/compare/superset-vs-agent-orchestrator).
+See [Superset vs Orchestrator](/compare/superset-vs-agent-orchestrator).
 
 ### Gas Town
 
@@ -71,14 +71,14 @@ See [Superset vs Paperclip](/compare/superset-vs-paperclip).
 ## How To Choose
 
 - For agent-agnostic parallel work with review and scheduled autonomy, choose **Superset**.
-- For packaged CI/review feedback loops, choose **Agent Orchestrator**.
+- For project planning and worker-owned PR feedback, choose **Orchestrator**.
 - For maximum sustained autonomy with a merge queue, choose **Gas Town**.
 - For self-hosted autonomous runs today, choose **OpenHands**.
 - For governed agent teams against goals, choose **Paperclip**.
 
 ## Verdict
 
-Symphony's spec is worth reading regardless of what you run -- the ticket-board-as-interface idea is here to stay. But as a tool it is Codex-only, headless, and preview-grade by its own label. Superset is the strongest alternative for teams that want the leverage with visibility and agent choice; Agent Orchestrator and Gas Town are the open-source picks at increasing levels of autonomy. For the full landscape, see [Best Agentic IDE in 2026](/compare/best-agentic-ide).
+Symphony's spec is worth reading regardless of what you run -- the ticket-board-as-interface idea is here to stay. But as a tool it is Codex-only, headless, and preview-grade by its own label. Superset is the strongest alternative for teams that want the leverage with visibility and agent choice; Orchestrator and Gas Town are the open-source picks at increasing levels of autonomy. For the full landscape, see [Best Agentic IDE in 2026](/compare/best-agentic-ide).
 
 ## Frequently Asked Questions
 
@@ -88,11 +88,11 @@ For most teams, Superset: tracker-fed tasks, any agent, isolated worktrees with 
 
 ### Is there a Symphony alternative that works with Claude Code?
 
-All of them. Superset, Agent Orchestrator, and Gas Town run Claude Code alongside other agents; Symphony is the only Codex-exclusive tool in the set.
+All of them. Superset, Orchestrator, and Gas Town run Claude Code alongside other agents; Symphony is the only Codex-exclusive tool in the set.
 
 ### Can any alternative land PRs autonomously like Symphony?
 
-Gas Town's Refinery merge queue comes closest, landing verified batches automatically. Agent Orchestrator deliberately never auto-merges; Superset routes work through normal PR review.
+Gas Town's Refinery merge queue comes closest, landing verified batches automatically. Orchestrator routes PR feedback to the owning worker; Superset routes work through normal PR review.
 
 ### Is Symphony production-ready?
 

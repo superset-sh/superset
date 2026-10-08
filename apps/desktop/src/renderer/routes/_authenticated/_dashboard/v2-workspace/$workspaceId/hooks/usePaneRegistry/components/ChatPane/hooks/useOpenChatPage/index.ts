@@ -1,0 +1,1 @@
+export { useOpenChatPage } from "./useOpenChatPage";

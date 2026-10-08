@@ -1,0 +1,123 @@
+---
+title: "How to Click an Element in Your Web App and Have a Coding Agent Change It (2026)"
+description: "Point at UI instead of describing it: screenshots, Playwright MCP, Cursor Design Mode, Orca, stagewise, and Superset Design Mode compared."
+date: 2026-10-07
+lastUpdated: 2026-10-07
+type: "tutorial"
+competitors:
+  - claude-code
+  - codex
+  - playwright-mcp
+  - cursor
+  - orca
+  - stagewise
+keywords:
+  - click element send to coding agent
+  - visual editing coding agent
+  - design mode coding agent
+  - point and prompt ui changes
+  - select element send to claude code
+  - cursor design mode alternative
+  - orca design mode
+  - stagewise alternative
+  - playwright mcp ui changes
+---
+
+To have a coding agent change the element you click, you need a browser that can pick an element and hand the agent its DOM, styles, and a screenshot, so the agent can find the source file without a paragraph of description from you. Cursor's Design Mode, Orca's Design Mode, the stagewise browser, and [Superset](https://superset.sh)'s browser pane with Design Mode all do this. If you don't want a new tool, a screenshot pasted into Claude Code or Codex works for small changes, and a browser MCP server such as Playwright MCP lets the agent open and inspect the page itself, but in both cases you still describe the element in words.
+
+The right choice depends on which agent you want to keep. Cursor and stagewise send the element to their own agent. Orca and Superset send it to the CLI agent you already run, such as Claude Code or Codex.
+
+This article is published by Superset. Competitor details come from each vendor's own docs as of October 2026.
+
+---
+
+## What are the ways to point at UI instead of describing it?
+
+| Option | How you point | What the agent receives | Which agent | Main tradeoff |
+|---|---|---|---|---|
+| **Screenshot pasted into Claude Code or Codex** | Capture and paste an image | The image and your text | Any agent that accepts images | No DOM or styles; the agent guesses which component it is |
+| **Playwright MCP or Chrome DevTools MCP** | You don't; the agent opens the page | Accessibility snapshot, screenshots, console | Any MCP client | Good for the agent checking its own work, not for you picking an element |
+| **Cursor Design Mode** | Click, multi-select, draw, or voice in Cursor's browser | Xpath, component, attributes, computed styles, props, screenshot | Cursor's agent | Ties the flow to Cursor's Agents Window |
+| **Orca Design Mode** | Click in a per-worktree Chromium window | HTML, computed CSS, cropped screenshot, source file and line with a source map | The active agent terminal | Open source (MIT); a separate app from your current setup |
+| **stagewise** | Click in the stagewise browser | Outer HTML, key computed CSS, bounding box, selector path | stagewise's own agent | The original toolbar that fed editor agents is deprecated |
+| **Superset Design Mode** | Click in the browser pane, type a note on the prompt card | DOM, computed styles, React component metadata, cropped screenshot | Any CLI agent, existing terminal or new session | macOS (Linux AppImage is experimental), no Windows |
+
+## Can I just paste a screenshot into Claude Code or Codex?
+
+Yes, and for one small change this is often enough. Claude Code's [docs](https://code.claude.com/docs/en/common-workflows) list three ways to add an image: drag and drop it into the window, paste it with `Ctrl+V` (`Alt+V` on Windows), or give the file path in your prompt. Codex [accepts images](https://learn.chatgpt.com/docs/codex/cli) through `codex --image` with the first prompt, or pasted into the interactive composer.
+
+The limit is that a screenshot is pixels. The agent sees a blue button but not which component renders it, which class sets its padding, or which of three similar buttons you mean. You end up writing "the second button in the billing form footer" anyway. Screenshots work best when the change is obvious from the picture and the component is easy to find.
+
+## What about browser MCP servers like Playwright MCP?
+
+A browser MCP server gives the agent its own browser. [Playwright MCP](https://github.com/microsoft/playwright-mcp) uses Playwright's accessibility tree by default rather than screenshots, so the agent can navigate, click, and read the page without a vision model. It lists setup for Claude Code (`claude mcp add playwright npx @playwright/mcp@latest`), Codex, Cursor, and many other clients. Google's [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp) adds performance traces, network and console debugging, and screenshots. Both are Apache-2.0.
+
+This solves a different problem. The agent can open your page, check that its change rendered, and read console errors. But you still tell it which element to change in text. Use an MCP server for the verify step, and pair it with one of the click-to-select tools below for the pointing step.
+
+## How does Cursor's Design Mode work?
+
+Cursor first shipped a [visual editor](https://cursor.com/blog/browser-visual-editor) for its built-in browser in December 2025, with style controls, drag-to-rearrange layout, and point-and-prompt. The current version is [Design Mode](https://cursor.com/docs/agent/design-mode): open the browser in the Agents Window and press `Cmd+Shift+D`. You can click an element, select several, draw on the page, or describe the change by voice. Each selected element sends its xpath, component, attributes, computed styles, props from the React fiber tree, and a screenshot. Cursor recommends a fast model that is good at interface work.
+
+Cursor wins on input options: drawing over a frozen frame and multi-element selection are things the other tools here don't all offer. The tradeoff is that the selection goes to Cursor's agent inside Cursor. If your team runs Claude Code or Codex in a terminal, this means a second tool and a second agent setup.
+
+## How does Orca's Design Mode work?
+
+[Orca](https://www.onorca.dev/) is a free, MIT-licensed app for running agents in worktrees on macOS, Windows, and Linux. Each worktree gets an embedded Chromium window. Turn on [Design Mode](https://www.onorca.dev/docs/browser/design-mode) from the browser toolbar, click an element, and Orca sends the element's HTML with a small neighborhood, its computed CSS, a cropped screenshot, and the source file and line when a dev-mode source map is available. It goes to the active agent terminal as one attachment, then you type the change.
+
+Orca has an annotation tray, so you can collect several notes before sending, and the source-map lookup can save the agent a search. It also runs on Windows, which Superset does not. For a full comparison of the two apps, see [Superset vs Orca](/compare/superset-vs-orca).
+
+## What happened to the stagewise toolbar?
+
+stagewise started as a browser toolbar that you added to your dev app to send selected elements to the agent in your editor. That npm package (`@stagewise/toolbar`) is now marked deprecated and points to the stagewise CLI. Today [stagewise](https://stagewise.io) is an open-source (AGPLv3) agent IDE with its own browser and its own agent. Its [DOM context selector](https://docs.stagewise.io/reference/dom-context-selector) lets you click one or more elements and attach their outer HTML, key computed CSS, bounding box, and selector path to your next message.
+
+stagewise fits if you want one app with a broad model list, including open-weight and local models. It has a free tier and paid plans; see [their pricing](https://stagewise.io/pricing). If you want the element to reach Claude Code or Codex, it is no longer the toolbar answer that older posts describe.
+
+## How does Superset's Design Mode work?
+
+Superset is a desktop app for running CLI coding agents, each task in its own Git worktree. Its [browser pane](https://docs.superset.sh/browser) previews your running dev server next to the agent's terminal.
+
+1. Open a workspace, start your dev server, and open it in a browser pane (`⌘⇧B`, or click a detected port in the sidebar).
+2. Click **Design** in the browser toolbar to arm the element picker.
+3. Click the element. A prompt card opens under it.
+4. Describe one change, pick an agent, and send it to an existing agent terminal or a fresh session.
+
+The agent receives the element's DOM, computed styles, React component metadata, and usually a cropped screenshot, with your note. Press **esc** to pick a different element, and **esc** again to leave Design Mode. It works on any page the pane can load, including localhost. The [walkthrough post](/blog/change-ui-with-your-coding-agent) shows a full example.
+
+Superset's difference is where the element goes. It works with the agent you already use (Claude Code, Codex, OpenCode, Cursor Agent, Gemini CLI, and others), and the change lands in that task's worktree, so two UI experiments don't edit the same files. The same pane can be driven by the agent through `superset browser` commands or a CDP endpoint to check its own work. The tradeoffs: Superset runs on macOS with an experimental Linux AppImage, has no Windows build, and is source-available under ELv2 rather than open source.
+
+## How do I review an agent's design with my team?
+
+Clicking an element covers your own feedback on a running app. When a teammate needs to review an agent-built design or mockup, Superset [Pages](https://docs.superset.sh/pages) handles that step. An agent publishes the design as a page, teammates pin comments to the part they want changed, and the agent picks up the comments, republishes, and replies at the same link. The [Pages walkthrough](/blog/review-agent-work-with-pages) shows the loop. Orca offers markdown comments on diff lines, which is a different review surface.
+
+## Which option should I pick?
+
+- **One quick change, no new tools:** paste a screenshot into Claude Code or Codex.
+- **Let the agent check its own UI work:** add Playwright MCP or Chrome DevTools MCP.
+- **You already use Cursor's agent:** Cursor Design Mode, for the drawing and voice input.
+- **You want open source, or need Windows:** Orca.
+- **You want open-weight or local models in one app:** stagewise.
+- **You want to click an element and send it to the CLI agent you already run, in an isolated worktree, with team review on Pages:** [Superset](/download).
+
+For more on running several UI tasks at once without collisions, see [How to Isolate Parallel Coding Agents](/compare/isolate-parallel-coding-agents).
+
+## Frequently Asked Questions
+
+### Can Claude Code see my running web app?
+
+Not by itself. Paste a screenshot, add a browser MCP server such as Playwright MCP so it can open the page, or use a tool like Superset or Orca that sends a selected element's DOM, styles, and screenshot into the Claude Code terminal.
+
+### Is a screenshot enough for an agent to change the right element?
+
+For distinct elements, often yes. When a page has several similar components, the agent can pick the wrong one. Element context (DOM, computed styles, component name) tells it which component to edit, which a screenshot alone can't.
+
+### Does Cursor's Design Mode work with Claude Code?
+
+Cursor's docs describe Design Mode in the browser inside Cursor's Agents Window, sending context to Cursor's agent. To send a selected element to Claude Code in a terminal, use Orca or Superset.
+
+### Does Superset's Design Mode work on localhost?
+
+Yes. It works on any page the browser pane can load, including your local dev server. Superset detects ports in use and opens them in the pane with one click.
+
+### Is the stagewise toolbar still maintained?
+
+The `@stagewise/toolbar` npm package is marked deprecated and points users to the stagewise CLI. stagewise now ships as its own agent IDE with a built-in browser and element selector.

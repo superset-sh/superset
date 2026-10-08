@@ -47,6 +47,7 @@ import {
 	useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { isDropHandled, markDropHandled } from "../../../../utils/handledDrops";
 import { useComposerDropZone } from "../../../ComposerDropZone";
 import { useDictation } from "../../hooks/useDictation";
 import {
@@ -62,9 +63,11 @@ import type {
 	PromptInputAttachment,
 	PromptInputProps,
 } from "../../types";
+import { registerDraftEdit } from "../../utils/draftEdit";
 import { registerHistoryNavigation } from "../../utils/historyNavigation";
 import { matchToken } from "../../utils/matchToken";
 import { rankCommands } from "../../utils/rankCommands";
+import { $restoreChips } from "../../utils/restoreChips";
 import {
 	CommandTypeaheadOption,
 	MentionTypeaheadOption,
@@ -116,6 +119,7 @@ export type ComposerBodyProps = Required<
 		| "toolbar"
 		| "toolbarEnd"
 		| "defaultValue"
+		| "findChips"
 		| "onChange"
 		| "onSubmit"
 		| "onStop"
@@ -172,6 +176,7 @@ export function ComposerBody({
 	toolbar,
 	toolbarEnd,
 	defaultValue,
+	findChips,
 	onChange,
 	onSubmit,
 	onStop,
@@ -257,10 +262,10 @@ export function ComposerBody({
 
 	// A draft the host had stored. Read once: after mount the editor is the
 	// only writer, and re-applying would fight what is being typed.
-	const seeded = useRef(false);
+	const seededValue = useRef<string | null>(null);
 	useEffect(() => {
-		if (seeded.current) return;
-		seeded.current = true;
+		if (seededValue.current !== null) return;
+		seededValue.current = defaultValue ?? "";
 		if (!defaultValue) return;
 		editor.update(() => {
 			const root = $getRoot();
@@ -270,6 +275,26 @@ export function ComposerBody({
 			if ($isRangeSelection(selection)) selection.insertText(defaultValue);
 		});
 	}, [defaultValue, editor]);
+
+	// Chips come back once the finder can name them, which may be after the
+	// draft was read (a catalog still loading). Only the untouched draft is
+	// rewritten: once edited, even back to the same text, it is the user's.
+	const draftEdited = useRef(false);
+	useEffect(() => {
+		const seededText = seededValue.current;
+		if (!seededText) return;
+		return registerDraftEdit(editor, seededText, () => {
+			draftEdited.current = true;
+		});
+	}, [editor]);
+	useEffect(() => {
+		const seededText = seededValue.current;
+		if (!findChips || !seededText || draftEdited.current) return;
+		editor.update(() => {
+			if ($getRoot().getTextContent() !== seededText) return;
+			$restoreChips(findChips);
+		});
+	}, [editor, findChips]);
 
 	const onChangeRef = useRef(onChange);
 	onChangeRef.current = onChange;
@@ -497,6 +522,7 @@ export function ComposerBody({
 				const files = event.dataTransfer?.files;
 				if (files && files.length > 0) {
 					event.preventDefault();
+					markDropHandled(event);
 					addFilesRef.current(files);
 					setDragging(false);
 					return true;
@@ -701,15 +727,13 @@ export function ComposerBody({
 					setDragging(false);
 			}}
 			onDrop={(event) => {
-				// The editor's DROP_COMMAND handler may have consumed this already;
-				// preventDefault marks it and the event still bubbles here. Inside a
-				// layout ComposerDropZone the zone owns non-editor drops instead.
 				if (
 					dropZone == null &&
-					!event.defaultPrevented &&
+					!isDropHandled(event.nativeEvent) &&
 					event.dataTransfer.files.length > 0
 				) {
 					event.preventDefault();
+					markDropHandled(event.nativeEvent);
 					addFiles(event.dataTransfer.files);
 				}
 				setDragging(false);

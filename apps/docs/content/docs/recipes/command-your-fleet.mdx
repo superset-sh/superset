@@ -50,10 +50,10 @@ One caveat: `send` delivers to *every* terminal, including plain shells, where t
 ## Clean Up When You're Done
 
 ```bash
-superset workspaces list --project my-app --quiet | xargs -L1 superset workspaces delete
+superset workspaces list --project my-app --quiet | xargs -L1 superset workspaces archive
 ```
 
-Deletes every listed workspace (the project's `main` workspace is not deletable). Filter with `--search` to target only the fleet you launched.
+Archives every listed workspace (the project's `main` workspace cannot be archived). An archived workspace loses its uncommitted changes. Filter with `--search` to target only the fleet you launched.
 
 ## Variations
 

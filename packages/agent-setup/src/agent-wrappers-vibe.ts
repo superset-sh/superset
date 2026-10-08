@@ -1,4 +1,3 @@
-import os from "node:os";
 import path from "node:path";
 import {
 	buildWrapperScript,
@@ -11,6 +10,7 @@ import {
 	type ManagedTomlBlockSpec,
 	removeManagedTomlBlock,
 } from "./managed-toml-block";
+import { resolveUserHomeDir } from "./paths";
 
 export const VIBE_HOOKS_MARKER_START =
 	"# >>> superset-managed-hooks v1 (do not edit) >>>";
@@ -23,7 +23,7 @@ const VIBE_MANAGED_HOOK_COMMAND = getManagedNotifyHookCommand("vibe");
 const MANAGED_HOOK_NAME_PREFIX = "superset-notify-";
 
 export function getVibeHooksTomlPath(): string {
-	return path.join(os.homedir(), ".vibe", "hooks.toml");
+	return path.join(resolveUserHomeDir(), ".vibe", "hooks.toml");
 }
 
 function buildVibeManagedHooksBlock(): string {

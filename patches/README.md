@@ -416,3 +416,28 @@ diagnostic and changes no codegen: the package uses no Swift-6-only syntax.
 
 **Guard:** `apps/mobile/expo-observe-swift-version-patch.test.ts`. Check
 whether upstream relaxed the podspec before re-applying after an SDK bump.
+
+## react-native-enriched-markdown (`react-native-enriched-markdown@<version>.patch`)
+
+**Why:** an agent message with a code block inside a numbered list item drew
+the item's number ("3.") on every line of the code, laid the code box over the
+item's own text, and drew more empty "3." lines after it. `ListItemRenderer`
+styles the item in ranges and only skips a range that *starts* in a code
+block. A range that starts in the item's text and runs on into the code block
+gets the list paragraph style and marker attributes for the whole block. Then
+`ListMarkerDrawer` draws a marker at the start of every paragraph that has
+them, and each code line is a paragraph.
+
+**What it changes:** `ios/renderer/ListItemRenderer.m` enumerates code blocks
+inside each range and styles only the parts outside them. It also marks every
+paragraph after the item's first one with `ListContinuationAttribute`.
+`ios/utils/ListMarkerDrawer.m` draws no marker on a paragraph with that mark.
+
+**Guard test:** `apps/mobile/react-native-enriched-markdown-list-patch.test.ts`.
+
+**Regenerating after a version bump:** apply the same two changes to the new
+version's files, write the diff to
+`patches/react-native-enriched-markdown@<version>.patch` (paths relative to the
+package root), update the key in `patchedDependencies`, run `bun install`, then
+`bun test apps/mobile/react-native-enriched-markdown-list-patch.test.ts`. It is
+a native change: rebuild the app to see it.

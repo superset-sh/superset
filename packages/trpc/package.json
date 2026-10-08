@@ -8,6 +8,10 @@
 			"types": "./src/index.ts",
 			"default": "./src/index.ts"
 		},
+		"./i18n-error": {
+			"types": "./src/i18n-error.ts",
+			"default": "./src/i18n-error.ts"
+		},
 		"./billing": {
 			"types": "./src/lib/billing/plan.ts",
 			"default": "./src/lib/billing/plan.ts"

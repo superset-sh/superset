@@ -1,0 +1,188 @@
+/* Page prose, not a document. The renderer's own stylesheet is unlayered, so
+ * Tailwind utilities on the wrapper cannot out-rank it; these can. */
+.pull-request-markdown.default-markdown {
+	--pr-prose-link: #2563eb;
+	font-size: 0.875rem;
+	line-height: 1.7;
+	background: transparent;
+	overflow-wrap: anywhere;
+}
+
+.dark .pull-request-markdown.default-markdown {
+	--pr-prose-link: #7cacf8;
+}
+
+.pull-request-markdown.default-markdown article {
+	max-width: none;
+	margin: 0;
+	padding: 0;
+}
+
+.pull-request-markdown.default-markdown article > :first-child {
+	margin-top: 0;
+}
+
+.pull-request-markdown.default-markdown article > :last-child {
+	margin-bottom: 0;
+}
+
+.pull-request-markdown.default-markdown p,
+.pull-request-markdown.default-markdown ul,
+.pull-request-markdown.default-markdown ol,
+.pull-request-markdown.default-markdown blockquote,
+.pull-request-markdown.default-markdown pre,
+.pull-request-markdown.default-markdown table {
+	margin: 0.8rem 0;
+	line-height: 1.7;
+}
+
+.pull-request-markdown.default-markdown ul,
+.pull-request-markdown.default-markdown ol {
+	padding-left: 1.25rem;
+}
+
+.pull-request-markdown.default-markdown li {
+	margin: 0;
+	line-height: 1.7;
+}
+
+.pull-request-markdown.default-markdown li + li {
+	margin-top: 0.4rem;
+}
+
+.pull-request-markdown.default-markdown li > ul,
+.pull-request-markdown.default-markdown li > ol {
+	margin: 0.4rem 0 0;
+}
+
+.pull-request-markdown.default-markdown h1,
+.pull-request-markdown.default-markdown h2,
+.pull-request-markdown.default-markdown h3,
+.pull-request-markdown.default-markdown h4,
+.pull-request-markdown.default-markdown h5,
+.pull-request-markdown.default-markdown h6 {
+	margin: 1.4rem 0 0.5rem;
+	padding: 0;
+	border: 0;
+	font-weight: 600;
+	line-height: 1.35;
+	letter-spacing: -0.01em;
+}
+
+.pull-request-markdown.default-markdown h1 {
+	font-size: 1.3em;
+}
+
+.pull-request-markdown.default-markdown h2 {
+	font-size: 1.16em;
+}
+
+.pull-request-markdown.default-markdown h3,
+.pull-request-markdown.default-markdown h4,
+.pull-request-markdown.default-markdown h5,
+.pull-request-markdown.default-markdown h6 {
+	font-size: 1em;
+}
+
+.pull-request-markdown.default-markdown strong,
+.pull-request-markdown.default-markdown b {
+	font-weight: 500;
+	font-synthesis: none;
+}
+
+.pull-request-markdown.default-markdown a {
+	color: var(--pr-prose-link);
+	text-decoration: none;
+}
+
+.pull-request-markdown.default-markdown a:hover,
+.pull-request-markdown.default-markdown a:focus-visible {
+	color: var(--pr-prose-link);
+	text-decoration: underline;
+	text-decoration-thickness: from-font;
+	text-underline-offset: 0.18em;
+}
+
+.pull-request-markdown.default-markdown :not(pre) > code {
+	border-radius: 0.4rem;
+	background: var(--fill-selected);
+	padding: 0.1rem 0.35rem;
+	color: var(--foreground);
+	font-size: 0.86em;
+}
+
+.pull-request-markdown.default-markdown blockquote {
+	margin: 0.8rem 0;
+	border-left: 2px solid var(--border);
+	padding-left: 0.8rem;
+	color: var(--muted-foreground);
+	font-style: normal;
+}
+
+.pull-request-markdown.default-markdown hr {
+	margin: 1.5rem 0;
+	border: 0;
+	border-top: 1px solid var(--border);
+}
+
+.pull-request-markdown.default-markdown a.pr-prose-link {
+	font-weight: 500;
+}
+
+/* Task boxes paint into the list gutter where the bullet would be. */
+.pull-request-markdown.default-markdown li.task-list-item {
+	list-style: none;
+}
+
+.pull-request-markdown.default-markdown .pr-prose-task-checkbox {
+	width: 0.95em;
+	height: 0.95em;
+	margin: 0 0.4em 0.1em -1.4em;
+	vertical-align: middle;
+	accent-color: var(--primary);
+}
+
+.pull-request-markdown.default-markdown .pr-prose-table {
+	margin: 0.8rem 0;
+	max-width: 100%;
+	overflow-x: auto;
+	overscroll-behavior-inline: contain;
+}
+
+/* Laid out at its natural width and scrolled, as GitHub does: a 100% table
+ * would squeeze the prose column behind unbreakable code tokens. */
+.pull-request-markdown.default-markdown table {
+	width: max-content;
+	max-width: none;
+	margin: 0;
+	border-collapse: collapse;
+	font-size: 0.93em;
+	line-height: 1.5;
+}
+
+.pull-request-markdown.default-markdown td {
+	max-width: 36rem;
+}
+
+.pull-request-markdown.default-markdown th,
+.pull-request-markdown.default-markdown td {
+	border: 1px solid var(--border);
+	padding: 0.35rem 0.45rem;
+	text-align: left;
+	vertical-align: top;
+	background: transparent;
+}
+
+.pull-request-markdown.default-markdown th {
+	font-weight: 500;
+}
+
+.pull-request-markdown.default-markdown img {
+	max-width: 100%;
+	height: auto;
+}
+
+.pull-request-markdown.default-markdown td img,
+.pull-request-markdown.default-markdown th img {
+	max-width: 20rem;
+}

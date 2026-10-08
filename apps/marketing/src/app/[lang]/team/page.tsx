@@ -11,9 +11,9 @@ import { getAbout } from "@/lib/about";
 import { getAllPeople } from "@/lib/people";
 import { CompanyFacts } from "../components/CompanyFacts";
 import { CTASection } from "../components/CTASection";
+import { PhotoFan } from "../components/PhotoFan";
 import { FounderRow } from "./components/FounderRow";
 import { Investors } from "./components/Investors";
-import { PhotoFan } from "./components/PhotoFan";
 import { ProofLinks } from "./components/ProofLinks";
 import { Timeline } from "./components/Timeline";
 
@@ -68,7 +68,7 @@ export default async function TeamPage() {
 
 	return (
 		<main className="relative min-h-screen bg-background">
-			<div className="max-w-5xl mx-auto px-6 py-24 md:py-32">
+			<div className="max-w-5xl mx-auto px-6 pt-24 md:pt-32">
 				{/* Hero */}
 				<section className="mb-12 md:mb-16">
 					<p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground mb-6">
@@ -118,10 +118,8 @@ export default async function TeamPage() {
 								</p>
 								<p>
 									<Trans>
-										Now, we've raised{" "}
-										<span className="text-foreground">$11M</span> from the best
-										investors in Silicon Valley to build the platform for
-										software factories.
+										Now, we've raised from the best investors in Silicon Valley
+										to build the platform for software factories.
 									</Trans>
 								</p>
 							</div>
@@ -175,13 +173,13 @@ export default async function TeamPage() {
 					)}
 				</section>
 
-				<section className="mb-24 md:mb-32">
+				<section className="hidden">
 					<h2 className="text-2xl md:text-3xl font-normal text-foreground mb-3">
 						<Trans>Backed by</Trans>
 					</h2>
 					<p className="text-muted-foreground mb-10 max-w-2xl">
 						<Trans>
-							Our $11M seed round is led by Union Square Ventures, with Y
+							Our $11.5M seed round is led by Union Square Ventures, with Y
 							Combinator, Paul Graham, and founders we admire.
 						</Trans>
 					</p>
@@ -197,7 +195,7 @@ export default async function TeamPage() {
 					</p>
 				</section>
 
-				<section className="mb-24 md:mb-32">
+				<section>
 					<h2 className="text-2xl md:text-3xl font-normal text-foreground mb-3">
 						<Trans>See how we work</Trans>
 					</h2>
@@ -210,7 +208,7 @@ export default async function TeamPage() {
 					<ProofLinks />
 					<div className="mt-14">
 						<Link
-							href="/join-us"
+							href="/careers"
 							className="inline-flex items-center gap-2 text-foreground hover:text-foreground/80 transition-colors group"
 						>
 							<Trans>We're hiring in San Francisco</Trans>
@@ -220,7 +218,7 @@ export default async function TeamPage() {
 				</section>
 			</div>
 
-			<CTASection />
+			<CTASection showInstallCommand={false} />
 		</main>
 	);
 }

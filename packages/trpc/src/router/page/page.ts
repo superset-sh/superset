@@ -44,6 +44,7 @@ import { assertPageReadable, assertPageWritable } from "./access";
 import { pageAssetRouter } from "./assets";
 import { decodePageCursor, encodePageCursor } from "./cursor";
 import { pageUrl } from "./page-url";
+import { pagePreview } from "./preview";
 import { publishPage } from "./publish";
 import { isEntryPathConflict } from "./publish-rules";
 import { pageReportRouter } from "./reports";
@@ -59,6 +60,7 @@ import {
 	type PageListScope,
 	pageCountsSchema,
 	pageFields,
+	pagePreviewSchema,
 	pageRefSchema,
 	publicPageSchema,
 	publishPageSchema,
@@ -649,6 +651,16 @@ export const pageRouter = {
 			watch: watchState(page, Date.now()),
 		};
 	}),
+
+	preview: protectedProcedure
+		.input(pagePreviewSchema)
+		.query(async ({ ctx, input }) =>
+			pagePreview({
+				slug: input.slug,
+				organizationId: await requireActiveOrgMembership(ctx),
+				userId: ctx.session.user.id,
+			}),
+		),
 
 	/**
 	 * The page a workspace path anchors to, for the CLI's directory publish:

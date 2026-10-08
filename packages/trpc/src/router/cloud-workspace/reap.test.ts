@@ -1,4 +1,8 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { db } from "@superset/db/client";
+import { stub } from "../../../test/stub";
+import * as sandbox from "../../lib/sandbox";
+import * as jobs from "./jobs";
 
 type Row = {
 	status: string;
@@ -13,16 +17,8 @@ let sandboxCalls: string[] = [];
 let queued: Array<{ path: string; body: unknown; delaySeconds?: number }> = [];
 let failingStage: Stage | null = null;
 
-// `mock.module` is process-wide, so every export the real module has must be here.
-mock.module("@superset/db/client", () => ({
-	db: {
-		query: { cloudWorkspaces: { findFirst: () => Promise.resolve(row) } },
-	},
-	dbWs: {
-		transaction: () => Promise.reject(new Error("dbWs is stubbed in tests")),
-	},
-}));
-mock.module("../../lib/sandbox", () => ({
+stub(db.query.cloudWorkspaces, { findFirst: () => Promise.resolve(row) });
+stub(sandbox, {
 	stopSandbox: (id: string) => {
 		sandboxCalls.push(`stop:${id}`);
 		return Promise.resolve();
@@ -31,8 +27,8 @@ mock.module("../../lib/sandbox", () => ({
 		sandboxCalls.push(`delete:${id}`);
 		return Promise.resolve();
 	},
-}));
-mock.module("./jobs", () => ({
+});
+stub(jobs, {
 	publishCloudWorkspaceJob: (job: {
 		path: string;
 		body: { stage: Stage };
@@ -48,7 +44,7 @@ mock.module("./jobs", () => ({
 		});
 		return Promise.resolve();
 	},
-}));
+});
 
 const { queueReap, reapArchivedCloudWorkspace } = await import("./reap");
 

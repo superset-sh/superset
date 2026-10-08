@@ -1,21 +1,28 @@
-import { afterEach, describe, expect, mock, test } from "bun:test";
+import {
+	afterAll,
+	afterEach,
+	beforeAll,
+	describe,
+	expect,
+	mock,
+	test,
+} from "bun:test";
+import { webContents } from "electron";
+import { PROTOCOL_SCHEME } from "shared/constants";
+import { browserManager } from "./browser-manager";
 
 const wcById = new Map<number, FakeWebContents>();
 
-mock.module("electron", () => ({
-	clipboard: { writeImage: mock(() => {}), writeText: mock(() => {}) },
-	Menu: { buildFromTemplate: mock(() => ({ popup: mock(() => {}) })) },
-	webContents: {
-		fromId: (id: number) => wcById.get(id) ?? null,
-	},
-}));
+const fromIdMock = webContents.fromId as unknown as ReturnType<typeof mock>;
+const preloadFromId = fromIdMock.getMockImplementation();
 
-mock.module("main/lib/safe-url", () => ({
-	safeOpenExternal: mock(async () => {}),
-}));
+beforeAll(() => {
+	fromIdMock.mockImplementation((id: number) => wcById.get(id) ?? null);
+});
 
-const { browserManager } = await import("./browser-manager");
-const { PROTOCOL_SCHEME } = await import("shared/constants");
+afterAll(() => {
+	fromIdMock.mockImplementation(preloadFromId ?? (() => null));
+});
 
 interface FakeImage {
 	isEmpty: () => boolean;

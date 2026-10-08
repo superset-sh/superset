@@ -114,6 +114,7 @@ export const sandboxIdentitySchema = z.object({
 	SUPERSET_SANDBOX_AGENT_MODE: z.string().optional(),
 	/** Comma-separated cloud upload ids the box pulls before launching. */
 	SUPERSET_SANDBOX_AGENT_ATTACHMENTS: z.string().optional(),
+	SUPERSET_SANDBOX_AGENT_SURFACE: z.enum(["terminal", "chat"]).optional(),
 });
 
 export type SandboxIdentity = z.infer<typeof sandboxIdentitySchema>;

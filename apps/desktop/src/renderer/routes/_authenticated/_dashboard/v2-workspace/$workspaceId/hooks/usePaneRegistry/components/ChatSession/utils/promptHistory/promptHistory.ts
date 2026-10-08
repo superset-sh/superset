@@ -1,7 +1,10 @@
-import { readBookkeeping, type TurnGroup } from "@superset/chat/core";
+import {
+	readBookkeeping,
+	type TurnGroup,
+	userMessageText,
+} from "@superset/chat/core";
 import type { UserMessage } from "@superset/chat/protocol";
 import { parseAttachmentTags } from "../attachmentTags";
-import { userMessageText } from "../userMessageText";
 
 export function promptHistory(
 	groups: TurnGroup[],

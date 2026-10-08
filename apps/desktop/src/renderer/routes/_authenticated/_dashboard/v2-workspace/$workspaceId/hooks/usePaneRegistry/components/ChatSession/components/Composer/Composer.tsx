@@ -16,8 +16,11 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import {
 	memo,
 	type KeyboardEvent as ReactKeyboardEvent,
+	type Ref,
 	useCallback,
 	useEffect,
+	useImperativeHandle,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 } from "react";
@@ -27,13 +30,17 @@ import { CHAT_COLUMN_CLASSNAME, CHAT_GUTTER_CLASSNAME } from "../../constants";
 import { type AgentSwitcher, ModelPicker } from "./components/ModelPicker";
 import { ModePicker, type SessionMode } from "./components/ModePicker";
 import { QueuedPrompts } from "./components/QueuedPrompts";
-import { useComposerDraft } from "./hooks/useComposerDraft";
+import {
+	takeRecoveredDraftText,
+	useComposerDraft,
+} from "./hooks/useComposerDraft";
 import { useQueueActions } from "./hooks/useQueueActions";
 import { useUploadAttachments } from "./hooks/useUploadAttachments";
 
 export type ComposerProps = {
 	workspaceId: string;
 	draftKey: string;
+	inputRef?: Ref<Pick<PromptInputHandle, "appendText" | "focus">>;
 	availableCommands: AvailableCommand[];
 	configOptions?: SessionConfigOption[];
 	onSetConfigOption?: (configId: string, value: string) => unknown;
@@ -75,6 +82,9 @@ function toMenuCommands(commands: AvailableCommand[]): PromptInputCommand[] {
 	}));
 }
 
+const FOCUS_HANDOFF_MS = 1000;
+let focusHandoff: { draftKey: string; at: number } | null = null;
+
 export const Composer = memo(function Composer({
 	agentSwitcher,
 	availableCommands,
@@ -85,6 +95,7 @@ export const Composer = memo(function Composer({
 	onSetMode,
 	disabled,
 	draftKey,
+	inputRef,
 	history,
 	isActive,
 	onCancelTurn,
@@ -99,6 +110,36 @@ export const Composer = memo(function Composer({
 	const { storedDraft, onChange, clearDraft } = useComposerDraft(draftKey);
 	const promptInputRef = useRef<PromptInputHandle>(null);
 	const queueActions = useQueueActions(promptQueue, promptInputRef);
+	useImperativeHandle(
+		inputRef,
+		() => ({
+			appendText: (text: string) => promptInputRef.current?.appendText(text),
+			focus: () => promptInputRef.current?.focus(),
+		}),
+		[],
+	);
+	const rootRef = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		const recovered = takeRecoveredDraftText(draftKey);
+		if (recovered) promptInputRef.current?.appendText(recovered);
+	}, [draftKey]);
+	useLayoutEffect(() => {
+		const handoff = focusHandoff;
+		if (handoff?.draftKey === draftKey) {
+			focusHandoff = null;
+			const focusIsFree =
+				!document.activeElement || document.activeElement === document.body;
+			if (focusIsFree && Date.now() - handoff.at < FOCUS_HANDOFF_MS) {
+				promptInputRef.current?.focus();
+			}
+		}
+		const root = rootRef.current;
+		return () => {
+			if (root?.contains(document.activeElement)) {
+				focusHandoff = { draftKey, at: Date.now() };
+			}
+		};
+	}, [draftKey]);
 	useHotkey("FOCUS_CHAT_INPUT", () => promptInputRef.current?.focus(), {
 		enabled: Boolean(isActive),
 	});
@@ -184,7 +225,10 @@ export const Composer = memo(function Composer({
 		}) => {
 			if (disabled || (text.trim() === "" && files.length === 0)) return;
 			const tags = await uploadAttachments(files);
-			if (!tags) return;
+			if (!tags) {
+				promptInputRef.current?.appendText(text);
+				return;
+			}
 			onSend(
 				[
 					{
@@ -219,6 +263,7 @@ export const Composer = memo(function Composer({
 
 	return (
 		<div
+			ref={rootRef}
 			className={cn(CHAT_GUTTER_CLASSNAME, "pt-1 pb-5")}
 			onKeyDownCapture={focusQueue}
 		>

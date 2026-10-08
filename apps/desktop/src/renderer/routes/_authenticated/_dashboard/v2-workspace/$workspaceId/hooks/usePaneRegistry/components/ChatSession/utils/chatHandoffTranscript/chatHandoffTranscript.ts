@@ -1,7 +1,6 @@
 import type { SessionSnapshot, TurnGroup } from "@superset/chat/core";
-import { displayText } from "@superset/chat/core";
+import { displayText, userMessageText } from "@superset/chat/core";
 import type { UserMessage } from "@superset/chat/protocol";
-import { userMessageText } from "../userMessageText";
 
 /**
  * The conversation as plain text, for handing to an agent that cannot resume

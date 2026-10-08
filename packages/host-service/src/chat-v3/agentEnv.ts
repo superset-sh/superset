@@ -39,6 +39,8 @@ function withSupersetBinFirst(
 function withoutAmbientKeys(
 	env: Record<string, string>,
 ): Record<string, string> {
+	// In a sandbox these are the creator's sign-in, filled in by the firewall.
+	if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") return env;
 	const { ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN, ...rest } = env;
 	return rest;
 }

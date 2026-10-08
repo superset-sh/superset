@@ -149,6 +149,9 @@ step_setup_neon_branch() {
 
   # Export for use in other steps
   export BRANCH_ID DIRECT_URL POOLED_URL WORKSPACE_NAME
+  # An inherited env var beats bun's --env-file, so later steps would otherwise
+  # query the root .env's database instead of this branch.
+  export DATABASE_URL="$POOLED_URL" DATABASE_URL_UNPOOLED="$DIRECT_URL"
 
   success "Neon branch ready: $WORKSPACE_NAME"
   return 0

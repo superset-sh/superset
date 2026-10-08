@@ -1,10 +1,7 @@
-import { afterAll, afterEach, expect, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, expect, test } from "bun:test";
 import type { OutboxEntry } from "@superset/chat/core";
 import type { TranscriptRow } from "../../utils/transcriptRows";
 
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
@@ -12,10 +9,6 @@ const { cleanup, renderHook } = await import("@testing-library/react");
 const { useScrollAnchorKey } = await import("./useScrollAnchorKey");
 
 afterEach(cleanup);
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
-
 function userRow(key: string): TranscriptRow {
 	return {
 		kind: "item",

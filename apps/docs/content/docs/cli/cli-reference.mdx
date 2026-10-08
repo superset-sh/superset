@@ -799,20 +799,32 @@ superset workspaces create --project prj_… --name "perf-spike" --branch perf/s
 </Command>
 
 <Command
-	name="superset workspaces delete <id...>"
+	name="superset workspaces archive <id...>"
 	args={[
-		{ name: "id", required: true, variadic: true, description: "Workspace IDs to delete." },
+		{ name: "id", required: true, variadic: true, description: "Workspace IDs to archive." },
 	]}
 	options={[
 		{ flag: "--host <id>", description: "Host the workspaces live on." },
-		{ flag: "--local", description: "Target this machine (the default)." },
+		{ flag: "--local", description: "Target this machine." },
 	]}
 	output={`{ deleted: string[]; warnings: string[] }`}
 >
-Delete one or more workspaces on the target host (default: this machine).
+Archive one or more workspaces. Without `--host` or `--local`, this targets
+cloud workspaces if your account has them, else this machine. The old name
+`delete` remains an alias.
+
+- **Cloud workspace:** the sandbox stops within a minute and is deleted after
+  7 days. A restore within those 7 days keeps its disk; after that, the
+  workspace starts again from a fresh sandbox.
+- **Worktree workspace on a host:** its folder is removed, with any uncommitted
+  changes. Its branch stays, so a restore brings back only committed work. A
+  workspace that shares the project's own checkout keeps that folder.
+
+`deleted` lists the archived IDs; the field keeps its old name so existing
+scripts still work.
 
 ```bash
-superset workspaces delete ws_a ws_b ws_c
+superset workspaces archive ws_a ws_b ws_c
 ```
 </Command>
 
@@ -1417,9 +1429,6 @@ Linear, Superset tasks are not listed or resolved, and the reverse. Pass
 		{ flag: "--assignee-me, -m", description: "Tasks assigned to the current user." },
 		{ flag: "--creator-me", description: "Tasks created by the current user." },
 		{ flag: "--search <query>, -s", description: "Substring search on title or description." },
-		{ flag: "--project <id>", description: "Filter by Linear project id." },
-		{ flag: "--project-name <name>", description: "Filter by Linear project name (prefix, case-insensitive)." },
-		{ flag: "--cycle <id>", description: "Filter by Linear cycle id." },
 		{ flag: "--due-from <date>", description: "Tasks due on or after this date (YYYY-MM-DD)." },
 		{ flag: "--due-to <date>", description: "Tasks due on or before this date (YYYY-MM-DD)." },
 		{ flag: "--sort-by <field>", description: "createdAt | updatedAt | dueDate | priority. Default: createdAt." },

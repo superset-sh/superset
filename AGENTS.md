@@ -125,7 +125,7 @@ superset ws create --local --project PROJECT_ID --branch BRANCH --agent claude -
 superset agents create --workspace WORKSPACE_ID --agent claude --prompt "..."
 superset ws list --local
 superset terminals read --workspace WORKSPACE_ID --terminal TERMINAL_ID
-superset ws delete --local WORKSPACE_ID
+superset ws archive --local WORKSPACE_ID
 ```
 
 In order: an isolated workspace with an agent already working in it, another agent in an existing

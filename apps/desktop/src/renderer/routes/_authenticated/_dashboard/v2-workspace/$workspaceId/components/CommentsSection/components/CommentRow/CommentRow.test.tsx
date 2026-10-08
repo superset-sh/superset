@@ -1,9 +1,6 @@
-import { afterAll, afterEach, describe, expect, mock, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, describe, expect, mock, test } from "bun:test";
 import type { NormalizedComment } from "../../types";
 
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
@@ -12,10 +9,6 @@ const { cleanup, fireEvent, render } = await import("@testing-library/react");
 const { CommentRow } = await import("./CommentRow");
 
 afterEach(cleanup);
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
-
 const comment: NormalizedComment = {
 	id: "comment-1",
 	authorLogin: "reviewer",

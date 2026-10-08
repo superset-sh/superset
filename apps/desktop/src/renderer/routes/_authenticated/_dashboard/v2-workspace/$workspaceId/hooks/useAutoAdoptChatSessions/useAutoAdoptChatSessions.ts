@@ -1,10 +1,10 @@
+import { presetForAcpHarness } from "@superset/chat/core";
 import type { WorkspaceStore } from "@superset/panes";
 import { useWorkspaceClient } from "@superset/workspace-client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import { useAcpChatEnabled } from "renderer/hooks/useAcpChatEnabled";
-import { presetForAcpHarness } from "renderer/lib/acpHarness";
 import type { StoreApi } from "zustand/vanilla";
 import type { ChatPaneData, PaneViewerData } from "../../types";
 import { isChatSessionClosed } from "../../utils/closedChatSessions";

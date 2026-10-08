@@ -53,7 +53,6 @@ export function WorkspaceSidebarHeader({
 		search: lastSearch,
 		typeTab: lastTypeTab,
 		projectFilters: lastProjectFilters,
-		linearProjectFilter: lastLinearProjectFilter,
 		includeClosedIssues: lastIncludeClosedIssues,
 	} = useTasksFilterStore();
 	const {
@@ -75,7 +74,6 @@ export function WorkspaceSidebarHeader({
 					search: lastSearch,
 					typeTab: lastTypeTab,
 					projectFilters: lastProjectFilters,
-					linearProjectFilter: lastLinearProjectFilter,
 					includeClosedIssues: lastIncludeClosedIssues,
 				}),
 			});
