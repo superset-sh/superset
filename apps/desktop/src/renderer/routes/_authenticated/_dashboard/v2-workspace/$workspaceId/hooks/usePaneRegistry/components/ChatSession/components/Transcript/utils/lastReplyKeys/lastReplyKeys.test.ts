@@ -36,4 +36,25 @@ describe("lastReplyKeys", () => {
 		];
 		expect([...lastReplyKeys(rows)]).toEqual(["reply-2", "reply-3"]);
 	});
+
+	test("leaves a running turn without a last reply", () => {
+		const working = (turnId: string, running: boolean): TranscriptRow => ({
+			kind: "working",
+			key: `working:${turnId}`,
+			groupStart: false,
+			startedAtMs: 0,
+			completedAtMs: running ? undefined : 1,
+			running,
+		});
+		const rows: TranscriptRow[] = [
+			item("prompt-1", "user_message", true),
+			working("t1", false),
+			item("reply-1", "agent_message"),
+			item("prompt-2", "user_message", true),
+			working("t2", true),
+			item("reply-2", "agent_message"),
+			item("tool-1", "tool_call"),
+		];
+		expect([...lastReplyKeys(rows)]).toEqual(["reply-1"]);
+	});
 });
