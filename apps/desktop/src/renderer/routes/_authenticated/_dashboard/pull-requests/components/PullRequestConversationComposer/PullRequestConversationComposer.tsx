@@ -6,7 +6,7 @@ import { ArrowUp } from "lucide-react";
 import { useRef, useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { useInvalidatePullRequestDetail } from "../../../../hooks/usePullRequestDetail";
+import { useInvalidatePullRequestDetail } from "../../hooks/usePullRequestDetail";
 
 export interface PullRequestCommentTarget {
 	projectId: string;

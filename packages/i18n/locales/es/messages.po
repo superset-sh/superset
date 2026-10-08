@@ -6327,8 +6327,8 @@ msgstr "p. ej. ingenieria"
 msgid "e.g. Engineering"
 msgstr "p. ej. Ingeniería"
 
-msgid "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
-msgstr "Cada agente se ejecuta en su propio worktree de Git aislado. Sin conflictos de fusión, sin pisarse los cambios entre ellos. Revisa y fusiona el trabajo cuando quieras."
+msgid "Each agent runs in its own isolated Git worktree. No overwriting each other's files. Review and merge work when you're ready."
+msgstr "Cada agente se ejecuta en su propio worktree de Git aislado. Nadie sobrescribe los archivos de otro. Revisa y fusiona el trabajo cuando quieras."
 
 #. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
 msgid "Each attachment is at most {0} MB."

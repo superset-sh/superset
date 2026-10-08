@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import type { PullRequestDetail } from "../../hooks/usePullRequestDetail";
+import { PullRequestConversation } from "../PullRequestConversation";
 import {
 	type PullRequestCommentTarget,
-	PullRequestConversation,
-} from "../PullRequestConversation";
+	PullRequestConversationComposer,
+} from "../PullRequestConversationComposer";
 import { PullRequestInfo } from "../PullRequestInfo";
 import { PullRequestItemHeader } from "../PullRequestItemHeader";
 import { PullRequestMarkdown } from "../PullRequestMarkdown";
@@ -17,7 +18,10 @@ interface PullRequestSummaryContentProps {
 	children?: ReactNode;
 }
 
-/** The Summary tab: header, info rail, description, conversation, then whatever the host adds. */
+/**
+ * The Summary tab: header, info rail, description, conversation, whatever
+ * the host adds, and the composer last so it is where the scroll ends.
+ */
 export function PullRequestSummaryContent({
 	data,
 	commentTarget = null,
@@ -32,9 +36,14 @@ export function PullRequestSummaryContent({
 		>
 			<PullRequestMarkdown body={data.body} />
 			<div className="mt-6">
-				<PullRequestConversation data={data} commentTarget={commentTarget} />
+				<PullRequestConversation data={data} />
 			</div>
 			{children ? <div className="mt-8">{children}</div> : null}
+			{commentTarget ? (
+				<div className={children ? "mt-6" : "mt-2"}>
+					<PullRequestConversationComposer target={commentTarget} />
+				</div>
+			) : null}
 		</PullRequestPageBody>
 	);
 }
