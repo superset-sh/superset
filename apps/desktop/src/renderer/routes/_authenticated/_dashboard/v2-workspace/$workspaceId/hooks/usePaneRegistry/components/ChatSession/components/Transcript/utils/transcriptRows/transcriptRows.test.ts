@@ -81,52 +81,42 @@ describe("transcriptRows", () => {
 		expect(rows[0]?.groupStart).toBe(true);
 	});
 
-	test("a tool run collapses once the turn moves past it, not before", () => {
-		const tool = (id: string, status: "running" | "completed") => ({
-			id,
-			kind: "tool_call" as const,
-			title: id,
-			toolKind: "execute" as const,
-			toolName: "Bash",
-			status,
-			content: [],
-			startedAtMs: 3,
-		});
-		const reply = {
-			kind: "item" as const,
-			item: {
-				id: "a1",
-				kind: "agent_message" as const,
-				text: "ok",
-				startedAtMs: 4,
-			},
-		};
+	test("a tool run starts collapsed unless it waits on an approval", () => {
 		const running = { id: "t1", status: "running" as const, startedAtMs: 2 };
-		const collapsedFlags = (entries: TurnGroup["entries"]) =>
+		const collapsedFlags = (pendingApprovalTargets: ReadonlySet<string>) =>
 			transcriptRows(
-				[{ turnId: "t1", turn: running, entries }],
+				[
+					{
+						turnId: "t1",
+						turn: running,
+						entries: [
+							{
+								kind: "tool_run",
+								items: [
+									{
+										id: "b1",
+										kind: "tool_call",
+										title: "b1",
+										toolKind: "execute",
+										toolName: "Bash",
+										status: "running",
+										content: [],
+										startedAtMs: 3,
+									},
+								],
+							},
+						],
+					},
+				],
 				[],
-				new Set(),
+				pendingApprovalTargets,
 				find,
 			)
 				.filter((row) => row.kind === "tool_run")
 				.map((row) => row.kind === "tool_run" && row.defaultCollapsed);
 
-		expect(
-			collapsedFlags([{ kind: "tool_run", items: [tool("b1", "completed")] }]),
-		).toEqual([false]);
-		expect(
-			collapsedFlags([
-				{ kind: "tool_run", items: [tool("b1", "completed")] },
-				reply,
-			]),
-		).toEqual([true]);
-		expect(
-			collapsedFlags([
-				{ kind: "tool_run", items: [tool("b1", "running")] },
-				reply,
-			]),
-		).toEqual([false]);
+		expect(collapsedFlags(new Set())).toEqual([true]);
+		expect(collapsedFlags(new Set(["b1"]))).toEqual([false]);
 	});
 
 	test("a settled turn shows a page its tool run printed and its reply did not link", () => {
