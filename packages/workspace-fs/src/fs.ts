@@ -92,6 +92,14 @@ function ensureWithinRoot({
 	return normalizedAbsolutePath;
 }
 
+async function resolveRealRootPath(rootPath: string): Promise<string> {
+	try {
+		return normalizeAbsolutePath(await fs.realpath(rootPath));
+	} catch {
+		return normalizeAbsolutePath(rootPath);
+	}
+}
+
 async function assertParentWithinRoot(
 	rootPath: string,
 	absolutePath: string,
@@ -100,6 +108,7 @@ async function assertParentWithinRoot(
 		rootPath,
 		absolutePath: rootPath,
 	});
+	const realRootPath = await resolveRealRootPath(rootPath);
 	let currentPath = path.dirname(absolutePath);
 
 	while (currentPath !== path.dirname(currentPath)) {
@@ -116,7 +125,7 @@ async function assertParentWithinRoot(
 					const targetRealPath = normalizeAbsolutePath(
 						await fs.realpath(resolvedTarget),
 					);
-					if (!isPathWithinRoot(normalizedRootPath, targetRealPath)) {
+					if (!isPathWithinRoot(realRootPath, targetRealPath)) {
 						throw new WorkspaceFsPathError(
 							"Symlink in path resolves outside workspace root",
 							"SYMLINK_ESCAPE",
@@ -156,7 +165,7 @@ async function assertParentWithinRoot(
 			const parentRealPath = normalizeAbsolutePath(
 				await fs.realpath(currentPath),
 			);
-			if (!isPathWithinRoot(normalizedRootPath, parentRealPath)) {
+			if (!isPathWithinRoot(realRootPath, parentRealPath)) {
 				throw new WorkspaceFsPathError(
 					"Parent directory resolves outside workspace root",
 					"SYMLINK_ESCAPE",
@@ -238,14 +247,15 @@ async function assertRealpathWithinRoot(
 	rootPath: string,
 	absolutePath: string,
 ): Promise<void> {
-	const normalizedRootPath = ensureWithinRoot({
+	ensureWithinRoot({
 		rootPath,
 		absolutePath: rootPath,
 	});
+	const realRootPath = await resolveRealRootPath(rootPath);
 
 	try {
 		const realPath = normalizeAbsolutePath(await fs.realpath(absolutePath));
-		if (!isPathWithinRoot(normalizedRootPath, realPath)) {
+		if (!isPathWithinRoot(realRootPath, realPath)) {
 			throw new WorkspaceFsPathError(
 				"Path resolves outside workspace root",
 				"SYMLINK_ESCAPE",
