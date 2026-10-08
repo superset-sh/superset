@@ -30,6 +30,7 @@ export function HowItWorks() {
 
 	const select = (index: number) => {
 		setActive(index);
+		setPreview(null);
 		setPinned(true);
 	};
 

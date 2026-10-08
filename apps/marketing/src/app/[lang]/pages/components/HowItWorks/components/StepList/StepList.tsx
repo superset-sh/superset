@@ -39,8 +39,8 @@ export function StepList({
 					: 0;
 		if (!delta) return;
 		event.preventDefault();
-		const focusedIndex = tabRefs.current.findIndex(
-			(tab) => tab === document.activeElement,
+		const focusedIndex = tabRefs.current.indexOf(
+			document.activeElement as HTMLButtonElement,
 		);
 		const from = focusedIndex === -1 ? active : focusedIndex;
 		const next = (from + delta + steps.length) % steps.length;
