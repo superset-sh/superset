@@ -121,6 +121,7 @@ export const toolCallSchema = z.looseObject({
 	rawInput: z.unknown().optional(),
 	rawOutput: z.unknown().optional(),
 	subagent: z.boolean().optional(),
+	bodyOmitted: z.boolean().optional(),
 	mcpServer: z
 		.looseObject({
 			name: z.string(),

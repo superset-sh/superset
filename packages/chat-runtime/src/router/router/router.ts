@@ -3,7 +3,9 @@ import {
 	closeSessionInputSchema,
 	createSessionInputSchema,
 	forkSessionInputSchema,
+	getItemBodiesInputSchema,
 	getItemsInputSchema,
+	getOutlineInputSchema,
 	getSessionInputSchema,
 	listSessionsInputSchema,
 	promptInputSchema,
@@ -170,6 +172,14 @@ export function createChatRouter(
 		getItems: t.procedure
 			.input(getItemsInputSchema)
 			.query(({ input }) => runtime.commands.getItems(input)),
+
+		getOutline: t.procedure
+			.input(getOutlineInputSchema)
+			.query(({ input }) => runtime.commands.getOutline(input)),
+
+		getItemBodies: t.procedure
+			.input(getItemBodiesInputSchema)
+			.query(({ input }) => runtime.commands.getItemBodies(input)),
 	});
 }
 
