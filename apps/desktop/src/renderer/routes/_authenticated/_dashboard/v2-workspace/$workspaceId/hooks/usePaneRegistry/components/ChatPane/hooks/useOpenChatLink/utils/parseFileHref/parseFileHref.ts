@@ -4,15 +4,27 @@ export interface FileHref {
 	col?: number;
 }
 
-const OTHER_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+const OTHER_SCHEME = /^[a-z][a-z0-9+.-]*:(?!\d+(?::\d+)?$)/i;
+const BROWSER_SCHEME = /^(mailto|tel):/i;
 const LINE_ANCHOR = /#L(\d+)(?:C(\d+))?(?:-L?\d+(?:C\d+)?)?$/;
 const LINE_SUFFIX = /:(\d+)(?::(\d+))?$/;
 
 export function parseFileHref(href: string): FileHref | null {
 	let rest = href.trim();
 	if (rest.startsWith("file://")) {
-		rest = rest.slice("file://".length);
-	} else if (rest === "" || rest.startsWith("#") || OTHER_SCHEME.test(rest)) {
+		try {
+			const url = new URL(rest);
+			if (url.hostname !== "" && url.hostname !== "localhost") return null;
+			rest = url.pathname + url.hash;
+		} catch {
+			return null;
+		}
+	} else if (
+		rest === "" ||
+		rest.startsWith("#") ||
+		BROWSER_SCHEME.test(rest) ||
+		OTHER_SCHEME.test(rest)
+	) {
 		return null;
 	}
 

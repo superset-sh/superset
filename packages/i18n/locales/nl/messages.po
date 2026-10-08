@@ -4815,6 +4815,9 @@ msgstr "Kon de provider niet bereiken. Probeer het opnieuw."
 msgid "Could not reach the server."
 msgstr "Kan de server niet bereiken."
 
+msgid "Could not reach the workspace host"
+msgstr "Kan de werkruimte-host niet bereiken"
+
 msgid "Could not reach this workspace's machine"
 msgstr "Kan de machine van deze werkruimte niet bereiken"
 
@@ -12070,6 +12073,9 @@ msgstr "Pad gekopieerd"
 
 msgid "Path copied to clipboard"
 msgstr "Pad gekopieerd naar klembord"
+
+msgid "Path not found: {path}"
+msgstr "Pad niet gevonden: {path}"
 
 msgid "Pause"
 msgstr "Pauzeren"

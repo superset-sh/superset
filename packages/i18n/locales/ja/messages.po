@@ -4815,6 +4815,9 @@ msgstr "プロバイダーに接続できませんでした。再試行してく
 msgid "Could not reach the server."
 msgstr "サーバーに接続できませんでした。"
 
+msgid "Could not reach the workspace host"
+msgstr "ワークスペースのホストに接続できません"
+
 msgid "Could not reach this workspace's machine"
 msgstr "このワークスペースのマシンに接続できませんでした"
 
@@ -12070,6 +12073,9 @@ msgstr "パスをコピーしました"
 
 msgid "Path copied to clipboard"
 msgstr "パスをクリップボードにコピーしました"
+
+msgid "Path not found: {path}"
+msgstr "パスが見つかりません: {path}"
 
 msgid "Pause"
 msgstr "一時停止"

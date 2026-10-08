@@ -1,8 +1,11 @@
+import { useLingui } from "@lingui/react/macro";
 import type { RendererContext } from "@superset/panes";
+import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useCallback, useRef } from "react";
 import {
-	useTerminalFilePolicy,
+	tierFor,
+	useInlineFilePolicy,
 	useTerminalFolderPolicy,
 	useUrlLinkAction,
 } from "renderer/lib/clickPolicy";
@@ -36,9 +39,10 @@ export function useOpenChatLink({
 	onRevealPath: (path: string, options?: { isDirectory?: boolean }) => void;
 	showHint: (clientX: number, clientY: number) => void;
 }): OpenLink {
-	const filePolicy = useTerminalFilePolicy();
+	const { t } = useLingui();
+	const filePolicy = useInlineFilePolicy();
 	const folderPolicy = useTerminalFolderPolicy();
-	const getUrlAction = useUrlLinkAction("4-tier");
+	const getUrlAction = useUrlLinkAction("2-tier");
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
 	const revealInFinder = useRevealInFinder(workspaceId);
 	const { data: workspace } = workspaceTrpc.workspace.get.useQuery({
@@ -67,8 +71,9 @@ export function useOpenChatLink({
 
 	return useCallback(
 		(href, event) => {
+			const isPlain = tierFor(event, "2-tier") === "plain";
 			if (WEB_URL.test(href)) {
-				const action = getUrlAction(event, href);
+				const action = getUrlAction(event, href) ?? (isPlain ? "pane" : null);
 				if (action === null) showHint(event.clientX, event.clientY);
 				else runUrlLinkAction(depsRef.current, href, action);
 				return true;
@@ -76,19 +81,24 @@ export function useOpenChatLink({
 
 			const file = parseFileHref(href);
 			if (!file) return false;
-			void statPathRef
-				.current({ workspaceId, path: file.path })
-				.catch(() => null)
-				.then((stat) => {
-					if (!stat) return;
+			void statPathRef.current({ workspaceId, path: file.path }).then(
+				(stat) => {
+					if (!stat) {
+						const { path } = file;
+						toast.error(t({ message: `Path not found: ${path}` }));
+						return;
+					}
 					if (stat.isDirectory) {
-						const intent = folderPolicy.getIntent(event);
+						const intent =
+							folderPolicy.map[tierFor(event, "2-tier")] ??
+							(isPlain ? "reveal" : null);
 						if (intent === null) showHint(event.clientX, event.clientY);
 						else
 							runFolderLinkAction(depsRef.current, stat.resolvedPath, intent);
 						return;
 					}
-					const action = filePolicy.getAction(event);
+					const action =
+						filePolicy.getAction(event) ?? (isPlain ? "pane" : null);
 					if (action === null) {
 						showHint(event.clientX, event.clientY);
 						return;
@@ -98,9 +108,14 @@ export function useOpenChatLink({
 						{ path: stat.resolvedPath, row: file.row, col: file.col },
 						action,
 					);
-				});
+				},
+				(error) => {
+					console.error("Failed to stat chat link path:", file.path, error);
+					toast.error(t({ message: "Could not reach the workspace host" }));
+				},
+			);
 			return true;
 		},
-		[workspaceId, getUrlAction, filePolicy, folderPolicy, showHint],
+		[workspaceId, getUrlAction, filePolicy, folderPolicy, showHint, t],
 	);
 }

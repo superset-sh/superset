@@ -4815,6 +4815,9 @@ msgstr "Não foi possível falar com o provedor. Tente de novo."
 msgid "Could not reach the server."
 msgstr "Não foi possível acessar o servidor."
 
+msgid "Could not reach the workspace host"
+msgstr "Não foi possível alcançar o host da área de trabalho"
+
 msgid "Could not reach this workspace's machine"
 msgstr "Não foi possível acessar a máquina desta área de trabalho"
 
@@ -12070,6 +12073,9 @@ msgstr "Caminho copiado"
 
 msgid "Path copied to clipboard"
 msgstr "Caminho copiado para a área de transferência"
+
+msgid "Path not found: {path}"
+msgstr "Caminho não encontrado: {path}"
 
 msgid "Pause"
 msgstr "Pausar"

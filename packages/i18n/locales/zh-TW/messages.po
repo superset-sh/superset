@@ -4815,6 +4815,9 @@ msgstr "無法連線到提供商，請重試。"
 msgid "Could not reach the server."
 msgstr "無法連線到伺服器。"
 
+msgid "Could not reach the workspace host"
+msgstr "無法連線到工作區主機"
+
 msgid "Could not reach this workspace's machine"
 msgstr "無法連線到這個工作區所在的機器"
 
@@ -12070,6 +12073,9 @@ msgstr "已複製路徑"
 
 msgid "Path copied to clipboard"
 msgstr "路徑已複製到剪貼簿"
+
+msgid "Path not found: {path}"
+msgstr "找不到路徑：{path}"
 
 msgid "Pause"
 msgstr "暫停"

@@ -17,10 +17,16 @@ function hrefs(markdown: string): string[] {
 
 test("relative and absolute file links survive the markdown hardening", () => {
 	expect(
-		hrefs("[a](src/app.ts:12) [b](/Users/me/x.ts#L3) [c](.git/)").map((href) =>
-			decodeURIComponent(href.slice(LOCAL_PATH_PREFIX.length)),
-		),
-	).toEqual(["src/app.ts:12", "/Users/me/x.ts#L3", ".git/"]);
+		hrefs(
+			"[a](src/app.ts:12) [b](/Users/me/x.ts#L3) [c](.git/) [d](package.json:4) [e](file:///tmp/a.ts)",
+		).map((href) => decodeURIComponent(href.slice(LOCAL_PATH_PREFIX.length))),
+	).toEqual([
+		"src/app.ts:12",
+		"/Users/me/x.ts#L3",
+		".git/",
+		"package.json:4",
+		"file:///tmp/a.ts",
+	]);
 });
 
 test("web links are left as they are", () => {
@@ -28,4 +34,8 @@ test("web links are left as they are", () => {
 		"https://example.com/a",
 		"mailto:a@b.co",
 	]);
+});
+
+test("links with other schemes stay blocked", () => {
+	expect(hrefs("[v](vscode://file/x.ts) [s](slack://open)")).toEqual([]);
 });

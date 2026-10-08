@@ -1,6 +1,6 @@
 export const LOCAL_PATH_PREFIX = "/__superset_local_path__/";
 
-const BROWSER_SCHEME = /^(https?|mailto|tel):/i;
+const URL_SCHEME = /^[a-z][a-z0-9+.-]*:(?!\d+(?::\d+)?$)/i;
 
 interface MarkdownNode {
 	type: string;
@@ -13,7 +13,7 @@ function rewriteLocalPaths(node: MarkdownNode) {
 		node.type === "link" &&
 		node.url &&
 		!node.url.startsWith("#") &&
-		!BROWSER_SCHEME.test(node.url)
+		(node.url.startsWith("file://") || !URL_SCHEME.test(node.url))
 	) {
 		node.url = LOCAL_PATH_PREFIX + encodeURIComponent(node.url);
 	}

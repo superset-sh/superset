@@ -4815,6 +4815,9 @@ msgstr "Не удалось связаться с провайдером. Пов
 msgid "Could not reach the server."
 msgstr "Не удалось подключиться к серверу."
 
+msgid "Could not reach the workspace host"
+msgstr "Не удалось связаться с хостом рабочего пространства"
+
 msgid "Could not reach this workspace's machine"
 msgstr "Не удалось связаться с машиной этой рабочей области"
 
@@ -12070,6 +12073,9 @@ msgstr "Путь скопирован"
 
 msgid "Path copied to clipboard"
 msgstr "Путь скопирован в буфер обмена"
+
+msgid "Path not found: {path}"
+msgstr "Путь не найден: {path}"
 
 msgid "Pause"
 msgstr "Приостановить"

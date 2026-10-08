@@ -4815,6 +4815,9 @@ msgstr "Không kết nối được tới nhà cung cấp. Hãy thử lại."
 msgid "Could not reach the server."
 msgstr "Không thể kết nối tới máy chủ."
 
+msgid "Could not reach the workspace host"
+msgstr "Không thể kết nối tới máy chủ workspace"
+
 msgid "Could not reach this workspace's machine"
 msgstr "Không kết nối được tới máy của workspace này"
 
@@ -12070,6 +12073,9 @@ msgstr "Đã sao chép đường dẫn"
 
 msgid "Path copied to clipboard"
 msgstr "Đã sao chép đường dẫn vào clipboard"
+
+msgid "Path not found: {path}"
+msgstr "Không tìm thấy đường dẫn: {path}"
 
 msgid "Pause"
 msgstr "Tạm dừng"

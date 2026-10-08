@@ -4815,6 +4815,9 @@ msgstr "无法连接到提供商，请重试。"
 msgid "Could not reach the server."
 msgstr "无法连接到服务器。"
 
+msgid "Could not reach the workspace host"
+msgstr "无法连接到工作区主机"
+
 msgid "Could not reach this workspace's machine"
 msgstr "无法连接到这个工作区所在的机器"
 
@@ -12070,6 +12073,9 @@ msgstr "已复制路径"
 
 msgid "Path copied to clipboard"
 msgstr "路径已复制到剪贴板"
+
+msgid "Path not found: {path}"
+msgstr "未找到路径：{path}"
 
 msgid "Pause"
 msgstr "暂停"

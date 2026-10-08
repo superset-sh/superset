@@ -2361,7 +2361,7 @@ msgid "Applies to file paths in terminals, chat messages and tool calls, and tas
 msgstr "Terminallerdeki, sohbet mesajlarındaki ve araç çağrılarındaki ve görev markdown'ındaki dosya yolları için geçerlidir."
 
 msgid "Applies to folder paths in terminal output and chat messages. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder."
-msgstr "Terminal çıktısındaki ve sohbet mesajlarındaki klasör yolları için geçerlidir. Klasörler dosya görüntüleyicide açılamaz; bu yüzden tıklamalar kenar çubuğunda gösterir, harici düzenleyiciyi ya da Finder'ı açar."
+msgstr "Terminal çıktısındaki ve sohbet mesajlarındaki klasör yolları için geçerlidir. Klasörler dosya görüntüleyicide açılamaz; bu yüzden tıklandığında klasör kenar çubuğunda gösterilir, harici düzenleyicide açılır ya da Finder'da açılır."
 
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "Dosya ağacı, değişiklik listesi ve fark başlığı için geçerlidir."
@@ -4814,6 +4814,9 @@ msgstr "Sağlayıcıya ulaşılamadı. Yeniden deneyin."
 
 msgid "Could not reach the server."
 msgstr "Sunucuya ulaşılamadı."
+
+msgid "Could not reach the workspace host"
+msgstr "Çalışma alanı sunucusuna ulaşılamadı"
 
 msgid "Could not reach this workspace's machine"
 msgstr "Bu çalışma alanının makinesine erişilemedi"
@@ -12070,6 +12073,9 @@ msgstr "Yol kopyalandı"
 
 msgid "Path copied to clipboard"
 msgstr "Yol panoya kopyalandı"
+
+msgid "Path not found: {path}"
+msgstr "Yol bulunamadı: {path}"
 
 msgid "Pause"
 msgstr "Duraklat"

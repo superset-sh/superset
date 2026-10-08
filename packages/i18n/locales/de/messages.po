@@ -4815,6 +4815,9 @@ msgstr "Der Anbieter war nicht erreichbar. Versuche es erneut."
 msgid "Could not reach the server."
 msgstr "Server nicht erreichbar."
 
+msgid "Could not reach the workspace host"
+msgstr "Arbeitsbereich-Host nicht erreichbar"
+
 msgid "Could not reach this workspace's machine"
 msgstr "Der Rechner dieses Arbeitsbereichs war nicht erreichbar"
 
@@ -12070,6 +12073,9 @@ msgstr "Pfad kopiert"
 
 msgid "Path copied to clipboard"
 msgstr "Pfad in die Zwischenablage kopiert"
+
+msgid "Path not found: {path}"
+msgstr "Pfad nicht gefunden: {path}"
 
 msgid "Pause"
 msgstr "Pausieren"

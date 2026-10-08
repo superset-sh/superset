@@ -4815,6 +4815,9 @@ msgstr "Nie udało się połączyć z dostawcą. Spróbuj ponownie."
 msgid "Could not reach the server."
 msgstr "Nie można połączyć się z serwerem."
 
+msgid "Could not reach the workspace host"
+msgstr "Nie można połączyć się z hostem obszaru roboczego"
+
 msgid "Could not reach this workspace's machine"
 msgstr "Nie udało się połączyć z maszyną tego obszaru roboczego"
 
@@ -12070,6 +12073,9 @@ msgstr "Skopiowano ścieżkę"
 
 msgid "Path copied to clipboard"
 msgstr "Ścieżka skopiowana do schowka"
+
+msgid "Path not found: {path}"
+msgstr "Nie znaleziono ścieżki: {path}"
 
 msgid "Pause"
 msgstr "Wstrzymaj"

@@ -4815,6 +4815,9 @@ msgstr "Tidak bisa menghubungi penyedia. Coba lagi."
 msgid "Could not reach the server."
 msgstr "Tidak dapat menjangkau server."
 
+msgid "Could not reach the workspace host"
+msgstr "Tidak dapat menjangkau host workspace"
+
 msgid "Could not reach this workspace's machine"
 msgstr "Tidak bisa menjangkau mesin workspace ini"
 
@@ -12070,6 +12073,9 @@ msgstr "Path disalin"
 
 msgid "Path copied to clipboard"
 msgstr "Path disalin ke clipboard"
+
+msgid "Path not found: {path}"
+msgstr "Path tidak ditemukan: {path}"
 
 msgid "Pause"
 msgstr "Jeda"

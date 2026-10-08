@@ -4815,6 +4815,9 @@ msgstr "Impossible de joindre le fournisseur. Réessayez."
 msgid "Could not reach the server."
 msgstr "Impossible de joindre le serveur."
 
+msgid "Could not reach the workspace host"
+msgstr "Impossible de joindre l'hôte de l'espace de travail"
+
 msgid "Could not reach this workspace's machine"
 msgstr "Impossible de joindre la machine de cet espace de travail"
 
@@ -12070,6 +12073,9 @@ msgstr "Chemin copié"
 
 msgid "Path copied to clipboard"
 msgstr "Chemin copié dans le presse-papiers"
+
+msgid "Path not found: {path}"
+msgstr "Chemin introuvable : {path}"
 
 msgid "Pause"
 msgstr "Mettre en pause"

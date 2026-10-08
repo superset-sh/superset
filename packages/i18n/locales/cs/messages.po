@@ -4815,6 +4815,9 @@ msgstr "Poskytovatele se nepodařilo kontaktovat. Zkuste to znovu."
 msgid "Could not reach the server."
 msgstr "Nepodařilo se spojit se serverem."
 
+msgid "Could not reach the workspace host"
+msgstr "Nelze se spojit s hostitelem pracovního prostoru"
+
 msgid "Could not reach this workspace's machine"
 msgstr "Nepodařilo se spojit s počítačem tohoto pracovního prostoru"
 
@@ -12070,6 +12073,9 @@ msgstr "Cesta zkopírována"
 
 msgid "Path copied to clipboard"
 msgstr "Cesta zkopírována do schránky"
+
+msgid "Path not found: {path}"
+msgstr "Cesta nenalezena: {path}"
 
 msgid "Pause"
 msgstr "Pozastavit"

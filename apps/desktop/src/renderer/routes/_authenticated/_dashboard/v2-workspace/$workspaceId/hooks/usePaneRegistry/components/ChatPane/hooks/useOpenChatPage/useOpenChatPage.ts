@@ -13,12 +13,12 @@ import type { OpenPage } from "../../../ChatSession/providers/ChatPaneActionsPro
 export function useOpenChatPage(
 	store: RendererContext<PaneViewerData>["store"],
 ): OpenPage {
-	const getUrlAction = useUrlLinkAction("4-tier");
+	const getUrlAction = useUrlLinkAction("2-tier");
 	return useCallback(
 		(url, event) => {
 			const action =
 				getUrlAction(event, url) ??
-				(tierFor(event, "4-tier") === "plain" ? "pane" : null);
+				(tierFor(event, "2-tier") === "plain" ? "pane" : null);
 			if (action) runUrlLinkAction({ store }, url, action);
 		},
 		[getUrlAction, store],

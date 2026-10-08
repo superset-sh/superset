@@ -4815,6 +4815,9 @@ msgstr "Could not reach the provider. Try again."
 msgid "Could not reach the server."
 msgstr "Could not reach the server."
 
+msgid "Could not reach the workspace host"
+msgstr "Could not reach the workspace host"
+
 msgid "Could not reach this workspace's machine"
 msgstr "Could not reach this workspace's machine"
 
@@ -12070,6 +12073,9 @@ msgstr "Path copied"
 
 msgid "Path copied to clipboard"
 msgstr "Path copied to clipboard"
+
+msgid "Path not found: {path}"
+msgstr "Path not found: {path}"
 
 msgid "Pause"
 msgstr "Pause"
