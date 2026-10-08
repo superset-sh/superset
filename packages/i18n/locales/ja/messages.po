@@ -11802,6 +11802,9 @@ msgstr "または、お使いのコーディングエージェントにSuperset 
 msgid "Orange"
 msgstr "オレンジ"
 
+msgid "Orchestrate any coding agent."
+msgstr "あらゆるコーディングエージェントを指揮する。"
+
 msgid "Orchestrate Parallel Agents"
 msgstr "並列エージェントを指揮"
 
@@ -12614,6 +12617,9 @@ msgstr "生産稼働"
 
 msgid "Productivity"
 msgstr "生産性"
+
+msgid "Products"
+msgstr "プロダクト"
 
 msgid "Profile name"
 msgstr "プロファイル名"

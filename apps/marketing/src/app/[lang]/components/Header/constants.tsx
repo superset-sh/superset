@@ -18,6 +18,28 @@ export interface NavSection {
 
 export const PRODUCT_SECTIONS: NavSection[] = [
 	{
+		id: "products",
+		title: <Trans>Products</Trans>,
+		links: [
+			{
+				href: "/",
+				label: <Trans>Desktop app</Trans>,
+				description: <Trans>Orchestrate any coding agent.</Trans>,
+			},
+			{
+				href: `${COMPANY.DOCS_URL}/cli/getting-started`,
+				label: "CLI",
+				description: <Trans>Drive it from the terminal</Trans>,
+				external: true,
+			},
+			{
+				href: "/mobile",
+				label: <Trans>Mobile</Trans>,
+				description: <Trans>Run your agents from your phone.</Trans>,
+			},
+		],
+	},
+	{
 		id: "features",
 		title: <Trans>Features</Trans>,
 		links: [
@@ -27,11 +49,6 @@ export const PRODUCT_SECTIONS: NavSection[] = [
 				description: (
 					<Trans>Share agent work as a link your team can comment on.</Trans>
 				),
-			},
-			{
-				href: "/mobile",
-				label: <Trans>Mobile</Trans>,
-				description: <Trans>Run your agents from your phone.</Trans>,
 			},
 			{
 				href: "/mcp-install",

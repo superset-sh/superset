@@ -11802,6 +11802,9 @@ msgstr "Nebo požádejte svého kódovacího agenta, ať nainstaluje Superset CL
 msgid "Orange"
 msgstr "Oranžová"
 
+msgid "Orchestrate any coding agent."
+msgstr "Řiďte libovolného kódovacího agenta."
+
 msgid "Orchestrate Parallel Agents"
 msgstr "Řiďte paralelní agenty"
 
@@ -12614,6 +12617,9 @@ msgstr "Výrobní cyklus"
 
 msgid "Productivity"
 msgstr "Produktivita"
+
+msgid "Products"
+msgstr "Produkty"
 
 msgid "Profile name"
 msgstr "Název profilu"

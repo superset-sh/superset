@@ -11802,6 +11802,9 @@ msgstr "Atau minta agen coding Anda memasang CLI Superset."
 msgid "Orange"
 msgstr "Oranye"
 
+msgid "Orchestrate any coding agent."
+msgstr "Orkestrasi agen coding apa pun."
+
 msgid "Orchestrate Parallel Agents"
 msgstr "Orkestrasi Agen Paralel"
 
@@ -12614,6 +12617,9 @@ msgstr "Proses produksi"
 
 msgid "Productivity"
 msgstr "Produktivitas"
+
+msgid "Products"
+msgstr "Produk"
 
 msgid "Profile name"
 msgstr "Nama profil"

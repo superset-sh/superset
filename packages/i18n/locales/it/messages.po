@@ -11802,6 +11802,9 @@ msgstr "Oppure chiedi al tuo agente di programmazione di installare la CLI di Su
 msgid "Orange"
 msgstr "Arancione"
 
+msgid "Orchestrate any coding agent."
+msgstr "Orchestra qualsiasi agente di programmazione."
+
 msgid "Orchestrate Parallel Agents"
 msgstr "Orchestra agenti in parallelo"
 
@@ -12614,6 +12617,9 @@ msgstr "Ciclo di produzione"
 
 msgid "Productivity"
 msgstr "Produttività"
+
+msgid "Products"
+msgstr "Prodotti"
 
 msgid "Profile name"
 msgstr "Nome del profilo"
