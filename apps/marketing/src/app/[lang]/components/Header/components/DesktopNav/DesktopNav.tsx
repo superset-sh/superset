@@ -28,7 +28,7 @@ const triggerClass = cn(
 );
 
 const MEGA_MENU_PANEL_CLASS =
-	"md:fixed md:top-[calc(4rem-0.25rem)] md:left-[max(1rem,calc(50%-32rem))] md:w-[min(64rem,calc(100vw-2rem))]";
+	"md:fixed md:top-[calc(4rem-0.25rem)] md:left-[max(1rem,calc(50%-32rem))] md:w-[min(64rem,calc(100vw-2rem))] md:max-h-[calc(100dvh-5rem)] md:overflow-y-auto";
 
 export function DesktopNav() {
 	// Radix's NavigationMenu is uncontrolled by default, so a hover-opened
