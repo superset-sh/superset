@@ -1908,6 +1908,12 @@ msgstr "エージェントが定型チケットを途中の介入なしに完了
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "エージェントが自らプレビューを開き、UIを操作し、レビュー待ちにする前にスクリーンショットの証拠を添付します。"
 
+msgid "Agents publish reports, designs, and walkthroughs as a link. Your team pins comments to the page, and the agent updates it and replies."
+msgstr "エージェントがレポート、デザイン、ウォークスルーをリンクとして公開します。チームはページにコメントをピン留めし、エージェントがページを更新して返信します。"
+
+msgid "Agents publish reports, designs, and walkthroughs as a page. Teammates pin comments to any part of it, and the agent updates the page and replies."
+msgstr "エージェントがレポート、デザイン、ウォークスルーをページとして公開します。チームメイトはページのどの部分にもコメントをピン留めでき、エージェントがページを更新して返信します。"
+
 msgid "Agents running at once"
 msgstr "同時に動かしているエージェント数"
 
@@ -2462,6 +2468,9 @@ msgstr "最後に報告された値です。更新するにはホストがオン
 
 msgid "ascending"
 msgstr "昇順"
+
+msgid "Ask an agent for a design doc, a report, or a PR walkthrough. It builds the page and publishes it."
+msgstr "エージェントにデザインドキュメント、レポート、PR のウォークスルーを依頼すると、ページを作成して公開します。"
 
 msgid "Ask an agent to publish one from the desktop app."
 msgstr "デスクトップアプリからエージェントに公開してもらいましょう。"
@@ -3110,6 +3119,9 @@ msgstr "最後のソフトウェアを作る"
 msgid "Building the last piece of software."
 msgstr "最後のソフトウェアを作る。"
 
+msgid "Built for work that has a reader."
+msgstr "読み手のいる仕事のために。"
+
 msgid "Built in Superset"
 msgstr "Supersetで開発"
 
@@ -3578,6 +3590,9 @@ msgstr "これを明確にして"
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code、Codex、OpenCodeはエージェントであり、Supersetはそれらを同時に何体も動かす場所です。タスクごとに独立したGitワークツリーが割り当てられるので、10体のエージェントが10本のブランチで同時に作業する間、1か所から監視・レビュー・マージができます。"
 
+msgid "Claude Code, Codex, and other agents publish through the Superset CLI, the Pages skill, or MCP."
+msgstr "Claude Code、Codex、その他のエージェントは、Superset CLI、Pages スキル、MCP から公開します。"
+
 msgid "Claude Code, Codex, Cursor, OpenCode, and more."
 msgstr "Claude Code、Codex、Cursor、OpenCodeなど。"
 
@@ -4040,6 +4055,9 @@ msgstr "コメントを投稿できませんでした"
 
 msgid "Comment on this page"
 msgstr "このページにコメント"
+
+msgid "Comment."
+msgstr "コメント。"
 
 msgid "Commented"
 msgstr "コメント"
@@ -5286,6 +5304,9 @@ msgstr "最初のワークスペースを作成"
 
 msgid "Create, list, send input to, read the screen of, and close terminal sessions."
 msgstr "ターミナルセッションの作成、一覧、入力の送信、画面の読み取り、終了ができます。"
+
+msgid "Create."
+msgstr "作成。"
 
 msgid "created"
 msgstr "作成済み"
@@ -6587,6 +6608,9 @@ msgstr "毎分"
 
 msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 msgstr "すべての目標が次の段に向けて力を発揮しています。直近30日間で計測。"
+
+msgid "Every publish is a version"
+msgstr "公開するたびにバージョンが残る"
 
 msgid "Every scheduled run so far found a host online."
 msgstr "これまでのところ、すべてのスケジュール実行でホストがオンラインでした。"
@@ -8780,6 +8804,9 @@ msgstr "斜体"
 msgid "Item"
 msgstr "Item"
 
+msgid "Iterate."
+msgstr "改善。"
+
 msgid "Its comments and history go with it."
 msgstr "コメントと履歴も削除されます。"
 
@@ -8863,6 +8890,9 @@ msgstr "たった今"
 
 msgid "Kbd"
 msgstr "Kbd"
+
+msgid "Keep a draft to yourself, share it with your organization, or open it to anyone with the link."
+msgstr "下書きは自分だけで保持することも、組織内で共有することも、リンクを知っている全員に公開することもできます。"
 
 msgid "Keep docs fresh"
 msgstr "ドキュメントを最新に保つ"
@@ -9062,6 +9092,9 @@ msgstr "このリポジトリに合うワークフロー — 並列ワークス�
 
 msgid "Leave a comment"
 msgstr "コメントを残す"
+
+msgid "Leave a comment. The agent does the rest."
+msgstr "コメントを残すだけ。あとはエージェントが対応します。"
 
 msgid "Leave a comment…"
 msgstr "コメントを入力…"
@@ -11559,6 +11592,9 @@ msgstr "GitHubで開く"
 msgid "Open Page in Default Browser"
 msgstr "ページを既定のブラウザで開く"
 
+msgid "Open pages and reply to comments from the Superset iPhone app."
+msgstr "Superset の iPhone アプリからページを開き、コメントに返信できます。"
+
 #. placeholder {0}: pr.number
 msgid "Open PR #{0}"
 msgstr "PR #{0} を開く"
@@ -11957,6 +11993,9 @@ msgstr "ページを読み込めませんでした"
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "セッションが開始したページと、2ページ目を見ずに離脱した割合。比較ページが SEO の主戦場です。"
 
+msgid "Pages that remember"
+msgstr "覚えてくれるページ"
+
 msgid "Pages this agent is watching for comments"
 msgstr "このエージェントがコメントを監視しているページ"
 
@@ -12271,6 +12310,9 @@ msgstr "{label}を再生"
 msgid "Play a sound when tasks complete"
 msgstr "タスク完了時にサウンドを再生"
 
+msgid "Play the Superset Pages demo"
+msgstr "Superset ページのデモを再生"
+
 msgid "Please check your internet connection and try again."
 msgstr "インターネット接続を確認して、もう一度お試しください。"
 
@@ -12305,6 +12347,9 @@ msgstr "プラグインマーケットプレイス"
 
 msgid "Plugins"
 msgstr "プラグイン"
+
+msgid "Polls, checklists, and sign-up sheets keep one answer per reader, with no backend to run."
+msgstr "投票、チェックリスト、サインアップシートは、バックエンドなしで読み手ごとに1つの回答を保持します。"
 
 msgid "Popover"
 msgstr "Popover"
@@ -12449,6 +12494,9 @@ msgstr "通知プレビュー: 警告"
 
 msgid "Preview: GitHub star nag toast"
 msgstr "プレビュー: GitHub スター催促トースト"
+
+msgid "Previews in Slack"
+msgstr "Slack でプレビュー"
 
 msgid "Previous"
 msgstr "前へ"
@@ -12701,6 +12749,9 @@ msgstr "パブリック"
 msgid "Public leaderboard"
 msgstr "公開リーダーボード"
 
+msgid "Publish again and the link stays the same. Earlier versions stay in the history."
+msgstr "もう一度公開してもリンクは変わりません。以前のバージョンは履歴に残ります。"
+
 msgid "Published"
 msgstr "公開日"
 
@@ -12899,6 +12950,9 @@ msgstr "読み取り"
 msgid "Read and plan without changing anything"
 msgstr "何も変更せずに読み取りと計画のみ"
 
+msgid "Read it on your phone"
+msgstr "スマートフォンで読める"
+
 msgid "Read the changelog"
 msgstr "Changelogを読む"
 
@@ -12907,6 +12961,9 @@ msgstr "Changelogを読む →"
 
 msgid "Read the changelog ↗"
 msgstr "Changelogを読む ↗"
+
+msgid "Read the docs"
+msgstr "ドキュメントを読む"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "並列コーディングエージェントのガイドを読む"
@@ -14559,6 +14616,9 @@ msgstr "報告を送信"
 msgid "Send review"
 msgstr "レビューを送信"
 
+msgid "Send the link. Your team opens it in a browser, the app, or Slack."
+msgstr "リンクを送るだけ。チームはブラウザ、アプリ、Slack で開けます。"
+
 msgid "Send to"
 msgstr "送信先"
 
@@ -14743,6 +14803,12 @@ msgstr "濃さはこの開発者の最も活動量が多い日を基準にして
 msgid "Share"
 msgstr "共有"
 
+msgid "Share agent work as a link your team can comment on."
+msgstr "エージェントの成果を、チームがコメントできるリンクで共有しましょう。"
+
+msgid "Share as wide as you need"
+msgstr "必要な範囲に共有"
+
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "デザインやレポートを共有しましょう。フィードバックへの対応はエージェントに任せられます。"
 
@@ -14764,6 +14830,9 @@ msgstr "共有方法を選択…"
 msgid "Share workspace"
 msgstr "ワークスペースを共有"
 
+msgid "Share."
+msgstr "共有。"
+
 msgid "Shared across sessions using this login."
 msgstr "このログインを使用するセッション間で共有されます。"
 
@@ -14772,6 +14841,9 @@ msgstr "共有アプリコンポーネント"
 
 msgid "Shared component library."
 msgstr "共有コンポーネントライブラリ。"
+
+msgid "Shared links unfurl with a thumbnail of the page."
+msgstr "共有したリンクは、ページのサムネイル付きで展開されます。"
 
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "Supersetにインポートできる、共有されたテーマJSONファイル。"
@@ -15892,6 +15964,12 @@ msgstr "Superset はこのコネクタが要求する権限のみを受け取り
 msgid "Superset originals"
 msgstr "Superset独自コンポーネント"
 
+msgid "Superset Pages"
+msgstr "Superset ページ"
+
+msgid "Superset Pages demo"
+msgstr "Superset ページのデモ"
+
 msgid "Superset runs locally on your developers' machines. We don't store your code or AI conversations, and Superset has completed a SOC 2 Type II audit with an independent auditor. Request the report and review our security documentation at trust.superset.sh."
 msgstr "Supersetは開発者のマシン上でローカルに動作します。コードやAIとの会話を当社が保存することはありません。また、Supersetは独立監査人によるSOC 2 Type II監査を完了しています。レポートのご請求やセキュリティ関連ドキュメントの確認はtrust.superset.shから行えます。"
 
@@ -16185,6 +16263,9 @@ msgstr "この組織にチームが見つかりません"
 msgid "Team settings"
 msgstr "チーム設定"
 
+msgid "Teammates pin feedback to the exact heading, chart, or row they mean."
+msgstr "チームメイトは、見出し、グラフ、行など、伝えたい箇所に直接フィードバックをピン留めできます。"
+
 msgid "teams"
 msgstr "チーム"
 
@@ -16370,6 +16451,9 @@ msgstr "会話の再開中にエージェントが停止しました。"
 
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "このオートメーションに設定されていたエージェントは、ホスト上に存在しなくなりました — ホストのエージェントがリセットまたは削除された可能性があります。オートメーションの設定でエージェントを選び直してください。"
+
+msgid "The agent watching the page gets each comment, updates it, publishes a new version, and replies."
+msgstr "ページを見ているエージェントが各コメントを受け取り、ページを更新して新しいバージョンを公開し、返信します。"
 
 msgid "The app is free to download. It requires iOS 26 or later and Superset Pro. Android is next."
 msgstr "アプリは無料でダウンロードできます。iOS 26 以降と Superset Pro が必要です。次は Android に対応予定です。"
@@ -18063,6 +18147,9 @@ msgstr "警告"
 msgid "Warning occurred."
 msgstr "警告が発生しました。"
 
+msgid "Watch a design review go from comment to new version."
+msgstr "デザインレビューがコメントから新しいバージョンになるまでをご覧ください。"
+
 msgid "Watchers"
 msgstr "ウォッチャー"
 
@@ -18438,6 +18525,9 @@ msgstr "処理中…"
 msgid "Works when environments are clean. Environments are rarely clean."
 msgstr "環境がきれいなら動きます。環境がきれいなことは滅多にありません。"
 
+msgid "Works with any agent"
+msgstr "どのエージェントでも使える"
+
 msgid "workspace"
 msgstr "ワークスペース"
 
@@ -18756,6 +18846,9 @@ msgstr "アカウントは無効化されており、まもなく完全に削除
 
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "アカウントは組織によって管理されています。新しい組織を作成するには管理者に連絡してください。"
+
+msgid "Your agent's work, as a link your team can comment on."
+msgstr "エージェントの成果を、チームがコメントできるリンクに。"
 
 msgid "Your Agents, Your Accounts"
 msgstr "エージェントもアカウントも、あなたのもの"

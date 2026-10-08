@@ -1908,6 +1908,12 @@ msgstr "Agents voltooien routinetickets zonder tussentijds ingrijpen."
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agents laden hun eigen preview, bedienen de UI en voegen screenshotbewijs toe voordat ze werk klaarzetten voor review."
 
+msgid "Agents publish reports, designs, and walkthroughs as a link. Your team pins comments to the page, and the agent updates it and replies."
+msgstr "Agents publiceren rapporten, ontwerpen en walkthroughs als link. Je team plaatst opmerkingen op de pagina en de agent werkt die bij en reageert."
+
+msgid "Agents publish reports, designs, and walkthroughs as a page. Teammates pin comments to any part of it, and the agent updates the page and replies."
+msgstr "Agents publiceren rapporten, ontwerpen en walkthroughs als pagina. Teamgenoten plaatsen opmerkingen bij elk onderdeel en de agent werkt de pagina bij en reageert."
+
 msgid "Agents running at once"
 msgstr "Agents die tegelijk draaien"
 
@@ -2462,6 +2468,9 @@ msgstr "Zoals laatst gemeld. De host moet online zijn om bij te werken."
 
 msgid "ascending"
 msgstr "oplopend"
+
+msgid "Ask an agent for a design doc, a report, or a PR walkthrough. It builds the page and publishes it."
+msgstr "Vraag een agent om een ontwerpdocument, een rapport of een PR-walkthrough. Hij bouwt de pagina en publiceert die."
 
 msgid "Ask an agent to publish one from the desktop app."
 msgstr "Vraag een agent om er een te publiceren vanuit de desktop-app."
@@ -3110,6 +3119,9 @@ msgstr "Het laatste stuk software bouwen"
 msgid "Building the last piece of software."
 msgstr "Het laatste stuk software bouwen."
 
+msgid "Built for work that has a reader."
+msgstr "Gemaakt voor werk dat een lezer heeft."
+
 msgid "Built in Superset"
 msgstr "Gebouwd in Superset"
 
@@ -3578,6 +3590,9 @@ msgstr "Verduidelijk dit"
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code, Codex en OpenCode zijn de agents; Superset is waar je er veel tegelijk draait. Elke taak krijgt een eigen geïsoleerde Git-worktree, dus tien agents kunnen tegelijk aan tien branches werken terwijl jij vanuit één plek volgt, reviewt en merget."
 
+msgid "Claude Code, Codex, and other agents publish through the Superset CLI, the Pages skill, or MCP."
+msgstr "Claude Code, Codex en andere agents publiceren via de Superset CLI, de Pagina's-skill of MCP."
+
 msgid "Claude Code, Codex, Cursor, OpenCode, and more."
 msgstr "Claude Code, Codex, Cursor, OpenCode en meer."
 
@@ -4040,6 +4055,9 @@ msgstr "Opmerking niet geplaatst"
 
 msgid "Comment on this page"
 msgstr "Reageren op deze pagina"
+
+msgid "Comment."
+msgstr "Reageer."
 
 msgid "Commented"
 msgstr "Opmerking geplaatst"
@@ -5286,6 +5304,9 @@ msgstr "Maak je eerste werkruimte"
 
 msgid "Create, list, send input to, read the screen of, and close terminal sessions."
 msgstr "Terminalsessies aanmaken, opsommen, invoer sturen, het scherm lezen en sluiten."
+
+msgid "Create."
+msgstr "Maak."
 
 msgid "created"
 msgstr "aangemaakt"
@@ -6587,6 +6608,9 @@ msgstr "Elke minuut"
 
 msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 msgstr "Alle doelen dragen bij aan de volgende trede. Gemeten over de laatste 30 dagen."
+
+msgid "Every publish is a version"
+msgstr "Elke publicatie is een versie"
 
 msgid "Every scheduled run so far found a host online."
 msgstr "Tot nu toe vond elke geplande uitvoering een host online."
@@ -8780,6 +8804,9 @@ msgstr "Cursief"
 msgid "Item"
 msgstr "Item"
 
+msgid "Iterate."
+msgstr "Verbeter."
+
 msgid "Its comments and history go with it."
 msgstr "De reacties en geschiedenis worden ook verwijderd."
 
@@ -8863,6 +8890,9 @@ msgstr "zojuist"
 
 msgid "Kbd"
 msgstr "Kbd"
+
+msgid "Keep a draft to yourself, share it with your organization, or open it to anyone with the link."
+msgstr "Houd een concept voor jezelf, deel het met je organisatie of maak het open voor iedereen met de link."
 
 msgid "Keep docs fresh"
 msgstr "Docs actueel houden"
@@ -9062,6 +9092,9 @@ msgstr "Leer de workflow die bij deze repo past — parallelle werkruimtes en ag
 
 msgid "Leave a comment"
 msgstr "Laat een reactie achter"
+
+msgid "Leave a comment. The agent does the rest."
+msgstr "Laat een opmerking achter. De agent doet de rest."
 
 msgid "Leave a comment…"
 msgstr "Laat een opmerking achter…"
@@ -11559,6 +11592,9 @@ msgstr "Openen op GitHub"
 msgid "Open Page in Default Browser"
 msgstr "Pagina openen in standaardbrowser"
 
+msgid "Open pages and reply to comments from the Superset iPhone app."
+msgstr "Open pagina's en reageer op opmerkingen vanuit de Superset iPhone-app."
+
 #. placeholder {0}: pr.number
 msgid "Open PR #{0}"
 msgstr "PR #{0} openen"
@@ -11957,6 +11993,9 @@ msgstr "Pagina's konden niet worden geladen"
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "Pagina's waarop sessies begonnen, met het aandeel dat vertrok zonder een tweede pagina. De vergelijkingspagina's zijn het SEO-oppervlak."
 
+msgid "Pages that remember"
+msgstr "Pagina's die onthouden"
+
 msgid "Pages this agent is watching for comments"
 msgstr "Pagina's die deze agent volgt voor reacties"
 
@@ -12271,6 +12310,9 @@ msgstr "{label} afspelen"
 msgid "Play a sound when tasks complete"
 msgstr "Speel een geluid af wanneer taken klaar zijn"
 
+msgid "Play the Superset Pages demo"
+msgstr "Speel de demo van Superset Pagina's af"
+
 msgid "Please check your internet connection and try again."
 msgstr "Controleer je internetverbinding en probeer het opnieuw."
 
@@ -12305,6 +12347,9 @@ msgstr "Plugin-marketplace"
 
 msgid "Plugins"
 msgstr "Plugins"
+
+msgid "Polls, checklists, and sign-up sheets keep one answer per reader, with no backend to run."
+msgstr "Polls, checklists en inschrijflijsten bewaren één antwoord per lezer, zonder backend om te beheren."
 
 msgid "Popover"
 msgstr "Popover"
@@ -12449,6 +12494,9 @@ msgstr "Meldingsvoorbeeld: waarschuwing"
 
 msgid "Preview: GitHub star nag toast"
 msgstr "Voorbeeld: GitHub-sterherinnering"
+
+msgid "Previews in Slack"
+msgstr "Voorbeelden in Slack"
 
 msgid "Previous"
 msgstr "Vorige"
@@ -12701,6 +12749,9 @@ msgstr "Openbaar"
 msgid "Public leaderboard"
 msgstr "Openbare ranglijst"
 
+msgid "Publish again and the link stays the same. Earlier versions stay in the history."
+msgstr "Publiceer opnieuw en de link blijft hetzelfde. Eerdere versies blijven in de geschiedenis."
+
 msgid "Published"
 msgstr "Gepubliceerd"
 
@@ -12899,6 +12950,9 @@ msgstr "Gelezen"
 msgid "Read and plan without changing anything"
 msgstr "Lezen en plannen zonder iets te wijzigen"
 
+msgid "Read it on your phone"
+msgstr "Lees het op je telefoon"
+
 msgid "Read the changelog"
 msgstr "Lees de changelog"
 
@@ -12907,6 +12961,9 @@ msgstr "Lees de changelog →"
 
 msgid "Read the changelog ↗"
 msgstr "Lees de changelog ↗"
+
+msgid "Read the docs"
+msgstr "Lees de documentatie"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "Lees de gids over parallelle coding agents"
@@ -14559,6 +14616,9 @@ msgstr "Melding versturen"
 msgid "Send review"
 msgstr "Review versturen"
 
+msgid "Send the link. Your team opens it in a browser, the app, or Slack."
+msgstr "Stuur de link. Je team opent hem in een browser, de app of Slack."
+
 msgid "Send to"
 msgstr "Sturen naar"
 
@@ -14743,6 +14803,12 @@ msgstr "De kleurintensiteit is relatief aan de drukste dag van deze ontwikkelaar
 msgid "Share"
 msgstr "Delen"
 
+msgid "Share agent work as a link your team can comment on."
+msgstr "Deel het werk van je agent als link waar je team op kan reageren."
+
+msgid "Share as wide as you need"
+msgstr "Deel zo breed als je wilt"
+
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Deel ontwerpen en rapporten. Laat je agent de feedback verwerken."
 
@@ -14764,6 +14830,9 @@ msgstr "Delen via…"
 msgid "Share workspace"
 msgstr "Werkruimte delen"
 
+msgid "Share."
+msgstr "Deel."
+
 msgid "Shared across sessions using this login."
 msgstr "Gedeeld door sessies die deze aanmelding gebruiken."
 
@@ -14772,6 +14841,9 @@ msgstr "Gedeelde app-componenten"
 
 msgid "Shared component library."
 msgstr "Gedeelde componentbibliotheek."
+
+msgid "Shared links unfurl with a thumbnail of the page."
+msgstr "Gedeelde links tonen een miniatuur van de pagina."
 
 msgid "Shared theme JSON files you can import into Superset."
 msgstr "Gedeelde thema-JSON-bestanden die je in Superset kunt importeren."
@@ -15892,6 +15964,12 @@ msgstr "Superset ontvangt alleen de rechten die deze connector vraagt. Verbreek 
 msgid "Superset originals"
 msgstr "Superset-originelen"
 
+msgid "Superset Pages"
+msgstr "Superset Pagina's"
+
+msgid "Superset Pages demo"
+msgstr "Demo van Superset Pagina's"
+
 msgid "Superset runs locally on your developers' machines. We don't store your code or AI conversations, and Superset has completed a SOC 2 Type II audit with an independent auditor. Request the report and review our security documentation at trust.superset.sh."
 msgstr "Superset draait lokaal op de machines van je ontwikkelaars. We slaan je code of AI-gesprekken niet op, en Superset heeft een SOC 2 Type II-audit door een onafhankelijke auditor afgerond. Vraag het rapport aan en bekijk onze securitydocumentatie op trust.superset.sh."
 
@@ -16185,6 +16263,9 @@ msgstr "Team niet gevonden in deze organisatie"
 msgid "Team settings"
 msgstr "Teaminstellingen"
 
+msgid "Teammates pin feedback to the exact heading, chart, or row they mean."
+msgstr "Teamgenoten plaatsen feedback bij precies de kop, grafiek of rij die ze bedoelen."
+
 msgid "teams"
 msgstr "teams"
 
@@ -16370,6 +16451,9 @@ msgstr "De agent stopte tijdens het hervatten van het gesprek."
 
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "De agent waarmee deze automatisering zou draaien bestaat niet meer op de host — de agents van die host zijn mogelijk gereset of verwijderd. Kies opnieuw een agent in de instellingen van de automatisering."
+
+msgid "The agent watching the page gets each comment, updates it, publishes a new version, and replies."
+msgstr "De agent die de pagina in de gaten houdt ontvangt elke opmerking, werkt de pagina bij, publiceert een nieuwe versie en reageert."
 
 msgid "The app is free to download. It requires iOS 26 or later and Superset Pro. Android is next."
 msgstr "De app is gratis te downloaden. Vereist iOS 26 of nieuwer en Superset Pro. Android volgt hierna."
@@ -18063,6 +18147,9 @@ msgstr "Warning"
 msgid "Warning occurred."
 msgstr "Er is een waarschuwing opgetreden."
 
+msgid "Watch a design review go from comment to new version."
+msgstr "Bekijk hoe een designreview van opmerking naar nieuwe versie gaat."
+
 msgid "Watchers"
 msgstr "Watchers"
 
@@ -18438,6 +18525,9 @@ msgstr "Bezig…"
 msgid "Works when environments are clean. Environments are rarely clean."
 msgstr "Werkt als omgevingen schoon zijn. Omgevingen zijn zelden schoon."
 
+msgid "Works with any agent"
+msgstr "Werkt met elke agent"
+
 msgid "workspace"
 msgstr "werkruimte"
 
@@ -18756,6 +18846,9 @@ msgstr "Je account is gedeactiveerd en wordt binnenkort definitief verwijderd. R
 
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "Je account wordt beheerd door je organisatie. Neem contact op met je beheerder om een nieuwe organisatie aan te maken."
+
+msgid "Your agent's work, as a link your team can comment on."
+msgstr "Het werk van je agent, als link waar je team op kan reageren."
 
 msgid "Your Agents, Your Accounts"
 msgstr "Jouw agents, jouw accounts"
