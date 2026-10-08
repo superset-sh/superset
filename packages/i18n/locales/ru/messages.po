@@ -6734,6 +6734,9 @@ msgstr "Объясни, как устроен этот репозиторий…
 msgid "Explain to me how this repository works"
 msgstr "Объясни, как устроен этот репозиторий"
 
+msgid "Explore"
+msgstr "Обзор"
+
 msgid "Explore Pages"
 msgstr "Открыть Страницы"
 
@@ -8275,6 +8278,9 @@ msgstr "Как мы это строим, подробно."
 msgid "How we hire"
 msgstr "Как мы нанимаем"
 
+msgid "How we protect your code."
+msgstr "Как мы защищаем ваш код."
+
 msgid "How we work"
 msgstr "Как мы работаем"
 
@@ -8592,6 +8598,9 @@ msgstr "Установить и перезапустить"
 
 msgid "Install & Restart"
 msgstr "Установить и перезапустить"
+
+msgid "Install and run your first agent."
+msgstr "Установите и запустите первого агента."
 
 msgid "Install failed"
 msgstr "Не удалось установить"
@@ -9093,6 +9102,9 @@ msgstr "Настройки рейтинга"
 msgid "Leaf"
 msgstr "Лист"
 
+msgid "Learn"
+msgstr "Обучение"
+
 msgid "Learn how to use scripts"
 msgstr "Как использовать скрипты"
 
@@ -9494,9 +9506,6 @@ msgstr "Логотип, светлый"
 
 msgid "Logos"
 msgstr "Логотипы"
-
-msgid "Logos, product images, and press contact."
-msgstr "Логотипы, изображения продукта и контакты для прессы."
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "Надёжность на длинной дистанции переходит порог. Работа, выданная в 18:00, достаточно часто готова к объединению в 9:00, чтобы не поставить ночную смену казалось простоем фабрики."
@@ -12283,6 +12292,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Закрепить"
 
+msgid "Pin feedback to a page and let the agent make the change."
+msgstr "Оставьте отзыв на странице, и агент внесёт изменение."
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Закрепляйте рабочие области над проектами, затем выделяйте пачку через ⌘-клик, чтобы переместить, сгруппировать или удалить всё сразу."
 
@@ -12988,6 +13000,9 @@ msgstr "Читать changelog ↗"
 
 msgid "Read the docs"
 msgstr "Читать документацию"
+
+msgid "Read the guide"
+msgstr "Читать руководство"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "Читать руководство по параллельным кодовым агентам"
@@ -13823,6 +13838,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "На проверку"
 
+msgid "Review agent work with Pages"
+msgstr "Проверка работы агента в Страницах"
+
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Очереди ревью и CI съедают выигрыш, который дают агенты."
 
@@ -13967,6 +13985,9 @@ msgstr "Запускайте 10+ параллельных кодовых аге�
 
 msgid "Run again"
 msgstr "Запустить снова"
+
+msgid "Run agents side by side, then review."
+msgstr "Запускайте агентов параллельно, затем проверяйте."
 
 msgid "Run automations on data source and comment activity."
 msgstr "Запускайте автоматизации по активности в источниках данных и комментариях."
@@ -15994,6 +16015,9 @@ msgstr "Superset Mobile, облачные рабочие пространств�
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset нужен полный доступ к диску, чтобы читать данные другого браузера. Выдайте его в Системных настройках и проверьте снова."
 
+msgid "Superset next to other tools."
+msgstr "Superset в сравнении с другими инструментами."
+
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset получает только те разрешения, которые запрашивает этот коннектор. Отключите его в любой момент, чтобы отозвать их."
 
@@ -16683,9 +16707,6 @@ msgstr "Страница, которую вы ищете, не существу�
 
 msgid "The page you're looking for doesn't exist."
 msgstr "Такой страницы не существует."
-
-msgid "The people behind Superset."
-msgstr "Люди, которые делают Superset."
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "Checkout проекта как есть: файлы и ветка общие"
@@ -18056,6 +18077,9 @@ msgstr "Версия неизвестна"
 msgid "Video"
 msgstr "Видео"
 
+msgid "Video tutorials"
+msgstr "Видеоуроки"
+
 msgid "View"
 msgstr "Просмотреть"
 
@@ -18185,6 +18209,9 @@ msgstr "Ждёт вашего ответа"
 
 msgid "Waitlist signups"
 msgstr "Записи в лист ожидания"
+
+msgid "Walkthroughs on YouTube."
+msgstr "Видеоразборы на YouTube."
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Хотите что-то быстрее? <0>Скажите нам в Discord</0>. Многое из этого началось с пожелания пользователя."

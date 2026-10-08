@@ -6734,6 +6734,9 @@ msgstr "このリポジトリの仕組みを説明…"
 msgid "Explain to me how this repository works"
 msgstr "このリポジトリの仕組みを教えて"
 
+msgid "Explore"
+msgstr "探す"
+
 msgid "Explore Pages"
 msgstr "ページを見る"
 
@@ -8275,6 +8278,9 @@ msgstr "どう作っているかを詳しく。"
 msgid "How we hire"
 msgstr "採用プロセス"
 
+msgid "How we protect your code."
+msgstr "コードを守る仕組み。"
+
 msgid "How we work"
 msgstr "私たちの働き方"
 
@@ -8592,6 +8598,9 @@ msgstr "インストールして再起動"
 
 msgid "Install & Restart"
 msgstr "インストールして再起動"
+
+msgid "Install and run your first agent."
+msgstr "インストールして最初のエージェントを動かす。"
 
 msgid "Install failed"
 msgstr "インストールに失敗しました"
@@ -9093,6 +9102,9 @@ msgstr "リーダーボード設定"
 msgid "Leaf"
 msgstr "葉"
 
+msgid "Learn"
+msgstr "学ぶ"
+
 msgid "Learn how to use scripts"
 msgstr "スクリプトの使い方を見る"
 
@@ -9494,9 +9506,6 @@ msgstr "ロゴ（明色）"
 
 msgid "Logos"
 msgstr "ロゴ"
-
-msgid "Logos, product images, and press contact."
-msgstr "ロゴ、製品画像、報道関係のお問い合わせ先。"
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "長時間にわたる信頼性がしきい値を超えます。18時に割り当てた作業が9時にはマージできる。それが十分な頻度で起きるようになり、夜間シフトを組まないことが工場を遊ばせているように感じられます。"
@@ -12283,6 +12292,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "ピン留め"
 
+msgid "Pin feedback to a page and let the agent make the change."
+msgstr "ページにフィードバックを残し、変更はエージェントに任せましょう。"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "ワークスペースをプロジェクトの上にピン留めし、⌘クリックでまとめて選んで移動、グループ化、削除ができます。"
 
@@ -12988,6 +13000,9 @@ msgstr "Changelogを読む ↗"
 
 msgid "Read the docs"
 msgstr "ドキュメントを読む"
+
+msgid "Read the guide"
+msgstr "ガイドを読む"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "並列コーディングエージェントのガイドを読む"
@@ -13823,6 +13838,9 @@ msgctxt "agent status"
 msgid "Review"
 msgstr "要確認"
 
+msgid "Review agent work with Pages"
+msgstr "ページでエージェントの作業をレビュー"
+
 msgid "Review and CI queues eat the gains agents create."
 msgstr "レビューとCIの待ち行列が、エージェントの生んだ余力を食い潰しています。"
 
@@ -13967,6 +13985,9 @@ msgstr "手元のマシンで10以上のコーディングエージェントを�
 
 msgid "Run again"
 msgstr "再実行"
+
+msgid "Run agents side by side, then review."
+msgstr "エージェントを並行して動かし、あとでレビュー。"
 
 msgid "Run automations on data source and comment activity."
 msgstr "データソースやコメントの動きに応じてオートメーションを実行します。"
@@ -15994,6 +16015,9 @@ msgstr "Superset Mobile、クラウドワークスペース、オートメーシ
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "他のブラウザのデータを読み取るには、Supersetにフルディスクアクセスが必要です。システム設定で許可してから再確認してください。"
 
+msgid "Superset next to other tools."
+msgstr "他のツールと Superset の比較。"
+
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset はこのコネクタが要求する権限のみを受け取ります。接続を解除すればいつでも取り消せます。"
 
@@ -16683,9 +16707,6 @@ msgstr "お探しのページは存在しないか、移動しました。"
 
 msgid "The page you're looking for doesn't exist."
 msgstr "お探しのページは存在しません。"
-
-msgid "The people behind Superset."
-msgstr "Supersetを作っている人たち。"
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "プロジェクトのチェックアウトをそのまま使用: ファイルとブランチは共有されます"
@@ -18056,6 +18077,9 @@ msgstr "バージョン不明"
 msgid "Video"
 msgstr "動画"
 
+msgid "Video tutorials"
+msgstr "動画チュートリアル"
+
 msgid "View"
 msgstr "表示"
 
@@ -18185,6 +18209,9 @@ msgstr "入力を待っています"
 
 msgid "Waitlist signups"
 msgstr "ウェイトリスト登録"
+
+msgid "Walkthroughs on YouTube."
+msgstr "YouTube のウォークスルー。"
 
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "もっと早く欲しいものがありますか?<0>Discordで教えてください</0>。ここにあるものの多くは、ユーザーの要望から始まりました。"
