@@ -21,11 +21,11 @@ const names = (
 	});
 
 describe("githubEventNames", () => {
-	it("names a closed pull request merged only when it was merged", () => {
+	it("names a closed pull request merged or closed, never both", () => {
 		expect(names("pull_request.closed", { isMerged: true })).toEqual([
 			"pull_request.merged",
 		]);
-		expect(names("pull_request.closed")).toEqual([]);
+		expect(names("pull_request.closed")).toEqual(["pull_request.closed"]);
 	});
 
 	it("keeps issue comments and pull request comments apart", () => {

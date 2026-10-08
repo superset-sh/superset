@@ -1,12 +1,13 @@
 import { db } from "@superset/db/client";
+import type { IntegrationProvider } from "@superset/db/enums";
 import {
-	type SelectTask,
 	suggestions,
 	taskLabels,
 	taskProjects,
 	taskStatuses,
 	tasks,
 } from "@superset/db/schema";
+import { retiredTaskColumns } from "@superset/db/task-list-query";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
@@ -39,7 +40,7 @@ type CloudWorkspaceSuggestionView = {
 			task: {
 				id: string;
 				slug: string;
-				externalProvider: SelectTask["externalProvider"];
+				externalProvider: IntegrationProvider | null;
 				externalKey: string | null;
 				title: string;
 				status: {
@@ -153,8 +154,8 @@ export const suggestionRouter = {
 							.select({
 								id: tasks.id,
 								slug: tasks.slug,
-								externalProvider: tasks.externalProvider,
-								externalKey: tasks.externalKey,
+								externalProvider: retiredTaskColumns.externalProvider,
+								externalKey: retiredTaskColumns.externalKey,
 								title: tasks.title,
 								statusType: taskStatuses.type,
 								statusColor: taskStatuses.color,

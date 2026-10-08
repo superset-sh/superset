@@ -1,5 +1,5 @@
 import { cn } from "@superset/ui/utils";
-import type { FunctionComponent, JSX, ReactNode } from "react";
+import type { ComponentProps, FunctionComponent, JSX, ReactNode } from "react";
 import { createElement, memo, useMemo } from "react";
 import type { Components, ExtraProps } from "streamdown";
 import { Streamdown } from "streamdown";
@@ -30,7 +30,12 @@ function styled(
 	};
 }
 
-function Link({ node: _node, className, children, ...rest }: RendererProps) {
+function Link({
+	node: _node,
+	className,
+	children,
+	...rest
+}: RendererProps & ComponentProps<"a">) {
 	return (
 		<a
 			rel="noreferrer"

@@ -148,7 +148,9 @@ function DashboardLayout() {
 
 	// Global hotkeys for dashboard
 	useHotkey("OPEN_SETTINGS", () => navigate({ to: "/settings/account" }));
-	useHotkey("SHOW_HOTKEYS", () => navigate({ to: "/settings/keyboard" }));
+	useHotkey("SHOW_HOTKEYS", () => navigate({ to: "/settings/keyboard" }), {
+		ignoreEventWhen: (e) => e.defaultPrevented,
+	});
 	useHotkey("TOGGLE_WORKSPACE_SIDEBAR", toggleWorkspaceSidebarCollapsed);
 	useHotkey("NEW_WORKSPACE", () =>
 		openNewWorkspace(

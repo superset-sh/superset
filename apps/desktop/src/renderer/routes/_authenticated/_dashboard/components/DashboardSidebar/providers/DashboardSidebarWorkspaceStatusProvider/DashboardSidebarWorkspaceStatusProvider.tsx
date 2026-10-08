@@ -63,10 +63,22 @@ const EMPTY_ENTRY: SidebarWorkspaceStatusEntry = {
 class SidebarWorkspaceStatusStore {
 	private entries = new Map<string, SidebarWorkspaceStatusEntry>();
 	private listeners = new Map<string, Set<() => void>>();
+	private allListeners = new Set<() => void>();
 	private pendingChanged: string[] = [];
 
 	get(workspaceId: string): SidebarWorkspaceStatusEntry {
 		return this.entries.get(workspaceId) ?? EMPTY_ENTRY;
+	}
+
+	getAll(): ReadonlyMap<string, SidebarWorkspaceStatusEntry> {
+		return this.entries;
+	}
+
+	subscribeAll(listener: () => void): () => void {
+		this.allListeners.add(listener);
+		return () => {
+			this.allListeners.delete(listener);
+		};
 	}
 
 	subscribe(workspaceId: string, listener: () => void): () => void {
@@ -109,6 +121,7 @@ class SidebarWorkspaceStatusStore {
 			if (!set) continue;
 			for (const listener of [...set]) listener();
 		}
+		for (const listener of [...this.allListeners]) listener();
 	}
 }
 
@@ -439,6 +452,17 @@ export function useSidebarWorkspaceStatus(
 			[store, workspaceId],
 		),
 		useCallback(() => store.get(workspaceId), [store, workspaceId]),
+	);
+}
+
+export function useSidebarWorkspaceStatuses(): ReadonlyMap<
+	string,
+	SidebarWorkspaceStatusEntry
+> {
+	const store = useSidebarWorkspaceStatusStore();
+	return useSyncExternalStore(
+		useCallback((listener) => store.subscribeAll(listener), [store]),
+		useCallback(() => store.getAll(), [store]),
 	);
 }
 

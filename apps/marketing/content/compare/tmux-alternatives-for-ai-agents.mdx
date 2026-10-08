@@ -1,0 +1,166 @@
+---
+title: "tmux Alternatives for AI Coding Agents (2026): 8 Options Compared"
+description: "tmux alternatives for running coding agents in parallel: Zellij, Claude Squad, ClawTab, cmux, Worktrunk, Superset, Conductor, and Orca compared."
+date: 2026-10-07
+lastUpdated: 2026-10-07
+type: "roundup"
+competitors:
+  - tmux
+  - zellij
+  - claude-squad
+  - clawtab
+  - cmux
+  - worktrunk
+  - conductor
+  - orca
+keywords:
+  - tmux alternative for coding agents
+  - tmux alternatives for ai agents
+  - zellij vs tmux for claude code
+  - run coding agents in parallel tmux
+  - organize parallel coding agent work
+  - review parallel coding agent work
+  - claude code tmux alternative
+  - codex tmux alternative
+---
+
+tmux keeps agent sessions alive, but it does not isolate their work or show you what they changed. The alternatives that make parallel coding-agent work easier to organize and review add one or more of three things: a separate Git worktree per task, a status view that shows which agent needs you, and a diff and pull-request view to review the result. **Zellij** is the closest swap if you only want a better multiplexer. **Claude Squad** and **ClawTab** keep tmux underneath and add an agent layer. **Worktrunk** adds the worktree part to any terminal. **cmux** is a Mac terminal that flags the agent that needs you. **Superset**, Conductor, and Orca are desktop apps that do all three in one window.
+
+For the status and session-overload side of this question, read [How to Manage Multiple Coding Agent Sessions](/compare/manage-multiple-coding-agent-sessions).
+
+---
+
+## The Short Version
+
+| Tool | What it is | Worktree per task | Agent status | Review diffs and PRs | Platforms | License / price |
+|---|---|---|---|---|---|---|
+| **tmux** | Terminal multiplexer | Manual | No | No | macOS, Linux, BSD | ISC, free |
+| **Zellij** | Terminal workspace | Manual | No | No | macOS, Linux, Windows | Open source, free |
+| **Claude Squad** | Terminal UI on tmux | Yes | Basic | Diff preview, commit, push | Wherever tmux runs | AGPL-3.0, free |
+| **ClawTab** | tmux control plane with apps | Not described | Yes, plus phone | No | macOS, Linux, iPhone, web | MIT, free; hosted remote $4.99/mo |
+| **cmux** | Native macOS agent terminal | Manual | Notification rings | No | macOS | GPL, free |
+| **Worktrunk** | Worktree CLI | Yes | `wt list` status | `wt merge` | macOS, Linux, Windows | MIT or Apache-2.0, free |
+| **Superset** | Desktop app for parallel agents | Yes, per workspace | Board by state, hooks | Changes and PR panes | macOS, experimental Linux | ELv2; Free plan, Pro $20/user/mo |
+| **Conductor** | Mac app for parallel agents | Yes | Yes | Yes | macOS | See their site |
+| **Orca** | Desktop app for parallel agents | Yes | Yes | Diffs | macOS, Windows, Linux | MIT, free |
+
+---
+
+## What Does tmux Not Do for Parallel Coding Agents?
+
+tmux is still a good base. It is free, ISC-licensed, runs on macOS, Linux, and the BSDs, and works the same over SSH. Name one session per task (`tmux new -s fix-auth`), detach, and the agent keeps running after you close the terminal. Many developers run Claude Code, Codex, and Gemini CLI this way.
+
+The gaps show once you run more than two or three agents:
+
+1. **No isolation.** Every pane works in whatever directory you started it in. Two agents in one checkout edit the same files. You add `git worktree` yourself.
+2. **No status.** A pane shows output, not whether the agent finished, failed, or waits on a permission prompt. You cycle through panes to find out.
+3. **No review surface.** You read each diff with `git diff`, then commit, push, and open the pull request by hand.
+
+Each alternative below fixes some of these. Pick by which gap hurts most.
+
+---
+
+## Is Zellij a Better tmux for AI Agents?
+
+Zellij is the best alternative if you want to stay with a plain multiplexer. It is free, open source, and runs on macOS, Linux, and Windows. Compared with tmux it adds layouts defined in a KDL file you can commit to the repo, floating and stacked panes, WebAssembly plugins, session resurrection across reboots, and a built-in web client that serves sessions in a browser.
+
+A committed layout is useful for agents: one file can open a pane per worktree with an agent running in each. But Zellij solves the same problem as tmux. It does not create worktrees, does not know agent state, and has no diff view. Choose it over tmux for ergonomics, not for agent features.
+
+---
+
+## Which Tools Keep tmux but Add an Agent Layer?
+
+### Claude Squad
+
+Claude Squad is an AGPL-3.0 terminal UI that manages Claude Code, Codex, Gemini, Aider, and other local agents. Each session gets its own tmux session and its own Git worktree and branch. You can preview each session's diff, commit with `c`, and commit and push with `s`. An experimental `--autoyes` flag accepts prompts for you. It needs tmux and the GitHub CLI.
+
+Claude Squad fixes isolation and gives you one list of sessions, while you stay in the terminal. It does not have a pull-request view or checks. See [Superset vs Claude Squad](/compare/superset-vs-claude-squad).
+
+### ClawTab
+
+ClawTab is an MIT-licensed control plane that keeps Claude Code, Codex, and OpenCode in real tmux sessions. A headless daemon handles schedules, agent state, and remote connections, and keeps running when the desktop app is closed. You control the same sessions from the terminal (`cwttui`), the macOS desktop app, the web, or the iPhone and iPad app, where you can watch live terminals and answer agent questions. Local use is free with no account. Hosted remote access is $4.99 a month, or you can run your own relay. Linux runs as a daemon or remote host; there is no Windows build yet.
+
+ClawTab is strongest on reach and scheduling: your tmux agents, from your phone. Its site does not describe Git worktree management, so you isolate tasks yourself.
+
+---
+
+## Which Terminal Shows Which Agent Needs Me?
+
+cmux is a free, GPL-licensed macOS terminal built on libghostty, written in Swift and AppKit. Panes light up when an agent needs input, and the vertical sidebar shows each tab's Git branch, working directory, ports, and notification text. It has a scriptable browser pane next to the terminal. It works with any CLI agent.
+
+cmux replaces the "cycle through panes" part of tmux with notifications. Its homepage does not describe worktree management, so isolation stays manual, and it runs only on macOS. See [Superset vs cmux](/compare/superset-vs-cmux).
+
+---
+
+## How Do I Add Worktrees to My Existing Terminal Setup?
+
+Worktrunk is a Rust CLI, dual-licensed MIT or Apache-2.0, that makes Git worktrees as easy as branches. It installs on macOS, Linux, and Windows.
+
+- `wt switch --create feature-auth` creates a worktree and moves you into it. Add `-x claude` to start Claude Code there.
+- `wt list` shows every worktree with status and ahead/behind counts; `wt list --full` adds CI status.
+- `wt merge` squashes, rebases, merges, and cleans up.
+- Hooks run setup such as installing dependencies or starting a dev server when a worktree starts.
+
+Worktrunk pairs well with tmux, Zellij, or cmux: they keep the sessions, Worktrunk keeps the work apart. It does not track agent state or show diffs in a UI. For the manual approach, see [Git Worktrees for AI Coding Agents](/compare/git-worktrees-for-ai-agents).
+
+---
+
+## Which Desktop Apps Replace tmux for Parallel Agent Work?
+
+These apps handle isolation, status, and review in one window, so you stop assembling them from separate tools.
+
+### Superset
+
+Superset is a desktop app for running many coding agents in parallel. Each new local branch-based workspace gets its own Git worktree, branch, terminals, and ports. It runs any CLI agent, with Claude Code, Codex, Gemini CLI, OpenCode, Cursor Agent, Copilot, and more built in. Terminal sessions survive app restarts, so running agents keep going, which is the main thing people use tmux for.
+
+What it adds over a terminal setup:
+
+- **Status:** lifecycle hooks report when each agent starts, finishes, or waits for input. The Workspaces board groups every workspace by **Idle**, **Working**, **Needs attention**, **Needs review**, and **Merged** across repositories.
+- **Review:** the Changes pane shows diffs with per-file staging and lets you commit, push, and open a pull request. The PR pane shows checks and review threads and merges.
+- **Reach:** run agents on your own remote machines over a relay, and check on them from the iPhone app (iOS 26+, Pro).
+
+Limits: macOS, with an experimental Linux AppImage and no Windows build. Waiting-for-input status depends on the agent; Claude Code reports both finished and waiting states. Worktrees separate files but do not sandbox processes or prevent merge conflicts. Superset is source-available under ELv2. The Free plan covers one user; Pro is $20 per user per month, or $15 billed yearly. Superset never proxies model calls.
+
+### Conductor
+
+Conductor is a Mac app that runs Claude Code, Codex, Cursor, and OpenCode in parallel, each task in its own workspace and branch, with a review-and-merge flow. It is polished and focused, and macOS only. See [Superset vs Conductor](/compare/superset-vs-conductor).
+
+### Orca
+
+Orca is a free, MIT-licensed desktop app for macOS, Windows, and Linux, with terminals, diffs, and a browser in one window and each task in its own worktree. It supports Claude Code, Codex, Gemini, and other CLI agents, and has a mobile companion for iOS and Android. It is the pick if you need Windows or want open source. See [Superset vs Orca](/compare/superset-vs-orca).
+
+---
+
+## How To Choose
+
+- **You like tmux and only want nicer ergonomics:** Zellij.
+- **You want to stay in the terminal with isolated sessions:** Claude Squad, or tmux plus Worktrunk.
+- **You want your tmux agents on your phone and on a schedule:** ClawTab.
+- **You are on a Mac and mostly need to know which agent is waiting:** cmux.
+- **You want isolation, status, and diff review in one app:** Superset, Conductor, or Orca. Superset also has a pull request pane with checks, review threads, and merge.
+
+## Verdict
+
+tmux is still a fine way to keep agents alive, and Zellij is a fine way to do the same with more built in. Neither helps you organize or review the work. If your problem is that agents overwrite each other, add worktrees with Claude Squad or Worktrunk. If your problem is finding the agent that needs you, cmux or ClawTab help. If you run many agents across several repositories and spend your time reviewing their diffs and pull requests, a desktop app like Superset replaces the whole tmux setup with a worktree, a status board, and a review flow per task.
+
+## Frequently Asked Questions
+
+### What is the best tmux alternative for AI coding agents?
+
+It depends on the gap. Zellij is the best plain multiplexer alternative. Claude Squad adds worktrees in a terminal UI. For isolation, status, and review in one app, use a desktop workspace such as Superset, Conductor, or Orca.
+
+### Is Zellij better than tmux for Claude Code?
+
+Zellij adds committed layouts, floating panes, and a web client. For agents, it has the same gaps as tmux: no worktrees, no agent status, and no diff view.
+
+### Do I still need tmux if I use Superset?
+
+No. Superset keeps terminal sessions running across app restarts and gives each workspace its own worktree. You can still run tmux inside a Superset terminal if you want it for other work.
+
+### How do I review the work of several coding agents at once?
+
+Give each agent its own worktree and branch, then review one branch at a time as a diff or pull request. Claude Squad shows a diff per session in the terminal. Superset shows a Changes pane and a PR pane per workspace and a board of which workspaces need review.
+
+### Can I use these tools over SSH?
+
+tmux, Zellij, Claude Squad, and Worktrunk run in any terminal, including over SSH. ClawTab and Superset can also run agents on a remote host and let you connect from another device.

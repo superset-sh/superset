@@ -4,7 +4,7 @@ import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { createFileRoute } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuickOpenStore } from "renderer/commandPalette/ui/QuickOpen/quickOpenStore";
 import { useWorkspaceHostTarget } from "renderer/hooks/host-service/useWorkspaceHostUrl";
@@ -68,6 +68,7 @@ import { useWindowWidth } from "./hooks/useWindowWidth";
 import { useWorkspaceFileNavigation } from "./hooks/useWorkspaceFileNavigation";
 import { useWorkspaceHotkeys } from "./hooks/useWorkspaceHotkeys";
 import { useWorkspacePaneOpeners } from "./hooks/useWorkspacePaneOpeners";
+import { useWorkspaceRightSidebarOpen } from "./hooks/useWorkspaceRightSidebarOpen";
 import { WorkspaceGitStatusProvider } from "./providers/WorkspaceGitStatusProvider";
 import { FileDocumentStoreProvider } from "./state/fileDocumentStore";
 import type { ConsumeSearch, PaneViewerData } from "./types";
@@ -176,13 +177,17 @@ function V2WorkspaceContent() {
 
 	const {
 		preferences: v2UserPreferences,
-		setRightSidebarOpen,
 		setRightSidebarWidth,
 		setRightPaneAreaWidth,
 		setShowPresetsBar,
 	} = useV2UserPreferences();
 	const showPresetsBar = v2UserPreferences.showPresetsBar;
-	const sidebarOpen = v2UserPreferences.rightSidebarOpen;
+	const { isOpen: sidebarOpen, setOpen: setRightSidebarOpen } =
+		useWorkspaceRightSidebarOpen(workspaceId);
+	const toggleRightSidebar = useCallback(
+		() => setRightSidebarOpen((prev) => !prev),
+		[setRightSidebarOpen],
+	);
 	const { store, isLayoutReady, hasRow } = useV2WorkspacePaneLayout();
 	useClearActivePaneAttention({ store });
 	const rightPaneAreaFlag = useFeatureFlagEnabled(
@@ -390,6 +395,40 @@ function V2WorkspaceContent() {
 	const defaultPaneActions = useDefaultPaneActions({ launcher });
 	const onBeforeCloseTab = useTabCloseGuard(store);
 	const onBeforeCloseRightTab = useTabCloseGuard(rightStore);
+	const lastActiveAreaRef = useRef<"center" | "right">("center");
+	const activateCenterArea = useCallback(() => {
+		lastActiveAreaRef.current = "center";
+	}, []);
+	const activateRightArea = useCallback(() => {
+		lastActiveAreaRef.current = "right";
+	}, []);
+	useEffect(() => {
+		const onWindowBlur = () => {
+			const area = document.activeElement
+				?.closest("[data-pane-area]")
+				?.getAttribute("data-pane-area");
+			if (area === "center" || area === "right")
+				lastActiveAreaRef.current = area;
+		};
+		window.addEventListener("blur", onWindowBlur);
+		return () => window.removeEventListener("blur", onWindowBlur);
+	}, []);
+	const getCloseTarget = useCallback(
+		() =>
+			isRightPaneAreaEnabled &&
+			sidebarOpen &&
+			lastActiveAreaRef.current === "right"
+				? { store: rightStore, onBeforeCloseTab: onBeforeCloseRightTab }
+				: { store, onBeforeCloseTab },
+		[
+			isRightPaneAreaEnabled,
+			sidebarOpen,
+			rightStore,
+			onBeforeCloseRightTab,
+			store,
+			onBeforeCloseTab,
+		],
+	);
 	const { openAgentChat: openRightAgentChat } = useAgentSessionLauncher({
 		workspaceId,
 		store: rightStore,
@@ -507,7 +546,7 @@ function V2WorkspaceContent() {
 		openChangesPane: openChanges,
 		paneRegistry,
 		launcher,
-		onBeforeCloseTab,
+		getCloseTarget,
 		isSandbox,
 	});
 	useHotkey("QUICK_OPEN", handleQuickOpen);
@@ -586,6 +625,8 @@ function V2WorkspaceContent() {
 			workspaceControls={workspaceControls}
 			isExpanded={isRightPaneAreaExpanded}
 			onToggleExpanded={toggleRightPaneAreaExpanded}
+			onToggleSidebar={toggleRightSidebar}
+			onActivate={activateRightArea}
 			onMergeIntoCenter={mergeRightPaneAreaIntoCenter}
 			onAdd={addRightPane}
 			showWindowControls={!isMac}
@@ -599,6 +640,9 @@ function V2WorkspaceContent() {
 					<div
 						className="flex min-h-0 min-w-[320px] flex-1 flex-col overflow-hidden"
 						data-workspace-id={workspaceId}
+						data-pane-area="center"
+						onPointerDownCapture={activateCenterArea}
+						onFocusCapture={activateCenterArea}
 					>
 						{showExpandedRightPaneArea ? (
 							rightPaneArea
@@ -649,7 +693,11 @@ function V2WorkspaceContent() {
 											!sidebarOpen && (
 												<>
 													{workspaceControls}
-													<RightSidebarToggle compact />
+													<RightSidebarToggle
+														compact
+														isOpen={sidebarOpen}
+														onToggle={toggleRightSidebar}
+													/>
 												</>
 											)
 										) : (
@@ -660,7 +708,10 @@ function V2WorkspaceContent() {
 											    (#7167). Without an @container ancestor its branch label
 											    stays hidden, which keeps it compact for the tab bar. */}
 												<V2WorkspaceOpenInButton workspaceId={workspaceId} />
-												<RightSidebarToggle />
+												<RightSidebarToggle
+													isOpen={sidebarOpen}
+													onToggle={toggleRightSidebar}
+												/>
 											</>
 										)}
 										{!isMac && !sidebarOpen && <WindowControlsInset />}

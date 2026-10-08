@@ -11,6 +11,7 @@ import {
 	type ReactNode,
 	useCallback,
 	useEffect,
+	useId,
 	useMemo,
 	useState,
 	useSyncExternalStore,
@@ -104,6 +105,7 @@ export function WorkspaceActivityMenu({
 	const { workspace: currentWorkspace } = useWorkspace();
 	const [shipView, setShipView] = useState<ShipView | null>(null);
 	const [open, setOpen] = useState(false);
+	const newPageStatusId = useId();
 	const {
 		flowState,
 		sync: branchSync,
@@ -381,6 +383,7 @@ export function WorkspaceActivityMenu({
 						<button
 							type="button"
 							aria-label={t({ message: "Workspace activity" })}
+							aria-describedby={hasNew ? newPageStatusId : undefined}
 							className={cn(
 								"no-drag relative flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 px-2 text-xs font-medium text-muted-foreground/80 transition-colors",
 								"hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
@@ -409,10 +412,17 @@ export function WorkspaceActivityMenu({
 								</>
 							)}
 							{hasNew && (
-								<span
-									aria-hidden="true"
-									className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-blue-500"
-								/>
+								<>
+									<span
+										aria-hidden="true"
+										className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-blue-500"
+									/>
+									<span id={newPageStatusId} className="sr-only">
+										<Trans context="badge on a page published since the menu was last opened">
+											New
+										</Trans>
+									</span>
+								</>
 							)}
 						</button>
 					</PopoverTrigger>
@@ -535,7 +545,7 @@ export function WorkspaceActivityMenu({
 												onClick={stopAll}
 												className="flex size-6 items-center justify-center rounded-sm text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:bg-accent"
 											>
-												<Square className="size-3 fill-current" />
+												<Square className="size-2.5 fill-current" />
 											</button>
 										</TooltipTrigger>
 										<TooltipContent side="top">

@@ -2,7 +2,7 @@
 title: "Best Agent Development Environment (ADE) in 2026"
 description: "Compare the best agent development environments for parallel coding agents, including Superset, Orca, Emdash, Conductor, Cursor, and Devin Desktop."
 date: 2026-08-24
-lastUpdated: 2026-09-24
+lastUpdated: 2026-10-07
 type: "roundup"
 competitors:
   - orca
@@ -29,7 +29,7 @@ An ADE is the workspace around the agent. The coding agent writes and tests code
 
 | ADE | Best for | Agent support | Isolation | Main tradeoff |
 |---|---|---|---|---|
-| **Superset** | Parallel work, automations, and programmable orchestration | Any CLI agent plus built-in chat | Local branch-based worktrees; connected hosts | macOS; experimental Linux AppImage; Windows unavailable |
+| **Superset** | Parallel work, automations, iPhone check-ins, and programmable orchestration | Any CLI agent plus built-in chat | Local branch-based worktrees; connected hosts | macOS; experimental Linux AppImage; Windows unavailable |
 | **Orca** | Open-source fan-out, automation, and mobile monitoring | Any CLI agent | Git worktree per task, local or SSH | Fast-moving product with fewer formal team controls |
 | **Emdash** | Open source, tracker intake, and recurring tasks | 30+ CLI agents | Worktrees on local or remote hosts | Less programmable outside the desktop app |
 | **Conductor** | Focused local and cloud workflow on Mac | Claude Code, Codex, Cursor, OpenCode | Local worktrees or cloud sandboxes | macOS only and a narrower agent list |
@@ -53,9 +53,9 @@ A terminal can run an agent, and an IDE can host one. An ADE manages the work ar
 
 ### Superset: Best for Teams and Programmable Workflows
 
-New local branch-based Superset workspaces get their own Git worktree, branch, and terminal sessions. Cloud workspaces use separate clones; projectless sessions use scratch folders. Worktrees do not sandbox processes, isolate shared services, or prevent merge conflicts. See [workspace types](https://docs.superset.sh/workspaces). It runs Claude Code, Codex, Amp, Gemini, OpenCode, Cursor Agent, and other CLI agents, plus a built-in chat. The review loop covers diffs, commits, pushes, and pull requests, while remote access lets the desktop reach agents running on another machine.
+New local branch-based Superset workspaces get their own Git worktree, branch, and terminal sessions. Cloud workspaces use separate clones; projectless sessions use scratch folders. Worktrees do not sandbox processes, isolate shared services, or prevent merge conflicts. See [workspace types](https://docs.superset.sh/workspaces). It runs Claude Code, Codex, Amp, Gemini, OpenCode, Cursor Agent, and other CLI agents, plus a built-in chat. The Changes pane takes a branch from commit to push to pull request, and a pull request pane shows checks and review threads beside the diff. Remote access lets the desktop reach agents running on another machine, and the iPhone app on the App Store lets you check on agents and review diffs away from your desk.
 
-Its biggest difference is the combination of programmable and team surfaces. A CLI, TypeScript SDK, and MCP server can create workspaces, launch agents, read terminals, and manage recurring automations. Slack and shared remote hosts take the workflow beyond one developer's desktop. Organization controls cover the team around it.
+Its biggest difference is the combination of programmable and team surfaces. A CLI, TypeScript SDK, and MCP server can create workspaces, launch agents, read terminals, and manage recurring automations. Automations keep a run history for you and your team, and failed runs can be retried together. A Workspaces page groups every workspace by state (Needs attention, Working, Needs review, Idle, Merged), so a large set of agents stays easy to triage. Slack and shared remote hosts take the workflow beyond one developer's desktop. Organization controls cover the team around it.
 
 Best for:
 
@@ -103,7 +103,7 @@ Choose Devin Desktop when cloud handoff and a single integrated product matter m
 
 Start with the constraint that would break your workflow:
 
-- Choose **Superset** for agent choice, worktree isolation, automations, and CLI/MCP/SDK control.
+- Choose **Superset** for agent choice, worktree isolation, automations, an iPhone app, and CLI/MCP/SDK control.
 - Choose **Orca** for a free open-source ADE with mobile companions, fan-out, and local automation.
 - Choose **Emdash** for a free open-source ADE fed by issue trackers and recurring tasks.
 - Choose **Conductor** for a focused Mac app with minimal configuration.

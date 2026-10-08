@@ -409,9 +409,10 @@ export function AcpChatPane({
 		recover();
 	}, [recover]);
 
+	const draftKey = `chat-v3-draft:${terminalId}`;
 	const draft = (notice: ReactNode) => (
 		<DraftChat
-			draftKey={`chat-v3-draft:${terminalId}`}
+			draftKey={draftKey}
 			isActive={isActive}
 			notice={
 				unreachable ? <Trans>Connecting to the host service…</Trans> : notice
@@ -462,6 +463,7 @@ export function AcpChatPane({
 	return (
 		<SessionView
 			client={client}
+			draftKey={draftKey}
 			{...(recovering
 				? {
 						held: {
@@ -500,7 +502,6 @@ export function AcpChatPane({
 			}}
 			pendingPrompts={pendingPrompts}
 			preferredModelLabel={modelLabel}
-			sessionId={sessionId}
 			workspaceId={workspaceId}
 		/>
 	);

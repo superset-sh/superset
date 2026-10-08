@@ -239,29 +239,6 @@ export const tasks = pgTable(
 		branch: text(),
 		prUrl: text("pr_url"),
 
-		// External sync (null if local-only task)
-		externalProvider: integrationProvider("external_provider"),
-		externalId: text("external_id"),
-		externalKey: text("external_key"), // "SUPER-172", "#123"
-		externalUrl: text("external_url"),
-		lastSyncedAt: timestamp("last_synced_at"),
-		syncError: text("sync_error"),
-		// The provider's own updatedAt, recorded on every write in either
-		// direction. An inbound event no newer than this is our own echo or a
-		// redelivery that arrived late, and is not applied.
-		externalUpdatedAt: timestamp("external_updated_at"),
-
-		// External project/cycle snapshot (from Linear)
-		externalProjectId: text("external_project_id"),
-		externalProjectName: text("external_project_name"),
-		externalCycleId: text("external_cycle_id"),
-		externalCycleName: text("external_cycle_name"),
-
-		// External assignee snapshot (for unmatched Linear users)
-		assigneeExternalId: text("assignee_external_id"),
-		assigneeDisplayName: text("assignee_display_name"),
-		assigneeAvatarUrl: text("assignee_avatar_url"),
-
 		startedAt: timestamp("started_at"),
 		completedAt: timestamp("completed_at"),
 		deletedAt: timestamp("deleted_at"),
@@ -280,16 +257,6 @@ export const tasks = pgTable(
 		index("tasks_creator_id_idx").on(table.creatorId),
 		index("tasks_status_id_idx").on(table.statusId),
 		index("tasks_created_at_idx").on(table.createdAt),
-		index("tasks_external_provider_idx").on(table.externalProvider),
-		index("tasks_external_project_id_idx").on(table.externalProjectId),
-		index("tasks_external_project_name_idx").on(table.externalProjectName),
-		index("tasks_external_cycle_id_idx").on(table.externalCycleId),
-		index("tasks_assignee_external_id_idx").on(table.assigneeExternalId),
-		unique("tasks_external_unique").on(
-			table.organizationId,
-			table.externalProvider,
-			table.externalId,
-		),
 		unique("tasks_org_slug_unique").on(table.organizationId, table.slug),
 		unique("tasks_team_number_unique").on(table.teamId, table.number),
 	],

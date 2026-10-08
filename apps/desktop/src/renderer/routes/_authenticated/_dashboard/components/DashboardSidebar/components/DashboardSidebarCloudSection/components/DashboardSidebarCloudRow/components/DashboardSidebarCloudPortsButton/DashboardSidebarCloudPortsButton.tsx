@@ -45,7 +45,7 @@ export function DashboardSidebarCloudPortsButton({
 							other: "# active ports — show details",
 						}),
 					})}
-					className="relative flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+					className="relative mr-1 flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
 				>
 					<LuRadioTower className="size-3.5" strokeWidth={1.75} />
 					<span

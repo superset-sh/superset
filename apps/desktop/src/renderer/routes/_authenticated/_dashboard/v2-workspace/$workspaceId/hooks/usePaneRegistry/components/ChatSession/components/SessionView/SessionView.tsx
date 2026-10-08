@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { SessionClient } from "@superset/chat/client";
 import {
 	deriveQueuedPrompts,
@@ -19,7 +19,9 @@ import {
 } from "@superset/chat/react";
 import { ComposerDropZone } from "@superset/chat-ui/ComposerDropZone";
 import { MessageScroller } from "@superset/chat-ui/MessageScroller";
+import type { PromptInputHandle } from "@superset/chat-ui/PromptInput";
 import { ChatHistorySidebarScroller } from "@superset/ui/chat-history-sidebar";
+import { toast } from "@superset/ui/sonner";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { OpenFile } from "../../../../../../types";
@@ -32,7 +34,12 @@ import { buildChatHandoffTranscript } from "../../utils/chatHandoffTranscript";
 import { heldPromptQueue } from "../../utils/heldPromptQueue";
 import { promptHistory } from "../../utils/promptHistory";
 import { railMessages } from "../../utils/railMessages";
-import { type AgentChoice, type AgentSwitcher, Composer } from "../Composer";
+import {
+	type AgentChoice,
+	type AgentSwitcher,
+	Composer,
+	prependToDraft,
+} from "../Composer";
 import { ConnectionNotice } from "../ConnectionNotice";
 import { SessionHeader } from "../SessionHeader";
 import { Transcript } from "../Transcript";
@@ -44,11 +51,18 @@ const NO_CONFIG_OPTIONS: SessionConfigOption[] = [];
 
 const MODEL_OPTIONS_GRACE_MS = 1000;
 
+function contentText(content: UserContent[]): string {
+	return content
+		.flatMap((part) => (part.type === "text" ? [part.text] : []))
+		.join("\n");
+}
+
 export function SessionView({
 	agentLabel,
 	agentSwitch,
 	canForkToWorktree,
 	client,
+	draftKey,
 	headerLeft,
 	held,
 	isActive,
@@ -60,11 +74,10 @@ export function SessionView({
 	onSessionState,
 	openFile,
 	openPage,
-	sessionId,
 	workspaceId,
 }: {
 	client: SessionClient;
-	sessionId: string;
+	draftKey: string;
 	workspaceId: string;
 	headerLeft?: ReactNode;
 	held?: {
@@ -103,7 +116,43 @@ export function SessionView({
 	openFile?: OpenFile;
 	openPage?: OpenPage;
 }) {
+	const { t } = useLingui();
 	const session = useChatSession({ client });
+	const composerRef =
+		useRef<Pick<PromptInputHandle, "appendText" | "focus">>(null);
+	const { outbox, discardPrompt } = session;
+	useEffect(() => {
+		const failed = outbox.filter(
+			(entry) =>
+				entry.state === "failed" &&
+				entry.content.every((part) => part.type === "text"),
+		);
+		if (failed.length === 0) return;
+		for (const entry of failed) {
+			discardPrompt(entry.clientId);
+			composerRef.current?.appendText(contentText(entry.content));
+		}
+		composerRef.current?.focus();
+		toast.error(
+			t({ message: "Couldn't send your message. It's back in the composer." }),
+		);
+	}, [outbox, discardPrompt, t]);
+	const outboxRef = useRef(outbox);
+	outboxRef.current = outbox;
+	useEffect(
+		() => () => {
+			const unsent = outboxRef.current
+				.filter(
+					(entry) =>
+						entry.state === "failed" ||
+						(entry.state === "queued" && entry.attempts === 0),
+				)
+				.map((entry) => contentText(entry.content))
+				.filter(Boolean);
+			if (unsent.length > 0) prependToDraft(draftKey, unsent.join("\n\n"));
+		},
+		[draftKey],
+	);
 	const timeline = useTimeline(session.snapshot);
 	const rail = useStableList(
 		useMemo(() => railMessages(timeline), [timeline]),
@@ -354,7 +403,8 @@ export function SessionView({
 					modes={sessionState?.availableModes}
 					currentModeId={sessionState?.modeId}
 					onSetMode={onSetMode}
-					draftKey={`chat-v3-draft:${sessionId}`}
+					draftKey={draftKey}
+					inputRef={composerRef}
 					history={history}
 					isActive={isActive}
 					onCancelTurn={onCancelTurn}

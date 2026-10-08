@@ -5,21 +5,19 @@ import {
 	LuPanelRightClose,
 	LuPanelRightOpen,
 } from "react-icons/lu";
-import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { HotkeyLabel } from "renderer/hotkeys";
 
 interface RightSidebarToggleProps {
+	isOpen: boolean;
+	onToggle: () => void;
 	compact?: boolean;
 }
 
 export function RightSidebarToggle({
+	isOpen,
+	onToggle,
 	compact = false,
 }: RightSidebarToggleProps) {
-	const { preferences, setRightSidebarOpen } = useV2UserPreferences();
-	const isOpen = preferences.rightSidebarOpen;
-
-	const toggle = () => setRightSidebarOpen((prev) => !prev);
-
 	const getToggleIcon = (isHovering: boolean) => {
 		if (!isOpen) {
 			return isHovering ? (
@@ -40,7 +38,7 @@ export function RightSidebarToggle({
 			<TooltipTrigger asChild>
 				<button
 					type="button"
-					onClick={toggle}
+					onClick={onToggle}
 					className={cn(
 						"no-drag group flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors",
 						compact ? "size-7" : "size-8",

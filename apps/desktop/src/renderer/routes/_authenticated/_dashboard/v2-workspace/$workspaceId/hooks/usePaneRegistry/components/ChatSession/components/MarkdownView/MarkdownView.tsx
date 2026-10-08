@@ -5,8 +5,8 @@ import {
 import { cn } from "@superset/ui/utils";
 import { memo, type ReactNode, useMemo } from "react";
 import { env } from "renderer/env.renderer";
+import { CHAT_MARKDOWN_COMPONENTS } from "../../constants";
 import { pageLinkFinder } from "../../utils/pageLinks";
-import { CHAT_CODE_COMPONENTS } from "../ChatCodeBlock";
 import { PageLinkCard } from "../PageLinkCard";
 import { pageLinksByBlock } from "./utils/pageLinksByBlock";
 import { planMarkdown } from "./utils/planMarkdown";
@@ -23,7 +23,7 @@ const MarkdownBlock = memo(function MarkdownBlock({
 	return (
 		<ChatMarkdown
 			className={first ? chatMarkdownFirstBlock : undefined}
-			components={CHAT_CODE_COMPONENTS}
+			components={CHAT_MARKDOWN_COMPONENTS}
 		>
 			{block}
 		</ChatMarkdown>

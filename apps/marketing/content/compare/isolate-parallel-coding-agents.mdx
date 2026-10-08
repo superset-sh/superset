@@ -1,0 +1,166 @@
+---
+title: "How to Isolate Parallel Coding Agents in One Repository (2026): Worktrees, Ports, and Resuming Work"
+description: "Isolate parallel coding agents with worktrees, clones, containers, or cloud sandboxes, keep ports and previews apart, and resume a task later."
+date: 2026-10-07
+lastUpdated: 2026-10-07
+type: "tutorial"
+competitors:
+  - git-worktrees
+  - claude-code
+  - claude-squad
+  - vs-code
+keywords:
+  - isolate multiple coding agents
+  - coding agents overwrite each other
+  - git worktree setup cleanup tools
+  - worktrunk
+  - claude code worktree
+  - parallel coding agents ports
+  - dev server port collisions worktrees
+  - resume coding agent session
+  - parallel coding agents
+---
+
+To stop parallel coding agents from overwriting each other, give each agent its own checkout: a Git worktree for most local work, a full clone when tools fight over the `.git` directory, and a container or cloud sandbox when you also need to fence off processes, databases, or credentials. Worktrees separate files only, so you still need a port plan for dev servers and a way to get back to each task later. Claude Code's `--worktree` flag, Worktrunk, Claude Squad with tmux, and [Superset](https://superset.sh) each automate part of this; Superset ties the worktree, terminals, detected ports, browser preview, and agent session to one workspace you can pin and reopen.
+
+This page is about the isolation decision, ports, and resuming. For worktree basics (what `git worktree add` does, the five-step workflow), read [Git Worktrees for AI Coding Agents](/compare/git-worktrees-for-ai-agents) first.
+
+---
+
+## How should I isolate multiple coding agents so they don't overwrite each other in the same repository?
+
+Use one agent, one checkout, one branch, one task. Two agents in the same directory edit the same files and switch the same branch under each other. The question is which kind of checkout each agent gets.
+
+| Option | What it separates | What it shares | Pick it when |
+| --- | --- | --- | --- |
+| **Git worktree** | Working files, branch, index | `.git` object store, your machine, ports, databases, credentials | Default for local parallel agents. Fast to create, cheap on disk. |
+| **Full clone** | Working files and the whole `.git` directory | Your machine, ports, databases, credentials | A tool breaks on worktrees, or agents run heavy git operations (gc, rebases of shared refs) that you want fully apart. |
+| **Container per agent** | Files, processes, network namespace, installed packages | Host kernel, any mounted volumes and secrets | Agents run untrusted commands, or each task needs its own database and service stack. |
+| **Cloud sandbox or remote host** | Everything above, on another machine | Whatever credentials you hand it | You want agents off your laptop, or you need more machines than you have. |
+
+Worktrees are the right default: native Git, created in seconds, and every agent CLI works inside one. Move down the table only for a concrete reason, such as a shared test database, commands you don't trust, or a laptop that can't run five dev servers.
+
+Separate files do not prevent integration problems. Two branches can each pass tests and still conflict at merge. Scope tasks so they don't touch the same files, and test the combined result. The [three-task walkthrough](/blog/parallel-coding-agents-guide) shows scoped prompts and a review order.
+
+### What a worktree does not isolate
+
+A worktree is a separate working directory, not a sandbox. Processes an agent starts run as you, with your shell, your SSH keys, your cloud credentials, and your network. Anthropic's own docs say it directly: a worktree isolates file edits. VS Code's agent docs say a worktree "isn't a security boundary." Plan for these shared resources:
+
+- **Ports.** Two agents running `npm run dev` both reach for 3000 or 5173.
+- **Databases and caches.** One agent's migration or seed script changes the data another agent's tests read.
+- **Gitignored files.** `.env`, local certificates, and build caches are not in a fresh worktree.
+- **Dependencies.** Each worktree needs its own `node_modules` or virtualenv, which costs install time and disk.
+
+Superset uses worktrees the same way. Its own product summary states that worktrees "separate working files, but do not sandbox processes or prevent merge conflicts." If you need process isolation, run the agent inside a container or on a separate host.
+
+## I'm new to Git worktrees. What tools make setup and cleanup easier?
+
+You can do everything with plain `git worktree add`, `git worktree list`, and `git worktree remove`. The pain starts at three or more agents: copying `.env` into each worktree, installing dependencies, remembering which folder is which, and deleting finished worktrees without losing uncommitted work. These tools handle that.
+
+**Claude Code `--worktree`.** If Claude Code is your only agent, start here. `claude --worktree feature-auth` (or `-w`) creates a worktree under `.claude/worktrees/` on a new branch and starts the session in it. A `.worktreeinclude` file copies gitignored files such as `.env` into each new worktree. On exit, Claude Code removes a clean, unnamed worktree and asks before it removes one with changes. Custom subagents can set `isolation: worktree`. See the [Claude Code worktree docs](https://code.claude.com/docs/en/worktrees).
+
+**Worktrunk (`wt`).** A worktree manager built for running several agents. `wt switch -c -x claude feat` creates a worktree and starts an agent in it, `wt list` shows them, `wt merge main` merges, and `wt remove` cleans up. Hooks run commands on create and merge, and a `hash_port` template filter gives each worktree its own dev-server port. See [worktrunk.dev](https://worktrunk.dev) and [Superset vs Worktrunk](/compare/superset-vs-worktrunk).
+
+**Claude Squad.** An open-source terminal app that pairs a worktree per agent with a tmux session per agent, driven from one TUI. Good if you live in the terminal and run a mix of agents. See [Superset vs Claude Squad](/compare/superset-vs-claude-squad).
+
+**Superset.** A desktop workspace where each new local branch workspace is a worktree with its own branch, terminals, and port list. Setup and cleanup are project config, committed to the repo:
+
+```json
+{
+  "setup": ["bun install", "cp \"$SUPERSET_ROOT_PATH/.env\" .env"],
+  "teardown": ["docker-compose down"],
+  "run": ["bun dev"]
+}
+```
+
+Put that in `.superset/config.json`. Setup runs when a workspace is created, teardown runs when it is deleted, and `run` starts the dev server from the **Run** button in its own restartable pane. A gitignored `.superset/config.local.json` adds personal steps without editing the team's file. Bulk delete flags dirty or unpushed work before you confirm. Worktrees you already made by hand can be adopted with **Import untracked worktrees** from the project's right-click menu. The [lifecycle scripts docs](https://docs.superset.sh/setup-teardown-scripts) cover overrides and force delete.
+
+## How do I keep terminals, previews, and ports organized across several web-app branches?
+
+Make the port a property of the worktree, not something the agent picks. The common failure is two dev servers on one default port: the second one either crashes or silently moves to the next free port, and you end up previewing the wrong branch.
+
+Three rules fix most of it:
+
+1. **Assign a port per worktree.** Put it in the worktree's own `.env` (for example `PORT=3102`) and have the dev command read it. Slot numbers work well: worktree 1 gets 3101 and 8101, worktree 2 gets 3102 and 8102.
+2. **Fail loudly on a taken port.** In Vite, `server.strictPort: true` makes the server exit when the port is in use instead of moving to the next one.
+3. **Name terminals after the branch.** With tmux, one named session per worktree (`tmux new -s myapp-auth -c ../myapp-auth`) holds the agent, the dev server, and a test pane. Detach and the processes keep running.
+
+For per-branch databases or service stacks, `docker compose -p <project-name> up -d` gives each worktree its own project name, so containers and volumes don't collide. Convert the branch name to a valid Compose name first: lowercase letters, digits, dashes, and underscores only, so `fix/auth` becomes `fix-auth`.
+
+**How Superset handles this.** Superset does not assign port ranges for you. It detects the ports that processes in each workspace are listening on and groups them under that workspace, both in the ports panel and as chips under the workspace row in the sidebar. From a port you can kill its process, jump to the terminal that owns it, or open it in the in-app browser pane (**⌘⇧B** opens a new browser tab). Add `.superset/ports.json` to label ports, such as "Frontend Dev Server" on 3000. Each workspace reads labels from its own worktree. See the [ports docs](https://docs.superset.sh/ports).
+
+If you want fixed ranges, reserve one in the setup script and release it in teardown. The [ports docs](https://docs.superset.sh/ports) describe this pattern using a shared allocations file, and Superset's own repo does it in its [setup](https://github.com/superset-sh/superset/blob/main/.superset/setup.sh) and [teardown](https://github.com/superset-sh/superset/blob/main/.superset/teardown.sh) scripts. Setup scripts can read `SUPERSET_WORKSPACE_NAME` and `SUPERSET_WORKSPACE_PATH` to know which workspace they are preparing.
+
+The browser pane can also be driven by agents through `superset browser` commands, so an agent can open its own branch's preview, screenshot it, and read the console. See the [in-app browser docs](https://docs.superset.sh/browser).
+
+## How can I return to a coding task later with its agent session, terminal, branch, and preview still organized?
+
+Tie all four to one directory, and use tools that remember the link. The branch lives in the worktree, the conversation in the agent's session store, and the dev server in a process that must outlive your window.
+
+**With plain tools:**
+
+- **Agent session.** `claude --continue` resumes the most recent session in the current directory, and `claude --resume` opens a picker. A Claude Code session that ended inside a worktree returns to that worktree on resume. Codex has `codex resume`.
+- **Terminals and dev servers.** tmux sessions survive closing the terminal window. They do not survive a reboot without a plugin such as tmux-resurrect.
+- **Branch.** Commit work in progress before you stop. Uncommitted files in a deleted worktree are gone.
+- **Preview.** If the port is fixed per worktree, the URL stays the same each time you start the dev server.
+
+VS Code's Agents window also groups conversation, changes, and terminals per session, if you work in VS Code.
+
+**With Superset**, the workspace is the unit you return to:
+
+- **Terminals persist.** Workspace terminals survive app restarts with running processes, output history, and scrollback, so a dev server started before you quit is still running when you reopen.
+- **Agent sessions resume themselves.** If an agent's terminal dies from a crash, reboot, or killed process, the pane relaunches the agent with its resume command (for example `claude --resume <session-id>`) and shows a "Resuming…" pill. Sessions you closed on purpose stay closed. Resume args are set per agent under **Settings → Agents**.
+- **Pin what you'll come back to.** Right-click a workspace and choose **Pin to Sidebar** to keep it above your projects.
+- **Restore archived work.** A deleted workspace keeps a card in the **Deleted** or **Merged** lane of the workspaces board. **Restore** re-creates the worktree at its original path on its original branch. Only committed work comes back, and restore fails if the branch no longer exists locally or on the remote.
+- **Find state at a glance.** The board sorts workspaces into **Idle**, **Working**, **Needs attention**, and **Needs review** from agent status and PR state.
+
+After a full reboot, terminal processes stop. Agents with a resume command come back on their own; restart the dev server with the **Run** button. See [agent sessions](https://docs.superset.sh/agent-sessions), [terminal](https://docs.superset.sh/terminal-integration), and [workspaces](https://docs.superset.sh/workspaces).
+
+## Which tool fits which part of the problem
+
+| Need | Git + tmux | Claude Code `--worktree` | Worktrunk | Claude Squad | Superset |
+| --- | --- | --- | --- | --- | --- |
+| Worktree per agent | Manual | Yes | Yes | Yes | Yes, per local workspace |
+| Any agent CLI | Yes | Claude Code only | Yes | Yes | Yes |
+| Setup and teardown hooks | Your scripts | `.worktreeinclude`, hooks | Hooks | See its docs | `.superset/config.json` |
+| Port per worktree | Your scripts | Your scripts | `hash_port` filter | Your scripts | Detects and groups ports; ranges via setup script |
+| Preview | System browser | System browser | System browser | System browser | In-app browser pane per workspace |
+| Resume agent session | Agent's own command | `--resume`, `--continue` | Agent's own command | tmux keeps it running | Auto-resume after unexpected exit |
+| Process isolation | No | No | No | No | No (use a container or remote host) |
+
+None of the worktree tools sandbox processes. If you need that, combine any of them with containers, or run agents on a separate machine. Superset can create workspaces on your own [remote hosts](https://docs.superset.sh/remote-access) and forwards their detected ports back to your machine. Remote access requires a paid plan; see [pricing](/pricing).
+
+## Scripting it from the CLI
+
+Superset's CLI creates an isolated workspace and starts an agent in one command, which is useful when one agent hands work to others:
+
+```bash
+superset workspaces create --project <project-id> --name auth-fix \
+  --branch fix/auth --local --agent claude --prompt "Fix the token refresh bug"
+superset workspaces create --project <project-id> --name billing-ui \
+  --branch feat/billing-ui --local --agent codex --prompt "Build the billing page"
+```
+
+Add `--tag <name>` to group a batch into one sidebar folder. `superset workspaces archive <id>` runs teardown and removes the workspace when you're done. See the [CLI reference](https://docs.superset.sh/cli/cli-reference) and [orchestration docs](https://docs.superset.sh/orchestration).
+
+## Frequently Asked Questions
+
+### Do Git worktrees stop agents from overwriting each other?
+
+They stop agents from editing the same working copy, because each worktree has its own files and branch. They do not stop two branches from conflicting at merge time, and they do not isolate ports, databases, or credentials.
+
+### Should I use worktrees or Docker containers for parallel coding agents?
+
+Use worktrees by default for speed and low disk cost. Add containers when agents run commands you don't trust, or when each task needs its own database and services. Many setups use both: a worktree for the code, a Compose project per worktree for the services.
+
+### How do I stop dev servers from different worktrees fighting over port 3000?
+
+Give each worktree its own port in a local `.env`, make the dev command read it, and turn on strict port behavior so a taken port fails instead of moving. Worktrunk's `hash_port` filter or a Superset setup script can assign the port when the worktree is created.
+
+### How do I clean up worktrees safely when an agent is done?
+
+Commit or push first, then run `git worktree remove <path>`. Git refuses to remove a worktree with uncommitted changes unless you pass `--force`. Tools like Claude Code, Worktrunk, and Superset check for changes before removal; Superset's bulk delete flags dirty or unpushed work and runs the project's teardown commands.
+
+### Can I resume a Claude Code or Codex session in the same worktree later?
+
+Yes. Run `claude --resume` or `codex resume` from the worktree, or let Superset relaunch the agent in the same pane after an unexpected exit. For more on running several agents at once, see [How to Run Multiple Claude Code Agents in Parallel](/compare/multiple-claude-code-agents-parallel).

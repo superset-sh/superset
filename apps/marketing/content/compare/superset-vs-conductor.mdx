@@ -2,7 +2,7 @@
 title: "Superset vs Conductor: local agents, cloud workspaces, and review"
 description: "Compare Superset and Conductor for parallel coding agents, cloud workspaces, team collaboration, and iPhone access."
 date: 2026-02-02
-lastUpdated: 2026-09-23
+lastUpdated: 2026-10-07
 type: "1v1"
 competitors:
   - conductor
@@ -20,17 +20,23 @@ Superset and Conductor both organize parallel coding tasks into isolated workspa
 
 | Requirement | Superset | Conductor |
 |---|---|---|
-| Agents | Installed CLI coding agents | Claude Code, Codex, Cursor, OpenCode |
+| Agents | Claude Code, Codex, OpenCode, Gemini CLI, Cursor Agent, Copilot, Amp, and any custom CLI agent you add | Claude Code, Codex, Cursor, OpenCode |
 | Work location | Local workspaces and connected hosts | Local Mac workspaces and cloud sandboxes |
-| Review | Workspace diffs and pull-request workflow | Diffs, checks, pull requests, merge and archive |
-| Team access | Host membership and organization access | Shared cloud workspaces and conversations |
-| Phone | Shipped iPhone app, iOS 26+, Pro | Coming soon |
+| Review | Changes pane commits, pushes, and opens PRs; PR pane shows checks, review threads, and merge | Diffs, checks, pull requests, merge and archive |
+| Team access | Hosts you add, with access granted per member, plus organization access | Shared cloud workspaces and conversations |
+| Browser | In-app browser pane with Design Mode: pick an element and send it to an agent | See their docs |
+| Automations | Pro scheduled agent runs on a selected host, with run history and retry for failed runs | See their docs |
+| Programmatic control | CLI, TypeScript SDK, and MCP server | API |
+| Phone | iPhone app on the App Store, iOS 26+, Pro | Coming soon |
+| Pricing | Free; Pro at $20 per user/month, or $15 billed yearly; Enterprise custom | See their pricing page |
 
 Conductor's [current introduction](https://www.conductor.build/docs) lists four agent harnesses and its review path. Its [Cloud documentation](https://www.conductor.build/docs/cloud) explains shared environments and isolated sandboxes. Its [iPhone app](https://www.conductor.build/) is listed as coming soon.
 
 ## Superset requirements
 
 Superset runs CLI coding agents in separate workspaces, with terminals and diff review in one app. Desktop supports macOS and an experimental Linux AppImage. Windows is not yet available. Superset is source-available under Elastic License 2.0.
+
+For many sessions at once, the Workspaces page groups workspaces by state (Needs attention, Working, Needs review, Idle, Merged) across all your hosts. Interrupted agent sessions resume in the same pane, and subagents that Claude Code or Codex start show under their parent agent.
 
 To use [Superset on iPhone](/mobile), you need iOS 26 or later, Pro, and a host that stays online. Remote access and automations also require a paid plan. See [pricing](/pricing) and [remote access setup](https://docs.superset.sh/remote-access).
 

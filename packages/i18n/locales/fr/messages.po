@@ -5109,6 +5109,9 @@ msgstr "Impossible d'envoyer la réponse"
 msgid "Couldn't send to agent"
 msgstr "Impossible d'envoyer à l'agent"
 
+msgid "Couldn't send your message. It's back in the composer."
+msgstr "Impossible d'envoyer votre message. Il est de retour dans la zone de saisie."
+
 msgid "Couldn't stage changes"
 msgstr "Impossible d'indexer les modifications"
 
@@ -8496,6 +8499,9 @@ msgstr "Dans l'application de bureau Superset, ouvrez <0>Paramètres → Apparen
 msgid "In the Superset desktop app, open Settings → Remote Access and turn on “Allow remote access to this device via relay”."
 msgstr "Dans l'application de bureau Superset, ouvrez Paramètres → Accès distant et activez « Autoriser l'accès distant à cet appareil via le relais »."
 
+msgid "In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers, and Asia as a whole now accounts for more users than the US."
+msgstr "En moins d’un an, plus de 130 000 développeurs dans 176 pays ont utilisé Superset et créé plus de 1,5 million d’espaces de travail d’agents. Le Japon est son deuxième marché après les États-Unis, avec plus de 12 000 développeurs, et l’Asie dans son ensemble compte désormais plus d’utilisateurs que les États-Unis."
+
 msgid "In-app PR merge"
 msgstr "Fusion des pull requests dans l'application"
 
@@ -10397,6 +10403,9 @@ msgstr "Aucun service actif"
 msgid "No active terminal sessions"
 msgstr "Aucune session de terminal active"
 
+msgid "No active workspaces"
+msgstr "Aucun espace de travail actif"
+
 msgid "No agent"
 msgstr "Aucun agent"
 
@@ -11183,6 +11192,9 @@ msgstr "sur {offScopeHostName} — ne s'exécutera pas ici"
 
 msgid "On focus change"
 msgstr "Lors du changement de focus"
+
+msgid "On GitHub, it has 15k+ stars, 1,000+ forks, and 100+ contributors. It also hit #1 on Product Hunt."
+msgstr "Sur GitHub, il compte plus de 15k étoiles, plus de 1 000 forks et plus de 100 contributeurs. Il a aussi été n° 1 sur Product Hunt."
 
 msgid "On our radar. Order and scope may change."
 msgstr "Dans notre viseur. L'ordre et le périmètre peuvent changer."
@@ -12231,6 +12243,9 @@ msgstr "Choisissez un thème ou suivez l'apparence de votre système. Parcourez 
 
 msgid "Pick a workspace"
 msgstr "Choisissez un espace de travail"
+
+msgid "Pick a workspace whose agent is waiting for your input, has finished since you last looked, or is still running"
+msgstr "Choisissez un espace de travail dont l'agent attend votre saisie, a terminé depuis votre dernier passage ou est toujours en cours"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "Choisissez une icône et une couleur, ou envoyez une image personnalisée. Par défaut, l'avatar du propriétaire GitHub lié."
@@ -15820,8 +15835,8 @@ msgstr "superset"
 msgid "Superset"
 msgstr "Superset"
 
-msgid "Superset (YC S26) is the open-source IDE for the AI agents era, where engineers run hundreds of coding agents like Claude Code and Codex in parallel. In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers adopting it before it was even available in Japanese, and Asia as a whole now accounts for more users than the US. Superset is used by engineers at Netflix, Microsoft, NVIDIA, DoorDash, Wix, and Mistral AI globally, and across Asia at ByteDance, Toss, Kakao, Grab, LINE, and Rakuten. It has 14k+ GitHub stars, hit #1 on Product Hunt, and recently launched full Japanese language support."
-msgstr "Superset (YC S26) est l’IDE open source de l’ère des agents IA, où les ingénieurs exécutent en parallèle des centaines d’agents de code comme Claude Code et Codex. En moins d’un an, plus de 130 000 développeurs dans 176 pays ont utilisé Superset et créé plus de 1,5 million d’espaces de travail d’agents. Le Japon est son deuxième marché après les États-Unis : plus de 12 000 développeurs l’ont adopté avant même qu’il soit disponible en japonais, et l’Asie dans son ensemble compte désormais plus d’utilisateurs que les États-Unis. Superset est utilisé par des ingénieurs de Netflix, Microsoft, NVIDIA, DoorDash, Wix et Mistral AI dans le monde, et en Asie chez ByteDance, Toss, Kakao, Grab, LINE et Rakuten. Il compte plus de 14k étoiles sur GitHub, a été n° 1 sur Product Hunt et vient de lancer une prise en charge complète du japonais."
+msgid "Superset (YC S26) is the open-source IDE for the AI agents era, where engineers run hundreds of coding agents like Claude Code and Codex in parallel."
+msgstr "Superset (YC S26) est l’IDE open source de l’ère des agents IA, où les ingénieurs exécutent en parallèle des centaines d’agents de code comme Claude Code et Codex."
 
 msgid "Superset | Company Dashboard"
 msgstr "Superset | Tableau de bord de l’entreprise"
@@ -15916,6 +15931,9 @@ msgstr "Le code source de Superset est accessible publiquement. Toutes les pull 
 msgid "Superset is the workbench for the F3 to F4 transition: parallel agents in isolated workspaces, fleets you can actually supervise, and a review surface for code you did not write."
 msgstr "Superset est l'établi de la transition F3 vers F4 : des agents en parallèle dans des espaces de travail isolés, des flottes réellement supervisables et une surface de revue pour du code que vous n'avez pas écrit."
 
+msgid "Superset is used by engineers at Netflix, Microsoft, NVIDIA, DoorDash, Wix, and Mistral AI globally, and across Asia at ByteDance, Toss, Kakao, Grab, LINE, and Rakuten."
+msgstr "Superset est utilisé par des ingénieurs de Netflix, Microsoft, NVIDIA, DoorDash, Wix et Mistral AI dans le monde, et en Asie chez ByteDance, Toss, Kakao, Grab, LINE et Rakuten."
+
 msgid "Superset isn't on Windows yet"
 msgstr "Superset est réservé au Mac pour l'instant"
 
@@ -15972,6 +15990,9 @@ msgstr "Superset Pages"
 
 msgid "Superset Pages demo"
 msgstr "Démo de Superset Pages"
+
+msgid "Superset raised an $11.5M seed round led by Union Square Ventures, with Y Combinator and Paul Graham. TechCrunch named it one of the standout startups from YC Demo Day."
+msgstr "Superset a levé un tour de table d’amorçage de 11,5 millions de dollars mené par Union Square Ventures, avec Y Combinator et Paul Graham. TechCrunch l’a cité parmi les startups les plus remarquables du YC Demo Day."
 
 msgid "Superset runs locally on your developers' machines. We don't store your code or AI conversations, and Superset has completed a SOC 2 Type II audit with an independent auditor. Request the report and review our security documentation at trust.superset.sh."
 msgstr "Superset tourne en local sur les machines de vos développeurs. Nous ne stockons ni votre code ni vos conversations avec l'IA, et Superset a passé un audit SOC 2 Type II auprès d'un auditeur indépendant. Demandez le rapport et consultez notre documentation sécurité sur trust.superset.sh."
@@ -16036,6 +16057,9 @@ msgstr "Changer de connexion"
 
 msgid "Switch sign-in…"
 msgstr "Changer de connexion…"
+
+msgid "Switch to Active Workspace"
+msgstr "Basculer vers un espace de travail actif"
 
 msgid "Switch to manual order to rearrange the sidebar"
 msgstr "Passez à l’ordre manuel pour réorganiser la barre latérale"
@@ -16494,8 +16518,8 @@ msgstr "Le démon n'a pas pu transférer vos sessions actives vers le nouveau bi
 msgid "The desktop app runs on macOS and Linux today. Drop your email and we'll let you know the moment the Windows build ships."
 msgstr "Nous préparons Superset pour Windows et Linux. Laissez votre e-mail et nous vous préviendrons dès que ce sera prêt."
 
-msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents."
-msgstr "L'application de bureau fonctionne sur macOS, avec un AppImage Linux expérimental ; Windows n'est pas encore disponible. Au-delà de l'application de bureau, il existe une CLI, un SDK TypeScript et un serveur MCP, pour piloter Superset depuis des scripts, des terminaux et d'autres agents."
+msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An iPhone app on the App Store lets you check on agents and review their diffs from your phone."
+msgstr "L'application de bureau fonctionne sur macOS, avec un AppImage Linux expérimental ; Windows n'est pas encore disponible. Au-delà de l'application de bureau, il existe une CLI, un SDK TypeScript et un serveur MCP, pour piloter Superset depuis des scripts, des terminaux et d'autres agents. Une app iPhone, disponible sur l'App Store, vous permet de suivre vos agents et de relire leurs diffs depuis votre téléphone."
 
 msgid "The device that hosts this project is unavailable."
 msgstr "L'appareil qui héberge ce projet est indisponible."

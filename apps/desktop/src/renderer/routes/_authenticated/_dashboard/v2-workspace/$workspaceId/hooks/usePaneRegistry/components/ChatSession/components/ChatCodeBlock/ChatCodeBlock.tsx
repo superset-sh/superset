@@ -87,6 +87,3 @@ export function ChatCodeBlock({ children, className }: FencedCodeProps) {
 		</div>
 	);
 }
-
-/** What a chat surface hands `ChatMarkdown` so fenced code renders through this block. */
-export const CHAT_CODE_COMPONENTS = { code: ChatCodeBlock };

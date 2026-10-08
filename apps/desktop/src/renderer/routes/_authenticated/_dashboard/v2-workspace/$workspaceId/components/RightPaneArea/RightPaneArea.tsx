@@ -33,6 +33,8 @@ interface RightPaneAreaProps {
 	workspaceControls: ReactNode;
 	isExpanded: boolean;
 	onToggleExpanded: () => void;
+	onToggleSidebar: () => void;
+	onActivate: () => void;
 	onMergeIntoCenter: () => void;
 	onAdd: (kind: RightPaneKind) => void;
 	showWindowControls: boolean;
@@ -48,6 +50,8 @@ export function RightPaneArea({
 	workspaceControls,
 	isExpanded,
 	onToggleExpanded,
+	onToggleSidebar,
+	onActivate,
 	onMergeIntoCenter,
 	onAdd,
 	showWindowControls,
@@ -55,49 +59,56 @@ export function RightPaneArea({
 	const { t } = useLingui();
 
 	return (
-		<Workspace<PaneViewerData>
-			registry={registry}
-			paneActions={paneActions}
-			contextMenuActions={contextMenuActions}
-			onPaneError={reportRendererError}
-			renderTabIcon={renderBrowserTabIcon}
-			renderTabAccessory={(tab) => (
-				<V2NotificationStatusIndicator
-					sources={getV2NotificationSourcesForTab(tab)}
-				/>
-			)}
-			renderAddTabMenu={() => <RightPaneAddMenu onAdd={onAdd} />}
-			renderTabBarTrailing={() => (
-				<div className="flex items-center gap-1 pr-1">
-					<RightPaneHeaderButton
-						label={t({ message: "Merge into center" })}
-						onClick={onMergeIntoCenter}
-					>
-						<LuArrowLeftToLine className="size-4" strokeWidth={1.5} />
-					</RightPaneHeaderButton>
-					<RightPaneHeaderButton
-						label={
-							isExpanded
-								? t({ message: "Restore width" })
-								: t({ message: "Expand" })
-						}
-						onClick={onToggleExpanded}
-					>
-						{isExpanded ? (
-							<LuMinimize2 className="size-4" strokeWidth={1.5} />
-						) : (
-							<LuMaximize2 className="size-4" strokeWidth={1.5} />
-						)}
-					</RightPaneHeaderButton>
-					{workspaceControls}
-					<RightSidebarToggle compact />
-					{showWindowControls && <WindowControlsInset />}
-				</div>
-			)}
-			renderEmptyState={() => <RightPaneEmptyState onAdd={onAdd} />}
-			onBeforeCloseTab={onBeforeCloseTab}
-			onInteractionStateChange={onInteractionStateChange}
-			store={store}
-		/>
+		<div
+			className="contents"
+			data-pane-area="right"
+			onPointerDownCapture={onActivate}
+			onFocusCapture={onActivate}
+		>
+			<Workspace<PaneViewerData>
+				registry={registry}
+				paneActions={paneActions}
+				contextMenuActions={contextMenuActions}
+				onPaneError={reportRendererError}
+				renderTabIcon={renderBrowserTabIcon}
+				renderTabAccessory={(tab) => (
+					<V2NotificationStatusIndicator
+						sources={getV2NotificationSourcesForTab(tab)}
+					/>
+				)}
+				renderAddTabMenu={() => <RightPaneAddMenu onAdd={onAdd} />}
+				renderTabBarTrailing={() => (
+					<div className="flex items-center gap-1 pr-1">
+						<RightPaneHeaderButton
+							label={t({ message: "Merge into center" })}
+							onClick={onMergeIntoCenter}
+						>
+							<LuArrowLeftToLine className="size-4" strokeWidth={1.5} />
+						</RightPaneHeaderButton>
+						<RightPaneHeaderButton
+							label={
+								isExpanded
+									? t({ message: "Restore width" })
+									: t({ message: "Expand" })
+							}
+							onClick={onToggleExpanded}
+						>
+							{isExpanded ? (
+								<LuMinimize2 className="size-4" strokeWidth={1.5} />
+							) : (
+								<LuMaximize2 className="size-4" strokeWidth={1.5} />
+							)}
+						</RightPaneHeaderButton>
+						{workspaceControls}
+						<RightSidebarToggle compact isOpen onToggle={onToggleSidebar} />
+						{showWindowControls && <WindowControlsInset />}
+					</div>
+				)}
+				renderEmptyState={() => <RightPaneEmptyState onAdd={onAdd} />}
+				onBeforeCloseTab={onBeforeCloseTab}
+				onInteractionStateChange={onInteractionStateChange}
+				store={store}
+			/>
+		</div>
 	);
 }
