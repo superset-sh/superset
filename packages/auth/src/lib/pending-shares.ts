@@ -91,3 +91,11 @@ export async function removeMemberShares({
 			),
 		);
 }
+
+/** A cancelled or declined invitation leaves nothing to convert; its shares go with it. */
+export async function removeInvitationShares(invitationId: string) {
+	await db
+		.delete(cloudWorkspaceShares)
+		.where(eq(cloudWorkspaceShares.invitationId, invitationId));
+	await db.delete(pageShares).where(eq(pageShares.invitationId, invitationId));
+}

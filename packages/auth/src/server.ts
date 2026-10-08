@@ -48,7 +48,11 @@ import { jwksAdapter } from "./lib/cached-jwks";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
 import { getActivationVariant } from "./lib/lifecycle";
 import { loadCustomSessionData } from "./lib/load-custom-session-data";
-import { convertPendingShares, removeMemberShares } from "./lib/pending-shares";
+import {
+	convertPendingShares,
+	removeInvitationShares,
+	removeMemberShares,
+} from "./lib/pending-shares";
 import { invitationRateLimit } from "./lib/rate-limit";
 import { resend } from "./lib/resend";
 import {
@@ -1091,6 +1095,24 @@ export const auth = betterAuth({
 							error,
 						);
 					}
+				},
+
+				afterCancelInvitation: async ({ invitation }) => {
+					await removeInvitationShares(invitation.id).catch((error) =>
+						console.error(
+							"[org/after-cancel-invitation] Failed to remove shares:",
+							error,
+						),
+					);
+				},
+
+				afterRejectInvitation: async ({ invitation }) => {
+					await removeInvitationShares(invitation.id).catch((error) =>
+						console.error(
+							"[org/after-reject-invitation] Failed to remove shares:",
+							error,
+						),
+					);
 				},
 			},
 		}),
