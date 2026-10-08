@@ -18,11 +18,17 @@ import {
 	useStarNagCard,
 } from "renderer/components/SidebarCardSlot";
 import { UpdatesPill } from "renderer/components/UpdatesPill";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { authClient } from "renderer/lib/auth-client";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
+import {
+	EMPTY_CLOUD_SIDEBAR,
+	useCloudSidebarStore,
+} from "renderer/routes/_authenticated/_dashboard/stores/cloudSidebarStore";
+import { isInCloudSidebar } from "renderer/routes/_authenticated/_dashboard/utils/buildCloudSidebar";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
@@ -319,6 +325,12 @@ export function DashboardSidebar({
 
 	const { data: session } = authClient.useSession();
 	const userId = session?.user?.id ?? null;
+	const organizationId = useActiveOrganizationId();
+	const cloudSidebarEntries = useCloudSidebarStore((state) =>
+		organizationId
+			? (state.byOrganization[organizationId] ?? EMPTY_CLOUD_SIDEBAR).entries
+			: EMPTY_CLOUD_SIDEBAR.entries,
+	);
 	const switcherWorkspaces = useMemo<ActiveWorkspaceSwitcherOption[]>(() => {
 		const byId = new Map<string, ActiveWorkspaceSwitcherOption>();
 		for (const workspace of pinnedWorkspaces) {
@@ -345,7 +357,8 @@ export function DashboardSidebar({
 			}
 		}
 		for (const cloud of cloudWorkspaces ?? []) {
-			if (!userId || cloud.createdBy?.userId !== userId) continue;
+			if (!isInCloudSidebar(cloud, cloudSidebarEntries[cloud.id], userId))
+				continue;
 			byId.set(cloud.id, { id: cloud.id, name: cloud.name, detail: null });
 		}
 		return [...byId.values()];
@@ -355,6 +368,7 @@ export function DashboardSidebar({
 		sortedGroups,
 		cloudWorkspaces,
 		userId,
+		cloudSidebarEntries,
 	]);
 
 	const activeV2Project = useMemo(() => {
