@@ -259,6 +259,10 @@ msgstr "{0, plural, one {#個工作區} other {#個工作區}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {#個執行中的代理程式仍在使用先前的帳戶。切換只對新啟動生效。} other {#個執行中的代理程式仍在使用先前的帳戶。切換只對新啟動生效。}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, other {提出了 # 個問題}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {評論將傳送給此代理程式} other {評論將傳送給這些代理程式}}"
@@ -462,6 +466,12 @@ msgstr "最近完整週 {0}"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "還有{0}個——請細化搜尋"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "第 {0} 個，共 {1} 個"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2296,6 +2306,9 @@ msgstr "匿名組裝工"
 
 msgid "another device"
 msgstr "另一臺裝置"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "請在桌面版回答此問題，或略過。"
 
 msgid "Answered"
 msgstr "已回答"
@@ -6651,6 +6664,9 @@ msgstr "用得還順手嗎？"
 msgid "Ensure no regression"
 msgstr "確保沒有回歸"
 
+msgid "Enter a number"
+msgstr "輸入數字"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "請輸入{hostName}上的父目錄"
 
@@ -10599,6 +10615,9 @@ msgstr "想法不錯"
 
 msgid "Nice, open a PR when ready."
 msgstr "不錯，準備好就開個PR。"
+
+msgid "No"
+msgstr "否"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -14841,6 +14860,9 @@ msgstr "選擇代理程式"
 msgid "Select All"
 msgstr "全選"
 
+msgid "Select all that apply"
+msgstr "選擇所有適用項目"
+
 msgid "Select an agent"
 msgstr "選擇代理程式"
 
@@ -15671,6 +15693,12 @@ msgstr "Superset 團隊會審核此頁面。只有在需要你補充資訊時我
 
 msgid "Something else"
 msgstr "其他問題"
+
+msgid "Something else? Add it here"
+msgstr "還有其他？在此新增"
+
+msgid "Something else? Type your own answer"
+msgstr "還有其他？輸入你自己的回答"
 
 msgid "Something went wrong"
 msgstr "出了點問題"
@@ -17930,6 +17958,9 @@ msgstr "輸入組織名稱以確認。"
 msgid "Type to search files..."
 msgstr "輸入以搜尋檔案..."
 
+msgid "Type your answer"
+msgstr "輸入你的回答"
+
 msgid "TypeScript"
 msgstr "TypeScript"
 
@@ -19211,6 +19242,9 @@ msgstr "按年"
 
 msgid "Yellow"
 msgstr "黃色"
+
+msgid "Yes"
+msgstr "是"
 
 msgid "Yes, demote me"
 msgstr "是，降低我的角色"

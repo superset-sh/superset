@@ -13,6 +13,7 @@ import { cn } from "@superset/ui/utils";
 import { ShieldQuestion, SquareTerminal } from "lucide-react";
 import { ToolContentList } from "../ToolContentList";
 import { OptionButtons } from "./components/OptionButtons";
+import { QuestionForm } from "./components/QuestionForm";
 import type { ApprovalOption } from "./utils/optionRole";
 
 const DECISION_ANSWERED = msg({
@@ -56,6 +57,9 @@ export function ApprovalRow({
 	onRespond: (approvalId: string, decision: Decision) => void;
 	target?: Item | undefined;
 }) {
+	if (item.form) {
+		return <QuestionForm form={item.form} item={item} onRespond={onRespond} />;
+	}
 	const pending = item.status === "pending";
 	const options = item.options ?? [];
 	const command =

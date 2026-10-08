@@ -259,6 +259,10 @@ msgstr "{0, plural, one {# рабочая область} few {# рабочие 
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {# работающий агент всё ещё использует прежний аккаунт — переключение действует только для новых запусков.} few {# работающих агента всё ещё используют прежний аккаунт — переключение действует только для новых запусков.} many {# работающих агентов всё ещё используют прежний аккаунт — переключение действует только для новых запусков.} other {# работающего агента всё ещё использует прежний аккаунт — переключение действует только для новых запусков.}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, one {Задан # вопрос} few {Задано # вопроса} many {Задано # вопросов} other {Задано # вопроса}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Комментарии отправляются этому агенту} few {Комментарии отправляются этим агентам} many {Комментарии отправляются этим агентам} other {Комментарии отправляются этим агентам}}"
@@ -462,6 +466,12 @@ msgstr "{0} за последнюю полную неделю"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "ещё {0} — уточните запрос"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "{0} из {1}"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2296,6 +2306,9 @@ msgstr "Анонимный сборщик"
 
 msgid "another device"
 msgstr "другое устройство"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "Ответьте на этот вопрос на компьютере или пропустите его."
 
 msgid "Answered"
 msgstr "Отвечено"
@@ -6651,6 +6664,9 @@ msgstr "Нравится Superset?"
 msgid "Ensure no regression"
 msgstr "Убедись, что нет регрессии"
 
+msgid "Enter a number"
+msgstr "Введите число"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "Введите родительскую папку на {hostName}"
 
@@ -10599,6 +10615,9 @@ msgstr "Хороший подход"
 
 msgid "Nice, open a PR when ready."
 msgstr "Отлично, открой PR, когда будет готово."
+
+msgid "No"
+msgstr "Нет"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -14841,6 +14860,9 @@ msgstr "Выбрать агента"
 msgid "Select All"
 msgstr "Выделить всё"
 
+msgid "Select all that apply"
+msgstr "Выберите все подходящие варианты"
+
 msgid "Select an agent"
 msgstr "Выберите агента"
 
@@ -15671,6 +15693,12 @@ msgstr "Команда Superset проверит эту страницу. Мы �
 
 msgid "Something else"
 msgstr "Другое"
+
+msgid "Something else? Add it here"
+msgstr "Что-то другое? Добавьте здесь"
+
+msgid "Something else? Type your own answer"
+msgstr "Что-то другое? Введите свой ответ"
 
 msgid "Something went wrong"
 msgstr "Что-то пошло не так"
@@ -17930,6 +17958,9 @@ msgstr "Введите название организации для подтв
 msgid "Type to search files..."
 msgstr "Начните вводить, чтобы найти файлы..."
 
+msgid "Type your answer"
+msgstr "Введите ответ"
+
 msgid "TypeScript"
 msgstr "TypeScript"
 
@@ -19211,6 +19242,9 @@ msgstr "Ежегодно"
 
 msgid "Yellow"
 msgstr "Жёлтый"
+
+msgid "Yes"
+msgstr "Да"
 
 msgid "Yes, demote me"
 msgstr "Да, понизить меня"

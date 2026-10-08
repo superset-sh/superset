@@ -259,6 +259,10 @@ msgstr "{0, plural, one {# werkruimte} other {# werkruimtes}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {Eén draaiende agent gebruikt nog het vorige account — de wissel geldt alleen voor nieuwe starts.} other {# draaiende agents gebruiken nog het vorige account — de wissel geldt alleen voor nieuwe starts.}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, one {# vraag gesteld} other {# vragen gesteld}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Reacties gaan naar deze agent} other {Reacties gaan naar deze agents}}"
@@ -462,6 +466,12 @@ msgstr "{0} in de laatste volledige week"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "Nog {0} — verfijn je zoekopdracht"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "{0} van {1}"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2296,6 +2306,9 @@ msgstr "Anonieme Assembleur"
 
 msgid "another device"
 msgstr "een ander apparaat"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "Beantwoord deze vraag op desktop, of sla hem over."
 
 msgid "Answered"
 msgstr "Beantwoord"
@@ -6651,6 +6664,9 @@ msgstr "Bevalt Superset?"
 msgid "Ensure no regression"
 msgstr "Zorg dat er geen regressie is"
 
+msgid "Enter a number"
+msgstr "Voer een getal in"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "Voer een bovenliggende map op {hostName} in"
 
@@ -10599,6 +10615,9 @@ msgstr "Goede aanpak"
 
 msgid "Nice, open a PR when ready."
 msgstr "Mooi, open een PR als het klaar is."
+
+msgid "No"
+msgstr "Nee"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -14841,6 +14860,9 @@ msgstr "Agent kiezen"
 msgid "Select All"
 msgstr "Alles selecteren"
 
+msgid "Select all that apply"
+msgstr "Selecteer alles wat van toepassing is"
+
 msgid "Select an agent"
 msgstr "Kies een agent"
 
@@ -15671,6 +15693,12 @@ msgstr "Iemand van het Superset-team beoordeelt deze pagina. We nemen alleen con
 
 msgid "Something else"
 msgstr "Iets anders"
+
+msgid "Something else? Add it here"
+msgstr "Iets anders? Voeg het hier toe"
+
+msgid "Something else? Type your own answer"
+msgstr "Iets anders? Typ je eigen antwoord"
 
 msgid "Something went wrong"
 msgstr "Er is iets misgegaan"
@@ -17930,6 +17958,9 @@ msgstr "Typ de naam van de organisatie om te bevestigen."
 msgid "Type to search files..."
 msgstr "Typ om bestanden te zoeken..."
 
+msgid "Type your answer"
+msgstr "Typ je antwoord"
+
 msgid "TypeScript"
 msgstr "TypeScript"
 
@@ -19211,6 +19242,9 @@ msgstr "Jaarlijks"
 
 msgid "Yellow"
 msgstr "Geel"
+
+msgid "Yes"
+msgstr "Ja"
 
 msgid "Yes, demote me"
 msgstr "Ja, degradeer mij"

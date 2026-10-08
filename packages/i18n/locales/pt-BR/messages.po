@@ -259,6 +259,10 @@ msgstr "{0, plural, one {# área de trabalho} other {# áreas de trabalho}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {Um agente em execução ainda usa a conta anterior — a troca só vale para novos lançamentos.} other {# agentes em execução ainda usam a conta anterior — a troca só vale para novos lançamentos.}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, one {Fez # pergunta} other {Fez # perguntas}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Os comentários vão para este agente} other {Os comentários vão para estes agentes}}"
@@ -462,6 +466,12 @@ msgstr "{0} na última semana completa"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "mais {0} — refine sua busca"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "{0} de {1}"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2296,6 +2306,9 @@ msgstr "Montador Anônimo"
 
 msgid "another device"
 msgstr "outro dispositivo"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "Responda esta pergunta no desktop ou pule-a."
 
 msgid "Answered"
 msgstr "Respondido"
@@ -6651,6 +6664,9 @@ msgstr "Curtindo o Superset?"
 msgid "Ensure no regression"
 msgstr "Garanta que não haja regressão"
 
+msgid "Enter a number"
+msgstr "Digite um número"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "Digite um diretório pai em {hostName}"
 
@@ -10599,6 +10615,9 @@ msgstr "Boa abordagem"
 
 msgid "Nice, open a PR when ready."
 msgstr "Boa, abre um PR quando estiver pronto."
+
+msgid "No"
+msgstr "Não"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -14841,6 +14860,9 @@ msgstr "Selecionar agente"
 msgid "Select All"
 msgstr "Selecionar tudo"
 
+msgid "Select all that apply"
+msgstr "Selecione todas as opções aplicáveis"
+
 msgid "Select an agent"
 msgstr "Selecione um agente"
 
@@ -15671,6 +15693,12 @@ msgstr "Alguém da equipe Superset vai analisar esta página. Só entraremos em 
 
 msgid "Something else"
 msgstr "Outra coisa"
+
+msgid "Something else? Add it here"
+msgstr "Algo mais? Adicione aqui"
+
+msgid "Something else? Type your own answer"
+msgstr "Algo mais? Digite sua própria resposta"
 
 msgid "Something went wrong"
 msgstr "Algo deu errado"
@@ -17930,6 +17958,9 @@ msgstr "Digite o nome da organização para confirmar."
 msgid "Type to search files..."
 msgstr "Digite para buscar arquivos..."
 
+msgid "Type your answer"
+msgstr "Digite sua resposta"
+
 msgid "TypeScript"
 msgstr "TypeScript"
 
@@ -19211,6 +19242,9 @@ msgstr "Anual"
 
 msgid "Yellow"
 msgstr "Amarelo"
+
+msgid "Yes"
+msgstr "Sim"
 
 msgid "Yes, demote me"
 msgstr "Sim, rebaixar"

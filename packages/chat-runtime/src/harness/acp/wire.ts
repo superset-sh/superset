@@ -287,3 +287,40 @@ export const acpRequestPermissionParamsSchema = z.looseObject({
 export type AcpRequestPermissionParams = z.infer<
 	typeof acpRequestPermissionParamsSchema
 >;
+
+const acpEnumOptionSchema = z.looseObject({
+	const: z.string(),
+	title: z.string().optional(),
+	description: z.string().optional(),
+});
+
+export const acpElicitationPropertySchema = z.looseObject({
+	type: z.string().optional(),
+	title: z.string().optional(),
+	description: z.string().optional(),
+	enum: z.array(z.string()).optional(),
+	enumNames: z.array(z.string()).optional(),
+	oneOf: z.array(acpEnumOptionSchema).optional(),
+	items: z
+		.looseObject({
+			enum: z.array(z.string()).optional(),
+			anyOf: z.array(acpEnumOptionSchema).optional(),
+		})
+		.optional(),
+});
+export type AcpElicitationProperty = z.infer<
+	typeof acpElicitationPropertySchema
+>;
+
+export const acpCreateElicitationParamsSchema = z.looseObject({
+	sessionId: z.string().min(1).optional(),
+	mode: z.string().optional(),
+	message: z.string(),
+	toolCallId: z.string().min(1).optional(),
+	requestedSchema: z
+		.looseObject({
+			properties: z.record(z.string(), acpElicitationPropertySchema).optional(),
+			required: z.array(z.string()).optional(),
+		})
+		.optional(),
+});

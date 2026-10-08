@@ -259,6 +259,10 @@ msgstr "{0, plural, one {워크스페이스 #개} other {워크스페이스 #개
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {실행 중인 에이전트 #개가 아직 이전 계정을 사용하고 있습니다. 전환은 새 실행에만 적용됩니다.} other {실행 중인 에이전트 #개가 아직 이전 계정을 사용하고 있습니다. 전환은 새 실행에만 적용됩니다.}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, other {질문 #개를 했습니다}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {댓글은 이 에이전트에게 전달됩니다} other {댓글은 이 에이전트들에게 전달됩니다}}"
@@ -462,6 +466,12 @@ msgstr "최근 완전한 주 {0}"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "{0}개 더 있습니다 — 검색어를 좁혀 보세요"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "{0} / {1}"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2296,6 +2306,9 @@ msgstr "익명의 조립공"
 
 msgid "another device"
 msgstr "다른 기기"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "이 질문은 데스크톱에서 답하거나 건너뛰세요."
 
 msgid "Answered"
 msgstr "응답함"
@@ -6651,6 +6664,9 @@ msgstr "Superset이 마음에 드시나요?"
 msgid "Ensure no regression"
 msgstr "회귀가 없는지 확인해 주세요"
 
+msgid "Enter a number"
+msgstr "숫자 입력"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "{hostName}의 상위 디렉터리를 입력하세요"
 
@@ -10599,6 +10615,9 @@ msgstr "좋은 접근"
 
 msgid "Nice, open a PR when ready."
 msgstr "좋아요, 준비되면 PR을 올려 주세요."
+
+msgid "No"
+msgstr "아니요"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -14841,6 +14860,9 @@ msgstr "에이전트 선택"
 msgid "Select All"
 msgstr "모두 선택"
 
+msgid "Select all that apply"
+msgstr "해당하는 항목을 모두 선택하세요"
+
 msgid "Select an agent"
 msgstr "에이전트 선택"
 
@@ -15671,6 +15693,12 @@ msgstr "Superset 팀이 이 페이지를 검토합니다. 추가 정보가 필�
 
 msgid "Something else"
 msgstr "기타"
+
+msgid "Something else? Add it here"
+msgstr "다른 답이 있나요? 여기에 추가하세요"
+
+msgid "Something else? Type your own answer"
+msgstr "다른 답이 있나요? 직접 입력하세요"
 
 msgid "Something went wrong"
 msgstr "문제가 발생했습니다"
@@ -17930,6 +17958,9 @@ msgstr "확인하려면 조직 이름을 입력하세요."
 msgid "Type to search files..."
 msgstr "입력해서 파일 검색..."
 
+msgid "Type your answer"
+msgstr "답변 입력"
+
 msgid "TypeScript"
 msgstr "TypeScript"
 
@@ -19211,6 +19242,9 @@ msgstr "연간"
 
 msgid "Yellow"
 msgstr "노랑"
+
+msgid "Yes"
+msgstr "예"
 
 msgid "Yes, demote me"
 msgstr "네, 강등하겠습니다"

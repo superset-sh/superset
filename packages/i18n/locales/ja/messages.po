@@ -259,6 +259,10 @@ msgstr "{0, plural, one {#件のワークスペース} other {#件のワーク�
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {実行中の#件のエージェントはまだ以前のアカウントを使用しています。切り替えが適用されるのは新規起動のみです。} other {実行中の#件のエージェントはまだ以前のアカウントを使用しています。切り替えが適用されるのは新規起動のみです。}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, other {# 件の質問をしました}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {コメントはこのエージェントに送られます} other {コメントはこれらのエージェントに送られます}}"
@@ -462,6 +466,12 @@ msgstr "直近の完全な週 {0}"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "他{0}件 — 検索条件を絞ってください"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "{0} / {1}"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2296,6 +2306,9 @@ msgstr "匿名の組立工"
 
 msgid "another device"
 msgstr "別のデバイス"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "この質問はデスクトップで回答するか、スキップしてください。"
 
 msgid "Answered"
 msgstr "回答済み"
@@ -6651,6 +6664,9 @@ msgstr "Supersetを気に入っていただけましたか?"
 msgid "Ensure no regression"
 msgstr "デグレがないことを確認して"
 
+msgid "Enter a number"
+msgstr "数値を入力"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "{hostName}の親ディレクトリを入力してください"
 
@@ -10599,6 +10615,9 @@ msgstr "良いアプローチ"
 
 msgid "Nice, open a PR when ready."
 msgstr "いいですね。準備ができたらPRを作成してください。"
+
+msgid "No"
+msgstr "いいえ"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -14841,6 +14860,9 @@ msgstr "エージェントを選択"
 msgid "Select All"
 msgstr "すべて選択"
 
+msgid "Select all that apply"
+msgstr "当てはまるものをすべて選択"
+
 msgid "Select an agent"
 msgstr "エージェントを選択"
 
@@ -15671,6 +15693,12 @@ msgstr "Superset チームがこのページを確認します。追加の情報
 
 msgid "Something else"
 msgstr "その他"
+
+msgid "Something else? Add it here"
+msgstr "ほかにありますか？ここに追加"
+
+msgid "Something else? Type your own answer"
+msgstr "ほかの回答がありますか？自由に入力"
 
 msgid "Something went wrong"
 msgstr "問題が発生しました"
@@ -17930,6 +17958,9 @@ msgstr "確認のため組織名を入力してください。"
 msgid "Type to search files..."
 msgstr "入力してファイルを検索..."
 
+msgid "Type your answer"
+msgstr "回答を入力"
+
 msgid "TypeScript"
 msgstr "TypeScript"
 
@@ -19211,6 +19242,9 @@ msgstr "年払い"
 
 msgid "Yellow"
 msgstr "黄"
+
+msgid "Yes"
+msgstr "はい"
 
 msgid "Yes, demote me"
 msgstr "はい、降格します"
