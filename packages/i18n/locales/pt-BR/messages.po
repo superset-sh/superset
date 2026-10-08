@@ -2873,6 +2873,9 @@ msgstr "Com base em {0} tokens nos últimos 30 dias, contando {1}."
 msgid "Become a design partner"
 msgstr "Torne-se um parceiro de desenvolvimento"
 
+msgid "Become a design partner."
+msgstr "Torne-se um parceiro de design."
+
 msgid "Before"
 msgstr "Antes"
 
@@ -6731,6 +6734,9 @@ msgstr "Explique como este repositório funciona…"
 msgid "Explain to me how this repository works"
 msgstr "Explique como este repositório funciona"
 
+msgid "Explore Pages"
+msgstr "Explorar Páginas"
+
 msgid "Explored"
 msgstr "Explorado"
 
@@ -10184,6 +10190,9 @@ msgstr "Nunca"
 msgid "Never asks before acting"
 msgstr "Nunca pergunta antes de agir"
 
+msgid "New"
+msgstr "Novo"
+
 msgctxt "badge on a page published since the menu was last opened"
 msgid "New"
 msgstr "Nova"
@@ -11792,9 +11801,6 @@ msgstr "Ou peça ao seu agente de código para instalar a CLI do Superset."
 
 msgid "Orange"
 msgstr "Laranja"
-
-msgid "Orchestrate any coding agent."
-msgstr "Orquestre qualquer agente de código."
 
 msgid "Orchestrate Parallel Agents"
 msgstr "Orquestrar agentes em paralelo"
@@ -14430,6 +14436,9 @@ msgstr "Veja como o Superset se compara a outras ferramentas"
 msgid "See how we work"
 msgstr "Veja como trabalhamos"
 
+msgid "See how your agent usage compares."
+msgstr "Compare seu uso de agentes."
+
 msgid "See how your agent usage compares. Explore the models behind each profile."
 msgstr "Compare seu uso de agentes com o de outros desenvolvedores. Explore os modelos de cada perfil."
 
@@ -16793,6 +16802,9 @@ msgstr "Theme Preview Card"
 
 msgid "Themes"
 msgstr "Temas"
+
+msgid "Themes and agents for Superset."
+msgstr "Temas e agentes para o Superset."
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "Esses comandos rodam automaticamente quando uma área de trabalho é criada. <0>Leia a documentação<1/></0>"

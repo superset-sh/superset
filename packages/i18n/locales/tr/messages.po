@@ -2873,6 +2873,9 @@ msgstr "Son 30 gündeki {0} token temel alınmıştır; {1} sayılıyor."
 msgid "Become a design partner"
 msgstr "Geliştirme ortağı olun"
 
+msgid "Become a design partner."
+msgstr "Tasarım ortağı olun."
+
 msgid "Before"
 msgstr "Önce"
 
@@ -6731,6 +6734,9 @@ msgstr "Bu deponun nasıl çalıştığını açıkla…"
 msgid "Explain to me how this repository works"
 msgstr "Bu deponun nasıl çalıştığını anlat"
 
+msgid "Explore Pages"
+msgstr "Sayfaları keşfet"
+
 msgid "Explored"
 msgstr "İncelendi"
 
@@ -10184,6 +10190,9 @@ msgstr "Hiç"
 msgid "Never asks before acting"
 msgstr "Hiç sormadan çalışır"
 
+msgid "New"
+msgstr "Yeni"
+
 msgctxt "badge on a page published since the menu was last opened"
 msgid "New"
 msgstr "Yeni"
@@ -11792,9 +11801,6 @@ msgstr "Ya da kodlama ajanınızdan Superset CLI'yi kurmasını isteyin."
 
 msgid "Orange"
 msgstr "Turuncu"
-
-msgid "Orchestrate any coding agent."
-msgstr "Her kodlama ajanını orkestre edin."
 
 msgid "Orchestrate Parallel Agents"
 msgstr "Paralel ajanları orkestre edin"
@@ -14430,6 +14436,9 @@ msgstr "Superset'in diğer araçlarla karşılaştırmasına bakın"
 msgid "See how we work"
 msgstr "Nasıl çalıştığımızı görün"
 
+msgid "See how your agent usage compares."
+msgstr "Ajan kullanımınızı karşılaştırın."
+
 msgid "See how your agent usage compares. Explore the models behind each profile."
 msgstr "Ajan kullanımınızı diğerleriyle karşılaştırın. Her profilde kullanılan modelleri keşfedin."
 
@@ -16793,6 +16802,9 @@ msgstr "Tema önizleme kartı"
 
 msgid "Themes"
 msgstr "Temalar"
+
+msgid "Themes and agents for Superset."
+msgstr "Superset için temalar ve ajanlar."
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "Bu komutlar bir çalışma alanı oluşturulduğunda otomatik olarak çalışır. <0>Belgelerimizi okuyun<1/></0>"

@@ -2873,6 +2873,9 @@ msgstr "На основе {0} токенов за последние 30 дней
 msgid "Become a design partner"
 msgstr "Стать партнёром по разработке"
 
+msgid "Become a design partner."
+msgstr "Станьте дизайн-партнёром."
+
 msgid "Before"
 msgstr "До"
 
@@ -6731,6 +6734,9 @@ msgstr "Объясни, как устроен этот репозиторий…
 msgid "Explain to me how this repository works"
 msgstr "Объясни, как устроен этот репозиторий"
 
+msgid "Explore Pages"
+msgstr "Открыть Страницы"
+
 msgid "Explored"
 msgstr "Изучено"
 
@@ -10184,6 +10190,9 @@ msgstr "Никогда"
 msgid "Never asks before acting"
 msgstr "Никогда не спрашивает"
 
+msgid "New"
+msgstr "Новое"
+
 msgctxt "badge on a page published since the menu was last opened"
 msgid "New"
 msgstr "Новая"
@@ -11792,9 +11801,6 @@ msgstr "Или попросите своего кодового агента у�
 
 msgid "Orange"
 msgstr "Оранжевый"
-
-msgid "Orchestrate any coding agent."
-msgstr "Оркестрируйте любого кодового агента."
 
 msgid "Orchestrate Parallel Agents"
 msgstr "Оркестрируйте параллельных агентов"
@@ -14430,6 +14436,9 @@ msgstr "Посмотреть, как Superset сравнивается с дру
 msgid "See how we work"
 msgstr "Посмотрите, как мы работаем"
 
+msgid "See how your agent usage compares."
+msgstr "Сравните, как вы используете агентов."
+
 msgid "See how your agent usage compares. Explore the models behind each profile."
 msgstr "Сравните своё использование агентов с другими. Узнайте, какие модели используются в каждом профиле."
 
@@ -16793,6 +16802,9 @@ msgstr "Карточка предпросмотра темы"
 
 msgid "Themes"
 msgstr "Темы"
+
+msgid "Themes and agents for Superset."
+msgstr "Темы и агенты для Superset."
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "Эти команды выполняются автоматически при создании рабочей области. <0>Читать документацию<1/></0>"

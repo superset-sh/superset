@@ -2873,6 +2873,9 @@ msgstr "基于最近30天的{0}个token，统计{1}。"
 msgid "Become a design partner"
 msgstr "成为共创伙伴"
 
+msgid "Become a design partner."
+msgstr "成为设计合作伙伴。"
+
 msgid "Before"
 msgstr "变更前"
 
@@ -6731,6 +6734,9 @@ msgstr "讲讲这个仓库是怎么运作的…"
 msgid "Explain to me how this repository works"
 msgstr "讲讲这个仓库是怎么运作的"
 
+msgid "Explore Pages"
+msgstr "了解页面"
+
 msgid "Explored"
 msgstr "已探索"
 
@@ -10184,6 +10190,9 @@ msgstr "从未"
 msgid "Never asks before acting"
 msgstr "执行前从不询问"
 
+msgid "New"
+msgstr "新功能"
+
 msgctxt "badge on a page published since the menu was last opened"
 msgid "New"
 msgstr "新"
@@ -11792,9 +11801,6 @@ msgstr "或者让你的编码智能体安装Superset CLI。"
 
 msgid "Orange"
 msgstr "橙色"
-
-msgid "Orchestrate any coding agent."
-msgstr "编排任意编码智能体。"
 
 msgid "Orchestrate Parallel Agents"
 msgstr "编排并行智能体"
@@ -14430,6 +14436,9 @@ msgstr "看看Superset与其他工具的对比"
 msgid "See how we work"
 msgstr "看看我们如何工作"
 
+msgid "See how your agent usage compares."
+msgstr "看看你的智能体使用情况排名。"
+
 msgid "See how your agent usage compares. Explore the models behind each profile."
 msgstr "比较你与其他开发者的智能体用量，了解每个个人主页使用的模型。"
 
@@ -16793,6 +16802,9 @@ msgstr "主题预览卡片"
 
 msgid "Themes"
 msgstr "主题"
+
+msgid "Themes and agents for Superset."
+msgstr "Superset 的主题和智能体。"
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "创建工作区时会自动运行这些命令。<0>阅读文档<1/></0>"

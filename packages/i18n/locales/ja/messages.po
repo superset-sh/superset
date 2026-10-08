@@ -2873,6 +2873,9 @@ msgstr "過去30日間の{0}トークンに基づく({1}を集計)。"
 msgid "Become a design partner"
 msgstr "共同開発パートナーになる"
 
+msgid "Become a design partner."
+msgstr "デザインパートナーになる。"
+
 msgid "Before"
 msgstr "変更前"
 
@@ -6731,6 +6734,9 @@ msgstr "このリポジトリの仕組みを説明…"
 msgid "Explain to me how this repository works"
 msgstr "このリポジトリの仕組みを教えて"
 
+msgid "Explore Pages"
+msgstr "ページを見る"
+
 msgid "Explored"
 msgstr "探索済み"
 
@@ -10184,6 +10190,9 @@ msgstr "未使用"
 msgid "Never asks before acting"
 msgstr "確認なしで実行"
 
+msgid "New"
+msgstr "新着"
+
 msgctxt "badge on a page published since the menu was last opened"
 msgid "New"
 msgstr "新着"
@@ -11792,9 +11801,6 @@ msgstr "または、お使いのコーディングエージェントにSuperset 
 
 msgid "Orange"
 msgstr "オレンジ"
-
-msgid "Orchestrate any coding agent."
-msgstr "あらゆるコーディングエージェントを指揮する。"
 
 msgid "Orchestrate Parallel Agents"
 msgstr "並列エージェントを指揮"
@@ -14430,6 +14436,9 @@ msgstr "Supersetと他ツールの比較を見る"
 msgid "See how we work"
 msgstr "私たちの働き方を見る"
 
+msgid "See how your agent usage compares."
+msgstr "エージェントの使用状況を比較できます。"
+
 msgid "See how your agent usage compares. Explore the models behind each profile."
 msgstr "エージェントの使用量を他の開発者と比較できます。各プロフィールで使われているモデルを確認しましょう。"
 
@@ -16793,6 +16802,9 @@ msgstr "Theme Preview Card"
 
 msgid "Themes"
 msgstr "テーマ"
+
+msgid "Themes and agents for Superset."
+msgstr "Superset のテーマとエージェント。"
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "これらのコマンドはワークスペース作成時に自動的に実行されます。<0>ドキュメントを読む<1/></0>"

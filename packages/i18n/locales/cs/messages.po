@@ -2873,6 +2873,9 @@ msgstr "Na základě {0} tokenů za posledních 30 dní, počítáno z {1}."
 msgid "Become a design partner"
 msgstr "Staňte se partnerem pro vývoj"
 
+msgid "Become a design partner."
+msgstr "Staňte se designovým partnerem."
+
 msgid "Before"
 msgstr "Před"
 
@@ -6731,6 +6734,9 @@ msgstr "Vysvětli, jak tento repozitář funguje…"
 msgid "Explain to me how this repository works"
 msgstr "Vysvětlit mi, jak tento repozitář funguje"
 
+msgid "Explore Pages"
+msgstr "Prozkoumat Stránky"
+
 msgid "Explored"
 msgstr "Prozkoumáno"
 
@@ -10184,6 +10190,9 @@ msgstr "Nikdy"
 msgid "Never asks before acting"
 msgstr "Nikdy se neptá"
 
+msgid "New"
+msgstr "Novinka"
+
 msgctxt "badge on a page published since the menu was last opened"
 msgid "New"
 msgstr "Nové"
@@ -11792,9 +11801,6 @@ msgstr "Nebo požádejte svého kódovacího agenta, ať nainstaluje Superset CL
 
 msgid "Orange"
 msgstr "Oranžová"
-
-msgid "Orchestrate any coding agent."
-msgstr "Řiďte libovolného kódovacího agenta."
 
 msgid "Orchestrate Parallel Agents"
 msgstr "Řiďte paralelní agenty"
@@ -14430,6 +14436,9 @@ msgstr "Podívejte se, jak si Superset stojí vedle jiných nástrojů"
 msgid "See how we work"
 msgstr "Podívejte se, jak pracujeme"
 
+msgid "See how your agent usage compares."
+msgstr "Porovnejte své využití agentů."
+
 msgid "See how your agent usage compares. Explore the models behind each profile."
 msgstr "Podívejte se, jak si stojí vaše využití agentů. Prozkoumejte modely u jednotlivých profilů."
 
@@ -16793,6 +16802,9 @@ msgstr "Karta náhledu motivu"
 
 msgid "Themes"
 msgstr "Motivy"
+
+msgid "Themes and agents for Superset."
+msgstr "Motivy a agenti pro Superset."
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "Tyto příkazy se spustí automaticky při vytvoření pracovního prostoru. <0>Přečtěte si dokumentaci<1/></0>"
