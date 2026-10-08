@@ -1,9 +1,4 @@
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
-
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
-
-const { afterAll, describe, expect, it } = await import("bun:test");
+const { describe, expect, it } = await import("bun:test");
 const { Editor } = await import("@tiptap/core");
 const { tierFor } = await import("renderer/lib/clickPolicy/tiers");
 const { createMarkdownExtensions } = await import("./createMarkdownExtensions");
@@ -11,10 +6,6 @@ const { resolveLinkClick } = await import("./resolveLinkClick");
 
 type LinkTierMap = import("renderer/lib/clickPolicy").LinkTierMap;
 type ModifierEvent = import("renderer/lib/clickPolicy").ModifierEvent;
-
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
 
 const DEFAULT_URL_LINKS: LinkTierMap = {
 	plain: null,

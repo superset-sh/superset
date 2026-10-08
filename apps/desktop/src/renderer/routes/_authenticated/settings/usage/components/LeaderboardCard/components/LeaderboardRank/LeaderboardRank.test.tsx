@@ -1,13 +1,8 @@
-import { afterAll, afterEach, describe, expect, mock, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, describe, expect, mock, test } from "bun:test";
 // The marketing origin is env-derived: a developer's local .env repoints it at
 // a dev server, so assert the links the component builds, not a literal host.
 import { COMPANY } from "@superset/shared/constants";
 
-// happy-dom is process-wide; unregister in afterAll so the shared mock
-// document is restored for the other renderer suites.
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
@@ -17,10 +12,6 @@ const React = await import("react");
 const { LeaderboardRank } = await import("./LeaderboardRank");
 
 afterEach(cleanup);
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
-
 function membership(tokens: number | string) {
 	return {
 		handle: "kiet",

@@ -1,28 +1,36 @@
-import { afterAll, expect, mock, test } from "bun:test";
+import { afterEach, beforeEach, expect, mock, spyOn, test } from "bun:test";
 import type { FileTree, FileTreeDropResult } from "@pierre/trees";
+import type { AppRouter } from "@superset/host-service/trpc";
+import { toast } from "@superset/ui/sonner";
+import { workspaceTrpc } from "@superset/workspace-client";
+import { QueryClient } from "@tanstack/react-query";
+import { TRPCClientError, type TRPCLink } from "@trpc/client";
+import { observable } from "@trpc/server/observable";
 import { renderToStaticMarkup } from "react-dom/server";
 import { FileMoveContext } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/state/fileDocumentStore/fileMoveContext";
 import type { FilesTabBridge } from "../useFilesTabBridge";
+import { useFilesTabActions } from "./useFilesTabActions";
 
 let persist: (input: unknown) => Promise<unknown> = async () => undefined;
-const showError = mock(() => {});
-mock.module("@superset/workspace-client", () => ({
-	workspaceTrpc: {
-		filesystem: new Proxy(
-			{},
-			{
-				get: () => ({
-					useMutation: () => ({
-						mutateAsync: (input: unknown) => persist(input),
-					}),
-				}),
+let showError: ReturnType<typeof spyOn<typeof toast, "error">>;
+
+const hostLink: TRPCLink<AppRouter> = () => (call) =>
+	observable((observer) => {
+		persist(call.op.input).then(
+			(data) => {
+				observer.next({ result: { data } });
+				observer.complete();
 			},
-		),
-	},
-}));
-mock.module("@superset/ui/sonner", () => ({ toast: { error: showError } }));
-const { useFilesTabActions } = await import("./useFilesTabActions");
-afterAll(() => mock.restore());
+			(error: Error) => observer.error(TRPCClientError.from(error)),
+		);
+	});
+
+beforeEach(() => {
+	showError = spyOn(toast, "error").mockImplementation(() => "");
+});
+afterEach(() => {
+	showError.mockRestore();
+});
 
 function setup(paths: string[]) {
 	let current = true;
@@ -45,9 +53,14 @@ function setup(paths: string[]) {
 		return null;
 	}
 	renderToStaticMarkup(
-		<FileMoveContext.Provider value={onFileMove}>
-			<Probe />
-		</FileMoveContext.Provider>,
+		<workspaceTrpc.Provider
+			client={workspaceTrpc.createClient({ links: [hostLink] })}
+			queryClient={new QueryClient()}
+		>
+			<FileMoveContext.Provider value={onFileMove}>
+				<Probe />
+			</FileMoveContext.Provider>
+		</workspaceTrpc.Provider>,
 	);
 	return {
 		actions,

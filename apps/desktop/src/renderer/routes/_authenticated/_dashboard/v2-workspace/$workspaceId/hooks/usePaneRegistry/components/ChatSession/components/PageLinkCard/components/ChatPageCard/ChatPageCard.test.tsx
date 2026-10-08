@@ -1,9 +1,6 @@
-import { afterAll, afterEach, describe, expect, mock, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, describe, expect, mock, test } from "bun:test";
 import type { ChatPageCardPage } from "./ChatPageCard";
 
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
@@ -12,10 +9,6 @@ const { cleanup, fireEvent, render } = await import("@testing-library/react");
 const { ChatPageCard } = await import("./ChatPageCard");
 
 afterEach(cleanup);
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
-
 const THUMBNAIL = "https://frame.usercontent.test/thumbnail/page-1/3?t=ticket";
 
 const page: ChatPageCardPage = {

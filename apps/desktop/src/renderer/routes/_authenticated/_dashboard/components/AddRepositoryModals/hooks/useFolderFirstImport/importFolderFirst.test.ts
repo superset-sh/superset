@@ -1,26 +1,17 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
-import * as reactActual from "react";
-// Static imports so the real modules are captured before the mocks below
-// replace them.
-import * as hostServiceClientActual from "renderer/lib/host-service-client";
-import * as projectsActual from "renderer/react-query/projects";
-import * as localHostServiceActual from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import * as gitInitConfirmActual from "renderer/stores/git-init-confirm";
+import {
+	type FolderImportClient,
+	type ImportFolderFirstDeps,
+	importFolderFirst,
+} from "./importFolderFirst";
 
 const hostUrl = "http://host-service";
 const repoPath = "/repos/octocat";
-const setupResult = {
-	repoPath,
-};
 const cloudError = {
 	url: "https://github.com/octocat/hello.git",
 	message: "cloud-down",
 };
 
-const selectDirectoryMock = mock(async () => ({
-	canceled: false,
-	path: repoPath,
-}));
 const findByPathMock = mock(
 	async (): Promise<{
 		candidates: { id: string; name: string }[];
@@ -31,74 +22,44 @@ const findByPathMock = mock(
 		cloudErrors: [],
 	}),
 );
-const setupMock = mock(async () => setupResult);
+const setupMock = mock(async () => ({ repoPath }));
 const createMock = mock(async () => ({
 	projectId: "created-project",
 	repoPath,
 }));
 const finalizeSetupMock = mock(() => undefined);
 const requestGitInitMock = mock(async () => false);
+const clientUrls: string[] = [];
 
-// Spread the real module for the same reason the store mock below does: bun's
-// mock.module is process-global and permanent, so dropping an export here
-// deletes it for every test file that runs after this one. `useCallback` is
-// identity so the hook can be exercised outside a render.
-mock.module("react", () => ({
-	...reactActual,
-	useCallback: <T extends (...args: never[]) => unknown>(callback: T) =>
-		callback,
-}));
-
-mock.module("renderer/lib/electron-trpc", () => ({
-	electronTrpc: {
-		window: {
-			selectDirectory: {
-				useMutation: () => ({ mutateAsync: selectDirectoryMock }),
-			},
+function startImport(overrides: Partial<ImportFolderFirstDeps> = {}) {
+	return importFolderFirst({
+		pickDirectory: async () => ({ canceled: false, path: repoPath }),
+		waitForHostReady: async () => hostUrl,
+		getClient: (url) => {
+			clientUrls.push(url);
+			return {
+				project: {
+					findByPath: { query: findByPathMock },
+					setup: { mutate: setupMock },
+					create: { mutate: createMock },
+				},
+			} as unknown as FolderImportClient;
 		},
-	},
-}));
-
-mock.module("renderer/lib/host-service-client", () => ({
-	...hostServiceClientActual,
-	getHostServiceClientByUrl: () => ({
-		project: {
-			findByPath: { query: findByPathMock },
-			setup: { mutate: setupMock },
-			create: { mutate: createMock },
+		requestGitInit: requestGitInitMock,
+		finalizeSetup: finalizeSetupMock,
+		messages: {
+			hostUnavailable: () => "host unavailable",
+			cloudUnreachable: (first) =>
+				`Couldn't reach cloud for ${first.url}: ${first.message}`,
+			multipleProjects: (candidates) => `multiple: ${candidates.length}`,
 		},
-	}),
-}));
+		...overrides,
+	});
+}
 
-mock.module("renderer/react-query/projects", () => ({
-	...projectsActual,
-	useFinalizeProjectSetup: () => finalizeSetupMock,
-}));
-
-mock.module(
-	"renderer/routes/_authenticated/providers/LocalHostServiceProvider",
-	() => ({
-		...localHostServiceActual,
-		useLocalHostService: () => ({
-			activeHostUrl: hostUrl,
-			waitForHostReady: async () => hostUrl,
-		}),
-	}),
-);
-
-// Spread the real module — bun's mock.module is process-global, and a partial
-// mock would break other test files importing the real store.
-mock.module("renderer/stores/git-init-confirm", () => ({
-	...gitInitConfirmActual,
-	useRequestGitInitConfirm: () => requestGitInitMock,
-}));
-
-const { useFolderFirstImport } = await import("./useFolderFirstImport");
-
-describe("useFolderFirstImport", () => {
+describe("importFolderFirst", () => {
 	beforeEach(() => {
 		for (const fn of [
-			selectDirectoryMock,
 			findByPathMock,
 			setupMock,
 			createMock,
@@ -107,6 +68,7 @@ describe("useFolderFirstImport", () => {
 		]) {
 			fn.mockClear();
 		}
+		clientUrls.length = 0;
 		findByPathMock.mockResolvedValue({ candidates: [], cloudErrors: [] });
 		requestGitInitMock.mockResolvedValue(false);
 	});
@@ -118,9 +80,10 @@ describe("useFolderFirstImport", () => {
 		});
 		const onError = mock(() => undefined);
 
-		const result = await useFolderFirstImport({ onError }).start();
+		const result = await startImport({ onError });
 
 		expect(result).toBeNull();
+		expect(clientUrls).toEqual([hostUrl]);
 		expect(findByPathMock).toHaveBeenCalledWith({ repoPath });
 		expect(onError).toHaveBeenCalledWith(
 			"Couldn't reach cloud for https://github.com/octocat/hello.git: cloud-down",
@@ -139,7 +102,7 @@ describe("useFolderFirstImport", () => {
 		requestGitInitMock.mockResolvedValue(true);
 		const onError = mock(() => undefined);
 
-		const result = await useFolderFirstImport({ onError }).start();
+		const result = await startImport({ onError });
 
 		expect(requestGitInitMock).toHaveBeenCalledWith(repoPath);
 		expect(createMock).toHaveBeenCalledWith({
@@ -166,7 +129,7 @@ describe("useFolderFirstImport", () => {
 		requestGitInitMock.mockResolvedValue(false);
 		const onError = mock(() => undefined);
 
-		const result = await useFolderFirstImport({ onError }).start();
+		const result = await startImport({ onError });
 
 		expect(result).toBeNull();
 		expect(requestGitInitMock).toHaveBeenCalledWith(repoPath);

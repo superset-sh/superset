@@ -1,39 +1,34 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
-import { initI18n } from "@superset/i18n";
-
-// Alert copy now renders through i18n._; activate the default locale so the
-// descriptors fall back to their English messages.
-initI18n();
+import { killPortTarget } from "./killPortTarget";
 
 const remoteKillMock = mock(async () => ({ success: true }));
-
-mock.module("renderer/lib/host-service-client", () => ({
-	getHostServiceClientByUrl: () => ({
-		ports: {
-			kill: {
-				mutate: remoteKillMock,
-			},
-		},
-	}),
-}));
-
-const { killPortTarget } = await import("./killPortTarget");
+const remoteClientUrls: string[] = [];
+const getRemoteClient = (hostUrl: string) => {
+	remoteClientUrls.push(hostUrl);
+	return { ports: { kill: { mutate: remoteKillMock } } };
+};
 
 describe("killPortTarget", () => {
 	beforeEach(() => {
 		remoteKillMock.mockClear();
+		remoteClientUrls.length = 0;
 		remoteKillMock.mockResolvedValue({ success: true });
 	});
 
 	it("routes host-owned ports through the host-service client", async () => {
-		const result = await killPortTarget({
-			workspaceId: "workspace-1",
-			terminalId: "terminal-1",
-			port: 5173,
-			hostUrl: "http://host-service",
-		});
+		const result = await killPortTarget(
+			{
+				workspaceId: "workspace-1",
+				terminalId: "terminal-1",
+				port: 5173,
+				hostUrl: "http://host-service",
+			},
+			undefined,
+			getRemoteClient,
+		);
 
 		expect(result).toEqual({ success: true });
+		expect(remoteClientUrls).toEqual(["http://host-service"]);
 		expect(remoteKillMock).toHaveBeenCalledWith({
 			workspaceId: "workspace-1",
 			terminalId: "terminal-1",

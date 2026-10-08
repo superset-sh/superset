@@ -1,18 +1,11 @@
-import { afterAll, afterEach, beforeEach, expect, spyOn, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, beforeEach, expect, spyOn, test } from "bun:test";
 
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 const { act, cleanup, renderHook } = await import("@testing-library/react");
 const { prependToDraft, takeRecoveredDraftText, useComposerDraft } =
 	await import("./useComposerDraft");
 
 beforeEach(() => window.localStorage.clear());
 afterEach(cleanup);
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
-
 test("a composer mounted before the save delay reads text typed into the one it replaces", () => {
 	const connecting = renderHook(() =>
 		useComposerDraft("chat-v3-draft:handoff"),

@@ -1,6 +1,7 @@
 import {
 	afterAll,
 	afterEach,
+	beforeAll,
 	beforeEach,
 	describe,
 	expect,
@@ -13,8 +14,10 @@ import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import path from "node:path";
+import log from "electron-log/main";
+import { HostServiceCoordinator } from "./host-service-coordinator";
+import { HOST_SERVICE_RESPAWN_MAX_ATTEMPTS } from "./host-service-respawn";
 
-const APP_VERSION = "1.2.3";
 let killedPids: Array<{ pid: number; signal: NodeJS.Signals | number }> = [];
 let killProcessError: NodeJS.ErrnoException | null = null;
 
@@ -44,84 +47,40 @@ const killProcessMock = mock((pid: number, signal: NodeJS.Signals | number) => {
 	killedPids.push({ pid, signal });
 });
 
-const realHostServiceManifest = await import("./host-service-manifest");
-mock.module("./host-service-manifest", () => ({
-	...realHostServiceManifest,
-	readManifest: readManifestMock,
-	removeManifest: removeManifestMock,
-	isProcessAlive: isProcessAliveMock,
-	killProcess: killProcessMock,
-	manifestDir: (orgId: string) => path.join(testManifestRoot, orgId),
-}));
-
 const pollHealthCheckMock = mock(() => Promise.resolve(true));
-
-const realHostServiceUtils = await import("./host-service-utils");
-mock.module("./host-service-utils", () => ({
-	...realHostServiceUtils,
-	HEALTH_POLL_TIMEOUT_MS: 10_000,
-	MAX_HOST_LOG_BYTES: 1024,
-	findFreePort: mock(() => Promise.resolve(40000)),
-	openRotatingLogFd: mock(() => -1),
-	pollHealthCheck: pollHealthCheckMock,
-}));
 
 const showAlertMock = mock(async () => ({
 	response: 0,
 	checkboxChecked: false,
 }));
 
-// Keep every electron export name other suite files link against (e.g.
-// browser-manager's webContents/clipboard/Menu): bun's mock.module can swap
-// export values but cannot add names to an already-instantiated module
-// record, so a narrower shape here breaks later files' imports.
-mock.module("electron", () => ({
-	app: {
-		getVersion: () => APP_VERSION,
-		isPackaged: false,
-		getAppPath: () => "/tmp/app",
-	},
-	dialog: {
+const createCoordinator = () =>
+	new HostServiceCoordinator({
+		readManifest: readManifestMock,
+		removeManifest: removeManifestMock,
+		isProcessAlive: isProcessAliveMock,
+		killProcess: killProcessMock,
+		manifestDir: (orgId) => path.join(testManifestRoot, orgId),
+		findFreePort: async () => 40000,
+		openRotatingLogFd: () => -1,
+		pollHealthCheck: pollHealthCheckMock,
+		getHostId: () => "host-1",
 		showMessageBox: showAlertMock,
-	},
-	webContents: {
-		fromId: mock(() => null),
-	},
-	clipboard: {
-		writeText: mock(() => {}),
-		writeImage: mock(() => {}),
-	},
-	Menu: {
-		buildFromTemplate: mock(() => ({ popup: mock(() => {}) })),
-	},
-}));
+	});
 
-mock.module("electron-log/main", () => ({
-	default: {
-		info: () => {},
-		warn: () => {},
-		error: () => {},
-	},
-}));
+let logSpies: { mockRestore: () => void }[] = [];
 
-const realHostInfo = await import("@superset/shared/host-info");
-mock.module("@superset/shared/host-info", () => ({
-	...realHostInfo,
-	getHostId: () => "host-1",
-	getHostName: () => "host",
-}));
-mock.module("./local-db", () => ({
-	localDb: {
-		select: () => ({
-			from: () => ({ get: () => null, where: () => ({ get: () => null }) }),
-		}),
-	},
-}));
+beforeAll(() => {
+	logSpies = [
+		spyOn(log, "info").mockImplementation(() => {}),
+		spyOn(log, "warn").mockImplementation(() => {}),
+		spyOn(log, "error").mockImplementation(() => {}),
+	];
+});
 
-const { HOST_SERVICE_RESPAWN_MAX_ATTEMPTS } = await import(
-	"./host-service-respawn"
-);
-const { HostServiceCoordinator } = await import("./host-service-coordinator");
+afterAll(() => {
+	for (const spy of logSpies) spy.mockRestore();
+});
 
 const baseManifest = (pid: number, endpoint = "http://127.0.0.1:55555") => ({
 	pid,
@@ -139,7 +98,7 @@ test.each([
 ])("a failed launcher handles its asynchronous %s after startup rejects", async (code) => {
 	resetMocks();
 	testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-spawn-test-"));
-	const coordinator = new HostServiceCoordinator();
+	const coordinator = createCoordinator();
 	const internals = coordinator as unknown as {
 		buildEnv: () => Promise<Record<string, string>>;
 		spawn: (org: string, config: typeof spawnConfig) => Promise<unknown>;
@@ -199,7 +158,7 @@ describe("HostServiceCoordinator preferred ports", () => {
 	beforeEach(() => {
 		resetMocks();
 		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
-		coordinator = new HostServiceCoordinator();
+		coordinator = createCoordinator();
 	});
 
 	afterEach(() => {
@@ -245,7 +204,7 @@ describe("HostServiceCoordinator stable secret", () => {
 	beforeEach(() => {
 		resetMocks();
 		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
-		coordinator = new HostServiceCoordinator();
+		coordinator = createCoordinator();
 		internals = coordinator as unknown as StableSecretInternals;
 	});
 
@@ -297,7 +256,7 @@ describe("HostServiceCoordinator.reconcile", () => {
 	beforeEach(() => {
 		resetMocks();
 		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
-		coordinator = new HostServiceCoordinator();
+		coordinator = createCoordinator();
 		internals = coordinator as unknown as ReconcileInternals;
 	});
 
@@ -534,7 +493,7 @@ describe("HostServiceCoordinator.reset", () => {
 		resetMocks();
 		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
 
-		coordinator = new HostServiceCoordinator();
+		coordinator = createCoordinator();
 		spawnMock = mock(async () => ({
 			port: 60000,
 			secret: "fresh-secret",
@@ -638,7 +597,7 @@ describe("HostServiceCoordinator single-flight / adoption", () => {
 	beforeEach(() => {
 		resetMocks();
 		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
-		coordinator = new HostServiceCoordinator();
+		coordinator = createCoordinator();
 		spawnMock = mock(async () => ({
 			port: 60000,
 			secret: "fresh-secret",
@@ -952,7 +911,7 @@ describe("HostServiceCoordinator respawn after a crash", () => {
 	beforeEach(() => {
 		resetMocks();
 		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
-		coordinator = new HostServiceCoordinator();
+		coordinator = createCoordinator();
 		internals = coordinator as unknown as typeof internals;
 		pendingRespawns = [];
 		(
@@ -1223,7 +1182,7 @@ describe("HostServiceCoordinator.stop manifest ownership", () => {
 	beforeEach(() => {
 		resetMocks();
 		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
-		coordinator = new HostServiceCoordinator();
+		coordinator = createCoordinator();
 		internals = coordinator as unknown as typeof internals;
 		coordinator.setConfigProvider(async () => spawnConfig);
 	});
@@ -1334,7 +1293,7 @@ describe("HostServiceCoordinator.stop SIGKILL escalation", () => {
 	beforeEach(() => {
 		resetMocks();
 		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
-		coordinator = new HostServiceCoordinator();
+		coordinator = createCoordinator();
 		internals = coordinator as unknown as typeof internals;
 		pendingTimers = [];
 		(
@@ -1420,8 +1379,4 @@ describe("parseEtime", () => {
 		expect(parseEtime("garbage")).toBeNull();
 		expect(parseEtime("")).toBeNull();
 	});
-});
-
-afterAll(() => {
-	mock.restore();
 });

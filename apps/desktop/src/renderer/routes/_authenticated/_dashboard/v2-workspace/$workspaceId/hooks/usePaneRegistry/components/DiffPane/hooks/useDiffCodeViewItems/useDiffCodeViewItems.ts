@@ -4,7 +4,7 @@ import type {
 	FileDiffMetadata,
 	LineAnnotation,
 } from "@pierre/diffs";
-import { useWorkspaceClient, workspaceTrpc } from "@superset/workspace-client";
+import { workspaceTrpc } from "@superset/workspace-client";
 import { useQueries } from "@tanstack/react-query";
 import { getQueryKey } from "@trpc/react-query";
 import {
@@ -168,7 +168,7 @@ export function useDiffCodeViewItems({
 	annotationsByPath,
 	extraAnnotationsByItemId,
 }: UseDiffCodeViewItemsOptions): UseDiffCodeViewItemsResult {
-	const { trpcClient } = useWorkspaceClient();
+	const { client: trpcClient } = workspaceTrpc.useUtils();
 	// Generated artifacts (lockfiles, compiled catalogs) stay collapsed behind
 	// a button: their patches are tens of thousands of hunk lines of noise,
 	// and the compiled ones are single multi-megabyte lines, which

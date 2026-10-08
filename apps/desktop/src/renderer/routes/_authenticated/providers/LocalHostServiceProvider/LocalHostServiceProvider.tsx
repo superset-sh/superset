@@ -34,7 +34,7 @@ interface LocalHostServiceContextValue {
 	waitForHostReady: (timeoutMs?: number) => Promise<string | null>;
 }
 
-const LocalHostServiceContext =
+export const LocalHostServiceContext =
 	createContext<LocalHostServiceContextValue | null>(null);
 const MOCK_ORGANIZATION_IDS = [MOCK_ORG_ID];
 

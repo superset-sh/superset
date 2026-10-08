@@ -1,18 +1,11 @@
-import { afterAll, afterEach, expect, mock, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, expect, mock, test } from "bun:test";
 
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 const { act, cleanup, renderHook } = await import("@testing-library/react");
 const { useProjectPreselection } = await import("./useProjectPreselection");
 const { useNewWorkspaceDraftStore } = await import(
 	"renderer/stores/new-workspace-draft"
 );
 afterEach(cleanup);
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
-
 test("holds the intended project while its list refreshes, then permits manual selection", () => {
 	useNewWorkspaceDraftStore.getState().resetDraft();
 	useNewWorkspaceDraftStore.getState().selectProject("new-project");

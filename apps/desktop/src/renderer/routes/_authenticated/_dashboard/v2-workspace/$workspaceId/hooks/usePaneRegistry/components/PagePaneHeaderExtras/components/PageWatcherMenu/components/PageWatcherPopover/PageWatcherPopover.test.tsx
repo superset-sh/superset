@@ -4,93 +4,88 @@ import {
 	beforeEach,
 	describe,
 	expect,
-	mock,
 	test,
 } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import type { HostAgentConfig } from "@superset/host-service/settings";
+import type { AppRouter } from "@superset/trpc";
+import type { TRPCLink } from "@trpc/client";
+import type { PageWatcherRow } from "renderer/hooks/host-service/usePageWatchersForPage";
+import type { TerminalAgentBinding } from "renderer/hooks/host-service/useTerminalAgentBindings";
+import type { HostServiceClient } from "renderer/lib/host-service-client";
 
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
 
+const { useState } = await import("react");
+const { toast } = await import("@superset/ui/sonner");
+const { QueryClient, QueryClientProvider } = await import(
+	"@tanstack/react-query"
+);
+const { getQueryKey } = await import("@trpc/react-query");
+const { observable } = await import("@trpc/server/observable");
+const { act, cleanup, fireEvent, render, waitFor, within } = await import(
+	"@testing-library/react"
+);
+const { setAgentSessionPlacement } = await import(
+	"renderer/hooks/useAgentSessionPlacement"
+);
+const { cloudTrpc } = await import("renderer/lib/cloud-trpc");
+const { AgentSessionSelect } = await import(
+	"renderer/routes/_authenticated/_dashboard/components/AgentSessionPicker"
+);
+const { PageWatcherPopover } = await import("./PageWatcherPopover");
+type AgentPickerSlotProps = import("./PageWatcherPopover").AgentPickerSlotProps;
+
 const PAGE_ID = "5d3f2a1e-0c7b-4a2d-9f11-6b8c0d4e7a52";
 const WORKSPACE_ID = "ws-local";
+const HOST_URL = "http://host-local";
 
-interface Row {
-	workspaceId: string;
-	workspaceName: string | null;
-	terminalId: string;
-	agentId: string | null;
-	sessionTitle: string | null;
-	hostId: string;
-	hostUrl: string;
-}
+type Row = PageWatcherRow;
 type CloudWatch = { watching: boolean; agentId: string | null };
 
 let rows: Row[] = [];
-let terminalSessions: Array<{ terminalId: string; title: string | null }> = [];
-let bindings = new Map();
+let sessionTitles = new Map<string, string | null>();
+let bindings = new Map<string, TerminalAgentBinding>();
 let assigned: unknown[] = [];
 let assignError: Error | undefined;
 let errors: string[] = [];
-let configs: Array<{ id: string; label: string; presetId: string }> = [];
+let configs: HostAgentConfig[] = [];
 let launched: unknown[] = [];
 let launchResult: { terminalId: string } | null = {
 	terminalId: "new-terminal",
 };
 let bindingPolls = 0;
 let bindingDelay = 0;
-mock.module("renderer/assets/app-icons/preset-icons", () => ({
-	usePresetIcon: () => null,
-}));
-mock.module("renderer/hooks/useV2AgentConfigs", () => ({
-	useV2AgentConfigs: () => ({ data: configs }),
-}));
+let cloudWatch: CloudWatch = { watching: false, agentId: null };
+let navigated: Array<{ workspaceId: string; terminalId: string }> = [];
+let unwatched: Array<{ hostUrl: string; pageId: string }> = [];
+
 const createNewAgentSession = async (input: unknown) => {
 	launched.push(input);
 	return launchResult;
 };
-mock.module("renderer/hooks/host-service/useTerminalAgentBindings", () => ({
-	useTerminalAgentBindings: () => bindings,
-}));
-mock.module("renderer/hooks/host-service/useWorkspaceHostUrl", () => ({
-	useWorkspaceHostUrl: () => "http://host-local",
-}));
-mock.module("@superset/ui/sonner", () => ({
-	toast: { error: (message: string) => errors.push(message) },
-}));
-let cloudWatch: CloudWatch = { watching: false, agentId: null };
-let navigated: Array<{ workspaceId: string; terminalId: string | undefined }> =
-	[];
-let unwatched: Array<{ hostUrl: string; pageId: string }> = [];
 
-mock.module("renderer/hooks/host-service/usePageWatchersForPage", () => ({
-	usePageWatchersForPage: () => rows,
-}));
-mock.module("renderer/lib/cloud-trpc", () => ({
-	cloudTrpc: {
-		page: {
-			get: {
-				useQuery: () => ({
-					data: {
-						id: PAGE_ID,
-						slug: "my-page",
-						title: "My page",
-						watch: cloudWatch,
-					},
-				}),
-			},
-		},
-		useUtils: () => ({
-			page: { get: { invalidate: () => Promise.resolve() } },
-		}),
-	},
-}));
-mock.module("renderer/lib/host-service-client", () => ({
-	getHostServiceClientByUrl: (hostUrl: string) => ({
-		terminal: { list: { query: async () => ({ sessions: terminalSessions }) } },
+const realToastError = toast.error;
+toast.error = ((message: string) => {
+	errors.push(message);
+}) as typeof toast.error;
+
+const cloudPage = () => ({
+	id: PAGE_ID,
+	slug: "my-page",
+	title: "My page",
+	watch: cloudWatch,
+});
+
+const pageLink: TRPCLink<AppRouter> = () => () =>
+	observable((observer) => {
+		observer.next({ result: { data: cloudPage() } });
+		observer.complete();
+	});
+
+const getHostClient = (hostUrl: string) =>
+	({
 		terminalAgents: {
 			listByWorkspace: {
 				query: async () => {
@@ -117,54 +112,48 @@ mock.module("renderer/lib/host-service-client", () => ({
 				},
 			},
 		},
-	}),
-}));
-mock.module("@tanstack/react-router", () => ({
-	useNavigate: () => () => Promise.resolve(),
-}));
-mock.module(
-	"renderer/routes/_authenticated/_dashboard/utils/workspace-navigation",
-	() => ({
-		navigateToV2Workspace: (
-			workspaceId: string,
-			_navigate: unknown,
-			options?: { search?: { terminalId?: string } },
-		) => {
-			navigated.push({
-				workspaceId,
-				terminalId: options?.search?.terminalId,
-			});
-			return Promise.resolve();
-		},
-	}),
-);
-mock.module(
-	"renderer/routes/_authenticated/settings/agents/components/V2AgentsSettings/components/AgentIcon",
-	() => ({ AgentIcon: () => null }),
-);
+	}) as unknown as Pick<HostServiceClient, "pageWatch" | "terminalAgents">;
 
-const { act, cleanup, fireEvent, render, waitFor, within } = await import(
-	"@testing-library/react"
-);
-const { QueryClient, QueryClientProvider } = await import(
-	"@tanstack/react-query"
-);
-const { PageWatcherMenu } = await import("./PageWatcherMenu");
+function AgentPicker(props: AgentPickerSlotProps) {
+	const [open, setOpen] = useState(false);
+	return (
+		<AgentSessionSelect
+			{...props}
+			titles={sessionTitles}
+			open={open}
+			onOpenChange={setOpen}
+		/>
+	);
+}
+
+function binding(terminalId: string, lastEventAt: number) {
+	return {
+		terminalId,
+		workspaceId: WORKSPACE_ID,
+		agentId: "codex",
+		lastEventAt,
+	} as TerminalAgentBinding;
+}
+
+function agentConfig(id: string, label: string, presetId: string) {
+	return { id, label, presetId } as HostAgentConfig;
+}
 
 afterEach(async () => {
 	await act(async () => {
 		await new Promise((resolve) => setTimeout(resolve, 0));
 		cleanup();
 	});
+	localStorage.clear();
 });
 afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
+	toast.error = realToastError;
 });
 
 beforeEach(() => {
 	localStorage.clear();
 	rows = [];
-	terminalSessions = [];
+	sessionTitles = new Map();
 	configs = [];
 	launched = [];
 	launchResult = { terminalId: "new-terminal" };
@@ -193,16 +182,37 @@ function watcher(overrides: Partial<Row> = {}): Row {
 }
 
 async function renderMenu(canManage = true) {
+	const queryClient = new QueryClient({
+		defaultOptions: { queries: { staleTime: Number.POSITIVE_INFINITY } },
+	});
+	queryClient.setQueryData(
+		getQueryKey(cloudTrpc.page.get, { id: PAGE_ID }, "query"),
+		cloudPage(),
+	);
 	let view!: ReturnType<typeof render>;
 	await act(async () => {
 		view = render(
-			<QueryClientProvider client={new QueryClient()}>
-				<PageWatcherMenu
-					workspaceId={WORKSPACE_ID}
-					pageId={PAGE_ID}
-					canManage={canManage}
-					onCreateNewAgentSession={createNewAgentSession}
-				/>
+			<QueryClientProvider client={queryClient}>
+				<cloudTrpc.Provider
+					client={cloudTrpc.createClient({ links: [pageLink] })}
+					queryClient={queryClient}
+				>
+					<PageWatcherPopover
+						workspaceId={WORKSPACE_ID}
+						pageId={PAGE_ID}
+						canManage={canManage}
+						onCreateNewAgentSession={createNewAgentSession}
+						watchers={rows}
+						hostUrl={HOST_URL}
+						configs={configs}
+						bindings={bindings}
+						getHostClient={getHostClient}
+						onOpenWatcher={({ workspaceId, terminalId }) =>
+							navigated.push({ workspaceId, terminalId })
+						}
+						renderAgentPicker={(picker) => <AgentPicker {...picker} />}
+					/>
+				</cloudTrpc.Provider>
 			</QueryClientProvider>,
 		);
 	});
@@ -345,11 +355,7 @@ describe("cloud listening status without a confirmed live session", () => {
 
 describe("assigning an existing workspace agent", () => {
 	beforeEach(() => {
-		bindings.set("local-term", {
-			terminalId: "local-term",
-			agentId: "codex",
-			lastEventAt: 1,
-		});
+		bindings.set("local-term", binding("local-term", 1));
 	});
 
 	test("lists an agent even when nothing watches the page and assigns it on the workspace host", async () => {
@@ -359,7 +365,7 @@ describe("assigning an existing workspace agent", () => {
 		});
 		expect(assigned).toEqual([
 			{
-				hostUrl: "http://host-local",
+				hostUrl: HOST_URL,
 				input: {
 					pageId: PAGE_ID,
 					slug: "my-page",
@@ -382,9 +388,7 @@ describe("assigning an existing workspace agent", () => {
 	});
 
 	test("does not offer an agent that already watches this page", async () => {
-		rows = [
-			watcher({ hostUrl: "http://host-local", terminalId: "local-term" }),
-		];
+		rows = [watcher({ hostUrl: HOST_URL, terminalId: "local-term" })];
 		const ui = await openMenu();
 		expect(ui.queryByText("codex")).toBeNull();
 	});
@@ -404,9 +408,7 @@ describe("assigning an existing workspace agent", () => {
 
 describe("starting a page watcher", () => {
 	beforeEach(() => {
-		configs = [
-			{ id: "claude-config", label: "Claude Code", presetId: "claude" },
-		];
+		configs = [agentConfig("claude-config", "Claude Code", "claude")];
 	});
 
 	test("launches a configured agent when no agent exists, then assigns its actual binding", async () => {
@@ -423,7 +425,7 @@ describe("starting a page watcher", () => {
 		]);
 		expect(assigned).toEqual([
 			{
-				hostUrl: "http://host-local",
+				hostUrl: HOST_URL,
 				input: {
 					pageId: PAGE_ID,
 					slug: "my-page",
@@ -443,11 +445,8 @@ describe("starting a page watcher", () => {
 			fireEvent.click(ui.getByRole("button", { name: "Add listening agent" }));
 		});
 		expect(assigned).toEqual([]);
-		await act(async () => {
-			await new Promise((resolve) => setTimeout(resolve, 300));
-		});
+		await waitFor(() => expect(assigned).toHaveLength(1));
 		expect(bindingPolls).toBe(2);
-		expect(assigned).toHaveLength(1);
 	});
 
 	test("does not assign a watcher when launch fails", async () => {
@@ -483,12 +482,9 @@ describe("starting a page watcher", () => {
 });
 
 test("uses the Settings placement for a new session", async () => {
-	configs = [{ id: "claude-config", label: "Claude Code", presetId: "claude" }];
+	configs = [agentConfig("claude-config", "Claude Code", "claude")];
 	const ui = await openMenu();
 	await act(async () => {
-		const { setAgentSessionPlacement } = await import(
-			"renderer/hooks/useAgentSessionPlacement"
-		);
 		setAgentSessionPlacement("new-tab");
 	});
 	await act(async () => {
@@ -500,8 +496,8 @@ test("uses the Settings placement for a new session", async () => {
 
 test("filters agent choices and selects without launching", async () => {
 	configs = [
-		{ id: "claude-config", label: "Claude Code", presetId: "claude" },
-		{ id: "codex-config", label: "Codex", presetId: "codex" },
+		agentConfig("claude-config", "Claude Code", "claude"),
+		agentConfig("codex-config", "Codex", "codex"),
 	];
 	const ui = await openMenu();
 	await act(async () => {
@@ -529,16 +525,8 @@ test("filters agent choices and selects without launching", async () => {
 });
 
 test("distinguishes multiple sessions of the same agent after selection", async () => {
-	bindings.set("first-terminal", {
-		terminalId: "first-terminal",
-		agentId: "codex",
-		lastEventAt: 2,
-	});
-	bindings.set("second-terminal", {
-		terminalId: "second-terminal",
-		agentId: "codex",
-		lastEventAt: 1,
-	});
+	bindings.set("first-terminal", binding("first-terminal", 2));
+	bindings.set("second-terminal", binding("second-terminal", 1));
 	const ui = await openMenu();
 	await act(async () => {
 		fireEvent.click(ui.getByRole("button", { name: "Choose agent" }));
@@ -560,26 +548,17 @@ test("distinguishes multiple sessions of the same agent after selection", async 
 
 test("searches session names and keeps the selected name in the preview", async () => {
 	for (const terminalId of ["first-terminal", "second-terminal"]) {
-		bindings.set(terminalId, {
-			terminalId,
-			workspaceId: WORKSPACE_ID,
-			agentId: "codex",
-			lastEventAt: 1,
-		});
+		bindings.set(terminalId, binding(terminalId, 1));
 	}
-	terminalSessions = [
-		{ terminalId: "first-terminal", title: "Review page layout" },
-		{ terminalId: "second-terminal", title: "Fix authentication" },
-	];
+	sessionTitles = new Map([
+		["first-terminal", "Review page layout"],
+		["second-terminal", "Fix authentication"],
+	]);
 	const ui = await openMenu();
 	await act(async () => {
 		fireEvent.click(ui.getByRole("button", { name: "Choose agent" }));
 	});
-	await waitFor(() =>
-		expect(
-			ui.getByRole("option", { name: "Fix authentication" }),
-		).toBeDefined(),
-	);
+	expect(ui.getByRole("option", { name: "Fix authentication" })).toBeDefined();
 	await act(async () => {
 		fireEvent.change(ui.getByRole("combobox"), {
 			target: { value: "authentication" },
