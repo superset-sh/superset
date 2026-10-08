@@ -6,15 +6,10 @@ import {
 } from "./page-presence";
 
 describe("presenceColor", () => {
-	test("gives one person the same colour everywhere", () => {
-		expect(presenceColor("guest:1")).toBe(presenceColor("guest:1"));
-	});
-
-	test("spreads people across the palette", () => {
-		const colors = new Set(
-			Array.from({ length: 40 }, (_, index) => presenceColor(`user-${index}`)),
-		);
-		expect(colors.size).toBeGreaterThan(4);
+	test("maps each colour slot the hub hands out to a distinct colour", () => {
+		const colors = Array.from({ length: 8 }, (_, slot) => presenceColor(slot));
+		expect(new Set(colors).size).toBe(8);
+		expect(presenceColor(8)).toBe(presenceColor(0));
 	});
 });
 
@@ -24,22 +19,24 @@ describe("presenceViewersFrom", () => {
 			presenceViewersFrom([
 				{
 					id: "c1",
-					userId: "u1",
+					key: "k1",
 					name: "Ada",
 					image: "http://x/a.png",
 					guestNumber: 2,
+					color: 3,
 				},
-				{ id: "c2", userId: "u2", name: 7 },
+				{ id: "c2", key: "k2", name: 7 },
 				null,
 			]),
 		).toEqual([
 			{
 				id: "c1",
-				userId: "u1",
+				key: "k1",
 				name: "Ada",
 				image: null,
 				guest: false,
 				guestNumber: 2,
+				color: 3,
 			},
 		]);
 		expect(presenceViewersFrom("viewers")).toEqual([]);

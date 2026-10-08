@@ -1,6 +1,7 @@
 import {
 	MAX_PAGE_GUESTS,
 	type PagePresenceViewer,
+	PRESENCE_COLOR_COUNT,
 } from "@superset/shared/page-presence";
 import {
 	MAX_PAGE_STORAGE_KEY_LENGTH,
@@ -56,6 +57,8 @@ interface Pinned {
 	presence?: boolean;
 	guest?: boolean;
 	guestNumber?: number | null;
+	colorSlot?: number;
+	viewerKey?: string;
 	connectedAt?: number;
 }
 
@@ -306,6 +309,7 @@ export class PageHub extends Server<RealtimeEnv> {
 				connection.close(4403, "forbidden");
 				return;
 			}
+			const viewerKey = await this.viewerKeyFor(claims.userId);
 			connection.setState({
 				userId: claims.userId,
 				name: claims.name,
@@ -318,6 +322,8 @@ export class PageHub extends Server<RealtimeEnv> {
 				presence: true,
 				guest: claims.guest,
 				guestNumber: claims.guest ? this.guestNumberFor(claims.userId) : null,
+				colorSlot: this.colorSlotFor(claims.userId),
+				viewerKey,
 				connectedAt: Date.now(),
 			});
 		} finally {
@@ -559,31 +565,60 @@ export class PageHub extends Server<RealtimeEnv> {
 		return number;
 	}
 
+	private colorSlotFor(userId: string): number {
+		const taken = new Set<number>();
+		const users = new Set<string>();
+		for (const connection of this.getConnections<Pinned>()) {
+			const state = connection.state;
+			if (!state?.presence || state.colorSlot === undefined) continue;
+			if (state.userId === userId) return state.colorSlot;
+			taken.add(state.colorSlot);
+			users.add(state.userId);
+		}
+		for (let slot = 0; slot < PRESENCE_COLOR_COUNT; slot++) {
+			if (!taken.has(slot)) return slot;
+		}
+		return users.size % PRESENCE_COLOR_COUNT;
+	}
+
+	private async viewerKeyFor(userId: string): Promise<string> {
+		const digest = await crypto.subtle.digest(
+			"SHA-256",
+			new TextEncoder().encode(`${this.name}:${userId}`),
+		);
+		return [...new Uint8Array(digest).slice(0, 8)]
+			.map((byte) => byte.toString(16).padStart(2, "0"))
+			.join("");
+	}
+
 	private announce(leaving?: string): void {
-		const viewers: PagePresenceViewer[] = [];
-		const connections: Connection<Pinned>[] = [];
+		const present: {
+			connection: Connection<Pinned>;
+			viewer: PagePresenceViewer;
+		}[] = [];
 		for (const connection of this.getConnections<Pinned>()) {
 			const state = connection.state;
 			if (!state?.presence || connection.id === leaving) continue;
-			connections.push(connection);
-			viewers.push({
-				id: connection.id,
-				userId: state.userId,
-				name: state.name,
-				image: state.image,
-				guest: state.guest === true,
-				guestNumber: state.guestNumber ?? null,
+			present.push({
+				connection,
+				viewer: {
+					id: connection.id,
+					key: state.viewerKey ?? connection.id,
+					name: state.name,
+					image: state.image,
+					guest: state.guest === true,
+					guestNumber: state.guestNumber ?? null,
+					color: state.colorSlot ?? 0,
+				},
 			});
 		}
-		for (const connection of connections) {
+		for (const { connection } of present) {
 			const userId = connection.state?.userId;
+			const viewers = present
+				.filter((other) => other.connection.state?.userId !== userId)
+				.map((other) => other.viewer);
 			try {
-				connection.send(
-					JSON.stringify({
-						type: "presence",
-						viewers: viewers.filter((viewer) => viewer.userId !== userId),
-					}),
-				);
+				connection.send(JSON.stringify({ type: "presence", viewers }));
 			} catch {}
 		}
 	}

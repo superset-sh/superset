@@ -19,12 +19,12 @@ export function PageViewers({
 
 	const seen = new Set<string>();
 	const people = viewers.flatMap((viewer) => {
-		if (seen.has(viewer.userId)) return [];
-		seen.add(viewer.userId);
+		if (seen.has(viewer.key)) return [];
+		seen.add(viewer.key);
 		const number = viewer.guestNumber;
 		return [
 			{
-				id: viewer.userId,
+				id: viewer.key,
 				name:
 					!viewer.guest && viewer.name
 						? viewer.name
@@ -32,7 +32,7 @@ export function PageViewers({
 							? t({ message: `Guest ${number}` })
 							: t({ message: "Guest" }),
 				image: viewer.image,
-				color: presenceColor(viewer.userId),
+				color: presenceColor(viewer.color),
 			},
 		];
 	});

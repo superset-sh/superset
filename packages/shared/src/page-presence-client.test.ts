@@ -65,11 +65,12 @@ function harness(
 
 const grace = {
 	id: "c2",
-	userId: "u2",
+	key: "k2",
 	name: "Grace",
 	image: null,
 	guest: false,
 	guestNumber: null,
+	color: 1,
 };
 
 describe("openPagePresence", () => {

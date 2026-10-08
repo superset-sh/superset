@@ -678,10 +678,11 @@ async function main() {
 	};
 	const viewersOf = (message: Record<string, unknown> | null) =>
 		(message?.viewers ?? []) as {
-			userId: string;
+			key: string;
 			name: string;
 			guest: boolean;
 			guestNumber: number | null;
+			color: number;
 		}[];
 
 	const anonymous = enter(PUBLIC_PAGE, "");
@@ -717,16 +718,31 @@ async function main() {
 	);
 	check("a guest sees the member already here", Boolean(guestSees));
 	const memberSees = await member.waitFor(
-		(m) =>
-			m.type === "presence" &&
-			viewersOf(m).some((v) => v.userId === `guest:${GUEST}` && v.guest),
+		(m) => m.type === "presence" && viewersOf(m).some((v) => v.guest),
 	);
 	check("the member is told a guest arrived", Boolean(memberSees));
 	check(
 		"nobody is listed to themselves, and the first guest is Guest 1",
-		!viewersOf(memberSees).some((v) => v.userId === MEMBER) &&
+		!viewersOf(memberSees).some((v) => v.name === "Grace") &&
 			viewersOf(memberSees).find((v) => v.guest)?.guestNumber === 1,
 		memberSees,
+	);
+
+	const memberList = await guest.waitFor(
+		(m) => m.type === "presence" && viewersOf(m).length > 0,
+	);
+	const sent = JSON.stringify(memberList);
+	check(
+		"viewers get an opaque per-page key, never an internal user id",
+		!sent.includes(MEMBER) &&
+			!sent.includes(GUEST) &&
+			viewersOf(memberList).every((v) => /^[0-9a-f]{16}$/.test(v.key)),
+		memberList,
+	);
+	check(
+		"the member and the guest are given different colours",
+		viewersOf(memberSees)[0]?.color !== viewersOf(memberList)[0]?.color,
+		{ member: viewersOf(memberList), guest: viewersOf(memberSees) },
 	);
 
 	member.socket.send("ping");

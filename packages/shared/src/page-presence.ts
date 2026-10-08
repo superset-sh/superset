@@ -1,10 +1,11 @@
 export interface PagePresenceViewer {
 	id: string;
-	userId: string;
+	key: string;
 	name: string;
 	image: string | null;
 	guest: boolean;
 	guestNumber: number | null;
+	color: number;
 }
 
 export const MAX_PAGE_GUESTS = 20;
@@ -20,28 +21,31 @@ const PRESENCE_COLORS = [
 	"#65a30d",
 ];
 
-export function presenceColor(userId: string): string {
-	let hash = 0;
-	for (const char of userId) hash = (hash * 31 + char.charCodeAt(0)) | 0;
-	return PRESENCE_COLORS[Math.abs(hash) % PRESENCE_COLORS.length] as string;
+export const PRESENCE_COLOR_COUNT = PRESENCE_COLORS.length;
+
+export function presenceColor(slot: number): string {
+	return PRESENCE_COLORS[
+		Math.abs(Math.trunc(slot)) % PRESENCE_COLOR_COUNT
+	] as string;
 }
 
 export function presenceViewersFrom(raw: unknown): PagePresenceViewer[] {
 	if (!Array.isArray(raw)) return [];
 	return raw.flatMap((viewer) =>
 		typeof viewer?.id === "string" &&
-		typeof viewer.userId === "string" &&
+		typeof viewer.key === "string" &&
 		typeof viewer.name === "string"
 			? [
 					{
 						id: viewer.id,
-						userId: viewer.userId,
+						key: viewer.key,
 						name: viewer.name,
 						guest: viewer.guest === true,
 						guestNumber:
 							Number.isInteger(viewer.guestNumber) && viewer.guestNumber > 0
 								? viewer.guestNumber
 								: null,
+						color: Number.isInteger(viewer.color) ? viewer.color : 0,
 						image:
 							typeof viewer.image === "string" &&
 							viewer.image.startsWith("https:")
