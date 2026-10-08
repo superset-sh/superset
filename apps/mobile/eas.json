@@ -5,17 +5,20 @@
 	},
 	"build": {
 		"development": {
+			"bun": "1.4.2",
 			"developmentClient": true,
 			"distribution": "internal",
 			"environment": "development",
 			"channel": "development"
 		},
 		"preview": {
+			"bun": "1.4.2",
 			"distribution": "internal",
 			"environment": "preview",
 			"channel": "preview"
 		},
 		"e2e-test": {
+			"bun": "1.4.2",
 			"withoutCredentials": true,
 			"ios": {
 				"simulator": true
@@ -25,6 +28,7 @@
 			}
 		},
 		"production": {
+			"bun": "1.4.2",
 			"autoIncrement": true,
 			"environment": "production",
 			"channel": "production"

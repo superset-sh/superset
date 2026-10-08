@@ -6,6 +6,10 @@ on:
         type: string
         required: true
 
+defaults:
+  tools:
+    bun: 1.4.2
+
 jobs:
   build_ios_e2e:
     name: Build iOS simulator app (e2e)

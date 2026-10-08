@@ -5,6 +5,10 @@ on:
     types: [labeled]
     if: ${{ github.event.label.name == 'mobile-build' }}
 
+defaults:
+  tools:
+    bun: 1.4.2
+
 jobs:
   build:
     name: Build development client

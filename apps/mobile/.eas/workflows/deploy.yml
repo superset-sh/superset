@@ -12,6 +12,10 @@ on:
       - packages/auth/**
       - "!**/*.md"
 
+defaults:
+  tools:
+    bun: 1.4.2
+
 jobs:
   fingerprint:
     name: Fingerprint
