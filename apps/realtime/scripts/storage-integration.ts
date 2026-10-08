@@ -880,6 +880,16 @@ async function main() {
 	member.socket.close();
 	late.socket.close();
 
+	const statuses: number[] = [];
+	for (let n = 0; n < 130; n++) {
+		statuses.push((await guestTicket(PUBLIC_PAGE, crypto.randomUUID())).status);
+	}
+	check(
+		"the guest ticket route rate-limits a flood from one client",
+		statuses.includes(429),
+		statuses.slice(-5),
+	);
+
 	shutdown();
 
 	console.log(

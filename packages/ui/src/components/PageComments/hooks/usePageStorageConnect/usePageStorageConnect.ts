@@ -7,6 +7,8 @@ import {
 } from "@superset/shared/page-storage";
 import { type RefObject, useEffect, useRef } from "react";
 
+const HELLO_COOLDOWN_MS = 2000;
+
 export function usePageStorageConnect({
 	frameRef,
 	frameOrigin,
@@ -22,6 +24,8 @@ export function usePageStorageConnect({
 	useEffect(() => {
 		if (!ticket) return;
 		let stopped = false;
+		let dialing = false;
+		let connectedAt = 0;
 
 		const onMessage = async (event: MessageEvent) => {
 			if (event.origin !== frameOrigin) return;
@@ -29,9 +33,13 @@ export function usePageStorageConnect({
 			const data = event.data as PageStorageFrameMessage | undefined;
 			if (!data || data.channel !== STORAGE_FRAME_CHANNEL) return;
 			if (data.type !== "hello") return;
+			if (dialing || Date.now() - connectedAt < HELLO_COOLDOWN_MS) return;
 
+			dialing = true;
 			const url = await ticketRef.current?.().catch(() => null);
+			dialing = false;
 			if (stopped || !url) return;
+			connectedAt = Date.now();
 			frameRef.current?.contentWindow?.postMessage(
 				{ channel: STORAGE_HOST_CHANNEL, type: "connect", url },
 				frameOrigin,

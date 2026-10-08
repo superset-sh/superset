@@ -142,6 +142,15 @@ app.post("/v2/page/:pageId/storage/guest-ticket", async (c) => {
 		return c.json({ error: "guestId required" }, 400);
 	}
 
+	const ip = c.req.header("cf-connecting-ip") ?? "unknown";
+	const [byIp, byPage] = await Promise.all([
+		c.env.GUEST_TICKETS_BY_IP.limit({ key: ip }),
+		c.env.GUEST_TICKETS_BY_PAGE.limit({ key: pageId }),
+	]);
+	if (!byIp.success || !byPage.success) {
+		return c.json({ error: "Too many requests" }, 429);
+	}
+
 	const stub = await getServerByName(c.env.PageHub, pageId);
 	const manifest = await stub.readManifest();
 	if (!manifest) return c.json({ error: "Not found" }, 404);
