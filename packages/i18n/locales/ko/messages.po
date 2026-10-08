@@ -17967,6 +17967,9 @@ msgstr "전체 보기"
 msgid "View All"
 msgstr "전체 보기"
 
+msgid "View all (+{moreCount} more)"
+msgstr "모두 보기 (+{moreCount}개 더)"
+
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"
 msgstr "{0}의 코멘트 보기"

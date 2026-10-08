@@ -17967,6 +17967,9 @@ msgstr "Ver todas"
 msgid "View All"
 msgstr "Ver todas"
 
+msgid "View all (+{moreCount} more)"
+msgstr "Ver tudo (+{moreCount} mais)"
+
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"
 msgstr "Ver o comentário de {0}"

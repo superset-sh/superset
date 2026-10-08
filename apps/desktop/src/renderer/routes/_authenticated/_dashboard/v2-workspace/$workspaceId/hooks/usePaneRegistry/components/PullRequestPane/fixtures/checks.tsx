@@ -23,6 +23,16 @@ mock.module(`${root}/v2-workspace/providers/WorkspaceProvider`, () => ({
 mock.module(`${pane}/hooks/usePullRequestPaneDetail`, () => ({
 	usePullRequestPaneDetail: () => detail,
 }));
+mock.module(`${pane}/hooks/usePullRequestEvidence`, () => ({
+	usePullRequestEvidence: () => ({
+		pages: [],
+		totalCount: 0,
+		hasMore: false,
+		isPending: false,
+		isError: false,
+		onRetry: mock(),
+	}),
+}));
 mock.module("@superset/workspace-client", () => ({
 	workspaceTrpc: {
 		git: {
@@ -87,6 +97,7 @@ for (const state of ["loading", "error"] as const) {
 				data={{ repoFullName: "owner/repo", number: 12 }}
 				onOpenDiff={mock()}
 				onOpenComment={mock()}
+				onOpenPage={mock()}
 			/>,
 		);
 		expect(view.queryByTestId("code")).toBeNull();
@@ -115,6 +126,7 @@ test("matching projects retain project actions even while Summary loads", async 
 			data={{ repoFullName: "owner/repo", number: 12 }}
 			onOpenDiff={mock()}
 			onOpenComment={mock()}
+			onOpenPage={mock()}
 		/>,
 	);
 	fireEvent.click(view.getByRole("button", { name: "Changes" }));

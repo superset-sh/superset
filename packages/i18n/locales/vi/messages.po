@@ -17967,6 +17967,9 @@ msgstr "Xem tất cả"
 msgid "View All"
 msgstr "Xem tất cả"
 
+msgid "View all (+{moreCount} more)"
+msgstr "Xem tất cả (+{moreCount} mục nữa)"
+
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"
 msgstr "Xem bình luận của {0}"

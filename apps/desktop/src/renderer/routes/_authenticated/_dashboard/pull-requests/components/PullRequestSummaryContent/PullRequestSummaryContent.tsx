@@ -15,6 +15,7 @@ interface PullRequestSummaryContentProps {
 	commentTarget?: PullRequestCommentTarget | null;
 	/** Rendered under the conversation (the workspace pane's review threads). */
 	children?: ReactNode;
+	aside?: ReactNode;
 }
 
 /** The Summary tab: header, info rail, description, conversation, then whatever the host adds. */
@@ -22,13 +23,19 @@ export function PullRequestSummaryContent({
 	data,
 	commentTarget = null,
 	children,
+	aside,
 }: PullRequestSummaryContentProps) {
 	return (
 		<PullRequestPageBody
 			header={
 				<PullRequestItemHeader data={data} actionTarget={commentTarget} />
 			}
-			info={(variant) => <PullRequestInfo data={data} variant={variant} />}
+			info={(variant) => (
+				<div className="space-y-6">
+					<PullRequestInfo data={data} variant={variant} />
+					{aside}
+				</div>
+			)}
 		>
 			<PullRequestMarkdown body={data.body} />
 			<div className="mt-6">

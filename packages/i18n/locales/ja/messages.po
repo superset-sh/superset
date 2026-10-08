@@ -17967,6 +17967,9 @@ msgstr "すべて表示"
 msgid "View All"
 msgstr "すべて表示"
 
+msgid "View all (+{moreCount} more)"
+msgstr "すべて表示（他{moreCount}件）"
+
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"
 msgstr "{0}のコメントを表示"

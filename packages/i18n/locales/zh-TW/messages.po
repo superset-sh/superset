@@ -17967,6 +17967,9 @@ msgstr "檢視全部"
 msgid "View All"
 msgstr "檢視全部"
 
+msgid "View all (+{moreCount} more)"
+msgstr "查看全部（另有 {moreCount} 項）"
+
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"
 msgstr "檢視{0}的評論"

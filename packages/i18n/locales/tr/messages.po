@@ -17967,6 +17967,9 @@ msgstr "Tümünü görüntüle"
 msgid "View All"
 msgstr "Tümünü görüntüle"
 
+msgid "View all (+{moreCount} more)"
+msgstr "Tümünü göster (+{moreCount} tane daha)"
+
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"
 msgstr "{0} kişisinin yorumunu görüntüle"
