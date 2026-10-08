@@ -390,6 +390,14 @@
 	}
 }
 
+/* xterm hardcodes the IME composition overlay as white on black. Follow the
+   terminal theme instead. Unlayered on purpose: xterm.css is unlayered, so a
+   rule inside @layer base would lose to it regardless of specificity. */
+.xterm .composition-view {
+	background: var(--superset-terminal-background, #000);
+	color: var(--superset-terminal-foreground, #fff);
+}
+
 /* Embedded documents hit-test ahead of the host; while a host gesture is in
    flight they yield to it. See renderer/lib/pointer-passthrough.ts. */
 html[data-pointer-passthrough] iframe {
