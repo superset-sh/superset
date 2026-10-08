@@ -1,9 +1,11 @@
-import { readFileSync, statSync } from "node:fs";
-import { dirname, extname, join, resolve, sep } from "node:path";
+import { readFileSync, realpathSync, statSync } from "node:fs";
+import { basename, dirname, extname, join, resolve, sep } from "node:path";
 import { CLIError } from "@superset/cli-framework";
 import {
+	FILE_CONTENT_SECURITY_POLICY,
 	injectStyleTag,
 	PAGE_THEME_CSS,
+	pageAssetResponsePolicy,
 	pageContentSecurityPolicy,
 } from "@superset/shared/usercontent";
 import { lookup as lookupMimeType } from "mime-types";
@@ -11,6 +13,7 @@ import { lookup as lookupMimeType } from "mime-types";
 export interface PreviewSite {
 	root: string;
 	entry: string;
+	assets: boolean;
 }
 
 export function resolvePreviewSite(inputPath: string): PreviewSite {
@@ -21,36 +24,70 @@ export function resolvePreviewSite(inputPath: string): PreviewSite {
 		if (!statSync(entry, { throwIfNoEntry: false })?.isFile()) {
 			throw new CLIError(`No index.html in ${inputPath}`);
 		}
-		return { root: inputPath, entry };
+		return {
+			root: realpathSync(inputPath),
+			entry: realpathSync(entry),
+			assets: true,
+		};
 	}
 	if (extname(inputPath).toLowerCase() !== ".html") {
 		throw new CLIError("Only .html files can be previewed as a page");
 	}
-	return { root: dirname(inputPath), entry: inputPath };
+	const entry = realpathSync(inputPath);
+	return { root: dirname(entry), entry, assets: false };
 }
 
-export function previewResponse(site: PreviewSite, pathname: string): Response {
-	const relative = decodeURIComponent(pathname).replace(/^\/+/, "");
-	const file = relative ? resolve(site.root, relative) : site.entry;
-	const inside = file === site.root || file.startsWith(site.root + sep);
-	if (!inside || relative.startsWith("_superset/")) {
-		return new Response("Not found", { status: 404 });
+function notFound(): Response {
+	return new Response("Not found", { status: 404 });
+}
+
+function resolveRequest(site: PreviewSite, pathname: string): string | null {
+	let relative: string;
+	try {
+		relative = decodeURIComponent(pathname).replace(/^\/+/, "");
+	} catch {
+		return null;
 	}
-	if (!statSync(file, { throwIfNoEntry: false })?.isFile()) {
-		return new Response("Not found", { status: 404 });
+	if (!relative || relative === basename(site.entry)) return site.entry;
+	if (!site.assets || relative.startsWith("_superset/")) return null;
+	let file: string;
+	try {
+		file = realpathSync(resolve(site.root, relative));
+	} catch {
+		return null;
 	}
+	if (!file.startsWith(site.root + sep)) return null;
+	return statSync(file).isFile() ? file : null;
+}
+
+export function previewResponse(
+	site: PreviewSite,
+	pathname: string,
+	fetchDest?: string,
+): Response {
+	const file = resolveRequest(site, pathname);
+	if (!file) return notFound();
 
 	const type = lookupMimeType(file) || "application/octet-stream";
-	const headers = {
-		"content-type": type,
-		"content-security-policy": pageContentSecurityPolicy(["*"]),
-		"cache-control": "no-store",
-	};
 	if (type === "text/html") {
 		const html = injectStyleTag(readFileSync(file, "utf-8"), PAGE_THEME_CSS);
 		return new Response(html, {
-			headers: { ...headers, "content-type": "text/html; charset=utf-8" },
+			headers: {
+				"content-type": "text/html; charset=utf-8",
+				"content-security-policy": pageContentSecurityPolicy(["*"]),
+				"cache-control": "no-store",
+			},
 		});
+	}
+	const policy = pageAssetResponsePolicy({ contentType: type, fetchDest });
+	const headers: Record<string, string> = {
+		"content-type": policy.contentType,
+		"content-security-policy": FILE_CONTENT_SECURITY_POLICY,
+		"x-content-type-options": "nosniff",
+		"cache-control": "no-store",
+	};
+	if (policy.disposition === "attachment") {
+		headers["content-disposition"] = `attachment; filename="${basename(file)}"`;
 	}
 	return new Response(readFileSync(file), { headers });
 }
@@ -83,7 +120,11 @@ export function startPreviewServers(
 		port,
 		fetch: (request) => {
 			const { pathname } = new URL(request.url);
-			const response = previewResponse(site, pathname);
+			const response = previewResponse(
+				site,
+				pathname,
+				request.headers.get("sec-fetch-dest") ?? undefined,
+			);
 			if (response.status === 404 && pathname !== "/favicon.ico") {
 				missing.add(pathname);
 			}

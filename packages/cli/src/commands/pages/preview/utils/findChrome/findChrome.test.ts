@@ -23,8 +23,9 @@ describe("findChrome", () => {
 		const found = findChrome(
 			search({
 				listDir: () => [
-					"chromium_headless_shell-1100",
+					"chromium_headless_shell-999",
 					"chromium_headless_shell-1194",
+					"chromium_headless_shell-1100",
 				],
 				isExecutable: () => true,
 			}),

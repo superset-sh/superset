@@ -31,7 +31,8 @@ the chart colours change hue between themes.
 </body>
 ```
 
-Wrap any table that can grow wider than the page:
+Wrap any table that can grow wider than the page. The wrapper also frames the
+table in a bordered panel with a shaded header row:
 
 ```html
 <div class="sp-scroll"><table>...</table></div>
@@ -41,7 +42,7 @@ Wrap any table that can grow wider than the page:
 
 ```html
 <header class="sp-header">
-  <p class="sp-kicker">PR #8326 walkthrough</p>
+  <p class="sp-kicker">PR #8326 walkthrough <span class="sp-badge sp-ok">Merged</span></p>
   <h1>Move conflicts report as 409</h1>
   <p class="sp-lede">A taken destination now returns a conflict the client can show, not a 500.</p>
   <ul class="sp-meta">
@@ -185,19 +186,19 @@ For a real chart, draw inline SVG with `--sp-chart-1` to `--sp-chart-5`.
 These need the script in `references/storage.md`. Markup:
 
 ```html
-<section class="sp-vote" data-key="decision:storage-engine">
+<section class="sp-vote" data-key="decision:storage-engine" data-author="AUTHOR_USER_ID">
   <h3>Which storage engine?</h3>
-  <button class="sp-option" data-value="sqlite">
+  <button type="button" class="sp-option" data-value="sqlite">
     <span>SQLite per host</span><span class="sp-option-count"></span><span class="sp-bar"></span>
   </button>
-  <button class="sp-option" data-value="postgres">
+  <button type="button" class="sp-option" data-value="postgres">
     <span>Shared Postgres</span><span class="sp-option-count"></span><span class="sp-bar"></span>
   </button>
-  <button class="sp-button sp-vote-close" hidden>Close with my vote</button>
+  <button type="button" class="sp-button sp-vote-close" hidden>Close with my vote</button>
   <p class="sp-vote-status"></p>
 </section>
 
-<button class="sp-button sp-claim" data-key="claim:action-1"></button>
+<button type="button" class="sp-button sp-claim" data-key="claim:action-1"></button>
 ```
 
 `sp-button` is the plain button for any other control.
@@ -216,6 +217,7 @@ These need the script in `references/storage.md`. Markup:
 | `--sp-code-bg` | Code background: a translucent tint, so it sits on any background |
 | `--sp-chart-1` to `--sp-chart-5` | Categorical series colours, distinct in both themes |
 | `--sp-radius` | Corner radius |
+| `--sp-space` | Gap below each kit component |
 | `--sp-measure` | Reading measure for prose blocks |
 | `--sp-font-sans` / `--sp-font-mono` | Font stacks |
 

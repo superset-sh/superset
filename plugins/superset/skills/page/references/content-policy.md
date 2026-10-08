@@ -7,7 +7,8 @@ one. The policy is `default-src 'none'` with a short allowlist, and it is
 enforced identically in the desktop pane and the web viewer:
 
 - **No network from script.** `fetch`, `XHR`, `EventSource` and WebSockets are
-  all blocked, and so is `fetch("data:...")`: a page cannot read its own
+  blocked to every host except Superset's own realtime service, which only the
+  injected storage script uses. `fetch("data:...")` is blocked too: a page cannot read its own
   inlined data URIs back out. Write pages that need no network at all: bake
   the data into the document as a literal, or decode base64 in JavaScript
   (`atob`, then `Uint8Array.from`).
@@ -35,7 +36,7 @@ enforced identically in the desktop pane and the web viewer:
   tab or filter. For anything the page should remember for everyone, use
   `window.superset.storage` (see `storage.md`).
 - **No parent access.** The viewer is a different origin, so
-  `window.parent.document` and `window.top.location` throw. Superset injects
+  reading `window.parent.document` or `window.top.location.href` throws. Superset injects
   its own scripts for comment anchoring and for the storage API; don't build a
   `postMessage` handshake of your own on top of them.
 - **No form submission.** `form-action 'none'`: a `<form>` may exist for its
@@ -70,5 +71,6 @@ Check before publishing: no `<script src>` or `<link rel="stylesheet">` pointing
 at a remote host, no `fetch` of any kind including of a `data:` URI, no `eval`
 or `new Function` anywhere in the file or in anything you inlined, page fits in
 16 MB, and `superset pages preview` reports no console errors or blocked
-requests: it renders the page under the same policy. Remote images are the one permitted exception: they go blank
-offline, which is the price of not inlining them.
+requests: it renders the page under the same policy. Remote images, media and
+font files are allowed, but they go blank offline, which is the price of not
+inlining them.

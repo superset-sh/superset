@@ -32,7 +32,12 @@ export function previewIssues(
 	}
 	const notFound = [...missing];
 	if (notFound.length) {
-		issues.push(listed("files the page asked for that do not exist", notFound));
+		issues.push(
+			listed(
+				"files the page asks for that will be missing once published",
+				notFound,
+			),
+		);
 	}
 	if (findings.overflow.length) {
 		issues.push(

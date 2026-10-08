@@ -58,8 +58,10 @@ so renaming an id orphans its votes.
 
 Paste this once, at the end of `<body>`, on any page that uses `sp-vote` or
 `sp-claim` markup (see `references/kit.md`). It renders from zero records,
-locks the controls when there is no host or the viewer cannot write, and lets
-the page's author close a vote on their own choice.
+locks the controls when there is no host, the viewer cannot write, or their
+access was revoked, and lets the page's author close a vote on their own
+choice. Set `data-author` on each `sp-vote` to your `userId` from
+`superset auth whoami --json`: a `:final` record from anyone else is ignored.
 
 ```html
 <script>
@@ -67,7 +69,17 @@ the page's author close a vote on their own choice.
   const store = window.superset?.storage;
   const live = Boolean(store && (await store.ready));
   const me = live ? store.viewer?.userId : null;
-  const failed = (error) => `Not saved (${error?.code ?? "error"}). Try again.`;
+  let revoked = false;
+  const renders = [];
+  const failed = (error) => {
+    if (error?.code !== "revoked") return `Not saved (${error?.code ?? "error"}). Try again.`;
+    revoked = true;
+    queueMicrotask(() => {
+      for (const render of renders) render();
+    });
+    return "Your access to this page changed. Reopen it to continue.";
+  };
+  const locked = () => !live || revoked || !store.writable;
 
   const tally = (records) => {
     const counts = new Map();
@@ -80,6 +92,7 @@ the page's author close a vote on their own choice.
 
   for (const block of document.querySelectorAll(".sp-vote[data-key]")) {
     const key = block.dataset.key;
+    const author = block.dataset.author;
     const options = [...block.querySelectorAll(".sp-option[data-value]")];
     const close = block.querySelector(".sp-vote-close");
     const status = block.querySelector(".sp-vote-status");
@@ -99,9 +112,9 @@ the page's author close a vote on their own choice.
           .querySelector(".sp-bar")
           .style.setProperty("--sp-value", `${votes.length ? (100 * names.length) / votes.length : 0}%`);
         option.setAttribute("aria-pressed", String((final?.choice ?? mine) === option.dataset.value));
-        option.disabled = !live || !store.writable || Boolean(final);
+        option.disabled = locked() || Boolean(final);
       }
-      if (close) close.hidden = !live || !store.author || Boolean(final) || !mine;
+      if (close) close.hidden = locked() || !store.author || Boolean(final) || !mine;
       if (status) {
         status.textContent = final
           ? `Closed: ${final.choice}`
@@ -109,6 +122,7 @@ the page's author close a vote on their own choice.
       }
     };
 
+    renders.push(render);
     render();
     if (!live) continue;
     for (const option of options) {
@@ -139,7 +153,7 @@ the page's author close a vote on their own choice.
       render();
     });
     store.subscribe(`${key}:final`, (records) => {
-      final = records.find((record) => record.value?.choice)?.value ?? null;
+      final = records.find((record) => record.userId === author && record.value?.choice)?.value ?? final;
       render();
     });
   }
@@ -152,9 +166,10 @@ the page's author close a vote on their own choice.
       const names = claims.filter((record) => record.value).map((record) => record.name);
       button.textContent = names.length ? `Claimed: ${names.join(", ")}` : "Claim";
       button.setAttribute("aria-pressed", String(claims.some((record) => record.userId === me)));
-      button.disabled = !live || !store.writable;
+      button.disabled = locked();
     };
 
+    renders.push(render);
     render();
     if (!live) continue;
     button.addEventListener("click", async () => {

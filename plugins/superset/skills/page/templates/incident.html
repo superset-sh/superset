@@ -9,7 +9,7 @@
   <body class="auto">
     <main class="sp-page">
       <header class="sp-header">
-        <p class="sp-kicker">Incident</p>
+        <p class="sp-kicker">Incident <span class="sp-badge sp-ok">Resolved</span></p>
         <h1>Relay dropped terminal sessions for 40 minutes</h1>
         <p class="sp-lede">A config change cut the WebSocket idle timeout to 10 s. Reverted at 10:02; no data lost.</p>
         <ul class="sp-meta">
@@ -19,7 +19,7 @@
       </header>
 
       <div class="sp-callout sp-ok">
-        <strong class="sp-callout-title">Resolved</strong>
+        <strong class="sp-callout-title">What fixed it</strong>
         <p>The timeout is back to 120 s and a test now pins it.</p>
       </div>
 
@@ -34,6 +34,7 @@
         <ol class="sp-steps">
           <li class="sp-bad"><strong>Config deployed</strong> <small>09:22</small><p>Idle timeout set to 10 s by mistake.</p></li>
           <li class="sp-warn"><strong>Alert fired</strong> <small>09:41</small><p>Reconnect rate tripled.</p></li>
+          <li class="sp-info"><strong>Cause found</strong> <small>09:55</small><p>The new value was in minutes, not seconds.</p></li>
           <li class="sp-done"><strong>Reverted</strong> <small>10:02</small><p>Reconnects back to baseline in 2 minutes.</p></li>
         </ol>
       </section>
@@ -49,8 +50,8 @@
           <table>
             <thead><tr><th>Item</th><th>Owner</th></tr></thead>
             <tbody>
-              <tr><td>Reject an idle timeout under 30 s at deploy</td><td><button class="sp-button sp-claim" data-key="claim:timeout-guard"></button></td></tr>
-              <tr><td>Alert on reconnect rate within 5 minutes</td><td><button class="sp-button sp-claim" data-key="claim:faster-alert"></button></td></tr>
+              <tr><td>Reject an idle timeout under 30 s at deploy</td><td><button type="button" class="sp-button sp-claim" data-key="claim:timeout-guard"></button></td></tr>
+              <tr><td>Alert on reconnect rate within 5 minutes</td><td><button type="button" class="sp-button sp-claim" data-key="claim:faster-alert"></button></td></tr>
             </tbody>
           </table>
         </div>
@@ -61,7 +62,17 @@
         const store = window.superset?.storage;
         const live = Boolean(store && (await store.ready));
         const me = live ? store.viewer?.userId : null;
-        const failed = (error) => `Not saved (${error?.code ?? "error"}). Try again.`;
+        let revoked = false;
+        const renders = [];
+        const failed = (error) => {
+          if (error?.code !== "revoked") return `Not saved (${error?.code ?? "error"}). Try again.`;
+          revoked = true;
+          queueMicrotask(() => {
+            for (const render of renders) render();
+          });
+          return "Your access to this page changed. Reopen it to continue.";
+        };
+        const locked = () => !live || revoked || !store.writable;
 
         const tally = (records) => {
           const counts = new Map();
@@ -74,6 +85,7 @@
 
         for (const block of document.querySelectorAll(".sp-vote[data-key]")) {
           const key = block.dataset.key;
+          const author = block.dataset.author;
           const options = [...block.querySelectorAll(".sp-option[data-value]")];
           const close = block.querySelector(".sp-vote-close");
           const status = block.querySelector(".sp-vote-status");
@@ -93,9 +105,9 @@
                 .querySelector(".sp-bar")
                 .style.setProperty("--sp-value", `${votes.length ? (100 * names.length) / votes.length : 0}%`);
               option.setAttribute("aria-pressed", String((final?.choice ?? mine) === option.dataset.value));
-              option.disabled = !live || !store.writable || Boolean(final);
+              option.disabled = locked() || Boolean(final);
             }
-            if (close) close.hidden = !live || !store.author || Boolean(final) || !mine;
+            if (close) close.hidden = locked() || !store.author || Boolean(final) || !mine;
             if (status) {
               status.textContent = final
                 ? `Closed: ${final.choice}`
@@ -103,6 +115,7 @@
             }
           };
 
+          renders.push(render);
           render();
           if (!live) continue;
           for (const option of options) {
@@ -133,7 +146,7 @@
             render();
           });
           store.subscribe(`${key}:final`, (records) => {
-            final = records.find((record) => record.value?.choice)?.value ?? null;
+            final = records.find((record) => record.userId === author && record.value?.choice)?.value ?? final;
             render();
           });
         }
@@ -146,9 +159,10 @@
             const names = claims.filter((record) => record.value).map((record) => record.name);
             button.textContent = names.length ? `Claimed: ${names.join(", ")}` : "Claim";
             button.setAttribute("aria-pressed", String(claims.some((record) => record.userId === me)));
-            button.disabled = !live || !store.writable;
+            button.disabled = locked();
           };
 
+          renders.push(render);
           render();
           if (!live) continue;
           button.addEventListener("click", async () => {

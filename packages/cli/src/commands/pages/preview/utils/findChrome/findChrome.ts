@@ -54,7 +54,8 @@ function playwrightRoot(search: ChromeSearch): string {
 
 function playwrightCandidates(search: ChromeSearch): string[] {
 	const root = playwrightRoot(search);
-	const dirs = search.listDir(root).sort().reverse();
+	const revision = (dir: string) => Number(dir.split("-").pop()) || 0;
+	const dirs = search.listDir(root).sort((a, b) => revision(b) - revision(a));
 	return Object.entries(PLAYWRIGHT_BINARIES).flatMap(([prefix, byPlatform]) =>
 		dirs
 			.filter((dir) => dir.startsWith(prefix))

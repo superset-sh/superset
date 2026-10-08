@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- Template: verification evidence. Lead with the verdict; every claim gets a screenshot or a number. -->
+<!-- Template: verification evidence. Lead with the verdict; every claim gets a screenshot or a number. Embed real captures as data: URIs. -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -9,7 +9,7 @@
   <body class="auto">
     <main class="sp-page">
       <header class="sp-header">
-        <p class="sp-kicker">Verification</p>
+        <p class="sp-kicker">Verification <span class="sp-badge sp-ok">Pass</span></p>
         <h1>The chat shimmer no longer drops frames</h1>
         <p class="sp-lede">Checked in the desktop app over CDP at three widths, light and dark, before and after the change.</p>
         <ul class="sp-meta">
@@ -33,7 +33,10 @@
             <tbody>
               <tr><td>Streaming reply, light</td><td>1280</td><td><span class="sp-badge sp-ok">Pass</span></td></tr>
               <tr><td>Streaming reply, dark</td><td>1280</td><td><span class="sp-badge sp-ok">Pass</span></td></tr>
-              <tr><td>Narrow pane</td><td>420</td><td><span class="sp-badge sp-warn">Pass, see note</span></td></tr>
+              <tr><td>Long code block, light</td><td>1280</td><td><span class="sp-badge sp-ok">Pass</span></td></tr>
+              <tr><td>Long code block, dark</td><td>1280</td><td><span class="sp-badge sp-ok">Pass</span></td></tr>
+              <tr><td>Narrow pane, light</td><td>420</td><td><span class="sp-badge sp-ok">Pass</span></td></tr>
+              <tr><td>Narrow pane, dark</td><td>420</td><td><span class="sp-badge sp-warn">Pass, see note</span></td></tr>
             </tbody>
           </table>
         </div>
@@ -44,18 +47,18 @@
         <div class="sp-compare">
           <figure class="sp-side sp-bad">
             <figcaption>Before</figcaption>
-            <img class="sp-shot" src="before.png" alt="Shimmer smeared across two lines" />
+            <img class="sp-shot" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 480 200'%3E%3Cdefs%3E%3ClinearGradient id='s'%3E%3Cstop offset='0' stop-color='%233a3a3a'/%3E%3Cstop offset='.5' stop-color='%23b5b5b5'/%3E%3Cstop offset='1' stop-color='%233a3a3a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='480' height='200' fill='%23161616'/%3E%3Crect x='24' y='24' width='22' height='22' rx='11' fill='%232c2c2c'/%3E%3Crect x='58' y='30' width='96' height='10' rx='3' fill='%233a3a3a'/%3E%3Crect x='58' y='62' width='380' height='9' rx='3' fill='%232c2c2c'/%3E%3Crect x='58' y='82' width='320' height='9' rx='3' fill='%232c2c2c'/%3E%3Crect x='58' y='112' width='360' height='9' rx='3' fill='url(%23s)'/%3E%3Crect x='58' y='124' width='300' height='9' rx='3' fill='url(%23s)' opacity='.6'/%3E%3Crect x='58' y='136' width='240' height='9' rx='3' fill='url(%23s)' opacity='.3'/%3E%3C/svg%3E" alt="Shimmer smeared across two lines" />
           </figure>
           <figure class="sp-side sp-ok">
             <figcaption>After</figcaption>
-            <img class="sp-shot" src="after.png" alt="Shimmer on one line" />
+            <img class="sp-shot" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 480 200'%3E%3Cdefs%3E%3ClinearGradient id='s'%3E%3Cstop offset='0' stop-color='%233a3a3a'/%3E%3Cstop offset='.5' stop-color='%23b5b5b5'/%3E%3Cstop offset='1' stop-color='%233a3a3a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='480' height='200' fill='%23161616'/%3E%3Crect x='24' y='24' width='22' height='22' rx='11' fill='%232c2c2c'/%3E%3Crect x='58' y='30' width='96' height='10' rx='3' fill='%233a3a3a'/%3E%3Crect x='58' y='62' width='380' height='9' rx='3' fill='%232c2c2c'/%3E%3Crect x='58' y='82' width='320' height='9' rx='3' fill='%232c2c2c'/%3E%3Crect x='58' y='112' width='220' height='9' rx='3' fill='url(%23s)'/%3E%3C/svg%3E" alt="Shimmer on one line" />
           </figure>
         </div>
       </section>
 
       <div class="sp-callout sp-warn">
         <strong class="sp-callout-title">Not tested</strong>
-        <p>Windows, and replies longer than one screen.</p>
+        <p>Windows, and replies longer than one screen. In a dark narrow pane the shimmer is faint but still on one line.</p>
       </div>
     </main>
   </body>

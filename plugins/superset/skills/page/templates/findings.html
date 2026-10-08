@@ -21,7 +21,7 @@
       <div class="sp-stats">
         <div class="sp-stat sp-bad"><span class="sp-stat-value">1</span><span class="sp-stat-label">high</span></div>
         <div class="sp-stat sp-warn"><span class="sp-stat-value">2</span><span class="sp-stat-label">medium</span></div>
-        <div class="sp-stat sp-ok"><span class="sp-stat-value">2</span><span class="sp-stat-label">verified by running it</span></div>
+        <div class="sp-stat sp-ok"><span class="sp-stat-value">2 / 3</span><span class="sp-stat-label">verified by running it</span></div>
       </div>
 
       <article class="sp-finding sp-bad">
@@ -34,10 +34,11 @@
         <p class="sp-where">packages/host-service/src/sync.ts:142</p>
         <p>With the API down, the host retries every 200 ms forever and fills the log.</p>
         <p class="sp-fix"><strong>Fix</strong> Back off, cap at 5 tries, then show the error.</p>
-        <section class="sp-vote sp-inline" data-key="decision:finding-01">
-          <button class="sp-option" data-value="fix"><span>Fix it</span><span class="sp-option-count"></span><span class="sp-bar"></span></button>
-          <button class="sp-option" data-value="wontfix"><span>Won't fix</span><span class="sp-option-count"></span><span class="sp-bar"></span></button>
-          <button class="sp-option" data-value="disagree"><span>Not a bug</span><span class="sp-option-count"></span><span class="sp-bar"></span></button>
+        <section class="sp-vote sp-inline" data-key="decision:finding-01" data-author="AUTHOR_USER_ID">
+          <button type="button" class="sp-option" data-value="fix"><span>Fix it</span><span class="sp-option-count"></span><span class="sp-bar"></span></button>
+          <button type="button" class="sp-option" data-value="wontfix"><span>Won't fix</span><span class="sp-option-count"></span><span class="sp-bar"></span></button>
+          <button type="button" class="sp-option" data-value="disagree"><span>Not a bug</span><span class="sp-option-count"></span><span class="sp-bar"></span></button>
+          <button type="button" class="sp-button sp-vote-close" hidden>Close with my vote</button>
           <p class="sp-vote-status"></p>
         </section>
       </article>
@@ -52,10 +53,30 @@
         <p class="sp-where">packages/host-service/src/cursor.ts:58</p>
         <p>A reconnect replays from zero, so a client sees each event twice.</p>
         <p class="sp-fix"><strong>Fix</strong> Resume from the last acknowledged cursor.</p>
-        <section class="sp-vote sp-inline" data-key="decision:finding-02">
-          <button class="sp-option" data-value="fix"><span>Fix it</span><span class="sp-option-count"></span><span class="sp-bar"></span></button>
-          <button class="sp-option" data-value="wontfix"><span>Won't fix</span><span class="sp-option-count"></span><span class="sp-bar"></span></button>
-          <button class="sp-option" data-value="disagree"><span>Not a bug</span><span class="sp-option-count"></span><span class="sp-bar"></span></button>
+        <section class="sp-vote sp-inline" data-key="decision:finding-02" data-author="AUTHOR_USER_ID">
+          <button type="button" class="sp-option" data-value="fix"><span>Fix it</span><span class="sp-option-count"></span><span class="sp-bar"></span></button>
+          <button type="button" class="sp-option" data-value="wontfix"><span>Won't fix</span><span class="sp-option-count"></span><span class="sp-bar"></span></button>
+          <button type="button" class="sp-option" data-value="disagree"><span>Not a bug</span><span class="sp-option-count"></span><span class="sp-bar"></span></button>
+          <button type="button" class="sp-button sp-vote-close" hidden>Close with my vote</button>
+          <p class="sp-vote-status"></p>
+        </section>
+      </article>
+
+      <article class="sp-finding sp-warn">
+        <div class="sp-finding-head">
+          <span class="sp-finding-num">03</span>
+          <h3>Sync status stays "connecting" offline</h3>
+          <span class="sp-badge sp-warn">Medium</span>
+          <span class="sp-badge sp-ok">Verified</span>
+        </div>
+        <p class="sp-where">apps/desktop/src/renderer/SyncStatus.tsx:31</p>
+        <p>With the network off, the status shows a spinner forever instead of "offline".</p>
+        <p class="sp-fix"><strong>Fix</strong> Show offline after the first failed retry.</p>
+        <section class="sp-vote sp-inline" data-key="decision:finding-03" data-author="AUTHOR_USER_ID">
+          <button type="button" class="sp-option" data-value="fix"><span>Fix it</span><span class="sp-option-count"></span><span class="sp-bar"></span></button>
+          <button type="button" class="sp-option" data-value="wontfix"><span>Won't fix</span><span class="sp-option-count"></span><span class="sp-bar"></span></button>
+          <button type="button" class="sp-option" data-value="disagree"><span>Not a bug</span><span class="sp-option-count"></span><span class="sp-bar"></span></button>
+          <button type="button" class="sp-button sp-vote-close" hidden>Close with my vote</button>
           <p class="sp-vote-status"></p>
         </section>
       </article>
@@ -65,7 +86,17 @@
         const store = window.superset?.storage;
         const live = Boolean(store && (await store.ready));
         const me = live ? store.viewer?.userId : null;
-        const failed = (error) => `Not saved (${error?.code ?? "error"}). Try again.`;
+        let revoked = false;
+        const renders = [];
+        const failed = (error) => {
+          if (error?.code !== "revoked") return `Not saved (${error?.code ?? "error"}). Try again.`;
+          revoked = true;
+          queueMicrotask(() => {
+            for (const render of renders) render();
+          });
+          return "Your access to this page changed. Reopen it to continue.";
+        };
+        const locked = () => !live || revoked || !store.writable;
 
         const tally = (records) => {
           const counts = new Map();
@@ -78,6 +109,7 @@
 
         for (const block of document.querySelectorAll(".sp-vote[data-key]")) {
           const key = block.dataset.key;
+          const author = block.dataset.author;
           const options = [...block.querySelectorAll(".sp-option[data-value]")];
           const close = block.querySelector(".sp-vote-close");
           const status = block.querySelector(".sp-vote-status");
@@ -97,9 +129,9 @@
                 .querySelector(".sp-bar")
                 .style.setProperty("--sp-value", `${votes.length ? (100 * names.length) / votes.length : 0}%`);
               option.setAttribute("aria-pressed", String((final?.choice ?? mine) === option.dataset.value));
-              option.disabled = !live || !store.writable || Boolean(final);
+              option.disabled = locked() || Boolean(final);
             }
-            if (close) close.hidden = !live || !store.author || Boolean(final) || !mine;
+            if (close) close.hidden = locked() || !store.author || Boolean(final) || !mine;
             if (status) {
               status.textContent = final
                 ? `Closed: ${final.choice}`
@@ -107,6 +139,7 @@
             }
           };
 
+          renders.push(render);
           render();
           if (!live) continue;
           for (const option of options) {
@@ -137,7 +170,7 @@
             render();
           });
           store.subscribe(`${key}:final`, (records) => {
-            final = records.find((record) => record.value?.choice)?.value ?? null;
+            final = records.find((record) => record.userId === author && record.value?.choice)?.value ?? final;
             render();
           });
         }
@@ -150,9 +183,10 @@
             const names = claims.filter((record) => record.value).map((record) => record.name);
             button.textContent = names.length ? `Claimed: ${names.join(", ")}` : "Claim";
             button.setAttribute("aria-pressed", String(claims.some((record) => record.userId === me)));
-            button.disabled = !live || !store.writable;
+            button.disabled = locked();
           };
 
+          renders.push(render);
           render();
           if (!live) continue;
           button.addEventListener("click", async () => {

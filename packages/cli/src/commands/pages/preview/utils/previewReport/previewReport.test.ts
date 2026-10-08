@@ -47,7 +47,7 @@ describe("previewIssues", () => {
 		expect(issues).toEqual([
 			"console errors: Uncaught TypeError: x is undefined",
 			"blocked by the page content policy: Refused to load the script 'https://cdn.example/x.js'",
-			"files the page asked for that do not exist: /after.png",
+			"files the page asks for that will be missing once published: /after.png",
 			"the page scrolls sideways at 390 dark: give wide content an sp-scroll wrapper",
 			'light and dark look identical at 1280: put class="auto" on <body> unless the page is meant for one theme',
 			"the page has no <title>",

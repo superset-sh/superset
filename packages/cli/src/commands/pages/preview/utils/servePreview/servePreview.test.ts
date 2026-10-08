@@ -1,5 +1,11 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	rmSync,
+	symlinkSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PAGE_THEME_CSS } from "@superset/shared/usercontent";
@@ -13,7 +19,9 @@ writeFileSync(
 );
 writeFileSync(join(dir, "site", "app.css"), "body{}");
 writeFileSync(join(dir, "secret.txt"), "outside");
+symlinkSync(join(dir, "secret.txt"), join(dir, "site", "linked.txt"));
 const site = resolvePreviewSite(join(dir, "site"));
+const singleFile = resolvePreviewSite(join(dir, "site", "index.html"));
 
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
@@ -32,8 +40,29 @@ describe("previewResponse", () => {
 		expect(await response.text()).toBe("body{}");
 	});
 
-	test("refuses paths outside the page's directory", () => {
+	test("refuses paths outside the page's directory, including through a link", () => {
 		expect(previewResponse(site, "/../secret.txt").status).toBe(404);
 		expect(previewResponse(site, "/%2e%2e/secret.txt").status).toBe(404);
+		expect(previewResponse(site, "/linked.txt").status).toBe(404);
+	});
+
+	test("answers a malformed path with not found", () => {
+		expect(previewResponse(site, "/%E0%A4%A").status).toBe(404);
+	});
+
+	test("serves no neighbouring files for a single-file page, as publishing uploads none", () => {
+		expect(previewResponse(singleFile, "/").status).toBe(200);
+		expect(previewResponse(singleFile, "/app.css").status).toBe(404);
+	});
+
+	test("serves an SVG opened directly as a download, as the published origin does", () => {
+		writeFileSync(join(dir, "site", "logo.svg"), "<svg/>");
+		const response = previewResponse(site, "/logo.svg", "document");
+		expect(response.headers.get("content-disposition")).toContain("attachment");
+		expect(
+			previewResponse(site, "/logo.svg", "image").headers.get(
+				"content-disposition",
+			),
+		).toBeNull();
 	});
 });
