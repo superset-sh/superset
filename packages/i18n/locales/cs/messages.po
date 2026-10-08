@@ -18496,7 +18496,7 @@ msgid "View All"
 msgstr "Zobrazit vše"
 
 msgid "View all (+{moreCount} more)"
-msgstr "Zobrazit vše (+{moreCount} dalších)"
+msgstr "Zobrazit vše (+{moreCount} navíc)"
 
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"
