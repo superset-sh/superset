@@ -1,0 +1,1 @@
+export { usePageGeneralAccess } from "./usePageGeneralAccess";

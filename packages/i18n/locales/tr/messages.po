@@ -96,6 +96,9 @@ msgstr "(çıktı yok)"
 msgid "(so far)"
 msgstr "(şimdiye kadar)"
 
+msgid "(you)"
+msgstr "(siz)"
+
 #. placeholder {0}: connections.length
 msgid "{0, plural, one {# account connected} other {# accounts connected}}"
 msgstr "{0, plural, one {# hesap bağlı} other {# hesap bağlı}}"
@@ -187,6 +190,7 @@ msgstr "{0, plural, one {# beklemede} other {# beklemede}}"
 
 #. placeholder {0}: chosenLeads.length
 #. placeholder {0}: chosenPeople.length
+#. placeholder {0}: grantee.memberCount
 msgid "{0, plural, one {# person} other {# people}}"
 msgstr "{0, plural, one {# kişi} other {# kişi}}"
 
@@ -643,6 +647,9 @@ msgstr "{actor} açıklamayı düzenledi"
 msgid "{actor} joined"
 msgstr "{actor} katıldı"
 
+msgid "{actor} limited the workspace to people invited"
+msgstr "{actor} çalışma alanını davet edilen kişilerle sınırladı"
+
 msgid "{actor} linked {chip}"
 msgstr "{actor}, {chip} bağlantısını ekledi"
 
@@ -652,9 +659,6 @@ msgstr "{actor}, {chip} bağlantısını ekledi · {suggestedBy} önerdi"
 msgid "{actor} linked the workspace {workspace}"
 msgstr "{actor} {workspace} çalışma alanını bağladı"
 
-msgid "{actor} made the workspace private"
-msgstr "{actor} çalışma alanını gizli yaptı"
-
 msgid "{actor} moved the task from {from} to {to}"
 msgstr "{actor} görevi {from} durumundan {to} durumuna taşıdı"
 
@@ -663,6 +667,9 @@ msgstr "{actor}, {badge} açtı"
 
 msgid "{actor} published {chip}"
 msgstr "{actor}, {chip} yayımladı"
+
+msgid "{actor} removed access for {target}"
+msgstr "{actor}, {target} için erişimi kaldırdı"
 
 msgid "{actor} removed the assignee"
 msgstr "{actor} atanan kişiyi kaldırdı"
@@ -691,6 +698,9 @@ msgstr "{actor} önceliği {to} olarak ayarladı"
 
 msgid "{actor} set the status to {to}"
 msgstr "{actor} durumu {to} olarak ayarladı"
+
+msgid "{actor} shared the workspace with {target}"
+msgstr "{actor} çalışma alanını {target} ile paylaştı"
 
 msgid "{actor} shared the workspace with the organization"
 msgstr "{actor} çalışma alanını kuruluşla paylaştı"
@@ -1532,6 +1542,12 @@ msgstr "Koşulları kabul et"
 msgid "Access denied"
 msgstr "Erişim reddedildi"
 
+msgid "Access for {name}"
+msgstr "{name} için erişim"
+
+msgid "Access for the people you add"
+msgstr "Eklediğiniz kişiler için erişim"
+
 msgid "Access your email address"
 msgstr "E-posta adresinize erişme"
 
@@ -1728,8 +1744,17 @@ msgstr "Dinleyen ajan ekle"
 msgid "Add member"
 msgstr "Üye ekle"
 
+msgid "Add more…"
+msgstr "Daha fazla ekle…"
+
 msgid "Add one from the menu in the sidebar to get started."
 msgstr "Başlamak için kenar çubuğundaki menüden bir tane ekleyin."
+
+msgid "Add people"
+msgstr "Kişi ekle"
+
+msgid "Add people or teams by name or email"
+msgstr "Ad veya e-posta ile kişi ya da takım ekleyin"
 
 msgid "Add photos or files"
 msgstr "Fotoğraf veya dosya ekle"
@@ -1805,6 +1830,10 @@ msgstr "{where} konumuna 1 dosya eklendi"
 
 msgid "Added only when launching with a prompt — e.g. <0>--</0>, <1>--prompt</1>, <2>-i</2>."
 msgstr "Yalnızca istemle başlatılırken eklenir — örn. <0>--</0>, <1>--prompt</1>, <2>-i</2>."
+
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
+msgstr "{organizationName} kuruluşuna kişi eklemek için ücretli bir plan gerekir. Kuruluşunuzun planını sahibi {0} adresinde yönetir."
 
 msgid "Address Comments with Agent"
 msgstr "Yorumları ajanla ele al"
@@ -2303,11 +2332,27 @@ msgstr "Tüm konu olayları"
 msgid "Anyone"
 msgstr "Herkes"
 
+#. placeholder {0}: share.organizationName
+msgid "Anyone in {0} who isn't listed here loses access, including anyone who has it open now."
+msgstr "{0} içinde burada listelenmeyen herkes, şu anda açık olanlar dahil, erişimini kaybeder."
+
+msgid "Anyone in {organizationName} who isn't listed here loses access."
+msgstr "{organizationName} içinde burada listelenmeyen herkes erişimini kaybeder."
+
+msgid "Anyone in {organizationName} with the link can open it"
+msgstr "{organizationName} içinde bağlantıya sahip herkes açabilir"
+
 msgid "Anyone in your organization"
 msgstr "Kuruluşunuzdaki herkes"
 
 msgid "Anyone with the link"
 msgstr "Bağlantıya sahip herkes"
+
+msgid "Anyone with the link can view it, including people outside {organizationName} and people who aren't signed in."
+msgstr "Bağlantıya sahip herkes, {organizationName} dışındaki kişiler ve oturum açmamış kişiler dahil, bunu görüntüleyebilir."
+
+msgid "Anyone with the link can view it, signed in or not"
+msgstr "Bağlantıya sahip herkes, oturum açmış olsun ya da olmasın görüntüleyebilir"
 
 msgid "anything"
 msgstr "herhangi bir şey"
@@ -3240,6 +3285,9 @@ msgstr "Kamera erişimine izin verilmiyor"
 msgid "Camera is not available"
 msgstr "Kamera kullanılamıyor"
 
+msgid "Can comment"
+msgstr "Yorum yapabilir"
+
 msgid "Can I switch plans or cancel anytime?"
 msgstr "İstediğim zaman plan değiştirebilir veya iptal edebilir miyim?"
 
@@ -3251,6 +3299,9 @@ msgstr "Çakışma olmadan birleştirilebilir"
 
 msgid "Can the headline say what happens after sign-up?"
 msgstr "Başlık, kayıttan sonra ne olacağını söyleyebilir mi?"
+
+msgid "Can view"
+msgstr "Görüntüleyebilir"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Uygulama genelindeki tooltip'leri standartlaştırabilir misin?"
@@ -3276,6 +3327,9 @@ msgstr "İndirmeyi iptal et"
 msgid "Cancel edits"
 msgstr "Düzenlemeleri iptal et"
 
+msgid "Cancel invite"
+msgstr "Daveti iptal et"
+
 msgid "Cancel plan"
 msgstr "Planı iptal et"
 
@@ -3291,6 +3345,9 @@ msgstr "İptal ediliyor..."
 
 msgid "Cancelled"
 msgstr "İptal edildi"
+
+msgid "Cancelled the invite for {name}"
+msgstr "{name} için davet iptal edildi"
 
 #. placeholder {0}: format(new Date(cancelAt), "MMMM d, yyyy")
 #. placeholder {0}: formatDate(cancelAt)
@@ -4709,17 +4766,17 @@ msgstr "Dosyalar eklenemedi"
 msgid "Could not branch the chat"
 msgstr "Sohbet dallandırılamadı"
 
+msgid "Could not change access"
+msgstr "Erişim değiştirilemedi"
+
 msgid "Could not change the mode"
 msgstr "Mod değiştirilemedi"
 
 msgid "Could not change the shared version"
 msgstr "Paylaşılan sürüm değiştirilemedi"
 
-msgid "Could not change who can see this page"
-msgstr "Bu sayfayı kimlerin görebileceği değiştirilemedi"
-
-msgid "Could not change who can see this workspace"
-msgstr "Bu çalışma alanını kimlerin görebileceği değiştirilemedi"
+msgid "Could not change who has access"
+msgstr "Erişimi olanlar değiştirilemedi"
 
 msgid "Could not check your plan. Check your connection and try again."
 msgstr "Planınız kontrol edilemedi. Bağlantınızı kontrol edip tekrar deneyin."
@@ -4863,6 +4920,9 @@ msgstr "Bulut çalışma alanı kaydedilemedi"
 msgid "Could not record environment"
 msgstr "Ortam kaydedilemedi"
 
+msgid "Could not remove access"
+msgstr "Erişim kaldırılamadı"
+
 msgid "Could not rename the session"
 msgstr "Oturum yeniden adlandırılamadı"
 
@@ -4874,6 +4934,9 @@ msgstr "Yeniden açılamadı"
 
 msgid "Could not reopen this comment"
 msgstr "Bu yorum yeniden açılamadı"
+
+msgid "Could not resend the invite"
+msgstr "Davet yeniden gönderilemedi"
 
 msgid "Could not resolve this comment"
 msgstr "Bu yorum çözülemedi"
@@ -4895,6 +4958,9 @@ msgstr "İnceleme gönderilemedi"
 
 msgid "Could not set icon"
 msgstr "Simge ayarlanamadı"
+
+msgid "Could not share"
+msgstr "Paylaşılamadı"
 
 msgid "Could not start agent"
 msgstr "Ajan başlatılamadı"
@@ -4931,6 +4997,9 @@ msgstr "İstem gönderilemedi. Yeniden deneyin."
 
 msgid "Could not take a screenshot"
 msgstr "Ekran görüntüsü alınamadı"
+
+msgid "Could not undo"
+msgstr "Geri alınamadı"
 
 msgid "Could not update plugin"
 msgstr "Eklenti güncellenemedi"
@@ -5450,6 +5519,9 @@ msgstr "Ctrl+Shift+tık"
 
 msgid "Current"
 msgstr "Geçerli"
+
+msgid "Current access"
+msgstr "Mevcut erişim"
 
 msgid "Current level"
 msgstr "Mevcut düzey"
@@ -6533,6 +6605,9 @@ msgstr "Superset'ten memnun musunuz?"
 
 msgid "Ensure no regression"
 msgstr "Regresyon olmadığından emin ol"
+
+msgid "Enter a full email address"
+msgstr "Tam bir e-posta adresi girin"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "{hostName} üzerinde bir üst dizin girin"
@@ -8014,6 +8089,9 @@ msgstr "şu anda sürüyor"
 msgid "Hard reload"
 msgstr "Sert yeniden yükleme"
 
+msgid "Has access"
+msgstr "Erişimi var"
+
 msgid "Has conflicts"
 msgstr "Çakışma var"
 
@@ -8729,6 +8807,12 @@ msgstr "Davet bulunamadı"
 msgid "Invitation sent to {email}"
 msgstr "{email} adresine davet gönderildi"
 
+msgid "Invite"
+msgstr "Davet et"
+
+msgid "Invite {label} to join {organizationName}"
+msgstr "{label} kişisini {organizationName} kuruluşuna davet et"
+
 msgid "Invite and manage members, assign roles, and control permissions"
 msgstr "Üyeleri davet edin ve yönetin, roller atayın ve izinleri denetleyin"
 
@@ -8738,11 +8822,23 @@ msgstr "Üye davet et"
 msgid "Invite Member"
 msgstr "Üye davet et"
 
+msgid "Invite pending"
+msgstr "Davet bekliyor"
+
+msgid "Invite people on a paid plan"
+msgstr "Ücretli bir planla kişi davet edin"
+
 msgid "Invite teammate"
 msgstr "Takım arkadaşı davet et"
 
+msgid "Invite to {organizationName}"
+msgstr "{organizationName} kuruluşuna davet et"
+
 msgid "Invite your team to shared workspaces. See real-time updates, sync configurations, and manage team access across agents."
 msgstr "Takımınızı paylaşılan çalışma alanlarına davet edin. Anlık güncellemeleri görün, yapılandırmaları eşitleyin ve ajanlar genelinde takım erişimini yönetin."
+
+msgid "Invited"
+msgstr "Davet edildi"
 
 msgid "Invited By"
 msgstr "Davet eden"
@@ -8929,6 +9025,9 @@ msgstr "Belgeleri güncel tut"
 
 msgid "Keep editing"
 msgstr "Düzenlemeye devam et"
+
+msgid "Keep typing an email to invite"
+msgstr "Davet etmek için e-postayı yazmaya devam edin"
 
 msgid "Keep waiting"
 msgstr "Beklemeye devam et"
@@ -9221,6 +9320,15 @@ msgstr "Superset ile geliştirmeyi seviyor musunuz?"
 
 msgid "Lime"
 msgstr "Limon yeşili"
+
+msgid "Limit access"
+msgstr "Erişimi sınırla"
+
+msgid "Limit to {organizationName}?"
+msgstr "{organizationName} ile sınırlansın mı?"
+
+msgid "Limit to people invited?"
+msgstr "Davet edilen kişilerle sınırlansın mı?"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -9580,11 +9688,17 @@ msgstr "Varsayılan yap"
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "Varsayılan yap — yeni terminalleri ve ajanları bu hesapta başlat."
 
+msgid "Make public"
+msgstr "Herkese açık yap"
+
 msgid "Make sure the device is awake, online, and running Superset."
 msgstr "Cihazın uyanık, çevrimiçi ve Superset’in çalışır durumda olduğundan emin olun."
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "Çip stilini TooltipContent varsayılanı yap"
+
+msgid "Make this page public?"
+msgstr "Bu sayfa herkese açık yapılsın mı?"
 
 msgid "Makes the Run button launch this terminal script for matching projects."
 msgstr "Çalıştır düğmesinin, eşleşen projelerde bu terminal betiğini başlatmasını sağlar."
@@ -10036,6 +10150,9 @@ msgstr "Diğer oluşturma seçenekleri"
 msgid "More options"
 msgstr "Diğer seçenekler"
 
+msgid "More options for {name}"
+msgstr "{name} için diğer seçenekler"
+
 msgid "More pages"
 msgstr "Daha fazla sayfa"
 
@@ -10122,6 +10239,9 @@ msgstr "Ad güncellendi!"
 
 msgid "Nameless Foreman"
 msgstr "İsimsiz Ustabaşı"
+
+msgid "Names, emails, or teams"
+msgstr "Adlar, e-postalar veya ekipler"
 
 msgid "Namespace new branches for this project. Defaults to the host-wide Git setting."
 msgstr "Bu projedeki yeni dalları bir ad alanına alın. Varsayılan olarak host genelindeki Git ayarını kullanır."
@@ -10707,6 +10827,9 @@ msgstr "Burada kullanılabilir bir mobil simülatör yok. Limrun destekli bir bu
 msgid "No name on file"
 msgstr "Kayıtlı ad yok"
 
+msgid "No one in {organizationName} matches"
+msgstr "{organizationName} içinde eşleşen kimse yok"
+
 msgid "No open issues found."
 msgstr "Açık issue bulunamadı."
 
@@ -11289,6 +11412,9 @@ msgstr "Şu an çevrimiçi"
 msgid "Online Now"
 msgstr "Şu an çevrimiçi"
 
+msgid "Only {organizationName} admins can invite new people"
+msgstr "Yeni kişileri yalnızca {organizationName} yöneticileri davet edebilir"
+
 msgid "Only an organization owner can change the plan. Ask yours to upgrade."
 msgstr "Planı yalnızca kuruluş sahibi değiştirebilir. Yükseltme için sahibinize başvurun."
 
@@ -11322,6 +11448,9 @@ msgstr "Faturalandırmayı yalnızca sahipler yönetebilir"
 msgid "Only owners can update organization settings"
 msgstr "Kuruluş ayarlarını yalnızca sahipler güncelleyebilir"
 
+msgid "Only people invited"
+msgstr "Yalnızca davet edilen kişiler"
+
 msgid "Only people who opted in appear here."
 msgstr "Burada yalnızca katılmayı seçenler görünür."
 
@@ -11337,6 +11466,9 @@ msgstr "Uyandırma komutunu yalnızca host sahibi ayarlayabilir"
 msgid "Only the owner can change this"
 msgstr "Bunu yalnızca sahibi değiştirebilir"
 
+msgid "Only the owner can change who this is shared with"
+msgstr "Bunun kimlerle paylaşıldığını yalnızca sahibi değiştirebilir"
+
 msgid "Only the owner can run this automation"
 msgstr "Bu otomasyonu yalnızca sahibi çalıştırabilir"
 
@@ -11346,11 +11478,17 @@ msgstr "İstem geçmişini yalnızca sahibi görebilir"
 msgid "Only the owner or an organization owner can delete this automation"
 msgstr "Bu otomasyonu yalnızca sahibi veya bir kuruluş sahibi silebilir"
 
+msgid "Only the people listed above can open it"
+msgstr "Yalnızca yukarıda listelenen kişiler açabilir"
+
 msgid "Only the person who created this page can change it"
 msgstr "Bu sayfayı yalnızca oluşturan kişi değiştirebilir"
 
 msgid "Only the person who created this page can change these."
 msgstr "Bunları yalnızca bu sayfayı oluşturan kişi değiştirebilir."
+
+msgid "Only the person who created this workspace can change these."
+msgstr "Bunu yalnızca bu çalışma alanını oluşturan kişi değiştirebilir."
 
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "Konuyu yalnızca yazarı veya sayfanın sahibi silebilir"
@@ -11735,6 +11873,9 @@ msgstr "8. terminal betiğini aç"
 
 msgid "Open Terminal Script 9"
 msgstr "9. terminal betiğini aç"
+
+msgid "Open terminals and prompt agents"
+msgstr "Terminal açabilir ve ajanlara komut verebilir"
 
 msgid "Open the Changes pane in a new tab, or focus the existing one"
 msgstr "Değişiklikler panelini yeni sekmede açar veya mevcut olana odaklanır"
@@ -12183,6 +12324,9 @@ msgstr "Bekleyen davetler"
 msgid "People"
 msgstr "Kişiler"
 
+msgid "People outside {organizationName} lose access, and the public link stops working."
+msgstr "{organizationName} dışındaki kişiler erişimini kaybeder ve herkese açık bağlantı çalışmayı durdurur."
+
 msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
 msgstr "Ödeme duvarını ilk kez son {PAYWALL_FUNNEL_WEEKS} hafta içinde gören kişiler ve nereye kadar geldikleri. Bir aşama, o görüntülemeden sonra oraya ulaşan herkesi sayar; bu yüzden yeni kohortlar hâlâ olgunlaşıyor."
 
@@ -12213,6 +12357,9 @@ msgstr "\"{projectName}\" kalıcı olarak silindi"
 #. placeholder {0}: team.name
 msgid "Permanently remove <0>{0}</0> and all of its members. This can't be undone."
 msgstr "<0>{0}</0> takımını ve tüm üyelerini kalıcı olarak kaldırın. Bu geri alınamaz."
+
+msgid "Permission level"
+msgstr "İzin düzeyi"
 
 msgid "Permissions"
 msgstr "İzinler"
@@ -13025,6 +13172,12 @@ msgstr "Rehberi oku"
 msgid "Read the guide to parallel coding agents"
 msgstr "Paralel kodlama ajanları rehberini okuyun"
 
+msgid "Read the page"
+msgstr "Sayfayı okuyabilir"
+
+msgid "Read the page and leave comments"
+msgstr "Sayfayı okuyabilir ve yorum bırakabilir"
+
 msgid "Read the setup guide"
 msgstr "Kurulum rehberini okuyun"
 
@@ -13279,6 +13432,9 @@ msgstr "Kaldır"
 msgid "Remove {0}"
 msgstr "{0} kişisini kaldır"
 
+msgid "Remove {label}"
+msgstr "{label} kaldır"
+
 msgid "Remove {label}?"
 msgstr "{label} kaldırılsın mı?"
 
@@ -13353,6 +13509,9 @@ msgstr "Kaldır…"
 
 msgid "Removed {credential} for {agentLabel}."
 msgstr "{agentLabel} için {credential} kaldırıldı."
+
+msgid "Removed {name}"
+msgstr "{name} kaldırıldı"
 
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel} kaldırıldı."
@@ -13548,6 +13707,9 @@ msgstr "Gerekli sürüm: {minimumVersion}+"
 
 msgid "Requires iOS 26 or later. Included with Superset Pro."
 msgstr "iOS 26 veya sonrası gerekir. Superset Pro'ya dahildir."
+
+msgid "Resend invite"
+msgstr "Daveti yeniden gönder"
 
 msgid "Reserved by OS"
 msgstr "İşletim sistemi tarafından ayrılmış"
@@ -14520,6 +14682,9 @@ msgstr "Son 30 gününüzün herkese açık liderlik tablosunda nereye düştü�
 msgid "Select"
 msgstr "Seçim"
 
+msgid "Select a person"
+msgstr "Bir kişi seçin"
+
 msgid "Select a project"
 msgstr "Bir proje seçin"
 
@@ -14646,6 +14811,9 @@ msgstr "Terminal betiği dizinini seçin"
 msgid "Select worktree location"
 msgstr "Worktree konumunu seçin"
 
+msgid "Selected"
+msgstr "Seçilenler"
+
 msgid "Selected agent is not available on this host"
 msgstr "Seçili ajan bu host'ta kullanılamıyor"
 
@@ -14720,6 +14888,10 @@ msgstr "{2} ajanına {0} karakterlik terminal bağlamı (yaklaşık {1} token) g
 
 msgid "Sent"
 msgstr "Gönderildi"
+
+#. placeholder {0}: grantee.email
+msgid "Sent the invite to {0} again"
+msgstr "Davet {0} adresine yeniden gönderildi"
 
 msgid "Sent to agent"
 msgstr "Ajana gönderildi"
@@ -14916,6 +15088,9 @@ msgstr "Paylaşılan sürüm"
 
 msgid "Shared with everyone"
 msgstr "Herkesle paylaşıldı"
+
+msgid "Shared with me"
+msgstr "Benimle paylaşılanlar"
 
 msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
 msgstr "Projenin checkout'unu (dosyalar, git indeksi ve dal) diğer yerel çalışma alanlarıyla paylaşır"
@@ -15279,6 +15454,9 @@ msgstr "Şimdilik atla"
 
 msgid "Skipped"
 msgstr "Atlandı"
+
+msgid "Skipped {blocked} not in {organizationName}. Only admins can invite new people."
+msgstr "{organizationName} dışındaki {blocked} adres atlandı. Yeni kişileri yalnızca yöneticiler davet edebilir."
 
 msgid "Slack Account Linked"
 msgstr "Slack hesabı bağlandı"
@@ -16220,6 +16398,9 @@ msgstr "Sekme"
 msgid "Tab per command"
 msgstr "Komut başına sekme"
 
+msgid "Tab to fill"
+msgstr "Doldurmak için Tab"
+
 msgid "Table"
 msgstr "Tablo"
 
@@ -16499,6 +16680,9 @@ msgstr "Bu uç noktaya izin verilmiyor."
 
 msgid "That handle is taken."
 msgstr "Bu kullanıcı adı alınmış."
+
+msgid "That invitation is no longer pending"
+msgstr "Bu davet artık beklemede değil"
 
 msgid "That Linear issue doesn't exist or you can't see it."
 msgstr "Bu Linear kaydı yok ya da onu göremiyorsunuz."
@@ -16850,6 +17034,9 @@ msgstr "Bu komutlar bir çalışma alanı oluşturulduğunda otomatik olarak ça
 
 msgid "These ports are still in use"
 msgstr "Bu portlar hâlâ kullanımda"
+
+msgid "They get full access"
+msgstr "Tam erişim alırlar"
 
 msgid "Thinking"
 msgstr "Düşünme"
@@ -18065,6 +18252,9 @@ msgstr "Sürüm"
 msgid "Version {0}"
 msgstr "Sürüm {0}"
 
+msgid "Version {sharedVersion}"
+msgstr "Sürüm {sharedVersion}"
+
 msgid "Version {version}"
 msgstr "Sürüm {version}"
 
@@ -18085,6 +18275,10 @@ msgstr "Sürüm bulunamadı"
 
 msgid "Version unknown"
 msgstr "Sürüm bilinmiyor"
+
+#. placeholder {0}: effective.via
+msgid "via {0}"
+msgstr "{0} aracılığıyla"
 
 msgid "Video"
 msgstr "Video"
@@ -18411,6 +18605,9 @@ msgstr "Ne yapmak istiyorsunuz?"
 
 msgid "What early users say"
 msgstr "İlk kullanıcılar ne diyor"
+
+msgid "What general access allows"
+msgstr "Genel erişimin izin verdikleri"
 
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google bizi hangi aramalarda gösteriyor ve bunun ne kadarı kendi adımız değil."
@@ -18853,11 +19050,17 @@ msgstr "Sürüm {version} görüntüleniyor, salt okunur"
 msgid "You can attach up to {MAX_ATTACHMENTS} files"
 msgstr "En fazla {MAX_ATTACHMENTS} dosya ekleyebilirsiniz"
 
+msgid "You can only share with people and teams in this organization"
+msgstr "Yalnızca bu kuruluştaki kişiler ve takımlarla paylaşabilirsiniz"
+
 msgid "You can restore it from Settings → Projects for 30 days. The repository folder is never deleted."
 msgstr "30 gün boyunca Ayarlar → Projeler bölümünden geri yükleyebilirsin. Depo klasörü asla silinmez."
 
 msgid "You can see how we work before you talk to us."
 msgstr "Bizimle konuşmadan önce nasıl çalıştığımızı görebilirsiniz."
+
+msgid "You can view this page but not comment on it"
+msgstr "Bu sayfayı görüntüleyebilirsiniz ancak yorum yapamazsınız"
 
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."

@@ -96,6 +96,9 @@ msgstr "(출력 없음)"
 msgid "(so far)"
 msgstr "(현재까지)"
 
+msgid "(you)"
+msgstr "(나)"
+
 #. placeholder {0}: connections.length
 msgid "{0, plural, one {# account connected} other {# accounts connected}}"
 msgstr "{0, plural, other {계정 #개 연결됨}}"
@@ -187,6 +190,7 @@ msgstr "{0, plural, one {#개 대기 중} other {#개 대기 중}}"
 
 #. placeholder {0}: chosenLeads.length
 #. placeholder {0}: chosenPeople.length
+#. placeholder {0}: grantee.memberCount
 msgid "{0, plural, one {# person} other {# people}}"
 msgstr "{0, plural, other {# 명}}"
 
@@ -643,6 +647,9 @@ msgstr "{actor} 님이 설명을 편집했습니다"
 msgid "{actor} joined"
 msgstr "{actor} 님이 참여했습니다"
 
+msgid "{actor} limited the workspace to people invited"
+msgstr "{actor} 님이 워크스페이스를 초대된 사람으로 제한했습니다"
+
 msgid "{actor} linked {chip}"
 msgstr "{actor} 님이 {chip}을(를) 연결했습니다"
 
@@ -652,9 +659,6 @@ msgstr "{actor} 님이 {chip}을(를) 연결했습니다 · {suggestedBy} 제안
 msgid "{actor} linked the workspace {workspace}"
 msgstr "{actor} 님이 워크스페이스 {workspace}을(를) 연결했습니다"
 
-msgid "{actor} made the workspace private"
-msgstr "{actor} 님이 워크스페이스를 비공개로 설정했습니다"
-
 msgid "{actor} moved the task from {from} to {to}"
 msgstr "{actor} 님이 작업을 {from}에서 {to}(으)로 옮겼습니다"
 
@@ -663,6 +667,9 @@ msgstr "{actor} 님이 {badge}을(를) 열었습니다"
 
 msgid "{actor} published {chip}"
 msgstr "{actor} 님이 {chip}을(를) 게시했습니다"
+
+msgid "{actor} removed access for {target}"
+msgstr "{actor} 님이 {target}의 접근 권한을 제거했습니다"
 
 msgid "{actor} removed the assignee"
 msgstr "{actor} 님이 담당자를 제거했습니다"
@@ -691,6 +698,9 @@ msgstr "{actor} 님이 우선순위를 {to}(으)로 설정했습니다"
 
 msgid "{actor} set the status to {to}"
 msgstr "{actor} 님이 상태를 {to}(으)로 설정했습니다"
+
+msgid "{actor} shared the workspace with {target}"
+msgstr "{actor} 님이 워크스페이스를 {target}와(과) 공유했습니다"
 
 msgid "{actor} shared the workspace with the organization"
 msgstr "{actor} 님이 워크스페이스를 조직과 공유했습니다"
@@ -1532,6 +1542,12 @@ msgstr "약관 동의"
 msgid "Access denied"
 msgstr "접근이 거부되었습니다"
 
+msgid "Access for {name}"
+msgstr "{name}의 접근 권한"
+
+msgid "Access for the people you add"
+msgstr "추가할 사람의 접근 권한"
+
 msgid "Access your email address"
 msgstr "이메일 주소 접근"
 
@@ -1728,8 +1744,17 @@ msgstr "댓글을 수신할 에이전트 추가"
 msgid "Add member"
 msgstr "멤버 추가"
 
+msgid "Add more…"
+msgstr "더 추가…"
+
 msgid "Add one from the menu in the sidebar to get started."
 msgstr "사이드바 메뉴에서 하나 추가해 시작하세요."
+
+msgid "Add people"
+msgstr "사람 추가"
+
+msgid "Add people or teams by name or email"
+msgstr "이름 또는 이메일로 사람이나 팀 추가"
 
 msgid "Add photos or files"
 msgstr "사진 또는 파일 추가"
@@ -1805,6 +1830,10 @@ msgstr "{where}에 파일 1개를 추가했습니다"
 
 msgid "Added only when launching with a prompt — e.g. <0>--</0>, <1>--prompt</1>, <2>-i</2>."
 msgstr "프롬프트와 함께 실행할 때만 추가됩니다 — 예: <0>--</0>, <1>--prompt</1>, <2>-i</2>."
+
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
+msgstr "{organizationName}에 사람을 추가하려면 유료 플랜이 필요합니다. 조직의 플랜은 소유자가 {0}에서 관리합니다."
 
 msgid "Address Comments with Agent"
 msgstr "에이전트로 코멘트 처리"
@@ -2303,11 +2332,27 @@ msgstr "모든 스레드 이벤트"
 msgid "Anyone"
 msgstr "모든 사람"
 
+#. placeholder {0}: share.organizationName
+msgid "Anyone in {0} who isn't listed here loses access, including anyone who has it open now."
+msgstr "여기에 없는 {0}의 모든 사람은 접근 권한을 잃습니다. 지금 열어 둔 사람도 포함됩니다."
+
+msgid "Anyone in {organizationName} who isn't listed here loses access."
+msgstr "여기에 없는 {organizationName}의 모든 사람은 접근 권한을 잃습니다."
+
+msgid "Anyone in {organizationName} with the link can open it"
+msgstr "{organizationName}의 링크가 있는 누구나 열 수 있습니다"
+
 msgid "Anyone in your organization"
 msgstr "조직 내 모든 사람"
 
 msgid "Anyone with the link"
 msgstr "링크가 있는 모든 사용자"
+
+msgid "Anyone with the link can view it, including people outside {organizationName} and people who aren't signed in."
+msgstr "링크가 있는 모든 사용자가 볼 수 있습니다. {organizationName} 외부 사람과 로그인하지 않은 사람도 포함됩니다."
+
+msgid "Anyone with the link can view it, signed in or not"
+msgstr "링크가 있는 누구나 로그인 여부와 관계없이 볼 수 있습니다"
 
 msgid "anything"
 msgstr "모든 내용"
@@ -3240,6 +3285,9 @@ msgstr "카메라 접근이 허용되지 않았습니다"
 msgid "Camera is not available"
 msgstr "카메라를 사용할 수 없습니다"
 
+msgid "Can comment"
+msgstr "댓글 가능"
+
 msgid "Can I switch plans or cancel anytime?"
 msgstr "언제든 플랜을 바꾸거나 해지할 수 있나요?"
 
@@ -3251,6 +3299,9 @@ msgstr "충돌 없이 머지할 수 있습니다"
 
 msgid "Can the headline say what happens after sign-up?"
 msgstr "가입 후에 어떤 일이 일어나는지 제목에 담을 수 있을까요?"
+
+msgid "Can view"
+msgstr "보기 가능"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "앱 전반의 툴팁을 표준화해 줄 수 있나요?"
@@ -3276,6 +3327,9 @@ msgstr "다운로드 취소"
 msgid "Cancel edits"
 msgstr "편집 취소"
 
+msgid "Cancel invite"
+msgstr "초대 취소"
+
 msgid "Cancel plan"
 msgstr "플랜 해지"
 
@@ -3291,6 +3345,9 @@ msgstr "해지하는 중..."
 
 msgid "Cancelled"
 msgstr "취소됨"
+
+msgid "Cancelled the invite for {name}"
+msgstr "{name}에 대한 초대를 취소했습니다"
 
 #. placeholder {0}: format(new Date(cancelAt), "MMMM d, yyyy")
 #. placeholder {0}: formatDate(cancelAt)
@@ -4709,17 +4766,17 @@ msgstr "파일을 첨부할 수 없습니다"
 msgid "Could not branch the chat"
 msgstr "채팅을 분기할 수 없습니다"
 
+msgid "Could not change access"
+msgstr "접근 권한을 변경할 수 없습니다"
+
 msgid "Could not change the mode"
 msgstr "모드를 변경할 수 없습니다"
 
 msgid "Could not change the shared version"
 msgstr "공유 버전을 변경할 수 없습니다"
 
-msgid "Could not change who can see this page"
-msgstr "이 페이지를 볼 수 있는 사람을 변경할 수 없습니다"
-
-msgid "Could not change who can see this workspace"
-msgstr "이 워크스페이스를 볼 수 있는 사람을 변경하지 못했습니다"
+msgid "Could not change who has access"
+msgstr "접근 권한이 있는 사람을 변경할 수 없습니다"
 
 msgid "Could not check your plan. Check your connection and try again."
 msgstr "플랜을 확인할 수 없습니다. 연결 상태를 확인한 후 다시 시도하세요."
@@ -4863,6 +4920,9 @@ msgstr "클라우드 워크스페이스를 기록할 수 없습니다"
 msgid "Could not record environment"
 msgstr "환경을 저장할 수 없습니다"
 
+msgid "Could not remove access"
+msgstr "접근 권한을 제거할 수 없습니다"
+
 msgid "Could not rename the session"
 msgstr "세션 이름을 변경할 수 없습니다"
 
@@ -4874,6 +4934,9 @@ msgstr "다시 열 수 없습니다"
 
 msgid "Could not reopen this comment"
 msgstr "이 댓글을 다시 열지 못했습니다"
+
+msgid "Could not resend the invite"
+msgstr "초대를 다시 보낼 수 없습니다"
 
 msgid "Could not resolve this comment"
 msgstr "이 댓글을 해결하지 못했습니다"
@@ -4895,6 +4958,9 @@ msgstr "리뷰를 보낼 수 없습니다"
 
 msgid "Could not set icon"
 msgstr "아이콘을 설정할 수 없습니다"
+
+msgid "Could not share"
+msgstr "공유할 수 없습니다"
 
 msgid "Could not start agent"
 msgstr "에이전트를 시작하지 못했습니다"
@@ -4931,6 +4997,9 @@ msgstr "프롬프트를 제출할 수 없습니다. 다시 시도하세요."
 
 msgid "Could not take a screenshot"
 msgstr "스크린샷을 찍을 수 없습니다"
+
+msgid "Could not undo"
+msgstr "실행 취소할 수 없습니다"
 
 msgid "Could not update plugin"
 msgstr "플러그인을 업데이트할 수 없습니다"
@@ -5450,6 +5519,9 @@ msgstr "Ctrl+Shift+클릭"
 
 msgid "Current"
 msgstr "현재"
+
+msgid "Current access"
+msgstr "현재 접근 권한"
 
 msgid "Current level"
 msgstr "현재 단계"
@@ -6533,6 +6605,9 @@ msgstr "Superset이 마음에 드시나요?"
 
 msgid "Ensure no regression"
 msgstr "회귀가 없는지 확인해 주세요"
+
+msgid "Enter a full email address"
+msgstr "전체 이메일 주소를 입력하세요"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "{hostName}의 상위 디렉터리를 입력하세요"
@@ -8014,6 +8089,9 @@ msgstr "진행 중"
 msgid "Hard reload"
 msgstr "강제 다시 로드"
 
+msgid "Has access"
+msgstr "접근 권한 있음"
+
 msgid "Has conflicts"
 msgstr "충돌 있음"
 
@@ -8729,6 +8807,12 @@ msgstr "초대를 찾을 수 없습니다"
 msgid "Invitation sent to {email}"
 msgstr "{email}(으)로 초대를 보냈습니다"
 
+msgid "Invite"
+msgstr "초대"
+
+msgid "Invite {label} to join {organizationName}"
+msgstr "{label} 님을 {organizationName}에 초대"
+
 msgid "Invite and manage members, assign roles, and control permissions"
 msgstr "멤버를 초대하고 관리하며 역할과 권한을 설정합니다"
 
@@ -8738,11 +8822,23 @@ msgstr "멤버 초대"
 msgid "Invite Member"
 msgstr "멤버 초대"
 
+msgid "Invite pending"
+msgstr "초대 대기 중"
+
+msgid "Invite people on a paid plan"
+msgstr "유료 플랜으로 사람 초대하기"
+
 msgid "Invite teammate"
 msgstr "팀원 초대"
 
+msgid "Invite to {organizationName}"
+msgstr "{organizationName}에 초대"
+
 msgid "Invite your team to shared workspaces. See real-time updates, sync configurations, and manage team access across agents."
 msgstr "공유 워크스페이스에 팀을 초대하세요. 실시간 업데이트를 확인하고, 설정을 동기화하고, 에이전트 전반의 팀 접근 권한을 관리할 수 있습니다."
+
+msgid "Invited"
+msgstr "초대됨"
 
 msgid "Invited By"
 msgstr "초대한 사람"
@@ -8929,6 +9025,9 @@ msgstr "문서 최신 상태 유지"
 
 msgid "Keep editing"
 msgstr "계속 편집"
+
+msgid "Keep typing an email to invite"
+msgstr "초대하려면 이메일을 계속 입력하세요"
 
 msgid "Keep waiting"
 msgstr "계속 기다리기"
@@ -9221,6 +9320,15 @@ msgstr "Superset으로 만드는 게 즐거우신가요?"
 
 msgid "Lime"
 msgstr "라임"
+
+msgid "Limit access"
+msgstr "접근 제한"
+
+msgid "Limit to {organizationName}?"
+msgstr "{organizationName}(으)로 제한할까요?"
+
+msgid "Limit to people invited?"
+msgstr "초대된 사람으로 제한할까요?"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -9580,11 +9688,17 @@ msgstr "기본값으로 설정"
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "기본값으로 설정 — 새 터미널과 에이전트를 이 계정으로 실행합니다."
 
+msgid "Make public"
+msgstr "공개"
+
 msgid "Make sure the device is awake, online, and running Superset."
 msgstr "기기가 절전 모드가 아니고 온라인 상태이며 Superset이 실행 중인지 확인해 주세요."
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "칩 스타일을 TooltipContent 기본값으로 만들기"
+
+msgid "Make this page public?"
+msgstr "이 페이지를 공개할까요?"
 
 msgid "Makes the Run button launch this terminal script for matching projects."
 msgstr "해당하는 프로젝트에서 실행 버튼이 이 터미널 스크립트를 실행하도록 합니다."
@@ -10036,6 +10150,9 @@ msgstr "추가 생성 옵션"
 msgid "More options"
 msgstr "추가 옵션"
 
+msgid "More options for {name}"
+msgstr "{name}에 대한 추가 옵션"
+
 msgid "More pages"
 msgstr "더 많은 페이지"
 
@@ -10122,6 +10239,9 @@ msgstr "이름이 업데이트되었습니다!"
 
 msgid "Nameless Foreman"
 msgstr "이름 없는 작업반장"
+
+msgid "Names, emails, or teams"
+msgstr "이름, 이메일 또는 팀"
 
 msgid "Namespace new branches for this project. Defaults to the host-wide Git setting."
 msgstr "이 프로젝트의 새 브랜치에 네임스페이스를 붙입니다. 기본값은 호스트 전체 Git 설정입니다."
@@ -10707,6 +10827,9 @@ msgstr "여기에서 사용할 수 있는 모바일 시뮬레이터가 없습니
 msgid "No name on file"
 msgstr "등록된 이름 없음"
 
+msgid "No one in {organizationName} matches"
+msgstr "{organizationName}에서 일치하는 사람이 없습니다"
+
 msgid "No open issues found."
 msgstr "열린 이슈를 찾을 수 없습니다."
 
@@ -11289,6 +11412,9 @@ msgstr "현재 온라인"
 msgid "Online Now"
 msgstr "현재 접속 중"
 
+msgid "Only {organizationName} admins can invite new people"
+msgstr "{organizationName} 관리자만 새 사람을 초대할 수 있습니다"
+
 msgid "Only an organization owner can change the plan. Ask yours to upgrade."
 msgstr "플랜은 조직 소유자만 변경할 수 있습니다. 소유자에게 업그레이드를 요청하세요."
 
@@ -11322,6 +11448,9 @@ msgstr "소유자만 결제를 관리할 수 있습니다"
 msgid "Only owners can update organization settings"
 msgstr "소유자만 조직 설정을 변경할 수 있습니다"
 
+msgid "Only people invited"
+msgstr "초대된 사람만"
+
 msgid "Only people who opted in appear here."
 msgstr "참여를 선택한 사람만 여기에 표시됩니다."
 
@@ -11337,6 +11466,9 @@ msgstr "호스트 소유자만 wake 명령을 설정할 수 있습니다"
 msgid "Only the owner can change this"
 msgstr "소유자만 변경할 수 있습니다"
 
+msgid "Only the owner can change who this is shared with"
+msgstr "소유자만 공유 대상을 변경할 수 있습니다"
+
 msgid "Only the owner can run this automation"
 msgstr "소유자만 이 자동화를 실행할 수 있습니다"
 
@@ -11346,11 +11478,17 @@ msgstr "소유자만 프롬프트 기록을 볼 수 있습니다"
 msgid "Only the owner or an organization owner can delete this automation"
 msgstr "소유자 또는 조직 소유자만 이 자동화를 삭제할 수 있습니다"
 
+msgid "Only the people listed above can open it"
+msgstr "위에 나열된 사람만 열 수 있습니다"
+
 msgid "Only the person who created this page can change it"
 msgstr "이 페이지를 만든 사람만 변경할 수 있습니다"
 
 msgid "Only the person who created this page can change these."
 msgstr "이 페이지를 만든 사람만 변경할 수 있습니다."
+
+msgid "Only the person who created this workspace can change these."
+msgstr "이 워크스페이스를 만든 사람만 변경할 수 있습니다."
 
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "스레드 작성자 또는 페이지 소유자만 삭제할 수 있습니다"
@@ -11735,6 +11873,9 @@ msgstr "터미널 스크립트 8 열기"
 
 msgid "Open Terminal Script 9"
 msgstr "터미널 스크립트 9 열기"
+
+msgid "Open terminals and prompt agents"
+msgstr "터미널을 열고 에이전트에 지시"
 
 msgid "Open the Changes pane in a new tab, or focus the existing one"
 msgstr "변경 패널을 새 탭에서 열거나 기존 패널에 포커스합니다"
@@ -12183,6 +12324,9 @@ msgstr "대기 중인 초대"
 msgid "People"
 msgstr "사람"
 
+msgid "People outside {organizationName} lose access, and the public link stops working."
+msgstr "{organizationName} 외부 사람은 접근 권한을 잃고 공개 링크가 작동하지 않습니다."
+
 msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
 msgstr "최근 {PAYWALL_FUNNEL_WEEKS}주 안에 페이월을 처음 본 사람과 어디까지 진행했는지. 각 단계는 그 조회 이후 도달한 사람을 세므로 최근 코호트는 아직 채워지는 중입니다."
 
@@ -12213,6 +12357,9 @@ msgstr "\"{projectName}\"을(를) 영구 삭제했습니다"
 #. placeholder {0}: team.name
 msgid "Permanently remove <0>{0}</0> and all of its members. This can't be undone."
 msgstr "<0>{0}</0>과(와) 모든 멤버를 영구적으로 제거합니다. 되돌릴 수 없습니다."
+
+msgid "Permission level"
+msgstr "권한 수준"
 
 msgid "Permissions"
 msgstr "권한"
@@ -13025,6 +13172,12 @@ msgstr "가이드 읽기"
 msgid "Read the guide to parallel coding agents"
 msgstr "병렬 코딩 에이전트 가이드 읽기"
 
+msgid "Read the page"
+msgstr "페이지 읽기"
+
+msgid "Read the page and leave comments"
+msgstr "페이지 읽기 및 댓글 남기기"
+
 msgid "Read the setup guide"
 msgstr "설정 가이드 읽기"
 
@@ -13279,6 +13432,9 @@ msgstr "제거"
 msgid "Remove {0}"
 msgstr "{0} 제거"
 
+msgid "Remove {label}"
+msgstr "{label} 제거"
+
 msgid "Remove {label}?"
 msgstr "{label}을(를) 제거할까요?"
 
@@ -13353,6 +13509,9 @@ msgstr "제거…"
 
 msgid "Removed {credential} for {agentLabel}."
 msgstr "{agentLabel}의 {credential}을(를) 제거했습니다."
+
+msgid "Removed {name}"
+msgstr "{name}을(를) 제거했습니다"
 
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel}을(를) 제거했습니다."
@@ -13548,6 +13707,9 @@ msgstr "필요한 버전: {minimumVersion} 이상"
 
 msgid "Requires iOS 26 or later. Included with Superset Pro."
 msgstr "iOS 26 이상이 필요합니다. Superset Pro에 포함되어 있습니다."
+
+msgid "Resend invite"
+msgstr "초대 다시 보내기"
 
 msgid "Reserved by OS"
 msgstr "OS에서 예약됨"
@@ -14520,6 +14682,9 @@ msgstr "최근 30일 사용량이 공개 리더보드에서 어디쯤인지 확�
 msgid "Select"
 msgstr "선택"
 
+msgid "Select a person"
+msgstr "사람 선택"
+
 msgid "Select a project"
 msgstr "프로젝트를 선택하세요"
 
@@ -14646,6 +14811,9 @@ msgstr "터미널 스크립트 디렉터리 선택"
 msgid "Select worktree location"
 msgstr "worktree 위치 선택"
 
+msgid "Selected"
+msgstr "선택됨"
+
 msgid "Selected agent is not available on this host"
 msgstr "선택한 에이전트를 이 호스트에서 사용할 수 없습니다"
 
@@ -14720,6 +14888,10 @@ msgstr "터미널 컨텍스트 {0}자(약 {1} 토큰)를 {2}에 보냅니다."
 
 msgid "Sent"
 msgstr "보낸 날짜"
+
+#. placeholder {0}: grantee.email
+msgid "Sent the invite to {0} again"
+msgstr "{0}에 초대를 다시 보냈습니다"
 
 msgid "Sent to agent"
 msgstr "에이전트에 보냄"
@@ -14916,6 +15088,9 @@ msgstr "공유 버전"
 
 msgid "Shared with everyone"
 msgstr "전체 공개로 공유됨"
+
+msgid "Shared with me"
+msgstr "나와 공유됨"
 
 msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
 msgstr "프로젝트의 체크아웃(파일, git 인덱스, 브랜치)을 다른 로컬 워크스페이스와 공유합니다"
@@ -15279,6 +15454,9 @@ msgstr "지금은 건너뛰기"
 
 msgid "Skipped"
 msgstr "건너뜀"
+
+msgid "Skipped {blocked} not in {organizationName}. Only admins can invite new people."
+msgstr "{organizationName}에 속하지 않은 {blocked}개를 건너뛰었습니다. 관리자만 새 사람을 초대할 수 있습니다."
 
 msgid "Slack Account Linked"
 msgstr "Slack 계정 연결됨"
@@ -16220,6 +16398,9 @@ msgstr "탭"
 msgid "Tab per command"
 msgstr "명령마다 탭"
 
+msgid "Tab to fill"
+msgstr "Tab으로 채우기"
+
 msgid "Table"
 msgstr "테이블"
 
@@ -16499,6 +16680,9 @@ msgstr "해당 엔드포인트는 허용되지 않습니다."
 
 msgid "That handle is taken."
 msgstr "이미 사용 중인 핸들입니다."
+
+msgid "That invitation is no longer pending"
+msgstr "더 이상 대기 중인 초대가 아닙니다"
 
 msgid "That Linear issue doesn't exist or you can't see it."
 msgstr "해당 Linear 이슈가 없거나 볼 수 있는 권한이 없습니다."
@@ -16850,6 +17034,9 @@ msgstr "워크스페이스를 만들 때 이 명령이 자동으로 실행됩니
 
 msgid "These ports are still in use"
 msgstr "이 포트들은 아직 사용 중입니다"
+
+msgid "They get full access"
+msgstr "전체 접근 권한이 부여됩니다"
 
 msgid "Thinking"
 msgstr "생각"
@@ -18065,6 +18252,9 @@ msgstr "버전"
 msgid "Version {0}"
 msgstr "버전 {0}"
 
+msgid "Version {sharedVersion}"
+msgstr "버전 {sharedVersion}"
+
 msgid "Version {version}"
 msgstr "버전 {version}"
 
@@ -18085,6 +18275,10 @@ msgstr "버전을 찾을 수 없습니다"
 
 msgid "Version unknown"
 msgstr "버전 알 수 없음"
+
+#. placeholder {0}: effective.via
+msgid "via {0}"
+msgstr "{0} 통해"
 
 msgid "Video"
 msgstr "동영상"
@@ -18411,6 +18605,9 @@ msgstr "무엇을 하고 싶으신가요?"
 
 msgid "What early users say"
 msgstr "초기 사용자들의 이야기"
+
+msgid "What general access allows"
+msgstr "일반 접근 권한으로 허용되는 작업"
 
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google이 어떤 검색어로 우리를 보여주는지, 그중 우리 이름이 아닌 비중은 얼마인지."
@@ -18853,11 +19050,17 @@ msgstr "버전 {version}을 읽기 전용으로 보고 있습니다"
 msgid "You can attach up to {MAX_ATTACHMENTS} files"
 msgstr "파일은 최대 {MAX_ATTACHMENTS}개까지 첨부할 수 있습니다"
 
+msgid "You can only share with people and teams in this organization"
+msgstr "이 조직의 사람과 팀하고만 공유할 수 있습니다"
+
 msgid "You can restore it from Settings → Projects for 30 days. The repository folder is never deleted."
 msgstr "30일 동안 설정 → 프로젝트에서 복원할 수 있습니다. 저장소 폴더는 절대 삭제되지 않습니다."
 
 msgid "You can see how we work before you talk to us."
 msgstr "대화하기 전에 우리가 일하는 방식을 직접 볼 수 있습니다."
+
+msgid "You can view this page but not comment on it"
+msgstr "이 페이지를 볼 수는 있지만 댓글을 달 수는 없습니다"
 
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."

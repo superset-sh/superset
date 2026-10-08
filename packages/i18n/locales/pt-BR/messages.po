@@ -96,6 +96,9 @@ msgstr "(sem saída)"
 msgid "(so far)"
 msgstr "(até agora)"
 
+msgid "(you)"
+msgstr "(você)"
+
 #. placeholder {0}: connections.length
 msgid "{0, plural, one {# account connected} other {# accounts connected}}"
 msgstr "{0, plural, one {# conta conectada} other {# contas conectadas}}"
@@ -187,6 +190,7 @@ msgstr "{0, plural, one {# pendente} other {# pendentes}}"
 
 #. placeholder {0}: chosenLeads.length
 #. placeholder {0}: chosenPeople.length
+#. placeholder {0}: grantee.memberCount
 msgid "{0, plural, one {# person} other {# people}}"
 msgstr "{0, plural, one {# pessoa} other {# pessoas}}"
 
@@ -643,6 +647,9 @@ msgstr "{actor} editou a descrição"
 msgid "{actor} joined"
 msgstr "{actor} entrou"
 
+msgid "{actor} limited the workspace to people invited"
+msgstr "{actor} limitou a área de trabalho às pessoas convidadas"
+
 msgid "{actor} linked {chip}"
 msgstr "{actor} vinculou {chip}"
 
@@ -652,9 +659,6 @@ msgstr "{actor} vinculou {chip} · sugerido por {suggestedBy}"
 msgid "{actor} linked the workspace {workspace}"
 msgstr "{actor} vinculou o espaço de trabalho {workspace}"
 
-msgid "{actor} made the workspace private"
-msgstr "{actor} tornou o espaço de trabalho privado"
-
 msgid "{actor} moved the task from {from} to {to}"
 msgstr "{actor} moveu a tarefa de {from} para {to}"
 
@@ -663,6 +667,9 @@ msgstr "{actor} abriu {badge}"
 
 msgid "{actor} published {chip}"
 msgstr "{actor} publicou {chip}"
+
+msgid "{actor} removed access for {target}"
+msgstr "{actor} removeu o acesso de {target}"
 
 msgid "{actor} removed the assignee"
 msgstr "{actor} removeu o responsável"
@@ -691,6 +698,9 @@ msgstr "{actor} definiu a prioridade como {to}"
 
 msgid "{actor} set the status to {to}"
 msgstr "{actor} definiu o status como {to}"
+
+msgid "{actor} shared the workspace with {target}"
+msgstr "{actor} compartilhou a área de trabalho com {target}"
 
 msgid "{actor} shared the workspace with the organization"
 msgstr "{actor} compartilhou o espaço de trabalho com a organização"
@@ -1532,6 +1542,12 @@ msgstr "Aceitar os termos"
 msgid "Access denied"
 msgstr "Acesso negado"
 
+msgid "Access for {name}"
+msgstr "Acesso de {name}"
+
+msgid "Access for the people you add"
+msgstr "Acesso das pessoas que você adicionar"
+
 msgid "Access your email address"
 msgstr "Acessar seu endereço de e-mail"
 
@@ -1728,8 +1744,17 @@ msgstr "Adicionar agente para receber comentários"
 msgid "Add member"
 msgstr "Adicionar membro"
 
+msgid "Add more…"
+msgstr "Adicionar mais…"
+
 msgid "Add one from the menu in the sidebar to get started."
 msgstr "Adicione um pelo menu da barra lateral para começar."
+
+msgid "Add people"
+msgstr "Adicionar pessoas"
+
+msgid "Add people or teams by name or email"
+msgstr "Adicione pessoas ou equipes por nome ou e-mail"
 
 msgid "Add photos or files"
 msgstr "Adicionar fotos ou arquivos"
@@ -1805,6 +1830,10 @@ msgstr "1 arquivo adicionado a {where}"
 
 msgid "Added only when launching with a prompt — e.g. <0>--</0>, <1>--prompt</1>, <2>-i</2>."
 msgstr "Adicionados só ao iniciar com um prompt — ex.: <0>--</0>, <1>--prompt</1>, <2>-i</2>."
+
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
+msgstr "Adicionar pessoas a {organizationName} requer um plano pago. O plano da sua organização é gerenciado pelo proprietário em {0}."
 
 msgid "Address Comments with Agent"
 msgstr "Resolver comentários com um agente"
@@ -2303,11 +2332,27 @@ msgstr "Qualquer evento de thread"
 msgid "Anyone"
 msgstr "Qualquer pessoa"
 
+#. placeholder {0}: share.organizationName
+msgid "Anyone in {0} who isn't listed here loses access, including anyone who has it open now."
+msgstr "Qualquer pessoa de {0} que não esteja listada aqui perde o acesso, inclusive quem estiver com ela aberta agora."
+
+msgid "Anyone in {organizationName} who isn't listed here loses access."
+msgstr "Qualquer pessoa de {organizationName} que não esteja listada aqui perde o acesso."
+
+msgid "Anyone in {organizationName} with the link can open it"
+msgstr "Qualquer pessoa em {organizationName} com o link pode abrir"
+
 msgid "Anyone in your organization"
 msgstr "Qualquer pessoa da sua organização"
 
 msgid "Anyone with the link"
 msgstr "Qualquer pessoa com o link"
+
+msgid "Anyone with the link can view it, including people outside {organizationName} and people who aren't signed in."
+msgstr "Qualquer pessoa com o link poderá ver, inclusive pessoas de fora de {organizationName} e pessoas que não estão conectadas."
+
+msgid "Anyone with the link can view it, signed in or not"
+msgstr "Qualquer pessoa com o link pode ver, conectada ou não"
 
 msgid "anything"
 msgstr "qualquer coisa"
@@ -3240,6 +3285,9 @@ msgstr "O acesso à câmera não é permitido"
 msgid "Camera is not available"
 msgstr "A câmera não está disponível"
 
+msgid "Can comment"
+msgstr "Pode comentar"
+
 msgid "Can I switch plans or cancel anytime?"
 msgstr "Posso trocar de plano ou cancelar quando quiser?"
 
@@ -3251,6 +3299,9 @@ msgstr "Pode fazer merge sem conflitos"
 
 msgid "Can the headline say what happens after sign-up?"
 msgstr "O título pode dizer o que acontece depois do cadastro?"
+
+msgid "Can view"
+msgstr "Pode ver"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Dá para padronizar os tooltips do app inteiro?"
@@ -3276,6 +3327,9 @@ msgstr "Cancelar download"
 msgid "Cancel edits"
 msgstr "Cancelar as edições"
 
+msgid "Cancel invite"
+msgstr "Cancelar convite"
+
 msgid "Cancel plan"
 msgstr "Cancelar plano"
 
@@ -3291,6 +3345,9 @@ msgstr "Cancelando..."
 
 msgid "Cancelled"
 msgstr "Cancelada"
+
+msgid "Cancelled the invite for {name}"
+msgstr "Convite de {name} cancelado"
 
 #. placeholder {0}: format(new Date(cancelAt), "MMMM d, yyyy")
 #. placeholder {0}: formatDate(cancelAt)
@@ -4709,17 +4766,17 @@ msgstr "Não foi possível anexar os arquivos"
 msgid "Could not branch the chat"
 msgstr "Não foi possível ramificar o chat"
 
+msgid "Could not change access"
+msgstr "Não foi possível alterar o acesso"
+
 msgid "Could not change the mode"
 msgstr "Não foi possível mudar o modo"
 
 msgid "Could not change the shared version"
 msgstr "Não foi possível mudar a versão compartilhada"
 
-msgid "Could not change who can see this page"
-msgstr "Não foi possível mudar quem pode ver esta página"
-
-msgid "Could not change who can see this workspace"
-msgstr "Não foi possível alterar quem pode ver esta área de trabalho"
+msgid "Could not change who has access"
+msgstr "Não foi possível alterar quem tem acesso"
 
 msgid "Could not check your plan. Check your connection and try again."
 msgstr "Não foi possível verificar seu plano. Verifique sua conexão e tente novamente."
@@ -4863,6 +4920,9 @@ msgstr "Não foi possível registrar a área de trabalho na nuvem"
 msgid "Could not record environment"
 msgstr "Não foi possível salvar o ambiente"
 
+msgid "Could not remove access"
+msgstr "Não foi possível remover o acesso"
+
 msgid "Could not rename the session"
 msgstr "Não foi possível renomear a sessão"
 
@@ -4874,6 +4934,9 @@ msgstr "Não foi possível reabrir"
 
 msgid "Could not reopen this comment"
 msgstr "Não foi possível reabrir este comentário"
+
+msgid "Could not resend the invite"
+msgstr "Não foi possível reenviar o convite"
 
 msgid "Could not resolve this comment"
 msgstr "Não foi possível resolver este comentário"
@@ -4895,6 +4958,9 @@ msgstr "Não foi possível enviar a revisão"
 
 msgid "Could not set icon"
 msgstr "Não foi possível definir o ícone"
+
+msgid "Could not share"
+msgstr "Não foi possível compartilhar"
 
 msgid "Could not start agent"
 msgstr "Não foi possível iniciar o agente"
@@ -4931,6 +4997,9 @@ msgstr "Não foi possível enviar o prompt. Tente novamente."
 
 msgid "Could not take a screenshot"
 msgstr "Não foi possível fazer a captura de tela"
+
+msgid "Could not undo"
+msgstr "Não foi possível desfazer"
 
 msgid "Could not update plugin"
 msgstr "Não foi possível atualizar o plugin"
@@ -5450,6 +5519,9 @@ msgstr "Ctrl+Shift+clique"
 
 msgid "Current"
 msgstr "Atual"
+
+msgid "Current access"
+msgstr "Acesso atual"
 
 msgid "Current level"
 msgstr "Nível atual"
@@ -6533,6 +6605,9 @@ msgstr "Curtindo o Superset?"
 
 msgid "Ensure no regression"
 msgstr "Garanta que não haja regressão"
+
+msgid "Enter a full email address"
+msgstr "Digite um endereço de e-mail completo"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "Digite um diretório pai em {hostName}"
@@ -8014,6 +8089,9 @@ msgstr "acontecendo agora"
 msgid "Hard reload"
 msgstr "Recarregar do zero"
 
+msgid "Has access"
+msgstr "Tem acesso"
+
 msgid "Has conflicts"
 msgstr "Tem conflitos"
 
@@ -8729,6 +8807,12 @@ msgstr "Convite não encontrado"
 msgid "Invitation sent to {email}"
 msgstr "Convite enviado para {email}"
 
+msgid "Invite"
+msgstr "Convidar"
+
+msgid "Invite {label} to join {organizationName}"
+msgstr "Convidar {label} para entrar em {organizationName}"
+
 msgid "Invite and manage members, assign roles, and control permissions"
 msgstr "Convide e gerencie membros, defina cargos e controle permissões"
 
@@ -8738,11 +8822,23 @@ msgstr "Convidar membro"
 msgid "Invite Member"
 msgstr "Convidar membro"
 
+msgid "Invite pending"
+msgstr "Convite pendente"
+
+msgid "Invite people on a paid plan"
+msgstr "Convide pessoas com um plano pago"
+
 msgid "Invite teammate"
 msgstr "Convidar colega"
 
+msgid "Invite to {organizationName}"
+msgstr "Convidar para {organizationName}"
+
 msgid "Invite your team to shared workspaces. See real-time updates, sync configurations, and manage team access across agents."
 msgstr "Convide sua equipe para áreas de trabalho compartilhadas. Veja atualizações em tempo real, sincronize configurações e gerencie o acesso da equipe aos agentes."
+
+msgid "Invited"
+msgstr "Convidado"
 
 msgid "Invited By"
 msgstr "Convidado por"
@@ -8929,6 +9025,9 @@ msgstr "Manter a documentação em dia"
 
 msgid "Keep editing"
 msgstr "Continuar editando"
+
+msgid "Keep typing an email to invite"
+msgstr "Continue digitando um e-mail para convidar"
 
 msgid "Keep waiting"
 msgstr "Continuar esperando"
@@ -9221,6 +9320,15 @@ msgstr "Gosta de construir com o Superset?"
 
 msgid "Lime"
 msgstr "Lima"
+
+msgid "Limit access"
+msgstr "Limitar acesso"
+
+msgid "Limit to {organizationName}?"
+msgstr "Limitar a {organizationName}?"
+
+msgid "Limit to people invited?"
+msgstr "Limitar às pessoas convidadas?"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -9580,11 +9688,17 @@ msgstr "Tornar padrão"
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "Tornar padrão — abre novos terminais e agentes nesta conta."
 
+msgid "Make public"
+msgstr "Tornar pública"
+
 msgid "Make sure the device is awake, online, and running Superset."
 msgstr "Confira se o dispositivo está ativo, online e com o Superset em execução."
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "Tornar o estilo de chip o padrão do TooltipContent"
+
+msgid "Make this page public?"
+msgstr "Tornar esta página pública?"
 
 msgid "Makes the Run button launch this terminal script for matching projects."
 msgstr "Faz o botão Executar lançar este script de terminal nos projetos correspondentes."
@@ -10036,6 +10150,9 @@ msgstr "Mais opções de criação"
 msgid "More options"
 msgstr "Mais opções"
 
+msgid "More options for {name}"
+msgstr "Mais opções para {name}"
+
 msgid "More pages"
 msgstr "Mais páginas"
 
@@ -10122,6 +10239,9 @@ msgstr "Nome atualizado!"
 
 msgid "Nameless Foreman"
 msgstr "Contramestre Sem Nome"
+
+msgid "Names, emails, or teams"
+msgstr "Nomes, e-mails ou equipes"
 
 msgid "Namespace new branches for this project. Defaults to the host-wide Git setting."
 msgstr "Define um namespace para as novas branches deste projeto. Por padrão, usa a configuração de Git do host."
@@ -10707,6 +10827,9 @@ msgstr "Nenhum simulador móvel disponível aqui. É necessário um sandbox na n
 msgid "No name on file"
 msgstr "Nenhum nome cadastrado"
 
+msgid "No one in {organizationName} matches"
+msgstr "Ninguém em {organizationName} corresponde"
+
 msgid "No open issues found."
 msgstr "Nenhuma issue aberta encontrada."
 
@@ -11289,6 +11412,9 @@ msgstr "Online agora"
 msgid "Online Now"
 msgstr "Online agora"
 
+msgid "Only {organizationName} admins can invite new people"
+msgstr "Somente administradores de {organizationName} podem convidar novas pessoas"
+
 msgid "Only an organization owner can change the plan. Ask yours to upgrade."
 msgstr "Só um proprietário da organização pode mudar o plano. Peça ao seu para fazer o upgrade."
 
@@ -11322,6 +11448,9 @@ msgstr "Só proprietários podem gerenciar o faturamento"
 msgid "Only owners can update organization settings"
 msgstr "Só proprietários podem atualizar as configurações da organização"
 
+msgid "Only people invited"
+msgstr "Somente pessoas convidadas"
+
 msgid "Only people who opted in appear here."
 msgstr "Só aparecem aqui as pessoas que optaram por participar."
 
@@ -11337,6 +11466,9 @@ msgstr "Só o proprietário do host pode definir o comando de wake dele"
 msgid "Only the owner can change this"
 msgstr "Somente o proprietário pode alterar isso"
 
+msgid "Only the owner can change who this is shared with"
+msgstr "Somente o proprietário pode alterar com quem isto é compartilhado"
+
 msgid "Only the owner can run this automation"
 msgstr "Só o proprietário pode executar esta automação"
 
@@ -11346,11 +11478,17 @@ msgstr "Só o proprietário pode ver o histórico de prompts"
 msgid "Only the owner or an organization owner can delete this automation"
 msgstr "Só o proprietário ou um proprietário da organização pode excluir esta automação"
 
+msgid "Only the people listed above can open it"
+msgstr "Somente as pessoas listadas acima podem abrir"
+
 msgid "Only the person who created this page can change it"
 msgstr "Só quem criou esta página pode alterá-la"
 
 msgid "Only the person who created this page can change these."
 msgstr "Somente quem criou esta página pode alterar isto."
+
+msgid "Only the person who created this workspace can change these."
+msgstr "Somente quem criou este workspace pode alterar isso."
 
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "Só quem criou a thread ou quem é dono da página pode excluí-la"
@@ -11735,6 +11873,9 @@ msgstr "Abrir o script de terminal 8"
 
 msgid "Open Terminal Script 9"
 msgstr "Abrir o script de terminal 9"
+
+msgid "Open terminals and prompt agents"
+msgstr "Abrir terminais e dar instruções aos agentes"
 
 msgid "Open the Changes pane in a new tab, or focus the existing one"
 msgstr "Abre o painel de alterações em uma nova aba ou foca o existente"
@@ -12183,6 +12324,9 @@ msgstr "Convites pendentes"
 msgid "People"
 msgstr "Pessoas"
 
+msgid "People outside {organizationName} lose access, and the public link stops working."
+msgstr "Pessoas de fora de {organizationName} perdem o acesso, e o link público deixa de funcionar."
+
 msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
 msgstr "Pessoas cuja primeira visualização do paywall ocorreu nas últimas {PAYWALL_FUNNEL_WEEKS} semanas, e até onde chegaram. Uma etapa conta quem a alcançou após essa visualização, então as coortes recentes ainda estão amadurecendo."
 
@@ -12213,6 +12357,9 @@ msgstr "\"{projectName}\" excluído permanentemente"
 #. placeholder {0}: team.name
 msgid "Permanently remove <0>{0}</0> and all of its members. This can't be undone."
 msgstr "Remove permanentemente <0>{0}</0> e todos os membros dela. Não dá para desfazer."
+
+msgid "Permission level"
+msgstr "Nível de permissão"
 
 msgid "Permissions"
 msgstr "Permissões"
@@ -13025,6 +13172,12 @@ msgstr "Ler o guia"
 msgid "Read the guide to parallel coding agents"
 msgstr "Leia o guia de agentes de código em paralelo"
 
+msgid "Read the page"
+msgstr "Ler a página"
+
+msgid "Read the page and leave comments"
+msgstr "Ler a página e deixar comentários"
+
 msgid "Read the setup guide"
 msgstr "Ler o guia de configuração"
 
@@ -13279,6 +13432,9 @@ msgstr "Remover"
 msgid "Remove {0}"
 msgstr "Remover {0}"
 
+msgid "Remove {label}"
+msgstr "Remover {label}"
+
 msgid "Remove {label}?"
 msgstr "Remover {label}?"
 
@@ -13353,6 +13509,9 @@ msgstr "Remover…"
 
 msgid "Removed {credential} for {agentLabel}."
 msgstr "{credential} removida de {agentLabel}."
+
+msgid "Removed {name}"
+msgstr "{name} removido"
 
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel} removida."
@@ -13548,6 +13707,9 @@ msgstr "Versão necessária: {minimumVersion}+"
 
 msgid "Requires iOS 26 or later. Included with Superset Pro."
 msgstr "Requer iOS 26 ou posterior. Incluído no Superset Pro."
+
+msgid "Resend invite"
+msgstr "Reenviar convite"
 
 msgid "Reserved by OS"
 msgstr "Reservado pelo sistema"
@@ -14520,6 +14682,9 @@ msgstr "Veja em que posição seus últimos 30 dias ficam no ranking público. A
 msgid "Select"
 msgstr "Select"
 
+msgid "Select a person"
+msgstr "Selecione uma pessoa"
+
 msgid "Select a project"
 msgstr "Selecione um projeto"
 
@@ -14646,6 +14811,9 @@ msgstr "Selecionar o diretório do script de terminal"
 msgid "Select worktree location"
 msgstr "Selecionar o local das worktrees"
 
+msgid "Selected"
+msgstr "Selecionados"
+
 msgid "Selected agent is not available on this host"
 msgstr "O agente selecionado não está disponível neste host"
 
@@ -14720,6 +14888,10 @@ msgstr "Envia {0} caracteres de contexto do terminal (cerca de {1} tokens) para 
 
 msgid "Sent"
 msgstr "Enviado"
+
+#. placeholder {0}: grantee.email
+msgid "Sent the invite to {0} again"
+msgstr "Convite reenviado para {0}"
 
 msgid "Sent to agent"
 msgstr "Enviado ao agente"
@@ -14916,6 +15088,9 @@ msgstr "Versão compartilhada"
 
 msgid "Shared with everyone"
 msgstr "Compartilhada com todos"
+
+msgid "Shared with me"
+msgstr "Compartilhado comigo"
 
 msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
 msgstr "Compartilha o checkout do projeto (arquivos, índice do git e branch) com suas outras áreas de trabalho locais"
@@ -15279,6 +15454,9 @@ msgstr "Pular por enquanto"
 
 msgid "Skipped"
 msgstr "Ignoradas"
+
+msgid "Skipped {blocked} not in {organizationName}. Only admins can invite new people."
+msgstr "{blocked} ignorado(s) por não estar(em) em {organizationName}. Somente administradores podem convidar novas pessoas."
 
 msgid "Slack Account Linked"
 msgstr "Conta do Slack vinculada"
@@ -16220,6 +16398,9 @@ msgstr "Aba"
 msgid "Tab per command"
 msgstr "Uma aba por comando"
 
+msgid "Tab to fill"
+msgstr "Tab para preencher"
+
 msgid "Table"
 msgstr "Tabela"
 
@@ -16499,6 +16680,9 @@ msgstr "Esse endpoint não é permitido."
 
 msgid "That handle is taken."
 msgstr "Esse apelido já está em uso."
+
+msgid "That invitation is no longer pending"
+msgstr "Esse convite não está mais pendente"
 
 msgid "That Linear issue doesn't exist or you can't see it."
 msgstr "Essa issue do Linear não existe ou você não tem acesso a ela."
@@ -16850,6 +17034,9 @@ msgstr "Esses comandos rodam automaticamente quando uma área de trabalho é cri
 
 msgid "These ports are still in use"
 msgstr "Estas portas ainda estão em uso"
+
+msgid "They get full access"
+msgstr "Elas recebem acesso total"
 
 msgid "Thinking"
 msgstr "Raciocínio"
@@ -18065,6 +18252,9 @@ msgstr "Versão"
 msgid "Version {0}"
 msgstr "Versão {0}"
 
+msgid "Version {sharedVersion}"
+msgstr "Versão {sharedVersion}"
+
 msgid "Version {version}"
 msgstr "Versão {version}"
 
@@ -18085,6 +18275,10 @@ msgstr "Versão não encontrada"
 
 msgid "Version unknown"
 msgstr "Versão desconhecida"
+
+#. placeholder {0}: effective.via
+msgid "via {0}"
+msgstr "via {0}"
 
 msgid "Video"
 msgstr "Vídeo"
@@ -18411,6 +18605,9 @@ msgstr "O que você quer fazer?"
 
 msgid "What early users say"
 msgstr "O que dizem os primeiros usuários"
+
+msgid "What general access allows"
+msgstr "O que o acesso geral permite"
 
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Para quais buscas o Google nos mostra e quanto disso não é o nosso próprio nome."
@@ -18853,11 +19050,17 @@ msgstr "Você está vendo a versão {version}, somente leitura"
 msgid "You can attach up to {MAX_ATTACHMENTS} files"
 msgstr "Você pode anexar até {MAX_ATTACHMENTS} arquivos"
 
+msgid "You can only share with people and teams in this organization"
+msgstr "Você só pode compartilhar com pessoas e equipes desta organização"
+
 msgid "You can restore it from Settings → Projects for 30 days. The repository folder is never deleted."
 msgstr "Você pode restaurá-lo em Configurações → Projetos por 30 dias. A pasta do repositório nunca é excluída."
 
 msgid "You can see how we work before you talk to us."
 msgstr "Você pode ver como trabalhamos antes de falar com a gente."
+
+msgid "You can view this page but not comment on it"
+msgstr "Você pode ver esta página, mas não comentar nela"
 
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."

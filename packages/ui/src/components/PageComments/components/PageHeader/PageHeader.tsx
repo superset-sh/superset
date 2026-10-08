@@ -39,6 +39,7 @@ export function PageHeader({
 	onRefresh,
 	onPreviewVersion,
 	previewVersion = null,
+	sharing,
 }: PageHeaderProps) {
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [shareOpen, setShareOpen] = useState(false);
@@ -95,6 +96,8 @@ export function PageHeader({
 						onOpenChange={setShareOpen}
 						onSetVisibility={onSetVisibility}
 						onSetSharedVersion={onSetSharedVersion}
+						currentUserId={currentUserId}
+						sharing={sharing}
 					/>
 				</div>
 

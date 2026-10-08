@@ -13,6 +13,8 @@ import {
 	LuPlus,
 	LuTag,
 	LuUnlink2,
+	LuUserMinus,
+	LuUserPlus,
 	LuUsers,
 } from "react-icons/lu";
 import { CloudTaskIcon } from "renderer/routes/_authenticated/_dashboard/components/CloudTaskIcon";
@@ -46,6 +48,8 @@ const SYSTEM_ICON: Record<Entry["kind"], IconType> = {
 	joined: LuLogIn,
 	renamed: LuPencil,
 	visibility: LuUsers,
+	shared: LuUserPlus,
+	unshared: LuUserMinus,
 	description_edited: LuPencil,
 	project_changed: ProjectGlyph,
 	label_added: LuTag,
@@ -108,9 +112,34 @@ export function CloudWorkspaceTimelineEntry({
 				entry.to === "org" ? (
 					<Trans>{actor} shared the workspace with the organization</Trans>
 				) : (
-					<Trans>{actor} made the workspace private</Trans>
+					<Trans>{actor} limited the workspace to people invited</Trans>
 				);
 			break;
+		case "shared":
+		case "unshared": {
+			const target =
+				entry.target.kind === "user" ? (
+					<TimelineActor
+						actor={{ kind: "user", person: entry.target.person }}
+						onOpenPerson={onOpenPerson}
+					/>
+				) : entry.target.kind === "team" ? (
+					entry.target.name
+				) : (
+					entry.target.email
+				);
+			sentence =
+				entry.kind === "shared" ? (
+					<Trans>
+						{actor} shared the workspace with {target}
+					</Trans>
+				) : (
+					<Trans>
+						{actor} removed access for {target}
+					</Trans>
+				);
+			break;
+		}
 		case "description_edited":
 			sentence = <Trans>{actor} edited the description</Trans>;
 			break;

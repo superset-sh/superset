@@ -34,6 +34,7 @@ function row(overrides: Partial<Row>): Row {
 		page: null,
 		suggestedBy: null,
 		suggestionSource: null,
+		shareTarget: null,
 		...overrides,
 	};
 }
@@ -146,5 +147,53 @@ describe("toTimelineEntries", () => {
 				]),
 			).toEqual([]);
 		});
+	});
+
+	test("shares become entries naming who they were for", () => {
+		const entries = toTimelineEntries([
+			row({
+				event: "shared",
+				shareTarget: { kind: "user", person: kiet },
+			}),
+			row({
+				id: "e2",
+				at: new Date(at.getTime() + 5 * 60_000),
+				event: "unshared",
+				shareTarget: { kind: "email", email: "ana@globex.com" },
+			}),
+		]);
+		expect(entries).toMatchObject([
+			{ kind: "shared", target: { kind: "user", person: kiet } },
+			{ kind: "unshared", target: { kind: "email", email: "ana@globex.com" } },
+		]);
+	});
+
+	test("a share whose target is gone is skipped", () => {
+		expect(toTimelineEntries([row({ event: "shared" })])).toEqual([]);
+	});
+
+	test("removing someone and adding them back moments later reads as nothing", () => {
+		const later = (seconds: number) => new Date(at.getTime() + seconds * 1000);
+		expect(
+			toTimelineEntries([
+				row({
+					id: "e1",
+					event: "unshared",
+					shareTarget: { kind: "user", person: kiet },
+				}),
+				row({
+					id: "e2",
+					at: later(5),
+					event: "shared",
+					shareTarget: { kind: "user", person: kiet },
+				}),
+				row({
+					id: "e3",
+					at: later(10),
+					event: "unshared",
+					shareTarget: { kind: "team", name: "Design" },
+				}),
+			]).map((entry) => entry.kind),
+		).toEqual(["unshared"]);
 	});
 });

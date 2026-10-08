@@ -1,0 +1,1 @@
+export { GranteeRow } from "./GranteeRow";

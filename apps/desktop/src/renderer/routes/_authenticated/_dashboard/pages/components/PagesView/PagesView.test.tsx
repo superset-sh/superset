@@ -45,6 +45,7 @@ let countsInput: Record<string, unknown> | undefined;
 let countsData: {
 	all: number;
 	team: number;
+	shared: number;
 	mine: number;
 	pinned: number;
 	workspaces: Array<{ workspaceId: string; count: number }>;
@@ -156,7 +157,7 @@ const { act, cleanup, fireEvent, render } = await import(
 const { PagesView } = await import("./PagesView");
 
 function renderView({
-	scope = "all" as "all" | "pinned" | "team" | "mine",
+	scope = "all" as "all" | "pinned" | "team" | "shared" | "mine",
 	search = "",
 	authorId = null as string | null,
 	workspaceId = null as string | null,
@@ -186,6 +187,7 @@ beforeEach(() => {
 	countsData = {
 		all: 1,
 		team: 1,
+		shared: 0,
 		mine: 0,
 		pinned: 2,
 		workspaces: [{ workspaceId: "ws-1", count: 3 }],

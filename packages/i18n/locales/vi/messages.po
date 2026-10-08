@@ -96,6 +96,9 @@ msgstr "(không có đầu ra)"
 msgid "(so far)"
 msgstr "(đến nay)"
 
+msgid "(you)"
+msgstr "(bạn)"
+
 #. placeholder {0}: connections.length
 msgid "{0, plural, one {# account connected} other {# accounts connected}}"
 msgstr "{0, plural, other {# tài khoản đã kết nối}}"
@@ -187,6 +190,7 @@ msgstr "{0, plural, one {# đang chờ} other {# đang chờ}}"
 
 #. placeholder {0}: chosenLeads.length
 #. placeholder {0}: chosenPeople.length
+#. placeholder {0}: grantee.memberCount
 msgid "{0, plural, one {# person} other {# people}}"
 msgstr "{0, plural, other {# người}}"
 
@@ -643,6 +647,9 @@ msgstr "{actor} đã chỉnh sửa mô tả"
 msgid "{actor} joined"
 msgstr "{actor} đã tham gia"
 
+msgid "{actor} limited the workspace to people invited"
+msgstr "{actor} đã giới hạn workspace cho những người được mời"
+
 msgid "{actor} linked {chip}"
 msgstr "{actor} đã liên kết {chip}"
 
@@ -652,9 +659,6 @@ msgstr "{actor} đã liên kết {chip} · do {suggestedBy} đề xuất"
 msgid "{actor} linked the workspace {workspace}"
 msgstr "{actor} đã liên kết không gian làm việc {workspace}"
 
-msgid "{actor} made the workspace private"
-msgstr "{actor} đã đặt không gian làm việc ở chế độ riêng tư"
-
 msgid "{actor} moved the task from {from} to {to}"
 msgstr "{actor} đã chuyển tác vụ từ {from} sang {to}"
 
@@ -663,6 +667,9 @@ msgstr "{actor} đã mở {badge}"
 
 msgid "{actor} published {chip}"
 msgstr "{actor} đã xuất bản {chip}"
+
+msgid "{actor} removed access for {target}"
+msgstr "{actor} đã gỡ quyền truy cập của {target}"
 
 msgid "{actor} removed the assignee"
 msgstr "{actor} đã bỏ người được giao"
@@ -691,6 +698,9 @@ msgstr "{actor} đã đặt mức ưu tiên thành {to}"
 
 msgid "{actor} set the status to {to}"
 msgstr "{actor} đã đặt trạng thái thành {to}"
+
+msgid "{actor} shared the workspace with {target}"
+msgstr "{actor} đã chia sẻ workspace với {target}"
 
 msgid "{actor} shared the workspace with the organization"
 msgstr "{actor} đã chia sẻ không gian làm việc với tổ chức"
@@ -1532,6 +1542,12 @@ msgstr "Chấp nhận điều khoản"
 msgid "Access denied"
 msgstr "Truy cập bị từ chối"
 
+msgid "Access for {name}"
+msgstr "Quyền truy cập của {name}"
+
+msgid "Access for the people you add"
+msgstr "Quyền truy cập cho những người bạn thêm"
+
 msgid "Access your email address"
 msgstr "Truy cập địa chỉ email của bạn"
 
@@ -1728,8 +1744,17 @@ msgstr "Thêm tác nhân lắng nghe"
 msgid "Add member"
 msgstr "Thêm thành viên"
 
+msgid "Add more…"
+msgstr "Thêm nữa…"
+
 msgid "Add one from the menu in the sidebar to get started."
 msgstr "Thêm một agent từ menu ở thanh bên để bắt đầu."
+
+msgid "Add people"
+msgstr "Thêm người"
+
+msgid "Add people or teams by name or email"
+msgstr "Thêm người hoặc nhóm theo tên hoặc email"
 
 msgid "Add photos or files"
 msgstr "Thêm ảnh hoặc tệp"
@@ -1805,6 +1830,10 @@ msgstr "Đã thêm 1 tệp vào {where}"
 
 msgid "Added only when launching with a prompt — e.g. <0>--</0>, <1>--prompt</1>, <2>-i</2>."
 msgstr "Chỉ thêm vào khi khởi chạy kèm prompt — ví dụ <0>--</0>, <1>--prompt</1>, <2>-i</2>."
+
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
+msgstr "Để thêm người vào {organizationName}, bạn cần gói trả phí. Gói của tổ chức bạn do chủ sở hữu quản lý tại {0}."
 
 msgid "Address Comments with Agent"
 msgstr "Xử lý bình luận bằng agent"
@@ -2303,11 +2332,27 @@ msgstr "Sự kiện luồng bất kỳ"
 msgid "Anyone"
 msgstr "Bất kỳ ai"
 
+#. placeholder {0}: share.organizationName
+msgid "Anyone in {0} who isn't listed here loses access, including anyone who has it open now."
+msgstr "Bất kỳ ai trong {0} không có trong danh sách này sẽ mất quyền truy cập, kể cả người đang mở nó."
+
+msgid "Anyone in {organizationName} who isn't listed here loses access."
+msgstr "Bất kỳ ai trong {organizationName} không có trong danh sách này sẽ mất quyền truy cập."
+
+msgid "Anyone in {organizationName} with the link can open it"
+msgstr "Bất kỳ ai trong {organizationName} có liên kết đều có thể mở"
+
 msgid "Anyone in your organization"
 msgstr "Bất kỳ ai trong tổ chức của bạn"
 
 msgid "Anyone with the link"
 msgstr "Bất kỳ ai có liên kết"
+
+msgid "Anyone with the link can view it, including people outside {organizationName} and people who aren't signed in."
+msgstr "Bất kỳ ai có liên kết đều có thể xem, kể cả người ngoài {organizationName} và người chưa đăng nhập."
+
+msgid "Anyone with the link can view it, signed in or not"
+msgstr "Bất kỳ ai có liên kết đều có thể xem, dù đã đăng nhập hay chưa"
 
 msgid "anything"
 msgstr "bất kỳ điều gì"
@@ -3240,6 +3285,9 @@ msgstr "Không được phép truy cập camera"
 msgid "Camera is not available"
 msgstr "Camera không khả dụng"
 
+msgid "Can comment"
+msgstr "Có thể bình luận"
+
 msgid "Can I switch plans or cancel anytime?"
 msgstr "Tôi có thể đổi gói hoặc hủy bất cứ lúc nào không?"
 
@@ -3251,6 +3299,9 @@ msgstr "Có thể merge mà không xung đột"
 
 msgid "Can the headline say what happens after sign-up?"
 msgstr "Tiêu đề có thể cho biết điều gì xảy ra sau khi đăng ký không?"
+
+msgid "Can view"
+msgstr "Có thể xem"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Bạn chuẩn hóa tooltip trên toàn ứng dụng được không?"
@@ -3276,6 +3327,9 @@ msgstr "Hủy tải xuống"
 msgid "Cancel edits"
 msgstr "Hủy chỉnh sửa"
 
+msgid "Cancel invite"
+msgstr "Hủy lời mời"
+
 msgid "Cancel plan"
 msgstr "Hủy gói"
 
@@ -3291,6 +3345,9 @@ msgstr "Đang hủy..."
 
 msgid "Cancelled"
 msgstr "Đã hủy"
+
+msgid "Cancelled the invite for {name}"
+msgstr "Đã hủy lời mời cho {name}"
 
 #. placeholder {0}: format(new Date(cancelAt), "MMMM d, yyyy")
 #. placeholder {0}: formatDate(cancelAt)
@@ -4709,17 +4766,17 @@ msgstr "Không thể đính kèm tệp"
 msgid "Could not branch the chat"
 msgstr "Không thể phân nhánh cuộc trò chuyện"
 
+msgid "Could not change access"
+msgstr "Không thể thay đổi quyền truy cập"
+
 msgid "Could not change the mode"
 msgstr "Không thể đổi chế độ"
 
 msgid "Could not change the shared version"
 msgstr "Không thể đổi phiên bản được chia sẻ"
 
-msgid "Could not change who can see this page"
-msgstr "Không thể đổi ai được xem trang này"
-
-msgid "Could not change who can see this workspace"
-msgstr "Không thể thay đổi ai có thể xem workspace này"
+msgid "Could not change who has access"
+msgstr "Không thể thay đổi người có quyền truy cập"
 
 msgid "Could not check your plan. Check your connection and try again."
 msgstr "Không thể kiểm tra gói của bạn. Hãy kiểm tra kết nối và thử lại."
@@ -4863,6 +4920,9 @@ msgstr "Không thể ghi nhận workspace trên cloud"
 msgid "Could not record environment"
 msgstr "Không thể lưu environment"
 
+msgid "Could not remove access"
+msgstr "Không thể gỡ quyền truy cập"
+
 msgid "Could not rename the session"
 msgstr "Không thể đổi tên phiên"
 
@@ -4874,6 +4934,9 @@ msgstr "Không thể mở lại"
 
 msgid "Could not reopen this comment"
 msgstr "Không thể mở lại bình luận này"
+
+msgid "Could not resend the invite"
+msgstr "Không thể gửi lại lời mời"
 
 msgid "Could not resolve this comment"
 msgstr "Không thể giải quyết bình luận này"
@@ -4895,6 +4958,9 @@ msgstr "Không thể gửi review"
 
 msgid "Could not set icon"
 msgstr "Không thể đặt biểu tượng"
+
+msgid "Could not share"
+msgstr "Không thể chia sẻ"
 
 msgid "Could not start agent"
 msgstr "Không thể khởi động agent"
@@ -4931,6 +4997,9 @@ msgstr "Không thể gửi prompt. Hãy thử lại."
 
 msgid "Could not take a screenshot"
 msgstr "Không thể chụp màn hình"
+
+msgid "Could not undo"
+msgstr "Không thể hoàn tác"
 
 msgid "Could not update plugin"
 msgstr "Không thể cập nhật plugin"
@@ -5450,6 +5519,9 @@ msgstr "Ctrl+Shift+nhấp"
 
 msgid "Current"
 msgstr "Hiện tại"
+
+msgid "Current access"
+msgstr "Quyền truy cập hiện tại"
 
 msgid "Current level"
 msgstr "Mức hiện tại"
@@ -6533,6 +6605,9 @@ msgstr "Thích Superset chứ?"
 
 msgid "Ensure no regression"
 msgstr "Đảm bảo không có hồi quy"
+
+msgid "Enter a full email address"
+msgstr "Nhập địa chỉ email đầy đủ"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "Hãy nhập một thư mục cha trên {hostName}"
@@ -8014,6 +8089,9 @@ msgstr "đang diễn ra"
 msgid "Hard reload"
 msgstr "Tải lại cứng"
 
+msgid "Has access"
+msgstr "Có quyền truy cập"
+
 msgid "Has conflicts"
 msgstr "Có xung đột"
 
@@ -8729,6 +8807,12 @@ msgstr "Không tìm thấy lời mời"
 msgid "Invitation sent to {email}"
 msgstr "Đã gửi lời mời tới {email}"
 
+msgid "Invite"
+msgstr "Mời"
+
+msgid "Invite {label} to join {organizationName}"
+msgstr "Mời {label} tham gia {organizationName}"
+
 msgid "Invite and manage members, assign roles, and control permissions"
 msgstr "Mời và quản lý thành viên, gán vai trò và kiểm soát quyền"
 
@@ -8738,11 +8822,23 @@ msgstr "Mời thành viên"
 msgid "Invite Member"
 msgstr "Mời thành viên"
 
+msgid "Invite pending"
+msgstr "Đang chờ chấp nhận lời mời"
+
+msgid "Invite people on a paid plan"
+msgstr "Mời mọi người với gói trả phí"
+
 msgid "Invite teammate"
 msgstr "Mời đồng đội"
 
+msgid "Invite to {organizationName}"
+msgstr "Mời vào {organizationName}"
+
 msgid "Invite your team to shared workspaces. See real-time updates, sync configurations, and manage team access across agents."
 msgstr "Mời nhóm của bạn vào workspace chung. Xem cập nhật theo thời gian thực, đồng bộ cấu hình và quản lý quyền truy cập của nhóm trên các agent."
+
+msgid "Invited"
+msgstr "Đã mời"
 
 msgid "Invited By"
 msgstr "Người mời"
@@ -8929,6 +9025,9 @@ msgstr "Giữ tài liệu luôn mới"
 
 msgid "Keep editing"
 msgstr "Tiếp tục chỉnh sửa"
+
+msgid "Keep typing an email to invite"
+msgstr "Tiếp tục nhập email để mời"
 
 msgid "Keep waiting"
 msgstr "Tiếp tục chờ"
@@ -9221,6 +9320,15 @@ msgstr "Thích xây dựng cùng Superset?"
 
 msgid "Lime"
 msgstr "Xanh chanh"
+
+msgid "Limit access"
+msgstr "Giới hạn quyền truy cập"
+
+msgid "Limit to {organizationName}?"
+msgstr "Giới hạn trong {organizationName}?"
+
+msgid "Limit to people invited?"
+msgstr "Chỉ cho những người được mời?"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -9580,11 +9688,17 @@ msgstr "Đặt làm mặc định"
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "Đặt làm mặc định — mở terminal và agent mới trên tài khoản này."
 
+msgid "Make public"
+msgstr "Công khai"
+
 msgid "Make sure the device is awake, online, and running Superset."
 msgstr "Đảm bảo thiết bị không ở chế độ ngủ, có kết nối mạng và đang chạy Superset."
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "Đặt kiểu chip làm mặc định cho TooltipContent"
+
+msgid "Make this page public?"
+msgstr "Công khai trang này?"
 
 msgid "Makes the Run button launch this terminal script for matching projects."
 msgstr "Cho nút Chạy khởi động script terminal này với các dự án phù hợp."
@@ -10036,6 +10150,9 @@ msgstr "Thêm tùy chọn tạo"
 msgid "More options"
 msgstr "Tùy chọn khác"
 
+msgid "More options for {name}"
+msgstr "Tùy chọn khác cho {name}"
+
 msgid "More pages"
 msgstr "Thêm trang"
 
@@ -10122,6 +10239,9 @@ msgstr "Đã cập nhật tên!"
 
 msgid "Nameless Foreman"
 msgstr "Quản đốc vô danh"
+
+msgid "Names, emails, or teams"
+msgstr "Tên, email hoặc nhóm"
 
 msgid "Namespace new branches for this project. Defaults to the host-wide Git setting."
 msgstr "Đặt không gian tên cho nhánh mới của dự án này. Mặc định theo cài đặt Git của toàn host."
@@ -10707,6 +10827,9 @@ msgstr "Không có trình giả lập di động nào khả dụng ở đây. C�
 msgid "No name on file"
 msgstr "Chưa có tên nào được lưu"
 
+msgid "No one in {organizationName} matches"
+msgstr "Không có ai trong {organizationName} khớp"
+
 msgid "No open issues found."
 msgstr "Không có issue nào đang mở."
 
@@ -11289,6 +11412,9 @@ msgstr "Đang trực tuyến"
 msgid "Online Now"
 msgstr "Đang trực tuyến"
 
+msgid "Only {organizationName} admins can invite new people"
+msgstr "Chỉ quản trị viên của {organizationName} mới có thể mời người mới"
+
 msgid "Only an organization owner can change the plan. Ask yours to upgrade."
 msgstr "Chỉ chủ sở hữu tổ chức mới đổi được gói. Hãy nhờ chủ sở hữu nâng cấp."
 
@@ -11322,6 +11448,9 @@ msgstr "Chỉ chủ sở hữu mới quản lý được thanh toán"
 msgid "Only owners can update organization settings"
 msgstr "Chỉ chủ sở hữu mới cập nhật được cài đặt tổ chức"
 
+msgid "Only people invited"
+msgstr "Chỉ những người được mời"
+
 msgid "Only people who opted in appear here."
 msgstr "Chỉ những người đã chọn tham gia mới xuất hiện ở đây."
 
@@ -11337,6 +11466,9 @@ msgstr "Chỉ chủ sở hữu host mới đặt được lệnh đánh thức"
 msgid "Only the owner can change this"
 msgstr "Chỉ chủ sở hữu mới có thể thay đổi"
 
+msgid "Only the owner can change who this is shared with"
+msgstr "Chỉ chủ sở hữu mới có thể thay đổi người được chia sẻ"
+
 msgid "Only the owner can run this automation"
 msgstr "Chỉ chủ sở hữu mới chạy được tự động hóa này"
 
@@ -11346,11 +11478,17 @@ msgstr "Chỉ chủ sở hữu mới xem được lịch sử prompt"
 msgid "Only the owner or an organization owner can delete this automation"
 msgstr "Chỉ chủ sở hữu hoặc chủ sở hữu tổ chức mới xóa được tự động hóa này"
 
+msgid "Only the people listed above can open it"
+msgstr "Chỉ những người có trong danh sách trên mới có thể mở"
+
 msgid "Only the person who created this page can change it"
 msgstr "Chỉ người tạo trang này mới thay đổi được"
 
 msgid "Only the person who created this page can change these."
 msgstr "Chỉ người tạo trang này mới có thể thay đổi."
+
+msgid "Only the person who created this workspace can change these."
+msgstr "Chỉ người tạo không gian làm việc này mới có thể thay đổi các mục này."
 
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "Chỉ tác giả của luồng hoặc chủ sở hữu trang mới xóa được"
@@ -11735,6 +11873,9 @@ msgstr "Mở script terminal 8"
 
 msgid "Open Terminal Script 9"
 msgstr "Mở script terminal 9"
+
+msgid "Open terminals and prompt agents"
+msgstr "Mở terminal và giao việc cho tác nhân"
 
 msgid "Open the Changes pane in a new tab, or focus the existing one"
 msgstr "Mở bảng thay đổi trong tab mới, hoặc chuyển tiêu điểm đến bảng hiện có"
@@ -12183,6 +12324,9 @@ msgstr "Lời mời đang chờ"
 msgid "People"
 msgstr "Mọi người"
 
+msgid "People outside {organizationName} lose access, and the public link stops working."
+msgstr "Người ngoài {organizationName} sẽ mất quyền truy cập và liên kết công khai sẽ ngừng hoạt động."
+
 msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
 msgstr "Những người lần đầu thấy paywall trong {PAYWALL_FUNNEL_WEEKS} tuần gần nhất, và họ đi được đến đâu. Mỗi bước tính tất cả những ai đạt tới nó sau lần xem đó, nên các nhóm gần đây vẫn đang hoàn thiện."
 
@@ -12213,6 +12357,9 @@ msgstr "Đã xóa vĩnh viễn \"{projectName}\""
 #. placeholder {0}: team.name
 msgid "Permanently remove <0>{0}</0> and all of its members. This can't be undone."
 msgstr "Xóa vĩnh viễn <0>{0}</0> và toàn bộ thành viên. Không thể hoàn tác."
+
+msgid "Permission level"
+msgstr "Mức quyền"
 
 msgid "Permissions"
 msgstr "Quyền"
@@ -13025,6 +13172,12 @@ msgstr "Đọc hướng dẫn"
 msgid "Read the guide to parallel coding agents"
 msgstr "Đọc hướng dẫn về coding agent chạy song song"
 
+msgid "Read the page"
+msgstr "Đọc trang"
+
+msgid "Read the page and leave comments"
+msgstr "Đọc trang và để lại bình luận"
+
 msgid "Read the setup guide"
 msgstr "Đọc hướng dẫn thiết lập"
 
@@ -13279,6 +13432,9 @@ msgstr "Gỡ"
 msgid "Remove {0}"
 msgstr "Gỡ {0}"
 
+msgid "Remove {label}"
+msgstr "Gỡ {label}"
+
 msgid "Remove {label}?"
 msgstr "Gỡ {label}?"
 
@@ -13353,6 +13509,9 @@ msgstr "Gỡ…"
 
 msgid "Removed {credential} for {agentLabel}."
 msgstr "Đã xóa {credential} của {agentLabel}."
+
+msgid "Removed {name}"
+msgstr "Đã gỡ {name}"
 
 msgid "Removed {removedLabel}."
 msgstr "Đã gỡ {removedLabel}."
@@ -13548,6 +13707,9 @@ msgstr "Phiên bản yêu cầu: {minimumVersion}+"
 
 msgid "Requires iOS 26 or later. Included with Superset Pro."
 msgstr "Yêu cầu iOS 26 trở lên. Đi kèm với Superset Pro."
+
+msgid "Resend invite"
+msgstr "Gửi lại lời mời"
 
 msgid "Reserved by OS"
 msgstr "Hệ điều hành đã dùng"
@@ -14520,6 +14682,9 @@ msgstr "Xem 30 ngày qua của bạn đứng ở đâu trên bảng xếp hạng
 msgid "Select"
 msgstr "Select"
 
+msgid "Select a person"
+msgstr "Chọn một người"
+
 msgid "Select a project"
 msgstr "Chọn một dự án"
 
@@ -14646,6 +14811,9 @@ msgstr "Chọn thư mục cho script terminal"
 msgid "Select worktree location"
 msgstr "Chọn vị trí worktree"
 
+msgid "Selected"
+msgstr "Đã chọn"
+
 msgid "Selected agent is not available on this host"
 msgstr "Agent đã chọn không khả dụng trên host này"
 
@@ -14720,6 +14888,10 @@ msgstr "Gửi {0} ký tự ngữ cảnh terminal (khoảng {1} token) tới {2}.
 
 msgid "Sent"
 msgstr "Đã gửi"
+
+#. placeholder {0}: grantee.email
+msgid "Sent the invite to {0} again"
+msgstr "Đã gửi lại lời mời đến {0}"
 
 msgid "Sent to agent"
 msgstr "Đã gửi cho agent"
@@ -14916,6 +15088,9 @@ msgstr "Phiên bản được chia sẻ"
 
 msgid "Shared with everyone"
 msgstr "Đã chia sẻ với mọi người"
+
+msgid "Shared with me"
+msgstr "Được chia sẻ với tôi"
 
 msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
 msgstr "Dùng chung checkout của dự án — tệp, chỉ mục git và nhánh — với các workspace cục bộ khác"
@@ -15279,6 +15454,9 @@ msgstr "Bỏ qua bây giờ"
 
 msgid "Skipped"
 msgstr "Đã bỏ qua"
+
+msgid "Skipped {blocked} not in {organizationName}. Only admins can invite new people."
+msgstr "Đã bỏ qua {blocked} email không thuộc {organizationName}. Chỉ quản trị viên mới có thể mời người mới."
 
 msgid "Slack Account Linked"
 msgstr "Đã liên kết tài khoản Slack"
@@ -16220,6 +16398,9 @@ msgstr "Tab"
 msgid "Tab per command"
 msgstr "Mỗi lệnh một tab"
 
+msgid "Tab to fill"
+msgstr "Tab để điền"
+
 msgid "Table"
 msgstr "Table"
 
@@ -16499,6 +16680,9 @@ msgstr "Endpoint đó không được phép."
 
 msgid "That handle is taken."
 msgstr "Tên định danh đó đã có người dùng."
+
+msgid "That invitation is no longer pending"
+msgstr "Lời mời đó không còn đang chờ"
 
 msgid "That Linear issue doesn't exist or you can't see it."
 msgstr "Issue Linear đó không tồn tại hoặc bạn không thể xem."
@@ -16850,6 +17034,9 @@ msgstr "Các lệnh này chạy tự động khi một workspace được tạo.
 
 msgid "These ports are still in use"
 msgstr "Các cổng này vẫn đang được dùng"
+
+msgid "They get full access"
+msgstr "Họ sẽ có toàn quyền truy cập"
 
 msgid "Thinking"
 msgstr "Suy luận"
@@ -18065,6 +18252,9 @@ msgstr "Phiên bản"
 msgid "Version {0}"
 msgstr "Phiên bản {0}"
 
+msgid "Version {sharedVersion}"
+msgstr "Phiên bản {sharedVersion}"
+
 msgid "Version {version}"
 msgstr "Phiên bản {version}"
 
@@ -18085,6 +18275,10 @@ msgstr "Không tìm thấy phiên bản"
 
 msgid "Version unknown"
 msgstr "Không rõ phiên bản"
+
+#. placeholder {0}: effective.via
+msgid "via {0}"
+msgstr "qua {0}"
 
 msgid "Video"
 msgstr "Video"
@@ -18411,6 +18605,9 @@ msgstr "Bạn muốn làm gì?"
 
 msgid "What early users say"
 msgstr "Người dùng đầu tiên nói gì"
+
+msgid "What general access allows"
+msgstr "Quyền mà truy cập chung cho phép"
 
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google hiển thị chúng tôi cho những tìm kiếm nào và bao nhiêu trong đó không phải tên của chúng tôi."
@@ -18853,11 +19050,17 @@ msgstr "Bạn đang xem phiên bản {version}, chỉ đọc"
 msgid "You can attach up to {MAX_ATTACHMENTS} files"
 msgstr "Bạn có thể đính kèm tối đa {MAX_ATTACHMENTS} tệp"
 
+msgid "You can only share with people and teams in this organization"
+msgstr "Bạn chỉ có thể chia sẻ với người và nhóm trong tổ chức này"
+
 msgid "You can restore it from Settings → Projects for 30 days. The repository folder is never deleted."
 msgstr "Bạn có thể khôi phục trong Cài đặt → Dự án trong 30 ngày. Thư mục repository không bao giờ bị xóa."
 
 msgid "You can see how we work before you talk to us."
 msgstr "Bạn có thể xem cách chúng tôi làm việc trước khi trò chuyện với chúng tôi."
+
+msgid "You can view this page but not comment on it"
+msgstr "Bạn có thể xem trang này nhưng không thể bình luận"
 
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."

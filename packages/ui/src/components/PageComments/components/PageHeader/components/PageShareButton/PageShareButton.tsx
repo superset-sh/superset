@@ -19,6 +19,8 @@ interface PageShareButtonProps {
 	onOpenChange: (open: boolean) => void;
 	onSetVisibility: PageHeaderActions["onSetVisibility"];
 	onSetSharedVersion: PageHeaderActions["onSetSharedVersion"];
+	currentUserId: string | undefined;
+	sharing: PageHeaderActions["sharing"];
 	compact?: boolean;
 }
 
@@ -30,6 +32,8 @@ export function PageShareButton({
 	onOpenChange,
 	onSetVisibility,
 	onSetSharedVersion,
+	currentUserId,
+	sharing,
 	compact = false,
 }: PageShareButtonProps) {
 	const { t } = useLingui();
@@ -52,6 +56,8 @@ export function PageShareButton({
 			onOpenChange={onOpenChange}
 			onSetVisibility={setVisibility}
 			onSetSharedVersion={onSetSharedVersion}
+			currentUserId={currentUserId}
+			sharing={sharing}
 		>
 			<Button
 				variant="ghost"

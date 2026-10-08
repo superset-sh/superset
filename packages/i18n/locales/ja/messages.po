@@ -96,6 +96,9 @@ msgstr "（出力なし）"
 msgid "(so far)"
 msgstr "（現時点）"
 
+msgid "(you)"
+msgstr "（自分）"
+
 #. placeholder {0}: connections.length
 msgid "{0, plural, one {# account connected} other {# accounts connected}}"
 msgstr "{0, plural, other {# 個のアカウントが接続されています}}"
@@ -187,6 +190,7 @@ msgstr "{0, plural, one {#件保留中} other {#件保留中}}"
 
 #. placeholder {0}: chosenLeads.length
 #. placeholder {0}: chosenPeople.length
+#. placeholder {0}: grantee.memberCount
 msgid "{0, plural, one {# person} other {# people}}"
 msgstr "{0, plural, other {# 人}}"
 
@@ -643,6 +647,9 @@ msgstr "{actor}が説明を編集しました"
 msgid "{actor} joined"
 msgstr "{actor}が参加しました"
 
+msgid "{actor} limited the workspace to people invited"
+msgstr "{actor}がワークスペースを招待したユーザーのみに制限しました"
+
 msgid "{actor} linked {chip}"
 msgstr "{actor}が{chip}をリンクしました"
 
@@ -652,9 +659,6 @@ msgstr "{actor}が{chip}をリンクしました · {suggestedBy}の提案"
 msgid "{actor} linked the workspace {workspace}"
 msgstr "{actor}がワークスペース {workspace} をリンクしました"
 
-msgid "{actor} made the workspace private"
-msgstr "{actor}がワークスペースを非公開にしました"
-
 msgid "{actor} moved the task from {from} to {to}"
 msgstr "{actor}がタスクを {from} から {to} に移動しました"
 
@@ -663,6 +667,9 @@ msgstr "{actor}が{badge}を作成しました"
 
 msgid "{actor} published {chip}"
 msgstr "{actor}が{chip}を公開しました"
+
+msgid "{actor} removed access for {target}"
+msgstr "{actor}が{target}のアクセスを削除しました"
 
 msgid "{actor} removed the assignee"
 msgstr "{actor}が担当者を外しました"
@@ -691,6 +698,9 @@ msgstr "{actor}が優先度を {to} に設定しました"
 
 msgid "{actor} set the status to {to}"
 msgstr "{actor}がステータスを {to} に設定しました"
+
+msgid "{actor} shared the workspace with {target}"
+msgstr "{actor}がワークスペースを{target}と共有しました"
 
 msgid "{actor} shared the workspace with the organization"
 msgstr "{actor}がワークスペースを組織と共有しました"
@@ -1532,6 +1542,12 @@ msgstr "利用規約に同意する"
 msgid "Access denied"
 msgstr "アクセスが拒否されました"
 
+msgid "Access for {name}"
+msgstr "{name}のアクセス"
+
+msgid "Access for the people you add"
+msgstr "追加するユーザーのアクセス"
+
 msgid "Access your email address"
 msgstr "メールアドレスへのアクセス"
 
@@ -1728,8 +1744,17 @@ msgstr "コメントを受け取るエージェントを追加"
 msgid "Add member"
 msgstr "メンバーを追加"
 
+msgid "Add more…"
+msgstr "さらに追加…"
+
 msgid "Add one from the menu in the sidebar to get started."
 msgstr "サイドバーのメニューから追加して始めましょう。"
+
+msgid "Add people"
+msgstr "ユーザーを追加"
+
+msgid "Add people or teams by name or email"
+msgstr "名前またはメールアドレスでユーザーやチームを追加"
 
 msgid "Add photos or files"
 msgstr "写真やファイルを追加"
@@ -1805,6 +1830,10 @@ msgstr "1件のファイルを{where}に追加しました"
 
 msgid "Added only when launching with a prompt — e.g. <0>--</0>, <1>--prompt</1>, <2>-i</2>."
 msgstr "プロンプト付きで起動するときのみ追加されます — 例: <0>--</0>、<1>--prompt</1>、<2>-i</2>。"
+
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
+msgstr "{organizationName} にメンバーを追加するには有料プランが必要です。組織のプランはオーナーが {0} で管理しています。"
 
 msgid "Address Comments with Agent"
 msgstr "エージェントでコメントに対応"
@@ -2303,11 +2332,27 @@ msgstr "すべてのスレッドイベント"
 msgid "Anyone"
 msgstr "全員"
 
+#. placeholder {0}: share.organizationName
+msgid "Anyone in {0} who isn't listed here loses access, including anyone who has it open now."
+msgstr "ここに表示されていない{0}のメンバーは、現在開いている人も含めてアクセスできなくなります。"
+
+msgid "Anyone in {organizationName} who isn't listed here loses access."
+msgstr "ここに表示されていない{organizationName}のメンバーはアクセスできなくなります。"
+
+msgid "Anyone in {organizationName} with the link can open it"
+msgstr "{organizationName} のメンバーはリンクから開けます"
+
 msgid "Anyone in your organization"
 msgstr "組織内の全員"
 
 msgid "Anyone with the link"
 msgstr "リンクを知っている全員"
+
+msgid "Anyone with the link can view it, including people outside {organizationName} and people who aren't signed in."
+msgstr "リンクを知っている全員が閲覧できます。{organizationName}外のユーザーやサインインしていないユーザーも含まれます。"
+
+msgid "Anyone with the link can view it, signed in or not"
+msgstr "リンクを知っている人は誰でも、サインインしていなくても閲覧できます"
 
 msgid "anything"
 msgstr "何でも"
@@ -3240,6 +3285,9 @@ msgstr "カメラへのアクセスが許可されていません"
 msgid "Camera is not available"
 msgstr "カメラを利用できません"
 
+msgid "Can comment"
+msgstr "コメント可"
+
 msgid "Can I switch plans or cancel anytime?"
 msgstr "プランの変更や解約はいつでもできますか?"
 
@@ -3251,6 +3299,9 @@ msgstr "コンフリクトなしでマージできます"
 
 msgid "Can the headline say what happens after sign-up?"
 msgstr "登録後に何が起きるか見出しで伝えられますか？"
+
+msgid "Can view"
+msgstr "閲覧可"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "アプリ全体のtooltipを統一できますか?"
@@ -3276,6 +3327,9 @@ msgstr "ダウンロードをキャンセル"
 msgid "Cancel edits"
 msgstr "編集をキャンセル"
 
+msgid "Cancel invite"
+msgstr "招待を取り消す"
+
 msgid "Cancel plan"
 msgstr "プランをキャンセル"
 
@@ -3291,6 +3345,9 @@ msgstr "キャンセル中..."
 
 msgid "Cancelled"
 msgstr "キャンセル済み"
+
+msgid "Cancelled the invite for {name}"
+msgstr "{name}への招待を取り消しました"
 
 #. placeholder {0}: format(new Date(cancelAt), "MMMM d, yyyy")
 #. placeholder {0}: formatDate(cancelAt)
@@ -4709,17 +4766,17 @@ msgstr "ファイルを添付できませんでした"
 msgid "Could not branch the chat"
 msgstr "チャットを分岐できませんでした"
 
+msgid "Could not change access"
+msgstr "アクセスを変更できませんでした"
+
 msgid "Could not change the mode"
 msgstr "モードを変更できませんでした"
 
 msgid "Could not change the shared version"
 msgstr "共有バージョンを変更できませんでした"
 
-msgid "Could not change who can see this page"
-msgstr "このページを見られる人を変更できませんでした"
-
-msgid "Could not change who can see this workspace"
-msgstr "このワークスペースを閲覧できる人を変更できませんでした"
+msgid "Could not change who has access"
+msgstr "アクセスできるユーザーを変更できませんでした"
 
 msgid "Could not check your plan. Check your connection and try again."
 msgstr "プランを確認できませんでした。接続を確認してもう一度お試しください。"
@@ -4863,6 +4920,9 @@ msgstr "クラウドワークスペースを記録できませんでした"
 msgid "Could not record environment"
 msgstr "環境を保存できませんでした"
 
+msgid "Could not remove access"
+msgstr "アクセスを削除できませんでした"
+
 msgid "Could not rename the session"
 msgstr "セッションの名前を変更できませんでした"
 
@@ -4874,6 +4934,9 @@ msgstr "再オープンできませんでした"
 
 msgid "Could not reopen this comment"
 msgstr "このコメントを再オープンできませんでした"
+
+msgid "Could not resend the invite"
+msgstr "招待を再送信できませんでした"
 
 msgid "Could not resolve this comment"
 msgstr "このコメントを解決できませんでした"
@@ -4895,6 +4958,9 @@ msgstr "レビューを送信できませんでした"
 
 msgid "Could not set icon"
 msgstr "アイコンを設定できませんでした"
+
+msgid "Could not share"
+msgstr "共有できませんでした"
 
 msgid "Could not start agent"
 msgstr "エージェントを起動できませんでした"
@@ -4931,6 +4997,9 @@ msgstr "プロンプトを送信できませんでした。もう一度お試し
 
 msgid "Could not take a screenshot"
 msgstr "スクリーンショットを撮れませんでした"
+
+msgid "Could not undo"
+msgstr "取り消せませんでした"
 
 msgid "Could not update plugin"
 msgstr "プラグインを更新できませんでした"
@@ -5450,6 +5519,9 @@ msgstr "Ctrl+Shift+クリック"
 
 msgid "Current"
 msgstr "現在"
+
+msgid "Current access"
+msgstr "現在のアクセス"
 
 msgid "Current level"
 msgstr "現在のレベル"
@@ -6533,6 +6605,9 @@ msgstr "Supersetを気に入っていただけましたか?"
 
 msgid "Ensure no regression"
 msgstr "デグレがないことを確認して"
+
+msgid "Enter a full email address"
+msgstr "完全なメールアドレスを入力してください"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "{hostName}の親ディレクトリを入力してください"
@@ -8014,6 +8089,9 @@ msgstr "開催中"
 msgid "Hard reload"
 msgstr "ハードリロード"
 
+msgid "Has access"
+msgstr "アクセス権あり"
+
 msgid "Has conflicts"
 msgstr "コンフリクトあり"
 
@@ -8729,6 +8807,12 @@ msgstr "招待が見つかりません"
 msgid "Invitation sent to {email}"
 msgstr "{email}に招待を送信しました"
 
+msgid "Invite"
+msgstr "招待"
+
+msgid "Invite {label} to join {organizationName}"
+msgstr "{label}を{organizationName}に招待"
+
 msgid "Invite and manage members, assign roles, and control permissions"
 msgstr "メンバーの招待と管理、ロールの割り当て、権限の設定"
 
@@ -8738,11 +8822,23 @@ msgstr "メンバーを招待"
 msgid "Invite Member"
 msgstr "メンバーを招待"
 
+msgid "Invite pending"
+msgstr "招待中"
+
+msgid "Invite people on a paid plan"
+msgstr "有料プランでメンバーを招待"
+
 msgid "Invite teammate"
 msgstr "メンバーを招待"
 
+msgid "Invite to {organizationName}"
+msgstr "{organizationName}に招待"
+
 msgid "Invite your team to shared workspaces. See real-time updates, sync configurations, and manage team access across agents."
 msgstr "チームを共有ワークスペースに招待できます。リアルタイムの更新確認、設定の同期、エージェント全体でのチームアクセス管理ができます。"
+
+msgid "Invited"
+msgstr "招待済み"
 
 msgid "Invited By"
 msgstr "招待者"
@@ -8929,6 +9025,9 @@ msgstr "ドキュメントを最新に保つ"
 
 msgid "Keep editing"
 msgstr "編集を続ける"
+
+msgid "Keep typing an email to invite"
+msgstr "招待するにはメールアドレスを入力し続けてください"
 
 msgid "Keep waiting"
 msgstr "待ち続ける"
@@ -9221,6 +9320,15 @@ msgstr "Supersetでの開発は気に入りましたか?"
 
 msgid "Lime"
 msgstr "ライム"
+
+msgid "Limit access"
+msgstr "アクセスを制限"
+
+msgid "Limit to {organizationName}?"
+msgstr "{organizationName}に制限しますか？"
+
+msgid "Limit to people invited?"
+msgstr "招待したユーザーのみに制限しますか？"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -9580,11 +9688,17 @@ msgstr "デフォルトにする"
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "デフォルトにする — 新しいターミナルとエージェントをこのアカウントで起動します。"
 
+msgid "Make public"
+msgstr "公開する"
+
 msgid "Make sure the device is awake, online, and running Superset."
 msgstr "デバイスがスリープ状態ではなく、オンラインで Superset が起動していることを確認してください。"
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "チップスタイルをTooltipContentのデフォルトにする"
+
+msgid "Make this page public?"
+msgstr "このページを公開しますか？"
 
 msgid "Makes the Run button launch this terminal script for matching projects."
 msgstr "対象プロジェクトで実行ボタンがこのターミナルスクリプトを起動するようにします。"
@@ -10036,6 +10150,9 @@ msgstr "その他の作成オプション"
 msgid "More options"
 msgstr "その他のオプション"
 
+msgid "More options for {name}"
+msgstr "{name} のその他のオプション"
+
 msgid "More pages"
 msgstr "その他のページ"
 
@@ -10122,6 +10239,9 @@ msgstr "名前を更新しました!"
 
 msgid "Nameless Foreman"
 msgstr "名無しの職長"
+
+msgid "Names, emails, or teams"
+msgstr "名前、メール、チーム"
 
 msgid "Namespace new branches for this project. Defaults to the host-wide Git setting."
 msgstr "このプロジェクトの新しいブランチに名前空間を付けます。既定ではホスト全体のGit設定に従います。"
@@ -10707,6 +10827,9 @@ msgstr "ここで利用できるモバイルシミュレーターがありませ
 msgid "No name on file"
 msgstr "登録された名前はありません"
 
+msgid "No one in {organizationName} matches"
+msgstr "{organizationName}に一致するユーザーはいません"
+
 msgid "No open issues found."
 msgstr "オープンなIssueが見つかりません。"
 
@@ -11289,6 +11412,9 @@ msgstr "現在オンライン"
 msgid "Online Now"
 msgstr "現在オンライン"
 
+msgid "Only {organizationName} admins can invite new people"
+msgstr "新しいユーザーを招待できるのは{organizationName}の管理者のみです"
+
 msgid "Only an organization owner can change the plan. Ask yours to upgrade."
 msgstr "プランを変更できるのは組織のオーナーのみです。オーナーにアップグレードを依頼してください。"
 
@@ -11322,6 +11448,9 @@ msgstr "請求を管理できるのはオーナーのみです"
 msgid "Only owners can update organization settings"
 msgstr "組織の設定を更新できるのはオーナーのみです"
 
+msgid "Only people invited"
+msgstr "招待したユーザーのみ"
+
 msgid "Only people who opted in appear here."
 msgstr "参加を選んだ人だけがここに表示されます。"
 
@@ -11337,6 +11466,9 @@ msgstr "ウェイクコマンドを設定できるのはホストのオーナー
 msgid "Only the owner can change this"
 msgstr "変更できるのは所有者のみです"
 
+msgid "Only the owner can change who this is shared with"
+msgstr "共有相手を変更できるのはオーナーのみです"
+
 msgid "Only the owner can run this automation"
 msgstr "このオートメーションを実行できるのは所有者のみです"
 
@@ -11346,11 +11478,17 @@ msgstr "プロンプト履歴を表示できるのは所有者のみです"
 msgid "Only the owner or an organization owner can delete this automation"
 msgstr "このオートメーションを削除できるのは所有者または組織のオーナーのみです"
 
+msgid "Only the people listed above can open it"
+msgstr "上記のメンバーだけが開けます"
+
 msgid "Only the person who created this page can change it"
 msgstr "このページを変更できるのは作成者のみです"
 
 msgid "Only the person who created this page can change these."
 msgstr "このページを作成した人だけが変更できます。"
+
+msgid "Only the person who created this workspace can change these."
+msgstr "このワークスペースを作成した人だけが変更できます。"
 
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "スレッドを削除できるのはスレッドの投稿者かページのオーナーのみです"
@@ -11735,6 +11873,9 @@ msgstr "ターミナルスクリプト8を開く"
 
 msgid "Open Terminal Script 9"
 msgstr "ターミナルスクリプト9を開く"
+
+msgid "Open terminals and prompt agents"
+msgstr "ターミナルを開いてエージェントに指示"
 
 msgid "Open the Changes pane in a new tab, or focus the existing one"
 msgstr "変更ペインを新しいタブで開くか、既存のペインにフォーカスします"
@@ -12183,6 +12324,9 @@ msgstr "保留中の招待"
 msgid "People"
 msgstr "メンバー"
 
+msgid "People outside {organizationName} lose access, and the public link stops working."
+msgstr "{organizationName}外のユーザーはアクセスできなくなり、公開リンクは無効になります。"
+
 msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
 msgstr "最初にペイウォールを見たのが過去{PAYWALL_FUNNEL_WEEKS}週間内の人と、どこまで進んだか。各ステージはその閲覧後に到達した人を数えるため、最近のコホートはまだ成熟していません。"
 
@@ -12213,6 +12357,9 @@ msgstr "「{projectName}」を完全に削除しました"
 #. placeholder {0}: team.name
 msgid "Permanently remove <0>{0}</0> and all of its members. This can't be undone."
 msgstr "<0>{0}</0>とそのすべてのメンバーを完全に削除します。この操作は元に戻せません。"
+
+msgid "Permission level"
+msgstr "権限レベル"
 
 msgid "Permissions"
 msgstr "権限"
@@ -13025,6 +13172,12 @@ msgstr "ガイドを読む"
 msgid "Read the guide to parallel coding agents"
 msgstr "並列コーディングエージェントのガイドを読む"
 
+msgid "Read the page"
+msgstr "ページを閲覧"
+
+msgid "Read the page and leave comments"
+msgstr "ページを閲覧してコメントを残す"
+
 msgid "Read the setup guide"
 msgstr "セットアップガイドを読む"
 
@@ -13279,6 +13432,9 @@ msgstr "削除"
 msgid "Remove {0}"
 msgstr "{0}を削除"
 
+msgid "Remove {label}"
+msgstr "{label}を削除"
+
 msgid "Remove {label}?"
 msgstr "{label}を削除しますか?"
 
@@ -13353,6 +13509,9 @@ msgstr "削除…"
 
 msgid "Removed {credential} for {agentLabel}."
 msgstr "{agentLabel}の{credential}を削除しました。"
+
+msgid "Removed {name}"
+msgstr "{name}を削除しました"
 
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel}を削除しました。"
@@ -13548,6 +13707,9 @@ msgstr "必要バージョン: {minimumVersion}+"
 
 msgid "Requires iOS 26 or later. Included with Superset Pro."
 msgstr "iOS 26 以降が必要です。Superset Pro に含まれています。"
+
+msgid "Resend invite"
+msgstr "招待を再送信"
 
 msgid "Reserved by OS"
 msgstr "OSが予約済み"
@@ -14520,6 +14682,9 @@ msgstr "直近30日の実績が公開リーダーボードでどの位置にな�
 msgid "Select"
 msgstr "Select"
 
+msgid "Select a person"
+msgstr "メンバーを選択"
+
 msgid "Select a project"
 msgstr "プロジェクトを選択してください"
 
@@ -14646,6 +14811,9 @@ msgstr "ターミナルスクリプトのディレクトリを選択"
 msgid "Select worktree location"
 msgstr "ワークツリーの場所を選択"
 
+msgid "Selected"
+msgstr "選択済み"
+
 msgid "Selected agent is not available on this host"
 msgstr "選択したエージェントはこのホストで利用できません"
 
@@ -14720,6 +14888,10 @@ msgstr "ターミナルのコンテキスト {0} 文字（約 {1} トークン�
 
 msgid "Sent"
 msgstr "送信日"
+
+#. placeholder {0}: grantee.email
+msgid "Sent the invite to {0} again"
+msgstr "{0}に招待を再送信しました"
 
 msgid "Sent to agent"
 msgstr "エージェントに送信しました"
@@ -14916,6 +15088,9 @@ msgstr "共有バージョン"
 
 msgid "Shared with everyone"
 msgstr "全員と共有中"
+
+msgid "Shared with me"
+msgstr "共有アイテム"
 
 msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
 msgstr "プロジェクトのチェックアウト（ファイル、git インデックス、ブランチ）を他のローカルワークスペースと共有します"
@@ -15279,6 +15454,9 @@ msgstr "今はスキップ"
 
 msgid "Skipped"
 msgstr "スキップ"
+
+msgid "Skipped {blocked} not in {organizationName}. Only admins can invite new people."
+msgstr "{organizationName}に所属していない{blocked}件をスキップしました。新しいユーザーを招待できるのは管理者のみです。"
 
 msgid "Slack Account Linked"
 msgstr "Slackアカウントを紐付けました"
@@ -16220,6 +16398,9 @@ msgstr "タブ"
 msgid "Tab per command"
 msgstr "コマンドごとにタブ"
 
+msgid "Tab to fill"
+msgstr "Tabで入力"
+
 msgid "Table"
 msgstr "Table"
 
@@ -16499,6 +16680,9 @@ msgstr "そのエンドポイントは許可されていません。"
 
 msgid "That handle is taken."
 msgstr "そのハンドルは使用済みです。"
+
+msgid "That invitation is no longer pending"
+msgstr "その招待はすでに保留中ではありません"
 
 msgid "That Linear issue doesn't exist or you can't see it."
 msgstr "その Linear の課題は存在しないか、表示する権限がありません。"
@@ -16850,6 +17034,9 @@ msgstr "これらのコマンドはワークスペース作成時に自動的に
 
 msgid "These ports are still in use"
 msgstr "これらのポートはまだ使用中です"
+
+msgid "They get full access"
+msgstr "フルアクセスが付与されます"
 
 msgid "Thinking"
 msgstr "思考"
@@ -18065,6 +18252,9 @@ msgstr "バージョン"
 msgid "Version {0}"
 msgstr "バージョン{0}"
 
+msgid "Version {sharedVersion}"
+msgstr "バージョン {sharedVersion}"
+
 msgid "Version {version}"
 msgstr "バージョン{version}"
 
@@ -18085,6 +18275,10 @@ msgstr "バージョンが見つかりません"
 
 msgid "Version unknown"
 msgstr "バージョン不明"
+
+#. placeholder {0}: effective.via
+msgid "via {0}"
+msgstr "{0}経由"
 
 msgid "Video"
 msgstr "動画"
@@ -18411,6 +18605,9 @@ msgstr "何をしますか?"
 
 msgid "What early users say"
 msgstr "初期ユーザーの声"
+
+msgid "What general access allows"
+msgstr "一般的なアクセスで許可される操作"
 
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google が私たちをどの検索で表示しているか、そのうち自社名以外がどれだけか。"
@@ -18853,11 +19050,17 @@ msgstr "バージョン {version} を閲覧中です（読み取り専用）"
 msgid "You can attach up to {MAX_ATTACHMENTS} files"
 msgstr "添付できるファイルは最大{MAX_ATTACHMENTS}件です"
 
+msgid "You can only share with people and teams in this organization"
+msgstr "共有できるのはこの組織内のユーザーとチームのみです"
+
 msgid "You can restore it from Settings → Projects for 30 days. The repository folder is never deleted."
 msgstr "30 日間は「設定 → プロジェクト」から復元できます。リポジトリのフォルダーが削除されることはありません。"
 
 msgid "You can see how we work before you talk to us."
 msgstr "話をする前に、私たちの働き方を見ることができます。"
+
+msgid "You can view this page but not comment on it"
+msgstr "このページは閲覧できますが、コメントはできません"
 
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."

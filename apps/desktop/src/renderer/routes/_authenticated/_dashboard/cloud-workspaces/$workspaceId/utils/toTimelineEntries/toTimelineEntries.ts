@@ -1,5 +1,8 @@
 import type { RouterOutputs } from "@superset/trpc";
-import type { CloudWorkspaceTimelineEntry } from "../../types";
+import type {
+	CloudWorkspaceShareTarget,
+	CloudWorkspaceTimelineEntry,
+} from "../../types";
 
 type ActivityRow = RouterOutputs["cloudWorkspace"]["activity"][number];
 
@@ -24,6 +27,11 @@ export function toTimelineEntries(
 					return [{ ...base, kind: row.event }];
 				case "description_edited":
 					return [{ ...base, kind: "description_edited" }];
+				case "shared":
+				case "unshared":
+					return row.shareTarget
+						? [{ ...base, kind: row.event, target: row.shareTarget }]
+						: [];
 				case "run_finished":
 				case "run_failed":
 					return [];
@@ -141,6 +149,12 @@ function merge(
 	if (previous.kind === "renamed" && next.kind === "renamed") {
 		return previous.from === next.to ? null : { ...next, from: previous.from };
 	}
+	if (
+		(previous.kind === "shared" && next.kind === "unshared") ||
+		(previous.kind === "unshared" && next.kind === "shared")
+	) {
+		return sameShareTarget(previous.target, next.target) ? null : undefined;
+	}
 	if (previous.kind === "visibility" && next.kind === "visibility") {
 		return previous.from === next.to ? null : { ...next, from: previous.from };
 	}
@@ -160,4 +174,16 @@ function merge(
 		return null;
 	}
 	return undefined;
+}
+
+function sameShareTarget(
+	a: CloudWorkspaceShareTarget,
+	b: CloudWorkspaceShareTarget,
+): boolean {
+	if (a.kind === "user" && b.kind === "user") {
+		return a.person.userId === b.person.userId;
+	}
+	if (a.kind === "team" && b.kind === "team") return a.name === b.name;
+	if (a.kind === "email" && b.kind === "email") return a.email === b.email;
+	return false;
 }

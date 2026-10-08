@@ -1,25 +1,18 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { errorMessage } from "@superset/i18n/errors";
-import { AvatarStack } from "@superset/ui/atoms/AvatarStack";
 import { Button } from "@superset/ui/button";
-import { Label } from "@superset/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@superset/ui/select";
-import { Separator } from "@superset/ui/separator";
-import { toast } from "@superset/ui/sonner";
+	keepOpenForToasts,
+	ShareAccess,
+	type ShareGranteeRef,
+} from "@superset/ui/share-access";
 import { useState } from "react";
-import { LuBuilding2, LuCheck, LuLink, LuLock } from "react-icons/lu";
+import { LuBuilding2, LuLock } from "react-icons/lu";
 import { env } from "renderer/env.renderer";
 import type { CloudWorkspaceRow } from "renderer/hooks/useCloudWorkspaces";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
-
-const COPIED_MS = 1500;
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useShareDirectory } from "../../hooks/useShareDirectory";
 
 interface CloudWorkspaceShareButtonProps {
 	workspaceId: string;
@@ -39,39 +32,35 @@ export function CloudWorkspaceShareButton({
 	onSetVisibility,
 }: CloudWorkspaceShareButtonProps) {
 	const { t } = useLingui();
-	const [isBusy, setIsBusy] = useState(false);
-	const [isCopied, setIsCopied] = useState(false);
+	const [open, setOpen] = useState(false);
 	const { copyToClipboard } = useCopyToClipboard();
-
-	const copyLink = async () => {
-		try {
-			await copyToClipboard(
-				`${env.NEXT_PUBLIC_WEB_URL}/workspaces/${workspaceId}`,
-			);
-			setIsCopied(true);
-			setTimeout(() => setIsCopied(false), COPIED_MS);
-		} catch {
-			toast.error(t({ message: "Could not copy the link" }));
-		}
+	const share = useShareDirectory();
+	const utils = cloudTrpc.useUtils();
+	const sharing = cloudTrpc.cloudWorkspace.sharing.get.useQuery(
+		{ id: workspaceId },
+		{ enabled: open },
+	);
+	const refresh = () => {
+		void utils.cloudWorkspace.sharing.get.invalidate({ id: workspaceId });
+		void utils.cloudWorkspace.activity.invalidate({ id: workspaceId });
 	};
+	const add = cloudTrpc.cloudWorkspace.sharing.add.useMutation({
+		onSuccess: refresh,
+	});
+	const remove = cloudTrpc.cloudWorkspace.sharing.remove.useMutation({
+		onSuccess: refresh,
+	});
 
-	const changeVisibility = async (next: CloudWorkspaceRow["visibility"]) => {
-		if (next === visibility) return;
-		setIsBusy(true);
-		try {
-			await onSetVisibility(next);
-			if (next === "org") void copyLink();
-		} catch (error) {
-			toast.error(
-				errorMessage(
-					error,
-					t({ message: "Could not change who can see this workspace" }),
-				),
-			);
-		} finally {
-			setIsBusy(false);
-		}
-	};
+	const linkUrl = `${env.NEXT_PUBLIC_WEB_URL}/workspaces/${workspaceId}`;
+	const grantees = sharing.data?.grantees ?? [];
+	const ownerPerson = owner
+		? {
+				userId: owner.userId,
+				name: owner.name,
+				email: sharing.data?.owner?.email ?? "",
+				image: owner.image,
+			}
+		: null;
 
 	const icon =
 		visibility === "just_me" ? (
@@ -81,85 +70,97 @@ export function CloudWorkspaceShareButton({
 		);
 
 	return (
-		<Popover>
+		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
 				<Button size="xs" variant="ghost" className="gap-1.5">
 					{icon}
 					<Trans>Share</Trans>
 				</Button>
 			</PopoverTrigger>
-			<PopoverContent align="end" className="w-80 p-0">
-				<div className="flex items-center justify-between gap-2 px-3 py-2.5">
-					<span className="text-sm font-medium">
-						<Trans>Share workspace</Trans>
-					</span>
-					<Button size="xs" variant="ghost" onClick={() => void copyLink()}>
-						{isCopied ? (
-							<LuCheck className="size-3.5 text-primary" />
-						) : (
-							<LuLink className="size-3.5" />
-						)}
-						{isCopied ? <Trans>Copied</Trans> : <Trans>Copy link</Trans>}
-					</Button>
-				</div>
-				<Separator />
-				<div className="space-y-2 px-3 py-2.5">
-					<Label className="text-sm font-medium">
-						<Trans>People with access</Trans>
-					</Label>
-					{owner && (
-						<div className="flex items-center gap-2">
-							<AvatarStack
-								people={[
-									{ id: owner.userId, name: owner.name, image: owner.image },
-								]}
-								size={24}
-							/>
-							<span className="min-w-0 flex-1 truncate text-sm">
-								{owner.name}
-							</span>
-							<span className="shrink-0 text-xs text-muted-foreground">
-								<Trans>Owner</Trans>
-							</span>
-						</div>
-					)}
-				</div>
-				<Separator />
-				<div className="space-y-2 px-3 py-2.5">
-					<div className="space-y-0.5">
-						<Label className="text-sm font-medium">
-							<Trans>General access</Trans>
-						</Label>
-						<p className="text-xs text-muted-foreground">
-							{canEdit ? (
-								<Trans>Who can open this workspace</Trans>
-							) : (
-								<Trans>Only the owner can change this</Trans>
-							)}
-						</p>
-					</div>
-					<Select
-						value={visibility}
-						disabled={!canEdit || isBusy}
-						onValueChange={(value) =>
-							void changeVisibility(value as CloudWorkspaceRow["visibility"])
+			<PopoverContent
+				align="end"
+				className="w-[32rem] p-0"
+				onInteractOutside={keepOpenForToasts}
+			>
+				<ShareAccess
+					title={<Trans>Share workspace</Trans>}
+					owner={ownerPerson}
+					currentUserId={share.currentUserId}
+					grantees={grantees}
+					canManage={sharing.data?.canManage ?? canEdit}
+					roles={[
+						{
+							id: "full",
+							label: t({ message: "Full access" }),
+							description: t({ message: "Open terminals and prompt agents" }),
+						},
+					]}
+					defaultRole="full"
+					roleNote={t({ message: "They get full access" })}
+					directory={share.directory}
+					organizationName={share.organizationName}
+					inviteNew={share.inviteNew}
+					onUpgrade={share.onUpgrade}
+					onCopyLink={() => copyToClipboard(linkUrl)}
+					onAdd={async ({ grantees: picked, emails }) => {
+						const invitationIds = await share.inviteEmails(emails);
+						await add.mutateAsync({
+							id: workspaceId,
+							grantees: [
+								...picked,
+								...invitationIds.map(
+									(invitationId): ShareGranteeRef => ({
+										kind: "invitation",
+										invitationId,
+									}),
+								),
+							],
+						});
+					}}
+					onRemove={async (grantee) => {
+						await remove.mutateAsync({ id: workspaceId, grantee });
+					}}
+					onResendInvite={async (invitationId) => {
+						const invite = grantees.find(
+							(g) => g.kind === "invitation" && g.invitationId === invitationId,
+						);
+						if (invite?.kind === "invitation") {
+							await share.inviteEmails([invite.email]);
 						}
-					>
-						<SelectTrigger size="sm" className="w-full">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="just_me">
-								<LuLock className="size-3.5 text-muted-foreground" />
-								<Trans>Only you</Trans>
-							</SelectItem>
-							<SelectItem value="org">
-								<LuBuilding2 className="size-3.5 text-muted-foreground" />
-								<Trans>Anyone in your organization</Trans>
-							</SelectItem>
-						</SelectContent>
-					</Select>
-				</div>
+					}}
+					general={{
+						value: visibility,
+						hint: t({ message: "Who can open this workspace" }),
+						options: [
+							{
+								value: "just_me",
+								label: t({ message: "Only people invited" }),
+								icon: <LuLock className="size-3.5 text-muted-foreground" />,
+							},
+							{
+								value: "org",
+								label: t({ message: "Anyone in your organization" }),
+								icon: (
+									<LuBuilding2 className="size-3.5 text-muted-foreground" />
+								),
+							},
+						],
+						onChange: async (next) => {
+							await onSetVisibility(next as CloudWorkspaceRow["visibility"]);
+							if (next === "org") await copyToClipboard(linkUrl);
+						},
+						confirm: (_from, to) =>
+							to === "just_me"
+								? {
+										title: t({ message: "Limit to people invited?" }),
+										description: t({
+											message: `Anyone in ${share.organizationName} who isn't listed here loses access, including anyone who has it open now.`,
+										}),
+										actionLabel: t({ message: "Limit access" }),
+									}
+								: null,
+					}}
+				/>
 			</PopoverContent>
 		</Popover>
 	);

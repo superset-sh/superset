@@ -615,6 +615,12 @@ export const serverErrorMessages: Record<
 				message: "You don't have permission to remove this member",
 			}),
 		),
+	"serverError.page.cannotComment": () =>
+		i18n._(
+			msg({
+				message: "You can view this page but not comment on it",
+			}),
+		),
 	"serverError.page.failedToCreatePage": () =>
 		i18n._(
 			msg({
@@ -848,6 +854,25 @@ export const serverErrorMessages: Record<
 			message: "Unknown plugin {plugin}",
 			values: params,
 		}),
+	"serverError.sharing.invitationNotPending": () =>
+		i18n._(
+			msg({
+				message: "That invitation is no longer pending",
+			}),
+		),
+	"serverError.sharing.notInOrganization": () =>
+		i18n._(
+			msg({
+				message:
+					"You can only share with people and teams in this organization",
+			}),
+		),
+	"serverError.sharing.onlyOwner": () =>
+		i18n._(
+			msg({
+				message: "Only the owner can change who this is shared with",
+			}),
+		),
 	"serverError.support.failedToSavePrompt": () =>
 		i18n._(
 			msg({

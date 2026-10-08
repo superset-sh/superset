@@ -14,6 +14,7 @@
 		"./ai-elements/*": "./src/components/ai-elements/*.tsx",
 		"./chat-history-sidebar": "./src/components/ChatHistorySidebar/index.ts",
 		"./page-comments": "./src/components/PageComments/index.ts",
+		"./share-access": "./src/components/ShareAccess/index.ts",
 		"./pixel-404": "./src/components/Pixel404/index.ts",
 		"./star-chart": "./src/components/StarChart/index.ts",
 		"./mesh-gradient": "./src/components/mesh-gradient.tsx",

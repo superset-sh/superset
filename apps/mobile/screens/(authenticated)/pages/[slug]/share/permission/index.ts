@@ -1,0 +1,1 @@
+export { PagePermissionScreen } from "./PagePermissionScreen";

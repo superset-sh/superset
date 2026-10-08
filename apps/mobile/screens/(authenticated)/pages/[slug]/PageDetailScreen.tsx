@@ -27,6 +27,7 @@ import { PressableScale } from "@/screens/(authenticated)/components/PressableSc
 import { usePageQuery } from "../hooks/usePages";
 import { CommentPin } from "./components/CommentPin";
 import { PageFrame, type PageFrameHandle } from "./components/PageFrame";
+import { usePageAccessQuery } from "./hooks/usePageSharing";
 import { usePageCommentStore } from "./stores/pageCommentStore";
 import { pinPointOf, stackPins } from "./utils/pinLayout";
 
@@ -68,6 +69,9 @@ export function PageDetailScreen({
 		scrollY?: string;
 	}>();
 	const headerHeight = useHeaderHeight();
+	const access = usePageAccessQuery(slug);
+	// Optimistic while loading: the server refuses a view-only reader's comment either way.
+	const canComment = access.data?.canComment ?? true;
 	const frameRef = useRef<PageFrameHandle>(null);
 	const scrollYRef = useRef(0);
 	const restoredScroll = useRef(false);
@@ -253,19 +257,21 @@ export function PageDetailScreen({
 						}}
 					/>
 				) : null}
-				<Stack.Toolbar.Button
-					icon={commentMode ? "viewfinder.circle.fill" : "viewfinder"}
-					accessibilityLabel={
-						commentMode
-							? t({ message: "Leave comment mode" })
-							: t({ message: "Comment on this page" })
-					}
-					onPress={() => {
-						void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-						setSelection(null);
-						setCommentMode((enabled) => !enabled);
-					}}
-				/>
+				{canComment ? (
+					<Stack.Toolbar.Button
+						icon={commentMode ? "viewfinder.circle.fill" : "viewfinder"}
+						accessibilityLabel={
+							commentMode
+								? t({ message: "Leave comment mode" })
+								: t({ message: "Comment on this page" })
+						}
+						onPress={() => {
+							void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+							setSelection(null);
+							setCommentMode((enabled) => !enabled);
+						}}
+					/>
+				) : null}
 				<Stack.Toolbar.Button
 					icon="bubble.left.and.bubble.right"
 					accessibilityLabel={t({ message: "Show all comments" })}
