@@ -5,8 +5,7 @@ import { presenceColor } from "@superset/shared/page-presence";
 import { AvatarStack } from "../../../../atoms/AvatarStack";
 import { cn } from "../../../../lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../../ui/tooltip";
-import { usePresenceName } from "../../hooks/usePresenceName";
-import { usePagePresence } from "../../stores/pagePresenceStore";
+import { usePageViewers } from "../../stores/pagePresenceStore";
 
 export function PageViewers({
 	pageId,
@@ -16,17 +15,22 @@ export function PageViewers({
 	className?: string;
 }) {
 	const { t } = useLingui();
-	const nameOf = usePresenceName();
-	const { viewers } = usePagePresence(pageId);
+	const viewers = usePageViewers(pageId);
 
 	const seen = new Set<string>();
 	const people = viewers.flatMap((viewer) => {
 		if (seen.has(viewer.userId)) return [];
 		seen.add(viewer.userId);
+		const number = viewer.guestNumber;
 		return [
 			{
 				id: viewer.userId,
-				name: nameOf(viewer),
+				name:
+					!viewer.guest && viewer.name
+						? viewer.name
+						: number
+							? t({ message: `Guest ${number}` })
+							: t({ message: "Guest" }),
 				image: viewer.image,
 				color: presenceColor(viewer.userId),
 			},

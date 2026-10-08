@@ -30,10 +30,7 @@ import { PressableScale } from "@/screens/(authenticated)/components/PressableSc
 import { usePageQuery } from "../hooks/usePages";
 import { CommentPin } from "./components/CommentPin";
 import { PageFrame, type PageFrameHandle } from "./components/PageFrame";
-import {
-	PagePresence,
-	type PagePresenceHandle,
-} from "./components/PagePresence";
+import { PagePresence } from "./components/PagePresence";
 import { usePageCommentStore } from "./stores/pageCommentStore";
 import { pinPointOf, stackPins } from "./utils/pinLayout";
 
@@ -76,7 +73,6 @@ export function PageDetailScreen({
 	}>();
 	const headerHeight = useHeaderHeight();
 	const frameRef = useRef<PageFrameHandle>(null);
-	const presenceRef = useRef<PagePresenceHandle>(null);
 	const scrollYRef = useRef(0);
 	const restoredScroll = useRef(false);
 
@@ -154,7 +150,6 @@ export function PageDetailScreen({
 					: []),
 			],
 		});
-		presenceRef.current?.retrack();
 	}, [unresolvedThreads, selection, frameEpoch, send]);
 
 	const selectionRect = selection
@@ -180,7 +175,6 @@ export function PageDetailScreen({
 
 	const onFrameMessage = useCallback((message: FrameMessage) => {
 		if (message.type === "ready") setFrameEpoch((epoch) => epoch + 1);
-		if (message.type === "cursor-points") presenceRef.current?.receive(message);
 		if (message.type === "scroll") scrollYRef.current = message.y;
 		if (message.type === "rects") {
 			const next: Record<string, FrameRect> = {};
@@ -392,14 +386,7 @@ export function PageDetailScreen({
 						) : null}
 					</View>
 
-					{pageId ? (
-						<PagePresence
-							ref={presenceRef}
-							insetTop={headerHeight}
-							url={presenceUrl}
-							send={send}
-						/>
-					) : null}
+					{pageId ? <PagePresence url={presenceUrl} /> : null}
 
 					{commentMode && !selection ? (
 						<View

@@ -1,8 +1,6 @@
 import {
 	MAX_PAGE_GUESTS,
-	type PageCursor,
 	type PagePresenceViewer,
-	parsePageCursor,
 } from "@superset/shared/page-presence";
 import {
 	MAX_PAGE_STORAGE_KEY_LENGTH,
@@ -73,7 +71,6 @@ export const CLAIMS_HEADER = "x-superset-page-claims";
 const CALLS_PER_WINDOW = 60;
 const WINDOW_MS = 10_000;
 const MANIFEST_TTL_MS = 60_000;
-const CURSORS_PER_SECOND = 40;
 const SWEEP_MS = 30_000;
 const SILENT_MS = 75_000;
 
@@ -83,8 +80,6 @@ export class PageHub extends Server<RealtimeEnv> {
 	private ready = false;
 	private manifest: PageManifest | null = null;
 	private manifestReadAt = 0;
-	private cursors = new Map<string, PageCursor>();
-	private cursorBudgets = new Map<string, { second: number; sent: number }>();
 	private connectingGuests = 0;
 
 	constructor(ctx: DurableObjectState, env: RealtimeEnv) {
@@ -183,8 +178,6 @@ export class PageHub extends Server<RealtimeEnv> {
 	}
 
 	private revoke(connection: Connection<Pinned>): void {
-		this.cursors.delete(connection.id);
-		this.cursorBudgets.delete(connection.id);
 		this.send(connection, { type: "revoked" });
 		connection.close(4403, "revoked");
 	}
@@ -341,8 +334,6 @@ export class PageHub extends Server<RealtimeEnv> {
 		for (const connection of this.getConnections<Pinned>()) {
 			const pinged = this.ctx.getWebSocketAutoResponseTimestamp(connection);
 			if (pinged && now - pinged.getTime() > SILENT_MS) {
-				this.cursors.delete(connection.id);
-				this.cursorBudgets.delete(connection.id);
 				try {
 					connection.close(4408, "silent");
 				} catch {}
@@ -359,8 +350,6 @@ export class PageHub extends Server<RealtimeEnv> {
 		const pinned = connection.state;
 		if (!pinned) return;
 		if (pinned.presence) {
-			this.cursors.delete(connection.id);
-			this.cursorBudgets.delete(connection.id);
 			this.announce(connection.id);
 			return;
 		}
@@ -377,7 +366,7 @@ export class PageHub extends Server<RealtimeEnv> {
 		message: string | ArrayBuffer,
 	): Promise<void> {
 		const pinned = connection.state;
-		if (!pinned || typeof message !== "string") return;
+		if (!pinned || pinned.presence || typeof message !== "string") return;
 
 		let parsed: unknown;
 		try {
@@ -385,16 +374,7 @@ export class PageHub extends Server<RealtimeEnv> {
 		} catch {
 			return;
 		}
-		const call = parsed as {
-			type?: unknown;
-			id?: unknown;
-			request?: unknown;
-			cursor?: unknown;
-		};
-		if (pinned.presence) {
-			if (call.type === "cursor") this.relayCursor(connection, call.cursor);
-			return;
-		}
+		const call = parsed as { type?: unknown; id?: unknown; request?: unknown };
 		if (call.type !== "call" || typeof call.id !== "string") return;
 
 		if (!this.allow(connection, pinned)) {
@@ -562,34 +542,6 @@ export class PageHub extends Server<RealtimeEnv> {
 		}
 	}
 
-	private relayCursor(connection: Connection<Pinned>, raw: unknown): void {
-		const sender = connection.state;
-		const cursor = parsePageCursor(raw);
-		if (!sender || cursor === undefined) return;
-
-		const second = Math.floor(Date.now() / 1000);
-		const budget = this.cursorBudgets.get(connection.id);
-		const sent = budget?.second === second ? budget.sent + 1 : 1;
-		this.cursorBudgets.set(connection.id, { second, sent });
-		if (sent > CURSORS_PER_SECOND) return;
-
-		if (cursor) this.cursors.set(connection.id, cursor);
-		else this.cursors.delete(connection.id);
-
-		const payload = JSON.stringify({
-			type: "cursor",
-			id: connection.id,
-			cursor,
-		});
-		for (const other of this.getConnections<Pinned>()) {
-			const state = other.state;
-			if (!state?.presence || state.userId === sender.userId) continue;
-			try {
-				other.send(payload);
-			} catch {}
-		}
-	}
-
 	private guestNumberFor(userId: string): number {
 		const taken = new Set<number>();
 		for (const connection of this.getConnections<Pinned>()) {
@@ -617,7 +569,6 @@ export class PageHub extends Server<RealtimeEnv> {
 				image: state.image,
 				guest: state.guest === true,
 				guestNumber: state.guestNumber ?? null,
-				cursor: this.cursors.get(connection.id) ?? null,
 			});
 		}
 		for (const connection of connections) {

@@ -1,6 +1,5 @@
 export {
 	joinPagePresence,
-	setPagePointer,
-	usePagePresence,
+	usePageViewers,
 	wakePagePresence,
 } from "./pagePresenceStore";

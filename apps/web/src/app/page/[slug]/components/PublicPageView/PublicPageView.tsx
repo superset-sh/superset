@@ -1,13 +1,19 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
+import { pagePresenceUrl } from "@superset/shared/page-presence";
 import { Button } from "@superset/ui/button";
-import { PageViewers } from "@superset/ui/page-comments";
+import {
+	PageFrame,
+	PageViewers,
+	useJoinPagePresence,
+} from "@superset/ui/page-comments";
 import { Globe } from "lucide-react";
 import Link from "next/link";
+import { env } from "@/env";
 import { OpenInSupersetButton } from "../OpenInSupersetButton";
-import { PublicPageFrame } from "./components/PublicPageFrame";
 import { ReportPageDialog } from "./components/ReportPageDialog";
+import { guestId } from "./utils/guestId";
 
 interface PublicPageViewProps {
 	pageId: string;
@@ -25,6 +31,15 @@ export function PublicPageView({
 	signedIn,
 }: PublicPageViewProps) {
 	const { t } = useLingui();
+	useJoinPagePresence({
+		pageId,
+		url: async () =>
+			pagePresenceUrl({
+				realtimeUrl: env.NEXT_PUBLIC_REALTIME_URL,
+				pageId,
+				guestId: guestId(),
+			}),
+	});
 
 	return (
 		<div className="flex h-dvh flex-col bg-background">
@@ -55,7 +70,7 @@ export function PublicPageView({
 			</div>
 
 			<main className="min-h-0 flex-1">
-				<PublicPageFrame pageId={pageId} src={viewUrl} title={title} />
+				<PageFrame src={viewUrl} title={title} />
 			</main>
 
 			<footer className="shrink-0 border-t px-3 py-1.5 text-center text-[11px] text-muted-foreground">

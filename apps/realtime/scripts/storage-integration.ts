@@ -682,7 +682,6 @@ async function main() {
 			name: string;
 			guest: boolean;
 			guestNumber: number | null;
-			cursor: unknown;
 		}[];
 
 	const anonymous = enter(PUBLIC_PAGE, "");
@@ -734,44 +733,6 @@ async function main() {
 	check(
 		"the hub answers a heartbeat ping",
 		Boolean(await member.waitFor((m) => m.type === "pong")),
-	);
-
-	guest.socket.send(
-		JSON.stringify({
-			type: "cursor",
-			cursor: { path: "main:nth-of-type(1)", x: 0.25, y: 2 },
-		}),
-	);
-	const relayed = await member.waitFor((m) => m.type === "cursor");
-	check(
-		"a guest's cursor reaches the member, clamped",
-		(relayed?.cursor as { y?: number } | undefined)?.y === 1,
-		relayed,
-	);
-
-	const late = enter(PUBLIC_PAGE, `?token=${authorJwt}`);
-	const lateSees = await late.waitFor(
-		(m) =>
-			m.type === "presence" &&
-			viewersOf(m).some(
-				(v) => v.userId === `guest:${GUEST}` && v.cursor !== null,
-			),
-	);
-	check("a late arrival gets cursors already on the page", Boolean(lateSees));
-
-	const before = member.inbox.length;
-	guest.socket.send(
-		JSON.stringify({ type: "cursor", cursor: { path: "div, *", x: 0, y: 0 } }),
-	);
-	guest.socket.send(JSON.stringify({ type: "cursor", cursor: null }));
-	const hidden = await member.waitFor(
-		(m) => m.type === "cursor" && m.cursor === null,
-	);
-	check(
-		"a malformed cursor is dropped and a null one hides the cursor",
-		Boolean(hidden) &&
-			member.inbox.slice(before).filter((m) => m.type === "cursor").length ===
-				1,
 	);
 
 	guest.socket.send(
@@ -855,7 +816,6 @@ async function main() {
 		Boolean(afterGuest) && member.socket.readyState === WebSocket.OPEN,
 	);
 	member.socket.close();
-	late.socket.close();
 
 	let limited = false;
 	for (let n = 0; n < 130 && !limited; n++) {

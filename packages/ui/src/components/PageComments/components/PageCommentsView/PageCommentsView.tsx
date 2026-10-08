@@ -16,10 +16,10 @@ import {
 	type PageViewportZoom,
 } from "@superset/shared/page-zoom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useJoinPagePresence } from "../../hooks/useJoinPagePresence";
 import { usePageStorageConnect } from "../../hooks/usePageStorageConnect";
 import { useComments } from "../../providers/CommentProvider";
 import { PageFrame } from "../PageFrame";
-import { PagePresence } from "../PagePresence";
 import { CommentBubble, pinClassName } from "./components/CommentBubble";
 import { CommentPopover } from "./components/CommentPopover";
 import {
@@ -102,6 +102,7 @@ export function PageCommentsView({
 	const frameOrigin = useMemo(() => new URL(src).origin, [src]);
 
 	usePageStorageConnect({ frameRef, frameOrigin, ticket: storageTicket });
+	useJoinPagePresence({ pageId, url: presenceUrl });
 
 	const [lastHoverRect, setLastHoverRect] = useState<FrameRect | null>(null);
 	useEffect(() => {
@@ -395,16 +396,6 @@ export function PageCommentsView({
 					);
 				})}
 			</div>
-
-			{pageId && presenceUrl ? (
-				<PagePresence
-					key={src}
-					pageId={pageId}
-					frameRef={frameRef}
-					frameOrigin={frameOrigin}
-					url={presenceUrl}
-				/>
-			) : null}
 
 			<div className="pointer-events-none absolute inset-0">
 				{draft && draftPoint ? (

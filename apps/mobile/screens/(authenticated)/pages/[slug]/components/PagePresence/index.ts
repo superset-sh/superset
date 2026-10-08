@@ -1,1 +1,1 @@
-export { PagePresence, type PagePresenceHandle } from "./PagePresence";
+export { PagePresence } from "./PagePresence";

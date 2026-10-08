@@ -37,7 +37,6 @@ function setup({ baseUrl = "https://page.example/view" } = {}) {
 		innerWidth: 400,
 		innerHeight: 800,
 		document: {
-			visibilityState: "visible",
 			baseURI: baseUrl,
 			documentElement: { style: {}, ...element },
 			body: { ...element },
@@ -169,84 +168,8 @@ function setup({ baseUrl = "https://page.example/view" } = {}) {
 			pump();
 		},
 		clear: () => posted.splice(0, posted.length),
-		host: (body: Record<string, unknown>, trusted = true) => {
-			listeners.get("message")?.({
-				source: trusted ? context.parent : {},
-				data: { channel: "superset-comments/host", ...body },
-			});
-			pump();
-		},
-		dispatch: (type: string, event: Record<string, unknown>) => {
-			listeners.get(type)?.(event);
-			pump();
-		},
-		last: (type: string) => posted.filter((m) => m.type === type).at(-1),
 	};
 }
-
-describe("page presence in the comments runtime", () => {
-	test("reports the pointer only once the parent turns reporting on", () => {
-		const page = setup();
-		page.dispatch("pointermove", {
-			pointerType: "mouse",
-			clientX: 15,
-			clientY: 20,
-		});
-		expect(page.last("pointer")).toBeUndefined();
-
-		page.host({ type: "set-pointer-reporting", enabled: true }, false);
-		page.dispatch("pointermove", {
-			pointerType: "mouse",
-			clientX: 15,
-			clientY: 20,
-		});
-		expect(page.last("pointer")).toBeUndefined();
-
-		page.host({ type: "set-pointer-reporting", enabled: true });
-		page.dispatch("pointermove", {
-			pointerType: "mouse",
-			clientX: 15,
-			clientY: 20,
-		});
-		expect(page.last("pointer")?.cursor).toEqual({ path: "", x: 0.05, y: 0.5 });
-	});
-
-	test("touch never reports a pointer", () => {
-		const page = setup();
-		page.host({ type: "set-pointer-reporting", enabled: true });
-		page.dispatch("pointermove", {
-			pointerType: "touch",
-			clientX: 15,
-			clientY: 20,
-		});
-		expect(page.last("pointer")).toBeUndefined();
-	});
-
-	test("leaving the page reports the pointer as gone", () => {
-		const page = setup();
-		page.host({ type: "set-pointer-reporting", enabled: true });
-		page.dispatch("pointermove", {
-			pointerType: "mouse",
-			clientX: 15,
-			clientY: 20,
-		});
-		page.dispatch("pointerout", { relatedTarget: null });
-		expect(page.last("pointer")?.cursor).toBeNull();
-	});
-
-	test("places other viewers' cursors in this frame's layout, and clears them", () => {
-		const page = setup();
-		page.host({
-			type: "track-cursors",
-			cursors: [{ id: "c2", path: "", x: 0.5, y: 0.5 }],
-		});
-		expect(page.last("cursor-points")?.points).toEqual([
-			{ id: "c2", x: 60, y: 20 },
-		]);
-		page.host({ type: "track-cursors", cursors: [] });
-		expect(page.last("cursor-points")?.points).toEqual([]);
-	});
-});
 
 const FRAMES = 60;
 

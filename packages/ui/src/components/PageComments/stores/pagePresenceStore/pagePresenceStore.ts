@@ -1,18 +1,19 @@
-import type { PageCursor } from "@superset/shared/page-presence";
+"use client";
+
+import type { PagePresenceViewer } from "@superset/shared/page-presence";
 import {
 	openPagePresence,
 	type PagePresenceClient,
-	type PagePresenceState,
 } from "@superset/shared/page-presence-client";
 import { useCallback, useSyncExternalStore } from "react";
 
 interface Room {
 	client: PagePresenceClient;
-	state: PagePresenceState;
+	viewers: PagePresenceViewer[];
 	holders: number;
 }
 
-const EMPTY: PagePresenceState = { viewers: [], cursors: new Map() };
+const NONE: PagePresenceViewer[] = [];
 const rooms = new Map<string, Room>();
 const listeners = new Set<() => void>();
 
@@ -26,11 +27,11 @@ export function joinPagePresence(
 ): () => void {
 	let room = rooms.get(pageId);
 	if (!room) {
-		const created = { state: EMPTY, holders: 0 } as Room;
+		const created = { viewers: NONE, holders: 0 } as Room;
 		created.client = openPagePresence({
 			url,
-			onChange: (state) => {
-				created.state = state;
+			onViewers: (viewers) => {
+				created.viewers = viewers;
 				notify();
 			},
 		});
@@ -48,10 +49,6 @@ export function joinPagePresence(
 	};
 }
 
-export function setPagePointer(pageId: string, cursor: PageCursor | null) {
-	rooms.get(pageId)?.client.setCursor(cursor);
-}
-
 export function wakePagePresence() {
 	for (const room of rooms.values()) room.client.wake();
 }
@@ -61,10 +58,12 @@ function subscribe(listener: () => void): () => void {
 	return () => listeners.delete(listener);
 }
 
-export function usePagePresence(pageId: string | undefined): PagePresenceState {
+export function usePageViewers(
+	pageId: string | undefined,
+): PagePresenceViewer[] {
 	const read = useCallback(
-		() => (pageId ? (rooms.get(pageId)?.state ?? EMPTY) : EMPTY),
+		() => (pageId ? (rooms.get(pageId)?.viewers ?? NONE) : NONE),
 		[pageId],
 	);
-	return useSyncExternalStore(subscribe, read, () => EMPTY);
+	return useSyncExternalStore(subscribe, read, () => NONE);
 }
