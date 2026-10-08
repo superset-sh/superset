@@ -1,4 +1,8 @@
 import { beforeEach, expect, mock, test } from "bun:test";
+import * as verifyQstash from "@/lib/verifyQstash";
+import { stub } from "../../../../../../../test/stub";
+import * as assistantMessageEvents from "../../events/process-assistant-message";
+import * as mentionEvents from "../../events/process-mention";
 
 const verify = mock(
 	async (
@@ -9,13 +13,9 @@ const verify = mock(
 );
 const processMention = mock(async (_args: unknown) => {});
 const processMessage = mock(async (_args: unknown) => {});
-mock.module("@/lib/verifyQstash", () => ({ verifyQstashRequest: verify }));
-mock.module("../../events/process-mention", () => ({
-	processSlackMention: processMention,
-}));
-mock.module("../../events/process-assistant-message", () => ({
-	processAssistantMessage: processMessage,
-}));
+stub(verifyQstash, { verifyQstashRequest: verify });
+stub(mentionEvents, { processSlackMention: processMention });
+stub(assistantMessageEvents, { processAssistantMessage: processMessage });
 const mention = await import("./route");
 const message = await import("../process-assistant-message/route");
 beforeEach(() => {

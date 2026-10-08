@@ -15,8 +15,8 @@ interface StepListProps {
 	active: number;
 	autoplay: boolean;
 	onSelect: (index: number) => void;
-	onPreview: (index: number) => void;
-	onHoverChange: (hovering: boolean) => void;
+	onPreview: (index: number | null) => void;
+	onFocusChange: (focused: boolean) => void;
 }
 
 export function StepList({
@@ -25,7 +25,7 @@ export function StepList({
 	autoplay,
 	onSelect,
 	onPreview,
-	onHoverChange,
+	onFocusChange,
 }: StepListProps) {
 	const { t } = useLingui();
 	const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -39,7 +39,11 @@ export function StepList({
 					: 0;
 		if (!delta) return;
 		event.preventDefault();
-		const next = (active + delta + steps.length) % steps.length;
+		const focusedIndex = tabRefs.current.indexOf(
+			document.activeElement as HTMLButtonElement,
+		);
+		const from = focusedIndex === -1 ? active : focusedIndex;
+		const next = (from + delta + steps.length) % steps.length;
 		onSelect(next);
 		tabRefs.current[next]?.focus();
 	};
@@ -50,8 +54,13 @@ export function StepList({
 				role="tablist"
 				aria-orientation="vertical"
 				onKeyDown={onKeyDown}
-				onMouseEnter={() => onHoverChange(true)}
-				onMouseLeave={() => onHoverChange(false)}
+				onMouseLeave={() => onPreview(null)}
+				onFocus={() => onFocusChange(true)}
+				onBlur={(event) => {
+					if (!event.currentTarget.contains(event.relatedTarget)) {
+						onFocusChange(false);
+					}
+				}}
 				className="flex flex-1 flex-col divide-y divide-border"
 			>
 				{steps.map((step, index) => {

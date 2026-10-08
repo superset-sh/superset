@@ -20,6 +20,7 @@ while true; do
   CI=1 WRANGLER_SEND_METRICS=false node_modules/.bin/wrangler dev --local \
     --port "$REALTIME_PORT" \
     --var "NEXT_PUBLIC_API_URL:$NEXT_PUBLIC_API_URL" \
-    --var "NUDGE_SECRET:$REALTIME_NUDGE_SECRET"
+    --var "NUDGE_SECRET:$REALTIME_NUDGE_SECRET" \
+    --var "USERCONTENT_URL:${USERCONTENT_URL:-https://frame.supersetusercontent.com}"
   sleep 1
 done

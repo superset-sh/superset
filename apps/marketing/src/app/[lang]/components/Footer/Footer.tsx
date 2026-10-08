@@ -64,6 +64,14 @@ const PRODUCT_LINKS: FooterLink[] = [
 		label: <Trans>Pages</Trans>,
 	},
 	{
+		href: "/automations",
+		label: <Trans>Automations</Trans>,
+	},
+	{
+		href: "/browser",
+		label: <Trans>Browser</Trans>,
+	},
+	{
 		href: "/leaderboard",
 		label: <Trans>Leaderboard</Trans>,
 	},

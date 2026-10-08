@@ -109,31 +109,44 @@ describe("groupPositions", () => {
 });
 
 describe("groupActivity", () => {
-	test("each run of thoughts and tool calls becomes one row", () => {
-		const reasoning = (id: string) => ({
-			kind: "item" as const,
-			key: id,
-			item: { id, kind: "reasoning", startedAtMs: 1, completedAtMs: 2 },
-		});
-		const message = (id: string) => ({
-			kind: "item" as const,
-			key: id,
-			item: { id, kind: "agent_message", text: "", startedAtMs: 1 },
-		});
-		const rows = [
-			reasoning("r1"),
-			{ kind: "tool_run" as const, key: "t1", items: [] },
-			reasoning("r2"),
-			message("m1"),
-			reasoning("r3"),
-			message("m2"),
-		] as unknown as Parameters<typeof groupActivity>[0];
-		expect(groupActivity(rows).map((row) => row.key)).toEqual([
-			"activity:r1",
-			"m1",
-			"activity:r3",
-			"m2",
-		]);
+	const reasoning = (id: string) => ({
+		kind: "item" as const,
+		key: id,
+		item: { id, kind: "reasoning", startedAtMs: 1, completedAtMs: 2 },
+	});
+	const message = (id: string) => ({
+		kind: "item" as const,
+		key: id,
+		item: { id, kind: "agent_message", text: "", startedAtMs: 1 },
+	});
+	const prompt = (id: string) => ({
+		kind: "item" as const,
+		key: id,
+		item: { id, kind: "user_message" },
+	});
+	const keys = (rows: unknown[]) =>
+		groupActivity(rows as Parameters<typeof groupActivity>[0]).map(
+			(row) => row.key,
+		);
+
+	test("the work before the latest message folds into one row, the steps after it into another", () => {
+		expect(
+			keys([
+				prompt("u1"),
+				reasoning("r1"),
+				{ kind: "tool_run", key: "t1", items: [] },
+				message("m1"),
+				reasoning("r2"),
+				message("m2"),
+				reasoning("r3"),
+				prompt("u2"),
+				message("m3"),
+			]),
+		).toEqual(["u1", "activity:r1", "m2", "activity:r3", "u2", "m3"]);
+	});
+
+	test("messages with no steps between them stay on screen", () => {
+		expect(keys([message("m1"), message("m2")])).toEqual(["m1", "m2"]);
 	});
 });
 

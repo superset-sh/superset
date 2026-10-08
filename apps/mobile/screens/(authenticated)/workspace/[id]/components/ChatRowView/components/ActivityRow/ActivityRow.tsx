@@ -43,15 +43,15 @@ export function ActivityRow({
 			onPress={onPress}
 		>
 			{live ? (
-				<Shimmer className="text-[15px]">{t({ message: "Working…" })}</Shimmer>
+				<Shimmer className="text-[17px]">{t({ message: "Working…" })}</Shimmer>
 			) : (
-				<Text className="text-muted-foreground text-[15px]">
+				<Text className="text-muted-foreground text-[17px]">
 					<Plural value={count} one="# step" other="# steps" />
 				</Text>
 			)}
 			{preview ? (
 				<Text
-					className="text-muted-foreground/60 min-w-0 shrink text-[15px]"
+					className="text-muted-foreground/60 min-w-0 shrink text-[17px]"
 					numberOfLines={1}
 				>
 					{preview}

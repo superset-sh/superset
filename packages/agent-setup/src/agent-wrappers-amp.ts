@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import {
 	buildWrapperScript,
@@ -8,6 +7,7 @@ import {
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
 import { getTemplatePath } from "./config";
+import { resolveUserHomeDir } from "./paths";
 
 /**
  * Creates the Amp wrapper that preserves Superset's terminal environment.
@@ -32,7 +32,13 @@ export const AMP_PLUGIN_MARKER = `${AMP_PLUGIN_SIGNATURE} ${AMP_PLUGIN_VERSION}`
  * @see https://ampcode.com/manual#plugins
  */
 export function getAmpGlobalPluginPath(): string {
-	return path.join(os.homedir(), ".config", "amp", "plugins", AMP_PLUGIN_FILE);
+	return path.join(
+		resolveUserHomeDir(),
+		".config",
+		"amp",
+		"plugins",
+		AMP_PLUGIN_FILE,
+	);
 }
 
 /**

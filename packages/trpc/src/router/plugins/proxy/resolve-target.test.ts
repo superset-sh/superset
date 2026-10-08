@@ -1,12 +1,12 @@
 // biome-ignore-all lint/suspicious/noTemplateCurlyInString: ${config.*} is the manifest placeholder syntax, not a template literal
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { setTestEnv } from "../../../../test/env";
+import { stub } from "../../../../test/stub";
+import * as lookup from "../../../lib/connectors/lookup";
+import * as refresh from "../../../lib/connectors/refresh";
+import * as upsert from "../../../lib/connectors/upsert";
 import type { InstalledPlugin } from "../connections";
-
-// Every dependency that reaches the database is stubbed so the validated env
-// and the connection it opens at import stay out of this test's module graph.
-// `mock.module` is process-wide, so each stub lists every export the real
-// module has: another file's import resolves against the stub too.
+import * as connections from "../connections";
 
 let install: InstalledPlugin | null = null;
 let installedCalls: Array<[string, string, string | undefined]> = [];
@@ -16,52 +16,24 @@ let pinned: Record<string, unknown> | null = null;
 let pinnedCalls: Array<[string, unknown]> = [];
 let refreshError: Error | null = null;
 
-class StubUnrefreshable extends Error {
-	constructor(connector: string) {
-		super(`The ${connector} connection expired and carries no refresh token.`);
-		this.name = "UnrefreshableConnectionError";
-	}
-}
-
-class StubUnavailable extends Error {
-	constructor(
-		readonly connector: string,
-		detail: string,
-	) {
-		super(`The ${connector} token endpoint is unavailable: ${detail}`);
-		this.name = "ConnectorUnavailableError";
-	}
-}
-
 setTestEnv({ NEXT_PUBLIC_API_URL: "https://api.superset.test" });
 
-mock.module("../connections", () => ({
+stub(connections, {
 	installedPlugin: (userId: string, plugin: string, marketplace?: string) => {
 		installedCalls.push([userId, plugin, marketplace]);
 		return Promise.resolve(install);
 	},
-	installRecord: () => Promise.resolve(null),
-	installById: () => Promise.resolve(null),
-	installedManifest: () => Promise.resolve(null),
-	AmbiguousPluginError: class extends Error {},
-}));
+});
 
-mock.module("../../../lib/connectors/lookup", () => ({
+stub(lookup, {
 	connectionById: (id: string, options: unknown) => {
 		pinnedCalls.push([id, options]);
 		return Promise.resolve(pinned);
 	},
-	orgConnection: () => Promise.resolve(null),
-	userConnection: () => Promise.resolve(null),
 	userConnections: () => Promise.resolve(accounts ?? (active ? [active] : [])),
-	accountConnection: () => Promise.resolve(null),
-	accountConnections: () => Promise.resolve([]),
-	connectorConnections: () => Promise.resolve([]),
-	connectionBotToken: () => Promise.resolve(null),
-	AmbiguousConnectionError: class extends Error {},
-}));
+});
 
-mock.module("../../../lib/connectors/upsert", () => ({
+stub(upsert, {
 	activeConnection: () => Promise.resolve(active),
 	connectionSecrets: (row: { id: string }) =>
 		Promise.resolve({
@@ -69,19 +41,12 @@ mock.module("../../../lib/connectors/upsert", () => ({
 			refreshToken: null,
 			config: { bot_token: null },
 		}),
-	connectionConflict: () => Promise.resolve(null),
-	upsertConnection: () => Promise.resolve(null),
-}));
+});
 
-mock.module("../../../lib/connectors/refresh", () => ({
+stub(refresh, {
 	ensureFreshConnection: (row: Record<string, unknown>) =>
 		refreshError ? Promise.reject(refreshError) : Promise.resolve(row),
-	connectionAccessToken: () => Promise.resolve("token"),
-	markNeedsReauth: () => Promise.resolve(),
-	NEEDS_REAUTH: "needs_reauth",
-	ConnectorUnavailableError: StubUnavailable,
-	UnrefreshableConnectionError: StubUnrefreshable,
-}));
+});
 
 const { PluginTargetError, resolveTarget, targetKey } = await import(
 	"./resolve-target"
@@ -197,7 +162,7 @@ describe("resolveTarget", () => {
 	test("asks for auth, with the reason, when the token cannot be refreshed", async () => {
 		install = installed("superset", { connector: "acme-crm" });
 		active = { id: "conn-1", authMethod: "oauth2" };
-		refreshError = new StubUnrefreshable("acme-crm");
+		refreshError = new refresh.UnrefreshableConnectionError("acme-crm");
 
 		const target = await resolveTarget(request);
 
@@ -221,7 +186,10 @@ describe("resolveTarget", () => {
 	test("an unreachable token endpoint is a bad gateway, not a reconnect prompt", async () => {
 		install = installed("superset", { connector: "acme-crm" });
 		active = { id: "conn-1", authMethod: "oauth2" };
-		refreshError = new StubUnavailable("acme-crm", "503 Service Unavailable");
+		refreshError = new refresh.ConnectorUnavailableError(
+			"acme-crm",
+			"503 Service Unavailable",
+		);
 
 		// needs-auth would tell the user to reconnect a connection that is fine.
 		const error = await resolveTarget(request).catch((e) => e);

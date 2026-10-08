@@ -6,7 +6,6 @@ export interface NavLink {
 	href: string;
 	label: ReactNode;
 	description?: ReactNode;
-	badge?: ReactNode;
 	external?: boolean;
 }
 
@@ -24,18 +23,23 @@ export const PRODUCT_SECTIONS: NavSection[] = [
 			{
 				href: "/",
 				label: <Trans>Desktop app</Trans>,
-				description: <Trans>Orchestrate any coding agent.</Trans>,
+				description: <Trans>Run any coding agent</Trans>,
 			},
 			{
 				href: `${COMPANY.DOCS_URL}/cli/getting-started`,
 				label: "CLI",
-				description: <Trans>Drive it from the terminal</Trans>,
+				description: <Trans>In your terminal</Trans>,
 				external: true,
 			},
 			{
 				href: "/mobile",
 				label: <Trans>Mobile</Trans>,
-				description: <Trans>Run your agents from your phone.</Trans>,
+				description: <Trans>Agents on your phone</Trans>,
+			},
+			{
+				href: "/mcp-install",
+				label: "MCP",
+				description: <Trans>Connect any agent</Trans>,
 			},
 		],
 	},
@@ -46,33 +50,42 @@ export const PRODUCT_SECTIONS: NavSection[] = [
 			{
 				href: "/pages",
 				label: <Trans>Pages</Trans>,
-				description: (
-					<Trans>Share agent work as a link your team can comment on.</Trans>
-				),
+				description: <Trans>Review agent work</Trans>,
 			},
 			{
-				href: "/mcp-install",
-				label: "MCP",
-				description: <Trans>Connect any AI agent to Superset.</Trans>,
+				href: "/automations",
+				label: <Trans>Automations</Trans>,
+				description: <Trans>Agents on a schedule</Trans>,
+			},
+			{
+				href: "/browser",
+				label: <Trans>Browser</Trans>,
+				description: <Trans>Agent-driven previews</Trans>,
 			},
 			{
 				href: "/marketplace",
 				label: <Trans>Marketplace</Trans>,
-				description: <Trans>Add themes and agents to Superset.</Trans>,
+				description: <Trans>Themes and agents</Trans>,
+			},
+		],
+	},
+	{
+		id: "coming-soon",
+		title: <Trans>Coming soon</Trans>,
+		links: [
+			{
+				href: "/plugins",
+				label: <Trans>Plugins</Trans>,
+				description: <Trans>Connect agents to your apps</Trans>,
 			},
 			{
 				href: "/cloud",
 				label: <Trans>Cloud</Trans>,
-				description: <Trans>Become a design partner.</Trans>,
-				badge: <Trans>Coming soon</Trans>,
+				description: <Trans>Join as a design partner</Trans>,
 			},
 		],
 	},
 ];
-
-export const PRODUCT_LINKS: NavLink[] = PRODUCT_SECTIONS.flatMap(
-	(section) => section.links,
-);
 
 export interface NavFeatured {
 	href: string;
@@ -89,7 +102,10 @@ export const PRODUCT_FEATURED: NavFeatured = {
 	eyebrow: <Trans>New</Trans>,
 	title: <Trans>Superset Pages</Trans>,
 	description: (
-		<Trans>Share agent work as a link your team can comment on.</Trans>
+		<Trans>
+			Your agent publishes designs and reports. Your team comments, and it gets
+			to work.
+		</Trans>
 	),
 	cta: <Trans>Explore Pages</Trans>,
 };
@@ -102,25 +118,25 @@ export const RESOURCE_SECTIONS: NavSection[] = [
 			{
 				href: `${COMPANY.DOCS_URL}/first-workspace`,
 				label: <Trans>Get started</Trans>,
-				description: <Trans>Install and run your first agent.</Trans>,
+				description: <Trans>Your first agent</Trans>,
 				external: true,
 			},
 			{
 				href: COMPANY.DOCS_URL,
 				label: <Trans>Documentation</Trans>,
-				description: <Trans>Guides, references, and integrations.</Trans>,
+				description: <Trans>Guides and references</Trans>,
 				external: true,
 			},
 			{
 				href: COMPANY.YOUTUBE_URL,
 				label: <Trans>Video tutorials</Trans>,
-				description: <Trans>Watch walkthroughs on YouTube.</Trans>,
+				description: <Trans>Short walkthroughs</Trans>,
 				external: true,
 			},
 			{
 				href: "/parallel-coding-agents",
-				label: <Trans>Parallel agents guide</Trans>,
-				description: <Trans>Run agents side by side, then review.</Trans>,
+				label: <Trans>Parallel agents</Trans>,
+				description: <Trans>Run agents side by side</Trans>,
 			},
 		],
 	},
@@ -131,17 +147,23 @@ export const RESOURCE_SECTIONS: NavSection[] = [
 			{
 				href: "/changelog",
 				label: <Trans>Changelog</Trans>,
-				description: <Trans>New releases and product updates.</Trans>,
+				description: <Trans>What shipped</Trans>,
 			},
 			{
 				href: "/roadmap",
 				label: <Trans>Roadmap</Trans>,
-				description: <Trans>What we're building now and next.</Trans>,
+				description: <Trans>What's next</Trans>,
 			},
 			{
 				href: "/blog",
 				label: <Trans>Blog</Trans>,
-				description: <Trans>Engineering deep-dives and launches.</Trans>,
+				description: <Trans>News and deep dives</Trans>,
+			},
+			{
+				href: COMPANY.STATUS_URL,
+				label: <Trans>Status</Trans>,
+				description: <Trans>Uptime and incidents</Trans>,
+				external: true,
 			},
 		],
 	},
@@ -152,31 +174,27 @@ export const RESOURCE_SECTIONS: NavSection[] = [
 			{
 				href: "/compare",
 				label: <Trans>Compare</Trans>,
-				description: <Trans>How Superset compares to other tools.</Trans>,
+				description: <Trans>Superset next to others</Trans>,
 			},
 			{
 				href: "/community",
 				label: <Trans>Community</Trans>,
-				description: <Trans>Discord, GitHub, and office hours.</Trans>,
+				description: <Trans>Discord and GitHub</Trans>,
 			},
 			{
 				href: "/leaderboard",
 				label: <Trans>Leaderboard</Trans>,
-				description: <Trans>See how your agent usage compares.</Trans>,
+				description: <Trans>Agent usage rankings</Trans>,
 			},
 			{
 				href: COMPANY.TRUST_URL,
 				label: <Trans>Security</Trans>,
-				description: <Trans>How we protect your code.</Trans>,
+				description: <Trans>How we protect code</Trans>,
 				external: true,
 			},
 		],
 	},
 ];
-
-export const RESOURCE_LINKS: NavLink[] = RESOURCE_SECTIONS.flatMap(
-	(section) => section.links,
-);
 
 export const RESOURCE_FEATURED: NavFeatured = {
 	href: "/blog/review-agent-work-with-pages",

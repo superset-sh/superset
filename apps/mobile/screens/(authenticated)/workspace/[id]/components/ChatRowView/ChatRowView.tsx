@@ -76,7 +76,7 @@ export const ChatRowView = memo(
 		switch (row.kind) {
 			case "working":
 				return (
-					<Shimmer className="text-[14px]">
+					<Shimmer className="text-[17px]">
 						{t({ message: "Working…" })}
 					</Shimmer>
 				);

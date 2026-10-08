@@ -1,4 +1,9 @@
 import {
+	MAX_PAGE_GUESTS,
+	type PagePresenceViewer,
+	PRESENCE_COLOR_COUNT,
+} from "@superset/shared/page-presence";
+import {
 	MAX_PAGE_STORAGE_KEY_LENGTH,
 	type PageStorageKeySummary,
 	type PageStorageOp,
@@ -7,7 +12,11 @@ import {
 	pageStorageRefusal,
 	pageStorageValueBytes,
 } from "@superset/shared/page-storage";
-import { readable, writableFor } from "@superset/shared/page-storage-access";
+import {
+	guestReadable,
+	readable,
+	writableFor,
+} from "@superset/shared/page-storage-access";
 import type {
 	PageStorageHubRequest,
 	PageStorageHubResponse,
@@ -45,6 +54,20 @@ interface Pinned {
 	writable: boolean;
 	window: number;
 	calls: number;
+	presence?: boolean;
+	guest?: boolean;
+	guestNumber?: number | null;
+	colorSlot?: number;
+	viewerKey?: string;
+	connectedAt?: number;
+}
+
+interface PresenceClaims {
+	userId: string;
+	name: string;
+	image: string | null;
+	organizationIds: string[];
+	guest: boolean;
 }
 
 export const CLAIMS_HEADER = "x-superset-page-claims";
@@ -52,6 +75,8 @@ export const CLAIMS_HEADER = "x-superset-page-claims";
 const CALLS_PER_WINDOW = 60;
 const WINDOW_MS = 10_000;
 const MANIFEST_TTL_MS = 60_000;
+const SWEEP_MS = 30_000;
+const SILENT_MS = 75_000;
 
 export class PageHub extends Server<RealtimeEnv> {
 	static options = { hibernate: true };
@@ -59,6 +84,14 @@ export class PageHub extends Server<RealtimeEnv> {
 	private ready = false;
 	private manifest: PageManifest | null = null;
 	private manifestReadAt = 0;
+	private connectingGuests = 0;
+
+	constructor(ctx: DurableObjectState, env: RealtimeEnv) {
+		super(ctx, env);
+		ctx.setWebSocketAutoResponse(
+			new WebSocketRequestResponsePair("ping", "pong"),
+		);
+	}
 
 	private schema(): void {
 		if (this.ready) return;
@@ -113,11 +146,7 @@ export class PageHub extends Server<RealtimeEnv> {
 
 	async readManifest(force = false): Promise<PageManifest | null> {
 		const now = Date.now();
-		if (
-			!force &&
-			this.manifest &&
-			now - this.manifestReadAt < MANIFEST_TTL_MS
-		) {
+		if (!force && now - this.manifestReadAt < MANIFEST_TTL_MS) {
 			return this.manifest;
 		}
 		const object = await this.env.PRIVATE.get(pageManifestKey(this.name));
@@ -135,20 +164,21 @@ export class PageHub extends Server<RealtimeEnv> {
 			for (const connection of this.getConnections<Pinned>()) {
 				this.revoke(connection);
 			}
+			this.announce();
 			return;
 		}
 		for (const connection of this.getConnections<Pinned>()) {
 			const pinned = connection.state;
 			if (!pinned) continue;
-			if (
-				!readable(manifest, {
-					userId: pinned.userId,
-					organizationIds: [...pinned.organizationIds],
-				})
-			) {
-				this.revoke(connection);
-			}
+			const allowed = pinned.guest
+				? guestReadable(manifest)
+				: readable(manifest, {
+						userId: pinned.userId,
+						organizationIds: [...pinned.organizationIds],
+					});
+			if (!allowed) this.revoke(connection);
 		}
+		this.announce();
 	}
 
 	private revoke(connection: Connection<Pinned>): void {
@@ -173,11 +203,24 @@ export class PageHub extends Server<RealtimeEnv> {
 			image: string | null;
 			organizationIds: string[];
 			nonce: string;
+			presence?: boolean;
+			guest?: boolean;
 		};
 		try {
 			claims = JSON.parse(raw);
 		} catch {
 			connection.close(4401, "unauthorized");
+			return;
+		}
+
+		if (claims.presence === true) {
+			await this.joinPresence(connection, {
+				userId: claims.userId,
+				name: claims.name,
+				image: claims.image,
+				organizationIds: claims.organizationIds,
+				guest: claims.guest === true,
+			});
 			return;
 		}
 
@@ -242,9 +285,84 @@ export class PageHub extends Server<RealtimeEnv> {
 		});
 	}
 
+	private async joinPresence(
+		connection: Connection<Pinned>,
+		claims: PresenceClaims,
+	): Promise<void> {
+		if (claims.guest) {
+			let guests = this.connectingGuests;
+			for (const other of this.getConnections<Pinned>()) {
+				if (other.state?.presence && other.state.guest) guests++;
+			}
+			if (guests >= MAX_PAGE_GUESTS) {
+				connection.close(4429, "full");
+				return;
+			}
+			this.connectingGuests++;
+		}
+		try {
+			const manifest = await this.readManifest();
+			const allowed =
+				manifest &&
+				(claims.guest ? guestReadable(manifest) : readable(manifest, claims));
+			if (!allowed) {
+				connection.close(4403, "forbidden");
+				return;
+			}
+			const viewerKey = await this.viewerKeyFor(claims.userId);
+			connection.setState({
+				userId: claims.userId,
+				name: claims.name,
+				image: claims.image,
+				organizationIds: claims.organizationIds,
+				author: false,
+				writable: false,
+				window: 0,
+				calls: 0,
+				presence: true,
+				guest: claims.guest,
+				guestNumber: claims.guest ? this.guestNumberFor(claims.userId) : null,
+				colorSlot: this.colorSlotFor(claims.userId),
+				viewerKey,
+				connectedAt: Date.now(),
+			});
+		} finally {
+			if (claims.guest) this.connectingGuests--;
+		}
+		this.announce();
+		if ((await this.ctx.storage.getAlarm()) === null) {
+			await this.ctx.storage.setAlarm(Date.now() + SWEEP_MS);
+		}
+	}
+
+	async onAlarm(): Promise<void> {
+		const now = Date.now();
+		let remaining = 0;
+		let evicted = false;
+		for (const connection of this.getConnections<Pinned>()) {
+			const heardAt =
+				this.ctx.getWebSocketAutoResponseTimestamp(connection)?.getTime() ??
+				connection.state?.connectedAt;
+			if (heardAt && now - heardAt > SILENT_MS) {
+				try {
+					connection.close(4408, "silent");
+				} catch {}
+				evicted = true;
+				continue;
+			}
+			remaining++;
+		}
+		if (evicted) this.announce();
+		if (remaining > 0) await this.ctx.storage.setAlarm(now + SWEEP_MS);
+	}
+
 	async onClose(connection: Connection<Pinned>): Promise<void> {
 		const pinned = connection.state;
 		if (!pinned) return;
+		if (pinned.presence) {
+			this.announce(connection.id);
+			return;
+		}
 		this.schema();
 		this.ctx.storage.sql.exec(
 			"UPDATE visits SET last_seen_at = ? WHERE user_id = ?",
@@ -258,7 +376,7 @@ export class PageHub extends Server<RealtimeEnv> {
 		message: string | ArrayBuffer,
 	): Promise<void> {
 		const pinned = connection.state;
-		if (!pinned || typeof message !== "string") return;
+		if (!pinned || pinned.presence || typeof message !== "string") return;
 
 		let parsed: unknown;
 		try {
@@ -427,8 +545,80 @@ export class PageHub extends Server<RealtimeEnv> {
 		const records = this.named(key);
 		const payload = JSON.stringify({ type: "records", key, records });
 		for (const connection of this.getConnections<Pinned>()) {
+			if (!connection.state || connection.state.presence) continue;
 			try {
 				connection.send(payload);
+			} catch {}
+		}
+	}
+
+	private guestNumberFor(userId: string): number {
+		const taken = new Set<number>();
+		for (const connection of this.getConnections<Pinned>()) {
+			const state = connection.state;
+			if (!state?.presence || !state.guest || !state.guestNumber) continue;
+			if (state.userId === userId) return state.guestNumber;
+			taken.add(state.guestNumber);
+		}
+		let number = 1;
+		while (taken.has(number)) number++;
+		return number;
+	}
+
+	private colorSlotFor(userId: string): number {
+		const taken = new Set<number>();
+		const users = new Set<string>();
+		for (const connection of this.getConnections<Pinned>()) {
+			const state = connection.state;
+			if (!state?.presence || state.colorSlot === undefined) continue;
+			if (state.userId === userId) return state.colorSlot;
+			taken.add(state.colorSlot);
+			users.add(state.userId);
+		}
+		for (let slot = 0; slot < PRESENCE_COLOR_COUNT; slot++) {
+			if (!taken.has(slot)) return slot;
+		}
+		return users.size % PRESENCE_COLOR_COUNT;
+	}
+
+	private async viewerKeyFor(userId: string): Promise<string> {
+		const digest = await crypto.subtle.digest(
+			"SHA-256",
+			new TextEncoder().encode(`${this.name}:${userId}`),
+		);
+		return [...new Uint8Array(digest).slice(0, 8)]
+			.map((byte) => byte.toString(16).padStart(2, "0"))
+			.join("");
+	}
+
+	private announce(leaving?: string): void {
+		const present: {
+			connection: Connection<Pinned>;
+			viewer: PagePresenceViewer;
+		}[] = [];
+		for (const connection of this.getConnections<Pinned>()) {
+			const state = connection.state;
+			if (!state?.presence || connection.id === leaving) continue;
+			present.push({
+				connection,
+				viewer: {
+					id: connection.id,
+					key: state.viewerKey ?? connection.id,
+					name: state.name,
+					image: state.image,
+					guest: state.guest === true,
+					guestNumber: state.guestNumber ?? null,
+					color: state.colorSlot ?? 0,
+				},
+			});
+		}
+		for (const { connection } of present) {
+			const userId = connection.state?.userId;
+			const viewers = present
+				.filter((other) => other.connection.state?.userId !== userId)
+				.map((other) => other.viewer);
+			try {
+				connection.send(JSON.stringify({ type: "presence", viewers }));
 			} catch {}
 		}
 	}

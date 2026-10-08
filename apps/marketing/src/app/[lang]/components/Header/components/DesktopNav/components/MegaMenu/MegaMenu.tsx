@@ -9,6 +9,19 @@ interface MegaMenuProps {
 	featured: NavFeatured;
 }
 
+const COLUMN_CLASSES = [
+	"",
+	"grid-cols-1",
+	"grid-cols-2",
+	"grid-cols-3",
+	"grid-cols-4",
+];
+
+function columnClass(count: number) {
+	const columns = count <= 4 ? count : count % 4 === 0 ? 4 : 3;
+	return COLUMN_CLASSES[columns];
+}
+
 export function MegaMenu({ sections, featured }: MegaMenuProps) {
 	return (
 		<div className="grid grid-cols-[minmax(0,1fr)_16rem] gap-8 p-8">
@@ -18,7 +31,7 @@ export function MegaMenu({ sections, featured }: MegaMenuProps) {
 						<h3 className="mb-3 px-3 font-mono text-brand text-xs uppercase tracking-wider">
 							{section.title}
 						</h3>
-						<ul className="grid grid-cols-4 gap-1">
+						<ul className={`grid gap-1 ${columnClass(section.links.length)}`}>
 							{section.links.map((link) => (
 								<MegaMenuItem key={link.href} link={link} />
 							))}
@@ -78,11 +91,6 @@ function MegaMenuItem({ link }: { link: NavLink }) {
 				>
 					<span className="flex items-center gap-2 font-medium text-foreground text-sm">
 						{link.label}
-						{link.badge && (
-							<span className="border border-border px-1.5 py-px font-mono font-normal text-[10px] text-muted-foreground uppercase tracking-wider">
-								{link.badge}
-							</span>
-						)}
 					</span>
 					{link.description && (
 						<span className="text-muted-foreground text-xs leading-snug">

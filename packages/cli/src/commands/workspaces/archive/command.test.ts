@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildTree, routeCommand } from "@superset/cli-framework";
 
-// The cloud availability check caches to SUPERSET_HOME_DIR, read at import.
 const previousHome = process.env.SUPERSET_HOME_DIR;
 const home = mkdtempSync(join(tmpdir(), "superset-ws-archive-"));
 process.env.SUPERSET_HOME_DIR = home;

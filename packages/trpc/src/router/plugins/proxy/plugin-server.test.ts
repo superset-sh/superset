@@ -79,6 +79,10 @@ async function connect(target: PluginTarget, rejected: string[] = []) {
 	};
 }
 
+let layoutsBuilt = 0;
+
+// The server caches each account layout by plugin version, so every target
+// gets its own version to keep one test's layout out of the next.
 function multiTarget(
 	resolve: (connectionId: string) => Promise<PluginTarget>,
 	hosted?: PluginTarget extends { hosted?: infer H } ? H : never,
@@ -86,7 +90,7 @@ function multiTarget(
 	return {
 		kind: "multi",
 		plugin: "gmail",
-		version: "1.0.0",
+		version: `1.0.${++layoutsBuilt}`,
 		connector: "google",
 		connectorLabel: "Google",
 		accounts: ACCOUNTS,

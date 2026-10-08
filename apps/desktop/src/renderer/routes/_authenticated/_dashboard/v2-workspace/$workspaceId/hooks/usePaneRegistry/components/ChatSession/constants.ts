@@ -1,5 +1,6 @@
 import { ChatCodeBlock } from "./components/ChatCodeBlock";
 import { ChatLink } from "./components/ChatLink";
+import { remarkLocalPathLinks } from "./utils/remarkLocalPathLinks";
 
 /** The transcript and the composer share one column so their edges line up. */
 export const CHAT_GUTTER_CLASSNAME = "px-6";
@@ -9,3 +10,5 @@ export const CHAT_SCROLLER_GUTTER_CLASSNAME =
 export const CHAT_COLUMN_CLASSNAME = "mx-auto w-full max-w-3xl";
 
 export const CHAT_MARKDOWN_COMPONENTS = { code: ChatCodeBlock, a: ChatLink };
+
+export const CHAT_REMARK_PLUGINS = [remarkLocalPathLinks];

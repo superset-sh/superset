@@ -247,7 +247,7 @@ export function FilesSettings({ visibleItems }: FilesSettingsProps) {
 								})}
 								description={t({
 									message:
-										"Applies to file paths in terminals, chat tool calls, and task markdown.",
+										"Applies to file paths in terminals, chat messages and tool calls, and task markdown.",
 								})}
 								value={preferences.fileLinks}
 								onChange={handleFileChange}
@@ -268,7 +268,7 @@ export function FilesSettings({ visibleItems }: FilesSettingsProps) {
 							})}
 							description={t({
 								message:
-									"Applies to folder paths in terminal output. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder.",
+									"Applies to folder paths in terminal output and chat messages. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder.",
 							})}
 							value={preferences.folderLinks}
 							onChange={handleFolderChange}

@@ -9,8 +9,8 @@ import {
 	openRotatingLogFd,
 } from "@superset/shared/rotating-log";
 import type { ApiClient } from "../api-client";
-import { SUPERSET_HOME_DIR } from "../config";
 import { env, isDesktopBundled } from "../env";
+import { getSupersetHomeDir } from "../settings/paths";
 import {
 	ensureManifestDir,
 	type HostServiceManifest,
@@ -111,6 +111,7 @@ function resolveMigrationsFolder(): string {
 
 export async function spawnHostService(
 	options: SpawnHostOptions,
+	spawnProcess: typeof spawn = spawn,
 ): Promise<SpawnHostResult> {
 	const hostBin = resolveHostBinary();
 	if (!existsSync(hostBin)) {
@@ -139,7 +140,7 @@ export async function spawnHostService(
 				MAX_HOST_LOG_BYTES,
 			)
 		: -1;
-	const child = spawn(hostBin, [], {
+	const child = spawnProcess(hostBin, [], {
 		stdio: options.daemon
 			? logFd === -1
 				? "ignore"
@@ -168,7 +169,7 @@ export async function spawnHostService(
 			// (host-service-coordinator.ts); without it the host's PTYs get no
 			// SUPERSET_HOME_DIR and every managed agent hook self-disables on
 			// its own guard (#6254).
-			SUPERSET_HOME_DIR,
+			SUPERSET_HOME_DIR: getSupersetHomeDir(),
 		},
 	});
 

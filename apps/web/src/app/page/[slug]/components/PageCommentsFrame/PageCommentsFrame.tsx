@@ -1,5 +1,6 @@
 "use client";
 
+import { pagePresenceUrl } from "@superset/shared/page-presence";
 import { pageStorageSocketUrl } from "@superset/shared/page-storage-ticket";
 import { PageCommentsView } from "@superset/ui/page-comments";
 import { useCallback } from "react";
@@ -27,11 +28,23 @@ export function PageCommentsFrame({
 		[pageId],
 	);
 
+	const presenceUrl = useCallback(async () => {
+		const token = await getAuthToken().catch(() => null);
+		return token
+			? pagePresenceUrl({
+					realtimeUrl: env.NEXT_PUBLIC_REALTIME_URL,
+					pageId,
+					token,
+				})
+			: null;
+	}, [pageId]);
+
 	return (
 		<PageCommentsView
+			pageId={pageId}
 			src={src}
 			title={title}
-			{...(previewing ? {} : { storageTicket })}
+			{...(previewing ? {} : { storageTicket, presenceUrl })}
 		/>
 	);
 }

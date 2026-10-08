@@ -1,6 +1,8 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { db } from "@superset/db/client";
 import type { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
+import { stub } from "../../../test/stub";
 
 interface FakeMember {
 	organizationId: string;
@@ -17,37 +19,32 @@ const params = (condition: SQL) =>
 
 // The two count queries differ only by the `role = 'owner'` term, so the
 // parameter list tells them apart: [org, user] or [org, "owner", user].
-mock.module("@superset/db/client", () => ({
-	db: {
-		query: {
-			members: {
-				findMany: async () =>
-					memberships.filter(
-						(member) => member.userId === USER_ID && member.role === "owner",
-					),
+stub(db.query.members, {
+	findMany: async () =>
+		memberships.filter(
+			(member) => member.userId === USER_ID && member.role === "owner",
+		),
+});
+stub(db, {
+	select: () => ({
+		from: () => ({
+			where: async (condition: SQL) => {
+				const [organizationId, ...rest] = params(condition);
+				const ownersOnly = rest.includes("owner");
+				return [
+					{
+						value: memberships.filter(
+							(member) =>
+								member.organizationId === organizationId &&
+								member.userId !== USER_ID &&
+								(!ownersOnly || member.role === "owner"),
+						).length,
+					},
+				];
 			},
-		},
-		select: () => ({
-			from: () => ({
-				where: async (condition: SQL) => {
-					const [organizationId, ...rest] = params(condition);
-					const ownersOnly = rest.includes("owner");
-					return [
-						{
-							value: memberships.filter(
-								(member) =>
-									member.organizationId === organizationId &&
-									member.userId !== USER_ID &&
-									(!ownersOnly || member.role === "owner"),
-							).length,
-						},
-					];
-				},
-			}),
 		}),
-	},
-	dbWs: {},
-}));
+	}),
+});
 
 const { findOrganizationSolelyOwnedBy } = await import(
 	"./findOrganizationSolelyOwnedBy"

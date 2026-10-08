@@ -13,7 +13,14 @@ import { isMacPlatform, Platform, usePlatform } from "../../hooks/useOS";
 interface DownloadButtonProps {
 	size?: "sm" | "md";
 	className?: string;
-	source?: "header" | "hero" | "footer" | "pages";
+	source?:
+		| "header"
+		| "hero"
+		| "footer"
+		| "pages"
+		| "automations"
+		| "browser"
+		| "plugins";
 	onJoinWaitlist?: () => void;
 }
 

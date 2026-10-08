@@ -135,6 +135,7 @@ export default async function PublishedPage({
 		const shared = await pullPublicPage(slug);
 		return shared ? (
 			<PublicPageView
+				pageId={shared.id}
 				title={shared.title}
 				viewUrl={shared.viewUrl}
 				slug={slug}
