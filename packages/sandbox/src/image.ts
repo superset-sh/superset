@@ -17,13 +17,7 @@
  * Needs Docker with Buildx and, for a push, VERCEL_SANDBOX_TOKEN,
  * VERCEL_SANDBOX_TEAM_ID and VERCEL_SANDBOX_PROJECT_ID: the push logs itself in.
  */
-import {
-	cpSync,
-	mkdtempSync,
-	readFileSync,
-	rmSync,
-	writeFileSync,
-} from "node:fs";
+import { cpSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SANDBOX_IMAGE_NAME } from "@superset/shared/constants";
@@ -32,43 +26,12 @@ import {
 	SANDBOX_PORTS,
 	SANDBOX_USER,
 } from "@superset/shared/sandbox-contract";
-import { type BuiltBundle, buildBundle, PACKAGE_ROOT } from "./build";
+import { type BuiltBundle, buildBundle } from "./build";
+import { aptList, BUN_VERSION, GO_SHA256, GO_VERSION } from "./image-config";
 import { loginToRegistry } from "./registry";
 
-const REPO_ROOT = join(PACKAGE_ROOT, "..", "..");
 const IMAGE_TAG = process.env.SANDBOX_IMAGE_TAG ?? "latest";
 const LOCAL_IMAGE = "superset-sandbox:local";
-
-// The repo pins bun once, in .bun-version; a sandbox on any other version
-// rejects the frozen lockfile and every dependency install fails.
-const BUN_VERSION = readFileSync(
-	join(REPO_ROOT, ".bun-version"),
-	"utf8",
-).trim();
-const GO_VERSION = "1.27.1";
-/** Pinned by `bun run assets go`; verified before the tarball is unpacked. */
-const GO_SHA256 =
-	"63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168445";
-
-function aptList(name: string): string {
-	return readFileSync(
-		join(
-			PACKAGE_ROOT,
-			"bundle",
-			"rootfs",
-			"usr",
-			"local",
-			"share",
-			"superset",
-			`${name}.Aptfile`,
-		),
-		"utf8",
-	)
-		.split("\n")
-		.map((line) => line.trim())
-		.filter((line) => line && !line.startsWith("#"))
-		.join(" ");
-}
 
 export function dockerfile(bundle: BuiltBundle): string {
 	const bundleDir = `${SANDBOX_PATHS.bundleRoot}/${bundle.sha256}`;

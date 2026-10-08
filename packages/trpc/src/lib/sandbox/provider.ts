@@ -1,3 +1,4 @@
+import { freestyleProvider } from "./freestyle";
 import type { SandboxProvider } from "./types";
 import * as vercel from "./vercel";
 
@@ -14,11 +15,12 @@ const vercelProvider: SandboxProvider = {
 };
 
 export function isSandboxProvider(provider: string): boolean {
-	return provider === "vercel";
+	return provider === "vercel" || provider === "freestyle";
 }
 
 export function sandboxProvider(provider = "vercel"): SandboxProvider {
 	if (provider === "vercel") return vercelProvider;
+	if (provider === "freestyle") return freestyleProvider();
 	throw new Error(`Unsupported sandbox provider: ${provider}`);
 }
 

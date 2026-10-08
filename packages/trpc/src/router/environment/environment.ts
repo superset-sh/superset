@@ -16,9 +16,10 @@ import {
 	SANDBOX_REGION_IDS,
 	type SandboxRegionId,
 } from "@superset/shared/sandbox-regions";
-import type { TRPCRouterRecord } from "@trpc/server";
+import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
+import { env } from "../../env";
 import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
 import {
 	buildSandboxClaim,
@@ -290,6 +291,7 @@ export const environmentRouter = {
 				scope: z.enum(environmentScopeValues).default("organization"),
 				/** Where its boxes run; the region nearest the caller when omitted. */
 				region: z.enum(SANDBOX_REGION_IDS).optional(),
+				provider: z.enum(["vercel", "freestyle"]).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -306,15 +308,36 @@ export const environmentRouter = {
 					i18nKey: "serverError.environment.hooksRepositoryNotIncluded",
 				});
 			}
+			const provider = input.provider ?? "vercel";
+			const sourceRef =
+				provider === "freestyle"
+					? env.FREESTYLE_SANDBOX_SNAPSHOT_ID
+					: SANDBOX_IMAGE_NAME;
+			if (
+				provider === "freestyle" &&
+				(!env.FREESTYLE_API_KEY ||
+					!sourceRef ||
+					!env.FREESTYLE_SANDBOX_FORWARD_AUTH_ID ||
+					input.region)
+			) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message:
+						"Freestyle requires an API key, prepared snapshot, and forward-auth configuration, and does not accept a region override",
+				});
+			}
 			const [row] = await db
 				.insert(environments)
 				.values({
 					organizationId: input.organizationId,
 					name: input.name,
-					provider: "vercel",
+					provider,
 					sourceKind: "image",
-					sourceRef: SANDBOX_IMAGE_NAME,
-					region: input.region ?? regionForRequest(ctx.headers),
+					sourceRef: sourceRef ?? SANDBOX_IMAGE_NAME,
+					region:
+						provider === "freestyle"
+							? "default"
+							: (input.region ?? regionForRequest(ctx.headers)),
 					scope: input.scope,
 					createdByUserId: ctx.userId,
 				})

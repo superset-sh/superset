@@ -136,7 +136,7 @@ export async function startCloudWorkspace(args: {
 			name,
 			branch: workspaceBranchName({ id, name }),
 			baseBranch: branch,
-			provider: "vercel",
+			provider: environment.provider,
 			providerSandboxId,
 			status: "provisioning",
 			environmentId: environment.id,

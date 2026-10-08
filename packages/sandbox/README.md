@@ -6,6 +6,8 @@ and the release scripts that build goldens. The decisions behind the layout
 are in `plans/20260913-sandbox-layout-decisions.md`; the build and test
 checklist is `plans/20260913-sandbox-implementation-checklist.md`.
 
+Freestyle setup and lifecycle are described in [FREESTYLE.md](./FREESTYLE.md).
+
 ## Where a new thing goes
 
 - **A file that lands on the box** goes under `bundle/rootfs/` at its

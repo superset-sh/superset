@@ -56,6 +56,9 @@ export const env = createEnv({
 		VERCEL_SANDBOX_TOKEN: z.string().min(1),
 		VERCEL_SANDBOX_TEAM_ID: z.string().min(1),
 		VERCEL_SANDBOX_PROJECT_ID: z.string().min(1),
+		FREESTYLE_API_KEY: z.string().min(1).optional(),
+		FREESTYLE_SANDBOX_SNAPSHOT_ID: z.string().min(1).optional(),
+		FREESTYLE_SANDBOX_FORWARD_AUTH_ID: z.string().min(1).optional(),
 		// Shared with the gate Worker: signs the tickets clients present
 		// there and derives the secret each sandbox's host-service is booted with.
 		SANDBOX_GATE_SECRET: z.string().min(32),

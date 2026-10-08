@@ -1,7 +1,6 @@
 import {
 	renderSandboxConf,
 	SANDBOX_PATHS,
-	SANDBOX_PORTS,
 	SANDBOX_PUBLISHED_PORTS,
 	type SandboxIdentity,
 } from "@superset/shared/sandbox-contract";
@@ -15,7 +14,6 @@ import { env } from "../../env";
 import {
 	type SandboxClaim,
 	type SandboxEnvironment,
-	SandboxNotReadyError,
 	SandboxUnavailableError,
 } from "./types";
 
@@ -26,7 +24,10 @@ export {
 	SandboxUnavailableError,
 } from "./types";
 
-export const HOST_SERVICE_PORT = SANDBOX_PORTS.hostService;
+import { HOST_SERVICE_PORT, settleSandbox } from "./runtime";
+
+export { HOST_SERVICE_PORT, pushManagedEnv, settleSandbox } from "./runtime";
+
 /**
  * A session ends after this long; the workspace's files survive and the next
  * open resumes it. A workspace someone has open is extended before it gets
@@ -189,68 +190,6 @@ export async function provisionSandbox(args: {
 		sandboxUrl: sandbox.domain(HOST_SERVICE_PORT),
 		hostTarget: sandbox.domain(HOST_SERVICE_PORT),
 	};
-}
-
-const HOST_READY_TIMEOUT_MS = 60_000;
-const HOST_READY_POLL_MS = 100;
-
-async function waitForHostService(
-	target: string,
-	providerSandboxId: string,
-): Promise<void> {
-	const deadline = Date.now() + HOST_READY_TIMEOUT_MS;
-	while (Date.now() < deadline) {
-		const ok = await fetch(`${target}/trpc/health.check`, {
-			signal: AbortSignal.timeout(HOST_READY_POLL_MS * 6),
-		})
-			.then((response) => response.ok)
-			.catch(() => false);
-		if (ok) return;
-		await new Promise((resolve) => setTimeout(resolve, HOST_READY_POLL_MS));
-	}
-	throw new SandboxNotReadyError(providerSandboxId);
-}
-
-/**
- * The half of a wake after boot is fired: wait for host-service to answer,
- * then push the managed environment. What a create runs once its box is
- * booted, so it never re-runs the wake's own calls on a box it just made.
- */
-export async function settleSandbox(args: {
-	providerSandboxId: string;
-	hostTarget: string;
-	claim: SandboxClaim;
-}): Promise<void> {
-	await waitForHostService(args.hostTarget, args.providerSandboxId);
-	await pushManagedEnv(
-		args.hostTarget,
-		args.claim.hostSecret,
-		args.claim.managedEnv,
-	);
-}
-
-/**
- * Replaces host-service's managed environment. Direct to the box with the
- * host secret, the way the gate would; superjson is host-service's wire
- * format, so the input is wrapped the way its client would wrap it.
- */
-export async function pushManagedEnv(
-	target: string,
-	hostSecret: string,
-	variables: Record<string, string>,
-): Promise<void> {
-	const response = await fetch(`${target}/trpc/sandbox.setEnvironment`, {
-		method: "POST",
-		headers: {
-			authorization: `Bearer ${hostSecret}`,
-			"content-type": "application/json",
-		},
-		body: JSON.stringify({ json: { variables } }),
-		signal: AbortSignal.timeout(10_000),
-	});
-	if (!response.ok) {
-		throw new Error(`sandbox.setEnvironment answered ${response.status}`);
-	}
 }
 
 /**

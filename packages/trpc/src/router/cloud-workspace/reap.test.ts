@@ -14,16 +14,19 @@ type Stage = "stop" | "delete";
 
 let row: Row | undefined;
 let sandboxCalls: string[] = [];
+let sandboxProviders: Array<string | undefined> = [];
 let queued: Array<{ path: string; body: unknown; delaySeconds?: number }> = [];
 let failingStage: Stage | null = null;
 
 stub(db.query.cloudWorkspaces, { findFirst: () => Promise.resolve(row) });
 stub(sandbox, {
-	stopSandbox: (id: string) => {
+	stopSandbox: (id: string, provider?: string) => {
+		sandboxProviders.push(provider);
 		sandboxCalls.push(`stop:${id}`);
 		return Promise.resolve();
 	},
-	deleteSandbox: (id: string) => {
+	deleteSandbox: (id: string, provider?: string) => {
+		sandboxProviders.push(provider);
 		sandboxCalls.push(`delete:${id}`);
 		return Promise.resolve();
 	},
@@ -58,6 +61,7 @@ const SEVEN_DAYS = 7 * 24 * 60 * 60;
 describe("queueReap", () => {
 	beforeEach(() => {
 		sandboxCalls = [];
+		sandboxProviders = [];
 		queued = [];
 		failingStage = null;
 	});
@@ -104,7 +108,16 @@ describe("reapArchivedCloudWorkspace", () => {
 			providerSandboxId: "ws-box",
 		};
 		sandboxCalls = [];
+		sandboxProviders = [];
 		queued = [];
+	});
+
+	test("the reaper dispatches cleanup to the workspace provider", async () => {
+		if (!row) throw new Error("Missing row");
+		row.provider = "freestyle";
+		await reapArchivedCloudWorkspace({ ...input, stage: "stop" });
+		await reapArchivedCloudWorkspace({ ...input, stage: "delete" });
+		expect(sandboxProviders).toEqual(["freestyle", "freestyle"]);
 	});
 
 	test("the stop stage only stops the box", async () => {

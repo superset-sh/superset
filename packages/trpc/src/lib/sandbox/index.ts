@@ -11,6 +11,7 @@ export {
 } from "./api-credential";
 export { buildSandboxClaim } from "./claim";
 export { deriveSandboxCredentials } from "./credentials";
+export { authorizeFreestyleIngress } from "./freestyle-auth";
 export {
 	listRemoteBranches,
 	type RemoteBranch,
@@ -50,6 +51,8 @@ export {
 	workspaceBranchName,
 	workspaceRepositories,
 } from "./repositories";
+
+export { HOST_SERVICE_PORT, pushManagedEnv, settleSandbox } from "./runtime";
 export {
 	type SandboxClaim,
 	type SandboxEnvironment,
@@ -57,9 +60,6 @@ export {
 	SandboxUnavailableError,
 } from "./types";
 export {
-	HOST_SERVICE_PORT,
-	pushManagedEnv,
-	settleSandbox,
 	stripWorkspaceIdentity,
 	waitForStopSnapshot,
 } from "./vercel";
