@@ -29,8 +29,8 @@ const desktopNoticeSchema = z.object({
 export type DesktopNotice = z.infer<typeof desktopNoticeSchema>;
 
 export const desktopVersionResponseSchema = z.object({
-	minimumVersion: z.string(),
-	message: z.string(),
+	minimumVersion: z.string().optional(),
+	message: z.string().optional(),
 	// older servers don't return this field
 	notices: z.array(desktopNoticeSchema).default([]),
 });

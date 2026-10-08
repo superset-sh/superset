@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
 	type DesktopNotice,
+	desktopVersionResponseSchema,
 	filterApplicableNotices,
 	type NoticeClientContext,
 } from "./desktop-notices";
@@ -130,5 +131,14 @@ describe("filterApplicableNotices", () => {
 				makeCtx({ appVersion: "not-a-version" }),
 			),
 		).toHaveLength(0);
+	});
+});
+
+describe("desktopVersionResponseSchema", () => {
+	test("parses a response without the legacy minimumVersion gate", () => {
+		const notice = makeNotice({ severity: "blocking", maxVersion: "1.40.0" });
+		const parsed = desktopVersionResponseSchema.parse({ notices: [notice] });
+		expect(parsed.minimumVersion).toBeUndefined();
+		expect(parsed.notices).toEqual([notice]);
 	});
 });

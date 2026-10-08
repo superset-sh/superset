@@ -78,12 +78,12 @@ export function useDesktopNotices(): UseDesktopNoticesResult {
 		const appVersion = window.App.appVersion;
 
 		const notices: DesktopNotice[] = [...data.notices];
-		if (lt(appVersion, data.minimumVersion)) {
+		if (data.minimumVersion && lt(appVersion, data.minimumVersion)) {
 			notices.push({
 				id: MINIMUM_VERSION_NOTICE_ID,
 				severity: "blocking",
 				trigger: "immediate",
-				body: data.message,
+				body: data.message ?? "",
 				cta: {
 					label: i18n._(
 						msg({
