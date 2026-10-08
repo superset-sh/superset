@@ -785,9 +785,10 @@ export function usePaneRegistry({
 			},
 			"chat-v3": {
 				getIcon: (ctx) => {
-					const { terminalId } = ctx.pane.data as ChatPaneData;
+					const { agent, terminalId } = ctx.pane.data as ChatPaneData;
 					return (
 						<TerminalPaneIcon
+							agentId={agent?.id}
 							workspaceId={workspaceId}
 							terminalId={terminalId}
 						/>

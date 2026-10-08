@@ -6,6 +6,7 @@ import { useTerminalAgentBinding } from "renderer/hooks/host-service/useTerminal
 interface TerminalPaneIconProps {
 	workspaceId: string;
 	terminalId: string;
+	agentId?: string;
 }
 
 /**
@@ -17,9 +18,10 @@ interface TerminalPaneIconProps {
 export function TerminalPaneIcon({
 	workspaceId,
 	terminalId,
+	agentId: paneAgentId,
 }: TerminalPaneIconProps) {
 	const binding = useTerminalAgentBinding(workspaceId, terminalId);
-	const agentId = binding?.agentId;
+	const agentId = paneAgentId ?? binding?.agentId;
 	const iconSrc = usePresetIcon(agentId ?? "");
 
 	if (agentId && iconSrc) {
