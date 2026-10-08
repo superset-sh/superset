@@ -139,8 +139,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        bun: [noisolate]
-        attempt: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+        bun: [npmcanary]
+        attempt: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60]
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -181,6 +181,14 @@ jobs:
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: 22
+
+      - name: Use a bun build with the spawnSync fix for tests
+        run: |
+          npm install --no-save --prefix "$RUNNER_TEMP/bun-canary" bun@1.4.2-canary.20261007.1
+          echo "$RUNNER_TEMP/bun-canary/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: Bun used for tests
+        run: bun --revision
 
       # bun install ran with --ignore-scripts, so better-sqlite3 has no native
       # build; fetch the prebuilt binary for the Node ABI using the lockfile-
