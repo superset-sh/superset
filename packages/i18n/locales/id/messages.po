@@ -1492,8 +1492,8 @@ msgstr "Ruang kerja baru dari cabang ini, dengan percakapan diserahkan ke agen b
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "Halaman bisa menyimpan jawaban setiap pembaca, jadi polling berjalan tanpa backend."
 
-msgid "A plugin adds one app's skills and tools to your agents. Install it once for every machine you sign into."
-msgstr "Plugin menambahkan skill dan tool satu aplikasi ke agen Anda. Instal sekali untuk setiap mesin tempat Anda masuk."
+msgid "A plugin adds one app's skills and tools to your agents. Install it once, and it works on every machine you sign into."
+msgstr "Plugin menambahkan skill dan tool satu aplikasi ke agen Anda. Instal sekali, dan plugin berfungsi di setiap mesin tempat Anda masuk."
 
 msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
 msgstr "Soal TypeScript yang praktis, seperti yang kami selesaikan setiap hari. Tanpa teka-teki algoritma."

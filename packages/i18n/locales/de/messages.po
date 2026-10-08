@@ -1492,8 +1492,8 @@ msgstr "Ein neuer Workspace von diesem Branch, die Unterhaltung wird an einen ne
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "Eine Seite kann die Antwort jedes Lesers speichern, also funktioniert eine Umfrage ohne Backend."
 
-msgid "A plugin adds one app's skills and tools to your agents. Install it once for every machine you sign into."
-msgstr "Ein Plugin gibt deinen Agenten die Skills und Tools einer App. Installiere es einmal für jede Maschine, auf der du dich anmeldest."
+msgid "A plugin adds one app's skills and tools to your agents. Install it once, and it works on every machine you sign into."
+msgstr "Ein Plugin gibt deinen Agenten die Skills und Tools einer App. Installiere es einmal, und es funktioniert auf jeder Maschine, auf der du dich anmeldest."
 
 msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
 msgstr "Eine praxisnahe TypeScript-Aufgabe, wie wir sie jeden Tag lösen. Keine Algorithmus-Rätsel."
@@ -6446,7 +6446,7 @@ msgid "Each attachment is at most {0} MB."
 msgstr "Jeder Anhang darf höchstens {0} MB groß sein."
 
 msgid "Each automation runs on the machine you pick. If it is offline, the run fails and Retry all sends it again."
-msgstr "Jede Automatisierung läuft auf der Maschine, die du auswählst. Ist sie offline, schlägt die Ausführung fehl und Alle wiederholen sendet sie erneut."
+msgstr "Jede Automatisierung läuft auf der Maschine, die du auswählst. Ist sie offline, schlägt die Ausführung fehl und „Alle erneut versuchen“ sendet sie erneut."
 
 msgid "Each in its own new tab"
 msgstr "Jeder in einem eigenen neuen Tab"
@@ -14036,7 +14036,7 @@ msgid "Retry after the connection refreshes."
 msgstr "Versuche es erneut, sobald die Verbindung aufgefrischt ist."
 
 msgid "Retry all"
-msgstr "Alle wiederholen"
+msgstr "Alle erneut versuchen"
 
 msgid "Retry dictation"
 msgstr "Diktat erneut versuchen"

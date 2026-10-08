@@ -14,7 +14,8 @@ const OVERLAYS: Record<StepId, (() => React.JSX.Element) | null> = {
 
 export function StepStage({ step }: { step: StepId }) {
 	const Overlay = OVERLAYS[step];
-	const offset = useReducedMotion() ? 0 : 8;
+	const reducedMotion = useReducedMotion();
+	const offset = reducedMotion ? 0 : 8;
 
 	return (
 		<div
@@ -29,7 +30,7 @@ export function StepStage({ step }: { step: StepId }) {
 						initial={{ opacity: 0, y: offset }}
 						animate={{ opacity: 1, y: 0 }}
 						exit={{ opacity: 0, y: offset }}
-						transition={{ duration: 0.25 }}
+						transition={{ duration: reducedMotion ? 0 : 0.25 }}
 					>
 						<Overlay />
 					</m.div>

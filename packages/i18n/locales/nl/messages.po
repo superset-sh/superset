@@ -1492,8 +1492,8 @@ msgstr "Een nieuwe workspace vanaf deze branch, met het gesprek overgedragen aan
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "Een pagina kan het antwoord van elke lezer opslaan, dus een poll werkt zonder backend."
 
-msgid "A plugin adds one app's skills and tools to your agents. Install it once for every machine you sign into."
-msgstr "Een plugin voegt de skills en tools van één app toe aan je agents. Installeer hem één keer voor elke machine waarop je inlogt."
+msgid "A plugin adds one app's skills and tools to your agents. Install it once, and it works on every machine you sign into."
+msgstr "Een plugin voegt de skills en tools van één app toe aan je agents. Installeer hem één keer en hij werkt op elke machine waarop je inlogt."
 
 msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
 msgstr "Een praktisch TypeScript-probleem, zoals we ze elke dag oplossen. Geen algoritmepuzzels."
@@ -2590,7 +2590,7 @@ msgid "at"
 msgstr "at"
 
 msgid "At each scheduled time, the device you picked creates a new workspace. The agent starts on your prompt there."
-msgstr "Op elk geplande tijdstip maakt het gekozen apparaat een nieuwe werkruimte. De agent begint daar met je prompt."
+msgstr "Op elk gepland tijdstip maakt het gekozen apparaat een nieuwe werkruimte. De agent begint daar met je prompt."
 
 msgid "At least one team we can name, ours included, passes every F4 gate for a full quarter and publishes the numbers."
 msgstr "Minstens één team dat we kunnen noemen, het onze inbegrepen, haalt een heel kwartaal lang elke F4-drempel en publiceert de cijfers."

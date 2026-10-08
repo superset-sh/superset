@@ -1492,7 +1492,7 @@ msgstr "以該分支建立新工作區，並將對話交給新的代理"
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "頁面可以保存每位讀者的答案，所以不需要後端就能做投票。"
 
-msgid "A plugin adds one app's skills and tools to your agents. Install it once for every machine you sign into."
+msgid "A plugin adds one app's skills and tools to your agents. Install it once, and it works on every machine you sign into."
 msgstr "外掛會為你的代理程式加入某個應用程式的技能和工具。只需安裝一次，登入的每台裝置都能使用。"
 
 msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."

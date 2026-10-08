@@ -18,11 +18,9 @@ export function PagesHeroVideo() {
 		const video = videoRef.current;
 		if (!video) return;
 		if (video.paused) {
-			void video.play();
-			setPaused(false);
+			void video.play().catch(() => {});
 		} else {
 			video.pause();
-			setPaused(true);
 		}
 	};
 
@@ -46,6 +44,8 @@ export function PagesHeroVideo() {
 						loop
 						muted
 						playsInline
+						onPlay={() => setPaused(false)}
+						onPause={() => setPaused(true)}
 						tabIndex={-1}
 						aria-hidden="true"
 						className="block size-full"

@@ -1492,8 +1492,8 @@ msgstr "Nowy obszar roboczy z tej gałęzi, z rozmową przekazaną nowemu agento
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "Strona może zapisać odpowiedź każdego czytelnika, więc ankieta działa bez backendu."
 
-msgid "A plugin adds one app's skills and tools to your agents. Install it once for every machine you sign into."
-msgstr "Wtyczka dodaje Twoim agentom umiejętności i narzędzia jednej aplikacji. Zainstaluj ją raz dla każdego komputera, na którym się logujesz."
+msgid "A plugin adds one app's skills and tools to your agents. Install it once, and it works on every machine you sign into."
+msgstr "Wtyczka dodaje Twoim agentom umiejętności i narzędzia jednej aplikacji. Zainstaluj ją raz, a będzie działać na każdym komputerze, na którym się logujesz."
 
 msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
 msgstr "Praktyczne zadanie w TypeScript, takie jak te, które rozwiązujemy na co dzień. Bez łamigłówek algorytmicznych."
@@ -5453,7 +5453,7 @@ msgid "Created by me"
 msgstr "Utworzone przeze mnie"
 
 msgid "Created ENG-142 Login fails on Safari"
-msgstr "Utworzono ENG-142 Login fails on Safari"
+msgstr "Utworzono ENG-142 Logowanie nie działa w Safari"
 
 msgid "Created team \"{trimmedName}\""
 msgstr "Utworzono zespół „{trimmedName}”"
@@ -9024,7 +9024,7 @@ msgid "Join"
 msgstr "Dołącz"
 
 msgid "Join as a design partner"
-msgstr "Dołącz jako design partner"
+msgstr "Dołącz jako partner projektowy"
 
 msgid "Join Discord"
 msgstr "Dołącz do Discorda"

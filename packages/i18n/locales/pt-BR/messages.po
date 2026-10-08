@@ -1492,8 +1492,8 @@ msgstr "Um novo workspace a partir desta branch, com a conversa entregue a um no
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "Uma página pode salvar a resposta de cada leitor, então uma enquete funciona sem backend."
 
-msgid "A plugin adds one app's skills and tools to your agents. Install it once for every machine you sign into."
-msgstr "Um plugin adiciona as skills e as ferramentas de um app aos seus agentes. Instale uma vez para todas as máquinas em que você entrar."
+msgid "A plugin adds one app's skills and tools to your agents. Install it once, and it works on every machine you sign into."
+msgstr "Um plugin adiciona as skills e as ferramentas de um app aos seus agentes. Instale uma vez e ele funciona em todas as máquinas em que você entrar."
 
 msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
 msgstr "Um problema prático de TypeScript, como os que resolvemos todos os dias. Nada de quebra-cabeças de algoritmos."

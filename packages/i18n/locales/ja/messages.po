@@ -1492,7 +1492,7 @@ msgstr "このブランチから新しいワークスペースを作り、会話
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "ページは読み手ごとの回答を保存できるので、バックエンドなしでアンケートが作れます。"
 
-msgid "A plugin adds one app's skills and tools to your agents. Install it once for every machine you sign into."
+msgid "A plugin adds one app's skills and tools to your agents. Install it once, and it works on every machine you sign into."
 msgstr "プラグインは、1つのアプリのスキルとツールをエージェントに追加します。一度インストールすれば、サインインしているすべてのマシンで使えます。"
 
 msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."

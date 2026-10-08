@@ -1492,8 +1492,8 @@ msgstr "Một workspace mới từ nhánh này, hội thoại được bàn giao
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "Một trang có thể lưu câu trả lời của từng người đọc, nên cuộc khảo sát chạy được mà không cần backend."
 
-msgid "A plugin adds one app's skills and tools to your agents. Install it once for every machine you sign into."
-msgstr "Plugin thêm skill và công cụ của một ứng dụng vào các agent của bạn. Chỉ cần cài đặt một lần cho mọi máy bạn đăng nhập."
+msgid "A plugin adds one app's skills and tools to your agents. Install it once, and it works on every machine you sign into."
+msgstr "Plugin thêm skill và công cụ của một ứng dụng vào các agent của bạn. Chỉ cần cài đặt một lần là dùng được trên mọi máy bạn đăng nhập."
 
 msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
 msgstr "Một bài toán TypeScript thực tế, giống những gì chúng tôi giải quyết hằng ngày. Không có câu đố thuật toán."

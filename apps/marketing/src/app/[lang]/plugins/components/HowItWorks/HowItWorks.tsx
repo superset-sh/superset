@@ -13,8 +13,11 @@ export function HowItWorks() {
 	const reducedMotion = useReducedMotion();
 	const [active, setActive] = useState(0);
 	const [pinned, setPinned] = useState(false);
-	const [hovering, setHovering] = useState(false);
-	const autoplay = inView && !pinned && !hovering && !reducedMotion;
+	const [preview, setPreview] = useState<number | null>(null);
+	const [focused, setFocused] = useState(false);
+	const autoplay =
+		inView && !pinned && preview === null && !focused && !reducedMotion;
+	const shown = preview ?? active;
 
 	useEffect(() => {
 		if (!autoplay) return;
@@ -37,13 +40,13 @@ export function HowItWorks() {
 		>
 			<StepList
 				steps={STEPS}
-				active={active}
+				active={shown}
 				autoplay={autoplay}
 				onSelect={select}
-				onPreview={setActive}
-				onHoverChange={setHovering}
+				onPreview={setPreview}
+				onFocusChange={setFocused}
 			/>
-			<StepStage step={STEPS[active]?.id ?? "install"} />
+			<StepStage step={STEPS[shown]?.id ?? "install"} />
 		</div>
 	);
 }

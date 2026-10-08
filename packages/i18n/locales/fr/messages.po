@@ -1492,8 +1492,8 @@ msgstr "Un nouvel espace de travail issu de cette branche, la conversation étan
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "Une page peut enregistrer la réponse de chaque lecteur, donc un sondage fonctionne sans backend."
 
-msgid "A plugin adds one app's skills and tools to your agents. Install it once for every machine you sign into."
-msgstr "Un plugin ajoute les compétences et les outils d'une application à vos agents. Installez-le une fois pour chaque machine sur laquelle vous vous connectez."
+msgid "A plugin adds one app's skills and tools to your agents. Install it once, and it works on every machine you sign into."
+msgstr "Un plugin ajoute les compétences et les outils d'une application à vos agents. Installez-le une fois, et il fonctionne sur chaque machine où vous vous connectez."
 
 msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
 msgstr "Un problème TypeScript concret, comme ceux que nous résolvons chaque jour. Pas de casse-têtes algorithmiques."
@@ -17670,7 +17670,7 @@ msgid "tokens per session, trailing 30 days"
 msgstr "tokens par session, 30 derniers jours"
 
 msgid "Tokens stay off your machine"
-msgstr "Les jetons ne quittent pas votre machine"
+msgstr "Les jetons ne sont pas stockés sur votre machine"
 
 msgid "Too many feedback submissions. Try again later."
 msgstr "Trop de retours envoyés. Réessayez plus tard."

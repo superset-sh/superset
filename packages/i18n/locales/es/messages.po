@@ -1492,8 +1492,8 @@ msgstr "Un nuevo espacio de trabajo desde esta rama, con la conversación entreg
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "Una página puede guardar la respuesta de cada lector, así que una encuesta funciona sin backend."
 
-msgid "A plugin adds one app's skills and tools to your agents. Install it once for every machine you sign into."
-msgstr "Un plugin añade las skills y las herramientas de una app a tus agentes. Instálalo una vez para todas las máquinas en las que inicies sesión."
+msgid "A plugin adds one app's skills and tools to your agents. Install it once, and it works on every machine you sign into."
+msgstr "Un plugin añade las skills y las herramientas de una app a tus agentes. Instálalo una vez y funciona en todas las máquinas en las que inicies sesión."
 
 msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
 msgstr "Un problema práctico de TypeScript, como los que resolvemos cada día. Sin acertijos de algoritmos."
@@ -17670,7 +17670,7 @@ msgid "tokens per session, trailing 30 days"
 msgstr "tokens por sesión, últimos 30 días"
 
 msgid "Tokens stay off your machine"
-msgstr "Los tokens no salen de tu máquina"
+msgstr "Los tokens no se guardan en tu máquina"
 
 msgid "Too many feedback submissions. Try again later."
 msgstr "Demasiados envíos de comentarios. Inténtalo más tarde."
@@ -17781,7 +17781,7 @@ msgid "Tree view"
 msgstr "Vista de árbol"
 
 msgid "Triage issues and failing CI"
-msgstr "Triar incidencias y CI fallida"
+msgstr "Clasifica incidencias y fallos de CI"
 
 msgid "Triage mail and draft replies"
 msgstr "Triar correo y redactar respuestas"

@@ -87,10 +87,6 @@ export const PRODUCT_SECTIONS: NavSection[] = [
 	},
 ];
 
-export const PRODUCT_LINKS: NavLink[] = PRODUCT_SECTIONS.flatMap(
-	(section) => section.links,
-);
-
 export interface NavFeatured {
 	href: string;
 	image: string;
@@ -199,10 +195,6 @@ export const RESOURCE_SECTIONS: NavSection[] = [
 		],
 	},
 ];
-
-export const RESOURCE_LINKS: NavLink[] = RESOURCE_SECTIONS.flatMap(
-	(section) => section.links,
-);
 
 export const RESOURCE_FEATURED: NavFeatured = {
 	href: "/blog/review-agent-work-with-pages",

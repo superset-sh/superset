@@ -1492,7 +1492,7 @@ msgstr "이 브랜치에서 새 워크스페이스를 만들고 대화를 새 �
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "페이지가 독자별 답변을 저장하므로 백엔드 없이 투표를 만들 수 있습니다."
 
-msgid "A plugin adds one app's skills and tools to your agents. Install it once for every machine you sign into."
+msgid "A plugin adds one app's skills and tools to your agents. Install it once, and it works on every machine you sign into."
 msgstr "플러그인은 앱 하나의 스킬과 도구를 에이전트에 추가합니다. 한 번만 설치하면 로그인한 모든 머신에서 사용할 수 있습니다."
 
 msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."

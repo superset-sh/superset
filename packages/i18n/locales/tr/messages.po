@@ -1492,8 +1492,8 @@ msgstr "Bu daldan yeni bir çalışma alanı; konuşma yeni bir aracıya devredi
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "Bir sayfa her okuyucunun yanıtını kaydedebilir, böylece anket arka uç olmadan çalışır."
 
-msgid "A plugin adds one app's skills and tools to your agents. Install it once for every machine you sign into."
-msgstr "Bir eklenti, tek bir uygulamanın becerilerini ve araçlarını ajanlarınıza ekler. Oturum açtığınız her makine için bir kez kurun."
+msgid "A plugin adds one app's skills and tools to your agents. Install it once, and it works on every machine you sign into."
+msgstr "Bir eklenti, tek bir uygulamanın becerilerini ve araçlarını ajanlarınıza ekler. Bir kez kurun, oturum açtığınız her makinede çalışır."
 
 msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
 msgstr "Her gün çözdüklerimize benzer, pratik bir TypeScript problemi. Algoritma bulmacası yok."
@@ -4288,7 +4288,7 @@ msgid "Connect another account"
 msgstr "Başka bir hesap bağla"
 
 msgid "Connect any agent"
-msgstr "Her ajanı bağlayın"
+msgstr "Herhangi bir ajanı bağlayın"
 
 msgid "Connect Claude, Codex, Cursor, or any <0>MCP</0> client and let your agent create tasks, spin up workspaces, launch agents, and run automations on your behalf."
 msgstr "Claude, Codex, Cursor veya herhangi bir <0>MCP</0> istemcisini bağlayın; ajanınız sizin adınıza görev oluştursun, çalışma alanı açsın, ajan başlatsın ve otomasyon çalıştırsın."
@@ -14245,7 +14245,7 @@ msgid "Run any agent you set up in Superset, such as Claude or Codex."
 msgstr "Superset'te kurduğunuz herhangi bir ajanı çalıştırın, örneğin Claude veya Codex."
 
 msgid "Run any coding agent"
-msgstr "Her kodlama ajanını çalıştırın"
+msgstr "Herhangi bir kodlama ajanını çalıştırın"
 
 msgid "Run automations on data source and comment activity."
 msgstr "Veri kaynağı ve yorum etkinliğinde otomasyon çalıştırın."
@@ -17670,7 +17670,7 @@ msgid "tokens per session, trailing 30 days"
 msgstr "oturum başına token, son 30 gün"
 
 msgid "Tokens stay off your machine"
-msgstr "Belirteçler makinenizden çıkmaz"
+msgstr "Belirteçler makinenizde saklanmaz"
 
 msgid "Too many feedback submissions. Try again later."
 msgstr "Çok fazla geri bildirim gönderimi. Daha sonra yeniden deneyin."

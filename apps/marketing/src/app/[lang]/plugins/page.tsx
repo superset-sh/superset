@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 		description: i18n._(
 			msg({
 				message:
-					"A plugin adds one app's skills and tools to your agents. Install it once for every machine you sign into.",
+					"A plugin adds one app's skills and tools to your agents. Install it once, and it works on every machine you sign into.",
 			}),
 		),
 		alternates: localizedAlternates(lang, "/plugins"),
@@ -49,7 +49,7 @@ export default async function PluginsPage() {
 						<p className="mt-5 max-w-xl text-lg text-muted-foreground leading-relaxed">
 							<Trans>
 								A plugin adds one app's skills and tools to your agents. Install
-								it once for every machine you sign into.
+								it once, and it works on every machine you sign into.
 							</Trans>
 						</p>
 						<ProductHeroActions source="plugins" docsPath="/mcp-server" />

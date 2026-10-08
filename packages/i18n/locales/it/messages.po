@@ -1492,8 +1492,8 @@ msgstr "Un nuovo workspace da questo branch, con la conversazione consegnata a u
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "Una pagina può salvare la risposta di ogni lettore, quindi un sondaggio funziona senza backend."
 
-msgid "A plugin adds one app's skills and tools to your agents. Install it once for every machine you sign into."
-msgstr "Un plugin aggiunge ai tuoi agenti le skill e gli strumenti di un'app. Installalo una volta per ogni macchina su cui accedi."
+msgid "A plugin adds one app's skills and tools to your agents. Install it once, and it works on every machine you sign into."
+msgstr "Un plugin aggiunge ai tuoi agenti le skill e gli strumenti di un'app. Installalo una volta e funziona su ogni macchina su cui accedi."
 
 msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
 msgstr "Un problema pratico in TypeScript, come quelli che risolviamo ogni giorno. Niente rompicapi algoritmici."
@@ -5453,7 +5453,7 @@ msgid "Created by me"
 msgstr "Creati da me"
 
 msgid "Created ENG-142 Login fails on Safari"
-msgstr "Creato ENG-142 Login fails on Safari"
+msgstr "Creato ENG-142 Accesso non riuscito su Safari"
 
 msgid "Created team \"{trimmedName}\""
 msgstr "Team \"{trimmedName}\" creato"
@@ -17670,7 +17670,7 @@ msgid "tokens per session, trailing 30 days"
 msgstr "token per sessione, ultimi 30 giorni"
 
 msgid "Tokens stay off your machine"
-msgstr "I token non lasciano la tua macchina"
+msgstr "I token non vengono salvati sulla tua macchina"
 
 msgid "Too many feedback submissions. Try again later."
 msgstr "Troppi invii di feedback. Riprova più tardi."

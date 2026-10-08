@@ -1492,8 +1492,8 @@ msgstr "Nový pracovní prostor z této větve; konverzace se předá novému ag
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "Stránka umí uložit odpověď každého čtenáře, takže anketa funguje bez backendu."
 
-msgid "A plugin adds one app's skills and tools to your agents. Install it once for every machine you sign into."
-msgstr "Plugin přidá vašim agentům skills a nástroje jedné aplikace. Nainstalujte ho jednou pro každý počítač, na kterém se přihlásíte."
+msgid "A plugin adds one app's skills and tools to your agents. Install it once, and it works on every machine you sign into."
+msgstr "Plugin přidá vašim agentům skills a nástroje jedné aplikace. Nainstalujte ho jednou a bude fungovat na každém počítači, na kterém se přihlásíte."
 
 msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
 msgstr "Praktická úloha v TypeScriptu, jaké řešíme každý den. Žádné algoritmické hádanky."
@@ -16238,7 +16238,7 @@ msgid "Superset for your team"
 msgstr "Superset pro váš tým"
 
 msgid "Superset forwards the ports a remote workspace opens while you have it selected."
-msgstr "Superset přesměruje porty, které vzdálený pracovní prostor otevře, dokud je máte vybraný."
+msgstr "Superset přesměruje porty, které vzdálený pracovní prostor otevře, dokud máte tento pracovní prostor vybraný."
 
 msgid "Superset has a free tier. The source code is available on GitHub under Elastic License 2.0 (ELv2), so you can inspect and self-host it subject to the license terms."
 msgstr "Superset má bezplatný tarif. Zdrojový kód je na GitHubu pod licencí Elastic License 2.0 (ELv2), takže si ho můžete prohlédnout a za podmínek licence provozovat sami."
