@@ -913,7 +913,10 @@ export async function movePath({
 			if (await isCaseOnlyRenameOfSameEntry(sourcePath, destinationPath)) {
 				return;
 			}
-			throw new Error(`Destination already exists: ${destinationPath}`);
+			throw Object.assign(
+				new Error(`Destination already exists: ${destinationPath}`),
+				{ code: "EEXIST" },
+			);
 		},
 		(error: NodeJS.ErrnoException) => {
 			if (error.code !== "ENOENT") {
