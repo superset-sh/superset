@@ -69,6 +69,6 @@ they need is already in the file.
 Check before publishing: no `<script src>` or `<link rel="stylesheet">` pointing
 at a remote host, no `fetch` of any kind including of a `data:` URI, no `eval`
 or `new Function` anywhere in the file or in anything you inlined, page fits in
-16 MB, renders correctly in `superset pages preview`, which serves it under
-the same policy. Remote images are the one permitted exception: they go blank
+16 MB, and `superset pages preview` reports no console errors or blocked
+requests: it renders the page under the same policy. Remote images are the one permitted exception: they go blank
 offline, which is the price of not inlining them.

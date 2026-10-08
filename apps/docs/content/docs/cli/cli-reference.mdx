@@ -1376,18 +1376,34 @@ Page metadata including `id`, `title`, `version`, and `url`, plus `unanchored`,
 		{ name: "path", required: true, description: "HTML file, or directory containing index.html and its assets." },
 	]}
 	options={[
-		{ flag: "--port <n>", description: "Port to listen on; defaults to a free one." },
+		{ flag: "--widths <list>", description: "Viewport widths to capture, comma-separated; default 1280,390, at most 3." },
+		{ flag: "--themes <list>", description: "light, dark, or light,dark (the default)." },
+		{ flag: "--out <dir>", description: "Directory for the screenshots; defaults to a new temp directory." },
+		{ flag: "--serve", description: "Serve the page on 127.0.0.1 instead of capturing it; runs until Ctrl-C." },
+		{ flag: "--port <n>", description: "Port for --serve; defaults to a free one." },
 	]}
 >
-Serve a page on `127.0.0.1` with the theme, component kit, and content
-security policy it gets once published, so a page can be checked before it is
-published. Shared storage is not available in preview. Needs no sign-in. Runs
-until stopped with Ctrl-C.
+Render a page in headless Chrome with the theme, component kit, and content
+security policy it gets once published, and save a JPEG screenshot for each
+width and color scheme. The report lists console errors, requests the content
+policy blocked, files the page references that do not exist, horizontal
+scrolling, a missing title, and light and dark captures that look identical.
+Shared storage is not available in preview. Needs no sign-in.
+
+Chrome, Chromium, Edge, or Brave must be installed, or a Playwright Chromium.
+Set `SUPERSET_CHROME_PATH` to use a specific browser.
 
 ```bash
 superset pages preview report.html
-superset pages preview ./report/ --port 4517
+superset pages preview ./report/ --widths 1440 --themes dark --out shots
+superset pages preview report.html --serve
 ```
+
+<CommandReturns>
+`report` (the text summary), `captures` with each screenshot's `path`, `width`,
+`theme`, and heights, the raw `consoleErrors`, `blocked`, and `overflow`
+findings, and the `issues` list.
+</CommandReturns>
 </Command>
 
 <Command

@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PAGE_THEME_CSS } from "@superset/shared/usercontent";
-import { previewResponse, resolvePreviewSite } from "./command";
+import { previewResponse, resolvePreviewSite } from "./servePreview";
 
 const dir = mkdtempSync(join(tmpdir(), "pages-preview-"));
 mkdirSync(join(dir, "site"));

@@ -1,64 +1,57 @@
-import { readFileSync, statSync } from "node:fs";
-import { dirname, extname, join, resolve, sep } from "node:path";
-import { CLIError, number, positional } from "@superset/cli-framework";
+import { mkdirSync, mkdtempSync, statSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { basename, resolve } from "node:path";
 import {
-	injectStyleTag,
-	PAGE_THEME_CSS,
-	pageContentSecurityPolicy,
-} from "@superset/shared/usercontent";
-import { lookup as lookupMimeType } from "mime-types";
+	boolean,
+	CLIError,
+	number,
+	positional,
+	string,
+} from "@superset/cli-framework";
 import { command } from "../../../lib/command";
+import { capturePreview, type Theme } from "./utils/capturePreview";
+import { findChrome } from "./utils/findChrome";
+import { launchChrome } from "./utils/launchChrome";
+import { formatPreviewReport, previewIssues } from "./utils/previewReport";
+import { resolvePreviewSite, startPreviewServers } from "./utils/servePreview";
 
-export interface PreviewSite {
-	root: string;
-	entry: string;
+const DEFAULT_WIDTHS = [1280, 390];
+const DEFAULT_THEMES: Theme[] = ["light", "dark"];
+const MAX_WIDTHS = 3;
+const STEP_TIMEOUT_MS = 20_000;
+const START_TIMEOUT_MS = 60_000;
+
+export function parseWidths(value: string | undefined): number[] {
+	if (!value) return DEFAULT_WIDTHS;
+	const widths = value
+		.split(",")
+		.map((part) => Number(part.trim()))
+		.filter((width) => Number.isFinite(width) && width > 0)
+		.map((width) => Math.min(2560, Math.max(320, Math.round(width))));
+	if (widths.length === 0 || widths.length > MAX_WIDTHS) {
+		throw new CLIError(
+			`--widths takes 1 to ${MAX_WIDTHS} widths, like 1280,390`,
+		);
+	}
+	return widths;
 }
 
-export function resolvePreviewSite(inputPath: string): PreviewSite {
-	const stat = statSync(inputPath, { throwIfNoEntry: false });
-	if (!stat) throw new CLIError(`No such file or directory: ${inputPath}`);
-	if (stat.isDirectory()) {
-		const entry = join(inputPath, "index.html");
-		if (!statSync(entry, { throwIfNoEntry: false })?.isFile()) {
-			throw new CLIError(`No index.html in ${inputPath}`);
-		}
-		return { root: inputPath, entry };
+export function parseThemes(value: string | undefined): Theme[] {
+	if (!value) return DEFAULT_THEMES;
+	const themes = value.split(",").map((part) => part.trim());
+	if (
+		!themes.every(
+			(theme): theme is Theme => theme === "light" || theme === "dark",
+		)
+	) {
+		throw new CLIError("--themes takes light, dark, or light,dark");
 	}
-	if (extname(inputPath).toLowerCase() !== ".html") {
-		throw new CLIError("Only .html files can be previewed as a page");
-	}
-	return { root: dirname(inputPath), entry: inputPath };
-}
-
-export function previewResponse(site: PreviewSite, pathname: string): Response {
-	const relative = decodeURIComponent(pathname).replace(/^\/+/, "");
-	const file = relative ? resolve(site.root, relative) : site.entry;
-	const inside = file === site.root || file.startsWith(site.root + sep);
-	if (!inside || relative.startsWith("_superset/")) {
-		return new Response("Not found", { status: 404 });
-	}
-	if (!statSync(file, { throwIfNoEntry: false })?.isFile()) {
-		return new Response("Not found", { status: 404 });
-	}
-
-	const type = lookupMimeType(file) || "application/octet-stream";
-	const headers = {
-		"content-type": type,
-		"content-security-policy": pageContentSecurityPolicy(["'none'"]),
-		"cache-control": "no-store",
-	};
-	if (type === "text/html") {
-		const html = injectStyleTag(readFileSync(file, "utf-8"), PAGE_THEME_CSS);
-		return new Response(html, {
-			headers: { ...headers, "content-type": "text/html; charset=utf-8" },
-		});
-	}
-	return new Response(readFileSync(file), { headers });
+	return [...new Set(themes)];
 }
 
 export default command({
 	description:
-		"Serve a page locally with the theme and content policy it gets once published",
+		"Render a page the way it looks once published and save screenshots of it, or serve it with --serve",
 	args: [
 		positional("path")
 			.required()
@@ -67,25 +60,90 @@ export default command({
 			),
 	],
 	options: {
-		port: number().desc("Port to listen on (defaults to a free one)"),
+		widths: string().desc(
+			"Viewport widths to capture (default 1280,390; at most 3)",
+		),
+		themes: string().desc("Colour schemes to capture (default light,dark)"),
+		out: string().desc(
+			"Directory for the screenshots (default: a new temp directory)",
+		),
+		serve: boolean().desc(
+			"Serve the page on 127.0.0.1 instead of capturing it",
+		),
+		port: number().desc("Port for --serve (defaults to a free one)"),
 	},
 	skipMiddleware: true,
 	run: async ({ args, options, signal }) => {
 		const site = resolvePreviewSite(
 			resolve(process.cwd(), args.path as string),
 		);
-		const server = Bun.serve({
-			hostname: "127.0.0.1",
-			port: options.port ?? 0,
-			fetch: (request) => previewResponse(site, new URL(request.url).pathname),
-		});
-		process.stdout.write(
-			`Previewing ${site.entry} at http://127.0.0.1:${server.port}/\nEdits show on reload. Stop with Ctrl-C.\n`,
-		);
-		await new Promise((stopped) =>
-			signal.addEventListener("abort", stopped, { once: true }),
-		);
-		server.stop(true);
-		return undefined;
+
+		if (options.serve) {
+			const servers = startPreviewServers(site, options.port ?? 0);
+			process.stdout.write(
+				`Previewing ${site.entry} at ${servers.pageUrl}\nEdits show on reload. Stop with Ctrl-C.\n`,
+			);
+			await new Promise((stopped) =>
+				signal.addEventListener("abort", stopped, { once: true }),
+			);
+			servers.stop();
+			return undefined;
+		}
+
+		const widths = parseWidths(options.widths);
+		const themes = parseThemes(options.themes);
+		const executable = findChrome();
+		if (!executable) {
+			throw new CLIError(
+				"Chrome not found, so the page could not be rendered",
+				"Install Chrome or Chromium, run `npx playwright install chromium`, or set SUPERSET_CHROME_PATH. To look at it yourself: superset pages preview <path> --serve",
+			);
+		}
+		const outDir = options.out
+			? resolve(process.cwd(), options.out)
+			: mkdtempSync(resolve(tmpdir(), "superset-page-shots-"));
+		mkdirSync(outDir, { recursive: true });
+
+		const servers = startPreviewServers(site);
+		let chrome: Awaited<ReturnType<typeof launchChrome>> | undefined;
+		try {
+			chrome = await launchChrome(executable, {
+				startTimeoutMs: START_TIMEOUT_MS,
+				commandTimeoutMs: STEP_TIMEOUT_MS,
+			});
+			const findings = await capturePreview({
+				cdp: chrome.cdp,
+				wrapperUrl: servers.wrapperUrl,
+				widths,
+				themes,
+				outDir,
+			});
+			const bytes = statSync(site.entry).size;
+			const issues = previewIssues(findings, {
+				missing: servers.missing,
+				bytes,
+			});
+			const report = formatPreviewReport({
+				name: basename(site.entry),
+				bytes,
+				widths,
+				themes,
+				findings,
+				issues,
+				token: crypto.randomUUID().slice(0, 8),
+			});
+			return {
+				data: { report, ...findings, issues, browser: executable },
+				message: report,
+			};
+		} catch (error) {
+			throw new CLIError(
+				"Could not preview the page",
+				`${error instanceof Error ? error.message : String(error)}. To look at it yourself: superset pages preview <path> --serve`,
+			);
+		} finally {
+			await chrome?.close();
+			servers.stop();
+		}
 	},
 });
