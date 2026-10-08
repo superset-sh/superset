@@ -12803,7 +12803,7 @@ msgid "Questions, feedback, support, or anything else. Send a note and we'll rou
 msgstr "ご質問、フィードバック、サポート、その他何でも。メッセージをお送りいただければ、適切な担当者にお繋ぎします。"
 
 msgid "Queue paused"
-msgstr "キューを一時停止中"
+msgstr "キューは一時停止中"
 
 msgid "Queue paused because you interrupted"
 msgstr "中断したためキューを一時停止しました"

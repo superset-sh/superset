@@ -47,6 +47,7 @@ import { ScrollToBottom } from "./components/ScrollToBottom";
 import { StickToBottom } from "./components/StickToBottom";
 
 const CONFIG_OPTIONS_GRACE_MS = 1000;
+const BANNER_SPACE = 36;
 
 function activityTexts(
 	activity: ChatRow[],
@@ -389,7 +390,9 @@ export const ChatSessionView = forwardRef<
 				<View className="flex-1">
 					<Conversation
 						contentContainerClassName="px-4"
-						contentContainerStyle={{ paddingTop: headerHeight + 16 }}
+						contentContainerStyle={{
+							paddingTop: headerHeight + 16 + (banner ? BANNER_SPACE : 0),
+						}}
 						data={rows}
 						keyExtractor={(row) => row.key}
 						ListHeaderComponent={
