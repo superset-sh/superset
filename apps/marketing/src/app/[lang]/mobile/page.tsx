@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 		description: i18n._(
 			msg({
 				message:
-					"Start coding agents, follow them live on your Lock Screen, and review the diff from your phone. Available on the App Store; Android is coming soon.",
+					"Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon.",
 			}),
 		),
 		alternates: localizedAlternates(lang, "/mobile"),
@@ -45,8 +45,8 @@ export default async function MobilePage() {
 						</h1>
 						<p className="mt-5 max-w-md text-lg text-muted-foreground leading-relaxed">
 							<Trans>
-								Start agents, follow them live on your Lock Screen, and review
-								the diff from your phone. Your code stays on your machines.
+								Start agents, follow them live, and review the diff from your
+								phone. Your code stays on your machines.
 							</Trans>
 						</p>
 						<div className="mt-8">

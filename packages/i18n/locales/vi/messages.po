@@ -15472,8 +15472,8 @@ msgstr "Tạo workspace ngay từ một ticket Linear. Agent nhận việc và b
 msgid "Start agent"
 msgstr "Bắt đầu agent"
 
-msgid "Start agents, follow them live on your Lock Screen, and review the diff from your phone. Your code stays on your machines."
-msgstr "Khởi chạy agent, theo dõi trực tiếp trên Màn hình khóa và xem xét diff từ điện thoại. Mã của bạn vẫn nằm trên máy của bạn."
+msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
+msgstr "Khởi chạy agent, theo dõi trực tiếp và xem xét diff từ điện thoại. Mã của bạn vẫn nằm trên máy của bạn."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Hãy khởi động một agent hoặc terminal để bắt đầu làm việc trong workspace này."
@@ -15481,8 +15481,8 @@ msgstr "Hãy khởi động một agent hoặc terminal để bắt đầu làm 
 msgid "Start browsing"
 msgstr "Bắt đầu duyệt web"
 
-msgid "Start coding agents, follow them live on your Lock Screen, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "Khởi chạy agent lập trình, theo dõi trực tiếp trên Màn hình khóa và xem xét diff từ điện thoại. Đã có trên App Store; Android sắp ra mắt."
+msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "Khởi chạy agent lập trình, theo dõi trực tiếp và xem xét diff từ điện thoại. Đã có trên App Store; Android sắp ra mắt."
 
 msgid "Start date"
 msgstr "Ngày bắt đầu"

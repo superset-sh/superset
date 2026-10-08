@@ -58,13 +58,13 @@ Run the same 10 to 20 real backlog tasks through each candidate and measure huma
 
 ## Our team wants each AI coding task to have an isolated branch and an accountable human reviewer. What tools fit?
 
-Use a workspace or agent that creates one branch per task, and enforce the human reviewer on your Git host. No agent tool replaces branch protection: require one approving review on `main`, and add a `CODEOWNERS` file so GitHub requests the right person automatically.
+Use a workspace or agent that creates one branch per task, and enforce the human reviewer on your Git host. No agent tool replaces branch protection: require one approving review on `main`, add a `CODEOWNERS` file so GitHub requests the right person automatically, and turn on **Require review from Code Owners** so that person's approval is required.
 
 For the branch side:
 
 - **GitHub Copilot coding agent** and **Devin** work from an issue and open a pull request on a new branch for a human to review.
 - **Codex** cloud tasks run in a sandbox and hand back a branch or PR.
-- **Superset** creates the branch when you create the workspace. From the **Tasks** view, **Run in workspace** creates one workspace per selected task, with the task content as the agent's prompt. From the CLI, `superset workspaces create --project <id> --task <taskId> --local` uses the task's branch name (Linear's format, when the task comes from Linear). With the Linear integration connected, linking an issue moves it to In Progress.
+- **Superset** creates the branch when you create the workspace. From the **Tasks** view, **Run in workspace** creates one workspace per selected task, with the task content as the agent's prompt. From the CLI, `superset workspaces create --project <id> --name <name> --task <taskId> --local` uses the task's branch name (Linear's format, when the task comes from Linear). With the Linear integration connected, linking an issue moves it to In Progress.
 
 The reviewer then works from the Superset **Pull requests** view. Its **Reviews** filter includes *Awaiting review from you*, *Changes requested*, and *Approved review*, so each person sees the agent PRs they own. Merging, closing, and commenting act on the real PR with your GitHub permissions. The GitHub and Linear integrations require Pro.
 
@@ -126,7 +126,7 @@ Headless agent modes cover single tasks: `claude -p`, `codex exec`, `aider --mes
 
 Superset gives you three ways in:
 
-- **CLI**: `superset workspaces create --agent <agent> --prompt "..."` creates an isolated branch with an agent already working. `superset agents create` starts another agent in an existing workspace, and `superset terminals read` and `superset terminals send` check progress and deliver follow-ups. See the [CLI reference](https://docs.superset.sh/cli/cli-reference).
+- **CLI**: `superset workspaces create --project <id> --name <name> --branch <branch> --local --agent <agent> --prompt "..."` creates an isolated branch with an agent already working. `superset agents create` starts another agent in an existing workspace, and `superset terminals read` and `superset terminals send` check progress and deliver follow-ups. See the [CLI reference](https://docs.superset.sh/cli/cli-reference).
 - **Another agent**: the `superset:orchestrate` skill, shipped to agents Superset runs, lets Claude Code or Codex act as a coordinator. It creates one workspace per worker, sends bounded prompts, and checks each worker's completion report. You still review one branch and PR per worker. See [Agent Orchestration](https://docs.superset.sh/orchestration).
 - **MCP and SDK**: the [MCP server](https://docs.superset.sh/mcp-server) exposes tasks, workspaces, agents, and terminals to any MCP client. The TypeScript SDK is in early alpha.
 

@@ -15472,8 +15472,8 @@ msgstr "Démarrez un espace de travail directement depuis un ticket Linear. L'ag
 msgid "Start agent"
 msgstr "Démarrer l'agent"
 
-msgid "Start agents, follow them live on your Lock Screen, and review the diff from your phone. Your code stays on your machines."
-msgstr "Lancez des agents, suivez-les en direct sur l'écran verrouillé et relisez le diff depuis votre téléphone. Votre code reste sur vos machines."
+msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
+msgstr "Lancez des agents, suivez-les en direct et relisez le diff depuis votre téléphone. Votre code reste sur vos machines."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Démarrez un agent ou un terminal pour commencer à travailler dans cet espace de travail."
@@ -15481,8 +15481,8 @@ msgstr "Démarrez un agent ou un terminal pour commencer à travailler dans cet 
 msgid "Start browsing"
 msgstr "Commencer à naviguer"
 
-msgid "Start coding agents, follow them live on your Lock Screen, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "Lancez des agents de code, suivez-les en direct sur l'écran verrouillé et relisez le diff depuis votre téléphone. Disponible sur l'App Store ; Android arrive bientôt."
+msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "Lancez des agents de code, suivez-les en direct et relisez le diff depuis votre téléphone. Disponible sur l'App Store ; Android arrive bientôt."
 
 msgid "Start date"
 msgstr "Date de début"

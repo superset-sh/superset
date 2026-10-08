@@ -85,7 +85,7 @@ Three rules fix most of it:
 2. **Fail loudly on a taken port.** In Vite, `server.strictPort: true` makes the server exit when the port is in use instead of moving to the next one.
 3. **Name terminals after the branch.** With tmux, one named session per worktree (`tmux new -s myapp-auth -c ../myapp-auth`) holds the agent, the dev server, and a test pane. Detach and the processes keep running.
 
-For per-branch databases or service stacks, `docker compose -p <branch-name> up -d` gives each worktree its own project name, so containers and volumes don't collide.
+For per-branch databases or service stacks, `docker compose -p <project-name> up -d` gives each worktree its own project name, so containers and volumes don't collide. Convert the branch name to a valid Compose name first: lowercase letters, digits, dashes, and underscores only, so `fix/auth` becomes `fix-auth`.
 
 **How Superset handles this.** Superset does not assign port ranges for you. It detects the ports that processes in each workspace are listening on and groups them under that workspace, both in the ports panel and as chips under the workspace row in the sidebar. From a port you can kill its process, jump to the terminal that owns it, or open it in the in-app browser pane (**⌘⇧B** opens a new browser tab). Add `.superset/ports.json` to label ports, such as "Frontend Dev Server" on 3000. Each workspace reads labels from its own worktree. See the [ports docs](https://docs.superset.sh/ports).
 

@@ -15472,8 +15472,8 @@ msgstr "Mulai workspace langsung dari tiket Linear. Agen mengambilnya dan melapo
 msgid "Start agent"
 msgstr "Mulai agen"
 
-msgid "Start agents, follow them live on your Lock Screen, and review the diff from your phone. Your code stays on your machines."
-msgstr "Mulai agen, ikuti secara langsung di Layar Terkunci, dan tinjau diff dari ponsel Anda. Kode Anda tetap di mesin Anda."
+msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
+msgstr "Mulai agen, ikuti secara langsung, dan tinjau diff dari ponsel Anda. Kode Anda tetap di mesin Anda."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Mulai sebuah agen atau terminal untuk mulai bekerja di workspace ini."
@@ -15481,8 +15481,8 @@ msgstr "Mulai sebuah agen atau terminal untuk mulai bekerja di workspace ini."
 msgid "Start browsing"
 msgstr "Mulai menjelajah"
 
-msgid "Start coding agents, follow them live on your Lock Screen, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "Mulai agen coding, ikuti secara langsung di Layar Terkunci, dan tinjau diff dari ponsel Anda. Tersedia di App Store; Android segera hadir."
+msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "Mulai agen coding, ikuti secara langsung, dan tinjau diff dari ponsel Anda. Tersedia di App Store; Android segera hadir."
 
 msgid "Start date"
 msgstr "Tanggal mulai"

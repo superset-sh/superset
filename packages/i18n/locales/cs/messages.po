@@ -15472,8 +15472,8 @@ msgstr "Založte pracovní prostor rovnou z ticketu v Linearu. Agent ho převezm
 msgid "Start agent"
 msgstr "Spustit agenta"
 
-msgid "Start agents, follow them live on your Lock Screen, and review the diff from your phone. Your code stays on your machines."
-msgstr "Spouštějte agenty, sledujte je živě na zamčené obrazovce a kontrolujte diff z telefonu. Váš kód zůstává na vašich počítačích."
+msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
+msgstr "Spouštějte agenty, sledujte je živě a kontrolujte diff z telefonu. Váš kód zůstává na vašich počítačích."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Spusťte agenta nebo terminál a začněte v tomto pracovním prostoru pracovat."
@@ -15481,8 +15481,8 @@ msgstr "Spusťte agenta nebo terminál a začněte v tomto pracovním prostoru p
 msgid "Start browsing"
 msgstr "Začněte prohlížet"
 
-msgid "Start coding agents, follow them live on your Lock Screen, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "Spouštějte programovací agenty, sledujte je živě na zamčené obrazovce a kontrolujte diff z telefonu. K dispozici v App Store; Android již brzy."
+msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "Spouštějte programovací agenty, sledujte je živě a kontrolujte diff z telefonu. K dispozici v App Store; Android již brzy."
 
 msgid "Start date"
 msgstr "Datum zahájení"

@@ -15472,8 +15472,8 @@ msgstr "Linear 티켓에서 바로 워크스페이스를 시작하세요. 에이
 msgid "Start agent"
 msgstr "에이전트 시작"
 
-msgid "Start agents, follow them live on your Lock Screen, and review the diff from your phone. Your code stays on your machines."
-msgstr "휴대폰에서 에이전트를 시작하고, 잠금 화면에서 실시간으로 따라가고, diff를 리뷰하세요. 코드는 내 머신에 그대로 남습니다."
+msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
+msgstr "휴대폰에서 에이전트를 시작하고, 실시간으로 따라가고, diff를 리뷰하세요. 코드는 내 머신에 그대로 남습니다."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "에이전트나 터미널을 시작해 이 워크스페이스에서 작업을 시작하세요."
@@ -15481,8 +15481,8 @@ msgstr "에이전트나 터미널을 시작해 이 워크스페이스에서 작�
 msgid "Start browsing"
 msgstr "탐색 시작"
 
-msgid "Start coding agents, follow them live on your Lock Screen, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "휴대폰에서 코딩 에이전트를 시작하고, 잠금 화면에서 실시간으로 따라가고, diff를 리뷰하세요. App Store에서 받을 수 있으며 Android는 출시 예정입니다."
+msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "휴대폰에서 코딩 에이전트를 시작하고, 실시간으로 따라가고, diff를 리뷰하세요. App Store에서 받을 수 있으며 Android는 출시 예정입니다."
 
 msgid "Start date"
 msgstr "시작일"

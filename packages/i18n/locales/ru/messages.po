@@ -15472,8 +15472,8 @@ msgstr "Запускайте рабочую область прямо из ти�
 msgid "Start agent"
 msgstr "Запустить агента"
 
-msgid "Start agents, follow them live on your Lock Screen, and review the diff from your phone. Your code stays on your machines."
-msgstr "Запускайте агентов, следите за ними в реальном времени на экране блокировки и проверяйте diff с телефона. Ваш код остаётся на ваших машинах."
+msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
+msgstr "Запускайте агентов, следите за ними в реальном времени и проверяйте diff с телефона. Ваш код остаётся на ваших машинах."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Запустите агента или терминал, чтобы начать работу в этой рабочей области."
@@ -15481,8 +15481,8 @@ msgstr "Запустите агента или терминал, чтобы на
 msgid "Start browsing"
 msgstr "Начните просмотр"
 
-msgid "Start coding agents, follow them live on your Lock Screen, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "Запускайте агентов для программирования, следите за ними в реальном времени на экране блокировки и проверяйте diff с телефона. Доступно в App Store; версия для Android скоро появится."
+msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "Запускайте агентов для программирования, следите за ними в реальном времени и проверяйте diff с телефона. Доступно в App Store; версия для Android скоро появится."
 
 msgid "Start date"
 msgstr "Дата начала"

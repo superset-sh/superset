@@ -15472,8 +15472,8 @@ msgstr "Doğrudan bir Linear biletinden çalışma alanı başlatın. Ajan işi 
 msgid "Start agent"
 msgstr "Ajanı başlat"
 
-msgid "Start agents, follow them live on your Lock Screen, and review the diff from your phone. Your code stays on your machines."
-msgstr "Telefonunuzdan ajanları başlatın, Kilitli Ekran'da canlı takip edin ve diff'i inceleyin. Kodunuz makinelerinizde kalır."
+msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
+msgstr "Telefonunuzdan ajanları başlatın, canlı takip edin ve diff'i inceleyin. Kodunuz makinelerinizde kalır."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Bu çalışma alanında çalışmaya başlamak için bir ajan veya terminal başlatın."
@@ -15481,8 +15481,8 @@ msgstr "Bu çalışma alanında çalışmaya başlamak için bir ajan veya termi
 msgid "Start browsing"
 msgstr "Taramaya başlayın"
 
-msgid "Start coding agents, follow them live on your Lock Screen, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "Telefonunuzdan kodlama ajanlarını başlatın, Kilitli Ekran'da canlı takip edin ve diff'i inceleyin. App Store'da mevcut; Android yakında geliyor."
+msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "Telefonunuzdan kodlama ajanlarını başlatın, canlı takip edin ve diff'i inceleyin. App Store'da mevcut; Android yakında geliyor."
 
 msgid "Start date"
 msgstr "Başlangıç tarihi"

@@ -15472,8 +15472,8 @@ msgstr "直接從Linear工單啟動工作區。代理程式接手，並以一個
 msgid "Start agent"
 msgstr "啟動代理"
 
-msgid "Start agents, follow them live on your Lock Screen, and review the diff from your phone. Your code stays on your machines."
-msgstr "在手機上啟動 agent、在鎖定畫面即時追蹤並審查差異。你的程式碼始終留在你的機器上。"
+msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
+msgstr "在手機上啟動 agent、即時追蹤並審查差異。你的程式碼始終留在你的機器上。"
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "啟動一個代理程式或終端，開始在此工作區中工作。"
@@ -15481,8 +15481,8 @@ msgstr "啟動一個代理程式或終端，開始在此工作區中工作。"
 msgid "Start browsing"
 msgstr "開始瀏覽"
 
-msgid "Start coding agents, follow them live on your Lock Screen, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "在手機上啟動程式開發 agent、在鎖定畫面即時追蹤並審查差異。現已在 App Store 上架；Android 版即將推出。"
+msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "在手機上啟動程式開發 agent、即時追蹤並審查差異。現已在 App Store 上架；Android 版即將推出。"
 
 msgid "Start date"
 msgstr "開始日期"

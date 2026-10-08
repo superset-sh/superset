@@ -15472,8 +15472,8 @@ msgstr "Starte einen Arbeitsbereich direkt aus einem Linear-Ticket. Der Agent ü
 msgid "Start agent"
 msgstr "Agent starten"
 
-msgid "Start agents, follow them live on your Lock Screen, and review the diff from your phone. Your code stays on your machines."
-msgstr "Agents starten, live auf dem Sperrbildschirm verfolgen und den Diff vom Handy aus prüfen. Dein Code bleibt auf deinen Rechnern."
+msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
+msgstr "Agents starten, live verfolgen und den Diff vom Handy aus prüfen. Dein Code bleibt auf deinen Rechnern."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Starte einen Agenten oder ein Terminal, um in diesem Arbeitsbereich zu arbeiten."
@@ -15481,8 +15481,8 @@ msgstr "Starte einen Agenten oder ein Terminal, um in diesem Arbeitsbereich zu a
 msgid "Start browsing"
 msgstr "Losbrowsen"
 
-msgid "Start coding agents, follow them live on your Lock Screen, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "Coding-Agents starten, live auf dem Sperrbildschirm verfolgen und den Diff vom Handy aus prüfen. Im App Store erhältlich; Android folgt bald."
+msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "Coding-Agents starten, live verfolgen und den Diff vom Handy aus prüfen. Im App Store erhältlich; Android folgt bald."
 
 msgid "Start date"
 msgstr "Startdatum"

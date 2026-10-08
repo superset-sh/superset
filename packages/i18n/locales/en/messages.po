@@ -15472,8 +15472,8 @@ msgstr "Start a workspace straight from a Linear ticket. The agent picks it up a
 msgid "Start agent"
 msgstr "Start agent"
 
-msgid "Start agents, follow them live on your Lock Screen, and review the diff from your phone. Your code stays on your machines."
-msgstr "Start agents, follow them live on your Lock Screen, and review the diff from your phone. Your code stays on your machines."
+msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
+msgstr "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Start an agent or a terminal to begin working in this workspace."
@@ -15481,8 +15481,8 @@ msgstr "Start an agent or a terminal to begin working in this workspace."
 msgid "Start browsing"
 msgstr "Start browsing"
 
-msgid "Start coding agents, follow them live on your Lock Screen, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "Start coding agents, follow them live on your Lock Screen, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
 
 msgid "Start date"
 msgstr "Start date"

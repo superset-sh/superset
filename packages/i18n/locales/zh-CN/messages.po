@@ -15472,8 +15472,8 @@ msgstr "直接从Linear工单启动工作区。智能体接手，并以一个PR�
 msgid "Start agent"
 msgstr "启动代理"
 
-msgid "Start agents, follow them live on your Lock Screen, and review the diff from your phone. Your code stays on your machines."
-msgstr "在手机上启动智能体、在锁定屏幕上实时跟进并审查差异。你的代码始终留在你的机器上。"
+msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
+msgstr "在手机上启动智能体、实时跟进并审查差异。你的代码始终留在你的机器上。"
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "启动一个智能体或终端，开始在此工作区中工作。"
@@ -15481,8 +15481,8 @@ msgstr "启动一个智能体或终端，开始在此工作区中工作。"
 msgid "Start browsing"
 msgstr "开始浏览"
 
-msgid "Start coding agents, follow them live on your Lock Screen, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "在手机上启动编程智能体、在锁定屏幕上实时跟进并审查差异。现已上架 App Store；Android 版即将推出。"
+msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "在手机上启动编程智能体、实时跟进并审查差异。现已上架 App Store；Android 版即将推出。"
 
 msgid "Start date"
 msgstr "开始日期"

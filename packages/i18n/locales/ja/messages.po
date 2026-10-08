@@ -15472,8 +15472,8 @@ msgstr "Linearのチケットからそのままワークスペースを作れま
 msgid "Start agent"
 msgstr "エージェントを開始"
 
-msgid "Start agents, follow them live on your Lock Screen, and review the diff from your phone. Your code stays on your machines."
-msgstr "スマートフォンからエージェントを起動し、ロック画面でライブで見守り、差分をレビュー。コードはあなたのマシンに残ります。"
+msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
+msgstr "スマートフォンからエージェントを起動し、ライブで見守り、差分をレビュー。コードはあなたのマシンに残ります。"
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "エージェントかターミナルを開始して、このワークスペースでの作業を始めましょう。"
@@ -15481,8 +15481,8 @@ msgstr "エージェントかターミナルを開始して、このワークス
 msgid "Start browsing"
 msgstr "ブラウジングを開始"
 
-msgid "Start coding agents, follow them live on your Lock Screen, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "スマートフォンからコーディングエージェントを起動し、ロック画面でライブで見守り、差分をレビュー。App Store で配信中。Android 版は近日公開。"
+msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "スマートフォンからコーディングエージェントを起動し、ライブで見守り、差分をレビュー。App Store で配信中。Android 版は近日公開。"
 
 msgid "Start date"
 msgstr "開始日"
