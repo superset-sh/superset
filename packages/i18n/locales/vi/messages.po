@@ -6327,8 +6327,8 @@ msgstr "ví dụ engineering"
 msgid "e.g. Engineering"
 msgstr "ví dụ Engineering"
 
-msgid "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
-msgstr "Mỗi agent chạy trong git worktree tách biệt của riêng nó. Không xung đột merge, không giẫm lên thay đổi của nhau. Review và merge khi bạn sẵn sàng."
+msgid "Each agent runs in its own isolated Git worktree. No overwriting each other's files. Review and merge work when you're ready."
+msgstr "Mỗi agent chạy trong git worktree tách biệt của riêng nó. Không ai ghi đè tệp của nhau. Review và merge khi bạn sẵn sàng."
 
 #. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
 msgid "Each attachment is at most {0} MB."
