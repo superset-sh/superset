@@ -1,8 +1,9 @@
 import { afterEach, expect, mock, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { QueryClient } from "@tanstack/react-query";
+import { cleanup, fireEvent, render } from "@testing-library/react";
+import { observable } from "@trpc/server/observable";
+import type { ReactElement } from "react";
 
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register();
-const { cleanup, fireEvent, render } = await import("@testing-library/react");
 afterEach(cleanup);
 
 let detail = {
@@ -22,16 +23,6 @@ mock.module(`${root}/v2-workspace/providers/WorkspaceProvider`, () => ({
 }));
 mock.module(`${pane}/hooks/usePullRequestPaneDetail`, () => ({
 	usePullRequestPaneDetail: () => detail,
-}));
-mock.module(`${pane}/hooks/usePullRequestEvidence`, () => ({
-	usePullRequestEvidence: () => ({
-		pages: [],
-		totalCount: 0,
-		hasMore: false,
-		isPending: false,
-		isError: false,
-		onRetry: mock(),
-	}),
 }));
 mock.module("@superset/workspace-client", () => ({
 	workspaceTrpc: {
@@ -83,6 +74,31 @@ mock.module(`${root}/pull-requests/components/PullRequestCodeTab`, () => ({
 	),
 }));
 const { PullRequestPane } = await import("../PullRequestPane");
+const { cloudTrpc } = await import("renderer/lib/cloud-trpc");
+
+const noPages = cloudTrpc.createClient({
+	links: [
+		() =>
+			({ op }) =>
+				observable((observer) => {
+					observer.next({
+						result: {
+							data:
+								op.path === "page.counts"
+									? { all: 0 }
+									: { items: [], nextCursor: null },
+						},
+					});
+					observer.complete();
+				}),
+	],
+});
+const renderPane = (element: ReactElement) =>
+	render(
+		<cloudTrpc.Provider client={noPages} queryClient={new QueryClient()}>
+			{element}
+		</cloudTrpc.Provider>,
+	);
 
 for (const state of ["loading", "error"] as const) {
 	test(`Changes loads by PR identity while Summary is ${state}`, async () => {
@@ -92,7 +108,7 @@ for (const state of ["loading", "error"] as const) {
 			isLoading: state === "loading",
 			error: state === "error" ? new Error("GitHub App unavailable") : null,
 		};
-		const view = render(
+		const view = renderPane(
 			<PullRequestPane
 				data={{ repoFullName: "owner/repo", number: 12 }}
 				onOpenDiff={mock()}
@@ -121,7 +137,7 @@ test("matching projects retain project actions even while Summary loads", async 
 		isLoading: true,
 		error: null,
 	};
-	const view = render(
+	const view = renderPane(
 		<PullRequestPane
 			data={{ repoFullName: "owner/repo", number: 12 }}
 			onOpenDiff={mock()}

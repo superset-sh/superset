@@ -1,23 +1,20 @@
 import { afterAll, afterEach, describe, expect, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import type { AppRouter } from "@superset/trpc";
+import { QueryClient } from "@tanstack/react-query";
+import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { TRPCLink } from "@trpc/client";
+import { observable } from "@trpc/server/observable";
 import type { ReactNode } from "react";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { usePullRequestEvidence } from "./usePullRequestEvidence";
 
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
-(
-	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
-).IS_REACT_ACT_ENVIRONMENT = true;
-const { QueryClient } = await import("@tanstack/react-query");
-const { observable } = await import("@trpc/server/observable");
-const { cleanup, renderHook, waitFor } = await import("@testing-library/react");
-const { cloudTrpc } = await import("renderer/lib/cloud-trpc");
-const { usePullRequestEvidence } = await import("./usePullRequestEvidence");
+const reactActGlobal = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean };
+const previousActEnvironment = reactActGlobal.IS_REACT_ACT_ENVIRONMENT;
+reactActGlobal.IS_REACT_ACT_ENVIRONMENT = true;
 
 afterEach(cleanup);
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
+afterAll(() => {
+	reactActGlobal.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
 });
 
 describe("workspace evidence queries", () => {

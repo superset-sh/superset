@@ -1,20 +1,18 @@
 import { afterAll, afterEach, describe, expect, mock, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import type { ReactNode } from "react";
-
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
-(
-	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
-).IS_REACT_ACT_ENVIRONMENT = true;
-const {
+import { I18nProvider } from "@lingui/react";
+import { i18n } from "@superset/i18n";
+import {
 	cleanup,
 	fireEvent,
-	render: renderComponent,
-} = await import("@testing-library/react");
-const { PullRequestEvidence } = await import("./PullRequestEvidence");
-const { I18nProvider } = await import("@lingui/react");
-const { i18n } = await import("@superset/i18n");
+	render as renderComponent,
+} from "@testing-library/react";
+import type { ReactNode } from "react";
+import { PullRequestEvidence } from "./PullRequestEvidence";
+
+const reactActGlobal = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean };
+const previousActEnvironment = reactActGlobal.IS_REACT_ACT_ENVIRONMENT;
+reactActGlobal.IS_REACT_ACT_ENVIRONMENT = true;
+
 function render(element: ReactNode) {
 	return renderComponent(element, {
 		wrapper: ({ children }) => (
@@ -24,8 +22,8 @@ function render(element: ReactNode) {
 }
 
 afterEach(cleanup);
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
+afterAll(() => {
+	reactActGlobal.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
 });
 
 const pages = ["Test Results", "Screenshots", "CDP Video", "UI Review"].map(
