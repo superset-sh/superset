@@ -220,13 +220,23 @@ describe("Freestyle lifecycle", () => {
 			h.calls.some((call) => call.path === "/v5/vms/vm-source/exec-await"),
 		).toBe(false);
 	});
-	test("environment cleanup deletes a snapshot, and missing workspace deletion is idempotent", async () => {
+	test("environment cleanup deletes a snapshot", async () => {
 		const h = harness();
 		await h.provider.deleteEnvironment("sh-golden");
 		expect(h.calls.map((call) => call.path)).toEqual([
 			"/v5/snapshots/sh-golden",
 		]);
+	});
+	test("missing workspace deletion is idempotent", async () => {
 		await harness({ missing: true }).provider.deleteSandbox("gone");
+	});
+	test("credential keepalive does not revive or fail a missing workspace", async () => {
+		expect(
+			await harness({ missing: true }).provider.applySandboxPolicy({
+				providerSandboxId: "gone",
+				networkPolicy: policy,
+			}),
+		).toBe("not-running");
 	});
 	test("unsupported restrictive policies fail before granting broad Internet access", () => {
 		expect(() => credentialRules({ allow: { "api.openai.com": [] } })).toThrow(

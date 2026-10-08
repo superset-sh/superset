@@ -284,8 +284,13 @@ export function createFreestyleProvider(client: Freestyle): SandboxProvider {
 			});
 		},
 		async applySandboxPolicy(args) {
-			const current = await data(args.providerSandboxId);
-			if (current.state !== "running") return "not-running";
+			const current = await client.vms
+				.get(args.providerSandboxId)
+				.catch((error: unknown) => {
+					if (notFound(error)) return null;
+					throw error;
+				});
+			if (!current || current.state !== "running") return "not-running";
 			await applyPolicy(current.id, args.networkPolicy);
 			return "applied";
 		},

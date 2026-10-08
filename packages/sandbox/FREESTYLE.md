@@ -65,6 +65,10 @@ budget, resumes the VM, and pushes the managed environment. Restart powers off
 and cold boots the VM, then runs the shared boot script again. Paused workspaces
 request 30 days of retention; account plan limits still apply.
 
+Replacing an environment requires a workspace on the same provider. A workspace
+whose archived VM has already been deleted is recreated using its environment
+provider.
+
 Promotion snapshots the source and sanitizes a disposable clone with no Internet
 egress. It cold boots the clone, removes Superset identity, logs, checkout markers,
 host database, and workspace environment file, and cold boots again before

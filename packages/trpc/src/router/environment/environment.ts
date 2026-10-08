@@ -406,6 +406,13 @@ export const environmentRouter = {
 				: null;
 			if (target) {
 				assertOwned(target);
+				if (target.provider !== workspace.provider) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Replace an environment from a workspace using the same sandbox provider",
+					});
+				}
 				if (target.organizationId !== workspace.organizationId) {
 					throw userError({
 						code: "BAD_REQUEST",

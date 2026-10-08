@@ -45,7 +45,11 @@ import { recordCloudWorkspaceActivity } from "./activity";
 import { nextSandboxNameFor } from "./provision";
 import { queueReap } from "./reap";
 import { cloudWorkspaceRecordRouter } from "./record";
-import { queueProvision, startCloudWorkspace } from "./start";
+import {
+	loadUsableEnvironment,
+	queueProvision,
+	startCloudWorkspace,
+} from "./start";
 import { transitionCloudWorkspace } from "./transition";
 import {
 	markSandboxUnavailable,
@@ -674,6 +678,15 @@ export const cloudWorkspaceRouter = {
 				row.status === "deleted" &&
 				isSandboxProvider(row.provider) &&
 				(await sandboxExists(row.providerSandboxId, row.provider));
+			const provider = resumable
+				? row.provider
+				: (
+						await loadUsableEnvironment({
+							organizationId: row.organizationId,
+							userId: ctx.userId,
+							environmentId: row.environmentId,
+						})
+					).provider;
 			// Inside the grace period the box is still there, running for the
 			// first minute and stopped after, and wakes with its disk; after it, the row gets a fresh box from its
 			// environment and nothing on the old disk comes back.
@@ -690,9 +703,7 @@ export const cloudWorkspaceRouter = {
 							from: ["deleted"],
 							to: "provisioning",
 							set: {
-								provider: isSandboxProvider(row.provider)
-									? row.provider
-									: "vercel",
+								provider,
 								providerSandboxId: nextSandboxNameFor(row.id),
 								sandboxUrl: null,
 								deletedAt: null,
