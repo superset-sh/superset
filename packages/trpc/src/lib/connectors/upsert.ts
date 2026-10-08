@@ -134,7 +134,6 @@ export async function upsertConnection(input: {
 					scopes: tokens.scopes,
 					externalAccountLabel: identity.account.label,
 					externalUserId: identity.user?.id ?? null,
-					externalUserLabel: identity.user?.label ?? null,
 					config,
 					...(input.stateOnUpdate
 						? { state: input.stateOnUpdate }

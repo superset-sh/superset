@@ -19,6 +19,7 @@ const ROUTES = [
 	"md",
 	"media",
 	"mobile",
+	"pages",
 	"parallel-coding-agents",
 	"people",
 	"pricing",

@@ -1,1 +1,0 @@
-export { modeSymbol } from "./modeSymbol";

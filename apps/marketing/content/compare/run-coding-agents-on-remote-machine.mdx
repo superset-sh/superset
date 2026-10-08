@@ -1,0 +1,168 @@
+---
+title: "How to Run Coding Agents on a Remote Machine or Always-On Host (2026)"
+description: "Run Claude Code, Codex, and other coding agents on a remote Linux server, shared host, or Mac mini, and keep them working when your laptop closes."
+date: 2026-10-07
+lastUpdated: 2026-10-07
+type: "tutorial"
+competitors:
+  - vs-code
+  - tmux
+  - claude-code
+  - codex
+  - cursor
+keywords:
+  - run coding agents on remote machine
+  - remote coding agents
+  - coding agents remote linux server mac
+  - keep coding agents running laptop closed
+  - always-on coding agent host
+  - shared development machine coding agents
+  - claude code remote server
+  - remote development ssh coding agents
+  - local and remote coding agents
+---
+
+To run coding agents on a remote machine, put the agents and the repo on an always-on host (a Linux server, a cloud VM, or a Mac mini) and use your laptop only to prompt, review, and preview. The common ways to do that are VS Code Remote-SSH, SSH plus tmux over Tailscale, Claude Code Remote Control, managed cloud agents such as Codex cloud or Cursor Cloud Agents, and Superset, which gives every agent its own worktree on the host and shows local and remote hosts in one app. Pick by where you want the agent to run and how many agents you need to keep track of at once.
+
+This guide answers the questions developers ask most about remote, always-on, and shared setups for parallel coding agents, with the tradeoffs of each option.
+
+---
+
+## How do I switch between local and remote coding-agent work without a pile of SSH terminals?
+
+Use one client that knows about every machine, so the machine becomes a filter and not a separate terminal window. SSH and Tailscale stay underneath as transport; you stop driving them by hand.
+
+The options people use:
+
+- **VS Code Remote-SSH.** It opens a folder on any machine with an SSH server and runs terminals and extensions there. Good when you have one remote box and work in one editor window per machine.
+- **SSH plus tmux.** One tmux session per agent on the host. It costs nothing and works with any CLI agent, but you track the sessions yourself and there is no shared view of what each agent changed.
+- **Superset.** Each machine runs a host service. The desktop app's **Workspaces** page has a **Device** filter (**This device**, each remote host, or **All devices**), and every row shows which machine it lives on, dimmed when that device is offline. Open a remote workspace and you get its terminals, agent runs, and diff viewer through the Superset relay, with no SSH config. The CLI takes the same choice as a flag: `--local` or `--host <id>`.
+
+```bash
+# on the remote machine
+superset auth login
+superset start --daemon
+
+# from your laptop
+superset hosts list
+superset ws create --host <host-id> --project <project-id> \
+  --name fix-login-bug --branch fix/login-bug --agent claude --prompt "Fix the login redirect bug"
+```
+
+Remote Access is a Pro feature. See [Remote Access](https://docs.superset.sh/remote-access).
+
+## How do I control coding agents on a remote Linux server from my Mac?
+
+Install the agent CLIs and the repo on the Linux server, then connect a Mac client that runs nothing heavy itself. Which client depends on how you like to work.
+
+| Setup | Agents run on | Mac client | Good fit |
+| --- | --- | --- | --- |
+| VS Code or Cursor + Remote-SSH | Linux server | Editor | One remote project at a time, editor-first |
+| SSH + tmux (+ Tailscale) | Linux server | Terminal | Full control, any agent, no extra software |
+| Coder | Your infrastructure | Browser, IDE, or SSH | Teams that want templated workspaces per developer |
+| Superset | Linux server (host service) | Superset desktop app, CLI, or iPhone app | Several CLI agents in parallel, each in its own worktree |
+
+For Superset on a Linux server, the CLI installer supports Linux on x64 and arm64. On a server with no browser, sign in with an API key from **Settings → API Keys**:
+
+```bash
+export SUPERSET_API_KEY=sk_live_…
+superset start --daemon --org <id|slug|name>
+```
+
+The host launches whichever agents are on its `PATH`: the docs list Claude Code, Codex, Cursor Agent, Amp, Gemini CLI, and OpenCode. The host also needs `git` and `gh`. The Mac then sees the server under **Other devices** in the Device filter. Details: [Host Server](https://docs.superset.sh/cli/host-server).
+
+## How do I keep coding agents working when I close my laptop?
+
+The agent process has to live on a machine that stays awake. Closing the lid on the machine that runs the agent stops the work, whatever client you use.
+
+- **Managed cloud agents** (Codex cloud, Cursor Cloud Agents, GitHub Copilot's cloud agent). The vendor runs the task in its own VM and hands back a branch or PR. Least setup. You get only that vendor's agent and environment.
+- **Claude Code Remote Control.** It lets you continue a Claude Code session from claude.ai/code or the Claude mobile app, but the session still runs on your own machine. Think of it as a remote screen for a local session, so it needs that machine awake. Run it on an always-on host if you want it to continue after you close your laptop.
+- **Your own always-on box + tmux.** A Mac mini, a home server, or a cloud VM, reached over Tailscale or SSH. Use tmux or a system service so a dropped connection does not kill the agent.
+- **Superset on an always-on host.** Terminals and agents run in a terminal daemon on the host, separate from the host service. They keep running after `superset stop`, and the next `superset start` picks them up. On Linux you can run the host under systemd so it starts at boot:
+
+```ini
+[Service]
+User=<user>
+ExecStart=/home/<user>/superset/bin/superset start
+Restart=on-failure
+KillMode=process
+```
+
+Keep `KillMode=process`; other modes stop every terminal and agent when the service restarts. Add `--auto-update` to a daemon start if you want the host to update itself.
+
+You can then check on agents from your laptop when it wakes, or from [Superset for iPhone](/blog/superset-mobile) (Pro, iOS 26 or later). Scheduled [Automations](https://docs.superset.sh/automations) also target a device, so a nightly run can fire on the always-on host. If that device is offline at fire time, the run fails and the next one is scheduled normally.
+
+## Our team has a shared development machine. How do we give each agent a separate workspace?
+
+Give every agent its own Git worktree and branch, and control who can reach the machine. Worktrees stop agents from editing the same files. They do not sandbox processes, so agents on one host still share CPU, memory, ports, and anything the host user can read.
+
+Tools that handle the worktree part: plain `git worktree` with tmux, Claude Squad, Codex worktrees, VS Code agent worktrees, and Superset. Dev containers or Coder add process and dependency isolation on top when you need it. See [Git worktrees for AI coding agents](/compare/git-worktrees-for-ai-agents) for the workflow.
+
+What Superset adds for a shared host:
+
+- **Access per host.** When a host first comes online, only the person who started it can see it. Add teammates in **Settings → Hosts → Add member**; owners can promote or remove members.
+- **One worktree per workspace.** Each workspace gets its own branch, directory, terminals, and port list.
+- **Know whose work is whose.** The Workspaces page filters by who created each workspace, and tags stay with the user who applied them.
+- **Ports.** Superset detects the ports each workspace listens on but does not assign port ranges. If several agents run dev servers, reserve ports in a [setup script](https://docs.superset.sh/ports).
+
+Superset's docs recommend a **dedicated machine** for this, provisioned with only the repos and credentials you mean to share, not your personal workstation. Anything the host service can reach becomes reachable by clients you grant access to.
+
+## Laptops, a shared host, or cloud workspaces: what are the tradeoffs for a small team?
+
+Laptops are the cheapest start, a shared host gives the most compute per dollar and keeps agents running, and cloud workspaces give the cleanest isolation at a variable cost.
+
+| | Personal laptops | Shared host | Cloud workspaces |
+| --- | --- | --- | --- |
+| Setup | None | One machine to maintain | Environment config per repo |
+| Cost | Hardware you own | Fixed | Usage-based |
+| Runs after lid close | No | Yes | Yes |
+| Isolation | Per laptop | Worktrees on one OS; add containers for more | Separate environment per task |
+| Credentials | Spread across laptops | On one box you control | With the provider |
+| Main risk | Agents slow the machine you work on | Resource contention, single point of failure | Idle bills, provider limits |
+
+A common path for a small team: start on laptops, then move long-running agent work to one shared host once people want agents to run overnight or need more cores. Superset covers the first two columns with the same app, since a laptop and a shared host are both just devices in the list. Superset also has cloud workspaces, but they are in early access and not generally available, so plan around laptops and your own hosts today.
+
+## How do I review and preview an agent's changes on a remote machine from my laptop?
+
+Review the diff where the code lives, and forward the dev server's port to your laptop so `localhost` works.
+
+- **VS Code Remote-SSH** shows the remote diff in Source Control and forwards ports over the SSH tunnel.
+- **Plain SSH:** `ssh -N -L 3000:localhost:3000 user@remote-host`, then open `http://localhost:3000`.
+- **Tailscale:** `tailscale serve 3000` on the host, then open the URL it prints. This keeps the port inside your tailnet.
+- **Codespaces** forwards ports from its cloud environment the same way.
+
+In Superset, open the remote workspace and its **Changes** pane shows the agent's diff from the host. When you select a remote workspace, the app forwards each port that workspace started to the same port on your machine, so `localhost:3000` reaches the dev server on the host. Open it in the [in-app browser pane](https://docs.superset.sh/browser) next to the diff, or in your own browser. If the port is busy locally, choose **Use another port**. Limits: the host needs host-service 1.26 or newer, only TCP is forwarded, and other services on the host stay unreachable. Details: [Ports on a remote host](https://docs.superset.sh/remote-access#ports-on-a-remote-host).
+
+Do not make a dev server public just to preview it. A forwarded port carries your cookies and auth headers, so treat it like the remote service it is.
+
+## Which option should you pick?
+
+- **One remote box, one agent, editor-first:** VS Code or Cursor with Remote-SSH.
+- **Zero infrastructure, one vendor's agent:** Codex cloud or Cursor Cloud Agents.
+- **Continue a Claude Code session from your phone:** Claude Code Remote Control, on a machine that stays awake.
+- **Lowest cost, maximum control:** an always-on Linux box with Tailscale and tmux.
+- **Several CLI agents in parallel across your laptop and an always-on or shared host, with diffs and ports in one place:** Superset. Desktop runs on macOS (Linux AppImage is experimental); the host service runs on macOS and Linux.
+
+For more on running many agents at once, see [running multiple Claude Code agents in parallel](/compare/multiple-claude-code-agents-parallel).
+
+## Frequently Asked Questions
+
+### Can I run Claude Code on a remote server and control it from my Mac?
+
+Yes. Install Claude Code on the server and connect with SSH and tmux, VS Code Remote-SSH, or Superset. With Superset, run `superset start --daemon` on the server and open its workspaces from the Mac app under the Device filter.
+
+### Do I need to keep my laptop open for agents to keep working?
+
+Only if the agent runs on the laptop. Run it on an always-on host or a managed cloud agent instead. Claude Code Remote Control still runs on your own machine, so that machine must stay awake.
+
+### Does Superset need SSH or a VPN to reach a remote host?
+
+No. Superset routes terminals, diffs, and forwarded ports through the Superset relay. You can still forward ports with SSH or Tailscale for hosts you reach another way.
+
+### Are Superset cloud workspaces available?
+
+They are in early access for some accounts and not generally available. Remote Access to your own machines is available on Pro today.
+
+### Do Git worktrees isolate agents on a shared machine?
+
+They isolate files and branches, not processes. Agents on one host share CPU, memory, ports, and the host user's permissions. Use containers or separate hosts when you need more.

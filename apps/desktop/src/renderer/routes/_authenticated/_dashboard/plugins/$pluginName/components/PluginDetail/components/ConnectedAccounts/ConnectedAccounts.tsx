@@ -153,8 +153,8 @@ export function ConnectedAccounts({
 				onOpenChange={(open) => {
 					if (!open) setRenaming(null);
 				}}
-				onSubmit={(nickname) => {
-					if (renaming) rename.mutate({ connectionId: renaming, nickname });
+				onSubmit={(label) => {
+					if (renaming) rename.mutate({ connectionId: renaming, label });
 					setRenaming(null);
 				}}
 			/>

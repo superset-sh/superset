@@ -11,10 +11,7 @@ import {
 	missingInputsError,
 	parseInputs,
 } from "../../../lib/plugins/inputs";
-import {
-	refreshPluginConnectionsCache,
-	syncPluginMcpServers,
-} from "../../../lib/plugins/mcp-servers";
+import { syncPluginMcpServers } from "../../../lib/plugins/mcp-servers";
 
 export default command({
 	sandbox: false,
@@ -120,10 +117,6 @@ export default command({
 				inputs: provided,
 			});
 
-			// A second account on this connector turns its one MCP entry into one
-			// per account, so the configs have to be rewritten here, not at the
-			// next install.
-			await refreshPluginConnectionsCache(ctx.api);
 			const mcp = syncPluginMcpServers();
 
 			return {

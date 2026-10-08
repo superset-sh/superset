@@ -8,8 +8,11 @@ description: Frequently asked questions
 **What platforms are supported?**
 macOS (Apple Silicon and Intel) is the supported target. A Linux x64 AppImage ships with each release but is experimental and untested. Windows is planned with no date. The CLI also supports Linux x64 and arm64.
 
+**Is Superset a terminal app?**
+No. It's a desktop app with a full interface. Agents run in terminals, and next to them you get the [Changes pane](/diff-viewer), [pull requests](/pull-requests) with checks and review threads, an [in-app browser](/browser) with Design Mode, and a [file editor](/editor).
+
 **Is there a mobile app or web dashboard?**
-Yes, [Superset for iPhone](/install#iphone) is available. Android is not available yet. There's no supported web dashboard today.
+Yes, [Superset for iPhone](/install#iphone) is on the App Store. It needs iOS 26 or later and Superset Pro. Native iPad support and push notifications are coming. Android is not available yet; join the [Android waitlist](https://superset.sh/mobile#android). There's no supported web dashboard today.
 
 **Does it work with GitLab or self-hosted remotes?**
 GitHub is fully supported via the `gh` CLI. Repos with other remotes work locally, but cross-machine project identity is currently tied to GitHub, so the same project can show up twice across devices.
@@ -25,6 +28,9 @@ GitHub and Google sign-ins create **separate accounts**, even with the same emai
 **I paid for Pro but can't find the features.**
 Pro features (remote access, automations, and more) live in the current v2 interface. If your app looks like the older UI, enable it under **Settings → Experimental**.
 
+**Does Superset bill my model usage?**
+No. Superset never proxies model calls. Agents use your own subscriptions and API keys, and your provider bills you directly.
+
 **How do I cancel or get a refund?**
 Email [support@superset.sh](mailto:support@superset.sh). Refunds are handled promptly.
 
@@ -35,6 +41,9 @@ These aren't self-serve yet; email [support@superset.sh](mailto:support@superset
 
 **Do I need a git repo?**
 For projects, yes: every project must be a git repository, and its workspaces are git worktrees. For a fresh folder, run `git init && git add -A && git commit -m "init"` first. If you just want a scratch space without setting up a repo, create a [session](/workspaces#sessions) instead.
+
+**Is each worktree a sandbox?**
+No. A worktree gives each task its own working files and branch. Agents still run on the same machine, so they share processes, the network, and files outside the worktree. Worktrees also don't prevent merge conflicts.
 
 **Same branch in multiple workspaces?**
 No. One branch = one workspace. Create a new branch if needed.

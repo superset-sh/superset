@@ -1,0 +1,157 @@
+---
+title: "Scheduled Coding Agents in 2026: Nightly, Weekly, and Team Runs You Review"
+description: "How to run coding agents on a schedule and review their work in the morning: GitHub Actions, Claude Code Routines, Codex, Cursor, and Superset Automations."
+date: 2026-10-07
+lastUpdated: 2026-10-07
+type: "roundup"
+competitors:
+  - github-actions
+  - claude-code
+  - codex
+  - cursor
+  - devin
+  - openhands
+keywords:
+  - scheduled coding agents
+  - nightly coding agent
+  - recurring coding agent tasks
+  - schedule claude code
+  - claude code scheduled tasks
+  - codex scheduled tasks
+  - ai agent cron job
+  - flaky test agent
+  - coding agent shared machine
+  - agent automations
+---
+
+To run a coding agent on a schedule, you need three things: a trigger (cron, a scheduler, or a hosted "routine"), an isolated branch or worktree for each run, and a place where a human reviews the result before it merges. GitHub Actions with a headless agent CLI, Claude Code Routines, Codex scheduled tasks, and Cursor Automations all cover this in the cloud. [Superset Automations](https://docs.superset.sh/automations) cover it on a machine you own: each run gets a fresh worktree on a host you pick, and the team reviews it as a normal workspace.
+
+This guide answers the four questions people ask most about scheduled agents, compares the options, and includes a weekly flaky-test prompt you can copy.
+
+---
+
+## What a scheduled agent setup needs
+
+Every working setup has five parts: a **trigger** that fires without you opening a terminal (cron, a GitHub Actions `schedule:` block, an RRule, or a vendor scheduler); **isolation**, so each run starts on its own branch in a fresh clone or [Git worktree](/compare/git-worktrees-for-ai-agents) and never touches your unfinished work; an **environment** with the dependencies and credentials your tests need; a **review gate** (a diff, draft PR, or report a human reads before anything merges); and **failure handling**, so you can see which run failed and run it again. The tools below differ in who owns each part.
+
+## Our five-person team wants scheduled coding agents on a shared machine, with isolated branches and human review. What should we use?
+
+For a team that wants the agents on one shared machine, use a tool that runs on that machine and gives each run its own worktree: Superset Automations, or cron plus a worktree script if you want to build it yourself. If you would rather not own a machine, GitHub Actions or a cloud scheduler (Claude Code Routines, Cursor Automations, Codex Team Tasks) moves the runs off it.
+
+**Superset on a shared machine.** Run the Superset host on the shared box (a Mac mini or a spare workstation) with `superset auth login` and `superset start --daemon`, then add teammates under **Settings → Hosts → Add member**. Each person creates automations under **Automations → New automation** and picks that machine as the **Device**. Choose **New workspace** as the workspace, so each run gets its own branch and worktree instead of reusing one workspace. When a schedule fires, Superset creates a fresh workspace from the project's repo, with its own branch, worktree, terminals, and ports, and starts the agent you chose (Claude, Codex, Amp, or any agent set up under **Settings → Agents**).
+
+Review stays human. A teammate with host access opens the run's workspace, reads the diff, and continues the session or opens a PR. The Automations list has **Mine** and **Team** tabs. Team automations are read-only: only the owner can edit, pause, run, or delete one. Run workspaces are tagged `automation` by default, so they collect in one sidebar folder per project instead of mixing with hand-made workspaces. Details: [Automations](https://docs.superset.sh/automations) and [Remote access](https://docs.superset.sh/remote-access).
+
+Honest limits: Automations need a Superset Pro or Enterprise plan. Runs fire on the machine you picked, so if it is offline at fire time the run fails and the schedule moves on. Cloud automations are in early access and not generally available.
+
+**DIY: cron + worktrees + headless CLI.** A systemd timer or cron job runs a script that calls `git worktree add`, starts `claude -p "..."` or another headless agent, runs tests, and pushes a branch. It costs nothing extra and you control everything. You also own port and database collisions between runs, cleanup of old worktrees, and finding out which run failed.
+
+**GitHub Actions.** A workflow with `on: schedule` runs an agent (for example through Anthropic's Claude Code GitHub Action) on a runner, and a step opens a draft PR. Containers give isolation and PRs give the review gate. Scheduled workflows run against the default branch. Self-hosted runners let you keep the shared machine.
+
+**Cloud schedulers.** Claude Code Routines run on Anthropic-managed infrastructure, clone the repo on each run, and push to `claude/`-prefixed branches. Per Anthropic's docs, routines belong to an individual claude.ai account and are not shared with teammates. Cursor Automations run cloud agents on a schedule or events, can open PRs, and can run as a service account with team-visible access settings. Codex offers Team Tasks that run in the cloud through a team service account.
+
+## I want a coding agent to run nightly maintenance and leave changes for me to review in the morning. Which tools fit?
+
+Any tool that runs unattended and writes to a branch or workspace fits: GitHub Actions with a headless agent, Claude Code Routines or Desktop scheduled tasks, Codex scheduled tasks, Cursor Automations, Devin, or Superset Automations. The choice comes down to where the code needs to run.
+
+- **Your repo's tests need local services, large datasets, or hardware.** Run on your own machine: Superset Automations, Claude Code Desktop scheduled tasks (with the worktree toggle on), or Codex scheduled tasks on a local project with a worktree. Claude Code Desktop and Codex local tasks need the app open and the computer awake; a Superset automation needs its target host online.
+- **A fresh clone and a standard runner are enough.** Use GitHub Actions, Claude Code Routines, or Cursor Automations. These keep working when your laptop is closed.
+- **You want an issue-to-PR loop with little setup.** GitHub Copilot coding agent, Devin, and OpenHands work from tasks or issues and produce pull requests.
+
+In Superset, the nightly pattern is the [Wake Up to a Finished Audit](https://docs.superset.sh/recipes/nightly-audit) recipe: a daily schedule such as `FREQ=DAILY;BYHOUR=3;BYMINUTE=0`, a prompt that runs the tests and reverts what breaks, and a summary file for anything that needs a human decision. In the morning, open the run from the automation's **Run History**, review the diff, then commit and open a PR or delete the workspace.
+
+For a full walkthrough with a read-only first prompt and a review checklist, see [Schedule an agent maintenance check you can review](/blog/scheduled-agent-maintenance).
+
+## Which tools can run recurring coding-agent tasks without my starting a new terminal session every time?
+
+Claude Code Routines, Claude Code Desktop scheduled tasks, Codex scheduled tasks, Cursor Automations, GitHub Actions, and Superset Automations all start a new agent run for you on each occurrence. Claude Code's `/loop` is different: it repeats inside the current CLI session, so that session has to stay open.
+
+In Superset, you define the automation once: title, prompt, device, project, schedule, and agent. Each fire creates a new workspace with its own terminal and starts the agent in it. You do not open a terminal. If you would rather script it, the CLI does the same:
+
+```bash
+superset automations create --name "Nightly audit" \
+  --rrule "FREQ=DAILY;BYHOUR=3;BYMINUTE=0" \
+  --project <projectId> --prompt-file prompt.md --agent claude
+superset automations run <id>   # fire once now to check the prompt
+```
+
+One automation can have several triggers, for example weekdays at 9:00 and Fridays at 17:00. Pick **No project** (session mode) for jobs that do not need a repository. Event triggers from Slack, Linear, GitHub, Sentry, and other services are experimental and rolling out per provider.
+
+## How can I schedule a coding agent to investigate flaky tests each week and leave a reviewable proposed fix?
+
+Schedule a weekly run, have the agent reproduce the flake with repeated runs before it edits anything, and require it to stop with a report when it cannot prove a fix. The proposed fix lands on its own branch for a human to review. Never let it merge.
+
+With GitHub Actions, that is a `schedule:` cron such as `0 3 * * 1`, a step that runs your agent CLI with the prompt below, and a step that opens a draft PR. With Superset, create an automation with the weekly RRule `FREQ=WEEKLY;BYDAY=MO;BYHOUR=3;BYMINUTE=0` and paste the prompt. Monday morning, open the run's workspace and review the diff and the report.
+
+```text
+Investigate flaky tests in this repository. This job may run more than
+once; if a branch or report for the same test already exists from this
+week, stop.
+
+1. Find candidate flaky tests from recent CI failures or the test
+   report at <path>. Pick at most two that fail intermittently.
+2. Reproduce each one. Run it at least 20 times in isolation and
+   20 times with the rest of its file, using <test command>.
+   Record the pass/fail counts.
+3. If you cannot reproduce a failure, do not change code. Write what
+   you tried to FLAKY_REPORT.md and stop.
+4. Find the root cause (shared state, timing, ordering, network,
+   clock). Do not add retries, raise timeouts, or weaken assertions.
+5. Make the smallest fix. Change only the test, its fixtures, or the
+   code the root cause points to.
+6. Run the same repeated runs again and record the new counts.
+7. Write FLAKY_REPORT.md with: the test, the failure output, the
+   reproduction command, the root cause, the change, before/after
+   counts, and anything left uncertain.
+
+Do not push to main, merge, or edit CI configuration.
+```
+
+Replace `<path>` and `<test command>` with your own. The "stop if it already ran" line matters because Superset delivers runs at least once, and a rare retry can start the job twice.
+
+## Comparison
+
+| Option | Where it runs | Isolation per run | Machine must be on | Shared with team | Review surface |
+| --- | --- | --- | --- | --- | --- |
+| Superset Automations | A host you pick (your Mac, a shared box) | Fresh worktree workspace | Yes, the target host | Team tab (read-only for non-owners), host members | Workspace diff, then PR |
+| GitHub Actions + agent CLI | GitHub or self-hosted runner | Fresh runner checkout | No (GitHub-hosted) | Repo collaborators | Pull request |
+| Claude Code Routines | Anthropic cloud (or self-hosted env) | Fresh clone, `claude/` branch | No | No, per account | Session, then PR |
+| Claude Code Desktop tasks | Your machine | Optional worktree | Yes, app open | No | Session in sidebar |
+| Codex scheduled tasks | Local project, worktree, or cloud | Optional worktree | Yes, for local tasks | Team Tasks | Scheduled inbox |
+| Cursor Automations | Cursor cloud agents | Cloud agent | No | Access settings, service account | Pull request |
+| cron + script | Your machine | Whatever you script | Yes | Whoever has the box | Whatever you script |
+
+## When to pick each
+
+- **GitHub Actions** if your tests run on a standard runner and you want an audit trail in CI.
+- **Claude Code Routines or Cursor Automations** if you already pay for that agent and want runs while every laptop is closed.
+- **Superset Automations** if runs need a specific machine (local services, large repos, signed-in tools), you want any CLI agent, and you want the result as a workspace the team can open, continue, and turn into a PR. Scheduled runs land next to the [parallel coding agents](/compare/multiple-claude-code-agents-parallel) you start by hand.
+- **cron + scripts** if you have one job and want no new tools.
+
+## Failure handling in Superset
+
+Each fire records a run under **Run History** with a status: **created**, **creating**, or **failed**. A **failed** run shows its error inline. **Automations → All runs** lists runs across automations, filters to yours or the team's, and lets you select failed runs and retry them together. **Retry all** on the **Mine** tab re-dispatches every automation whose latest run failed.
+
+A **created** status means the workspace was created. It does not mean the agent's work passed. Open the workspace and read the output before you trust a run.
+
+## FAQ
+
+### Can I schedule Claude Code without keeping a terminal open?
+
+Yes. Claude Code Routines run in the cloud, Claude Code Desktop scheduled tasks run while the app is open, and GitHub Actions can run `claude -p` on a cron. Superset Automations start Claude Code (or Codex, Amp, and others) in a new workspace on a host you pick. Only `/loop` needs an open session.
+
+### Should a scheduled agent open pull requests directly?
+
+Start with a report-only prompt, then allow branches, then draft PRs once the output is reliably useful. Protect `main` and require human review either way.
+
+### What happens if the machine is asleep when a Superset automation fires?
+
+The run is recorded as failed and the schedule moves to the next occurrence. Bring the host back and use **Run now** or **Retry all**.
+
+### Do teammates see each other's scheduled agents in Superset?
+
+Yes. The **Team** tab lists teammates' automations as read-only. To open a run's workspace, a teammate needs member access to the host it ran on.
+
+### Is there a free way to run nightly agents?
+
+Cron plus a headless agent CLI on a machine you own costs nothing beyond your model usage. Superset Automations need a Pro or Enterprise plan. See [pricing](/pricing).

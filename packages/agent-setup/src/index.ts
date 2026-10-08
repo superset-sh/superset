@@ -115,12 +115,7 @@ export {
 	pluginCacheDir,
 	pluginCachePath,
 } from "./plugin-cache";
-export {
-	mcpHeadersHelperCommand,
-	pluginConnectionsFilePath,
-	readPluginConnections,
-	writePluginConnections,
-} from "./plugin-connections";
+export { mcpHeadersHelperCommand } from "./plugin-connections";
 export {
 	type McpReconcileReport,
 	reconcileMcpServers,

@@ -34,7 +34,7 @@ Worktrees separate files. They don't isolate ports, databases, credentials, or m
 
 Closing the interface shouldn't end the work running inside it. Superset's terminal daemon owns terminal sessions separately from the desktop UI, so you can reconnect after an app restart.
 
-The host and daemon still need to be running. A machine reboot stops the processes; saved terminal history helps you recover context, but it doesn't keep an agent executing through a reboot. The [terminal daemon deep dive](/blog/terminal-daemon-deep-dive) explains the design.
+The host and daemon still need to be running. A machine reboot stops the processes; saved terminal history helps you recover context, but it doesn't keep an agent executing through a reboot. After the reboot, Superset relaunches an interrupted agent with its own resume command, if the agent has an ID-based one set under **Settings → Agents**, such as `claude --resume` or `codex resume`, in the same pane, so the conversation comes back. The [terminal daemon deep dive](/blog/terminal-daemon-deep-dive) explains the design.
 
 ## See what needs your attention
 

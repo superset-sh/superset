@@ -1,5 +1,5 @@
 import type { MessageDescriptor } from "@lingui/core";
-import { msg } from "@lingui/core/macro";
+import { msg, plural } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type {
 	ComposerHandle,
@@ -86,7 +86,6 @@ import { useWorkspaceHeaderActions } from "../hooks/useWorkspaceHeaderActions";
 import { useWorkspacePullRequests } from "../hooks/useWorkspacePullRequest";
 import { useActiveChat } from "../stores/activeChatStore";
 import { keyboardOverlap } from "../utils/keyboardOverlap";
-import { modeSymbol } from "../utils/modeSymbol";
 import { orderTerminalRows } from "../utils/orderTerminalRows";
 import { PULL_REQUEST_SYMBOL, pullRequestStatus } from "../utils/pullRequest";
 import { WorkspaceCreateFailedState } from "./components/WorkspaceCreateFailedState";
@@ -479,23 +478,11 @@ export function WorkspaceScreen() {
 	const activeIsChat = activeRow?.kind === "chat";
 	const acpChat = Boolean(useFeatureFlag(FEATURE_FLAGS.ACP_CHAT));
 	const {
-		modes: chatModes,
-		currentModeId: chatModeId,
-		selectMode: selectChatMode,
 		running: chatRunning,
 		stop: stopChat,
 		backgroundTasks: chatTasks,
 	} = useActiveChat(activeIsChat ? activeTerminalId : null);
 	const chatTaskCount = chatTasks.length;
-	const chatModeOptions = useMemo(
-		() =>
-			chatModes.map((mode) => ({
-				id: mode.id,
-				label: mode.label,
-				symbol: modeSymbol(mode.id),
-			})),
-		[chatModes],
-	);
 	const slashCommands = useSlashCommands({
 		machineId: host?.machineId ?? null,
 		hostUrl,
@@ -645,7 +632,7 @@ export function WorkspaceScreen() {
 	const hideNotice = useCallback(() => setNotice(null), []);
 	const composerActiveRef = useRef(false);
 	composerActiveRef.current = composerActive;
-	const handleTerminalTap = useCallback(() => {
+	const dismissComposer = useCallback(() => {
 		if (composerActiveRef.current) composerRef.current?.blur();
 	}, []);
 	const handleCopied = useCallback(
@@ -790,6 +777,7 @@ export function WorkspaceScreen() {
 						mimeType: entry.mediaType,
 					})),
 				);
+				composerRef.current?.blur();
 				return;
 			}
 			await getHostServiceClientByUrl(hostUrl).terminal.send.mutate({
@@ -896,6 +884,14 @@ export function WorkspaceScreen() {
 		};
 	}, [pullRequests, pullRequestIconUri, t]);
 
+	const pullRequestCount = pullRequests.length;
+	const chatPullRequestLabel =
+		pullRequestCount > 0
+			? t({
+					message: plural(pullRequestCount, { one: "# PR", other: "# PRs" }),
+				})
+			: undefined;
+
 	// One PR goes straight to it; a history goes to the list. Captured by hand
 	// because the tap lands in SwiftUI, where RN autocapture cannot see it.
 	const openPullRequests = useCallback(() => {
@@ -963,6 +959,7 @@ export function WorkspaceScreen() {
 			<Stack.Screen
 				options={{
 					...headerOptions,
+					headerTransparent: activeIsChat,
 					title: workspace?.name ?? cloud?.name ?? archivedCloud?.name ?? "",
 					headerTitle: notice
 						? () => (
@@ -1115,6 +1112,9 @@ export function WorkspaceScreen() {
 						hostUrl={hostUrl}
 						key={activeTerminalId}
 						onOpenSession={openSession}
+						onOpenPullRequests={openPullRequests}
+						onTap={dismissComposer}
+						pullRequestLabel={chatPullRequestLabel}
 						ref={chatRef}
 						sessionId={activeTerminalId}
 						workspaceId={id}
@@ -1135,7 +1135,7 @@ export function WorkspaceScreen() {
 							// the WebView also ate scroll drags, so the scrollback froze
 							// whenever the keyboard was up. The page reports plain taps
 							// instead, and drags stay with the terminal.
-							onTap={handleTerminalTap}
+							onTap={dismissComposer}
 						/>
 						{/* The WebView swallows every touch that lands on it, so the back
 						    swipe never starts over the terminal. This strip keeps a
@@ -1251,7 +1251,7 @@ export function WorkspaceScreen() {
 					onSessionTabCopyId={copyTerminalId}
 					onNewSessionPress={openAddMenu}
 					onAllSessionsPress={openSessions}
-					quickKeysAction={pullRequestAction}
+					quickKeysAction={activeIsChat ? undefined : pullRequestAction}
 					onQuickKeysActionPress={openPullRequests}
 					attachmentTarget={attachmentTarget}
 					onActiveChange={setComposerActive}
@@ -1264,9 +1264,6 @@ export function WorkspaceScreen() {
 					selectHasSelection={select.hasSelection}
 					hideQuickKeys={activeIsChat}
 					sendsAttachments={activeIsChat}
-					modeOptions={acpChat && activeIsChat ? chatModeOptions : undefined}
-					selectedModeId={chatModeId}
-					onModeSelect={selectChatMode}
 					canStop={acpChat && activeIsChat && chatRunning}
 					onStop={stopChat}
 				/>

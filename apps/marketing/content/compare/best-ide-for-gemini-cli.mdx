@@ -1,0 +1,134 @@
+---
+title: "Best IDE for Gemini CLI in 2026: Where to Run It"
+description: "The best places to run Google's Gemini CLI in 2026: the terminal, VS Code, Zed, Orca, Claude Squad, and Superset for parallel worktree sessions."
+date: 2026-10-07
+lastUpdated: 2026-10-07
+type: "roundup"
+competitors:
+  - gemini-cli
+  - vs-code
+  - zed
+  - orca
+  - claude-squad
+keywords:
+  - best ide for gemini cli
+  - where to run gemini cli
+  - gemini cli ide
+  - gemini cli vs code
+  - gemini cli parallel sessions
+  - gemini cli worktree
+  - run gemini cli with claude code and codex
+---
+
+Gemini CLI is Google's open-source (Apache 2.0) coding agent for the terminal. It runs in any terminal, connects to VS Code through a companion extension, and runs inside Zed through the Agent Client Protocol. So the best place to run it depends on one question: do you run one Gemini CLI session at a time, or several at once? For one session, your terminal or editor is enough. For several sessions on the same repository, often next to Claude Code and Codex, you need a separate Git worktree per session and one place to watch them all, which is what a workspace app such as Superset gives you.
+
+Before you choose, check your plan. On June 18, 2026, Google moved free-tier, Google AI Pro, and Google AI Ultra users from Gemini CLI to the new Antigravity CLI (`agy`). Gemini CLI still works with paid Gemini API keys and with Gemini Code Assist Standard or Enterprise licenses. See [Google's announcement](https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli).
+
+---
+
+## The Short Version
+
+| Where you run Gemini CLI | Best for | Parallel sessions on one repo? | Main tradeoff |
+|---|---|---|---|
+| **Superset** | Many Gemini CLI sessions next to Claude Code and Codex | Git worktree per local branch-based workspace | Not a single-file editor experience |
+| **Terminal (CLI)** | One deep task, scripts, and CI | Experimental `--worktree` flag, or manual worktrees | You track and review each session yourself |
+| **VS Code companion** | Editing alongside Gemini CLI | Limited | One working copy |
+| **Zed (ACP)** | Gemini CLI inside a fast editor | Agent threads in Zed | Editor first, not an orchestrator |
+| **Orca** | A free, open-source agent workspace | Yes, worktree per task | Newer project; check their docs for details |
+| **Claude Squad** | A terminal UI over tmux | Yes, worktree per session | Terminal only, AGPL-3.0 |
+
+## Where You Can Run Gemini CLI
+
+Gemini CLI installs with `npm install -g @google/gemini-cli`, or with Homebrew or MacPorts. It reads your codebase, runs commands, and edits files. It supports MCP servers, conversation checkpoints you can resume, a sandbox mode, and a headless mode (`gemini -p`) with JSON output for scripts. It also has an experimental `--worktree` (`-w`) flag that starts a session in its own Git worktree under `.gemini/worktrees/`.
+
+The choice is between a place to edit and a place to run many sessions. The options below go from the simplest to the most complete.
+
+## The Options
+
+### Terminal (Gemini CLI)
+
+The terminal is the reference surface. Every feature lands here first, and headless mode makes it easy to call from scripts and CI. For a single task, nothing else is needed.
+
+For parallel work, turn on Git worktrees in `/settings` and start each session with `gemini --worktree feature-name`. Gemini CLI keeps the worktree and branch when you exit and does not delete them, so you clean up yourself. You also track which session is waiting for you, and you review each diff with Git. Pair it with tmux or Zellij if you want sessions to survive a closed terminal. See [tmux Alternatives for AI Coding Agents](/compare/tmux-alternatives-for-ai-agents).
+
+### VS Code companion
+
+Gemini CLI connects to VS Code through its IDE integration companion, so the agent can see your open files and you can review its edits in the editor. It is the natural home if VS Code is already your editor. Like most in-editor setups, it works in one working copy, so isolated parallel sessions need extra tooling.
+
+### Zed (via ACP)
+
+Zed lists Gemini CLI as an external agent. You install it from the ACP Registry and start a thread from the Agent Panel. Gemini CLI keeps its own sign-in, and Zed can pass your Google AI key to it as `GEMINI_API_KEY`. It is one of the cleanest ways to run Gemini CLI inside a fast editor. Zed is an editor first: it does not give you a board of every session across repositories.
+
+### Orca
+
+Orca is a free, MIT-licensed desktop app for macOS, Windows, and Linux. It runs Gemini, Claude Code, Codex, and other CLI agents side by side, each task in its own Git worktree, with terminals, diffs, and a browser in one window. It is a strong pick if you want an open-source workspace and need Windows. See [Superset vs Orca](/compare/superset-vs-orca).
+
+### Claude Squad
+
+Despite the name, Claude Squad manages Claude Code, Codex, Gemini, Aider, and other local agents. It is an AGPL-3.0 terminal UI that gives each session a tmux session and a Git worktree, and lets you review, commit, and push each one. It is a good fit if you want to stay in the terminal. See [Superset vs Claude Squad](/compare/superset-vs-claude-squad).
+
+### Superset
+
+Superset runs Gemini CLI as a built-in agent. Each new local branch-based workspace gets its own Git worktree, branch, and terminals, so you can run several Gemini CLI sessions on one repository next to Claude Code, Codex, and Google's newer Antigravity CLI. Superset launches Gemini with `--approval-mode=auto_edit` by default; you can change the command in **Settings → Agents**. It installs lifecycle hooks into `~/.gemini/settings.json` so the sidebar shows when each session starts and finishes, and an interrupted session resumes with `gemini --resume`.
+
+Around the agents, Superset is a full desktop app, not a terminal wrapper. The Changes pane lets you review, commit, push, and open a pull request. The PR pane shows checks and review threads. A browser pane previews your app, and a file editor handles small fixes. You can also hand a workspace to VS Code, Cursor, JetBrains, or Xcode. Superset never proxies model calls: Gemini CLI signs in with your own Google account or API key.
+
+Limits: Superset runs on macOS, with an experimental Linux AppImage and no Windows build. Worktrees separate working files but do not sandbox processes or prevent merge conflicts. Waiting-for-input status depends on the signals each agent sends; Claude Code reports both finished and waiting states. See [Agent Status](https://docs.superset.sh/agent-status).
+
+## How Do I Run Gemini CLI Next to Claude Code and Codex?
+
+Give each task its own worktree, whatever the agent. Then pick one place that shows every session.
+
+- **By hand:** create a worktree per task with `git worktree add`, run `gemini`, `claude`, or `codex` in each, and keep them in named tmux sessions. This works for two or three agents.
+- **In the terminal:** Claude Squad wraps the same steps in a terminal UI.
+- **In a desktop app:** Superset or Orca create the worktree for you, launch the agent you pick, and show status for every workspace in one sidebar. In Superset you can also continue a session with a different agent.
+
+For the workflow details, see [How to Manage Multiple Coding Agent Sessions](/compare/manage-multiple-coding-agent-sessions).
+
+## Best Picks by Use Case
+
+### Best for a single task or scripts: Gemini CLI in the terminal
+
+The CLI has every feature first, and headless mode works in scripts and CI.
+
+### Best for editing alongside Gemini CLI: VS Code or Zed
+
+The VS Code companion and Zed's ACP support both keep you in your editor.
+
+### Best for staying in the terminal: Claude Squad
+
+A terminal UI with a worktree per session, across several agents.
+
+### Best for parallel Gemini CLI next to other agents: Superset
+
+A worktree per workspace, status for every agent, and review, commit, and PR in one app.
+
+## Verdict
+
+For one Gemini CLI task, run it in your terminal, or in VS Code or Zed if you want to edit alongside it. When you start running several sessions, the deciding factor becomes worktree isolation and one view of every agent. Claude Squad does that in a terminal, Orca does it in a free open-source app, and Superset does it with full review and pull-request tools and the same flow for Claude Code, Codex, and Antigravity CLI.
+
+If you lost Gemini CLI access in June 2026, Antigravity CLI is Google's replacement, and Superset runs it as a built-in agent too.
+
+For related guides, see [Best IDE for Claude Code](/compare/best-ide-for-claude-code) and [Best IDE for Codex](/compare/best-ide-for-codex).
+
+## Frequently Asked Questions
+
+### What is the best IDE for Gemini CLI?
+
+For a single task, the terminal, the VS Code companion, or Zed. For several Gemini CLI sessions at once on one repository, a worktree-based workspace such as Superset, Orca, or Claude Squad.
+
+### Can I run multiple Gemini CLI sessions in parallel?
+
+Yes. Give each session its own Git worktree so they do not edit the same files. Gemini CLI has an experimental `--worktree` flag for this, or a workspace app can create the worktrees for you.
+
+### Is Gemini CLI still available in 2026?
+
+Yes, for some users. Since June 18, 2026, free-tier, Google AI Pro, and Google AI Ultra users use Antigravity CLI instead. Gemini CLI still works with paid Gemini API keys and Gemini Code Assist Standard or Enterprise licenses.
+
+### Does Superset support Gemini CLI?
+
+Yes. Gemini CLI is a built-in agent in Superset, with status hooks and session resume. Superset also supports Antigravity CLI, Claude Code, Codex, and other CLI agents.
+
+### Does Superset charge for Gemini usage?
+
+No. Superset does not proxy model calls. Gemini CLI uses your own Google account or API key, and Superset's Free plan is $0 for one user.

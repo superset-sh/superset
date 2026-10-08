@@ -67,6 +67,7 @@ const contentSecurityPolicy = [
 		"frame-src",
 		"https://td.doubleclick.net",
 		"https://www.googletagmanager.com",
+		"https://www.youtube-nocookie.com",
 		...hcaptcha,
 	].join(" "),
 	"img-src 'self' data: blob: https:",

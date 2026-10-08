@@ -9,26 +9,18 @@ import { ChevronDown } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { PullRequestDetail } from "../../hooks/usePullRequestDetail";
 import { PullRequestConversationComment } from "./components/PullRequestConversationComment";
-import {
-	type PullRequestCommentTarget,
-	PullRequestConversationComposer,
-} from "./components/PullRequestConversationComposer";
 
 interface PullRequestConversationProps {
 	data: PullRequestDetail;
-	/** Where a new comment posts; null hides the composer. */
-	commentTarget: PullRequestCommentTarget | null;
 }
 
 /**
  * The pull request's comments and reviews, oldest first, under a
  * hairline-topped heading that folds; the last two start open. Older hosts
- * and the cloud route send no comments, so the section then only offers
- * the composer when there is a host to post through.
+ * and the cloud route send no comments, so the section is absent there.
  */
 export function PullRequestConversation({
 	data,
-	commentTarget,
 }: PullRequestConversationProps) {
 	const [open, setOpen] = useState(true);
 	const comments = useMemo(
@@ -38,7 +30,7 @@ export function PullRequestConversation({
 			),
 		[data.comments],
 	);
-	if (data.comments === undefined && !commentTarget) return null;
+	if (data.comments === undefined) return null;
 	return (
 		<Collapsible
 			open={open}
@@ -55,35 +47,26 @@ export function PullRequestConversation({
 						open && "rotate-180",
 					)}
 				/>
-				{data.comments !== undefined ? (
-					<span className="text-xs tabular-nums text-muted-foreground">
-						{comments.length}
-					</span>
-				) : null}
+				<span className="text-xs tabular-nums text-muted-foreground">
+					{comments.length}
+				</span>
 			</CollapsibleTrigger>
 			<CollapsibleContent>
-				<div className="space-y-2 pb-4">
-					{data.comments !== undefined ? (
-						comments.length === 0 ? (
-							<p className="py-4 text-center text-sm text-muted-foreground">
-								<Trans>No comments</Trans>
-							</p>
-						) : (
-							<div>
-								{comments.map((comment, index) => (
-									<PullRequestConversationComment
-										key={comment.id}
-										comment={comment}
-										prUrl={data.url}
-										defaultOpen={index >= comments.length - 2}
-									/>
-								))}
-							</div>
-						)
-					) : null}
-					{commentTarget ? (
-						<PullRequestConversationComposer target={commentTarget} />
-					) : null}
+				<div>
+					{comments.length === 0 ? (
+						<p className="py-4 text-center text-sm text-muted-foreground">
+							<Trans>No comments</Trans>
+						</p>
+					) : (
+						comments.map((comment, index) => (
+							<PullRequestConversationComment
+								key={comment.id}
+								comment={comment}
+								prUrl={data.url}
+								defaultOpen={index >= comments.length - 2}
+							/>
+						))
+					)}
 				</div>
 			</CollapsibleContent>
 		</Collapsible>
