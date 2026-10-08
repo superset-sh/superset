@@ -1,6 +1,6 @@
 import { db } from "@superset/db/client";
 import { connections, type SelectConnection } from "@superset/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, lt } from "drizzle-orm";
 import {
 	decryptOptional,
 	decryptSecret,
@@ -58,11 +58,21 @@ async function readConnection(id: string): Promise<SelectConnection | null> {
  * every caller rediscovering the failure. `upsertConnection` clears both
  * fields when the user reconnects.
  */
-export async function markNeedsReauth(id: string): Promise<void> {
+export async function markNeedsReauth(
+	id: string,
+	credentialAt?: Date,
+): Promise<void> {
 	await db
 		.update(connections)
 		.set({ disconnectedAt: new Date(), disconnectReason: NEEDS_REAUTH })
-		.where(live(id));
+		.where(
+			credentialAt
+				? and(
+						live(id),
+						lt(connections.updatedAt, new Date(credentialAt.getTime() + 1)),
+					)
+				: live(id),
+		);
 }
 
 const inFlight = new Map<string, Promise<SelectConnection>>();

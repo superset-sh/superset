@@ -83,6 +83,20 @@ describe("accountArgName", () => {
 		expect(accountArgName([colliding])).toBe("superset_account_id");
 	});
 
+	test("picks a numbered name when a vendor owns both", () => {
+		const both: Tool = {
+			name: "both",
+			inputSchema: {
+				type: "object",
+				properties: {
+					superset_account: { type: "string" },
+					superset_account_id: { type: "string" },
+				},
+			},
+		};
+		expect(accountArgName([both])).toBe("superset_account_2");
+	});
+
 	test("is chosen once for the whole server, not per tool", () => {
 		const colliding = tool({
 			name: "other",
@@ -212,21 +226,26 @@ describe("withAccountArgument", () => {
 });
 
 describe("accountInstructions", () => {
-	test("counts the accounts and names the argument", () => {
-		const text = accountInstructions("google", accounts, "superset_account");
+	test("counts the accounts and lists their ids", () => {
+		const text = accountInstructions("google", accounts);
 
 		expect(text).toContain("google is connected to 2 accounts");
-		expect(text).toContain("superset_account");
+		expect(text).not.toContain("superset_account");
 		expect(text).toContain("work — id-work");
 	});
 });
 
 describe("chooseAccount", () => {
 	test("accepts an id and strips the argument from what is forwarded", () => {
-		const choice = chooseAccount("google", accounts, {
-			superset_account: "id-personal",
-			body: "hello",
-		});
+		const choice = chooseAccount(
+			"google",
+			accounts,
+			{
+				superset_account: "id-personal",
+				body: "hello",
+			},
+			"superset_account",
+		);
 
 		expect(choice).toEqual({
 			ok: true,
@@ -236,26 +255,38 @@ describe("chooseAccount", () => {
 	});
 
 	test('accepts the label, so a model writing "work" does not burn a turn', () => {
-		const choice = chooseAccount("google", accounts, {
-			superset_account: "work",
-		});
+		const choice = chooseAccount(
+			"google",
+			accounts,
+			{
+				superset_account: "work",
+			},
+			"superset_account",
+		);
 
 		expect(choice).toMatchObject({ ok: true, connectionId: "id-work" });
 	});
 
 	test("accepts the provider label too", () => {
-		const choice = chooseAccount("google", accounts, {
-			superset_account: "satya@gmail.com",
-		});
+		const choice = chooseAccount(
+			"google",
+			accounts,
+			{
+				superset_account: "satya@gmail.com",
+			},
+			"superset_account",
+		);
 
 		expect(choice).toMatchObject({ ok: true, connectionId: "id-personal" });
 	});
 
 	test("reads the fallback name when that is the one advertised", () => {
-		const choice = chooseAccount("google", accounts, {
-			superset_account_id: "id-work",
-			to: "a@example.com",
-		});
+		const choice = chooseAccount(
+			"google",
+			accounts,
+			{ superset_account_id: "id-work", to: "a@example.com" },
+			"superset_account_id",
+		);
 
 		expect(choice).toEqual({
 			ok: true,
@@ -265,7 +296,12 @@ describe("chooseAccount", () => {
 	});
 
 	test("a missing argument lists the choices", () => {
-		const choice = chooseAccount("google", accounts, { body: "hello" });
+		const choice = chooseAccount(
+			"google",
+			accounts,
+			{ body: "hello" },
+			"superset_account",
+		);
 
 		expect(choice.ok).toBe(false);
 		if (choice.ok) return;
@@ -275,9 +311,14 @@ describe("chooseAccount", () => {
 	});
 
 	test("an unknown id lists the choices rather than guessing", () => {
-		const choice = chooseAccount("google", accounts, {
-			superset_account: "id-nope",
-		});
+		const choice = chooseAccount(
+			"google",
+			accounts,
+			{
+				superset_account: "id-nope",
+			},
+			"superset_account",
+		);
 
 		expect(choice.ok).toBe(false);
 		if (choice.ok) return;
@@ -286,9 +327,14 @@ describe("chooseAccount", () => {
 	});
 
 	test("an empty string is a missing argument, not an unknown account", () => {
-		const choice = chooseAccount("google", accounts, {
-			superset_account: "",
-		});
+		const choice = chooseAccount(
+			"google",
+			accounts,
+			{
+				superset_account: "",
+			},
+			"superset_account",
+		);
 
 		expect(choice.ok).toBe(false);
 		if (choice.ok) return;
@@ -297,12 +343,17 @@ describe("chooseAccount", () => {
 });
 
 describe("chooseAccount with a vendor-owned superset_account", () => {
-	test("the fallback name wins and the vendor's argument is forwarded", () => {
-		const choice = chooseAccount("google", accounts, {
-			superset_account: "ACC-123",
-			superset_account_id: "id-work",
-			body: "hi",
-		});
+	test("only the advertised name is read and the vendor's argument is forwarded", () => {
+		const choice = chooseAccount(
+			"google",
+			accounts,
+			{
+				superset_account: "ACC-123",
+				superset_account_id: "id-work",
+				body: "hi",
+			},
+			"superset_account_id",
+		);
 
 		expect(choice).toEqual({
 			ok: true,
@@ -319,9 +370,14 @@ describe("chooseAccount with two accounts sharing a label", () => {
 	];
 
 	test("an ambiguous label is refused rather than bound to either", () => {
-		const choice = chooseAccount("slack", twins, {
-			superset_account: "harshith",
-		});
+		const choice = chooseAccount(
+			"slack",
+			twins,
+			{
+				superset_account: "harshith",
+			},
+			"superset_account",
+		);
 
 		expect(choice.ok).toBe(false);
 		if (choice.ok) return;
@@ -331,9 +387,14 @@ describe("chooseAccount with two accounts sharing a label", () => {
 	});
 
 	test("the id still resolves exactly one of them", () => {
-		expect(chooseAccount("slack", twins, { superset_account: "id-b" })).toEqual(
-			{ ok: true, connectionId: "id-b", rest: {} },
-		);
+		expect(
+			chooseAccount(
+				"slack",
+				twins,
+				{ superset_account: "id-b" },
+				"superset_account",
+			),
+		).toEqual({ ok: true, connectionId: "id-b", rest: {} });
 	});
 });
 
@@ -346,6 +407,7 @@ describe("withoutStaleAccountArgument", () => {
 					body: "hi",
 				},
 				"9fc31e2d-a7f0-4c0a-88e7-4af0dbf3f079",
+				new Set(),
 			),
 		).toEqual({ ok: true, args: { body: "hi" } });
 	});
@@ -354,6 +416,7 @@ describe("withoutStaleAccountArgument", () => {
 		const checked = withoutStaleAccountArgument(
 			{ superset_account: "11111111-2222-4333-8444-555555555555" },
 			"9fc31e2d-a7f0-4c0a-88e7-4af0dbf3f079",
+			new Set(),
 		);
 
 		expect(checked.ok).toBe(false);
@@ -361,11 +424,22 @@ describe("withoutStaleAccountArgument", () => {
 		expect(checked.message).toContain("retry without superset_account");
 	});
 
-	test("leaves a vendor value that is not a connection id alone", () => {
+	test("refuses a stale label instead of running under the remaining account", () => {
+		const checked = withoutStaleAccountArgument(
+			{ superset_account: "work", body: "hi" },
+			"9fc31e2d-a7f0-4c0a-88e7-4af0dbf3f079",
+			new Set(),
+		);
+
+		expect(checked.ok).toBe(false);
+	});
+
+	test("leaves a value alone when the called tool declares that property", () => {
 		expect(
 			withoutStaleAccountArgument(
 				{ superset_account: "ACC-123", body: "hi" },
 				"9fc31e2d-a7f0-4c0a-88e7-4af0dbf3f079",
+				new Set(["superset_account"]),
 			),
 		).toEqual({
 			ok: true,

@@ -7,9 +7,7 @@ export interface AccountRef {
 }
 
 const PRIMARY = "superset_account";
-const FALLBACK = "superset_account_id";
-
-export const ACCOUNT_ARG_NAMES = [PRIMARY, FALLBACK] as const;
+const ACCOUNT_ARG_NAME = /^superset_account(_id|_\d+)?$/;
 
 export function accountLabel(account: AccountRef): string {
 	const parts = [account.userLabel, account.accountLabel].filter(
@@ -26,11 +24,24 @@ function schemaProperties(tool: Tool): Record<string, object> {
 		: {};
 }
 
-export function accountArgName(tools: readonly Tool[]): string {
-	const taken = new Set(
-		tools.flatMap((tool) => Object.keys(schemaProperties(tool))),
+export function toolProperties(
+	tools: readonly Tool[],
+	name?: string,
+): Set<string> {
+	return new Set(
+		tools
+			.filter((tool) => name === undefined || tool.name === name)
+			.flatMap((tool) => Object.keys(schemaProperties(tool))),
 	);
-	return ACCOUNT_ARG_NAMES.find((name) => !taken.has(name)) ?? PRIMARY;
+}
+
+export function accountArgName(tools: readonly Tool[]): string {
+	const taken = toolProperties(tools);
+	if (!taken.has(PRIMARY)) return PRIMARY;
+	if (!taken.has(`${PRIMARY}_id`)) return `${PRIMARY}_id`;
+	let n = 2;
+	while (taken.has(`${PRIMARY}_${n}`)) n++;
+	return `${PRIMARY}_${n}`;
 }
 
 function choiceList(accounts: readonly AccountRef[]): string {
@@ -42,10 +53,9 @@ function choiceList(accounts: readonly AccountRef[]): string {
 export function accountInstructions(
 	connector: string,
 	accounts: readonly AccountRef[],
-	argName: string,
 ): string {
 	return [
-		`${connector} is connected to ${accounts.length} accounts. Every tool takes ${argName}:`,
+		`${connector} is connected to ${accounts.length} accounts. Every tool has a required account argument; its schema names it and lists these ids:`,
 		...accounts.map(
 			(account) => `  ${accountLabel(account)} — ${account.connectionId}`,
 		),
@@ -93,10 +103,8 @@ export function chooseAccount(
 	connector: string,
 	accounts: readonly AccountRef[],
 	args: Record<string, unknown>,
+	argName: string,
 ): AccountChoice {
-	const argName =
-		[...ACCOUNT_ARG_NAMES].reverse().find((name) => args[name] !== undefined) ??
-		PRIMARY;
 	const raw = args[argName];
 	const rest = { ...args };
 	delete rest[argName];
@@ -136,21 +144,28 @@ export function chooseAccount(
 	return { ok: true, connectionId: match.connectionId, rest };
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export type StaleArgumentCheck =
 	| { ok: true; args: Record<string, unknown> }
 	| { ok: false; message: string };
 
+export function hasAccountArgument(args: Record<string, unknown>): boolean {
+	return Object.keys(args).some((name) => ACCOUNT_ARG_NAME.test(name));
+}
+
 export function withoutStaleAccountArgument(
 	args: Record<string, unknown>,
 	connectionId: string,
+	vendorOwned: ReadonlySet<string>,
 ): StaleArgumentCheck {
 	const rest = { ...args };
-	for (const name of ACCOUNT_ARG_NAMES) {
+	for (const name of Object.keys(rest)) {
+		if (!ACCOUNT_ARG_NAME.test(name) || vendorOwned.has(name)) continue;
 		const value = rest[name];
-		if (typeof value !== "string" || !UUID.test(value)) continue;
-		if (value.toLowerCase() !== connectionId.toLowerCase()) {
+		if (value === undefined || value === null || value === "") {
+			delete rest[name];
+			continue;
+		}
+		if (String(value).toLowerCase() !== connectionId.toLowerCase()) {
 			return {
 				ok: false,
 				message: `${name} "${value}" is no longer a connected account; this plugin now runs under a single account, so retry without ${name}.`,

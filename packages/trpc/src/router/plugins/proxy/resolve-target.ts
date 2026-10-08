@@ -47,12 +47,14 @@ export type PluginTarget = TargetIdentity &
 				build: FirstPartyServer;
 				secrets: ConnectionSecrets;
 				connectionId: string;
+				credentialAt?: Date;
 		  }
 		| {
 				kind: "remote";
 				url: string;
 				headers: Record<string, string>;
 				connectionId: string;
+				credentialAt?: Date;
 		  }
 		| {
 				kind: "multi";
@@ -106,7 +108,7 @@ async function pinnedConnection(
 function accountRef(row: SelectConnection): AccountRef {
 	return {
 		connectionId: row.id,
-		userLabel: row.externalUserLabel,
+		userLabel: row.nickname ?? row.externalUserLabel,
 		accountLabel: row.externalAccountLabel,
 	};
 }
@@ -234,9 +236,11 @@ export async function resolveTarget(
 
 	let secrets: ConnectionSecrets;
 	let authMethod: string | null;
+	let credentialAt: Date;
 	try {
 		const fresh = await ensureFreshConnection(row);
 		authMethod = fresh.authMethod;
+		credentialAt = fresh.updatedAt;
 		secrets = await connectionSecrets(fresh);
 	} catch (error) {
 		if (error instanceof UnrefreshableConnectionError) {
@@ -263,6 +267,7 @@ export async function resolveTarget(
 			build: local,
 			secrets,
 			connectionId: row.id,
+			credentialAt,
 		};
 	}
 
@@ -277,5 +282,11 @@ export async function resolveTarget(
 		);
 	}
 
-	return { ...identity, kind: "remote", ...binding, connectionId: row.id };
+	return {
+		...identity,
+		kind: "remote",
+		...binding,
+		connectionId: row.id,
+		credentialAt,
+	};
 }

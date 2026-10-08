@@ -3,7 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { buildPluginServer } from "./plugin-server";
-import type { PluginTarget } from "./resolve-target";
+import { type PluginTarget, PluginTargetError } from "./resolve-target";
 
 const TOOL: Tool = {
 	name: "send_email",
@@ -59,8 +59,10 @@ function expiredTarget(): PluginTarget {
 	};
 }
 
-async function connect(target: PluginTarget) {
-	const server = await buildPluginServer(target);
+async function connect(target: PluginTarget, rejected: string[] = []) {
+	const server = await buildPluginServer(target, async (connectionId) => {
+		rejected.push(connectionId);
+	});
 	const [clientTransport, serverTransport] =
 		InMemoryTransport.createLinkedPair();
 	const client = new Client({ name: "test", version: "1.0.0" });
@@ -407,10 +409,12 @@ describe("a vendor rejecting the credential mid-session", () => {
 	});
 
 	test("a multi-account call marks the account and names it in the error", async () => {
+		const rejected: string[] = [];
 		const { client, close } = await connect(
 			multiTarget(async (id) =>
 				id === "id-personal" ? rejectingTarget(id) : hostedTarget(id, []),
 			),
+			rejected,
 		);
 
 		try {
@@ -422,6 +426,7 @@ describe("a vendor rejecting the credential mid-session", () => {
 			expect(result.isError).toBe(true);
 			expect(JSON.stringify(result.content)).toContain("rejected");
 			expect(JSON.stringify(result.content)).toContain("satya@gmail.com");
+			expect(rejected).toEqual(["id-personal"]);
 		} finally {
 			await close();
 		}
@@ -438,6 +443,94 @@ describe("a vendor rejecting the credential mid-session", () => {
 			await expect(
 				client.callTool({ name: "send_email", arguments: { body: "hi" } }),
 			).rejects.toThrow("backend blew up");
+		} finally {
+			await close();
+		}
+	});
+});
+
+describe("review regressions", () => {
+	test("every account expired lists the authenticate tool with each reconnect link", async () => {
+		const { client, close } = await connect(
+			multiTarget(async () => expiredTarget()),
+		);
+
+		try {
+			const { tools } = await client.listTools();
+			expect(tools.map((tool) => tool.name)).toEqual(["authenticate"]);
+
+			const result = await client.callTool({
+				name: "authenticate",
+				arguments: {},
+			});
+			expect(result.isError).toBe(true);
+			expect(JSON.stringify(result.content)).toContain(
+				"https://api.superset.test/api/connectors/google/connect",
+			);
+		} finally {
+			await close();
+		}
+	});
+
+	test("an account the provider cannot refresh is a tool error, not a transport failure", async () => {
+		const { client, close } = await connect(
+			multiTarget(async (id) => {
+				if (id === "id-personal")
+					throw new PluginTargetError("token endpoint down", 502);
+				return hostedTarget(id, []);
+			}),
+		);
+
+		try {
+			const result = await client.callTool({
+				name: "send_email",
+				arguments: { superset_account: "id-personal", body: "hi" },
+			});
+			expect(result.isError).toBe(true);
+			expect(JSON.stringify(result.content)).toContain("token endpoint down");
+		} finally {
+			await close();
+		}
+	});
+
+	test("a vendor-owned superset_account is forwarded and the advertised name picks the account", async () => {
+		const calls: Call[] = [];
+		const owned: Tool = {
+			...TOOL,
+			inputSchema: {
+				...TOOL.inputSchema,
+				properties: {
+					...TOOL.inputSchema.properties,
+					superset_account: { type: "string" },
+				},
+			},
+		};
+		const { client, close } = await connect(
+			multiTarget(async (id) => {
+				const target = hostedTarget(id, calls);
+				if (target.kind === "first-party")
+					target.build.getTools = () => [owned];
+				return target;
+			}),
+		);
+
+		try {
+			const result = await client.callTool({
+				name: "send_email",
+				arguments: {
+					superset_account: "ACC-123",
+					superset_account_id: "id-work",
+					body: "hi",
+				},
+			});
+			expect(result.isError).toBeFalsy();
+			expect(calls).toEqual([
+				{
+					name: "send_email",
+					args: { superset_account: "ACC-123", body: "hi" },
+					credential: "token-id-work",
+				},
+			]);
 		} finally {
 			await close();
 		}

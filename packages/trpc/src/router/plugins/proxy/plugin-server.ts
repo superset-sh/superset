@@ -12,12 +12,23 @@ import {
 	accountInstructions,
 	accountLabel,
 	chooseAccount,
+	hasAccountArgument,
+	toolProperties,
 	withAccountArgument,
 	withoutStaleAccountArgument,
 } from "./account-argument";
-import type { PluginTarget } from "./resolve-target";
+import { type PluginTarget, PluginTargetError } from "./resolve-target";
 import { forgetUpstreamTools, upstreamTools } from "./upstream-catalog";
 import { upstreamClient } from "./upstream-client";
+
+function authenticateTool(problem: string): Tool {
+	return {
+		name: "authenticate",
+		description: `${problem}. Call this to get a link for the user; the plugin's real tools appear once they finish.`,
+		inputSchema: { type: "object" as const, properties: {} },
+		annotations: { readOnlyHint: true },
+	};
+}
 
 function bare(name: string, version: string): Server {
 	return new Server({ name, version }, { capabilities: { tools: {} } });
@@ -28,12 +39,9 @@ function needsAuthServer(
 ): Server {
 	const server = bare(target.plugin, "0.0.0");
 	const detail = target.reason ? ` (${target.reason})` : "";
-	const tool = {
-		name: "authenticate",
-		description: `${target.connector} is not connected${detail}. Call this to get a link for the user; the plugin's real tools appear once they finish.`,
-		inputSchema: { type: "object" as const, properties: {} },
-		annotations: { readOnlyHint: true },
-	};
+	const tool = authenticateTool(
+		`${target.connector} is not connected${detail}`,
+	);
 
 	server.setRequestHandler(ListToolsRequestSchema, async () => ({
 		tools: [tool],
@@ -52,6 +60,7 @@ function needsAuthServer(
 
 function firstPartyServer(
 	target: Extract<PluginTarget, { kind: "first-party" }>,
+	recordRejection: RecordRejection,
 ): Server {
 	const server = bare(target.plugin, target.version);
 
@@ -62,6 +71,7 @@ function firstPartyServer(
 		const checked = withoutStaleAccountArgument(
 			request.params.arguments ?? {},
 			target.connectionId,
+			toolProperties(target.build.getTools(), request.params.name),
 		);
 		if (!checked.ok) return errorResult(checked.message);
 		try {
@@ -72,7 +82,7 @@ function firstPartyServer(
 			);
 		} catch (error) {
 			if (!credentialRejected(error)) throw error;
-			await recordRejection(target.connectionId);
+			await recordRejection(target.connectionId, target.credentialAt);
 			return errorResult(
 				`${target.plugin} rejected this account's credential. Ask the user to reconnect it, then retry.`,
 			);
@@ -83,6 +93,7 @@ function firstPartyServer(
 
 function remoteServer(
 	target: Extract<PluginTarget, { kind: "remote" }>,
+	recordRejection: RecordRejection,
 ): Server {
 	const server = bare(target.plugin, target.version);
 
@@ -91,14 +102,18 @@ function remoteServer(
 	// upstream session for a tool list nothing would read, then a second to
 	// make the call.
 	server.setRequestHandler(ListToolsRequestSchema, async () =>
-		rejectionAware(target.connectionId, async () => ({
+		rejectionAware(target, recordRejection, async () => ({
 			tools: await upstreamTools(target.connectionId, target.plugin, target),
 		})),
 	);
 	server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
+		const args = request.params.arguments ?? {};
 		const checked = withoutStaleAccountArgument(
-			request.params.arguments ?? {},
+			args,
 			target.connectionId,
+			hasAccountArgument(args)
+				? await vendorProperties(target, request.params.name)
+				: new Set(),
 		);
 		if (!checked.ok) return errorResult(checked.message);
 		try {
@@ -114,7 +129,7 @@ function remoteServer(
 			}
 		} catch (error) {
 			if (!credentialRejected(error)) throw error;
-			await recordRejection(target.connectionId);
+			await recordRejection(target.connectionId, target.credentialAt);
 			return errorResult(
 				`${target.plugin} rejected this account's credential. Ask the user to reconnect it, then retry.`,
 			);
@@ -125,23 +140,47 @@ function remoteServer(
 
 const LIST_TIMEOUT_MS = 10_000;
 
+async function vendorProperties(
+	target: Extract<PluginTarget, { kind: "remote" }>,
+	tool: string,
+): Promise<Set<string>> {
+	try {
+		return toolProperties(
+			await upstreamTools(target.connectionId, target.plugin, target),
+			tool,
+		);
+	} catch {
+		return new Set();
+	}
+}
+
 function credentialRejected(error: unknown): boolean {
 	return (error as { code?: unknown } | null)?.code === 401;
 }
 
-async function recordRejection(connectionId: string): Promise<void> {
+type RecordRejection = (
+	connectionId: string,
+	credentialAt: Date | undefined,
+) => Promise<void>;
+
+async function markRejected(
+	connectionId: string,
+	credentialAt: Date | undefined,
+): Promise<void> {
 	forgetUpstreamTools(connectionId);
-	await markNeedsReauth(connectionId);
+	await markNeedsReauth(connectionId, credentialAt);
 }
 
 async function rejectionAware<T>(
-	connectionId: string,
+	target: { connectionId: string; credentialAt?: Date },
+	recordRejection: RecordRejection,
 	run: () => Promise<T>,
 ): Promise<T> {
 	try {
 		return await run();
 	} catch (error) {
-		if (credentialRejected(error)) await recordRejection(connectionId);
+		if (credentialRejected(error))
+			await recordRejection(target.connectionId, target.credentialAt);
 		throw error;
 	}
 }
@@ -150,24 +189,24 @@ function errorResult(text: string): CallToolResult {
 	return { isError: true, content: [{ type: "text" as const, text }] };
 }
 
-function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
+function multiServer(
+	target: Extract<PluginTarget, { kind: "multi" }>,
+	recordRejection: RecordRejection,
+): Server {
 	const server = new Server(
 		{ name: target.plugin, version: target.version },
 		{
 			capabilities: { tools: {} },
-			instructions: accountInstructions(
-				target.connectorLabel,
-				target.accounts,
-				accountArgName([]),
-			),
+			instructions: accountInstructions(target.connectorLabel, target.accounts),
 		},
 	);
 
 	type AccountTools = Tool[] | "rejected" | "unknown";
 
 	const listFor = async (account: AccountRef): Promise<AccountTools> => {
+		let resolved: PluginTarget | undefined;
 		try {
-			const resolved = await target.resolve(account.connectionId);
+			resolved = await target.resolve(account.connectionId);
 			if (resolved.kind === "first-party") return resolved.build.getTools();
 			if (resolved.kind === "remote") {
 				return await upstreamTools(
@@ -179,18 +218,45 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 			return "rejected";
 		} catch (error) {
 			if (!credentialRejected(error)) return "unknown";
-			await recordRejection(account.connectionId);
+			await recordRejection(
+				account.connectionId,
+				resolved && "credentialAt" in resolved
+					? resolved.credentialAt
+					: undefined,
+			);
 			return "rejected";
 		}
 	};
 
-	const listWithin = (account: AccountRef): Promise<AccountTools> =>
-		Promise.race([
-			listFor(account),
-			new Promise<AccountTools>((resolve) => {
-				setTimeout(() => resolve("unknown"), LIST_TIMEOUT_MS).unref?.();
+	const reconnectLinks = async (): Promise<string> => {
+		const lines = await Promise.all(
+			target.accounts.map(async (account) => {
+				const resolved = await target
+					.resolve(account.connectionId)
+					.catch(() => null);
+				const link =
+					resolved?.kind === "needs-auth" ? resolved.connectUrl : null;
+				return link
+					? `${accountLabel(account)}: ${link}`
+					: accountLabel(account);
 			}),
-		]);
+		);
+		return lines.join("; ");
+	};
+
+	const listWithin = async (account: AccountRef): Promise<AccountTools> => {
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		try {
+			return await Promise.race([
+				listFor(account),
+				new Promise<AccountTools>((resolve) => {
+					timer = setTimeout(() => resolve("unknown"), LIST_TIMEOUT_MS);
+				}),
+			]);
+		} finally {
+			clearTimeout(timer);
+		}
+	};
 
 	const gather = async (): Promise<{
 		tools: Tool[];
@@ -207,6 +273,16 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 		}
 
 		const lists = await Promise.all(target.accounts.map(listWithin));
+		if (lists.every((list) => list === "rejected")) {
+			return {
+				tools: [
+					authenticateTool(
+						`Every ${target.connectorLabel} account needs to be reconnected`,
+					),
+				],
+				accountsByTool: new Map(),
+			};
+		}
 		if (lists.every((list) => typeof list === "string")) {
 			throw new Error(`No usable ${target.connectorLabel} account.`);
 		}
@@ -248,18 +324,33 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 	});
 
 	server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
+		const { tools, accountsByTool } = await gather();
+		if (accountsByTool.size === 0 && request.params.name === "authenticate") {
+			return errorResult(
+				`Ask the user to reconnect each ${target.connectorLabel} account, then retry: ${await reconnectLinks()}.`,
+			);
+		}
 		const choice = chooseAccount(
 			target.connectorLabel,
 			target.accounts,
 			request.params.arguments ?? {},
+			accountArgName(tools),
 		);
 		if (!choice.ok) return errorResult(choice.message);
 
 		const account = target.accounts.find(
 			(candidate) => candidate.connectionId === choice.connectionId,
 		);
-		const resolved = await target.resolve(choice.connectionId);
 		const label = account ? accountLabel(account) : choice.connectionId;
+		let resolved: PluginTarget;
+		try {
+			resolved = await target.resolve(choice.connectionId);
+		} catch (error) {
+			if (!(error instanceof PluginTargetError)) throw error;
+			return errorResult(
+				`${target.connectorLabel} could not be reached for ${label}: ${error.message}`,
+			);
+		}
 
 		if (resolved.kind === "needs-auth") {
 			return errorResult(
@@ -294,10 +385,10 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 						})();
 		} catch (error) {
 			if (!credentialRejected(error)) throw error;
-			await recordRejection(resolved.connectionId);
-			const after = await target.resolve(choice.connectionId);
+			await recordRejection(resolved.connectionId, resolved.credentialAt);
+			const after = await target.resolve(choice.connectionId).catch(() => null);
 			return errorResult(
-				after.kind === "needs-auth"
+				after?.kind === "needs-auth"
 					? `${target.connectorLabel} rejected ${label}. Ask the user to open ${after.connectUrl} to reconnect it, then retry.`
 					: `${target.connectorLabel} rejected ${label}. Ask the user to reconnect it, then retry.`,
 			);
@@ -316,15 +407,18 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 	return server;
 }
 
-export async function buildPluginServer(target: PluginTarget): Promise<Server> {
+export async function buildPluginServer(
+	target: PluginTarget,
+	recordRejection: RecordRejection = markRejected,
+): Promise<Server> {
 	switch (target.kind) {
 		case "needs-auth":
 			return needsAuthServer(target);
 		case "first-party":
-			return firstPartyServer(target);
+			return firstPartyServer(target, recordRejection);
 		case "remote":
-			return remoteServer(target);
+			return remoteServer(target, recordRejection);
 		case "multi":
-			return multiServer(target);
+			return multiServer(target, recordRejection);
 	}
 }
