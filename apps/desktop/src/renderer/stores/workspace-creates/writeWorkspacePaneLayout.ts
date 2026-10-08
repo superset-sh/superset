@@ -69,6 +69,7 @@ export function writeWorkspacePaneLayout(
 			isHidden: false,
 		},
 		paneLayout,
+		rightSidebarOpen: false,
 		viewedFiles: [],
 		recentlyViewedFiles: [],
 	});
