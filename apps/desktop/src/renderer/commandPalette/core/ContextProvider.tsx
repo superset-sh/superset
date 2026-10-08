@@ -16,6 +16,7 @@ import {
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { resolveV2OpenInApp } from "renderer/routes/_authenticated/hooks/useV2ProjectDefaultApp";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -72,9 +73,12 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 				.select(({ sp }) => ({ defaultOpenInApp: sp.defaultOpenInApp })),
 		[collections, projectId],
 	);
-	const preferredOpenInApp =
-		(preferredAppRows[0]?.defaultOpenInApp as ExternalApp | null | undefined) ??
-		undefined;
+	const { data: globalDefaultEditor } =
+		electronTrpc.settings.getDefaultEditor.useQuery();
+	const preferredOpenInApp = resolveV2OpenInApp(
+		preferredAppRows[0]?.defaultOpenInApp as ExternalApp | null | undefined,
+		globalDefaultEditor,
+	);
 
 	const { data: notificationSoundsMuted = false } =
 		electronTrpc.settings.getNotificationSoundsMuted.useQuery();

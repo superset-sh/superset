@@ -2,8 +2,10 @@ import type { ExternalApp } from "@superset/local-db";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback } from "react";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { resolveV2OpenInApp } from "./utils/resolveV2OpenInApp";
 
 /**
  * Single source of truth for the v2 per-project "open in" app choice —
@@ -29,6 +31,9 @@ export function useV2ProjectDefaultApp(projectId: string | undefined) {
 	);
 	const app =
 		(rows[0]?.defaultOpenInApp as ExternalApp | null | undefined) ?? undefined;
+	const { data: globalDefaultEditor, isPending: isGlobalDefaultPending } =
+		electronTrpc.settings.getDefaultEditor.useQuery();
+	const resolvedApp = resolveV2OpenInApp(app, globalDefaultEditor);
 
 	const setApp = useCallback(
 		(next: ExternalApp) => {
@@ -41,5 +46,10 @@ export function useV2ProjectDefaultApp(projectId: string | undefined) {
 		[collections, ensureProjectInSidebar, projectId],
 	);
 
-	return { app, setApp };
+	return {
+		app,
+		resolvedApp,
+		isResolving: !app && isGlobalDefaultPending,
+		setApp,
+	};
 }
