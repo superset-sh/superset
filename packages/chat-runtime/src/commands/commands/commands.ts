@@ -136,7 +136,7 @@ export type CommandsOptions = {
 	mintSessionId?: () => string;
 };
 
-const MAX_CACHED_REPLAYS = 4;
+const MAX_CACHED_REPLAY_EVENTS = 20_000;
 
 export function createCommands(options: CommandsOptions): ChatCommands {
 	const mintSessionId = options.mintSessionId ?? randomUUID;
@@ -176,9 +176,12 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 			seq: replay.envelopes.at(-1)?.cursor.seq ?? base?.seq ?? 0,
 			snapshot,
 		});
-		for (const key of replays.keys()) {
-			if (replays.size <= MAX_CACHED_REPLAYS) break;
+		let cachedEvents = 0;
+		for (const entry of replays.values()) cachedEvents += entry.seq;
+		for (const [key, entry] of replays) {
+			if (cachedEvents <= MAX_CACHED_REPLAY_EVENTS || key === sessionId) break;
 			replays.delete(key);
+			cachedEvents -= entry.seq;
 		}
 		return { ok: true, snapshot };
 	};
@@ -337,6 +340,7 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 		async closeSession(input) {
 			const parsed: CloseSessionInput = closeSessionInputSchema.parse(input);
 			const wasLive = options.live.get(parsed.sessionId) !== null;
+			replays.delete(parsed.sessionId);
 			try {
 				await options.live.dispose(parsed.sessionId);
 			} finally {
@@ -346,7 +350,10 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 
 		async closeScope(scopeId) {
 			const closed = await options.live.disposeScope(scopeId);
-			for (const sessionId of closed) options.journal.announce(sessionId);
+			for (const sessionId of closed) {
+				replays.delete(sessionId);
+				options.journal.announce(sessionId);
+			}
 		},
 
 		getSession(input) {

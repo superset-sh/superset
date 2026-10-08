@@ -195,7 +195,7 @@ export function Transcript({
 	);
 
 	const lastReplies = useMemo(() => lastReplyKeys(rows), [rows]);
-	const { nearRowKeys, observeRow } = useNearRows(
+	const { seenRowKeys, observeRow } = useNearRows(
 		rows,
 		viewport,
 		onRequestItemBodies,
@@ -235,7 +235,7 @@ export function Transcript({
 				onRespond={onRespond}
 				onRetryPrompt={onRetryPrompt}
 				onToggleEntry={onToggleEntry}
-				rendered={recent || scrollAnchor || nearRowKeys.has(row.key)}
+				rendered={recent || scrollAnchor || seenRowKeys.has(row.key)}
 				row={row}
 				rowRef={observeRow(row.key)}
 				scrollAnchor={scrollAnchor}

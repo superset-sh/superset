@@ -496,6 +496,46 @@ describe("useChatSession", () => {
 		await stack.runtime.dispose();
 	});
 
+	test("ignores a body reply that was requested before a resync", async () => {
+		const stack = await startStack();
+		let release = () => {};
+		const hold = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const omitted = withOmittedTool(stack.transport);
+		const transport = new Proxy(omitted, {
+			get: (target, prop, receiver) =>
+				prop === "getItemBodies"
+					? async (input: { sessionId: string; itemIds: string[] }) => {
+							const result = await target.getItemBodies(input);
+							await hold;
+							return result;
+						}
+					: Reflect.get(target, prop, receiver),
+		});
+		const client = stack.makeClient({ transport });
+		const view = render(<Probe client={client} />);
+		await domWaitFor(() => expect(session().status).toBe("ready"));
+
+		act(() => session().requestItemBodies(["tool-1"]));
+		await Bun.sleep(10);
+		act(() => {
+			stack.runtime.subscriptions.publish({
+				v: 1,
+				sessionId: stack.sessionId,
+				ts: Date.now(),
+				reset: { reason: "journal_missing" },
+			});
+		});
+		await domWaitFor(() => expect(session().snapshot.pendingReset).toBeNull());
+		act(() => release());
+		await Bun.sleep(20);
+		expect(session().snapshot.items.get("tool-1")?.item).toEqual(OMITTED_TOOL);
+		view.unmount();
+		client.close();
+		await stack.runtime.dispose();
+	});
+
 	test("retries a failed body request after a backoff", async () => {
 		const stack = await startStack();
 		let failures = 1;

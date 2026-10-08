@@ -15,7 +15,7 @@ export function useNearRows(
 	root: HTMLElement | null,
 	requestItemBodies: (itemIds: readonly string[]) => void,
 ): {
-	nearRowKeys: ReadonlySet<string>;
+	seenRowKeys: ReadonlySet<string>;
 	observeRow: (rowKey: string) => (element: HTMLElement | null) => void;
 } {
 	const idsByKey = useMemo(() => {
@@ -28,7 +28,7 @@ export function useNearRows(
 	}, [rows]);
 	const requestRef = useRef(requestItemBodies);
 	requestRef.current = requestItemBodies;
-	const [nearRowKeys, setNearRowKeys] = useState<ReadonlySet<string>>(
+	const [seenRowKeys, setSeenRowKeys] = useState<ReadonlySet<string>>(
 		() => new Set(),
 	);
 
@@ -39,14 +39,13 @@ export function useNearRows(
 		if (!root) return;
 		const observer = new IntersectionObserver(
 			(entries) => {
-				setNearRowKeys((previous) => {
+				setSeenRowKeys((previous) => {
 					let next: Set<string> | null = null;
 					for (const entry of entries) {
 						const key = (entry.target as HTMLElement).dataset.rowKey;
-						if (!key || entry.isIntersecting === previous.has(key)) continue;
+						if (!key || !entry.isIntersecting || previous.has(key)) continue;
 						next ??= new Set(previous);
-						if (entry.isIntersecting) next.add(key);
-						else next.delete(key);
+						next.add(key);
 					}
 					return next ?? previous;
 				});
@@ -62,9 +61,9 @@ export function useNearRows(
 	}, [root]);
 
 	useEffect(() => {
-		const ids = [...nearRowKeys].flatMap((key) => idsByKey.get(key) ?? []);
+		const ids = [...seenRowKeys].flatMap((key) => idsByKey.get(key) ?? []);
 		if (ids.length > 0) requestRef.current(ids);
-	}, [idsByKey, nearRowKeys]);
+	}, [idsByKey, seenRowKeys]);
 
 	const refs = useRef(new Map<string, (element: HTMLElement | null) => void>());
 	const observeRow = useCallback((rowKey: string) => {
@@ -77,6 +76,12 @@ export function useNearRows(
 			if (!element) {
 				elements.current.delete(rowKey);
 				refs.current.delete(rowKey);
+				setSeenRowKeys((keys) => {
+					if (!keys.has(rowKey)) return keys;
+					const next = new Set(keys);
+					next.delete(rowKey);
+					return next;
+				});
 				return;
 			}
 			element.dataset.rowKey = rowKey;
@@ -87,5 +92,5 @@ export function useNearRows(
 		return ref;
 	}, []);
 
-	return { nearRowKeys, observeRow };
+	return { seenRowKeys, observeRow };
 }

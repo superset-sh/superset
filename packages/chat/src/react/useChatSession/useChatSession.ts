@@ -19,8 +19,10 @@ import {
 } from "../../core";
 import type { Cursor } from "../../protocol/cursor";
 import type { DeltaChannel, Envelope } from "../../protocol/envelope";
-import { isDeltaEnvelope, isDurableEnvelope } from "../../protocol/envelope";
+import { isDurableEnvelope } from "../../protocol/envelope";
 import type { Decision, UserContent, UserMessage } from "../../protocol/items";
+
+import { newerThan } from "./utils/newerThan";
 
 export type FrameScheduler = (flush: () => void) => () => void;
 
@@ -49,25 +51,6 @@ const MAX_BODY_ATTEMPTS = 3;
 type Seed =
 	| { kind: "outline"; snapshot: SessionSnapshot }
 	| { kind: "page"; envelopes: Envelope[]; nextBefore: Cursor | null };
-
-function newerThan(
-	snapshot: SessionSnapshot,
-	envelopes: readonly Envelope[],
-): Envelope[] {
-	const cursor = snapshot.cursor;
-	return envelopes.filter((envelope) => {
-		if (isDurableEnvelope(envelope)) {
-			return (
-				!cursor ||
-				(envelope.cursor.epoch === cursor.epoch &&
-					envelope.cursor.seq > cursor.seq)
-			);
-		}
-		if (!isDeltaEnvelope(envelope)) return false;
-		const stored = snapshot.items.get(envelope.delta.itemId);
-		return stored?.item.completedAtMs === undefined;
-	});
-}
 
 async function fetchSeed(
 	client: SessionClient,
@@ -399,6 +382,7 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 
 		return () => {
 			cancelled = true;
+			seedGenerationRef.current += 1;
 			cancelRetry?.();
 			cancelFlushRef.current?.();
 			cancelFlushRef.current = null;

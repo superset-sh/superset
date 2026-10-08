@@ -64,11 +64,12 @@ export function ApprovalRow({
 	return (
 		<div
 			className={cn(
-				"flex flex-col gap-2.5 rounded-xl border",
-				pending ? "p-3" : "px-3 py-2",
+				"flex flex-col gap-2.5",
 				pending
-					? "border-warning/30 bg-warning/[0.04]"
-					: "border-border/60 bg-muted/20",
+					? "rounded-xl border border-warning/30 bg-warning/[0.04] p-3"
+					: target
+						? "px-1 py-0.5"
+						: "rounded-xl border border-border/60 bg-muted/20 px-3 py-2",
 			)}
 		>
 			<div className="flex min-w-0 items-center gap-2 text-sm">
@@ -87,22 +88,19 @@ export function ApprovalRow({
 						)}
 					</span>
 				) : (
-					<span
-						className={cn(
-							"min-w-0 flex-1 truncate text-muted-foreground",
-							command && "font-mono text-[12.5px]",
-						)}
-					>
-						{item.title}
-					</span>
+					!target && (
+						<span className="min-w-0 flex-1 truncate text-muted-foreground">
+							{item.title}
+						</span>
+					)
 				)}
 				{item.status === "stale" && (
-					<Badge className="ml-auto" variant="outline">
+					<Badge className={cn(!target && "ml-auto")} variant="outline">
 						<Trans>Expired</Trans>
 					</Badge>
 				)}
 				{item.status === "answered" && (
-					<Badge className="ml-auto" variant="secondary">
+					<Badge className={cn(!target && "ml-auto")} variant="secondary">
 						{decisionLabel(item.decision, options)}
 					</Badge>
 				)}
