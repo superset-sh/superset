@@ -1767,6 +1767,9 @@ msgstr "給風險最高又沒測試的程式碼補上測試…"
 msgid "Add tests where they're missing"
 msgstr "給缺測試的地方補測試"
 
+msgid "Add themes and agents to Superset."
+msgstr "為 Superset 加入主題與代理程式。"
+
 msgid "Add this label"
 msgstr "新增此標籤"
 
@@ -8259,6 +8262,9 @@ msgstr "人們如何到達 superset.sh 與文件站，其中有多少來自搜�
 
 msgid "How should the agent's actions be approved?"
 msgstr "代理的操作應如何批准？"
+
+msgid "How Superset compares to other tools."
+msgstr "Superset 與其他工具的比較。"
 
 msgid "How the command opens."
 msgstr "命令的開啟方式。"
@@ -16021,9 +16027,6 @@ msgstr "Superset Mobile、雲端工作區、自動化與優先支援。"
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset需要「完全磁碟存取權限」才能讀取其他瀏覽器的資料。請在系統設定中授予權限，然後重新檢查。"
 
-msgid "Superset next to other tools."
-msgstr "Superset 與其他工具的比較。"
-
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset 只取得此連接器請求的權限。你可以隨時中斷連線以撤銷。"
 
@@ -16835,9 +16838,6 @@ msgstr "主題預覽卡片"
 
 msgid "Themes"
 msgstr "主題"
-
-msgid "Themes and agents for Superset."
-msgstr "Superset 的主題與代理程式。"
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "建立工作區時會自動執行這些命令。<0>閱讀文件<1/></0>"
@@ -18216,9 +18216,6 @@ msgstr "等待你的輸入"
 msgid "Waitlist signups"
 msgstr "候補名單註冊"
 
-msgid "Walkthroughs on YouTube."
-msgstr "YouTube 上的操作示範。"
-
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "想讓某件事早點做？<0>在Discord上告訴我們</0>。這裡的很多條目最初都來自使用者的請求。"
 
@@ -18230,6 +18227,9 @@ msgstr "出現了警告。"
 
 msgid "Watch a design review go from comment to new version."
 msgstr "看一次設計審查如何從留言變成新版本。"
+
+msgid "Watch walkthroughs on YouTube."
+msgstr "在 YouTube 上觀看操作示範。"
 
 msgid "Watchers"
 msgstr "關注者"

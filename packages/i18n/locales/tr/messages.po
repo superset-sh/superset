@@ -1767,6 +1767,9 @@ msgstr "Test edilmemiş en riskli kod için test ekle…"
 msgid "Add tests where they're missing"
 msgstr "Eksik olan yerlere test ekle"
 
+msgid "Add themes and agents to Superset."
+msgstr "Superset'e temalar ve ajanlar ekleyin."
+
 msgid "Add this label"
 msgstr "Bu etiketi ekle"
 
@@ -8259,6 +8262,9 @@ msgstr "İnsanlar superset.sh'a ve dokümantasyona nasıl ulaşıyor ve bunun ne
 
 msgid "How should the agent's actions be approved?"
 msgstr "Ajanın işlemleri nasıl onaylansın?"
+
+msgid "How Superset compares to other tools."
+msgstr "Superset'in diğer araçlarla karşılaştırması."
 
 msgid "How the command opens."
 msgstr "Komutun nasıl açılacağı."
@@ -16021,9 +16027,6 @@ msgstr "Superset Mobile, bulut çalışma alanları, otomasyonlar ve öncelikli 
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset'in başka bir tarayıcının verilerini okuyabilmesi için Tam Disk Erişimi gerekir. Sistem Ayarları'ndan verin, sonra yeniden denetleyin."
 
-msgid "Superset next to other tools."
-msgstr "Superset ile diğer araçların karşılaştırması."
-
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset yalnızca bu bağlayıcının istediği izinleri alır. İzinleri geri almak için istediğiniz zaman bağlantıyı kesin."
 
@@ -16835,9 +16838,6 @@ msgstr "Tema önizleme kartı"
 
 msgid "Themes"
 msgstr "Temalar"
-
-msgid "Themes and agents for Superset."
-msgstr "Superset için temalar ve ajanlar."
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "Bu komutlar bir çalışma alanı oluşturulduğunda otomatik olarak çalışır. <0>Belgelerimizi okuyun<1/></0>"
@@ -18216,9 +18216,6 @@ msgstr "Girdinizi bekliyor"
 msgid "Waitlist signups"
 msgstr "Bekleme listesi kayıtları"
 
-msgid "Walkthroughs on YouTube."
-msgstr "YouTube'da adım adım anlatımlar."
-
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Bir şeyi daha erken mi istiyorsunuz? <0>Discord'da bize söyleyin</0>. Buradakilerin çoğu bir kullanıcı isteği olarak başladı."
 
@@ -18230,6 +18227,9 @@ msgstr "Bir uyarı oluştu."
 
 msgid "Watch a design review go from comment to new version."
 msgstr "Bir tasarım incelemesinin yorumdan yeni sürüme nasıl geçtiğini izleyin."
+
+msgid "Watch walkthroughs on YouTube."
+msgstr "YouTube'da adım adım anlatımları izleyin."
 
 msgid "Watchers"
 msgstr "İzleyenler"

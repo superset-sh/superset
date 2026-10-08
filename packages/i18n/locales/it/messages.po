@@ -1767,6 +1767,9 @@ msgstr "Aggiungi test per il codice non testato più a rischio…"
 msgid "Add tests where they're missing"
 msgstr "Aggiungi i test che mancano"
 
+msgid "Add themes and agents to Superset."
+msgstr "Aggiungi temi e agenti a Superset."
+
 msgid "Add this label"
 msgstr "Aggiungi questa etichetta"
 
@@ -8259,6 +8262,9 @@ msgstr "Come le persone raggiungono superset.sh e la documentazione, e quanto ar
 
 msgid "How should the agent's actions be approved?"
 msgstr "Come approvare le azioni dell'agente?"
+
+msgid "How Superset compares to other tools."
+msgstr "Come Superset si confronta con altri strumenti."
 
 msgid "How the command opens."
 msgstr "Come si apre il comando."
@@ -16021,9 +16027,6 @@ msgstr "Superset Mobile, workspace cloud, automazioni e supporto prioritario."
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset ha bisogno dell'Accesso completo al disco per leggere i dati di un altro browser. Concedilo in Impostazioni di Sistema, poi controlla di nuovo."
 
-msgid "Superset next to other tools."
-msgstr "Superset a confronto con altri strumenti."
-
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset riceve solo i permessi richiesti da questo connettore. Scollegalo in qualsiasi momento per revocarli."
 
@@ -16835,9 +16838,6 @@ msgstr "Theme Preview Card"
 
 msgid "Themes"
 msgstr "Temi"
-
-msgid "Themes and agents for Superset."
-msgstr "Temi e agenti per Superset."
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "Questi comandi vengono eseguiti automaticamente quando viene creato un workspace. <0>Leggi la documentazione<1/></0>"
@@ -18216,9 +18216,6 @@ msgstr "In attesa del tuo input"
 msgid "Waitlist signups"
 msgstr "Iscrizioni alla lista d'attesa"
 
-msgid "Walkthroughs on YouTube."
-msgstr "Guide passo passo su YouTube."
-
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Vuoi qualcosa prima? <0>Dicci la tua su Discord</0>. Molto di ciò che c'è qui è nato da una richiesta degli utenti."
 
@@ -18230,6 +18227,9 @@ msgstr "Si è verificato un avviso."
 
 msgid "Watch a design review go from comment to new version."
 msgstr "Guarda una revisione del design passare da un commento a una nuova versione."
+
+msgid "Watch walkthroughs on YouTube."
+msgstr "Guarda le guide passo passo su YouTube."
 
 msgid "Watchers"
 msgstr "Osservatori"

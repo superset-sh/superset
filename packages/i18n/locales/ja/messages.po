@@ -1767,6 +1767,9 @@ msgstr "テストのない危険なコードにテストを追加…"
 msgid "Add tests where they're missing"
 msgstr "テストが不足している箇所に追加"
 
+msgid "Add themes and agents to Superset."
+msgstr "Superset にテーマとエージェントを追加。"
+
 msgid "Add this label"
 msgstr "このラベルを追加"
 
@@ -8259,6 +8262,9 @@ msgstr "人々が superset.sh とドキュメントにどう到達している�
 
 msgid "How should the agent's actions be approved?"
 msgstr "エージェントの操作をどう承認しますか？"
+
+msgid "How Superset compares to other tools."
+msgstr "Superset と他のツールの比較。"
 
 msgid "How the command opens."
 msgstr "コマンドの開き方。"
@@ -16021,9 +16027,6 @@ msgstr "Superset Mobile、クラウドワークスペース、オートメーシ
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "他のブラウザのデータを読み取るには、Supersetにフルディスクアクセスが必要です。システム設定で許可してから再確認してください。"
 
-msgid "Superset next to other tools."
-msgstr "他のツールと Superset の比較。"
-
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset はこのコネクタが要求する権限のみを受け取ります。接続を解除すればいつでも取り消せます。"
 
@@ -16835,9 +16838,6 @@ msgstr "Theme Preview Card"
 
 msgid "Themes"
 msgstr "テーマ"
-
-msgid "Themes and agents for Superset."
-msgstr "Superset のテーマとエージェント。"
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "これらのコマンドはワークスペース作成時に自動的に実行されます。<0>ドキュメントを読む<1/></0>"
@@ -18216,9 +18216,6 @@ msgstr "入力を待っています"
 msgid "Waitlist signups"
 msgstr "ウェイトリスト登録"
 
-msgid "Walkthroughs on YouTube."
-msgstr "YouTube のウォークスルー。"
-
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "もっと早く欲しいものがありますか?<0>Discordで教えてください</0>。ここにあるものの多くは、ユーザーの要望から始まりました。"
 
@@ -18230,6 +18227,9 @@ msgstr "警告が発生しました。"
 
 msgid "Watch a design review go from comment to new version."
 msgstr "デザインレビューがコメントから新しいバージョンになるまでをご覧ください。"
+
+msgid "Watch walkthroughs on YouTube."
+msgstr "YouTube でウォークスルーを見る。"
 
 msgid "Watchers"
 msgstr "ウォッチャー"

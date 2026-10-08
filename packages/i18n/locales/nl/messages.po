@@ -1767,6 +1767,9 @@ msgstr "Voeg tests toe voor de riskantste ongeteste code…"
 msgid "Add tests where they're missing"
 msgstr "Tests toevoegen waar ze ontbreken"
 
+msgid "Add themes and agents to Superset."
+msgstr "Voeg thema's en agents toe aan Superset."
+
 msgid "Add this label"
 msgstr "Dit label toevoegen"
 
@@ -8259,6 +8262,9 @@ msgstr "Hoe mensen superset.sh en de docs bereiken, en hoeveel daarvan zoeken en
 
 msgid "How should the agent's actions be approved?"
 msgstr "Hoe moeten de acties van de agent worden goedgekeurd?"
+
+msgid "How Superset compares to other tools."
+msgstr "Hoe Superset zich verhoudt tot andere tools."
 
 msgid "How the command opens."
 msgstr "Hoe het commando opent."
@@ -16021,9 +16027,6 @@ msgstr "Superset Mobile, cloud-workspaces, automatiseringen en prioritaire suppo
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset heeft Volledige Schijftoegang nodig om de gegevens van een andere browser te lezen. Geef die in Systeeminstellingen en controleer opnieuw."
 
-msgid "Superset next to other tools."
-msgstr "Superset naast andere tools."
-
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset ontvangt alleen de rechten die deze connector vraagt. Verbreek de verbinding wanneer je wilt om ze in te trekken."
 
@@ -16835,9 +16838,6 @@ msgstr "Theme Preview Card"
 
 msgid "Themes"
 msgstr "Thema's"
-
-msgid "Themes and agents for Superset."
-msgstr "Thema's en agents voor Superset."
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "Deze commando's draaien automatisch wanneer een werkruimte wordt aangemaakt. <0>Lees onze docs<1/></0>"
@@ -18216,9 +18216,6 @@ msgstr "Wacht op je invoer"
 msgid "Waitlist signups"
 msgstr "Wachtlijstaanmeldingen"
 
-msgid "Walkthroughs on YouTube."
-msgstr "Walkthroughs op YouTube."
-
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Wil je iets eerder zien? <0>Laat het weten in Discord</0>. Veel van wat hier staat begon als gebruikersverzoek."
 
@@ -18230,6 +18227,9 @@ msgstr "Er is een waarschuwing opgetreden."
 
 msgid "Watch a design review go from comment to new version."
 msgstr "Bekijk hoe een designreview van opmerking naar nieuwe versie gaat."
+
+msgid "Watch walkthroughs on YouTube."
+msgstr "Bekijk walkthroughs op YouTube."
 
 msgid "Watchers"
 msgstr "Watchers"

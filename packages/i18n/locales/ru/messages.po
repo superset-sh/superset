@@ -1767,6 +1767,9 @@ msgstr "Добавь тесты для самого рискованного н�
 msgid "Add tests where they're missing"
 msgstr "Добавить тесты там, где их нет"
 
+msgid "Add themes and agents to Superset."
+msgstr "Добавляйте темы и агентов в Superset."
+
 msgid "Add this label"
 msgstr "Добавить эту метку"
 
@@ -8259,6 +8262,9 @@ msgstr "Как люди попадают на superset.sh и в документ
 
 msgid "How should the agent's actions be approved?"
 msgstr "Как одобрять действия агента?"
+
+msgid "How Superset compares to other tools."
+msgstr "Как Superset выглядит на фоне других инструментов."
 
 msgid "How the command opens."
 msgstr "Как открывается команда."
@@ -16021,9 +16027,6 @@ msgstr "Superset Mobile, облачные рабочие пространств�
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset нужен полный доступ к диску, чтобы читать данные другого браузера. Выдайте его в Системных настройках и проверьте снова."
 
-msgid "Superset next to other tools."
-msgstr "Superset в сравнении с другими инструментами."
-
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset получает только те разрешения, которые запрашивает этот коннектор. Отключите его в любой момент, чтобы отозвать их."
 
@@ -16835,9 +16838,6 @@ msgstr "Карточка предпросмотра темы"
 
 msgid "Themes"
 msgstr "Темы"
-
-msgid "Themes and agents for Superset."
-msgstr "Темы и агенты для Superset."
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "Эти команды выполняются автоматически при создании рабочей области. <0>Читать документацию<1/></0>"
@@ -18216,9 +18216,6 @@ msgstr "Ждёт вашего ответа"
 msgid "Waitlist signups"
 msgstr "Записи в лист ожидания"
 
-msgid "Walkthroughs on YouTube."
-msgstr "Видеоразборы на YouTube."
-
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Хотите что-то быстрее? <0>Скажите нам в Discord</0>. Многое из этого началось с пожелания пользователя."
 
@@ -18230,6 +18227,9 @@ msgstr "Возникло предупреждение."
 
 msgid "Watch a design review go from comment to new version."
 msgstr "Посмотрите, как дизайн-ревью проходит путь от комментария до новой версии."
+
+msgid "Watch walkthroughs on YouTube."
+msgstr "Смотрите видеоразборы на YouTube."
 
 msgid "Watchers"
 msgstr "Наблюдатели"

@@ -1767,6 +1767,9 @@ msgstr "Tambahkan tes untuk kode paling berisiko yang belum diuji…"
 msgid "Add tests where they're missing"
 msgstr "Tambahkan tes yang belum ada"
 
+msgid "Add themes and agents to Superset."
+msgstr "Tambahkan tema dan agen ke Superset."
+
 msgid "Add this label"
 msgstr "Tambahkan label ini"
 
@@ -8259,6 +8262,9 @@ msgstr "Bagaimana orang mencapai superset.sh dan dokumentasi, dan seberapa banya
 
 msgid "How should the agent's actions be approved?"
 msgstr "Bagaimana tindakan agen harus disetujui?"
+
+msgid "How Superset compares to other tools."
+msgstr "Perbandingan Superset dengan alat lain."
 
 msgid "How the command opens."
 msgstr "Bagaimana perintahnya dibuka."
@@ -16021,9 +16027,6 @@ msgstr "Superset Mobile, workspace cloud, otomatisasi, dan dukungan prioritas."
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset butuh Full Disk Access untuk membaca data browser lain. Berikan izinnya di System Settings, lalu periksa lagi."
 
-msgid "Superset next to other tools."
-msgstr "Superset dibandingkan alat lain."
-
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset hanya menerima izin yang diminta konektor ini. Putuskan koneksi kapan saja untuk mencabutnya."
 
@@ -16835,9 +16838,6 @@ msgstr "Theme Preview Card"
 
 msgid "Themes"
 msgstr "Tema"
-
-msgid "Themes and agents for Superset."
-msgstr "Tema dan agen untuk Superset."
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "Perintah ini berjalan otomatis saat workspace dibuat. <0>Baca dokumentasi kami<1/></0>"
@@ -18216,9 +18216,6 @@ msgstr "Menunggu masukan Anda"
 msgid "Waitlist signups"
 msgstr "Pendaftaran daftar tunggu"
 
-msgid "Walkthroughs on YouTube."
-msgstr "Panduan langkah demi langkah di YouTube."
-
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Ingin sesuatu lebih cepat? <0>Beri tahu kami di Discord</0>. Banyak yang ada di sini bermula dari permintaan pengguna."
 
@@ -18230,6 +18227,9 @@ msgstr "Terjadi peringatan."
 
 msgid "Watch a design review go from comment to new version."
 msgstr "Lihat bagaimana tinjauan desain berubah dari komentar menjadi versi baru."
+
+msgid "Watch walkthroughs on YouTube."
+msgstr "Tonton panduan langkah demi langkah di YouTube."
 
 msgid "Watchers"
 msgstr "Pengamat"

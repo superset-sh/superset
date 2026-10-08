@@ -58,7 +58,7 @@ export const PRODUCT_SECTIONS: NavSection[] = [
 			{
 				href: "/marketplace",
 				label: <Trans>Marketplace</Trans>,
-				description: <Trans>Themes and agents for Superset.</Trans>,
+				description: <Trans>Add themes and agents to Superset.</Trans>,
 			},
 			{
 				href: "/cloud",
@@ -114,7 +114,7 @@ export const RESOURCE_SECTIONS: NavSection[] = [
 			{
 				href: COMPANY.YOUTUBE_URL,
 				label: <Trans>Video tutorials</Trans>,
-				description: <Trans>Walkthroughs on YouTube.</Trans>,
+				description: <Trans>Watch walkthroughs on YouTube.</Trans>,
 				external: true,
 			},
 			{
@@ -152,7 +152,7 @@ export const RESOURCE_SECTIONS: NavSection[] = [
 			{
 				href: "/compare",
 				label: <Trans>Compare</Trans>,
-				description: <Trans>Superset next to other tools.</Trans>,
+				description: <Trans>How Superset compares to other tools.</Trans>,
 			},
 			{
 				href: "/community",
