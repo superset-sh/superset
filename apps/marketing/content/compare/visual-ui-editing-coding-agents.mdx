@@ -81,7 +81,7 @@ Superset is a desktop app for running CLI coding agents, each task in its own Gi
 3. Click the element. A prompt card opens under it.
 4. Describe one change, pick an agent, and send it to an existing agent terminal or a fresh session.
 
-The agent receives the element's DOM, computed styles, React component metadata, and a cropped screenshot with your note. Press **esc** to pick a different element, and **esc** again to leave Design Mode. It works on any page the pane can load, including localhost. The [walkthrough post](/blog/change-ui-with-your-coding-agent) shows a full example.
+The agent receives the element's DOM, computed styles, React component metadata, and usually a cropped screenshot, with your note. Press **esc** to pick a different element, and **esc** again to leave Design Mode. It works on any page the pane can load, including localhost. The [walkthrough post](/blog/change-ui-with-your-coding-agent) shows a full example.
 
 Superset's difference is where the element goes. It works with the agent you already use (Claude Code, Codex, OpenCode, Cursor Agent, Gemini CLI, and others), and the change lands in that task's worktree, so two UI experiments don't edit the same files. The same pane can be driven by the agent through `superset browser` commands or a CDP endpoint to check its own work. The tradeoffs: Superset runs on macOS with an experimental Linux AppImage, has no Windows build, and is source-available under ELv2 rather than open source.
 
