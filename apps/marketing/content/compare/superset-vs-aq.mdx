@@ -1,0 +1,110 @@
+---
+title: "Superset vs AQ (2026): Desktop Agent Workspace vs Cloud Team Harness"
+description: "Compare Superset and AQ for running coding agents: desktop vs browser, local vs cloud runners, team sessions, review, and pricing."
+date: 2026-10-07
+lastUpdated: 2026-10-07
+type: "1v1"
+competitors:
+  - aq
+keywords:
+  - superset vs aq
+  - aq vs superset
+  - aq alternative
+  - agentqueue alternative
+  - orca alternative
+  - cloud coding agents for teams
+---
+
+Superset and AQ both run real CLI coding agents, such as Claude Code and Codex, with one Git worktree per task. The difference is where they run and who is in the session. AQ is a browser app: agents run on a cloud VM (yours or one AQ manages), and teammates open the same live terminal through a link. Superset is a desktop app: agents run on your machine or a remote host you add, with diff review, pull requests, and a browser beside them. Choose AQ when your team wants shared live sessions on an always-on machine. Choose Superset when you want a local-first desktop workspace with a full review path.
+
+This comparison is published by Superset. AQ details were checked against [aq.dev](https://aq.dev), its [docs](https://aq.dev/docs), [workspaces page](https://aq.dev/docs/workspaces), and [pricing](https://aq.dev/pricing) on October 7, 2026. AQ also uses the domain agentqueue.dev, which redirects to aq.dev.
+
+## At a Glance
+
+| Requirement | Superset | AQ |
+|---|---|---|
+| Interface | Desktop app | Browser app |
+| Where agents run | Your machine, or remote hosts you add through the relay (Pro) | A runner VM: in your own cloud (Team) or AQ-managed |
+| Isolation | Git worktree and branch per workspace | Git worktree and branch per workspace, on the runner |
+| Platforms | macOS; experimental Linux; Windows unavailable | Any modern browser on macOS, Windows, Linux, or a phone |
+| Agents | Any CLI agent, plus custom agents you add | Claude Code, Codex, Cursor Agent, Kimi, Grok, Antigravity CLI, and others, plus its own AQ Composer agent |
+| Team sessions | Shared hosts with per-member access; teammates open workspaces on hosts they can reach | Multiplayer: teammates watch the same live terminal and can request control |
+| Review | Changes pane that commits, pushes, and opens PRs; PR pane with checks, review threads, and merge | Live previews with pinned comments that go to the agent; PRs tracked per workspace |
+| Phone | iPhone app (iOS 26+, Pro) with Lock Screen Live Activity | Same workspace in a mobile browser |
+| Intake | Linear, GitHub, and Slack integrations (Pro) | Linear `ai-task` label creates a workspace; API, webhooks, MCP |
+| Pricing | Free; Pro $20/user/month or $15 billed yearly; Enterprise custom | Free solo sandbox; Team $50/user/month early access |
+| License | Source-available, Elastic License 2.0 | Proprietary |
+
+## What Is AQ?
+
+AQ calls itself "the multiplayer coding harness." Its headline is "Run every coding agent in the cloud, with your team." Each workspace is a Git worktree on a branch named `ai/{id}-{slug}`, with dependencies installed and a one-click rebase onto main. Agents run as the real CLIs in persistent terminal sessions on a runner VM and stream to the browser. Each user signs into the CLIs with their own accounts, and AQ does not mark up that usage. AQ Composer, its built-in agent, runs on AQ models with monthly credits.
+
+## Do your agents run locally or in the cloud?
+
+This is the main split. AQ runs every session on a runner VM. On the Free plan that is a private AQ-managed sandbox that sleeps when idle. On Team it is either a VM you connect from your own cloud account or a dedicated AQ machine that never sleeps. Agents keep working when your laptop closes, and nothing runs on your laptop.
+
+Superset is local-first. Agents run on your Mac or Linux machine by default, next to your editor and local tools. To keep work going away from your desk, add another machine as a host through the Superset relay, and run workspaces there from the desktop or iPhone app (Pro). Superset cloud workspaces are in early access only, so if you want a managed cloud machine today, AQ has it and Superset does not.
+
+## Can teammates join the same agent session?
+
+AQ is built for this. A teammate with access opens the same workspace URL and sees the same live terminal, editor, and preview. Typing into someone else's terminal needs the owner to approve a control request. Guest links let someone outside the team view a preview without a seat.
+
+Superset shares at the host and workspace level, not as a live co-editing session. An organization adds hosts and grants access per member, automations keep a run history the team can see, and agents can publish Pages with pinned comments. If two people need to watch one terminal at the same time, AQ fits better.
+
+## How do you review the agent's work?
+
+AQ focuses on the running app. A workspace can expose its dev server as a preview link. Reviewers pin comments on elements, and any comment can go to the agent as its next prompt. Agents open pull requests with each user's own GitHub access, and AQ tracks each PR's state. AQ does not describe a separate code-review interface; see their docs.
+
+Superset focuses on the diff and the pull request. The Changes pane stages, commits, pushes, and opens a pull request. The pull request pane shows checks, review threads, and merge. The in-app browser has Design Mode: click an element and send it, with its DOM, styles, and a screenshot, to an agent.
+
+## Pricing
+
+Both start free, and both leave model usage on your own agent subscriptions.
+
+| Plan | Superset | AQ |
+|---|---|---|
+| Free | $0, one user, local workspaces, desktop app, CLI | $0, one person, private AQ-managed sandbox that sleeps when idle, $5/month of AQ Composer credits |
+| Paid | Pro: $20/user/month, or $15 billed yearly | Team: $50/user/month early access, locked for 12 months, then $100; standard price $200 |
+| Large teams | Enterprise: custom, with SSO, SCIM, audit logs, and an uptime SLA | Contact sales |
+
+Superset Pro adds remote hosts, automations, the iPhone app, and the GitHub, Linear, and Slack integrations. AQ Team adds teammates, shared workspaces, guest links, your own cloud runners, an always-on machine, and $10 of Composer credits per seat. Superset does not include compute; you run agents on machines you already have. Check [Superset pricing](/pricing) and [AQ pricing](https://aq.dev/pricing) for current terms.
+
+## Choose AQ if
+
+- Your team wants to watch and steer the same agent session live.
+- Agents must run on an always-on cloud machine, in your own cloud account or a managed one.
+- Teammates use Windows, or you want nothing to install.
+- Product managers or clients review through preview links with pinned comments.
+
+## Choose Superset if
+
+- You want agents on your own machine, next to your local tools, with no VM to run.
+- You review through diffs, commits, and pull requests, with checks and review threads in the same app.
+- You want a native iPhone app with a Lock Screen Live Activity.
+- You want scheduled automations with run history, any CLI agent, or source you can read under Elastic License 2.0.
+
+## Verdict
+
+AQ is a cloud-first, multiplayer tool: one shared session on a VM, reached from any browser. Superset is a local-first desktop workspace: one worktree per task on your machine or your hosts, with review and merge in the app. Teams that pair on agent runs or need an always-on runner should try AQ. Developers who want a fast local loop and pull request review should try Superset. Running the same task in both is the quickest test.
+
+## Frequently Asked Questions
+
+### What is the best AQ alternative?
+
+If you want to keep agents on your own machines, Superset is a close alternative: same worktree-per-task model, with desktop review and pull requests. If you want cloud agents run by a model vendor, look at Cursor or Codex cloud agents.
+
+### What is the best Orca alternative for teams?
+
+It depends on what "team" means. For live shared sessions on a cloud VM, AQ fits. For shared remote hosts with per-member access, a team run history for automations, and Enterprise SSO and SCIM, Superset fits. See [Orca alternatives](/compare/orca-alternative) and [Superset vs Orca](/compare/superset-vs-orca).
+
+### Does AQ use Git worktrees?
+
+Yes. Each AQ workspace is a Git worktree on its own branch, on the runner VM. Superset also uses one worktree per workspace, on your machine or a host you add.
+
+### Is AQ open source?
+
+AQ does not describe itself as open source; its site states all rights reserved. Superset is source-available under Elastic License 2.0, which is not OSI open source.
+
+### Does either tool charge for model usage?
+
+Neither marks up your own agent subscriptions. Superset never proxies model calls. AQ's built-in AQ Composer agent uses included credits, then per-token prices.

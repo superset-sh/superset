@@ -59,7 +59,7 @@ You can do everything with plain `git worktree add`, `git worktree list`, and `g
 
 **Claude Code `--worktree`.** If Claude Code is your only agent, start here. `claude --worktree feature-auth` (or `-w`) creates a worktree under `.claude/worktrees/` on a new branch and starts the session in it. A `.worktreeinclude` file copies gitignored files such as `.env` into each new worktree. On exit, Claude Code removes a clean, unnamed worktree and asks before it removes one with changes. Custom subagents can set `isolation: worktree`. See the [Claude Code worktree docs](https://code.claude.com/docs/en/worktrees).
 
-**Worktrunk (`wt`).** A worktree manager built for running several agents. `wt switch -c -x claude feat` creates a worktree and starts an agent in it, `wt list` shows them, `wt merge main` merges, and `wt remove` cleans up. Hooks run commands on create and merge, and a `hash_port` template filter gives each worktree its own dev-server port. See [worktrunk.dev](https://worktrunk.dev).
+**Worktrunk (`wt`).** A worktree manager built for running several agents. `wt switch -c -x claude feat` creates a worktree and starts an agent in it, `wt list` shows them, `wt merge main` merges, and `wt remove` cleans up. Hooks run commands on create and merge, and a `hash_port` template filter gives each worktree its own dev-server port. See [worktrunk.dev](https://worktrunk.dev) and [Superset vs Worktrunk](/compare/superset-vs-worktrunk).
 
 **Claude Squad.** An open-source terminal app that pairs a worktree per agent with a tmux session per agent, driven from one TUI. Good if you live in the terminal and run a mix of agents. See [Superset vs Claude Squad](/compare/superset-vs-claude-squad).
 

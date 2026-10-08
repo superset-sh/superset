@@ -1,0 +1,106 @@
+---
+title: "Superset vs RunPane (2026): Windows, Licenses, and Review Workflow"
+description: "Compare Superset and RunPane (Pane by Dcouple) for parallel coding agents: platforms, license, remote hosts, phone access, review, and pricing."
+date: 2026-10-07
+lastUpdated: 2026-10-07
+type: "1v1"
+competitors:
+  - runpane
+keywords:
+  - superset vs runpane
+  - runpane vs superset
+  - runpane alternative
+  - pane alternative
+  - pane by dcouple
+  - open source agent manager
+  - worktree agent workspace
+---
+
+Superset and RunPane both run CLI coding agents in parallel, one Git worktree per task, with diff review in a desktop app. RunPane is free, open source under AGPL-3.0, and runs on Windows, macOS, and Linux. Superset runs on macOS and an experimental Linux build, and adds a PR pane, a browser pane with Design Mode, scheduled automations, team host access, and an iPhone app on paid plans. If you need Windows or an OSI license, choose RunPane. If you want PR review, automations, and team features in one app, try Superset.
+
+## At a Glance
+
+| Requirement | Superset | RunPane |
+|---|---|---|
+| Parallel work | One workspace per task, each with its own Git worktree and branch | One pane per task, each with its own Git worktree and branch |
+| Agents | Any CLI agent | Any CLI agent; Claude Code, Codex, and Cursor built in |
+| Desktop | macOS; experimental Linux AppImage; no Windows | Windows (x64 and ARM64), macOS, Linux, and repos inside WSL |
+| Git and review | Changes pane commits, pushes, and opens PRs; PR pane with checks, review threads, and merge | Diff viewer; commit, push, pull, rebase, squash, and merge from keyboard shortcuts |
+| Browser | Browser pane with Design Mode: pick an element and send it to an agent | In-app browser tab with DevTools |
+| Orchestration | CLI, TypeScript SDK, and MCP server | Sessions orchestrator chat, `runpane` CLI, and MCP server |
+| Scheduling | Pro automations with run history and retry | Agent loops through the CLI; see their docs |
+| Remote hosts | Hosts connected through a relay, with access granted per member (Pro) | Self-hosted Remote Pane daemon over Tailscale, SSH tunnel, or HTTPS |
+| Phone | iPhone app on the App Store, iOS 26+, Pro; Android waitlist | Remote Pane browser app (PWA); native companion app in early access |
+| Account | Sign-in required | No account required |
+| Pricing | Free; Pro $20 per user/month or $15 billed yearly; Enterprise custom | Free; no paid plan |
+| License | Source-available, Elastic License 2.0 | Open source, AGPL-3.0 |
+
+## What Is RunPane?
+
+RunPane is the site for Pane, a desktop app from Dcouple Inc. Its [homepage](https://runpane.com) calls it "a keyboard-first desktop app for running AI coding agents in parallel." Each pane is a Git worktree with tabs for agent terminals, plain terminals, an in-app browser, file diffs, and logs. Pane reads setup, run, and archive scripts from `pane.json` or `conductor.json`.
+
+Pane also ships Sessions, an orchestrator chat that runs Claude Code, Codex, or Cursor, splits work into panes, and tracks the resulting PRs. The [pricing page](https://runpane.com/pricing.md) says Pane and the self-hosted Remote Pane daemon are free, with no paid plan. The source is on [GitHub](https://github.com/greenfield-inc/Pane) under AGPL-3.0.
+
+## Does Superset or RunPane run on Windows?
+
+RunPane does. It ships Windows x64 and ARM64 builds, and it opens repos inside WSL. Superset runs on macOS, with an experimental Linux AppImage. Superset has no Windows build. If your team develops on Windows, this decides it.
+
+## Which one is better for reviewing agent work?
+
+Both show diffs per task. RunPane puts Git actions on keyboard shortcuts, including rebase and squash, and shows a commit history graph. Superset is a full GUI built around the pull request. The Changes pane commits, pushes, and opens a PR. The PR pane shows checks and review threads next to the diff, and you can merge from it. If your team reviews on GitHub pull requests, Superset keeps that loop inside the app. If you prefer a keyboard-first Git flow, RunPane fits better.
+
+## How do remote hosts and phone access compare?
+
+RunPane's Remote Pane is a self-hosted daemon. The host owns the repos, worktrees, and agent processes, and the UI runs on desktop Pane or a browser app. You connect over Tailscale, SSH tunnels, or HTTPS. A native phone app is in early access, and RunPane also points users to Claude Code's Remote Control.
+
+Superset connects hosts through a relay, and on Pro an admin can grant access to a host per team member. The [iPhone app](/mobile) is on the App Store. It needs iOS 26 or later and Pro. From it you can check on agents, send instructions, and review diffs, and a Lock Screen Live Activity shows agent progress. Native iPad support and iPhone push notifications are coming. Android is on the waitlist.
+
+## Can either one run agents on a schedule?
+
+Superset Pro has [automations](/blog/scheduled-agent-maintenance): an agent runs on a schedule on a host you pick, with run history and retry for failed runs. RunPane supports agent loops that you drive with its CLI, MCP server, or Sessions. See [their docs](https://runpane.com/agent-loops) for how to schedule them.
+
+## Do you need to pay?
+
+RunPane is free with no paid tier. Superset has a Free plan for one user. Pro costs $20 per user per month, or $15 billed yearly, and adds remote access, automations, the iPhone app, and GitHub, Linear, and Slack integrations. Enterprise pricing is custom. See [pricing](/pricing). With both tools you still pay your model provider. Superset never proxies model calls.
+
+## Choose RunPane if
+
+- You work on Windows or in WSL.
+- You need an OSI-approved open source license (AGPL-3.0).
+- You do not want to create an account.
+- You want an orchestrator chat that creates and watches panes for you.
+- You prefer keyboard shortcuts for every Git action.
+
+## Choose Superset if
+
+- You review agent work as GitHub pull requests and want checks, threads, and merge in the same app.
+- You want a browser pane with Design Mode to send UI elements to an agent.
+- You want scheduled automations with run history and retry.
+- Your team shares hosts and needs per-member access.
+- You want a native iPhone app on the App Store.
+
+## Verdict
+
+RunPane is a strong, free choice, and it is the clear pick for Windows users and teams that require AGPL-3.0. Superset is the better fit for Mac teams that review through pull requests and want automations, shared hosts, and an iPhone app in one product. The fastest way to decide is to run the same task with the same agent in both, then compare the review step. The [parallel-task guide](/blog/parallel-coding-agents-guide) has prompts you can use.
+
+## Frequently Asked Questions
+
+### Is RunPane open source?
+
+Yes. Pane is open source under AGPL-3.0, and the code is on GitHub. Superset is source-available under Elastic License 2.0, which is not an OSI-approved license.
+
+### Does Superset run on Windows?
+
+No. Superset runs on macOS, with an experimental Linux AppImage. RunPane runs on Windows, macOS, and Linux.
+
+### Do Superset and RunPane support the same agents?
+
+Mostly. Both run any CLI coding agent, such as Claude Code, Codex, OpenCode, Aider, or Gemini CLI. RunPane builds in session resume for Claude Code, Codex, and Cursor.
+
+### Do worktrees sandbox the agent?
+
+No. In both tools a worktree gives each task its own files and branch. It does not limit what the agent process can do on the machine, and combined changes can still conflict.
+
+### Is RunPane the same as Pane?
+
+Yes. RunPane by Dcouple is the website and company name for Pane, the desktop app. The CLI is called `runpane`.
