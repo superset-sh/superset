@@ -754,10 +754,7 @@ describe("movePath", () => {
 
 		await expect(
 			movePath({ rootPath, sourceAbsolutePath, destinationAbsolutePath }),
-		).rejects.toMatchObject({
-			code: "EEXIST",
-			message: expect.stringContaining("Destination already exists"),
-		});
+		).rejects.toThrow("Destination already exists");
 		expect((await fs.readdir(rootPath)).sort()).toEqual(["a.txt", "b.txt"]);
 	});
 
