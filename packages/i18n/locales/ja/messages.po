@@ -2147,6 +2147,9 @@ msgstr "ローカルブランチも削除"
 msgid "Also delete the local git branch when deleting a worktree workspace"
 msgstr "ワークツリーワークスペースを削除するときにローカルのgitブランチも削除する"
 
+msgid "Also viewing this page"
+msgstr "このページを見ている他のユーザー"
+
 msgid "Also: @superset/ui/ai-elements/braille-spinner"
 msgstr "その他: @superset/ui/ai-elements/braille-spinner"
 
@@ -7941,6 +7944,9 @@ msgstr "グロース"
 
 msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "GTM・AI自動化アーキテクト、Mistral AI"
+
+msgid "Guest"
+msgstr "ゲスト"
 
 msgid "Guide"
 msgstr "ガイド"

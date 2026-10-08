@@ -2,13 +2,15 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
-import { PageFrame } from "@superset/ui/page-comments";
+import { PageViewers } from "@superset/ui/page-comments";
 import { Globe } from "lucide-react";
 import Link from "next/link";
 import { OpenInSupersetButton } from "../OpenInSupersetButton";
+import { PublicPageFrame } from "./components/PublicPageFrame";
 import { ReportPageDialog } from "./components/ReportPageDialog";
 
 interface PublicPageViewProps {
+	pageId: string;
 	title: string;
 	viewUrl: string;
 	slug: string;
@@ -16,6 +18,7 @@ interface PublicPageViewProps {
 }
 
 export function PublicPageView({
+	pageId,
 	title,
 	viewUrl,
 	slug,
@@ -32,6 +35,7 @@ export function PublicPageView({
 				/>
 				<span className="min-w-0 truncate font-medium text-sm">{title}</span>
 				<div className="ml-auto flex shrink-0 items-center gap-1">
+					<PageViewers pageId={pageId} className="mr-1" />
 					<ReportPageDialog slug={slug} signedIn={signedIn} />
 					{signedIn ? (
 						<OpenInSupersetButton slug={slug} />
@@ -51,7 +55,7 @@ export function PublicPageView({
 			</div>
 
 			<main className="min-h-0 flex-1">
-				<PageFrame src={viewUrl} title={title} />
+				<PublicPageFrame pageId={pageId} src={viewUrl} title={title} />
 			</main>
 
 			<footer className="shrink-0 border-t px-3 py-1.5 text-center text-[11px] text-muted-foreground">

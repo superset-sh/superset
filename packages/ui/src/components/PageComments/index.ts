@@ -31,6 +31,8 @@ export {
 	type PageVisibility,
 	RenamePageDialog,
 } from "./components/PageHeader";
+export { PagePresence } from "./components/PagePresence";
+export { PageViewers } from "./components/PageViewers";
 export { useFramePointerDown } from "./hooks/useFramePointerDown";
 export { usePageStorageConnect } from "./hooks/usePageStorageConnect";
 export {

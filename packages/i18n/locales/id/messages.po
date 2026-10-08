@@ -2147,6 +2147,9 @@ msgstr "Hapus juga branch lokal"
 msgid "Also delete the local git branch when deleting a worktree workspace"
 msgstr "Hapus juga branch git lokal saat menghapus workspace worktree"
 
+msgid "Also viewing this page"
+msgstr "Juga melihat halaman ini"
+
 msgid "Also: @superset/ui/ai-elements/braille-spinner"
 msgstr "Juga: @superset/ui/ai-elements/braille-spinner"
 
@@ -7941,6 +7944,9 @@ msgstr "Pertumbuhan"
 
 msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "Arsitek GTM & Otomatisasi AI, Mistral AI"
+
+msgid "Guest"
+msgstr "Tamu"
 
 msgid "Guide"
 msgstr "Panduan"

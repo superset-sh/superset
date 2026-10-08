@@ -5,6 +5,7 @@ import {
 	PageHeader,
 	type PageHeaderPage,
 	type PageHeaderVersion,
+	PageViewers,
 } from "@superset/ui/page-comments";
 import { useMutation } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
@@ -49,6 +50,7 @@ export function PageHeaderBar({
 			previewVersion={previewVersion}
 			trailing={
 				<>
+					<PageViewers pageId={page.id} className="mr-1" />
 					<OpenInSupersetButton slug={slug} />
 					<PageWatchBadge
 						slug={slug}

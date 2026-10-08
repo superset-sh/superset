@@ -157,6 +157,7 @@ export function PageViewer({
 				<div className="relative flex min-h-0 w-full flex-1">
 					<div className="min-h-0 min-w-0 flex-1">
 						<PageCommentsView
+							pageId={resolvedPageId}
 							pinchZoomEnabled
 							src={pull.data.viewUrl}
 							title={resolvedTitle}

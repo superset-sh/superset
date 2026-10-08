@@ -2147,6 +2147,9 @@ msgstr "Yerel dalları da sil"
 msgid "Also delete the local git branch when deleting a worktree workspace"
 msgstr "Bir worktree çalışma alanını silerken yerel git dalını da sil"
 
+msgid "Also viewing this page"
+msgstr "Bu sayfayı görüntüleyen diğer kişiler"
+
 msgid "Also: @superset/ui/ai-elements/braille-spinner"
 msgstr "Ayrıca: @superset/ui/ai-elements/braille-spinner"
 
@@ -7941,6 +7944,9 @@ msgstr "Büyüme"
 
 msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "GTM ve Yapay Zekâ Otomasyon Mimarı, Mistral AI"
+
+msgid "Guest"
+msgstr "Misafir"
 
 msgid "Guide"
 msgstr "Rehber"

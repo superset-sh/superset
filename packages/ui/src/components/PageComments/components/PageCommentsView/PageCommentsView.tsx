@@ -19,6 +19,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePageStorageConnect } from "../../hooks/usePageStorageConnect";
 import { useComments } from "../../providers/CommentProvider";
 import { PageFrame } from "../PageFrame";
+import { PagePresence } from "../PagePresence";
 import { CommentBubble, pinClassName } from "./components/CommentBubble";
 import { CommentPopover } from "./components/CommentPopover";
 import {
@@ -29,6 +30,7 @@ import {
 } from "./utils/pinLayout";
 
 interface PageCommentsViewProps {
+	pageId?: string;
 	/** The page's own origin, which serves it with the comment runtime injected. */
 	src: string;
 	title: string;
@@ -45,6 +47,7 @@ interface PageCommentsViewProps {
 }
 
 export function PageCommentsView({
+	pageId,
 	src,
 	title,
 	initialScrollY,
@@ -390,6 +393,13 @@ export function PageCommentsView({
 					);
 				})}
 			</div>
+
+			<PagePresence
+				pageId={pageId}
+				frameRef={frameRef}
+				frameOrigin={frameOrigin}
+				viewportRef={viewportRef}
+			/>
 
 			<div className="pointer-events-none absolute inset-0">
 				{draft && draftPoint ? (

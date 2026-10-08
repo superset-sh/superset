@@ -29,6 +29,7 @@ export function PageCommentsFrame({
 
 	return (
 		<PageCommentsView
+			pageId={pageId}
 			src={src}
 			title={title}
 			{...(previewing ? {} : { storageTicket })}

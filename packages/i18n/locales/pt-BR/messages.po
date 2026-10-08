@@ -2147,6 +2147,9 @@ msgstr "Excluir também as branches locais"
 msgid "Also delete the local git branch when deleting a worktree workspace"
 msgstr "Excluir também a branch local do git ao excluir uma área de trabalho com worktree"
 
+msgid "Also viewing this page"
+msgstr "Também estão vendo esta página"
+
 msgid "Also: @superset/ui/ai-elements/braille-spinner"
 msgstr "Também: @superset/ui/ai-elements/braille-spinner"
 
@@ -7941,6 +7944,9 @@ msgstr "Crescimento"
 
 msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "Arquiteto de GTM e automação com IA, Mistral AI"
+
+msgid "Guest"
+msgstr "Convidado"
 
 msgid "Guide"
 msgstr "Guia"

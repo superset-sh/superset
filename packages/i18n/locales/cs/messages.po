@@ -2147,6 +2147,9 @@ msgstr "Smazat i lokální větve"
 msgid "Also delete the local git branch when deleting a worktree workspace"
 msgstr "Při mazání pracovního prostoru s worktree smazat i lokální git větev"
 
+msgid "Also viewing this page"
+msgstr "Tuto stránku si také prohlížejí"
+
 msgid "Also: @superset/ui/ai-elements/braille-spinner"
 msgstr "Také: @superset/ui/ai-elements/braille-spinner"
 
@@ -7941,6 +7944,9 @@ msgstr "Růst"
 
 msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "Architekt GTM a automatizace AI, Mistral AI"
+
+msgid "Guest"
+msgstr "Host"
 
 msgid "Guide"
 msgstr "Průvodce"

@@ -2147,6 +2147,9 @@ msgstr "로컬 브랜치도 삭제"
 msgid "Also delete the local git branch when deleting a worktree workspace"
 msgstr "worktree 워크스페이스를 삭제할 때 로컬 git 브랜치도 함께 삭제합니다"
 
+msgid "Also viewing this page"
+msgstr "이 페이지를 함께 보는 사람"
+
 msgid "Also: @superset/ui/ai-elements/braille-spinner"
 msgstr "참고: @superset/ui/ai-elements/braille-spinner"
 
@@ -7941,6 +7944,9 @@ msgstr "성장"
 
 msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "GTM 및 AI 자동화 아키텍트, Mistral AI"
+
+msgid "Guest"
+msgstr "게스트"
 
 msgid "Guide"
 msgstr "가이드"

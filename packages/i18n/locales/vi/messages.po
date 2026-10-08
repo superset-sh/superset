@@ -2147,6 +2147,9 @@ msgstr "Xóa luôn nhánh cục bộ"
 msgid "Also delete the local git branch when deleting a worktree workspace"
 msgstr "Xóa luôn nhánh git cục bộ khi xóa một workspace worktree"
 
+msgid "Also viewing this page"
+msgstr "Cũng đang xem trang này"
+
 msgid "Also: @superset/ui/ai-elements/braille-spinner"
 msgstr "Ngoài ra: @superset/ui/ai-elements/braille-spinner"
 
@@ -7941,6 +7944,9 @@ msgstr "Tăng trưởng"
 
 msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "Kiến trúc sư GTM & tự động hóa AI, Mistral AI"
+
+msgid "Guest"
+msgstr "Khách"
 
 msgid "Guide"
 msgstr "Hướng dẫn"

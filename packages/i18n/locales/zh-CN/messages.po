@@ -2147,6 +2147,9 @@ msgstr "同时删除本地分支"
 msgid "Also delete the local git branch when deleting a worktree workspace"
 msgstr "删除worktree工作区时一并删除本地git分支"
 
+msgid "Also viewing this page"
+msgstr "也在查看此页面的人"
+
 msgid "Also: @superset/ui/ai-elements/braille-spinner"
 msgstr "另有：@superset/ui/ai-elements/braille-spinner"
 
@@ -7941,6 +7944,9 @@ msgstr "增长"
 
 msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "GTM 与 AI 自动化架构师，Mistral AI"
+
+msgid "Guest"
+msgstr "访客"
 
 msgid "Guide"
 msgstr "指南"
