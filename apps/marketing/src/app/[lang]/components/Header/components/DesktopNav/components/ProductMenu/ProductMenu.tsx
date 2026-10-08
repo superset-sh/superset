@@ -68,7 +68,13 @@ function ProductMenuItem({ link }: { link: NavLink }) {
 	return (
 		<li>
 			<NavigationMenuLink asChild className="gap-1 rounded-sm p-3">
-				<Link href={link.href}>
+				<Link
+					href={link.href}
+					{...(link.external && {
+						target: "_blank",
+						rel: "noopener noreferrer",
+					})}
+				>
 					<span className="flex items-center gap-2 font-medium text-foreground text-sm">
 						{link.label}
 						{link.badge && (

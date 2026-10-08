@@ -11802,6 +11802,9 @@ msgstr "Ya da kodlama ajanınızdan Superset CLI'yi kurmasını isteyin."
 msgid "Orange"
 msgstr "Turuncu"
 
+msgid "Orchestrate any coding agent."
+msgstr "Her kodlama ajanını orkestre edin."
+
 msgid "Orchestrate Parallel Agents"
 msgstr "Paralel ajanları orkestre edin"
 
@@ -12620,6 +12623,9 @@ msgstr "Üretim çalışması"
 
 msgid "Productivity"
 msgstr "Verimlilik"
+
+msgid "Products"
+msgstr "Ürünler"
 
 msgid "Profile name"
 msgstr "Profil adı"

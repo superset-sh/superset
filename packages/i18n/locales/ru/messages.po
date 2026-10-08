@@ -11802,6 +11802,9 @@ msgstr "Или попросите своего кодового агента у�
 msgid "Orange"
 msgstr "Оранжевый"
 
+msgid "Orchestrate any coding agent."
+msgstr "Оркестрируйте любого кодового агента."
+
 msgid "Orchestrate Parallel Agents"
 msgstr "Оркестрируйте параллельных агентов"
 
@@ -12620,6 +12623,9 @@ msgstr "Производственный цикл"
 
 msgid "Productivity"
 msgstr "Продуктивность"
+
+msgid "Products"
+msgstr "Продукты"
 
 msgid "Profile name"
 msgstr "Имя профиля"

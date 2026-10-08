@@ -11802,6 +11802,9 @@ msgstr "Hoặc bảo coding agent của bạn cài CLI Superset."
 msgid "Orange"
 msgstr "Cam"
 
+msgid "Orchestrate any coding agent."
+msgstr "Điều phối mọi coding agent."
+
 msgid "Orchestrate Parallel Agents"
 msgstr "Điều phối agent song song"
 
@@ -12620,6 +12623,9 @@ msgstr "Đợt sản xuất"
 
 msgid "Productivity"
 msgstr "Năng suất"
+
+msgid "Products"
+msgstr "Sản phẩm"
 
 msgid "Profile name"
 msgstr "Tên hồ sơ"

@@ -11802,6 +11802,9 @@ msgstr "Albo poproś swojego agenta kodującego o instalację CLI Superset."
 msgid "Orange"
 msgstr "Pomarańczowy"
 
+msgid "Orchestrate any coding agent."
+msgstr "Orkiestruj dowolnego agenta kodującego."
+
 msgid "Orchestrate Parallel Agents"
 msgstr "Orkiestruj równoległych agentów"
 
@@ -12620,6 +12623,9 @@ msgstr "Cykl produkcyjny"
 
 msgid "Productivity"
 msgstr "Produktywność"
+
+msgid "Products"
+msgstr "Produkty"
 
 msgid "Profile name"
 msgstr "Nazwa profilu"

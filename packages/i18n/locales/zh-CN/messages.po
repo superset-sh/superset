@@ -11802,6 +11802,9 @@ msgstr "或者让你的编码智能体安装Superset CLI。"
 msgid "Orange"
 msgstr "橙色"
 
+msgid "Orchestrate any coding agent."
+msgstr "编排任意编码智能体。"
+
 msgid "Orchestrate Parallel Agents"
 msgstr "编排并行智能体"
 
@@ -12620,6 +12623,9 @@ msgstr "生产运行"
 
 msgid "Productivity"
 msgstr "效率"
+
+msgid "Products"
+msgstr "产品"
 
 msgid "Profile name"
 msgstr "配置文件名称"

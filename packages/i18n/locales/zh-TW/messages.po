@@ -11802,6 +11802,9 @@ msgstr "或者讓你的編碼代理程式安裝Superset CLI。"
 msgid "Orange"
 msgstr "橙色"
 
+msgid "Orchestrate any coding agent."
+msgstr "編排任意編碼代理程式。"
+
 msgid "Orchestrate Parallel Agents"
 msgstr "編排並行代理程式"
 
@@ -12620,6 +12623,9 @@ msgstr "生產運行"
 
 msgid "Productivity"
 msgstr "效率"
+
+msgid "Products"
+msgstr "產品"
 
 msgid "Profile name"
 msgstr "配置檔名稱"

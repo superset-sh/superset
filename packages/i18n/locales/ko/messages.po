@@ -11802,6 +11802,9 @@ msgstr "또는 코딩 에이전트에게 Superset CLI를 설치해 달라고 하
 msgid "Orange"
 msgstr "주황"
 
+msgid "Orchestrate any coding agent."
+msgstr "어떤 코딩 에이전트든 오케스트레이션하세요."
+
 msgid "Orchestrate Parallel Agents"
 msgstr "병렬 에이전트 오케스트레이션"
 
@@ -12620,6 +12623,9 @@ msgstr "생산 실행"
 
 msgid "Productivity"
 msgstr "생산성"
+
+msgid "Products"
+msgstr "제품"
 
 msgid "Profile name"
 msgstr "프로필 이름"

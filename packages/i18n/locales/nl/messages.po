@@ -11802,6 +11802,9 @@ msgstr "Of vraag je coding agent om de Superset-CLI te installeren."
 msgid "Orange"
 msgstr "Oranje"
 
+msgid "Orchestrate any coding agent."
+msgstr "Orkestreer elke coding agent."
+
 msgid "Orchestrate Parallel Agents"
 msgstr "Parallelle agents orkestreren"
 
@@ -12620,6 +12623,9 @@ msgstr "Productieronde"
 
 msgid "Productivity"
 msgstr "Productiviteit"
+
+msgid "Products"
+msgstr "Producten"
 
 msgid "Profile name"
 msgstr "Profielnaam"
