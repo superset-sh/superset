@@ -258,6 +258,20 @@ describe("resolveTarget", () => {
 		);
 	});
 
+	test("an organization's plugin does not resolve for a caller in another organization", async () => {
+		install = {
+			...installed("organization-org-2", {
+				mcpUrl: "https://tools.acme.test/mcp",
+			}),
+			organizationId: "org-2",
+		};
+
+		await resolveTarget({ ...request, marketplace: "organization-org-2" }).then(
+			() => expect.unreachable("org-1 must not reach org-2's plugin"),
+			(error: PluginTargetError) => expect(error.status).toBe(404),
+		);
+	});
+
 	test("a plugin from another marketplace cannot redirect a connector's credential", async () => {
 		install = installed("community", {
 			connector: "neon_mcp",

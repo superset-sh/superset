@@ -17419,6 +17419,10 @@ msgstr "이 경로는 있지만 디렉터리가 아닙니다."
 msgid "This path is a directory"
 msgstr "이 경로는 디렉터리입니다"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.organizationPluginInvalid"
+msgstr "이 플러그인은 조직에 추가할 수 없습니다: {reason}"
+
 msgid "This port is still in use"
 msgstr "이 포트는 아직 사용 중입니다"
 

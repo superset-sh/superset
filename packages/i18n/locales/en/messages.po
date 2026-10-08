@@ -17419,6 +17419,10 @@ msgstr "This path exists, but it is not a directory."
 msgid "This path is a directory"
 msgstr "This path is a directory"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.organizationPluginInvalid"
+msgstr "This plugin cannot be added to the organization: {reason}"
+
 msgid "This port is still in use"
 msgstr "This port is still in use"
 

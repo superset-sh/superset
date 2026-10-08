@@ -17419,6 +17419,10 @@ msgstr "Bu yol mevcut, ancak bir dizin değil."
 msgid "This path is a directory"
 msgstr "Bu yol bir dizin"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.organizationPluginInvalid"
+msgstr "Bu eklenti kuruluşa eklenemiyor: {reason}"
+
 msgid "This port is still in use"
 msgstr "Bu port hâlâ kullanımda"
 

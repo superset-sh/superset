@@ -17419,6 +17419,10 @@ msgstr "Đường dẫn này tồn tại nhưng không phải thư mục."
 msgid "This path is a directory"
 msgstr "Đường dẫn này là một thư mục"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.organizationPluginInvalid"
+msgstr "Không thể thêm plugin này vào tổ chức: {reason}"
+
 msgid "This port is still in use"
 msgstr "Cổng này vẫn đang được dùng"
 
