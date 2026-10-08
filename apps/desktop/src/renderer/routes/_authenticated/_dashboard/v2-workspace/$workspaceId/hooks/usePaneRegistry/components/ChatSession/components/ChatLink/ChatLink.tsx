@@ -3,7 +3,6 @@ import { cn } from "@superset/ui/utils";
 import { type UseNavigateResult, useNavigate } from "@tanstack/react-router";
 import type { ComponentProps, MouseEvent } from "react";
 import { env } from "renderer/env.renderer";
-import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useChatPaneActions } from "../../providers/ChatPaneActionsProvider";
 import { unfurlLink } from "../../utils/linkUnfurl";
 import { LOCAL_PATH_PREFIX } from "../../utils/remarkLocalPathLinks";
@@ -38,7 +37,10 @@ function openInApp(
 			});
 			return;
 		case "workspace":
-			void navigateToV2Workspace(link.workspaceId, navigate);
+			void navigate({
+				to: "/cloud-workspaces/$workspaceId",
+				params: { workspaceId: link.workspaceId },
+			});
 	}
 }
 

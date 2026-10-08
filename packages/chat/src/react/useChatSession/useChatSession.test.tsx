@@ -431,11 +431,12 @@ describe("useChatSession", () => {
 		expect(session().snapshot.items.get("tool-1")?.item).toEqual(OMITTED_TOOL);
 
 		act(() => session().requestItemBodies(["tool-1"]));
-		await domWaitFor(() =>
-			expect(
-				(session().snapshot.items.get("tool-1")?.item as ToolCall).content,
-			).toEqual([{ type: "text", text: "a\nb" }]),
-		);
+		await domWaitFor(() => {
+			const tool = session().snapshot.items.get("tool-1")?.item as
+				| ToolCall
+				| undefined;
+			expect(tool?.content).toEqual([{ type: "text", text: "a\nb" }]);
+		});
 		view.unmount();
 		client.close();
 		await stack.runtime.dispose();
@@ -490,6 +491,38 @@ describe("useChatSession", () => {
 		await domWaitFor(() => expect(session().snapshot.pendingReset).toBeNull());
 		await Bun.sleep(20);
 		expect(session().snapshot.items.has("a2")).toBe(true);
+		view.unmount();
+		client.close();
+		await stack.runtime.dispose();
+	});
+
+	test("retries a failed body request after a backoff", async () => {
+		const stack = await startStack();
+		let failures = 1;
+		const omitted = withOmittedTool(stack.transport);
+		const transport = new Proxy(omitted, {
+			get: (target, prop, receiver) =>
+				prop === "getItemBodies"
+					? (input: { sessionId: string; itemIds: string[] }) =>
+							failures-- > 0
+								? Promise.reject(new Error("offline"))
+								: target.getItemBodies(input)
+					: Reflect.get(target, prop, receiver),
+		});
+		const manual = createManualWait();
+		const client = stack.makeClient({ transport });
+		const view = render(<Probe client={client} wait={manual.wait} />);
+		await domWaitFor(() => expect(session().status).toBe("ready"));
+
+		act(() => session().requestItemBodies(["tool-1"]));
+		await domWaitFor(() => expect(manual.pendingCount()).toBeGreaterThan(0));
+		act(() => manual.flush());
+		await domWaitFor(() => {
+			const tool = session().snapshot.items.get("tool-1")?.item as
+				| ToolCall
+				| undefined;
+			expect(tool?.content).toEqual([{ type: "text", text: "a\nb" }]);
+		});
 		view.unmount();
 		client.close();
 		await stack.runtime.dispose();

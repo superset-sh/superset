@@ -53,7 +53,7 @@ export function ToolCallRow({
 		// The translator names a command "Terminal" until the command itself
 		// arrives a beat later; "Running" says more in the meantime.
 		const label =
-			plugin && mcpServer
+			plugin && mcpServer && (!item.title || item.title.startsWith("mcp__"))
 				? mcpServer.tool
 				: running && command && item.title === "Terminal"
 					? t({ message: "Running" })

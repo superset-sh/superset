@@ -4,7 +4,11 @@ import type {
 	SessionSnapshot,
 	TurnGroup,
 } from "@superset/chat/core";
-import type { ApprovalRequest, Decision } from "@superset/chat/protocol";
+import type {
+	ApprovalRequest,
+	Decision,
+	ToolCall,
+} from "@superset/chat/protocol";
 import {
 	MessageScroller,
 	useMessageScroller,
@@ -161,9 +165,33 @@ export function Transcript({
 		return targets;
 	}, [approvals]);
 
+	const commandsInApprovals = useMemo(() => {
+		const ids = new Set<string>();
+		for (const approval of approvals) {
+			const target = approval.targetItemId
+				? snapshot.items.get(approval.targetItemId)?.item
+				: undefined;
+			if (
+				target?.kind === "tool_call" &&
+				(target as ToolCall).toolKind === "execute" &&
+				(target as ToolCall).title === approval.title
+			) {
+				ids.add(target.id);
+			}
+		}
+		return ids;
+	}, [approvals, snapshot.items]);
+
 	const rows = useMemo(
-		() => transcriptRows(groups, outbox, pendingApprovalTargets, findPageLinks),
-		[groups, outbox, pendingApprovalTargets],
+		() =>
+			transcriptRows(
+				groups,
+				outbox,
+				pendingApprovalTargets,
+				findPageLinks,
+				commandsInApprovals,
+			),
+		[groups, outbox, pendingApprovalTargets, commandsInApprovals],
 	);
 
 	const lastReplies = useMemo(() => lastReplyKeys(rows), [rows]);

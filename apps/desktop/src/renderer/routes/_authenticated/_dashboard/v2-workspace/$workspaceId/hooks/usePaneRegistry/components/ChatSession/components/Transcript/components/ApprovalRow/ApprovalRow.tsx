@@ -78,13 +78,24 @@ export function ApprovalRow({
 						pending ? "text-warning" : "text-muted-foreground",
 					)}
 				/>
-				<span className="font-medium">
-					{command ? (
-						<Trans>Run this command?</Trans>
-					) : (
-						<Trans>Allow this action?</Trans>
-					)}
-				</span>
+				{pending ? (
+					<span className="font-medium">
+						{command ? (
+							<Trans>Run this command?</Trans>
+						) : (
+							<Trans>Allow this action?</Trans>
+						)}
+					</span>
+				) : (
+					<span
+						className={cn(
+							"min-w-0 flex-1 truncate text-muted-foreground",
+							command && "font-mono text-[12.5px]",
+						)}
+					>
+						{item.title}
+					</span>
+				)}
 				{item.status === "stale" && (
 					<Badge className="ml-auto" variant="outline">
 						<Trans>Expired</Trans>

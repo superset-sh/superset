@@ -44,18 +44,12 @@ export type TranscriptRow =
 			message: string | undefined;
 	  };
 
-function commandAwaitingApproval(
-	tool: ToolCall,
-	pendingApprovalTargets: ReadonlySet<string>,
-): boolean {
-	return tool.toolKind === "execute" && pendingApprovalTargets.has(tool.id);
-}
-
 export function transcriptRows(
 	groups: readonly TurnGroup[],
 	outbox: readonly OutboxEntry[],
 	pendingApprovalTargets: ReadonlySet<string>,
 	findPageLinks: PageLinkFinder,
+	hiddenToolIds: ReadonlySet<string> = new Set(),
 ): TranscriptRow[] {
 	const rows: TranscriptRow[] = [];
 	const echoedClientIds = new Set<string>();
@@ -86,15 +80,7 @@ export function transcriptRows(
 				placeClock();
 			}
 			if (entry.kind === "item") {
-				if (
-					entry.item.kind === "tool_call" &&
-					commandAwaitingApproval(
-						entry.item as ToolCall,
-						pendingApprovalTargets,
-					)
-				) {
-					return;
-				}
+				if (hiddenToolIds.has(entry.item.id)) return;
 				const clientId =
 					entry.item.kind === "user_message"
 						? (entry.item as UserMessage).clientId
@@ -112,14 +98,12 @@ export function transcriptRows(
 				});
 				return;
 			}
-			const items = entry.items.filter(
-				(tool) => !commandAwaitingApproval(tool, pendingApprovalTargets),
-			);
+			const items = entry.items.filter((tool) => !hiddenToolIds.has(tool.id));
 			if (items.length === 0) return;
 			const pages = items.flatMap((tool) => links.fromTools.get(tool.id) ?? []);
 			push({
 				kind: "tool_run",
-				key: toolRunKey(group.turnId, items, index),
+				key: toolRunKey(group.turnId, entry.items, index),
 				groupStart,
 				items,
 				defaultCollapsed:

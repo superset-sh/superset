@@ -44,22 +44,29 @@ const defaultWait: Wait = (callback, delayMs) => {
 
 const SEED_TIMEOUT_MS = 10_000;
 const MAX_BODIES_PER_REQUEST = 100;
+const MAX_BODY_ATTEMPTS = 3;
 
 type Seed =
 	| { kind: "outline"; snapshot: SessionSnapshot }
 	| { kind: "page"; envelopes: Envelope[]; nextBefore: Cursor | null };
 
 function newerThan(
-	cursor: Cursor | null,
+	snapshot: SessionSnapshot,
 	envelopes: readonly Envelope[],
 ): Envelope[] {
-	return envelopes.filter((envelope) =>
-		isDurableEnvelope(envelope)
-			? !cursor ||
+	const cursor = snapshot.cursor;
+	return envelopes.filter((envelope) => {
+		if (isDurableEnvelope(envelope)) {
+			return (
+				!cursor ||
 				(envelope.cursor.epoch === cursor.epoch &&
 					envelope.cursor.seq > cursor.seq)
-			: isDeltaEnvelope(envelope),
-	);
+			);
+		}
+		if (!isDeltaEnvelope(envelope)) return false;
+		const stored = snapshot.items.get(envelope.delta.itemId);
+		return stored?.item.completedAtMs === undefined;
+	});
 }
 
 async function fetchSeed(
@@ -211,6 +218,11 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 	const requestedBodiesRef = useRef(new Set<string>());
 	const bodyQueueRef = useRef<string[]>([]);
 	const bodyFlushRef = useRef(false);
+	const bodyAttemptsRef = useRef(new Map<string, number>());
+	const seedGenerationRef = useRef(0);
+	const requestItemBodiesRef = useRef<(itemIds: readonly string[]) => void>(
+		() => {},
+	);
 
 	const requestItemBodies = useCallback(
 		(itemIds: readonly string[]) => {
@@ -225,31 +237,53 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 				bodyFlushRef.current = false;
 				const queued = bodyQueueRef.current;
 				bodyQueueRef.current = [];
+				const generation = seedGenerationRef.current;
+				const current = () =>
+					clientRef.current === client &&
+					seedGenerationRef.current === generation;
 				for (let i = 0; i < queued.length; i += MAX_BODIES_PER_REQUEST) {
 					const chunk = queued.slice(i, i + MAX_BODIES_PER_REQUEST);
-					const forget = () => {
-						for (const id of chunk) requestedBodiesRef.current.delete(id);
+					const retry = () => {
+						if (!current()) return;
+						const again: string[] = [];
+						for (const id of chunk) {
+							requestedBodiesRef.current.delete(id);
+							const attempts = (bodyAttemptsRef.current.get(id) ?? 0) + 1;
+							bodyAttemptsRef.current.set(id, attempts);
+							if (attempts < MAX_BODY_ATTEMPTS) again.push(id);
+						}
+						if (again.length === 0) return;
+						const attempt = bodyAttemptsRef.current.get(again[0] ?? "") ?? 1;
+						waitRef.current(
+							() => {
+								if (current()) requestItemBodiesRef.current(again);
+							},
+							DEFAULT_BACKOFF_INITIAL_MS * 2 ** attempt,
+						);
 					};
 					client.getItemBodies(chunk).then((result) => {
-						if (clientRef.current !== client) return;
-						if (!result.ok) return forget();
+						if (!current()) return;
+						if (!result.ok) return retry();
 						setSnapshot((prev) => withItemBodies(prev, result.items));
-					}, forget);
+					}, retry);
 				}
 			});
 		},
 		[client],
 	);
+	requestItemBodiesRef.current = requestItemBodies;
 
 	const applySeed = useCallback(
 		(seed: Seed, merge: boolean, arrived: readonly Envelope[] = []) => {
 			requestedBodiesRef.current = new Set();
+			bodyAttemptsRef.current = new Map();
+			seedGenerationRef.current += 1;
 			if (seed.kind === "outline") {
 				nextBeforeRef.current = null;
 				setHasOlder(false);
 				const seeded = reduceMany(
 					seed.snapshot,
-					newerThan(seed.snapshot.cursor, arrived),
+					newerThan(seed.snapshot, arrived),
 				);
 				setSnapshot(seeded);
 				return seeded;
