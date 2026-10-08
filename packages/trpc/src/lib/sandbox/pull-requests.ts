@@ -11,7 +11,7 @@ import { nudge } from "../realtime";
 import { sandboxHostSecretFor } from "./access";
 
 export type ReportSandboxPullRequestsOutcome =
-	| "ok"
+	| { ignored: string[] }
 	| "unauthorized"
 	| "unknown";
 
@@ -22,7 +22,11 @@ export type ReportSandboxPullRequestsOutcome =
 export async function reportSandboxPullRequests(args: {
 	workspaceId: string;
 	presentedSecret: string;
-	pullRequests: readonly { repository: string; number: number }[];
+	pullRequests: readonly {
+		repository: string;
+		number: number;
+		linkedAt?: number;
+	}[];
 }): Promise<ReportSandboxPullRequestsOutcome> {
 	const expected = Buffer.from(await sandboxHostSecretFor(args.workspaceId));
 	const presented = Buffer.from(args.presentedSecret);
@@ -57,21 +61,27 @@ export async function reportSandboxPullRequests(args: {
 	const repositoryIdByName = new Map(
 		repositories.map((row) => [row.fullName.toLowerCase(), row.id]),
 	);
+	const ignored = new Set<string>();
 	const rows = args.pullRequests.flatMap((pullRequest) => {
 		const repositoryId = repositoryIdByName.get(
 			pullRequest.repository.toLowerCase(),
 		);
-		return repositoryId
-			? [
-					{
-						cloudWorkspaceId: args.workspaceId,
-						repositoryId,
-						prNumber: pullRequest.number,
-					},
-				]
-			: [];
+		if (!repositoryId) {
+			ignored.add(pullRequest.repository);
+			return [];
+		}
+		return [
+			{
+				cloudWorkspaceId: args.workspaceId,
+				repositoryId,
+				prNumber: pullRequest.number,
+				...(pullRequest.linkedAt && {
+					linkedAt: new Date(pullRequest.linkedAt),
+				}),
+			},
+		];
 	});
-	if (rows.length === 0) return "ok";
+	if (rows.length === 0) return { ignored: [...ignored] };
 
 	const inserted = await db
 		.insert(cloudWorkspacePullRequests)
@@ -81,5 +91,5 @@ export async function reportSandboxPullRequests(args: {
 	if (inserted.length > 0) {
 		nudge(workspace.organizationId, "cloud_workspaces");
 	}
-	return "ok";
+	return { ignored: [...ignored] };
 }

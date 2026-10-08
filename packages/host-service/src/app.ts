@@ -121,7 +121,7 @@ export interface CreateAppResult {
 	resumeCrashedAgents: () => Promise<void>;
 	/** Every PR any workspace on this host has linked, for the sandbox's own reporter. */
 	readLinkedPullRequests: () => Promise<
-		{ repository: string; number: number }[]
+		{ repository: string; number: number; linkedAt: number }[]
 	>;
 	terminalAgentStore: TerminalAgentStore;
 	dispose: () => Promise<void>;

@@ -89,7 +89,9 @@ records it in `cloud_workspace_pull_requests` for the repositories the
 workspace checked out. State still comes from `github_pull_requests`. A PR
 reaches the table at most a sweep of the PR runtime (5 minutes) plus a poll
 after it is opened. Reaches a box only through a host-service release.
-**Open:** no client reads the table yet.
+**Open:** no client reads the table yet. A repository renamed or transferred
+after the box linked a PR is reported under its old name; the API answers with
+it in `ignored` and the link is lost.
 
 **Nobody on the box knows who is in it.** A host is one person's machine, so
 a workspace row implies its owner and the sidebar never had to say. A cloud

@@ -6,7 +6,8 @@ const bodySchema = z.object({
 		.array(
 			z.object({
 				repository: z.string().regex(/^[^/\s]+\/[^/\s]+$/),
-				number: z.number().int().positive(),
+				number: z.number().int().positive().max(2_147_483_647),
+				linkedAt: z.number().int().positive().optional(),
 			}),
 		)
 		.max(200),
@@ -27,16 +28,16 @@ export async function POST(
 	if (!parsed.success) {
 		return Response.json({ error: "invalid body" }, { status: 400 });
 	}
-	const outcome = await reportSandboxPullRequests({
+	const result = await reportSandboxPullRequests({
 		workspaceId,
 		presentedSecret: presented,
 		pullRequests: parsed.data.pullRequests,
 	});
-	if (outcome === "unauthorized") {
+	if (result === "unauthorized") {
 		return Response.json({ error: "unauthorized" }, { status: 401 });
 	}
-	if (outcome === "unknown") {
+	if (result === "unknown") {
 		return Response.json({ error: "unknown workspace" }, { status: 404 });
 	}
-	return Response.json({ ok: true });
+	return Response.json({ ok: true, ignored: result.ignored });
 }

@@ -1023,6 +1023,9 @@ export const cloudWorkspacePullRequests = pgTable(
 			name: "cloud_workspace_pull_requests_pk",
 			columns: [table.cloudWorkspaceId, table.repositoryId, table.prNumber],
 		}),
+		index("cloud_workspace_pull_requests_repository_id_idx").on(
+			table.repositoryId,
+		),
 	],
 );
 

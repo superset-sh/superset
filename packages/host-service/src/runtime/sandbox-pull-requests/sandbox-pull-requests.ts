@@ -4,6 +4,7 @@ const MAX_FAILURE_WAIT_MS = 5 * 60 * 1000;
 interface LinkedPullRequest {
 	repository: string;
 	number: number;
+	linkedAt: number;
 }
 
 const keyOf = (pullRequest: LinkedPullRequest) =>
@@ -27,6 +28,7 @@ export function startSandboxPullRequestReporter(args: {
 	const report = async () => {
 		const unsent = (await args.read()).filter((pr) => !sent.has(keyOf(pr)));
 		if (unsent.length === 0) return;
+		const batch = unsent.slice(0, 200);
 		const response = await fetch(
 			`${args.apiUrl}/api/cloud-workspaces/${args.workspaceId}/pull-requests`,
 			{
@@ -35,13 +37,21 @@ export function startSandboxPullRequestReporter(args: {
 					authorization: `Bearer ${args.hostSecret}`,
 					"content-type": "application/json",
 				},
-				body: JSON.stringify({ pullRequests: unsent.slice(0, 200) }),
+				body: JSON.stringify({ pullRequests: batch }),
 				signal: AbortSignal.timeout(10_000),
 			},
 		);
 		if (!response.ok) throw new Error(`answered ${response.status}`);
-		for (const pullRequest of unsent.slice(0, 200))
-			sent.add(keyOf(pullRequest));
+		for (const pullRequest of batch) sent.add(keyOf(pullRequest));
+		const { ignored } = (await response.json().catch(() => ({}))) as {
+			ignored?: string[];
+		};
+		if (ignored?.length) {
+			console.warn(
+				"[sandbox-pull-requests] not this workspace's repositories:",
+				ignored.join(", "),
+			);
+		}
 	};
 
 	const run = async () => {
