@@ -12116,6 +12116,9 @@ msgstr "暫停"
 msgid "Pause automation"
 msgstr "暫停自動化"
 
+msgid "Pause the animation"
+msgstr "暫停動畫"
+
 msgid "Pause the nightly cleanup automation"
 msgstr "暫停每晚的清理自動化"
 
@@ -12324,6 +12327,9 @@ msgstr "播放{label}"
 
 msgid "Play a sound when tasks complete"
 msgstr "任務完成時播放聲音"
+
+msgid "Play the animation"
+msgstr "播放動畫"
 
 msgid "Play the Superset Pages demo"
 msgstr "播放 Superset 頁面示範"

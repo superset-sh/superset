@@ -12116,6 +12116,9 @@ msgstr "Tạm dừng"
 msgid "Pause automation"
 msgstr "Tạm dừng tự động hóa"
 
+msgid "Pause the animation"
+msgstr "Tạm dừng hoạt ảnh"
+
 msgid "Pause the nightly cleanup automation"
 msgstr "Tạm dừng tự động hóa dọn dẹp hằng đêm"
 
@@ -12324,6 +12327,9 @@ msgstr "Phát {label}"
 
 msgid "Play a sound when tasks complete"
 msgstr "Phát âm thanh khi tác vụ hoàn tất"
+
+msgid "Play the animation"
+msgstr "Phát hoạt ảnh"
 
 msgid "Play the Superset Pages demo"
 msgstr "Phát bản demo Superset Trang"

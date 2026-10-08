@@ -12116,6 +12116,9 @@ msgstr "Pozastavit"
 msgid "Pause automation"
 msgstr "Pozastavit automatizaci"
 
+msgid "Pause the animation"
+msgstr "Pozastavit animaci"
+
 msgid "Pause the nightly cleanup automation"
 msgstr "Pozastav noční úklidovou automatizaci"
 
@@ -12324,6 +12327,9 @@ msgstr "Přehrát {label}"
 
 msgid "Play a sound when tasks complete"
 msgstr "Přehrát zvuk po dokončení úkolů"
+
+msgid "Play the animation"
+msgstr "Přehrát animaci"
 
 msgid "Play the Superset Pages demo"
 msgstr "Přehrát ukázku Superset Stránky"

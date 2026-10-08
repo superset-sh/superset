@@ -12116,6 +12116,9 @@ msgstr "Pausar"
 msgid "Pause automation"
 msgstr "Pausar automação"
 
+msgid "Pause the animation"
+msgstr "Pausar a animação"
+
 msgid "Pause the nightly cleanup automation"
 msgstr "Pause a automação de limpeza noturna"
 
@@ -12324,6 +12327,9 @@ msgstr "Reproduzir {label}"
 
 msgid "Play a sound when tasks complete"
 msgstr "Toca um som quando as tarefas terminam"
+
+msgid "Play the animation"
+msgstr "Reproduzir a animação"
 
 msgid "Play the Superset Pages demo"
 msgstr "Reproduzir a demo do Superset Páginas"
@@ -14819,7 +14825,7 @@ msgid "Share"
 msgstr "Compartilhar"
 
 msgid "Share agent work as a link your team can comment on."
-msgstr "Compartilhe o trabalho do agente como um link que sua equipe pode comentar."
+msgstr "Compartilhe o trabalho do agente como um link para sua equipe comentar."
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Compartilhe designs e relatórios. Deixe seu agente cuidar do feedback."
@@ -18881,7 +18887,7 @@ msgid "Your agent publishes its work as a page. Your team comments on it, and th
 msgstr "Seu agente publica o trabalho como uma página. Sua equipe comenta e o agente faz as mudanças."
 
 msgid "Your agent's work, as a link your team can comment on."
-msgstr "O trabalho do seu agente, como um link que sua equipe pode comentar."
+msgstr "O trabalho do seu agente, como um link para sua equipe comentar."
 
 msgid "Your Agents, Your Accounts"
 msgstr "Seus agentes, suas contas"

@@ -12116,6 +12116,9 @@ msgstr "Pauzeren"
 msgid "Pause automation"
 msgstr "Automatisering pauzeren"
 
+msgid "Pause the animation"
+msgstr "Animatie pauzeren"
+
 msgid "Pause the nightly cleanup automation"
 msgstr "Pauzeer de nachtelijke opschoonautomatisering"
 
@@ -12324,6 +12327,9 @@ msgstr "{label} afspelen"
 
 msgid "Play a sound when tasks complete"
 msgstr "Speel een geluid af wanneer taken klaar zijn"
+
+msgid "Play the animation"
+msgstr "Animatie afspelen"
 
 msgid "Play the Superset Pages demo"
 msgstr "Speel de demo van Superset Pagina's af"

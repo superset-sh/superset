@@ -12116,6 +12116,9 @@ msgstr "Pausieren"
 msgid "Pause automation"
 msgstr "Automatisierung pausieren"
 
+msgid "Pause the animation"
+msgstr "Animation pausieren"
+
 msgid "Pause the nightly cleanup automation"
 msgstr "Pausiere die nächtliche Aufräum-Automatisierung"
 
@@ -12324,6 +12327,9 @@ msgstr "{label} abspielen"
 
 msgid "Play a sound when tasks complete"
 msgstr "Einen Ton abspielen, wenn Aufgaben fertig sind"
+
+msgid "Play the animation"
+msgstr "Animation abspielen"
 
 msgid "Play the Superset Pages demo"
 msgstr "Demo von Superset Seiten abspielen"
@@ -18556,7 +18562,7 @@ msgid "Works when environments are clean. Environments are rarely clean."
 msgstr "Funktioniert, wenn die Umgebungen sauber sind. Umgebungen sind selten sauber."
 
 msgid "Works with any agent"
-msgstr "Funktioniert mit jedem Agent"
+msgstr "Funktioniert mit jedem Agenten"
 
 msgid "workspace"
 msgstr "Arbeitsbereich"

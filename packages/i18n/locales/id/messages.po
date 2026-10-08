@@ -12116,6 +12116,9 @@ msgstr "Jeda"
 msgid "Pause automation"
 msgstr "Jeda otomatisasi"
 
+msgid "Pause the animation"
+msgstr "Jeda animasi"
+
 msgid "Pause the nightly cleanup automation"
 msgstr "Jeda otomatisasi pembersihan malam"
 
@@ -12324,6 +12327,9 @@ msgstr "Putar {label}"
 
 msgid "Play a sound when tasks complete"
 msgstr "Bunyikan suara saat tugas selesai"
+
+msgid "Play the animation"
+msgstr "Putar animasi"
 
 msgid "Play the Superset Pages demo"
 msgstr "Putar demo Halaman Superset"

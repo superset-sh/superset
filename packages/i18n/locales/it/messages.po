@@ -12116,6 +12116,9 @@ msgstr "Metti in pausa"
 msgid "Pause automation"
 msgstr "Metti in pausa l'automazione"
 
+msgid "Pause the animation"
+msgstr "Metti in pausa l'animazione"
+
 msgid "Pause the nightly cleanup automation"
 msgstr "Metti in pausa l'automazione di pulizia notturna"
 
@@ -12324,6 +12327,9 @@ msgstr "Riproduci {label}"
 
 msgid "Play a sound when tasks complete"
 msgstr "Riproduci un suono al completamento dei task"
+
+msgid "Play the animation"
+msgstr "Riproduci l'animazione"
 
 msgid "Play the Superset Pages demo"
 msgstr "Riproduci la demo di Superset Pagine"

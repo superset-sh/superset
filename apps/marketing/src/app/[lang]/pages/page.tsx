@@ -1,14 +1,14 @@
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { getI18nInstance } from "@superset/i18n/server";
-import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { CTASection } from "@/app/[lang]/components/CTASection";
 import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { HowItWorks } from "./components/HowItWorks";
 import { PagesDemoVideo } from "./components/PagesDemoVideo";
+import { PagesHeroActions } from "./components/PagesHeroActions";
+import { PagesHeroVideo } from "./components/PagesHeroVideo";
 import { FEATURES } from "./constants";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -27,7 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function PagesPage() {
-	const lang = await initServerI18n();
+	await initServerI18n();
 	const { t } = useLingui();
 
 	return (
@@ -49,35 +49,9 @@ export default async function PagesPage() {
 								it, and the agent makes the changes.
 							</Trans>
 						</p>
-						<div className="mt-8 flex flex-wrap items-center gap-3">
-							<Link
-								href={lang === "en" ? "/download" : `/${lang}/download`}
-								className="bg-foreground px-5 py-2.5 text-background text-sm transition-opacity hover:opacity-90"
-							>
-								<Trans>Download Superset</Trans>
-							</Link>
-							<a
-								href={`${COMPANY.DOCS_URL}/pages`}
-								className="border border-border px-5 py-2.5 text-foreground text-sm transition-colors hover:bg-muted"
-							>
-								<Trans>Read the docs</Trans>
-							</a>
-						</div>
+						<PagesHeroActions />
 					</div>
-					<div
-						aria-hidden="true"
-						className="mt-14 overflow-hidden border border-border bg-[#141414]"
-					>
-						<video
-							src="/pages/hero.mp4"
-							poster="/pages/hero-poster.webp"
-							autoPlay
-							loop
-							muted
-							playsInline
-							className="block aspect-[1600/838] w-full"
-						/>
-					</div>
+					<PagesHeroVideo />
 				</section>
 
 				<section className="mt-24 sm:mt-32">

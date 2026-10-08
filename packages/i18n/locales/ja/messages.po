@@ -12116,6 +12116,9 @@ msgstr "一時停止"
 msgid "Pause automation"
 msgstr "オートメーションを一時停止"
 
+msgid "Pause the animation"
+msgstr "アニメーションを一時停止"
+
 msgid "Pause the nightly cleanup automation"
 msgstr "夜間クリーンアップのオートメーションを一時停止して"
 
@@ -12324,6 +12327,9 @@ msgstr "{label}を再生"
 
 msgid "Play a sound when tasks complete"
 msgstr "タスク完了時にサウンドを再生"
+
+msgid "Play the animation"
+msgstr "アニメーションを再生"
 
 msgid "Play the Superset Pages demo"
 msgstr "Superset ページのデモを再生"

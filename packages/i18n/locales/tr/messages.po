@@ -12116,6 +12116,9 @@ msgstr "Duraklat"
 msgid "Pause automation"
 msgstr "Otomasyonu duraklat"
 
+msgid "Pause the animation"
+msgstr "Animasyonu duraklat"
+
 msgid "Pause the nightly cleanup automation"
 msgstr "Gece temizlik otomasyonunu duraklat"
 
@@ -12324,6 +12327,9 @@ msgstr "Oynat: {label}"
 
 msgid "Play a sound when tasks complete"
 msgstr "Görevler tamamlandığında bir ses çal"
+
+msgid "Play the animation"
+msgstr "Animasyonu oynat"
 
 msgid "Play the Superset Pages demo"
 msgstr "Superset Sayfalar demosunu oynat"

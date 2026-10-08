@@ -1,4 +1,4 @@
-import { AnimatePresence, m } from "framer-motion";
+import { AnimatePresence, m, useReducedMotion } from "framer-motion";
 import type { LoopStepId } from "../../../../constants";
 import { CommentComposer } from "./components/CommentComposer";
 import { CommentThread } from "./components/CommentThread";
@@ -15,6 +15,7 @@ const OVERLAYS: Record<LoopStepId, () => React.JSX.Element> = {
 
 export function StepStage({ step }: { step: LoopStepId }) {
 	const Overlay = OVERLAYS[step];
+	const offset = useReducedMotion() ? 0 : 8;
 
 	return (
 		<div
@@ -25,9 +26,9 @@ export function StepStage({ step }: { step: LoopStepId }) {
 			<AnimatePresence mode="wait">
 				<m.div
 					key={step}
-					initial={{ opacity: 0, y: 8 }}
+					initial={{ opacity: 0, y: offset }}
 					animate={{ opacity: 1, y: 0 }}
-					exit={{ opacity: 0, y: 8 }}
+					exit={{ opacity: 0, y: offset }}
 					transition={{ duration: 0.25 }}
 				>
 					<Overlay />

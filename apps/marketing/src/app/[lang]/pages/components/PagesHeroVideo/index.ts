@@ -1,0 +1,1 @@
+export { PagesHeroVideo } from "./PagesHeroVideo";

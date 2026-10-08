@@ -2,7 +2,7 @@ import type { MessageDescriptor } from "@lingui/core";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { m } from "framer-motion";
 import { RotateCcw } from "lucide-react";
-import type { KeyboardEvent } from "react";
+import { type KeyboardEvent, useRef } from "react";
 import type { LoopStepId } from "../../../../constants";
 import { STEP_DURATION_MS } from "../../constants";
 
@@ -28,6 +28,7 @@ export function StepList({
 	onHoverChange,
 }: StepListProps) {
 	const { t } = useLingui();
+	const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
 	const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
 		const delta =
@@ -38,7 +39,9 @@ export function StepList({
 					: 0;
 		if (!delta) return;
 		event.preventDefault();
-		onSelect((active + delta + steps.length) % steps.length);
+		const next = (active + delta + steps.length) % steps.length;
+		onSelect(next);
+		tabRefs.current[next]?.focus();
 	};
 
 	return (
@@ -56,6 +59,9 @@ export function StepList({
 					return (
 						<button
 							key={step.id}
+							ref={(node) => {
+								tabRefs.current[index] = node;
+							}}
 							type="button"
 							role="tab"
 							aria-selected={selected}
