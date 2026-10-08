@@ -3527,8 +3527,8 @@ msgstr "アップデートを確認"
 msgid "Check for Updates..."
 msgstr "アップデートを確認..."
 
-msgid "Check on running agents and read what they changed from your phone."
-msgstr "実行中のエージェントの状況を確認し、変更内容をスマートフォンから読めます。"
+msgid "Check on running agents and read what they changed from your iPhone or iPad."
+msgstr "実行中のエージェントの状況を確認し、変更内容を iPhone や iPad から読めます。"
 
 msgid "Check resources"
 msgstr "リソースを確認"
@@ -7954,8 +7954,8 @@ msgstr "Superset Proを入手"
 msgid "Get the best out of Pro"
 msgstr "Proを最大限に活用する"
 
-msgid "Get the iPhone app"
-msgstr "iPhone アプリを入手"
+msgid "Get the iPhone and iPad app"
+msgstr "iPhone・iPad アプリを入手"
 
 msgid "Ghost"
 msgstr "Ghost"
@@ -11832,8 +11832,8 @@ msgstr "GitHubで開く"
 msgid "Open Page in Default Browser"
 msgstr "ページを既定のブラウザで開く"
 
-msgid "Open pages and reply to comments from the Superset iPhone app."
-msgstr "Superset の iPhone アプリからページを開き、コメントに返信できます。"
+msgid "Open pages and reply to comments from the Superset app on iPhone and iPad."
+msgstr "Superset の iPhone・iPad アプリからページを開き、コメントに返信できます。"
 
 msgid "Open Plugins in the Superset app and pick one. The install is saved to your account."
 msgstr "SupersetアプリでPluginsを開いて、1つ選びます。インストールはアカウントに保存されます。"
@@ -12235,6 +12235,9 @@ msgstr "ページ"
 
 msgid "Pages could not be loaded"
 msgstr "ページを読み込めませんでした"
+
+msgid "Pages open in a grid, and floating keyboards work. Requires iPadOS 26 or later."
+msgstr "ページはグリッドで表示され、フローティングキーボードにも対応。iPadOS 26 以降が必要です。"
 
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "セッションが開始したページと、2ページ目を見ずに離脱した割合。比較ページが SEO の主戦場です。"
@@ -13792,8 +13795,8 @@ msgstr "必須"
 msgid "Required version: {minimumVersion}+"
 msgstr "必要バージョン: {minimumVersion}+"
 
-msgid "Requires iOS 26 or later. Included with Superset Pro."
-msgstr "iOS 26 以降が必要です。Superset Pro に含まれています。"
+msgid "Requires iOS 26 or iPadOS 26 or later. Included with Superset Pro."
+msgstr "iOS 26 または iPadOS 26 以降が必要です。Superset Pro に含まれています。"
 
 msgid "Reserved by OS"
 msgstr "OSが予約済み"
@@ -15901,8 +15904,8 @@ msgstr "Linearのチケットからそのままワークスペースを作れま
 msgid "Start agent"
 msgstr "エージェントを開始"
 
-msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
-msgstr "スマートフォンからエージェントを起動し、ライブで見守り、差分をレビュー。コードはあなたのマシンに残ります。"
+msgid "Start agents, follow them live, and review the diff from your iPhone or iPad. Your code stays on your machines."
+msgstr "iPhone や iPad からエージェントを起動し、ライブで見守り、差分をレビュー。コードはあなたのマシンに残ります。"
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "エージェントかターミナルを開始して、このワークスペースでの作業を始めましょう。"
@@ -15913,8 +15916,8 @@ msgstr "ブラウジングを開始"
 msgid "Start building in two."
 msgstr "ツーステップで開発を始めよう。"
 
-msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "スマートフォンからコーディングエージェントを起動し、ライブで見守り、差分をレビュー。App Store で配信中。Android 版は近日公開。"
+msgid "Start coding agents, follow them live, and review the diff from your iPhone or iPad. Available on the App Store; Android is coming soon."
+msgstr "iPhone や iPad からコーディングエージェントを起動し、ライブで見守り、差分をレビュー。App Store で配信中。Android 版は近日公開。"
 
 msgid "Start date"
 msgstr "開始日"
@@ -16246,11 +16249,8 @@ msgstr "Superset デスクトップアプリ"
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterpriseは、チーム向けのSupersetです。含まれる内容や組織での活用方法については、お問い合わせください。"
 
-msgid "Superset for iPhone"
-msgstr "iPhone 用 Superset"
-
-msgid "Superset for iPhone page"
-msgstr "iPhone 用 Superset のページ"
+msgid "Superset for iPhone and iPad"
+msgstr "iPhone・iPad 用 Superset"
 
 msgid "Superset for press"
 msgstr "報道関係者の皆さまへ"
@@ -16339,6 +16339,9 @@ msgstr "Superset Mobile が iPhone で登場"
 msgid "Superset Mobile lets developers continue the Superset workspaces they already use on their computer from an iPhone."
 msgstr "Superset Mobile を使えば、開発者はパソコンで使っている Superset のワークスペースを iPhone から続けられます。"
 
+msgid "Superset Mobile page"
+msgstr "Superset Mobile のページ"
+
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobileは、接続したコンピュータ上でエージェントを実行します。"
 
@@ -16353,6 +16356,9 @@ msgstr "他のブラウザのデータを読み取るには、Supersetにフル�
 
 msgid "Superset next to others"
 msgstr "他ツールとSupersetの比較"
+
+msgid "Superset on iPad, showing a pull request and a workspace list"
+msgstr "iPad 上の Superset。プルリクエストとワークスペース一覧を表示"
 
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset はこのコネクタが要求する権限のみを受け取ります。接続を解除すればいつでも取り消せます。"
@@ -16914,8 +16920,8 @@ msgstr "デーモンは実行中のセッションを新しいバイナリに引
 msgid "The desktop app runs on macOS and Linux today. Drop your email and we'll let you know the moment the Windows build ships."
 msgstr "デスクトップアプリは現在macOSとLinuxに対応しています。メールアドレスをご登録いただければ、Windows版がリリースされ次第すぐにお知らせします。"
 
-msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An iPhone app on the App Store lets you check on agents and review their diffs from your phone."
-msgstr "デスクトップアプリはmacOSで動作し、Linux向けには実験的なAppImageがあります。Windowsはまだ利用できません。デスクトップアプリのほかにCLI、TypeScript SDK、MCPサーバーがあるので、スクリプトやターミナル、他のエージェントからSupersetを操作できます。App StoreのiPhoneアプリを使えば、スマートフォンからエージェントの状況を確認し、差分をレビューできます。"
+msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An app for iPhone and iPad on the App Store lets you check on agents and review their diffs away from your desk."
+msgstr "デスクトップアプリはmacOSで動作し、Linux向けには実験的なAppImageがあります。Windowsはまだ利用できません。デスクトップアプリのほかにCLI、TypeScript SDK、MCPサーバーがあるので、スクリプトやターミナル、他のエージェントからSupersetを操作できます。App StoreのiPhone・iPadアプリを使えば、デスクを離れていてもエージェントの状況を確認し、差分をレビューできます。"
 
 msgid "The device that hosts this project is unavailable."
 msgstr "このプロジェクトをホストするデバイスが利用できません。"
@@ -17105,6 +17111,9 @@ msgstr "<0>{0}</0> がSupersetリレーに接続されていないため、実�
 
 msgid "The run was skipped because this device isn't connected to the Superset relay. Automations go through the relay even when they run on this device. Enable relay access, then run it again."
 msgstr "このデバイスがSupersetリレーに接続されていないため、実行はスキップされました。オートメーションはこのデバイスで実行される場合もリレーを経由します。リレーアクセスを有効にしてから、もう一度実行してください。"
+
+msgid "The same app runs natively on iPad, in portrait and landscape."
+msgstr "同じアプリが iPad でネイティブに動作し、縦向きにも横向きにも対応します。"
 
 msgid "The scorecard"
 msgstr "スコアカード"

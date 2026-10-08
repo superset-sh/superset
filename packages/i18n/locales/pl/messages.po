@@ -3527,8 +3527,8 @@ msgstr "Sprawdź aktualizacje"
 msgid "Check for Updates..."
 msgstr "Sprawdź aktualizacje..."
 
-msgid "Check on running agents and read what they changed from your phone."
-msgstr "Sprawdzaj działających agentów i czytaj ich zmiany z telefonu."
+msgid "Check on running agents and read what they changed from your iPhone or iPad."
+msgstr "Sprawdzaj działających agentów i czytaj, co zmienili, na iPhonie lub iPadzie."
 
 msgid "Check resources"
 msgstr "Sprawdź zasoby"
@@ -7954,8 +7954,8 @@ msgstr "Uzyskaj Superset Pro"
 msgid "Get the best out of Pro"
 msgstr "Wykorzystaj w pełni Pro"
 
-msgid "Get the iPhone app"
-msgstr "Pobierz aplikację na iPhone'a"
+msgid "Get the iPhone and iPad app"
+msgstr "Pobierz aplikację na iPhone’a i iPada"
 
 msgid "Ghost"
 msgstr "Ghost"
@@ -11832,8 +11832,8 @@ msgstr "Otwórz na GitHub"
 msgid "Open Page in Default Browser"
 msgstr "Otwórz stronę w domyślnej przeglądarce"
 
-msgid "Open pages and reply to comments from the Superset iPhone app."
-msgstr "Otwieraj strony i odpowiadaj na komentarze w aplikacji Superset na iPhone'a."
+msgid "Open pages and reply to comments from the Superset app on iPhone and iPad."
+msgstr "Otwieraj strony i odpowiadaj na komentarze w aplikacji Superset na iPhonie i iPadzie."
 
 msgid "Open Plugins in the Superset app and pick one. The install is saved to your account."
 msgstr "Otwórz Wtyczki w aplikacji Superset i wybierz jedną. Instalacja zostanie zapisana na Twoim koncie."
@@ -12235,6 +12235,9 @@ msgstr "Strony"
 
 msgid "Pages could not be loaded"
 msgstr "Nie udało się załadować stron"
+
+msgid "Pages open in a grid, and floating keyboards work. Requires iPadOS 26 or later."
+msgstr "Strony otwierają się w siatce, a pływające klawiatury działają. Wymaga iPadOS 26 lub nowszego."
 
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "Strony, na których zaczęły się sesje, z udziałem tych, którzy wyszli bez drugiej strony. Strony porównań to powierzchnia SEO."
@@ -13792,8 +13795,8 @@ msgstr "Wymagane"
 msgid "Required version: {minimumVersion}+"
 msgstr "Wymagana wersja: {minimumVersion}+"
 
-msgid "Requires iOS 26 or later. Included with Superset Pro."
-msgstr "Wymaga iOS 26 lub nowszego. Dostępne w ramach Superset Pro."
+msgid "Requires iOS 26 or iPadOS 26 or later. Included with Superset Pro."
+msgstr "Wymaga iOS 26 lub iPadOS 26 albo nowszego. W ramach Superset Pro."
 
 msgid "Reserved by OS"
 msgstr "Zarezerwowany przez system"
@@ -15901,8 +15904,8 @@ msgstr "Uruchom obszar roboczy prosto z ticketu w Linear. Agent go podejmuje i w
 msgid "Start agent"
 msgstr "Uruchom agenta"
 
-msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
-msgstr "Uruchamiaj agentów, śledź ich na żywo i przeglądaj diff z telefonu. Twój kod zostaje na Twoich maszynach."
+msgid "Start agents, follow them live, and review the diff from your iPhone or iPad. Your code stays on your machines."
+msgstr "Uruchamiaj agentów, śledź ich na żywo i przeglądaj diff na iPhonie lub iPadzie. Twój kod zostaje na Twoich maszynach."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Uruchom agenta lub terminal, aby zacząć pracę w tym obszarze roboczym."
@@ -15913,8 +15916,8 @@ msgstr "Zacznij przeglądać"
 msgid "Start building in two."
 msgstr "Zacznij budować w dwóch."
 
-msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "Uruchamiaj agentów programistycznych, śledź ich na żywo i przeglądaj diff z telefonu. Dostępne w App Store; Android już wkrótce."
+msgid "Start coding agents, follow them live, and review the diff from your iPhone or iPad. Available on the App Store; Android is coming soon."
+msgstr "Uruchamiaj agentów kodujących, śledź ich na żywo i przeglądaj diff na iPhonie lub iPadzie. Dostępne w App Store; Android wkrótce."
 
 msgid "Start date"
 msgstr "Data rozpoczęcia"
@@ -16246,11 +16249,8 @@ msgstr "Aplikacja desktopowa Superset"
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise to Superset dla zespołów. Odezwij się, aby dowiedzieć się, co obejmuje i jak może zadziałać w Twojej organizacji."
 
-msgid "Superset for iPhone"
-msgstr "Superset na iPhone’a"
-
-msgid "Superset for iPhone page"
-msgstr "Strona Superset na iPhone’a"
+msgid "Superset for iPhone and iPad"
+msgstr "Superset na iPhone’a i iPada"
 
 msgid "Superset for press"
 msgstr "Superset dla prasy"
@@ -16339,6 +16339,9 @@ msgstr "Superset Mobile debiutuje na iPhonie"
 msgid "Superset Mobile lets developers continue the Superset workspaces they already use on their computer from an iPhone."
 msgstr "Superset Mobile pozwala programistom kontynuować na iPhonie pracę w obszarach roboczych Superset, których już używają na komputerze."
 
+msgid "Superset Mobile page"
+msgstr "Strona Superset Mobile"
+
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobile uruchamia agentów na komputerach, które podłączysz."
 
@@ -16353,6 +16356,9 @@ msgstr "Superset potrzebuje pełnego dostępu do dysku, aby odczytać dane innej
 
 msgid "Superset next to others"
 msgstr "Superset na tle innych"
+
+msgid "Superset on iPad, showing a pull request and a workspace list"
+msgstr "Superset na iPadzie z pull requestem i listą workspace’ów"
 
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset otrzymuje tylko uprawnienia, o które prosi ten konektor. Odłącz go w dowolnej chwili, aby je cofnąć."
@@ -16914,8 +16920,8 @@ msgstr "Demon nie zdołał przekazać aktywnych sesji nowej wersji. Powód:"
 msgid "The desktop app runs on macOS and Linux today. Drop your email and we'll let you know the moment the Windows build ships."
 msgstr "Pracujemy nad Superset na Windows i Linux. Zostaw e-mail, a damy znać, gdy tylko będzie gotowy."
 
-msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An iPhone app on the App Store lets you check on agents and review their diffs from your phone."
-msgstr "Aplikacja desktopowa działa na macOS, z eksperymentalnym AppImage dla Linuksa; Windows nie jest jeszcze dostępny. Poza aplikacją są też CLI, SDK w TypeScripcie i serwer MCP, więc Superset można sterować ze skryptów, terminali i innych agentów. Aplikacja na iPhone'a z App Store pozwala sprawdzać agentów i przeglądać ich diffy z telefonu."
+msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An app for iPhone and iPad on the App Store lets you check on agents and review their diffs away from your desk."
+msgstr "Aplikacja desktopowa działa na macOS, z eksperymentalnym AppImage dla Linuksa; Windows nie jest jeszcze dostępny. Poza aplikacją są też CLI, SDK w TypeScripcie i serwer MCP, więc Superset można sterować ze skryptów, terminali i innych agentów. Aplikacja na iPhone’a i iPada z App Store pozwala sprawdzać agentów i przeglądać ich diffy z dala od biurka."
 
 msgid "The device that hosts this project is unavailable."
 msgstr "Urządzenie hostujące ten projekt jest niedostępne."
@@ -17105,6 +17111,9 @@ msgstr "Uruchomienie zostało pominięte, ponieważ <0>{0}</0> nie jest połącz
 
 msgid "The run was skipped because this device isn't connected to the Superset relay. Automations go through the relay even when they run on this device. Enable relay access, then run it again."
 msgstr "Uruchomienie zostało pominięte, ponieważ to urządzenie nie jest połączone z przekaźnikiem Superset. Automatyzacje przechodzą przez przekaźnik nawet wtedy, gdy działają na tym urządzeniu. Włącz dostęp przez przekaźnik i uruchom ponownie."
+
+msgid "The same app runs natively on iPad, in portrait and landscape."
+msgstr "Ta sama aplikacja działa natywnie na iPadzie, w pionie i w poziomie."
 
 msgid "The scorecard"
 msgstr "Karta wyników"

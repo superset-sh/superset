@@ -3527,8 +3527,8 @@ msgstr "Kiểm tra cập nhật"
 msgid "Check for Updates..."
 msgstr "Kiểm tra cập nhật..."
 
-msgid "Check on running agents and read what they changed from your phone."
-msgstr "Theo dõi các agent đang chạy và xem chúng đã thay đổi những gì ngay trên điện thoại."
+msgid "Check on running agents and read what they changed from your iPhone or iPad."
+msgstr "Kiểm tra các agent đang chạy và đọc những gì chúng đã thay đổi từ iPhone hoặc iPad."
 
 msgid "Check resources"
 msgstr "Kiểm tra tài nguyên"
@@ -7954,8 +7954,8 @@ msgstr "Mua Superset Pro"
 msgid "Get the best out of Pro"
 msgstr "Tận dụng tối đa Pro"
 
-msgid "Get the iPhone app"
-msgstr "Tải ứng dụng iPhone"
+msgid "Get the iPhone and iPad app"
+msgstr "Tải ứng dụng cho iPhone và iPad"
 
 msgid "Ghost"
 msgstr "Ghost"
@@ -11832,8 +11832,8 @@ msgstr "Mở trên GitHub"
 msgid "Open Page in Default Browser"
 msgstr "Mở trang trong trình duyệt mặc định"
 
-msgid "Open pages and reply to comments from the Superset iPhone app."
-msgstr "Mở trang và trả lời bình luận từ ứng dụng Superset trên iPhone."
+msgid "Open pages and reply to comments from the Superset app on iPhone and iPad."
+msgstr "Mở trang và trả lời bình luận từ ứng dụng Superset trên iPhone và iPad."
 
 msgid "Open Plugins in the Superset app and pick one. The install is saved to your account."
 msgstr "Mở Plugin trong ứng dụng Superset và chọn một plugin. Bản cài đặt được lưu vào tài khoản của bạn."
@@ -12235,6 +12235,9 @@ msgstr "Trang"
 
 msgid "Pages could not be loaded"
 msgstr "Không thể tải các trang"
+
+msgid "Pages open in a grid, and floating keyboards work. Requires iPadOS 26 or later."
+msgstr "Trang mở dạng lưới và bàn phím nổi hoạt động bình thường. Yêu cầu iPadOS 26 trở lên."
 
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "Các trang mà phiên bắt đầu, cùng tỷ lệ rời đi mà không xem trang thứ hai. Các trang so sánh là bề mặt SEO."
@@ -13792,8 +13795,8 @@ msgstr "Bắt buộc"
 msgid "Required version: {minimumVersion}+"
 msgstr "Phiên bản yêu cầu: {minimumVersion}+"
 
-msgid "Requires iOS 26 or later. Included with Superset Pro."
-msgstr "Yêu cầu iOS 26 trở lên. Đi kèm với Superset Pro."
+msgid "Requires iOS 26 or iPadOS 26 or later. Included with Superset Pro."
+msgstr "Yêu cầu iOS 26 hoặc iPadOS 26 trở lên. Đã bao gồm trong Superset Pro."
 
 msgid "Reserved by OS"
 msgstr "Hệ điều hành đã dùng"
@@ -15901,8 +15904,8 @@ msgstr "Tạo workspace ngay từ một ticket Linear. Agent nhận việc và b
 msgid "Start agent"
 msgstr "Bắt đầu agent"
 
-msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
-msgstr "Khởi chạy agent, theo dõi trực tiếp và xem xét diff từ điện thoại. Mã của bạn vẫn nằm trên máy của bạn."
+msgid "Start agents, follow them live, and review the diff from your iPhone or iPad. Your code stays on your machines."
+msgstr "Khởi chạy agent, theo dõi trực tiếp và xem xét diff từ iPhone hoặc iPad. Mã của bạn vẫn nằm trên máy của bạn."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Hãy khởi động một agent hoặc terminal để bắt đầu làm việc trong workspace này."
@@ -15913,8 +15916,8 @@ msgstr "Bắt đầu duyệt web"
 msgid "Start building in two."
 msgstr "Bắt đầu xây dựng trong hai bước."
 
-msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "Khởi chạy agent lập trình, theo dõi trực tiếp và xem xét diff từ điện thoại. Đã có trên App Store; Android sắp ra mắt."
+msgid "Start coding agents, follow them live, and review the diff from your iPhone or iPad. Available on the App Store; Android is coming soon."
+msgstr "Khởi chạy agent lập trình, theo dõi trực tiếp và xem xét diff từ iPhone hoặc iPad. Có trên App Store; Android sắp ra mắt."
 
 msgid "Start date"
 msgstr "Ngày bắt đầu"
@@ -16246,11 +16249,8 @@ msgstr "Ứng dụng Superset cho máy tính"
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise là Superset dành cho đội nhóm. Hãy liên hệ để biết thêm về những gì được bao gồm và cách nó phù hợp với tổ chức của bạn."
 
-msgid "Superset for iPhone"
-msgstr "Superset cho iPhone"
-
-msgid "Superset for iPhone page"
-msgstr "Trang Superset cho iPhone"
+msgid "Superset for iPhone and iPad"
+msgstr "Superset cho iPhone và iPad"
 
 msgid "Superset for press"
 msgstr "Superset dành cho báo chí"
@@ -16339,6 +16339,9 @@ msgstr "Superset Mobile ra mắt trên iPhone"
 msgid "Superset Mobile lets developers continue the Superset workspaces they already use on their computer from an iPhone."
 msgstr "Superset Mobile giúp nhà phát triển tiếp tục từ iPhone các workspace Superset mà họ đang dùng trên máy tính."
 
+msgid "Superset Mobile page"
+msgstr "Trang Superset Mobile"
+
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobile chạy agent trên những máy tính bạn kết nối."
 
@@ -16353,6 +16356,9 @@ msgstr "Superset cần quyền Full Disk Access để đọc dữ liệu của t
 
 msgid "Superset next to others"
 msgstr "Superset so với các công cụ khác"
+
+msgid "Superset on iPad, showing a pull request and a workspace list"
+msgstr "Superset trên iPad, hiển thị một pull request và danh sách workspace"
 
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset chỉ nhận các quyền mà trình kết nối này yêu cầu. Ngắt kết nối bất cứ lúc nào để thu hồi."
@@ -16914,8 +16920,8 @@ msgstr "Daemon không chuyển được các phiên đang chạy sang bản bina
 msgid "The desktop app runs on macOS and Linux today. Drop your email and we'll let you know the moment the Windows build ships."
 msgstr "Chúng tôi đang đưa Superset lên Windows & Linux. Để lại email và chúng tôi sẽ báo ngay khi sẵn sàng."
 
-msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An iPhone app on the App Store lets you check on agents and review their diffs from your phone."
-msgstr "Ứng dụng máy tính chạy trên macOS, kèm bản AppImage Linux thử nghiệm; Windows chưa có. Ngoài ứng dụng máy tính còn có CLI, SDK TypeScript và server MCP, nên bạn có thể điều khiển Superset từ script, terminal và các agent khác. Ứng dụng iPhone trên App Store cho phép bạn theo dõi các agent và xem lại diff của chúng ngay trên điện thoại."
+msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An app for iPhone and iPad on the App Store lets you check on agents and review their diffs away from your desk."
+msgstr "Ứng dụng máy tính chạy trên macOS, kèm bản AppImage Linux thử nghiệm; Windows chưa có. Ngoài ứng dụng máy tính còn có CLI, SDK TypeScript và server MCP, nên bạn có thể điều khiển Superset từ script, terminal và các agent khác. Ứng dụng cho iPhone và iPad trên App Store cho phép bạn theo dõi các agent và xem lại diff của chúng khi không ngồi tại bàn làm việc."
 
 msgid "The device that hosts this project is unavailable."
 msgstr "Thiết bị chứa dự án này không khả dụng."
@@ -17105,6 +17111,9 @@ msgstr "Lần chạy bị bỏ qua vì <0>{0}</0> chưa kết nối tới relay 
 
 msgid "The run was skipped because this device isn't connected to the Superset relay. Automations go through the relay even when they run on this device. Enable relay access, then run it again."
 msgstr "Lần chạy bị bỏ qua vì thiết bị này chưa kết nối tới relay của Superset. Tự động hóa luôn đi qua relay kể cả khi chạy trên chính thiết bị này. Hãy bật truy cập relay rồi chạy lại."
+
+msgid "The same app runs natively on iPad, in portrait and landscape."
+msgstr "Cùng một ứng dụng chạy native trên iPad, ở cả chế độ dọc và ngang."
 
 msgid "The scorecard"
 msgstr "Bảng điểm"

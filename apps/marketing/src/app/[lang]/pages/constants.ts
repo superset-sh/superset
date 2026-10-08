@@ -59,7 +59,8 @@ export const FEATURES: PagesItem[] = [
 	{
 		title: msg({ message: "Read it on your phone" }),
 		description: msg({
-			message: "Open pages and reply to comments from the Superset iPhone app.",
+			message:
+				"Open pages and reply to comments from the Superset app on iPhone and iPad.",
 		}),
 	},
 	{

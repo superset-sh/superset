@@ -3527,8 +3527,8 @@ msgstr "Проверить обновления"
 msgid "Check for Updates..."
 msgstr "Проверить обновления..."
 
-msgid "Check on running agents and read what they changed from your phone."
-msgstr "Следите за работающими агентами и смотрите, что они изменили, прямо с телефона."
+msgid "Check on running agents and read what they changed from your iPhone or iPad."
+msgstr "Проверяйте запущенных агентов и смотрите, что они изменили, с iPhone или iPad."
 
 msgid "Check resources"
 msgstr "Проверить ресурсы"
@@ -7954,8 +7954,8 @@ msgstr "Получить Superset Pro"
 msgid "Get the best out of Pro"
 msgstr "Используйте Pro по максимуму"
 
-msgid "Get the iPhone app"
-msgstr "Скачать приложение для iPhone"
+msgid "Get the iPhone and iPad app"
+msgstr "Скачать приложение для iPhone и iPad"
 
 msgid "Ghost"
 msgstr "Ghost"
@@ -11832,8 +11832,8 @@ msgstr "Открыть на GitHub"
 msgid "Open Page in Default Browser"
 msgstr "Открыть страницу в браузере по умолчанию"
 
-msgid "Open pages and reply to comments from the Superset iPhone app."
-msgstr "Открывайте страницы и отвечайте на комментарии в приложении Superset для iPhone."
+msgid "Open pages and reply to comments from the Superset app on iPhone and iPad."
+msgstr "Открывайте страницы и отвечайте на комментарии в приложении Superset на iPhone и iPad."
 
 msgid "Open Plugins in the Superset app and pick one. The install is saved to your account."
 msgstr "Откройте «Плагины» в приложении Superset и выберите один. Установка сохранится в вашем аккаунте."
@@ -12235,6 +12235,9 @@ msgstr "Страницы"
 
 msgid "Pages could not be loaded"
 msgstr "Не удалось загрузить страницы"
+
+msgid "Pages open in a grid, and floating keyboards work. Requires iPadOS 26 or later."
+msgstr "Страницы открываются сеткой, плавающая клавиатура тоже работает. Нужна iPadOS 26 или новее."
 
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "Страницы, с которых начались сессии, и доля ушедших без второй страницы. Страницы сравнения — это SEO-поверхность."
@@ -13792,8 +13795,8 @@ msgstr "Обязательное"
 msgid "Required version: {minimumVersion}+"
 msgstr "Требуемая версия: {minimumVersion}+"
 
-msgid "Requires iOS 26 or later. Included with Superset Pro."
-msgstr "Требуется iOS 26 или новее. Входит в Superset Pro."
+msgid "Requires iOS 26 or iPadOS 26 or later. Included with Superset Pro."
+msgstr "Нужна iOS 26 или iPadOS 26 или новее. Входит в Superset Pro."
 
 msgid "Reserved by OS"
 msgstr "Занято ОС"
@@ -15901,8 +15904,8 @@ msgstr "Запускайте рабочую область прямо из ти�
 msgid "Start agent"
 msgstr "Запустить агента"
 
-msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
-msgstr "Запускайте агентов, следите за ними в реальном времени и проверяйте diff с телефона. Ваш код остаётся на ваших машинах."
+msgid "Start agents, follow them live, and review the diff from your iPhone or iPad. Your code stays on your machines."
+msgstr "Запускайте агентов, следите за ними в реальном времени и проверяйте diff с iPhone или iPad. Ваш код остаётся на ваших машинах."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Запустите агента или терминал, чтобы начать работу в этой рабочей области."
@@ -15913,8 +15916,8 @@ msgstr "Начните просмотр"
 msgid "Start building in two."
 msgstr "Начните разработку за два."
 
-msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "Запускайте агентов для программирования, следите за ними в реальном времени и проверяйте diff с телефона. Доступно в App Store; версия для Android скоро появится."
+msgid "Start coding agents, follow them live, and review the diff from your iPhone or iPad. Available on the App Store; Android is coming soon."
+msgstr "Запускайте агентов для кода, следите за ними в реальном времени и проверяйте diff с iPhone или iPad. Доступно в App Store; Android скоро."
 
 msgid "Start date"
 msgstr "Дата начала"
@@ -16246,11 +16249,8 @@ msgstr "Десктопное приложение Superset"
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise — это Superset для команд. Напишите нам, чтобы узнать, что входит и как это подойдёт вашей организации."
 
-msgid "Superset for iPhone"
-msgstr "Superset для iPhone"
-
-msgid "Superset for iPhone page"
-msgstr "Страница Superset для iPhone"
+msgid "Superset for iPhone and iPad"
+msgstr "Superset для iPhone и iPad"
 
 msgid "Superset for press"
 msgstr "Superset для прессы"
@@ -16339,6 +16339,9 @@ msgstr "Superset Mobile вышел на iPhone"
 msgid "Superset Mobile lets developers continue the Superset workspaces they already use on their computer from an iPhone."
 msgstr "Superset Mobile позволяет разработчикам продолжать с iPhone работу в тех рабочих областях Superset, которыми они уже пользуются на компьютере."
 
+msgid "Superset Mobile page"
+msgstr "Страница Superset Mobile"
+
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobile запускает агентов на компьютерах, которые вы подключили."
 
@@ -16353,6 +16356,9 @@ msgstr "Superset нужен полный доступ к диску, чтобы 
 
 msgid "Superset next to others"
 msgstr "Superset и другие"
+
+msgid "Superset on iPad, showing a pull request and a workspace list"
+msgstr "Superset на iPad: пул-реквест и список воркспейсов"
 
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset получает только те разрешения, которые запрашивает этот коннектор. Отключите его в любой момент, чтобы отозвать их."
@@ -16914,8 +16920,8 @@ msgstr "Демону не удалось передать живые сесси�
 msgid "The desktop app runs on macOS and Linux today. Drop your email and we'll let you know the moment the Windows build ships."
 msgstr "Мы готовим Superset для Windows и Linux. Оставьте email, и мы сообщим, как только будет готово."
 
-msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An iPhone app on the App Store lets you check on agents and review their diffs from your phone."
-msgstr "Десктопное приложение работает на macOS, есть экспериментальный AppImage для Linux; Windows пока нет. Кроме приложения есть CLI, TypeScript SDK и сервер MCP, так что Superset можно водить из скриптов, терминалов и других агентов. Приложение для iPhone в App Store позволяет следить за агентами и просматривать их диффы с телефона."
+msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An app for iPhone and iPad on the App Store lets you check on agents and review their diffs away from your desk."
+msgstr "Десктопное приложение работает на macOS, есть экспериментальный AppImage для Linux; Windows пока нет. Кроме приложения есть CLI, TypeScript SDK и сервер MCP, так что Superset можно водить из скриптов, терминалов и других агентов. Приложение для iPhone и iPad в App Store позволяет следить за агентами и просматривать их диффы, даже когда вы не за рабочим столом."
 
 msgid "The device that hosts this project is unavailable."
 msgstr "Устройство, где размещён этот проект, недоступно."
@@ -17105,6 +17111,9 @@ msgstr "Запуск пропущен: <0>{0}</0> не подключён к р�
 
 msgid "The run was skipped because this device isn't connected to the Superset relay. Automations go through the relay even when they run on this device. Enable relay access, then run it again."
 msgstr "Запуск пропущен: это устройство не подключено к реле Superset. Автоматизации идут через реле, даже когда выполняются на этом устройстве. Включите доступ через реле и запустите снова."
+
+msgid "The same app runs natively on iPad, in portrait and landscape."
+msgstr "То же приложение работает на iPad нативно, в портретной и альбомной ориентации."
 
 msgid "The scorecard"
 msgstr "Таблица оценок"
