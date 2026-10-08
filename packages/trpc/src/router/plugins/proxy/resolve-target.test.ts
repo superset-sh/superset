@@ -366,6 +366,36 @@ describe("resolveTarget with several accounts", () => {
 		},
 	];
 
+	test("keeps an account that needs reconnecting, so naming it is not rerouted", async () => {
+		install = installed("superset", {
+			connector: "acme-crm",
+			mcpUrl: "https://mcp.acme.test/mcp",
+		});
+		accounts = [
+			twoAccounts[0],
+			{
+				...twoAccounts[1],
+				disconnectedAt: new Date(),
+				disconnectReason: "needs_reauth",
+			},
+			{
+				id: "conn-gone",
+				authMethod: "oauth2",
+				disconnectedAt: new Date(),
+				disconnectReason: "user_disconnected",
+			},
+		];
+
+		const target = await resolveTarget(request);
+
+		expect(target.kind).toBe("multi");
+		if (target.kind !== "multi") return;
+		expect(target.accounts.map((account) => account.connectionId)).toEqual([
+			"conn-personal",
+			"conn-work",
+		]);
+	});
+
 	test("offers both when the caller has two live connections", async () => {
 		install = installed("superset", {
 			connector: "acme-crm",

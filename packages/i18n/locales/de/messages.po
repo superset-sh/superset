@@ -1548,6 +1548,9 @@ msgstr "Die Installation im Konto löst nur Erstanbieter-Manifeste auf, daher ka
 msgid "Account is pending deletion."
 msgstr "Das Konto ist zur Löschung vorgemerkt."
 
+msgid "Account name"
+msgstr "Kontoname"
+
 msgid "Account pending deletion"
 msgstr "Konto zur Löschung vorgemerkt"
 
@@ -10338,9 +10341,6 @@ msgstr "Guter Ansatz"
 
 msgid "Nice, open a PR when ready."
 msgstr "Super, öffne einen PR, wenn es so weit ist."
-
-msgid "Nickname"
-msgstr "Spitzname"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."

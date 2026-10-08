@@ -1,6 +1,6 @@
 import { db } from "@superset/db/client";
 import { connections, type SelectConnection } from "@superset/db/schema";
-import { and, eq, isNull, lt } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import {
 	decryptOptional,
 	decryptSecret,
@@ -60,18 +60,15 @@ async function readConnection(id: string): Promise<SelectConnection | null> {
  */
 export async function markNeedsReauth(
 	id: string,
-	credentialAt?: Date,
+	storedAccessToken?: string,
 ): Promise<void> {
 	await db
 		.update(connections)
 		.set({ disconnectedAt: new Date(), disconnectReason: NEEDS_REAUTH })
 		.where(
-			credentialAt
-				? and(
-						live(id),
-						lt(connections.updatedAt, new Date(credentialAt.getTime() + 1)),
-					)
-				: live(id),
+			storedAccessToken === undefined
+				? live(id)
+				: and(live(id), eq(connections.accessToken, storedAccessToken)),
 		);
 }
 

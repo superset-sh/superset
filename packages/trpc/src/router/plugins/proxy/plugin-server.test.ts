@@ -515,6 +515,7 @@ describe("review regressions", () => {
 		);
 
 		try {
+			await client.listTools();
 			const result = await client.callTool({
 				name: "send_email",
 				arguments: {
@@ -531,6 +532,62 @@ describe("review regressions", () => {
 					credential: "token-id-work",
 				},
 			]);
+		} finally {
+			await close();
+		}
+	});
+});
+
+describe("superset-home review", () => {
+	const SEARCH: Tool = {
+		name: "search",
+		inputSchema: { type: "object", properties: {} },
+	};
+
+	test("a call resolves only the account it names once the tool list is known", async () => {
+		const resolved: string[] = [];
+		const { client, close } = await connect(
+			multiTarget(async (id) => {
+				resolved.push(id);
+				return hostedTarget(id, []);
+			}),
+		);
+
+		try {
+			await client.listTools();
+			resolved.length = 0;
+			await client.callTool({
+				name: "send_email",
+				arguments: { superset_account: "id-work", body: "hi" },
+			});
+			expect(resolved).toEqual(["id-work"]);
+		} finally {
+			await close();
+		}
+	});
+
+	test("an account that does not expose the tool is refused by name", async () => {
+		const calls: Call[] = [];
+		const { client, close } = await connect(
+			multiTarget(async (id) => {
+				const target = hostedTarget(id, calls);
+				if (target.kind === "first-party" && id === "id-personal")
+					target.build.getTools = () => [SEARCH];
+				return target;
+			}),
+		);
+
+		try {
+			await client.listTools();
+			const result = await client.callTool({
+				name: "send_email",
+				arguments: { superset_account: "id-personal", body: "hi" },
+			});
+			expect(result.isError).toBe(true);
+			expect(JSON.stringify(result.content)).toContain(
+				"does not offer send_email",
+			);
+			expect(calls).toEqual([]);
 		} finally {
 			await close();
 		}

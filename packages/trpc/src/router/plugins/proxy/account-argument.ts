@@ -154,9 +154,10 @@ export function hasAccountArgument(args: Record<string, unknown>): boolean {
 
 export function withoutStaleAccountArgument(
 	args: Record<string, unknown>,
-	connectionId: string,
+	accountNames: readonly string[],
 	vendorOwned: ReadonlySet<string>,
 ): StaleArgumentCheck {
+	const accepted = new Set(accountNames.map((name) => name.toLowerCase()));
 	const rest = { ...args };
 	for (const name of Object.keys(rest)) {
 		if (!ACCOUNT_ARG_NAME.test(name) || vendorOwned.has(name)) continue;
@@ -165,7 +166,7 @@ export function withoutStaleAccountArgument(
 			delete rest[name];
 			continue;
 		}
-		if (String(value).toLowerCase() !== connectionId.toLowerCase()) {
+		if (!accepted.has(String(value).trim().toLowerCase())) {
 			return {
 				ok: false,
 				message: `${name} "${value}" is no longer a connected account; this plugin now runs under a single account, so retry without ${name}.`,

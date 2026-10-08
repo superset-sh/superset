@@ -1548,6 +1548,9 @@ msgstr "계정 설치는 자체 매니페스트만 해석하므로 {marketplace}
 msgid "Account is pending deletion."
 msgstr "계정이 삭제 대기 중입니다."
 
+msgid "Account name"
+msgstr "계정 이름"
+
 msgid "Account pending deletion"
 msgstr "삭제 예정 계정"
 
@@ -10338,9 +10341,6 @@ msgstr "좋은 접근"
 
 msgid "Nice, open a PR when ready."
 msgstr "좋아요, 준비되면 PR을 올려 주세요."
-
-msgid "Nickname"
-msgstr "별칭"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."

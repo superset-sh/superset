@@ -1548,6 +1548,9 @@ msgstr "Instalasi ke akun hanya menangani manifes internal, jadi {plugin} dari {
 msgid "Account is pending deletion."
 msgstr "Akun sedang menunggu penghapusan."
 
+msgid "Account name"
+msgstr "Nama akun"
+
 msgid "Account pending deletion"
 msgstr "Akun menunggu penghapusan"
 
@@ -10338,9 +10341,6 @@ msgstr "Pendekatan yang bagus"
 
 msgid "Nice, open a PR when ready."
 msgstr "Bagus, buka PR kalau sudah siap."
-
-msgid "Nickname"
-msgstr "Nama panggilan"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."

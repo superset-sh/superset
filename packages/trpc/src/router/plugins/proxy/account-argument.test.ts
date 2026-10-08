@@ -406,7 +406,7 @@ describe("withoutStaleAccountArgument", () => {
 					superset_account: "9fc31e2d-a7f0-4c0a-88e7-4af0dbf3f079",
 					body: "hi",
 				},
-				"9fc31e2d-a7f0-4c0a-88e7-4af0dbf3f079",
+				["9fc31e2d-a7f0-4c0a-88e7-4af0dbf3f079"],
 				new Set(),
 			),
 		).toEqual({ ok: true, args: { body: "hi" } });
@@ -415,7 +415,7 @@ describe("withoutStaleAccountArgument", () => {
 	test("refuses an id that is no longer connected", () => {
 		const checked = withoutStaleAccountArgument(
 			{ superset_account: "11111111-2222-4333-8444-555555555555" },
-			"9fc31e2d-a7f0-4c0a-88e7-4af0dbf3f079",
+			["9fc31e2d-a7f0-4c0a-88e7-4af0dbf3f079"],
 			new Set(),
 		);
 
@@ -427,18 +427,28 @@ describe("withoutStaleAccountArgument", () => {
 	test("refuses a stale label instead of running under the remaining account", () => {
 		const checked = withoutStaleAccountArgument(
 			{ superset_account: "work", body: "hi" },
-			"9fc31e2d-a7f0-4c0a-88e7-4af0dbf3f079",
+			["9fc31e2d-a7f0-4c0a-88e7-4af0dbf3f079"],
 			new Set(),
 		);
 
 		expect(checked.ok).toBe(false);
 	});
 
+	test("accepts the remaining account's own label", () => {
+		expect(
+			withoutStaleAccountArgument(
+				{ superset_account: "Work", body: "hi" },
+				["9fc31e2d-a7f0-4c0a-88e7-4af0dbf3f079", "work"],
+				new Set(),
+			),
+		).toEqual({ ok: true, args: { body: "hi" } });
+	});
+
 	test("leaves a value alone when the called tool declares that property", () => {
 		expect(
 			withoutStaleAccountArgument(
 				{ superset_account: "ACC-123", body: "hi" },
-				"9fc31e2d-a7f0-4c0a-88e7-4af0dbf3f079",
+				["9fc31e2d-a7f0-4c0a-88e7-4af0dbf3f079"],
 				new Set(["superset_account"]),
 			),
 		).toEqual({

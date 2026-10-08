@@ -1548,6 +1548,9 @@ msgstr "帳戶安裝僅解析第一方資訊清單，因此來自 {marketplace} 
 msgid "Account is pending deletion."
 msgstr "帳戶正在等待刪除。"
 
+msgid "Account name"
+msgstr "帳戶名稱"
+
 msgid "Account pending deletion"
 msgstr "帳戶待刪除"
 
@@ -10338,9 +10341,6 @@ msgstr "想法不錯"
 
 msgid "Nice, open a PR when ready."
 msgstr "不錯，準備好就開個PR。"
-
-msgid "Nickname"
-msgstr "暱稱"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."

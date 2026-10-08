@@ -42,7 +42,6 @@ interface ConnectorConnectProps {
 	}[];
 }
 
-/** Nickname first, then whatever the provider called it. Never the id. */
 function initials(label: string): string {
 	const parts = label
 		.trim()
@@ -136,11 +135,15 @@ export function ConnectorConnect({
 								autoFocus
 								value={draftName}
 								maxLength={64}
-								placeholder={t({ message: "Nickname" })}
+								placeholder={t({ message: "Account name" })}
 								onChange={(e) => setDraftName(e.target.value)}
 							/>
 							<div className="flex gap-2">
-								<Button type="submit" size="sm" disabled={rename.isPending}>
+								<Button
+									type="submit"
+									size="sm"
+									disabled={rename.isPending || !draftName.trim()}
+								>
 									<Trans>Save</Trans>
 								</Button>
 								<Button

@@ -8,6 +8,7 @@ import {
 import {
 	ConnectorUnavailableError,
 	ensureFreshConnection,
+	NEEDS_REAUTH,
 	UnrefreshableConnectionError,
 } from "../../../lib/connectors/refresh";
 import {
@@ -47,14 +48,16 @@ export type PluginTarget = TargetIdentity &
 				build: FirstPartyServer;
 				secrets: ConnectionSecrets;
 				connectionId: string;
-				credentialAt?: Date;
+				account?: AccountRef;
+				storedAccessToken?: string;
 		  }
 		| {
 				kind: "remote";
 				url: string;
 				headers: Record<string, string>;
 				connectionId: string;
-				credentialAt?: Date;
+				account?: AccountRef;
+				storedAccessToken?: string;
 		  }
 		| {
 				kind: "multi";
@@ -205,10 +208,14 @@ export async function resolveTarget(
 	} else if (!request.organizationId) {
 		row = null;
 	} else {
-		const rows = await userConnections(
-			request.organizationId,
-			slug,
-			request.userId,
+		const rows = (
+			await userConnections(request.organizationId, slug, request.userId, {
+				includeDisconnected: true,
+			})
+		).filter(
+			(candidate) =>
+				!candidate.disconnectedAt ||
+				candidate.disconnectReason === NEEDS_REAUTH,
 		);
 		if (rows.length > 1) {
 			return {
@@ -225,7 +232,7 @@ export async function resolveTarget(
 		}
 		row = rows[0] ?? null;
 	}
-	if (!row) {
+	if (!row || row.disconnectedAt) {
 		return {
 			...identity,
 			kind: "needs-auth",
@@ -236,11 +243,11 @@ export async function resolveTarget(
 
 	let secrets: ConnectionSecrets;
 	let authMethod: string | null;
-	let credentialAt: Date;
+	let storedAccessToken: string;
 	try {
 		const fresh = await ensureFreshConnection(row);
 		authMethod = fresh.authMethod;
-		credentialAt = fresh.updatedAt;
+		storedAccessToken = fresh.accessToken;
 		secrets = await connectionSecrets(fresh);
 	} catch (error) {
 		if (error instanceof UnrefreshableConnectionError) {
@@ -267,7 +274,8 @@ export async function resolveTarget(
 			build: local,
 			secrets,
 			connectionId: row.id,
-			credentialAt,
+			account: accountRef(row),
+			storedAccessToken,
 		};
 	}
 
@@ -287,6 +295,7 @@ export async function resolveTarget(
 		kind: "remote",
 		...binding,
 		connectionId: row.id,
-		credentialAt,
+		account: accountRef(row),
+		storedAccessToken,
 	};
 }

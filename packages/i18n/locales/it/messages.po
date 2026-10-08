@@ -1548,6 +1548,9 @@ msgstr "L'installazione sull'account risolve solo i manifest interni, quindi {pl
 msgid "Account is pending deletion."
 msgstr "L'account è in attesa di eliminazione."
 
+msgid "Account name"
+msgstr "Nome account"
+
 msgid "Account pending deletion"
 msgstr "Account in attesa di eliminazione"
 
@@ -10338,9 +10341,6 @@ msgstr "Buon approccio"
 
 msgid "Nice, open a PR when ready."
 msgstr "Ottimo, apri una PR quando è pronta."
-
-msgid "Nickname"
-msgstr "Soprannome"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."

@@ -1548,6 +1548,9 @@ msgstr "账户安装仅解析第一方清单，因此来自 {marketplace} 的 {p
 msgid "Account is pending deletion."
 msgstr "账户正在等待删除。"
 
+msgid "Account name"
+msgstr "账户名称"
+
 msgid "Account pending deletion"
 msgstr "账户待删除"
 
@@ -10338,9 +10341,6 @@ msgstr "思路不错"
 
 msgid "Nice, open a PR when ready."
 msgstr "不错，准备好就开个PR。"
-
-msgid "Nickname"
-msgstr "昵称"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."

@@ -220,11 +220,7 @@ export const connectorsRouter = {
 			else if (existing.connectedByUserId !== ctx.session.user.id)
 				throw new TRPCError({ code: "NOT_FOUND", message: "No connection" });
 
-			const label =
-				input.label ??
-				(input.nickname === undefined
-					? undefined
-					: input.nickname?.trim() || null);
+			const label = input.label ?? (input.nickname?.trim() || undefined);
 			const [row] = await db
 				.update(connections)
 				.set({

@@ -17,7 +17,11 @@ import {
 	withAccountArgument,
 	withoutStaleAccountArgument,
 } from "./account-argument";
-import { type PluginTarget, PluginTargetError } from "./resolve-target";
+import {
+	type PluginTarget,
+	PluginTargetError,
+	targetKey,
+} from "./resolve-target";
 import { forgetUpstreamTools, upstreamTools } from "./upstream-catalog";
 import { upstreamClient } from "./upstream-client";
 
@@ -70,7 +74,7 @@ function firstPartyServer(
 	server.setRequestHandler(CallToolRequestSchema, async (request) => {
 		const checked = withoutStaleAccountArgument(
 			request.params.arguments ?? {},
-			target.connectionId,
+			accountNames(target),
 			toolProperties(target.build.getTools(), request.params.name),
 		);
 		if (!checked.ok) return errorResult(checked.message);
@@ -82,7 +86,7 @@ function firstPartyServer(
 			);
 		} catch (error) {
 			if (!credentialRejected(error)) throw error;
-			await recordRejection(target.connectionId, target.credentialAt);
+			await recordRejection(target.connectionId, target.storedAccessToken);
 			return errorResult(
 				`${target.plugin} rejected this account's credential. Ask the user to reconnect it, then retry.`,
 			);
@@ -110,7 +114,7 @@ function remoteServer(
 		const args = request.params.arguments ?? {};
 		const checked = withoutStaleAccountArgument(
 			args,
-			target.connectionId,
+			accountNames(target),
 			hasAccountArgument(args)
 				? await vendorProperties(target, request.params.name)
 				: new Set(),
@@ -129,7 +133,7 @@ function remoteServer(
 			}
 		} catch (error) {
 			if (!credentialRejected(error)) throw error;
-			await recordRejection(target.connectionId, target.credentialAt);
+			await recordRejection(target.connectionId, target.storedAccessToken);
 			return errorResult(
 				`${target.plugin} rejected this account's credential. Ask the user to reconnect it, then retry.`,
 			);
@@ -139,6 +143,49 @@ function remoteServer(
 }
 
 const LIST_TIMEOUT_MS = 10_000;
+const LAYOUT_TTL_MS = 5 * 60_000;
+
+interface AccountLayout {
+	argName: string;
+	accountsByTool: Map<string, string[]>;
+	at: number;
+}
+
+const layouts = new Map<string, AccountLayout>();
+
+function layoutKey(target: Extract<PluginTarget, { kind: "multi" }>): string {
+	return `${target.plugin}@${target.version}:${targetKey(target)}`;
+}
+
+function cachedLayout(
+	target: Extract<PluginTarget, { kind: "multi" }>,
+): AccountLayout | null {
+	const layout = layouts.get(layoutKey(target));
+	return layout && Date.now() - layout.at < LAYOUT_TTL_MS ? layout : null;
+}
+
+function rememberLayout(
+	target: Extract<PluginTarget, { kind: "multi" }>,
+	argName: string,
+	accountsByTool: ReadonlyMap<string, readonly AccountRef[]>,
+): AccountLayout {
+	const now = Date.now();
+	for (const [key, layout] of layouts) {
+		if (now - layout.at >= LAYOUT_TTL_MS) layouts.delete(key);
+	}
+	const layout: AccountLayout = {
+		argName,
+		accountsByTool: new Map(
+			[...accountsByTool].map(([tool, accounts]) => [
+				tool,
+				accounts.map((account) => account.connectionId),
+			]),
+		),
+		at: now,
+	};
+	layouts.set(layoutKey(target), layout);
+	return layout;
+}
 
 async function vendorProperties(
 	target: Extract<PluginTarget, { kind: "remote" }>,
@@ -154,25 +201,38 @@ async function vendorProperties(
 	}
 }
 
+function accountNames(target: {
+	connectionId: string;
+	account?: AccountRef;
+}): string[] {
+	const account = target.account;
+	return [
+		target.connectionId,
+		...(account
+			? [account.userLabel, account.accountLabel, accountLabel(account)]
+			: []),
+	].filter((name): name is string => Boolean(name));
+}
+
 function credentialRejected(error: unknown): boolean {
 	return (error as { code?: unknown } | null)?.code === 401;
 }
 
 type RecordRejection = (
 	connectionId: string,
-	credentialAt: Date | undefined,
+	storedAccessToken: string | undefined,
 ) => Promise<void>;
 
 async function markRejected(
 	connectionId: string,
-	credentialAt: Date | undefined,
+	storedAccessToken: string | undefined,
 ): Promise<void> {
 	forgetUpstreamTools(connectionId);
-	await markNeedsReauth(connectionId, credentialAt);
+	await markNeedsReauth(connectionId, storedAccessToken);
 }
 
 async function rejectionAware<T>(
-	target: { connectionId: string; credentialAt?: Date },
+	target: { connectionId: string; storedAccessToken?: string },
 	recordRejection: RecordRejection,
 	run: () => Promise<T>,
 ): Promise<T> {
@@ -180,7 +240,7 @@ async function rejectionAware<T>(
 		return await run();
 	} catch (error) {
 		if (credentialRejected(error))
-			await recordRejection(target.connectionId, target.credentialAt);
+			await recordRejection(target.connectionId, target.storedAccessToken);
 		throw error;
 	}
 }
@@ -220,8 +280,8 @@ function multiServer(
 			if (!credentialRejected(error)) return "unknown";
 			await recordRejection(
 				account.connectionId,
-				resolved && "credentialAt" in resolved
-					? resolved.credentialAt
+				resolved && "storedAccessToken" in resolved
+					? resolved.storedAccessToken
 					: undefined,
 			);
 			return "rejected";
@@ -318,14 +378,28 @@ function multiServer(
 
 	server.setRequestHandler(ListToolsRequestSchema, async () => {
 		const { tools, accountsByTool } = await gather();
-		return {
-			tools: withAccountArgument(tools, accountsByTool, accountArgName(tools)),
-		};
+		const argName = accountArgName(tools);
+		rememberLayout(target, argName, accountsByTool);
+		return { tools: withAccountArgument(tools, accountsByTool, argName) };
 	});
 
+	const layoutForCall = async (): Promise<AccountLayout | null> => {
+		const cached = cachedLayout(target);
+		if (cached) return cached;
+		try {
+			const { tools, accountsByTool } = await gather();
+			return rememberLayout(target, accountArgName(tools), accountsByTool);
+		} catch {
+			return null;
+		}
+	};
+
 	server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
-		const { tools, accountsByTool } = await gather();
-		if (accountsByTool.size === 0 && request.params.name === "authenticate") {
+		const layout = await layoutForCall();
+		if (
+			layout?.accountsByTool.size === 0 &&
+			request.params.name === "authenticate"
+		) {
 			return errorResult(
 				`Ask the user to reconnect each ${target.connectorLabel} account, then retry: ${await reconnectLinks()}.`,
 			);
@@ -334,7 +408,7 @@ function multiServer(
 			target.connectorLabel,
 			target.accounts,
 			request.params.arguments ?? {},
-			accountArgName(tools),
+			layout?.argName ?? accountArgName(target.hosted?.getTools() ?? []),
 		);
 		if (!choice.ok) return errorResult(choice.message);
 
@@ -362,6 +436,16 @@ function multiServer(
 				`${label} did not resolve to a single ${target.connectorLabel} account.`,
 			);
 		}
+		const offering = layout?.accountsByTool.get(request.params.name);
+		if (offering && !offering.includes(choice.connectionId)) {
+			const names = target.accounts
+				.filter((candidate) => offering.includes(candidate.connectionId))
+				.map(accountLabel)
+				.join(", ");
+			return errorResult(
+				`${label} does not offer ${request.params.name}. Accounts that do: ${names}.`,
+			);
+		}
 
 		const params = { ...request.params, arguments: choice.rest };
 		let result: CallToolResult;
@@ -385,7 +469,8 @@ function multiServer(
 						})();
 		} catch (error) {
 			if (!credentialRejected(error)) throw error;
-			await recordRejection(resolved.connectionId, resolved.credentialAt);
+			layouts.delete(layoutKey(target));
+			await recordRejection(resolved.connectionId, resolved.storedAccessToken);
 			const after = await target.resolve(choice.connectionId).catch(() => null);
 			return errorResult(
 				after?.kind === "needs-auth"

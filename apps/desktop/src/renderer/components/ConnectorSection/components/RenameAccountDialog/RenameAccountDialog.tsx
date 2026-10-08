@@ -15,7 +15,7 @@ import {
 import { Input } from "@superset/ui/input";
 import { useState } from "react";
 
-const NICKNAME_MAX = 64;
+const LABEL_MAX = 64;
 
 export function RenameAccountDialog({
 	account,
@@ -84,9 +84,9 @@ function RenameForm({
 			<Input
 				autoFocus
 				value={draft}
-				maxLength={NICKNAME_MAX}
-				placeholder={t({ message: "Nickname" })}
-				aria-label={t({ message: "Nickname" })}
+				maxLength={LABEL_MAX}
+				placeholder={t({ message: "Account name" })}
+				aria-label={t({ message: "Account name" })}
 				onChange={(event) => setDraft(event.target.value)}
 				className="my-4"
 			/>
@@ -100,7 +100,7 @@ function RenameForm({
 				>
 					<Trans>Cancel</Trans>
 				</Button>
-				<Button type="submit" disabled={isPending}>
+				<Button type="submit" disabled={isPending || !draft.trim()}>
 					<Trans>Save</Trans>
 				</Button>
 			</DialogFooter>

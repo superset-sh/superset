@@ -1548,6 +1548,9 @@ msgstr "Account install resolves first-party manifests only, so {plugin} from {m
 msgid "Account is pending deletion."
 msgstr "Account is pending deletion."
 
+msgid "Account name"
+msgstr "Account name"
+
 msgid "Account pending deletion"
 msgstr "Account pending deletion"
 
@@ -10338,9 +10341,6 @@ msgstr "Nice approach"
 
 msgid "Nice, open a PR when ready."
 msgstr "Nice, open a PR when ready."
-
-msgid "Nickname"
-msgstr "Nickname"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."

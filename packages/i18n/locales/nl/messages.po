@@ -1548,6 +1548,9 @@ msgstr "Installatie op het account werkt alleen met eigen manifests, dus {plugin
 msgid "Account is pending deletion."
 msgstr "Account wordt verwijderd."
 
+msgid "Account name"
+msgstr "Accountnaam"
+
 msgid "Account pending deletion"
 msgstr "Account wordt verwijderd"
 
@@ -10338,9 +10341,6 @@ msgstr "Goede aanpak"
 
 msgid "Nice, open a PR when ready."
 msgstr "Mooi, open een PR als het klaar is."
-
-msgid "Nickname"
-msgstr "Bijnaam"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."

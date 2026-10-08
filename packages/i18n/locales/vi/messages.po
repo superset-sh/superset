@@ -1548,6 +1548,9 @@ msgstr "Cài đặt lên tài khoản chỉ xử lý manifest nội bộ, nên {
 msgid "Account is pending deletion."
 msgstr "Tài khoản đang chờ xóa."
 
+msgid "Account name"
+msgstr "Tên tài khoản"
+
 msgid "Account pending deletion"
 msgstr "Tài khoản đang chờ xóa"
 
@@ -10338,9 +10341,6 @@ msgstr "Cách tiếp cận hay"
 
 msgid "Nice, open a PR when ready."
 msgstr "Tốt, mở PR khi sẵn sàng nhé."
-
-msgid "Nickname"
-msgstr "Tên gọi"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."

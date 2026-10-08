@@ -1548,6 +1548,9 @@ msgstr "Установка в аккаунт работает только с с
 msgid "Account is pending deletion."
 msgstr "Аккаунт ожидает удаления."
 
+msgid "Account name"
+msgstr "Имя аккаунта"
+
 msgid "Account pending deletion"
 msgstr "Аккаунт ожидает удаления"
 
@@ -10338,9 +10341,6 @@ msgstr "Хороший подход"
 
 msgid "Nice, open a PR when ready."
 msgstr "Отлично, открой PR, когда будет готово."
-
-msgid "Nickname"
-msgstr "Название"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."

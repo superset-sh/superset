@@ -1548,6 +1548,9 @@ msgstr "アカウントへのインストールはファーストパーティの
 msgid "Account is pending deletion."
 msgstr "アカウントは削除待ちです。"
 
+msgid "Account name"
+msgstr "アカウント名"
+
 msgid "Account pending deletion"
 msgstr "アカウントは削除待ちです"
 
@@ -10338,9 +10341,6 @@ msgstr "良いアプローチ"
 
 msgid "Nice, open a PR when ready."
 msgstr "いいですね。準備ができたらPRを作成してください。"
-
-msgid "Nickname"
-msgstr "ニックネーム"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."

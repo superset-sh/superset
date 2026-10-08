@@ -1548,6 +1548,9 @@ msgstr "L'installation sur le compte ne résout que les manifestes internes, don
 msgid "Account is pending deletion."
 msgstr "Le compte est en attente de suppression."
 
+msgid "Account name"
+msgstr "Nom du compte"
+
 msgid "Account pending deletion"
 msgstr "Compte en attente de suppression"
 
@@ -10338,9 +10341,6 @@ msgstr "Bonne approche"
 
 msgid "Nice, open a PR when ready."
 msgstr "Parfait, ouvre une pull request quand c'est prêt."
-
-msgid "Nickname"
-msgstr "Surnom"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."

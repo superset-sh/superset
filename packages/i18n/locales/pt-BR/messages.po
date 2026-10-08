@@ -1548,6 +1548,9 @@ msgstr "A instalação na conta só resolve manifestos próprios, então {plugin
 msgid "Account is pending deletion."
 msgstr "A conta está com exclusão pendente."
 
+msgid "Account name"
+msgstr "Nome da conta"
+
 msgid "Account pending deletion"
 msgstr "Conta com exclusão pendente"
 
@@ -10338,9 +10341,6 @@ msgstr "Boa abordagem"
 
 msgid "Nice, open a PR when ready."
 msgstr "Boa, abre um PR quando estiver pronto."
-
-msgid "Nickname"
-msgstr "Apelido"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
