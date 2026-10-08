@@ -22,6 +22,7 @@ import { organizationRouter } from "./router/organization";
 import { pageRouter } from "./router/page";
 import { pageCommentRouter } from "./router/page-comment";
 import { pluginsRouter } from "./router/plugins";
+import { pushRouter } from "./router/push";
 import { suggestionRouter } from "./router/suggestion";
 import { supportRouter } from "./router/support/support";
 import { taskRouter } from "./router/task";
@@ -55,6 +56,7 @@ export const appRouter = createTRPCRouter({
 	page: pageRouter,
 	pageComment: pageCommentRouter,
 	plugins: pluginsRouter,
+	push: pushRouter,
 	suggestion: suggestionRouter,
 	support: supportRouter,
 	task: taskRouter,

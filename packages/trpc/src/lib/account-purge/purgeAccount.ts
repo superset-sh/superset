@@ -7,6 +7,7 @@ import {
 	oauthConsents,
 	oauthRefreshTokens,
 	organizations,
+	pushDevices,
 	sessions,
 	subscriptions,
 	teamMembers,
@@ -140,6 +141,7 @@ export async function purgeAccount(userId: string): Promise<void> {
 		await tx.delete(teamMembers).where(eq(teamMembers.userId, userId));
 		await tx.delete(v2UsersHosts).where(eq(v2UsersHosts.userId, userId));
 		await tx.delete(v2Clients).where(eq(v2Clients.userId, userId));
+		await tx.delete(pushDevices).where(eq(pushDevices.userId, userId));
 		await tx.delete(userIdentities).where(eq(userIdentities.userId, userId));
 
 		// The row survives so authorship still resolves, but carries nothing

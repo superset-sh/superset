@@ -45,6 +45,7 @@ export const SANDBOX_ALLOWED_PROCEDURES: ReadonlySet<string> = new Set([
 	"page.versions",
 	"plugins.list",
 	"plugins.marketplaces.list",
+	"push.notifyAgentEvent",
 	"user.me",
 	"user.myOrganization",
 	"user.myOrganizations",
