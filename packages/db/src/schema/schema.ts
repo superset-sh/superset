@@ -1329,6 +1329,29 @@ export const v2Clients = pgTable(
 export type InsertV2Client = typeof v2Clients.$inferInsert;
 export type SelectV2Client = typeof v2Clients.$inferSelect;
 
+export const pushDevices = pgTable(
+	"push_devices",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		token: text().notNull().unique(),
+		platform: text().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [index("push_devices_user_id_idx").on(table.userId)],
+);
+
+export type InsertPushDevice = typeof pushDevices.$inferInsert;
+export type SelectPushDevice = typeof pushDevices.$inferSelect;
+
 export const v2UsersHosts = pgTable(
 	"v2_users_hosts",
 	{
