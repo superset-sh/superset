@@ -21,6 +21,7 @@ import { UpdatesPill } from "renderer/components/UpdatesPill";
 import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import { authClient } from "renderer/lib/auth-client";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -316,6 +317,8 @@ export function DashboardSidebar({
 		return [...byId.values()];
 	}, [pinnedWorkspaces, sessionWorkspaces, orderedGroups, cloudWorkspaces]);
 
+	const { data: session } = authClient.useSession();
+	const userId = session?.user?.id ?? null;
 	const switcherWorkspaces = useMemo<ActiveWorkspaceSwitcherOption[]>(() => {
 		const byId = new Map<string, ActiveWorkspaceSwitcherOption>();
 		for (const workspace of pinnedWorkspaces) {
@@ -342,10 +345,17 @@ export function DashboardSidebar({
 			}
 		}
 		for (const cloud of cloudWorkspaces ?? []) {
+			if (!userId || cloud.createdBy?.userId !== userId) continue;
 			byId.set(cloud.id, { id: cloud.id, name: cloud.name, detail: null });
 		}
 		return [...byId.values()];
-	}, [pinnedWorkspaces, sessionWorkspaces, sortedGroups, cloudWorkspaces]);
+	}, [
+		pinnedWorkspaces,
+		sessionWorkspaces,
+		sortedGroups,
+		cloudWorkspaces,
+		userId,
+	]);
 
 	const activeV2Project = useMemo(() => {
 		if (!activeV2WorkspaceId) return null;
