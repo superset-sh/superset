@@ -2189,6 +2189,9 @@ msgstr "音声入力を使うにはマイクへのアクセスを許可してく
 msgid "Allow remote access to this device via relay"
 msgstr "リレー経由でこのデバイスへのリモートアクセスを許可"
 
+msgid "Allow this action?"
+msgstr "この操作を許可しますか？"
+
 msgid "Allowed"
 msgstr "許可済み"
 
@@ -14318,6 +14321,9 @@ msgstr "ターミナルコマンドの実行や他のアプリケーションと
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "2つ目のターミナルを並行して起動する代わりに、セットアップ完了後にワークスペースセットアップのターミナルでエージェントを実行します"
+
+msgid "Run this command?"
+msgstr "このコマンドを実行しますか？"
 
 msgid "Run workspace command"
 msgstr "ワークスペースのコマンドを実行"

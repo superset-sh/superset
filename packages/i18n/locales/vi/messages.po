@@ -2189,6 +2189,9 @@ msgstr "Cho phép truy cập micro để dùng đọc chính tả"
 msgid "Allow remote access to this device via relay"
 msgstr "Cho phép truy cập từ xa vào thiết bị này qua relay"
 
+msgid "Allow this action?"
+msgstr "Cho phép thao tác này?"
+
 msgid "Allowed"
 msgstr "Đã cho phép"
 
@@ -14318,6 +14321,9 @@ msgstr "Chạy lệnh terminal và tương tác với ứng dụng khác."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Chạy agent trong terminal Workspace Setup sau khi setup xong thay vì mở thêm một terminal thứ hai bên cạnh"
+
+msgid "Run this command?"
+msgstr "Chạy lệnh này?"
 
 msgid "Run workspace command"
 msgstr "Chạy lệnh của workspace"

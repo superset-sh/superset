@@ -2189,6 +2189,9 @@ msgstr "Sesle yazmak için mikrofon erişimine izin verin"
 msgid "Allow remote access to this device via relay"
 msgstr "Bu cihaza röle üzerinden uzaktan erişime izin ver"
 
+msgid "Allow this action?"
+msgstr "Bu işleme izin verilsin mi?"
+
 msgid "Allowed"
 msgstr "İzin verildi"
 
@@ -14318,6 +14321,9 @@ msgstr "Terminal komutları çalıştırın ve diğer uygulamalarla etkileşin."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Yanında ikinci bir terminal başlatmak yerine, kurulum bittikten sonra ajanı Çalışma Alanı Kurulumu terminalinde çalıştır"
+
+msgid "Run this command?"
+msgstr "Bu komut çalıştırılsın mı?"
 
 msgid "Run workspace command"
 msgstr "Çalışma alanı komutunu çalıştır"

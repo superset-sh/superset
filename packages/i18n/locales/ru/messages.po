@@ -2189,6 +2189,9 @@ msgstr "Разрешите доступ к микрофону, чтобы исп
 msgid "Allow remote access to this device via relay"
 msgstr "Разрешить удалённый доступ к этому устройству через реле"
 
+msgid "Allow this action?"
+msgstr "Разрешить это действие?"
+
 msgid "Allowed"
 msgstr "Разрешено"
 
@@ -14318,6 +14321,9 @@ msgstr "Запускать команды в терминале и взаимо�
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Запускать агента в терминале настройки рабочей области после завершения установки вместо запуска второго терминала рядом"
+
+msgid "Run this command?"
+msgstr "Выполнить эту команду?"
 
 msgid "Run workspace command"
 msgstr "Запустить команду рабочей области"

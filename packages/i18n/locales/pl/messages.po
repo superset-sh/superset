@@ -2189,6 +2189,9 @@ msgstr "Zezwól na dostęp do mikrofonu, aby korzystać z dyktowania"
 msgid "Allow remote access to this device via relay"
 msgstr "Zezwól na zdalny dostęp do tego urządzenia przez przekaźnik"
 
+msgid "Allow this action?"
+msgstr "Zezwolić na tę akcję?"
+
 msgid "Allowed"
 msgstr "Dozwolone"
 
@@ -14318,6 +14321,9 @@ msgstr "Uruchamianie poleceń terminala i interakcja z innymi aplikacjami."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Uruchamiaj agenta w terminalu Konfiguracja obszaru roboczego po zakończeniu konfiguracji zamiast startować obok drugi terminal"
+
+msgid "Run this command?"
+msgstr "Uruchomić to polecenie?"
 
 msgid "Run workspace command"
 msgstr "Uruchom polecenie obszaru roboczego"

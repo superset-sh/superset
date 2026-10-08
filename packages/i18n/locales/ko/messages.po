@@ -2189,6 +2189,9 @@ msgstr "받아쓰기를 사용하려면 마이크 접근을 허용하세요"
 msgid "Allow remote access to this device via relay"
 msgstr "릴레이를 통해 이 기기에 원격 액세스 허용"
 
+msgid "Allow this action?"
+msgstr "이 작업을 허용할까요?"
+
 msgid "Allowed"
 msgstr "허용됨"
 
@@ -14318,6 +14321,9 @@ msgstr "터미널 명령을 실행하고 다른 애플리케이션과 상호작�
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "터미널을 하나 더 띄우는 대신, 설정이 끝난 뒤 워크스페이스 설정 터미널에서 에이전트를 실행합니다"
+
+msgid "Run this command?"
+msgstr "이 명령을 실행할까요?"
 
 msgid "Run workspace command"
 msgstr "워크스페이스 명령 실행"

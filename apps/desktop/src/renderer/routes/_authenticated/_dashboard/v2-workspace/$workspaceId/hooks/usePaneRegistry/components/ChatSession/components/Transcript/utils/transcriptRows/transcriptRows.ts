@@ -44,6 +44,13 @@ export type TranscriptRow =
 			message: string | undefined;
 	  };
 
+function commandAwaitingApproval(
+	tool: ToolCall,
+	pendingApprovalTargets: ReadonlySet<string>,
+): boolean {
+	return tool.toolKind === "execute" && pendingApprovalTargets.has(tool.id);
+}
+
 export function transcriptRows(
 	groups: readonly TurnGroup[],
 	outbox: readonly OutboxEntry[],
@@ -79,6 +86,15 @@ export function transcriptRows(
 				placeClock();
 			}
 			if (entry.kind === "item") {
+				if (
+					entry.item.kind === "tool_call" &&
+					commandAwaitingApproval(
+						entry.item as ToolCall,
+						pendingApprovalTargets,
+					)
+				) {
+					return;
+				}
 				const clientId =
 					entry.item.kind === "user_message"
 						? (entry.item as UserMessage).clientId
@@ -96,19 +112,21 @@ export function transcriptRows(
 				});
 				return;
 			}
-			const pages = entry.items.flatMap(
-				(tool) => links.fromTools.get(tool.id) ?? [],
+			const items = entry.items.filter(
+				(tool) => !commandAwaitingApproval(tool, pendingApprovalTargets),
 			);
+			if (items.length === 0) return;
+			const pages = items.flatMap((tool) => links.fromTools.get(tool.id) ?? []);
 			push({
 				kind: "tool_run",
-				key: toolRunKey(group.turnId, entry.items, index),
+				key: toolRunKey(group.turnId, items, index),
 				groupStart,
-				items: entry.items,
+				items,
 				defaultCollapsed:
 					(turnSettled ||
 						(index < group.entries.length - 1 &&
-							!entry.items.some((tool) => tool.status === "running"))) &&
-					!entry.items.some((tool) => pendingApprovalTargets.has(tool.id)),
+							!items.some((tool) => tool.status === "running"))) &&
+					!items.some((tool) => pendingApprovalTargets.has(tool.id)),
 				...(pages.length > 0 ? { pages } : {}),
 			});
 		});

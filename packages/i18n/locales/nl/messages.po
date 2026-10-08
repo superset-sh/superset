@@ -2189,6 +2189,9 @@ msgstr "Geef toegang tot de microfoon om te dicteren"
 msgid "Allow remote access to this device via relay"
 msgstr "Externe toegang tot dit apparaat via de relay toestaan"
 
+msgid "Allow this action?"
+msgstr "Deze actie toestaan?"
+
 msgid "Allowed"
 msgstr "Toegestaan"
 
@@ -14318,6 +14321,9 @@ msgstr "Terminalcommando's uitvoeren en met andere applicaties werken."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Draai de agent in de terminal van de werkruimte-setup zodra die klaar is, in plaats van er een tweede terminal naast te starten"
+
+msgid "Run this command?"
+msgstr "Deze opdracht uitvoeren?"
 
 msgid "Run workspace command"
 msgstr "Werkruimtecommando uitvoeren"

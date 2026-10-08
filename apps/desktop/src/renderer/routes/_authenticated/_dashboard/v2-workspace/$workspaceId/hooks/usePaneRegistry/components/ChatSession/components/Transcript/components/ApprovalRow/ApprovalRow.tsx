@@ -1,9 +1,16 @@
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
-import type { ApprovalRequest, Decision } from "@superset/chat/protocol";
+import type {
+	ApprovalRequest,
+	Decision,
+	Item,
+	ToolCall,
+} from "@superset/chat/protocol";
 import { i18n } from "@superset/i18n";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
+import { cn } from "@superset/ui/utils";
+import { ShieldQuestion, SquareTerminal } from "lucide-react";
 import { ToolContentList } from "../ToolContentList";
 import { OptionButtons } from "./components/OptionButtons";
 import type { ApprovalOption } from "./utils/optionRole";
@@ -43,69 +50,88 @@ function decisionLabel(
 export function ApprovalRow({
 	item,
 	onRespond,
+	target,
 }: {
 	item: ApprovalRequest;
 	onRespond: (approvalId: string, decision: Decision) => void;
+	target?: Item | undefined;
 }) {
 	const pending = item.status === "pending";
 	const options = item.options ?? [];
+	const command =
+		target?.kind === "tool_call" && (target as ToolCall).toolKind === "execute";
+	const Icon = command ? SquareTerminal : ShieldQuestion;
 	return (
 		<div
-			className={
+			className={cn(
+				"flex flex-col gap-2.5 rounded-xl border",
+				pending ? "p-3" : "px-3 py-2",
 				pending
-					? "flex flex-col gap-2 rounded-lg border border-warning/50 bg-warning/5 p-3"
-					: "flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3"
-			}
+					? "border-warning/30 bg-warning/[0.04]"
+					: "border-border/60 bg-muted/20",
+			)}
 		>
-			<div className="flex items-center gap-2">
-				{pending && (
-					<span
-						aria-hidden
-						className="size-2 shrink-0 rounded-full bg-warning ring-[3px] ring-warning/20"
-					/>
-				)}
-				<span className="text-sm font-medium">{item.title}</span>
+			<div className="flex min-w-0 items-center gap-2 text-sm">
+				<Icon
+					className={cn(
+						"size-4 shrink-0",
+						pending ? "text-warning" : "text-muted-foreground",
+					)}
+				/>
+				<span className="font-medium">
+					{command ? (
+						<Trans>Run this command?</Trans>
+					) : (
+						<Trans>Allow this action?</Trans>
+					)}
+				</span>
 				{item.status === "stale" && (
-					<Badge variant="outline">
+					<Badge className="ml-auto" variant="outline">
 						<Trans>Expired</Trans>
 					</Badge>
 				)}
 				{item.status === "answered" && (
-					<Badge variant="secondary">
+					<Badge className="ml-auto" variant="secondary">
 						{decisionLabel(item.decision, options)}
 					</Badge>
 				)}
 			</div>
-			{item.detail && <ToolContentList itemId={item.id} items={item.detail} />}
+			{pending &&
+				(command ? (
+					<pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-background/70 px-3 py-2 font-mono text-[12.5px] leading-relaxed">
+						{item.title}
+					</pre>
+				) : (
+					<p className="text-muted-foreground text-sm">{item.title}</p>
+				))}
+			{pending && item.detail && (
+				<ToolContentList itemId={item.id} items={item.detail} />
+			)}
 			{pending &&
 				(options.length > 0 ? (
 					<OptionButtons item={{ ...item, options }} onRespond={onRespond} />
 				) : (
-					<div className="flex flex-wrap items-center gap-2">
+					<div className="flex items-center justify-end gap-2">
 						<Button
 							onClick={() => onRespond(item.id, { type: "decline" })}
 							size="sm"
-							variant="ghost"
+							variant="outline"
 						>
 							<Trans>Deny</Trans>
 						</Button>
-						<div className="flex flex-1 flex-wrap justify-end gap-2">
-							<Button
-								onClick={() =>
-									onRespond(item.id, { type: "accept_for_session" })
-								}
-								size="sm"
-								variant="outline"
-							>
-								<Trans>Allow for session</Trans>
-							</Button>
-							<Button
-								onClick={() => onRespond(item.id, { type: "accept" })}
-								size="sm"
-							>
-								<Trans>Allow</Trans>
-							</Button>
-						</div>
+						<Button
+							onClick={() => onRespond(item.id, { type: "accept_for_session" })}
+							size="sm"
+							variant="outline"
+						>
+							<Trans>Allow for session</Trans>
+						</Button>
+						<Button
+							onClick={() => onRespond(item.id, { type: "accept" })}
+							size="sm"
+						>
+							<Trans>Allow</Trans>
+						</Button>
 					</div>
 				))}
 		</div>

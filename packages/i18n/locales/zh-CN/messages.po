@@ -2189,6 +2189,9 @@ msgstr "请允许麦克风访问以使用语音输入"
 msgid "Allow remote access to this device via relay"
 msgstr "允许通过中继远程访问本设备"
 
+msgid "Allow this action?"
+msgstr "允许此操作？"
+
 msgid "Allowed"
 msgstr "已允许"
 
@@ -14318,6 +14321,9 @@ msgstr "运行终端命令并与其他应用程序交互。"
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "设置完成后在“工作区设置”终端中运行智能体，而不是另外启动第二个终端"
+
+msgid "Run this command?"
+msgstr "运行此命令？"
 
 msgid "Run workspace command"
 msgstr "运行工作区命令"

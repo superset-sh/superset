@@ -2189,6 +2189,9 @@ msgstr "Erlaube den Mikrofonzugriff, um zu diktieren"
 msgid "Allow remote access to this device via relay"
 msgstr "Fernzugriff auf dieses Gerät über den Relay erlauben"
 
+msgid "Allow this action?"
+msgstr "Diese Aktion zulassen?"
+
 msgid "Allowed"
 msgstr "Erlaubt"
 
@@ -14318,6 +14321,9 @@ msgstr "Terminal-Befehle ausführen und mit anderen Anwendungen interagieren."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Den Agenten im Terminal „Workspace Setup“ ausführen, sobald das Setup fertig ist, statt daneben ein zweites Terminal zu starten"
+
+msgid "Run this command?"
+msgstr "Diesen Befehl ausführen?"
 
 msgid "Run workspace command"
 msgstr "Befehl des Arbeitsbereichs ausführen"

@@ -2189,6 +2189,9 @@ msgstr "請允許麥克風存取以使用語音輸入"
 msgid "Allow remote access to this device via relay"
 msgstr "允許透過中繼遠端存取此裝置"
 
+msgid "Allow this action?"
+msgstr "允許此操作？"
+
 msgid "Allowed"
 msgstr "已允許"
 
@@ -14318,6 +14321,9 @@ msgstr "執行終端命令並與其他應用程式程式互動。"
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "設定完成後在「工作區設定」終端中執行代理程式，而不是另外啟動第二個終端"
+
+msgid "Run this command?"
+msgstr "執行此指令？"
 
 msgid "Run workspace command"
 msgstr "執行工作區命令"

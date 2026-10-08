@@ -2189,6 +2189,9 @@ msgstr "Izinkan akses mikrofon untuk memakai dikte"
 msgid "Allow remote access to this device via relay"
 msgstr "Izinkan akses jarak jauh ke perangkat ini melalui relay"
 
+msgid "Allow this action?"
+msgstr "Izinkan tindakan ini?"
+
 msgid "Allowed"
 msgstr "Diizinkan"
 
@@ -14318,6 +14321,9 @@ msgstr "Menjalankan perintah terminal dan berinteraksi dengan aplikasi lain."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Jalankan agen di terminal Workspace Setup setelah setup selesai, bukan membuka terminal kedua di sampingnya"
+
+msgid "Run this command?"
+msgstr "Jalankan perintah ini?"
 
 msgid "Run workspace command"
 msgstr "Jalankan perintah workspace"

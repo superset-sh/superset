@@ -2189,6 +2189,9 @@ msgstr "Pro diktování povolte přístup k mikrofonu"
 msgid "Allow remote access to this device via relay"
 msgstr "Povolit vzdálený přístup k tomuto zařízení přes relay"
 
+msgid "Allow this action?"
+msgstr "Povolit tuto akci?"
+
 msgid "Allowed"
 msgstr "Povoleno"
 
@@ -14318,6 +14321,9 @@ msgstr "Spouštět příkazy v terminálu a pracovat s dalšími aplikacemi."
 
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Spustit agenta v terminálu Workspace Setup, jakmile setup doběhne, místo spuštění druhého terminálu vedle něj"
+
+msgid "Run this command?"
+msgstr "Spustit tento příkaz?"
 
 msgid "Run workspace command"
 msgstr "Spustit příkaz pracovního prostoru"
