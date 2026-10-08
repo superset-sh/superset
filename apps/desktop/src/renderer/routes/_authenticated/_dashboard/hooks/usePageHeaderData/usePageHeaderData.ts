@@ -2,12 +2,15 @@ import { usePageCommentThreads } from "@superset/cloud-client";
 import type {
 	CommentThread,
 	PageHeaderPage,
+	PageHeaderSharing,
 	PageHeaderVersion,
 	PageVisibility,
 } from "@superset/ui/page-comments";
+import type { ShareGranteeRef } from "@superset/ui/share-access";
 import { useCallback } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useShareDirectory } from "../useShareDirectory";
 
 export interface PageHeaderTarget {
 	slug: string;
@@ -26,6 +29,9 @@ interface PageHeaderData {
 	onRename: (title: string) => Promise<void>;
 	onRefresh: () => void;
 	onDelete: () => Promise<void>;
+	sharing: PageHeaderSharing;
+	/** False for readers who may only view. The server enforces it either way. */
+	canComment: boolean;
 }
 
 export function usePageHeaderData(data: PageHeaderTarget): PageHeaderData {
@@ -50,6 +56,68 @@ export function usePageHeaderData(data: PageHeaderTarget): PageHeaderData {
 	const setSharedVersion = cloudTrpc.page.setSharedVersion.useMutation();
 	const updatePage = cloudTrpc.page.update.useMutation();
 	const deletePage = cloudTrpc.page.delete.useMutation();
+
+	const share = useShareDirectory();
+	const sharingQuery = cloudTrpc.page.sharing.get.useQuery(
+		{ id: pageId ?? "" },
+		{ enabled: Boolean(pageId) },
+	);
+	const addShares = cloudTrpc.page.sharing.add.useMutation();
+	const removeShare = cloudTrpc.page.sharing.remove.useMutation();
+	const setShareRole = cloudTrpc.page.sharing.setRole.useMutation();
+	const setOrganizationRole = cloudTrpc.page.setOrganizationRole.useMutation();
+	const refreshSharing = () =>
+		pageId ? utils.page.sharing.get.invalidate({ id: pageId }) : undefined;
+	const grantees = sharingQuery.data?.grantees ?? [];
+	const sharing: PageHeaderSharing = {
+		grantees,
+		organizationRole: sharingQuery.data?.organizationRole ?? "comment",
+		directory: share.directory,
+		organizationName: share.organizationName,
+		inviteNew: share.inviteNew,
+		onUpgrade: share.onUpgrade,
+		onAdd: async ({ grantees: picked, emails, role }) => {
+			if (!pageId) return;
+			const invitationIds = await share.inviteEmails(emails);
+			await addShares.mutateAsync({
+				id: pageId,
+				role: role === "view" ? "view" : "comment",
+				grantees: [
+					...picked,
+					...invitationIds.map(
+						(invitationId): ShareGranteeRef => ({
+							kind: "invitation",
+							invitationId,
+						}),
+					),
+				],
+			});
+			await refreshSharing();
+		},
+		onRemove: async (grantee) => {
+			if (!pageId) return;
+			await removeShare.mutateAsync({ id: pageId, grantee });
+			await refreshSharing();
+		},
+		onSetRole: async (grantee, role) => {
+			if (!pageId) return;
+			await setShareRole.mutateAsync({ id: pageId, grantee, role });
+			await refreshSharing();
+		},
+		onSetOrganizationRole: async (role) => {
+			if (!pageId) return;
+			await setOrganizationRole.mutateAsync({ id: pageId, role });
+			await Promise.all([refreshSharing(), access.refetch()]);
+		},
+		onResendInvite: async (invitationId) => {
+			const invite = grantees.find(
+				(g) => g.kind === "invitation" && g.invitationId === invitationId,
+			);
+			if (invite?.kind === "invitation") {
+				await share.inviteEmails([invite.email]);
+			}
+		},
+	};
 
 	const refresh = useCallback(async () => {
 		await Promise.all([pull.refetch(), versions.refetch()]);
@@ -110,5 +178,7 @@ export function usePageHeaderData(data: PageHeaderTarget): PageHeaderData {
 			if (!pageId) return;
 			await deletePage.mutateAsync({ id: pageId });
 		},
+		sharing,
+		canComment: access.data?.canComment ?? true,
 	};
 }

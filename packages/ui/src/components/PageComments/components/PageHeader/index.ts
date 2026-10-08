@@ -8,6 +8,8 @@ export type {
 	PageHeaderActions,
 	PageHeaderOwner,
 	PageHeaderPage,
+	PageHeaderSharing,
 	PageHeaderVersion,
+	PageShareRole,
 	PageVisibility,
 } from "./types";

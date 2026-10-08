@@ -1,0 +1,1 @@
+export { WorkspacePermissionScreen } from "./WorkspacePermissionScreen";

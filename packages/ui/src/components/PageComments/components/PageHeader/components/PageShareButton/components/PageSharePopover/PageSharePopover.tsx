@@ -2,15 +2,14 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
-import { getInitials } from "@superset/shared/names";
-import { Building2, Check, Globe, Link2, Lock } from "lucide-react";
+import { Building2, Globe, Lock } from "lucide-react";
 import { type ReactNode, useCallback, useState } from "react";
 import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "../../../../../../../ui/avatar";
-import { Button } from "../../../../../../../ui/button";
+	keepOpenForToasts,
+	ShareAccess,
+	type ShareConfirmation,
+	type ShareRoleOption,
+} from "../../../../../../../ShareAccess";
 import { Label } from "../../../../../../../ui/label";
 import {
 	Popover,
@@ -32,10 +31,16 @@ import type {
 	PageHeaderActions,
 	PageHeaderPage,
 	PageHeaderVersion,
+	PageShareRole,
 	PageVisibility,
 } from "../../../../types";
 
 const LATEST = "latest";
+const WIDTH: Record<PageVisibility, number> = {
+	just_me: 0,
+	org: 1,
+	everyone: 2,
+};
 
 interface PageSharePopoverProps {
 	page: PageHeaderPage;
@@ -45,6 +50,8 @@ interface PageSharePopoverProps {
 	onOpenChange: (open: boolean) => void;
 	onSetVisibility: PageHeaderActions["onSetVisibility"];
 	onSetSharedVersion: PageHeaderActions["onSetSharedVersion"];
+	currentUserId: string | undefined;
+	sharing: PageHeaderActions["sharing"];
 	children: ReactNode;
 }
 
@@ -56,44 +63,59 @@ export function PageSharePopover({
 	onOpenChange,
 	onSetVisibility,
 	onSetSharedVersion,
+	currentUserId,
+	sharing,
 	children,
 }: PageSharePopoverProps) {
 	const { t } = useLingui();
 	const [busy, setBusy] = useState(false);
-	const [copied, setCopied] = useState(false);
 
 	useFramePointerDown(useCallback(() => onOpenChange(false), [onOpenChange]));
 
-	const copyLink = async () => {
-		try {
-			await navigator.clipboard.writeText(page.url);
-			setCopied(true);
-			setTimeout(() => setCopied(false), 1500);
-		} catch {
-			toast.error(
-				t({
-					message: "Could not copy the link",
-				}),
-			);
-		}
-	};
+	const copyLink = () => navigator.clipboard.writeText(page.url);
+	const organizationName = sharing.organizationName;
 
-	const changeVisibility = async (next: PageVisibility) => {
-		if (next === page.visibility) return;
-		if (next !== "just_me") void copyLink();
-		setBusy(true);
-		try {
-			await onSetVisibility(next);
-		} catch (error) {
-			toast.error(
-				errorMessage(
-					error,
-					t({ message: "Could not change who can see this page" }),
-				),
-			);
-		} finally {
-			setBusy(false);
+	const roles: ShareRoleOption[] = [
+		{
+			id: "view",
+			label: t({ message: "Can view" }),
+			description: t({ message: "Read the page" }),
+		},
+		{
+			id: "comment",
+			label: t({ message: "Can comment" }),
+			description: t({ message: "Read the page and leave comments" }),
+		},
+	];
+
+	const confirm = (from: string, to: string): ShareConfirmation | null => {
+		if (to === "everyone") {
+			return {
+				title: t({ message: "Make this page public?" }),
+				description: t({
+					message: `Anyone with the link can view it, including people outside ${organizationName} and people who aren't signed in.`,
+				}),
+				actionLabel: t({ message: "Make public" }),
+			};
 		}
+		if (WIDTH[to as PageVisibility] >= WIDTH[from as PageVisibility]) {
+			return null;
+		}
+		return to === "just_me"
+			? {
+					title: t({ message: "Limit to people invited?" }),
+					description: t({
+						message: `Anyone in ${organizationName} who isn't listed here loses access.`,
+					}),
+					actionLabel: t({ message: "Limit access" }),
+				}
+			: {
+					title: t({ message: `Limit to ${organizationName}?` }),
+					description: t({
+						message: `People outside ${organizationName} lose access, and the public link stops working.`,
+					}),
+					actionLabel: t({ message: "Limit access" }),
+				};
 	};
 
 	const run = async (action: () => Promise<void>, failure: string) => {
@@ -107,155 +129,135 @@ export function PageSharePopover({
 		}
 	};
 
-	const owner = page.owner;
 	const sharedVersion = page.sharedVersion;
 	const latestVersion = page.latestVersion;
 	const pinnable = versions.filter(
 		(entry) => entry.version !== page.latestVersion,
 	);
+	const owner = page.owner;
 
 	return (
 		<Popover open={open} onOpenChange={onOpenChange}>
 			<PopoverTrigger asChild>{children}</PopoverTrigger>
-			<PopoverContent align="end" className="w-80 p-0">
-				<div className="flex items-center justify-between gap-2 px-3 py-2.5">
-					<span className="font-medium text-sm">
-						<Trans>Share page</Trans>
-					</span>
-					<Button size="xs" variant="ghost" onClick={() => void copyLink()}>
-						{copied ? (
-							<Check className="size-3.5 text-primary" />
-						) : (
-							<Link2 className="size-3.5" />
-						)}
-						{copied ? <Trans>Copied</Trans> : <Trans>Copy link</Trans>}
-					</Button>
-				</div>
-
-				<Separator />
-
-				<div className="space-y-2 px-3 py-2.5">
-					<Label className="font-medium text-sm">
-						<Trans>People with access</Trans>
-					</Label>
-					{owner ? (
-						<div className="flex items-center gap-2">
-							<Avatar className="size-6">
-								{owner.image ? <AvatarImage src={owner.image} /> : null}
-								<AvatarFallback className="text-[10px]">
-									{getInitials(owner.name) || "?"}
-								</AvatarFallback>
-							</Avatar>
-							<div className="min-w-0 flex-1">
-								<p className="truncate text-sm">{owner.name}</p>
-								<p className="truncate text-muted-foreground text-xs">
-									{owner.email}
-								</p>
-							</div>
-							<span className="shrink-0 text-muted-foreground text-xs">
-								<Trans>Owner</Trans>
-							</span>
+			<PopoverContent
+				align="end"
+				className="w-[32rem] p-0"
+				onInteractOutside={keepOpenForToasts}
+			>
+				<ShareAccess
+					title={<Trans>Share page</Trans>}
+					owner={
+						owner
+							? {
+									userId: owner.id,
+									name: owner.name,
+									email: owner.email,
+									image: owner.image,
+								}
+							: null
+					}
+					currentUserId={currentUserId ?? null}
+					grantees={sharing.grantees}
+					canManage={editable}
+					roles={roles}
+					defaultRole="comment"
+					roleNote=""
+					directory={sharing.directory}
+					organizationName={organizationName}
+					inviteNew={sharing.inviteNew}
+					onUpgrade={sharing.onUpgrade}
+					onCopyLink={copyLink}
+					onAdd={sharing.onAdd}
+					onRemove={sharing.onRemove}
+					onSetRole={(grantee, role) =>
+						sharing.onSetRole(grantee, role as PageShareRole)
+					}
+					onResendInvite={sharing.onResendInvite}
+					general={{
+						value: page.visibility,
+						hint: t({ message: "Who can open this page from its link" }),
+						options: [
+							{
+								value: "just_me",
+								label: t({ message: "Only people invited" }),
+								icon: <Lock className="size-3.5 text-muted-foreground" />,
+							},
+							{
+								value: "org",
+								label: t({ message: "Anyone in your organization" }),
+								icon: <Building2 className="size-3.5 text-muted-foreground" />,
+							},
+							{
+								value: "everyone",
+								label: t({ message: "Anyone with the link" }),
+								icon: <Globe className="size-3.5 text-muted-foreground" />,
+							},
+						],
+						onChange: async (next) => {
+							await onSetVisibility(next as PageVisibility);
+							if (next !== "just_me") await copyLink().catch(() => {});
+						},
+						confirm,
+						role: {
+							value: sharing.organizationRole,
+							options: roles,
+							appliesTo: ["org", "everyone"],
+							onChange: (role) =>
+								sharing.onSetOrganizationRole(role as PageShareRole),
+						},
+					}}
+				>
+					<Separator />
+					<div className="space-y-2 px-3 py-2.5">
+						<div className="space-y-0.5">
+							<Label className="font-medium text-sm">
+								<Trans>Shared version</Trans>
+							</Label>
+							<p className="text-muted-foreground text-xs">
+								{sharedVersion === null ? (
+									<Trans>
+										Everyone sees new versions as they are published
+									</Trans>
+								) : (
+									<Trans>
+										Everyone stays on v{sharedVersion} until you change this
+									</Trans>
+								)}
+							</p>
 						</div>
-					) : (
-						<p className="text-muted-foreground text-xs">
-							<Trans>The owner's account no longer exists.</Trans>
-						</p>
-					)}
-				</div>
-
-				<Separator />
-
-				<div className="space-y-2 px-3 py-2.5">
-					<div className="space-y-0.5">
-						<Label className="font-medium text-sm">
-							<Trans>General access</Trans>
-						</Label>
-						<p className="text-muted-foreground text-xs">
-							<Trans>Who can open this page from its link</Trans>
-						</p>
+						<Select
+							value={sharedVersion === null ? LATEST : String(sharedVersion)}
+							disabled={!editable || busy || versions.length === 0}
+							onValueChange={(value) =>
+								void run(
+									() =>
+										onSetSharedVersion(value === LATEST ? null : Number(value)),
+									t({ message: "Could not change the shared version" }),
+								)
+							}
+						>
+							<SelectTrigger size="sm" className="w-full">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value={LATEST}>
+									{latestVersion === null
+										? t({ message: "Latest" })
+										: t({ message: `Latest (v${latestVersion})` })}
+								</SelectItem>
+								{pinnable.map((entry) => {
+									const version = entry.version;
+									return (
+										<SelectItem key={version} value={String(version)}>
+											<Trans>Version {version}</Trans> ·{" "}
+											{entry.label ?? relativeTime(entry.createdAt)}
+										</SelectItem>
+									);
+								})}
+							</SelectContent>
+						</Select>
 					</div>
-					<Select
-						value={page.visibility}
-						disabled={!editable || busy}
-						onValueChange={(value) =>
-							void changeVisibility(value as PageVisibility)
-						}
-					>
-						<SelectTrigger size="sm" className="w-full">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="just_me">
-								<Lock className="size-3.5 text-muted-foreground" />
-								<Trans>Only you</Trans>
-							</SelectItem>
-							<SelectItem value="org">
-								<Building2 className="size-3.5 text-muted-foreground" />
-								<Trans>Anyone in your organization</Trans>
-							</SelectItem>
-							<SelectItem value="everyone">
-								<Globe className="size-3.5 text-muted-foreground" />
-								<Trans>Anyone with the link</Trans>
-							</SelectItem>
-						</SelectContent>
-					</Select>
-				</div>
-
-				<Separator />
-
-				<div className="space-y-2 px-3 py-2.5">
-					<div className="space-y-0.5">
-						<Label className="font-medium text-sm">
-							<Trans>Shared version</Trans>
-						</Label>
-						<p className="text-muted-foreground text-xs">
-							{sharedVersion === null ? (
-								<Trans>Everyone sees new versions as they are published</Trans>
-							) : (
-								<Trans>
-									Everyone stays on v{sharedVersion} until you change this
-								</Trans>
-							)}
-						</p>
-					</div>
-					<Select
-						value={
-							page.sharedVersion === null ? LATEST : String(page.sharedVersion)
-						}
-						disabled={!editable || busy || versions.length === 0}
-						onValueChange={(value) =>
-							void run(
-								() =>
-									onSetSharedVersion(value === LATEST ? null : Number(value)),
-								t({
-									message: "Could not change the shared version",
-								}),
-							)
-						}
-					>
-						<SelectTrigger size="sm" className="w-full">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value={LATEST}>
-								{latestVersion === null
-									? t({ message: "Latest" })
-									: t({
-											message: `Latest (v${latestVersion})`,
-										})}
-							</SelectItem>
-							{pinnable.map((entry) => {
-								const version = entry.version;
-								return (
-									<SelectItem key={version} value={String(version)}>
-										<Trans>Version {version}</Trans> ·{" "}
-										{entry.label ?? relativeTime(entry.createdAt)}
-									</SelectItem>
-								);
-							})}
-						</SelectContent>
-					</Select>
-				</div>
+				</ShareAccess>
 			</PopoverContent>
 		</Popover>
 	);

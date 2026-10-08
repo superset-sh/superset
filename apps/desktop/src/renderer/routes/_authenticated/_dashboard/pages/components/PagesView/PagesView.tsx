@@ -28,6 +28,7 @@ const TABS: Array<{ value: PageScope }> = [
 	{ value: "all" },
 	{ value: "pinned" },
 	{ value: "team" },
+	{ value: "shared" },
 	{ value: "mine" },
 ];
 
@@ -106,6 +107,7 @@ export function PagesView({
 			all: countsQuery.data?.all ?? 0,
 			pinned: countsQuery.data?.pinned ?? 0,
 			team: countsQuery.data?.team ?? 0,
+			shared: countsQuery.data?.shared ?? 0,
 			mine: countsQuery.data?.mine ?? 0,
 		}),
 		[countsQuery.data],
@@ -144,6 +146,7 @@ export function PagesView({
 		all: t({ message: "All" }),
 		pinned: t({ message: "Pinned" }),
 		team: t({ message: "Team" }),
+		shared: t({ message: "Shared with me" }),
 		mine: t({ message: "Just me" }),
 	};
 
@@ -188,9 +191,11 @@ export function PagesView({
 		() =>
 			TABS.filter(
 				(tab) =>
-					tab.value !== "pinned" || counts.pinned > 0 || scope === "pinned",
+					(tab.value !== "pinned" && tab.value !== "shared") ||
+					counts[tab.value] > 0 ||
+					scope === tab.value,
 			),
-		[counts.pinned, scope],
+		[counts, scope],
 	);
 
 	const hasFilters =

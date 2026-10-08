@@ -96,6 +96,9 @@ msgstr "(tidak ada keluaran)"
 msgid "(so far)"
 msgstr "(sejauh ini)"
 
+msgid "(you)"
+msgstr "(Anda)"
+
 #. placeholder {0}: connections.length
 msgid "{0, plural, one {# account connected} other {# accounts connected}}"
 msgstr "{0, plural, other {# akun terhubung}}"
@@ -187,6 +190,7 @@ msgstr "{0, plural, one {# tertunda} other {# tertunda}}"
 
 #. placeholder {0}: chosenLeads.length
 #. placeholder {0}: chosenPeople.length
+#. placeholder {0}: grantee.memberCount
 msgid "{0, plural, one {# person} other {# people}}"
 msgstr "{0, plural, other {# orang}}"
 
@@ -643,6 +647,9 @@ msgstr "{actor} mengedit deskripsi"
 msgid "{actor} joined"
 msgstr "{actor} bergabung"
 
+msgid "{actor} limited the workspace to people invited"
+msgstr "{actor} membatasi workspace hanya untuk orang yang diundang"
+
 msgid "{actor} linked {chip}"
 msgstr "{actor} menautkan {chip}"
 
@@ -652,9 +659,6 @@ msgstr "{actor} menautkan {chip} · disarankan oleh {suggestedBy}"
 msgid "{actor} linked the workspace {workspace}"
 msgstr "{actor} menautkan workspace {workspace}"
 
-msgid "{actor} made the workspace private"
-msgstr "{actor} menjadikan workspace privat"
-
 msgid "{actor} moved the task from {from} to {to}"
 msgstr "{actor} memindahkan tugas dari {from} ke {to}"
 
@@ -663,6 +667,9 @@ msgstr "{actor} membuka {badge}"
 
 msgid "{actor} published {chip}"
 msgstr "{actor} menerbitkan {chip}"
+
+msgid "{actor} removed access for {target}"
+msgstr "{actor} menghapus akses untuk {target}"
 
 msgid "{actor} removed the assignee"
 msgstr "{actor} menghapus penerima tugas"
@@ -691,6 +698,9 @@ msgstr "{actor} menetapkan prioritas ke {to}"
 
 msgid "{actor} set the status to {to}"
 msgstr "{actor} menetapkan status ke {to}"
+
+msgid "{actor} shared the workspace with {target}"
+msgstr "{actor} membagikan workspace dengan {target}"
 
 msgid "{actor} shared the workspace with the organization"
 msgstr "{actor} membagikan workspace dengan organisasi"
@@ -1532,6 +1542,12 @@ msgstr "Terima ketentuan"
 msgid "Access denied"
 msgstr "Akses ditolak"
 
+msgid "Access for {name}"
+msgstr "Akses untuk {name}"
+
+msgid "Access for the people you add"
+msgstr "Akses untuk orang yang Anda tambahkan"
+
 msgid "Access your email address"
 msgstr "Mengakses alamat email Anda"
 
@@ -1728,8 +1744,17 @@ msgstr "Tambahkan agen pendengar"
 msgid "Add member"
 msgstr "Tambah anggota"
 
+msgid "Add more…"
+msgstr "Tambah lagi…"
+
 msgid "Add one from the menu in the sidebar to get started."
 msgstr "Tambahkan satu dari menu di sidebar untuk memulai."
+
+msgid "Add people"
+msgstr "Tambah orang"
+
+msgid "Add people or teams by name or email"
+msgstr "Tambah orang atau tim berdasarkan nama atau email"
 
 msgid "Add photos or files"
 msgstr "Tambah foto atau file"
@@ -1805,6 +1830,10 @@ msgstr "Menambahkan 1 file ke {where}"
 
 msgid "Added only when launching with a prompt — e.g. <0>--</0>, <1>--prompt</1>, <2>-i</2>."
 msgstr "Ditambahkan hanya saat menjalankan dengan prompt — mis. <0>--</0>, <1>--prompt</1>, <2>-i</2>."
+
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
+msgstr "Menambahkan orang ke {organizationName} memerlukan paket berbayar. Paket organisasi Anda dikelola oleh pemiliknya di {0}."
 
 msgid "Address Comments with Agent"
 msgstr "Tanggapi Komentar dengan Agen"
@@ -2303,11 +2332,27 @@ msgstr "Event thread apa pun"
 msgid "Anyone"
 msgstr "Siapa pun"
 
+#. placeholder {0}: share.organizationName
+msgid "Anyone in {0} who isn't listed here loses access, including anyone who has it open now."
+msgstr "Siapa pun di {0} yang tidak tercantum di sini kehilangan akses, termasuk yang sedang membukanya."
+
+msgid "Anyone in {organizationName} who isn't listed here loses access."
+msgstr "Siapa pun di {organizationName} yang tidak tercantum di sini kehilangan akses."
+
+msgid "Anyone in {organizationName} with the link can open it"
+msgstr "Siapa pun di {organizationName} yang memiliki tautan dapat membukanya"
+
 msgid "Anyone in your organization"
 msgstr "Siapa pun di organisasi Anda"
 
 msgid "Anyone with the link"
 msgstr "Siapa saja yang memiliki tautan"
+
+msgid "Anyone with the link can view it, including people outside {organizationName} and people who aren't signed in."
+msgstr "Siapa saja yang memiliki tautan dapat melihatnya, termasuk orang di luar {organizationName} dan orang yang belum masuk."
+
+msgid "Anyone with the link can view it, signed in or not"
+msgstr "Siapa pun yang memiliki tautan dapat melihatnya, masuk atau tidak"
 
 msgid "anything"
 msgstr "apa saja"
@@ -3240,6 +3285,9 @@ msgstr "Akses kamera tidak diizinkan"
 msgid "Camera is not available"
 msgstr "Kamera tidak tersedia"
 
+msgid "Can comment"
+msgstr "Dapat berkomentar"
+
 msgid "Can I switch plans or cancel anytime?"
 msgstr "Bisakah saya ganti paket atau batal kapan saja?"
 
@@ -3251,6 +3299,9 @@ msgstr "Dapat di-merge tanpa konflik"
 
 msgid "Can the headline say what happens after sign-up?"
 msgstr "Bisakah judulnya menjelaskan apa yang terjadi setelah mendaftar?"
+
+msgid "Can view"
+msgstr "Dapat melihat"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Bisakah kamu menyeragamkan tooltip di seluruh aplikasi?"
@@ -3276,6 +3327,9 @@ msgstr "Batalkan unduhan"
 msgid "Cancel edits"
 msgstr "Batalkan suntingan"
 
+msgid "Cancel invite"
+msgstr "Batalkan undangan"
+
 msgid "Cancel plan"
 msgstr "Batalkan paket"
 
@@ -3291,6 +3345,9 @@ msgstr "Membatalkan..."
 
 msgid "Cancelled"
 msgstr "Dibatalkan"
+
+msgid "Cancelled the invite for {name}"
+msgstr "Undangan untuk {name} dibatalkan"
 
 #. placeholder {0}: format(new Date(cancelAt), "MMMM d, yyyy")
 #. placeholder {0}: formatDate(cancelAt)
@@ -4709,17 +4766,17 @@ msgstr "Tidak bisa melampirkan file"
 msgid "Could not branch the chat"
 msgstr "Tidak dapat mencabangkan obrolan"
 
+msgid "Could not change access"
+msgstr "Tidak bisa mengubah akses"
+
 msgid "Could not change the mode"
 msgstr "Tidak dapat mengubah mode"
 
 msgid "Could not change the shared version"
 msgstr "Tidak bisa mengubah versi yang dibagikan"
 
-msgid "Could not change who can see this page"
-msgstr "Tidak bisa mengubah siapa yang bisa melihat halaman ini"
-
-msgid "Could not change who can see this workspace"
-msgstr "Tidak dapat mengubah siapa yang dapat melihat workspace ini"
+msgid "Could not change who has access"
+msgstr "Tidak bisa mengubah siapa yang punya akses"
 
 msgid "Could not check your plan. Check your connection and try again."
 msgstr "Tidak dapat memeriksa paket Anda. Periksa koneksi Anda dan coba lagi."
@@ -4863,6 +4920,9 @@ msgstr "Tidak bisa mencatat workspace cloud"
 msgid "Could not record environment"
 msgstr "Tidak dapat menyimpan environment"
 
+msgid "Could not remove access"
+msgstr "Tidak bisa menghapus akses"
+
 msgid "Could not rename the session"
 msgstr "Tidak dapat mengganti nama sesi"
 
@@ -4874,6 +4934,9 @@ msgstr "Tidak bisa membuka lagi"
 
 msgid "Could not reopen this comment"
 msgstr "Tidak dapat membuka kembali komentar ini"
+
+msgid "Could not resend the invite"
+msgstr "Tidak bisa mengirim ulang undangan"
 
 msgid "Could not resolve this comment"
 msgstr "Tidak dapat menyelesaikan komentar ini"
@@ -4895,6 +4958,9 @@ msgstr "Tidak bisa mengirim review"
 
 msgid "Could not set icon"
 msgstr "Tidak bisa menyetel ikon"
+
+msgid "Could not share"
+msgstr "Tidak bisa membagikan"
 
 msgid "Could not start agent"
 msgstr "Tidak bisa memulai agen"
@@ -4931,6 +4997,9 @@ msgstr "Tidak bisa mengirim prompt. Coba lagi."
 
 msgid "Could not take a screenshot"
 msgstr "Tidak bisa mengambil tangkapan layar"
+
+msgid "Could not undo"
+msgstr "Tidak bisa mengurungkan"
 
 msgid "Could not update plugin"
 msgstr "Tidak bisa memperbarui plugin"
@@ -5450,6 +5519,9 @@ msgstr "Ctrl+Shift+klik"
 
 msgid "Current"
 msgstr "Saat ini"
+
+msgid "Current access"
+msgstr "Akses saat ini"
 
 msgid "Current level"
 msgstr "Level saat ini"
@@ -6533,6 +6605,9 @@ msgstr "Menikmati Superset?"
 
 msgid "Ensure no regression"
 msgstr "Pastikan tidak ada regresi"
+
+msgid "Enter a full email address"
+msgstr "Masukkan alamat email lengkap"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "Masukkan direktori induk di {hostName}"
@@ -8014,6 +8089,9 @@ msgstr "sedang berlangsung"
 msgid "Hard reload"
 msgstr "Muat ulang paksa"
 
+msgid "Has access"
+msgstr "Punya akses"
+
 msgid "Has conflicts"
 msgstr "Ada konflik"
 
@@ -8729,6 +8807,12 @@ msgstr "Undangan tidak ditemukan"
 msgid "Invitation sent to {email}"
 msgstr "Undangan dikirim ke {email}"
 
+msgid "Invite"
+msgstr "Undang"
+
+msgid "Invite {label} to join {organizationName}"
+msgstr "Undang {label} untuk bergabung ke {organizationName}"
+
 msgid "Invite and manage members, assign roles, and control permissions"
 msgstr "Undang dan kelola anggota, tetapkan peran, dan atur izin"
 
@@ -8738,11 +8822,23 @@ msgstr "Undang anggota"
 msgid "Invite Member"
 msgstr "Undang Anggota"
 
+msgid "Invite pending"
+msgstr "Undangan tertunda"
+
+msgid "Invite people on a paid plan"
+msgstr "Undang orang dengan paket berbayar"
+
 msgid "Invite teammate"
 msgstr "Undang rekan tim"
 
+msgid "Invite to {organizationName}"
+msgstr "Undang ke {organizationName}"
+
 msgid "Invite your team to shared workspaces. See real-time updates, sync configurations, and manage team access across agents."
 msgstr "Undang tim Anda ke workspace bersama. Lihat pembaruan real-time, sinkronkan konfigurasi, dan kelola akses tim lintas agen."
+
+msgid "Invited"
+msgstr "Diundang"
 
 msgid "Invited By"
 msgstr "Diundang Oleh"
@@ -8929,6 +9025,9 @@ msgstr "Jaga dokumentasi tetap segar"
 
 msgid "Keep editing"
 msgstr "Lanjutkan mengedit"
+
+msgid "Keep typing an email to invite"
+msgstr "Terus ketik email untuk mengundang"
 
 msgid "Keep waiting"
 msgstr "Tunggu saja"
@@ -9221,6 +9320,15 @@ msgstr "Suka membangun dengan Superset?"
 
 msgid "Lime"
 msgstr "Limau"
+
+msgid "Limit access"
+msgstr "Batasi akses"
+
+msgid "Limit to {organizationName}?"
+msgstr "Batasi ke {organizationName}?"
+
+msgid "Limit to people invited?"
+msgstr "Batasi ke orang yang diundang?"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -9580,11 +9688,17 @@ msgstr "Jadikan bawaan"
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "Jadikan bawaan — jalankan terminal dan agen baru dengan akun ini."
 
+msgid "Make public"
+msgstr "Jadikan publik"
+
 msgid "Make sure the device is awake, online, and running Superset."
 msgstr "Pastikan perangkat aktif, terhubung ke internet, dan menjalankan Superset."
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "Jadikan gaya chip sebagai bawaan TooltipContent"
+
+msgid "Make this page public?"
+msgstr "Jadikan halaman ini publik?"
 
 msgid "Makes the Run button launch this terminal script for matching projects."
 msgstr "Membuat tombol Run menjalankan skrip terminal ini untuk proyek yang cocok."
@@ -10036,6 +10150,9 @@ msgstr "Opsi pembuatan lainnya"
 msgid "More options"
 msgstr "Opsi lainnya"
 
+msgid "More options for {name}"
+msgstr "Opsi lainnya untuk {name}"
+
 msgid "More pages"
 msgstr "Halaman lainnya"
 
@@ -10122,6 +10239,9 @@ msgstr "Nama diperbarui!"
 
 msgid "Nameless Foreman"
 msgstr "Mandor Tanpa Nama"
+
+msgid "Names, emails, or teams"
+msgstr "Nama, email, atau tim"
 
 msgid "Namespace new branches for this project. Defaults to the host-wide Git setting."
 msgstr "Beri namespace untuk branch baru di proyek ini. Bawaannya mengikuti pengaturan Git seluruh host."
@@ -10707,6 +10827,9 @@ msgstr "Tidak ada simulator seluler yang tersedia di sini. Diperlukan sandbox cl
 msgid "No name on file"
 msgstr "Tidak ada nama tersimpan"
 
+msgid "No one in {organizationName} matches"
+msgstr "Tidak ada yang cocok di {organizationName}"
+
 msgid "No open issues found."
 msgstr "Tidak ada issue terbuka."
 
@@ -11289,6 +11412,9 @@ msgstr "Online sekarang"
 msgid "Online Now"
 msgstr "Online Sekarang"
 
+msgid "Only {organizationName} admins can invite new people"
+msgstr "Hanya admin {organizationName} yang dapat mengundang orang baru"
+
 msgid "Only an organization owner can change the plan. Ask yours to upgrade."
 msgstr "Hanya pemilik organisasi yang bisa mengubah paket. Minta pemilik Anda untuk upgrade."
 
@@ -11322,6 +11448,9 @@ msgstr "Hanya pemilik yang bisa mengelola penagihan"
 msgid "Only owners can update organization settings"
 msgstr "Hanya pemilik yang bisa memperbarui pengaturan organisasi"
 
+msgid "Only people invited"
+msgstr "Hanya orang yang diundang"
+
 msgid "Only people who opted in appear here."
 msgstr "Hanya orang yang memilih ikut serta yang muncul di sini."
 
@@ -11337,6 +11466,9 @@ msgstr "Hanya pemilik host yang bisa menyetel perintah wake-nya"
 msgid "Only the owner can change this"
 msgstr "Hanya pemilik yang dapat mengubah ini"
 
+msgid "Only the owner can change who this is shared with"
+msgstr "Hanya pemilik yang dapat mengubah dengan siapa ini dibagikan"
+
 msgid "Only the owner can run this automation"
 msgstr "Hanya pemilik yang bisa menjalankan otomatisasi ini"
 
@@ -11346,11 +11478,17 @@ msgstr "Hanya pemilik yang bisa melihat riwayat prompt"
 msgid "Only the owner or an organization owner can delete this automation"
 msgstr "Hanya pemilik atau pemilik organisasi yang bisa menghapus otomatisasi ini"
 
+msgid "Only the people listed above can open it"
+msgstr "Hanya orang yang tercantum di atas yang dapat membukanya"
+
 msgid "Only the person who created this page can change it"
 msgstr "Hanya orang yang membuat halaman ini yang bisa mengubahnya"
 
 msgid "Only the person who created this page can change these."
 msgstr "Hanya orang yang membuat halaman ini yang dapat mengubahnya."
+
+msgid "Only the person who created this workspace can change these."
+msgstr "Hanya orang yang membuat workspace ini yang dapat mengubahnya."
 
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "Hanya penulis thread atau pemilik halaman yang bisa menghapusnya"
@@ -11735,6 +11873,9 @@ msgstr "Buka Skrip Terminal 8"
 
 msgid "Open Terminal Script 9"
 msgstr "Buka Skrip Terminal 9"
+
+msgid "Open terminals and prompt agents"
+msgstr "Membuka terminal dan memberi prompt ke agen"
 
 msgid "Open the Changes pane in a new tab, or focus the existing one"
 msgstr "Buka panel Perubahan di tab baru, atau fokuskan yang sudah ada"
@@ -12183,6 +12324,9 @@ msgstr "Undangan Tertunda"
 msgid "People"
 msgstr "Orang"
 
+msgid "People outside {organizationName} lose access, and the public link stops working."
+msgstr "Orang di luar {organizationName} kehilangan akses, dan tautan publik berhenti berfungsi."
+
 msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
 msgstr "Orang yang pertama kali melihat paywall dalam {PAYWALL_FUNNEL_WEEKS} minggu terakhir, dan sejauh mana mereka melangkah. Sebuah tahap menghitung siapa pun yang mencapainya setelah tampilan itu, jadi kohort terbaru masih terus bertambah."
 
@@ -12213,6 +12357,9 @@ msgstr "\"{projectName}\" dihapus secara permanen"
 #. placeholder {0}: team.name
 msgid "Permanently remove <0>{0}</0> and all of its members. This can't be undone."
 msgstr "Hapus <0>{0}</0> beserta semua anggotanya secara permanen. Ini tidak bisa dibatalkan."
+
+msgid "Permission level"
+msgstr "Tingkat izin"
 
 msgid "Permissions"
 msgstr "Izin"
@@ -13025,6 +13172,12 @@ msgstr "Baca panduan"
 msgid "Read the guide to parallel coding agents"
 msgstr "Baca panduan agen coding paralel"
 
+msgid "Read the page"
+msgstr "Membaca halaman"
+
+msgid "Read the page and leave comments"
+msgstr "Membaca halaman dan meninggalkan komentar"
+
 msgid "Read the setup guide"
 msgstr "Baca panduan penyiapan"
 
@@ -13279,6 +13432,9 @@ msgstr "Hapus"
 msgid "Remove {0}"
 msgstr "Hapus {0}"
 
+msgid "Remove {label}"
+msgstr "Hapus {label}"
+
 msgid "Remove {label}?"
 msgstr "Hapus {label}?"
 
@@ -13353,6 +13509,9 @@ msgstr "Hapus…"
 
 msgid "Removed {credential} for {agentLabel}."
 msgstr "{credential} untuk {agentLabel} dihapus."
+
+msgid "Removed {name}"
+msgstr "{name} dihapus"
 
 msgid "Removed {removedLabel}."
 msgstr "Menghapus {removedLabel}."
@@ -13548,6 +13707,9 @@ msgstr "Versi yang diperlukan: {minimumVersion}+"
 
 msgid "Requires iOS 26 or later. Included with Superset Pro."
 msgstr "Memerlukan iOS 26 atau lebih baru. Termasuk dalam Superset Pro."
+
+msgid "Resend invite"
+msgstr "Kirim ulang undangan"
 
 msgid "Reserved by OS"
 msgstr "Dipakai OS"
@@ -14520,6 +14682,9 @@ msgstr "Lihat posisi 30 hari terakhir Anda di papan peringkat publik. Hanya juml
 msgid "Select"
 msgstr "Select"
 
+msgid "Select a person"
+msgstr "Pilih orang"
+
 msgid "Select a project"
 msgstr "Pilih sebuah proyek"
 
@@ -14646,6 +14811,9 @@ msgstr "Pilih direktori skrip terminal"
 msgid "Select worktree location"
 msgstr "Pilih lokasi worktree"
 
+msgid "Selected"
+msgstr "Dipilih"
+
 msgid "Selected agent is not available on this host"
 msgstr "Agen yang dipilih tidak tersedia di host ini"
 
@@ -14720,6 +14888,10 @@ msgstr "Mengirim {0} karakter konteks terminal (sekitar {1} token) ke {2}."
 
 msgid "Sent"
 msgstr "Dikirim"
+
+#. placeholder {0}: grantee.email
+msgid "Sent the invite to {0} again"
+msgstr "Undangan dikirim ulang ke {0}"
 
 msgid "Sent to agent"
 msgstr "Dikirim ke agen"
@@ -14916,6 +15088,9 @@ msgstr "Versi yang dibagikan"
 
 msgid "Shared with everyone"
 msgstr "Dibagikan ke semua orang"
+
+msgid "Shared with me"
+msgstr "Dibagikan dengan saya"
 
 msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
 msgstr "Berbagi checkout proyek — file, indeks git, dan branch — dengan workspace lokal lainnya"
@@ -15279,6 +15454,9 @@ msgstr "Lewati dulu"
 
 msgid "Skipped"
 msgstr "Dilewati"
+
+msgid "Skipped {blocked} not in {organizationName}. Only admins can invite new people."
+msgstr "{blocked} email di luar {organizationName} dilewati. Hanya admin yang dapat mengundang orang baru."
 
 msgid "Slack Account Linked"
 msgstr "Akun Slack Tertaut"
@@ -16220,6 +16398,9 @@ msgstr "Tab"
 msgid "Tab per command"
 msgstr "Satu tab per perintah"
 
+msgid "Tab to fill"
+msgstr "Tab untuk mengisi"
+
 msgid "Table"
 msgstr "Tabel"
 
@@ -16499,6 +16680,9 @@ msgstr "Endpoint itu tidak diizinkan."
 
 msgid "That handle is taken."
 msgstr "Handle itu sudah dipakai."
+
+msgid "That invitation is no longer pending"
+msgstr "Undangan itu sudah tidak tertunda"
 
 msgid "That Linear issue doesn't exist or you can't see it."
 msgstr "Issue Linear itu tidak ada atau Anda tidak dapat melihatnya."
@@ -16850,6 +17034,9 @@ msgstr "Perintah ini berjalan otomatis saat workspace dibuat. <0>Baca dokumentas
 
 msgid "These ports are still in use"
 msgstr "Port ini masih dipakai"
+
+msgid "They get full access"
+msgstr "Mereka mendapat akses penuh"
 
 msgid "Thinking"
 msgstr "Pemikiran"
@@ -18065,6 +18252,9 @@ msgstr "Versi"
 msgid "Version {0}"
 msgstr "Versi {0}"
 
+msgid "Version {sharedVersion}"
+msgstr "Versi {sharedVersion}"
+
 msgid "Version {version}"
 msgstr "Versi {version}"
 
@@ -18085,6 +18275,10 @@ msgstr "Versi tidak ditemukan"
 
 msgid "Version unknown"
 msgstr "Versi tidak diketahui"
+
+#. placeholder {0}: effective.via
+msgid "via {0}"
+msgstr "melalui {0}"
 
 msgid "Video"
 msgstr "Video"
@@ -18411,6 +18605,9 @@ msgstr "Apa yang ingin Anda lakukan?"
 
 msgid "What early users say"
 msgstr "Kata para pengguna awal"
+
+msgid "What general access allows"
+msgstr "Yang diizinkan akses umum"
 
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Untuk pencarian apa Google menampilkan kami dan seberapa banyak yang bukan nama kami sendiri."
@@ -18853,11 +19050,17 @@ msgstr "Anda melihat versi {version}, hanya-baca"
 msgid "You can attach up to {MAX_ATTACHMENTS} files"
 msgstr "Anda dapat melampirkan hingga {MAX_ATTACHMENTS} file"
 
+msgid "You can only share with people and teams in this organization"
+msgstr "Anda hanya dapat berbagi dengan orang dan tim di organisasi ini"
+
 msgid "You can restore it from Settings → Projects for 30 days. The repository folder is never deleted."
 msgstr "Anda dapat memulihkannya dari Pengaturan → Proyek selama 30 hari. Folder repositori tidak pernah dihapus."
 
 msgid "You can see how we work before you talk to us."
 msgstr "Anda bisa melihat cara kami bekerja sebelum berbicara dengan kami."
+
+msgid "You can view this page but not comment on it"
+msgstr "Anda dapat melihat halaman ini tetapi tidak dapat berkomentar"
 
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."

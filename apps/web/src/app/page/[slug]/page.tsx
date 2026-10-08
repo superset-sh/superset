@@ -173,7 +173,7 @@ export default async function PublishedPage({
 			pageId={page.id}
 			version={page.version}
 			pageOwnerId={page.createdByUserId}
-			readOnly={previewing}
+			readOnly={previewing || !access.canComment}
 			user={pageCommentUser(session, i18n._(msg({ message: "You" })))}
 		>
 			<div className="flex h-dvh flex-col bg-background">
@@ -192,6 +192,7 @@ export default async function PublishedPage({
 					}}
 					versions={versions}
 					currentUserId={session.user.id}
+					canComment={access.canComment}
 					slug={slug}
 					watching={page.watch.watching}
 					watchAgentId={page.watch.agentId}

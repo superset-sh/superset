@@ -96,6 +96,9 @@ msgstr "（無輸出）"
 msgid "(so far)"
 msgstr "（截至目前）"
 
+msgid "(you)"
+msgstr "（你）"
+
 #. placeholder {0}: connections.length
 msgid "{0, plural, one {# account connected} other {# accounts connected}}"
 msgstr "{0, plural, other {已連接 # 個帳號}}"
@@ -187,6 +190,7 @@ msgstr "{0, plural, one {#項待處理} other {#項待處理}}"
 
 #. placeholder {0}: chosenLeads.length
 #. placeholder {0}: chosenPeople.length
+#. placeholder {0}: grantee.memberCount
 msgid "{0, plural, one {# person} other {# people}}"
 msgstr "{0, plural, other {# 人}}"
 
@@ -643,6 +647,9 @@ msgstr "{actor} 編輯了描述"
 msgid "{actor} joined"
 msgstr "{actor} 加入了"
 
+msgid "{actor} limited the workspace to people invited"
+msgstr "{actor} 將工作區限制為僅受邀者可存取"
+
 msgid "{actor} linked {chip}"
 msgstr "{actor} 連結了 {chip}"
 
@@ -652,9 +659,6 @@ msgstr "{actor} 連結了 {chip} · 由 {suggestedBy} 建議"
 msgid "{actor} linked the workspace {workspace}"
 msgstr "{actor} 關聯了工作區 {workspace}"
 
-msgid "{actor} made the workspace private"
-msgstr "{actor} 將工作區設為私人"
-
 msgid "{actor} moved the task from {from} to {to}"
 msgstr "{actor} 將任務從 {from} 移到 {to}"
 
@@ -663,6 +667,9 @@ msgstr "{actor} 建立了 {badge}"
 
 msgid "{actor} published {chip}"
 msgstr "{actor} 發布了 {chip}"
+
+msgid "{actor} removed access for {target}"
+msgstr "{actor} 移除了 {target} 的存取權限"
 
 msgid "{actor} removed the assignee"
 msgstr "{actor} 移除了負責人"
@@ -691,6 +698,9 @@ msgstr "{actor} 將優先順序設為 {to}"
 
 msgid "{actor} set the status to {to}"
 msgstr "{actor} 將狀態設為 {to}"
+
+msgid "{actor} shared the workspace with {target}"
+msgstr "{actor} 與 {target} 共用了工作區"
 
 msgid "{actor} shared the workspace with the organization"
 msgstr "{actor} 與組織共用了工作區"
@@ -1532,6 +1542,12 @@ msgstr "接受條款"
 msgid "Access denied"
 msgstr "存取遭拒"
 
+msgid "Access for {name}"
+msgstr "{name} 的存取權限"
+
+msgid "Access for the people you add"
+msgstr "你新增的人的存取權限"
+
 msgid "Access your email address"
 msgstr "存取你的電子郵件地址"
 
@@ -1728,8 +1744,17 @@ msgstr "新增監聽代理"
 msgid "Add member"
 msgstr "新增成員"
 
+msgid "Add more…"
+msgstr "新增更多…"
+
 msgid "Add one from the menu in the sidebar to get started."
 msgstr "從側邊欄選單中新增一個即可開始。"
+
+msgid "Add people"
+msgstr "新增人員"
+
+msgid "Add people or teams by name or email"
+msgstr "依名稱或電子郵件新增人員或團隊"
 
 msgid "Add photos or files"
 msgstr "新增照片或檔案"
@@ -1805,6 +1830,10 @@ msgstr "已向{where}新增1個檔案"
 
 msgid "Added only when launching with a prompt — e.g. <0>--</0>, <1>--prompt</1>, <2>-i</2>."
 msgstr "僅在帶提示詞啟動時新增，例如<0>--</0>、<1>--prompt</1>、<2>-i</2>。"
+
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
+msgstr "將成員加入 {organizationName} 需要付費方案。你組織的方案由其擁有者在 {0} 管理。"
 
 msgid "Address Comments with Agent"
 msgstr "用代理程式處理評論"
@@ -2303,11 +2332,27 @@ msgstr "任意討論事件"
 msgid "Anyone"
 msgstr "任何人"
 
+#. placeholder {0}: share.organizationName
+msgid "Anyone in {0} who isn't listed here loses access, including anyone who has it open now."
+msgstr "{0} 中未列在此處的任何人都將失去存取權限，包括目前正在開啟它的人。"
+
+msgid "Anyone in {organizationName} who isn't listed here loses access."
+msgstr "{organizationName} 中未列在此處的任何人都將失去存取權限。"
+
+msgid "Anyone in {organizationName} with the link can open it"
+msgstr "{organizationName} 中擁有連結的任何人都可以開啟"
+
 msgid "Anyone in your organization"
 msgstr "你組織中的任何人"
 
 msgid "Anyone with the link"
 msgstr "知道連結的任何人"
+
+msgid "Anyone with the link can view it, including people outside {organizationName} and people who aren't signed in."
+msgstr "知道連結的任何人都可以檢視，包括 {organizationName} 以外的人和未登入的人。"
+
+msgid "Anyone with the link can view it, signed in or not"
+msgstr "擁有連結的任何人都可以檢視，無論是否登入"
 
 msgid "anything"
 msgstr "任意內容"
@@ -3240,6 +3285,9 @@ msgstr "相機存取未獲允許"
 msgid "Camera is not available"
 msgstr "相機不可用"
 
+msgid "Can comment"
+msgstr "可評論"
+
 msgid "Can I switch plans or cancel anytime?"
 msgstr "可以隨時切換方案或取消嗎？"
 
@@ -3251,6 +3299,9 @@ msgstr "可以在無衝突的情況下合併"
 
 msgid "Can the headline say what happens after sign-up?"
 msgstr "標題能說明註冊之後會發生什麼嗎？"
+
+msgid "Can view"
+msgstr "可檢視"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "能把整個應用的tooltip樣式統一一下嗎？"
@@ -3276,6 +3327,9 @@ msgstr "取消下載"
 msgid "Cancel edits"
 msgstr "取消編輯"
 
+msgid "Cancel invite"
+msgstr "取消邀請"
+
 msgid "Cancel plan"
 msgstr "取消方案"
 
@@ -3291,6 +3345,9 @@ msgstr "正在取消..."
 
 msgid "Cancelled"
 msgstr "已取消"
+
+msgid "Cancelled the invite for {name}"
+msgstr "已取消對 {name} 的邀請"
 
 #. placeholder {0}: format(new Date(cancelAt), "MMMM d, yyyy")
 #. placeholder {0}: formatDate(cancelAt)
@@ -4709,17 +4766,17 @@ msgstr "無法新增附件"
 msgid "Could not branch the chat"
 msgstr "無法為聊天建立分支"
 
+msgid "Could not change access"
+msgstr "無法變更存取權限"
+
 msgid "Could not change the mode"
 msgstr "無法變更模式"
 
 msgid "Could not change the shared version"
 msgstr "無法更改分享的版本"
 
-msgid "Could not change who can see this page"
-msgstr "無法更改誰可以檢視這個頁面"
-
-msgid "Could not change who can see this workspace"
-msgstr "無法變更誰可以檢視此工作區"
+msgid "Could not change who has access"
+msgstr "無法變更有存取權限的人"
 
 msgid "Could not check your plan. Check your connection and try again."
 msgstr "無法檢查您的方案。請檢查網路連線後再試一次。"
@@ -4863,6 +4920,9 @@ msgstr "無法記錄雲端工作區"
 msgid "Could not record environment"
 msgstr "無法儲存環境"
 
+msgid "Could not remove access"
+msgstr "無法移除存取權限"
+
 msgid "Could not rename the session"
 msgstr "無法重新命名會話"
 
@@ -4874,6 +4934,9 @@ msgstr "無法重新開啟"
 
 msgid "Could not reopen this comment"
 msgstr "無法重新開啟此留言"
+
+msgid "Could not resend the invite"
+msgstr "無法重新傳送邀請"
 
 msgid "Could not resolve this comment"
 msgstr "無法解決此留言"
@@ -4895,6 +4958,9 @@ msgstr "無法傳送審查"
 
 msgid "Could not set icon"
 msgstr "無法設定圖示"
+
+msgid "Could not share"
+msgstr "無法分享"
 
 msgid "Could not start agent"
 msgstr "無法啟動代理程式"
@@ -4931,6 +4997,9 @@ msgstr "無法提交提示詞。請重試。"
 
 msgid "Could not take a screenshot"
 msgstr "無法截圖"
+
+msgid "Could not undo"
+msgstr "無法撤銷"
 
 msgid "Could not update plugin"
 msgstr "無法更新外掛"
@@ -5450,6 +5519,9 @@ msgstr "Ctrl+Shift+點選"
 
 msgid "Current"
 msgstr "目前"
+
+msgid "Current access"
+msgstr "目前的存取權限"
 
 msgid "Current level"
 msgstr "目前等級"
@@ -6533,6 +6605,9 @@ msgstr "用得還順手嗎？"
 
 msgid "Ensure no regression"
 msgstr "確保沒有回歸"
+
+msgid "Enter a full email address"
+msgstr "請輸入完整的電子郵件地址"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "請輸入{hostName}上的父目錄"
@@ -8014,6 +8089,9 @@ msgstr "進行中"
 msgid "Hard reload"
 msgstr "強制重新載入"
 
+msgid "Has access"
+msgstr "有存取權限"
+
 msgid "Has conflicts"
 msgstr "有衝突"
 
@@ -8729,6 +8807,12 @@ msgstr "未找到邀請"
 msgid "Invitation sent to {email}"
 msgstr "邀請已傳送至{email}"
 
+msgid "Invite"
+msgstr "邀請"
+
+msgid "Invite {label} to join {organizationName}"
+msgstr "邀請 {label} 加入 {organizationName}"
+
 msgid "Invite and manage members, assign roles, and control permissions"
 msgstr "邀請和管理成員、分配角色並控制權限"
 
@@ -8738,11 +8822,23 @@ msgstr "邀請成員"
 msgid "Invite Member"
 msgstr "邀請成員"
 
+msgid "Invite pending"
+msgstr "邀請待接受"
+
+msgid "Invite people on a paid plan"
+msgstr "使用付費方案邀請成員"
+
 msgid "Invite teammate"
 msgstr "邀請團隊成員"
 
+msgid "Invite to {organizationName}"
+msgstr "邀請加入 {organizationName}"
+
 msgid "Invite your team to shared workspaces. See real-time updates, sync configurations, and manage team access across agents."
 msgstr "邀請團隊加入共享工作區。檢視即時更新、同步配置，並管理跨代理程式的團隊存取權限。"
+
+msgid "Invited"
+msgstr "已邀請"
 
 msgid "Invited By"
 msgstr "邀請人"
@@ -8929,6 +9025,9 @@ msgstr "讓文件保持最新"
 
 msgid "Keep editing"
 msgstr "繼續編輯"
+
+msgid "Keep typing an email to invite"
+msgstr "繼續輸入電子郵件以邀請"
 
 msgid "Keep waiting"
 msgstr "繼續等待"
@@ -9221,6 +9320,15 @@ msgstr "喜歡用Superset開發嗎？"
 
 msgid "Lime"
 msgstr "萊姆綠"
+
+msgid "Limit access"
+msgstr "限制存取"
+
+msgid "Limit to {organizationName}?"
+msgstr "限制為 {organizationName}？"
+
+msgid "Limit to people invited?"
+msgstr "限制為僅受邀者？"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -9580,11 +9688,17 @@ msgstr "設為預設"
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "設為預設——新終端和代理程式將使用此帳戶啟動。"
 
+msgid "Make public"
+msgstr "公開"
+
 msgid "Make sure the device is awake, online, and running Superset."
 msgstr "請確認裝置未進入睡眠模式、已連上網路且正在執行 Superset。"
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "把chip樣式設為TooltipContent的預設樣式"
+
+msgid "Make this page public?"
+msgstr "公開此頁面？"
 
 msgid "Makes the Run button launch this terminal script for matching projects."
 msgstr "讓匹配專案的「執行」按鈕啟動此終端指令碼。"
@@ -10036,6 +10150,9 @@ msgstr "更多建立選項"
 msgid "More options"
 msgstr "更多選項"
 
+msgid "More options for {name}"
+msgstr "{name} 的更多選項"
+
 msgid "More pages"
 msgstr "更多頁面"
 
@@ -10122,6 +10239,9 @@ msgstr "姓名已更新！"
 
 msgid "Nameless Foreman"
 msgstr "無名工頭"
+
+msgid "Names, emails, or teams"
+msgstr "姓名、電子郵件或團隊"
 
 msgid "Namespace new branches for this project. Defaults to the host-wide Git setting."
 msgstr "為此專案的新分支設定名稱空間。預設使用主機全域性的Git設定。"
@@ -10707,6 +10827,9 @@ msgstr "此處沒有可用的行動模擬器。需要支援 Limrun 的雲端沙�
 msgid "No name on file"
 msgstr "未登記姓名"
 
+msgid "No one in {organizationName} matches"
+msgstr "{organizationName} 中沒有相符的人"
+
 msgid "No open issues found."
 msgstr "未找到開啟的議題。"
 
@@ -11289,6 +11412,9 @@ msgstr "目前線上"
 msgid "Online Now"
 msgstr "目前線上"
 
+msgid "Only {organizationName} admins can invite new people"
+msgstr "只有 {organizationName} 的管理員可以邀請新成員"
+
 msgid "Only an organization owner can change the plan. Ask yours to upgrade."
 msgstr "只有組織擁有者才能變更方案，請聯絡擁有者升級。"
 
@@ -11322,6 +11448,9 @@ msgstr "只有擁有者才能管理帳單"
 msgid "Only owners can update organization settings"
 msgstr "只有擁有者才能更新組織設定"
 
+msgid "Only people invited"
+msgstr "僅受邀者"
+
 msgid "Only people who opted in appear here."
 msgstr "只有選擇加入的人才會出現在這裡。"
 
@@ -11337,6 +11466,9 @@ msgstr "只有主機擁有者才能設定其喚醒命令"
 msgid "Only the owner can change this"
 msgstr "只有擁有者可以變更此設定"
 
+msgid "Only the owner can change who this is shared with"
+msgstr "只有擁有者可以變更分享對象"
+
 msgid "Only the owner can run this automation"
 msgstr "只有擁有者能執行這個自動化"
 
@@ -11346,11 +11478,17 @@ msgstr "只有擁有者能檢視提示詞歷史"
 msgid "Only the owner or an organization owner can delete this automation"
 msgstr "只有擁有者或組織擁有者能刪除這個自動化"
 
+msgid "Only the people listed above can open it"
+msgstr "只有上方列出的人可以開啟"
+
 msgid "Only the person who created this page can change it"
 msgstr "只有建立此頁面的人才能修改它"
 
 msgid "Only the person who created this page can change these."
 msgstr "只有建立此頁面的人才能變更這些設定。"
+
+msgid "Only the person who created this workspace can change these."
+msgstr "只有建立此工作區的人可以變更這些設定。"
 
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "只有討論串的作者或頁面擁有者才能刪除它"
@@ -11735,6 +11873,9 @@ msgstr "開啟終端指令碼8"
 
 msgid "Open Terminal Script 9"
 msgstr "開啟終端指令碼9"
+
+msgid "Open terminals and prompt agents"
+msgstr "開啟終端機並向代理程式下達指令"
 
 msgid "Open the Changes pane in a new tab, or focus the existing one"
 msgstr "在新分頁中開啟更改面板，或聚焦現有面板"
@@ -12183,6 +12324,9 @@ msgstr "待處理邀請"
 msgid "People"
 msgstr "人員"
 
+msgid "People outside {organizationName} lose access, and the public link stops working."
+msgstr "{organizationName} 以外的人將失去存取權限，公開連結也將失效。"
+
 msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
 msgstr "首次看到付費牆在最近 {PAYWALL_FUNNEL_WEEKS} 週內的使用者，以及他們走到哪一步。每個階段統計在該次瀏覽之後到達的人，因此近期同期群仍在累積。"
 
@@ -12213,6 +12357,9 @@ msgstr "已永久刪除「{projectName}」"
 #. placeholder {0}: team.name
 msgid "Permanently remove <0>{0}</0> and all of its members. This can't be undone."
 msgstr "永久移除<0>{0}</0>及其所有成員。此操作無法復原。"
+
+msgid "Permission level"
+msgstr "權限等級"
 
 msgid "Permissions"
 msgstr "權限"
@@ -13025,6 +13172,12 @@ msgstr "閱讀指南"
 msgid "Read the guide to parallel coding agents"
 msgstr "閱讀並行編碼代理程式指南"
 
+msgid "Read the page"
+msgstr "閱讀頁面"
+
+msgid "Read the page and leave comments"
+msgstr "閱讀頁面並發表評論"
+
 msgid "Read the setup guide"
 msgstr "閱讀設定指南"
 
@@ -13279,6 +13432,9 @@ msgstr "移除"
 msgid "Remove {0}"
 msgstr "移除{0}"
 
+msgid "Remove {label}"
+msgstr "移除 {label}"
+
 msgid "Remove {label}?"
 msgstr "移除{label}？"
 
@@ -13353,6 +13509,9 @@ msgstr "移除…"
 
 msgid "Removed {credential} for {agentLabel}."
 msgstr "已移除{agentLabel}的{credential}。"
+
+msgid "Removed {name}"
+msgstr "已移除 {name}"
 
 msgid "Removed {removedLabel}."
 msgstr "已移除{removedLabel}。"
@@ -13548,6 +13707,9 @@ msgstr "所需版本：{minimumVersion}+"
 
 msgid "Requires iOS 26 or later. Included with Superset Pro."
 msgstr "需要 iOS 26 或更新版本。包含於 Superset Pro。"
+
+msgid "Resend invite"
+msgstr "重新傳送邀請"
 
 msgid "Reserved by OS"
 msgstr "已被系統佔用"
@@ -14520,6 +14682,9 @@ msgstr "看看你最近 30 天的表現在公開排行榜上的位置。僅包�
 msgid "Select"
 msgstr "選擇框"
 
+msgid "Select a person"
+msgstr "選擇成員"
+
 msgid "Select a project"
 msgstr "請選擇專案"
 
@@ -14646,6 +14811,9 @@ msgstr "選擇終端指令碼目錄"
 msgid "Select worktree location"
 msgstr "選擇worktree位置"
 
+msgid "Selected"
+msgstr "已選取"
+
 msgid "Selected agent is not available on this host"
 msgstr "所選代理程式在此主機上不可用"
 
@@ -14720,6 +14888,10 @@ msgstr "將向 {2} 傳送 {0} 個字元的終端上下文（約 {1} 個 token）
 
 msgid "Sent"
 msgstr "傳送時間"
+
+#. placeholder {0}: grantee.email
+msgid "Sent the invite to {0} again"
+msgstr "已再次向 {0} 傳送邀請"
 
 msgid "Sent to agent"
 msgstr "已傳送給代理程式"
@@ -14916,6 +15088,9 @@ msgstr "分享的版本"
 
 msgid "Shared with everyone"
 msgstr "已與所有人分享"
+
+msgid "Shared with me"
+msgstr "與我共用"
 
 msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
 msgstr "與該專案的其他本地工作區共用專案的簽出（檔案、git 索引和分支）"
@@ -15279,6 +15454,9 @@ msgstr "暫時跳過"
 
 msgid "Skipped"
 msgstr "已跳過"
+
+msgid "Skipped {blocked} not in {organizationName}. Only admins can invite new people."
+msgstr "已略過 {blocked} 個不在 {organizationName} 中的地址。只有管理員可以邀請新成員。"
 
 msgid "Slack Account Linked"
 msgstr "Slack帳戶已關聯"
@@ -16220,6 +16398,9 @@ msgstr "分頁"
 msgid "Tab per command"
 msgstr "每條命令一個分頁"
 
+msgid "Tab to fill"
+msgstr "按 Tab 填入"
+
 msgid "Table"
 msgstr "表格"
 
@@ -16499,6 +16680,9 @@ msgstr "不允許該端點。"
 
 msgid "That handle is taken."
 msgstr "該使用者名稱已被佔用。"
+
+msgid "That invitation is no longer pending"
+msgstr "該邀請已不再處於待處理狀態"
 
 msgid "That Linear issue doesn't exist or you can't see it."
 msgstr "該 Linear 議題不存在，或你無權檢視。"
@@ -16850,6 +17034,9 @@ msgstr "建立工作區時會自動執行這些命令。<0>閱讀文件<1/></0>"
 
 msgid "These ports are still in use"
 msgstr "這些埠仍在使用中"
+
+msgid "They get full access"
+msgstr "他們將獲得完整存取權限"
 
 msgid "Thinking"
 msgstr "思考"
@@ -18065,6 +18252,9 @@ msgstr "版本"
 msgid "Version {0}"
 msgstr "版本{0}"
 
+msgid "Version {sharedVersion}"
+msgstr "版本 {sharedVersion}"
+
 msgid "Version {version}"
 msgstr "版本{version}"
 
@@ -18085,6 +18275,10 @@ msgstr "未找到版本"
 
 msgid "Version unknown"
 msgstr "版本未知"
+
+#. placeholder {0}: effective.via
+msgid "via {0}"
+msgstr "透過 {0}"
 
 msgid "Video"
 msgstr "影片"
@@ -18411,6 +18605,9 @@ msgstr "你想做什麼？"
 
 msgid "What early users say"
 msgstr "早期使用者怎麼說"
+
+msgid "What general access allows"
+msgstr "通用存取權限允許的操作"
 
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google 為哪些搜尋顯示我們，其中有多少不是我們自己的名字。"
@@ -18853,11 +19050,17 @@ msgstr "您正在檢視版本 {version}，唯讀"
 msgid "You can attach up to {MAX_ATTACHMENTS} files"
 msgstr "最多可附加{MAX_ATTACHMENTS}個檔案"
 
+msgid "You can only share with people and teams in this organization"
+msgstr "你只能與此組織中的人員和團隊分享"
+
 msgid "You can restore it from Settings → Projects for 30 days. The repository folder is never deleted."
 msgstr "你可以在 30 天內從「設定 → 專案」還原。儲存庫資料夾永遠不會被刪除。"
 
 msgid "You can see how we work before you talk to us."
 msgstr "在與我們交流之前，你就能看到我們是如何工作的。"
+
+msgid "You can view this page but not comment on it"
+msgstr "你可以檢視此頁面，但不能評論"
 
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."

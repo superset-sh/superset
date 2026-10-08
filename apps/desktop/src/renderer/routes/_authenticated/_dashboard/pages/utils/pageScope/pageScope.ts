@@ -4,7 +4,7 @@ import type { PageListScope } from "@superset/trpc/page-schema";
  * The tabs. `pinned` is not a server scope: pins live in renderer storage, so
  * the list asks for them by id instead of by a column.
  */
-export const PAGE_SCOPES = ["all", "pinned", "team", "mine"] as const;
+export const PAGE_SCOPES = ["all", "pinned", "team", "shared", "mine"] as const;
 
 export type PageScope = (typeof PAGE_SCOPES)[number];
 

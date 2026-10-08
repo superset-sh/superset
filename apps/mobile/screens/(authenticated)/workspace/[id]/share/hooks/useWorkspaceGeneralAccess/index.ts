@@ -1,0 +1,1 @@
+export { useWorkspaceGeneralAccess } from "./useWorkspaceGeneralAccess";

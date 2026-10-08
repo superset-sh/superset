@@ -31,6 +31,8 @@ export function PageDetailView({ slug }: PageDetailViewProps) {
 		onRename,
 		onRefresh,
 		onDelete,
+		sharing,
+		canComment,
 	} = usePageHeaderData({ slug, version: previewVersion });
 
 	const goBack = () => navigate({ to: "/pages" });
@@ -65,14 +67,19 @@ export function PageDetailView({ slug }: PageDetailViewProps) {
 						currentUserId={currentUserId}
 						leading={backButton}
 						trailing={
-							<CommentModeButton
-								enabled={commentsEnabled}
-								openCount={threads.filter((thread) => !thread.resolved).length}
-								onToggle={() => setCommentsEnabled(!commentsEnabled)}
-							/>
+							canComment ? (
+								<CommentModeButton
+									enabled={commentsEnabled}
+									openCount={
+										threads.filter((thread) => !thread.resolved).length
+									}
+									onToggle={() => setCommentsEnabled(!commentsEnabled)}
+								/>
+							) : null
 						}
 						onSetVisibility={onSetVisibility}
 						onSetSharedVersion={onSetSharedVersion}
+						sharing={sharing}
 						onRename={onRename}
 						onRefresh={onRefresh}
 						onPreviewVersion={setPreviewVersion}
@@ -102,7 +109,7 @@ export function PageDetailView({ slug }: PageDetailViewProps) {
 					key={slug}
 					slug={slug}
 					version={previewVersion}
-					commentsEnabled={commentsEnabled}
+					commentsEnabled={commentsEnabled && canComment}
 					onCommentsEnabledChange={setCommentsEnabled}
 				/>
 			</div>

@@ -11,6 +11,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTRPC } from "@/trpc/react";
 import { OpenInSupersetButton } from "../OpenInSupersetButton";
 import { PageWatchBadge } from "./components/PageWatchBadge";
+import { usePageSharing } from "./hooks/usePageSharing";
 
 interface PageHeaderBarProps {
 	page: PageHeaderPage;
@@ -20,6 +21,7 @@ interface PageHeaderBarProps {
 	watching: boolean;
 	watchAgentId: string | null;
 	previewVersion: number | null;
+	canComment: boolean;
 }
 
 export function PageHeaderBar({
@@ -30,6 +32,7 @@ export function PageHeaderBar({
 	watching,
 	watchAgentId,
 	previewVersion,
+	canComment,
 }: PageHeaderBarProps) {
 	const trpc = useTRPC();
 	const router = useRouter();
@@ -40,6 +43,7 @@ export function PageHeaderBar({
 	);
 	const updatePage = useMutation(trpc.page.update.mutationOptions());
 	const deletePage = useMutation(trpc.page.delete.mutationOptions());
+	const sharing = usePageSharing(page.id);
 
 	return (
 		<PageHeader
@@ -55,7 +59,7 @@ export function PageHeaderBar({
 						initialWatching={watching}
 						initialAgentId={watchAgentId}
 					/>
-					<CommentModeToggle />
+					{canComment ? <CommentModeToggle /> : null}
 				</>
 			}
 			onSetVisibility={async (visibility) => {
@@ -70,6 +74,7 @@ export function PageHeaderBar({
 				await updatePage.mutateAsync({ id: page.id, title });
 				router.refresh();
 			}}
+			sharing={sharing}
 			onRefresh={() => router.refresh()}
 			onPreviewVersion={(version) => {
 				router.push(version === null ? pathname : `${pathname}?v=${version}`);

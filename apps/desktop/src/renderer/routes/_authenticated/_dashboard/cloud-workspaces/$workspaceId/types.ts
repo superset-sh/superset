@@ -59,6 +59,11 @@ export interface CloudWorkspaceRecordPage {
 	updatedAt: Date;
 }
 
+export type CloudWorkspaceShareTarget =
+	| { kind: "user"; person: Person }
+	| { kind: "team"; name: string }
+	| { kind: "email"; email: string };
+
 export type CloudWorkspaceTimelineEvent =
 	| { kind: "created" }
 	| { kind: "joined" }
@@ -68,6 +73,8 @@ export type CloudWorkspaceTimelineEvent =
 			from: "just_me" | "org" | null;
 			to: "just_me" | "org";
 	  }
+	| { kind: "shared"; target: CloudWorkspaceShareTarget }
+	| { kind: "unshared"; target: CloudWorkspaceShareTarget }
 	| { kind: "description_edited" }
 	| {
 			kind: "project_changed";

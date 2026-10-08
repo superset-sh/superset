@@ -96,6 +96,9 @@ msgstr "(žádný výstup)"
 msgid "(so far)"
 msgstr "(zatím)"
 
+msgid "(you)"
+msgstr "(vy)"
+
 #. placeholder {0}: connections.length
 msgid "{0, plural, one {# account connected} other {# accounts connected}}"
 msgstr "{0, plural, one {# připojený účet} few {# připojené účty} many {# připojených účtů} other {# připojených účtů}}"
@@ -187,6 +190,7 @@ msgstr "{0, plural, one {# čeká} few {# čekají} many {# čeká} other {# če
 
 #. placeholder {0}: chosenLeads.length
 #. placeholder {0}: chosenPeople.length
+#. placeholder {0}: grantee.memberCount
 msgid "{0, plural, one {# person} other {# people}}"
 msgstr "{0, plural, one {# osoba} few {# osoby} many {# osoby} other {# osob}}"
 
@@ -643,6 +647,9 @@ msgstr "{actor} upravil(a) popis"
 msgid "{actor} joined"
 msgstr "{actor} se připojil(a)"
 
+msgid "{actor} limited the workspace to people invited"
+msgstr "{actor} omezil(a) pracovní prostor na pozvané lidi"
+
 msgid "{actor} linked {chip}"
 msgstr "{actor} propojil(a) {chip}"
 
@@ -652,9 +659,6 @@ msgstr "{actor} propojil(a) {chip} · navrhl(a) {suggestedBy}"
 msgid "{actor} linked the workspace {workspace}"
 msgstr "{actor} propojil(a) pracovní prostor {workspace}"
 
-msgid "{actor} made the workspace private"
-msgstr "{actor} nastavil(a) pracovní prostor jako soukromý"
-
 msgid "{actor} moved the task from {from} to {to}"
 msgstr "{actor} přesunul(a) úkol z {from} do {to}"
 
@@ -663,6 +667,9 @@ msgstr "{actor} otevřel(a) {badge}"
 
 msgid "{actor} published {chip}"
 msgstr "{actor} publikoval(a) {chip}"
+
+msgid "{actor} removed access for {target}"
+msgstr "{actor} odebral(a) přístup: {target}"
 
 msgid "{actor} removed the assignee"
 msgstr "{actor} odebral(a) řešitele"
@@ -691,6 +698,9 @@ msgstr "{actor} nastavil(a) prioritu na {to}"
 
 msgid "{actor} set the status to {to}"
 msgstr "{actor} nastavil(a) stav na {to}"
+
+msgid "{actor} shared the workspace with {target}"
+msgstr "{actor} sdílel(a) pracovní prostor s: {target}"
 
 msgid "{actor} shared the workspace with the organization"
 msgstr "{actor} sdílel(a) pracovní prostor s organizací"
@@ -1532,6 +1542,12 @@ msgstr "Přijmout podmínky"
 msgid "Access denied"
 msgstr "Přístup odepřen"
 
+msgid "Access for {name}"
+msgstr "Přístup pro: {name}"
+
+msgid "Access for the people you add"
+msgstr "Přístup pro lidi, které přidáte"
+
 msgid "Access your email address"
 msgstr "číst vaši e-mailovou adresu"
 
@@ -1728,8 +1744,17 @@ msgstr "Přidat naslouchajícího agenta"
 msgid "Add member"
 msgstr "Přidat člena"
 
+msgid "Add more…"
+msgstr "Přidat další…"
+
 msgid "Add one from the menu in the sidebar to get started."
 msgstr "Začněte tím, že jednoho přidáte z nabídky v postranním panelu."
+
+msgid "Add people"
+msgstr "Přidat lidi"
+
+msgid "Add people or teams by name or email"
+msgstr "Přidejte lidi nebo týmy podle jména nebo e-mailu"
 
 msgid "Add photos or files"
 msgstr "Přidat fotky nebo soubory"
@@ -1805,6 +1830,10 @@ msgstr "Přidán 1 soubor do {where}"
 
 msgid "Added only when launching with a prompt — e.g. <0>--</0>, <1>--prompt</1>, <2>-i</2>."
 msgstr "Přidá se jen při spuštění s promptem — např. <0>--</0>, <1>--prompt</1>, <2>-i</2>."
+
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
+msgstr "Přidávání lidí do {organizationName} vyžaduje placený tarif. Tarif vaší organizace spravuje její vlastník na {0}."
 
 msgid "Address Comments with Agent"
 msgstr "Vyřešit komentáře agentem"
@@ -2303,11 +2332,27 @@ msgstr "Jakákoli událost vlákna"
 msgid "Anyone"
 msgstr "Kdokoli"
 
+#. placeholder {0}: share.organizationName
+msgid "Anyone in {0} who isn't listed here loses access, including anyone who has it open now."
+msgstr "Kdokoli v {0}, kdo tu není uveden, ztratí přístup, a to i ten, kdo ho má právě otevřený."
+
+msgid "Anyone in {organizationName} who isn't listed here loses access."
+msgstr "Kdokoli v {organizationName}, kdo tu není uveden, ztratí přístup."
+
+msgid "Anyone in {organizationName} with the link can open it"
+msgstr "Kdokoli v {organizationName}, kdo má odkaz, ho může otevřít"
+
 msgid "Anyone in your organization"
 msgstr "Kdokoli ve vaší organizaci"
 
 msgid "Anyone with the link"
 msgstr "Kdokoli s odkazem"
+
+msgid "Anyone with the link can view it, including people outside {organizationName} and people who aren't signed in."
+msgstr "Kdokoli s odkazem ji může zobrazit, včetně lidí mimo {organizationName} a nepřihlášených lidí."
+
+msgid "Anyone with the link can view it, signed in or not"
+msgstr "Kdokoli s odkazem ho může zobrazit, přihlášený i nepřihlášený"
 
 msgid "anything"
 msgstr "cokoli"
@@ -3240,6 +3285,9 @@ msgstr "Přístup k fotoaparátu není povolen"
 msgid "Camera is not available"
 msgstr "Fotoaparát není dostupný"
 
+msgid "Can comment"
+msgstr "Může komentovat"
+
 msgid "Can I switch plans or cancel anytime?"
 msgstr "Můžu kdykoli změnit tarif nebo ho zrušit?"
 
@@ -3251,6 +3299,9 @@ msgstr "Lze sloučit bez konfliktů"
 
 msgid "Can the headline say what happens after sign-up?"
 msgstr "Může nadpis říct, co se stane po registraci?"
+
+msgid "Can view"
+msgstr "Může zobrazit"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Můžeš sjednotit tooltipy napříč aplikací?"
@@ -3276,6 +3327,9 @@ msgstr "Zrušit stahování"
 msgid "Cancel edits"
 msgstr "Zrušit úpravy"
 
+msgid "Cancel invite"
+msgstr "Zrušit pozvánku"
+
 msgid "Cancel plan"
 msgstr "Zrušit tarif"
 
@@ -3291,6 +3345,9 @@ msgstr "Ruším..."
 
 msgid "Cancelled"
 msgstr "Zrušeno"
+
+msgid "Cancelled the invite for {name}"
+msgstr "Pozvánka pro {name} byla zrušena"
 
 #. placeholder {0}: format(new Date(cancelAt), "MMMM d, yyyy")
 #. placeholder {0}: formatDate(cancelAt)
@@ -4709,17 +4766,17 @@ msgstr "Soubory se nepodařilo přiložit"
 msgid "Could not branch the chat"
 msgstr "Chat se nepodařilo rozvětvit"
 
+msgid "Could not change access"
+msgstr "Přístup se nepodařilo změnit"
+
 msgid "Could not change the mode"
 msgstr "Režim se nepodařilo změnit"
 
 msgid "Could not change the shared version"
 msgstr "Sdílenou verzi se nepodařilo změnit"
 
-msgid "Could not change who can see this page"
-msgstr "Nepodařilo se změnit, kdo tuto stránku vidí"
-
-msgid "Could not change who can see this workspace"
-msgstr "Nepodařilo se změnit, kdo vidí tento pracovní prostor"
+msgid "Could not change who has access"
+msgstr "Nepodařilo se změnit, kdo má přístup"
 
 msgid "Could not check your plan. Check your connection and try again."
 msgstr "Nepodařilo se ověřit váš plán. Zkontrolujte připojení a zkuste to znovu."
@@ -4863,6 +4920,9 @@ msgstr "Nepodařilo se zaznamenat cloudový pracovní prostor"
 msgid "Could not record environment"
 msgstr "Prostředí se nepodařilo uložit"
 
+msgid "Could not remove access"
+msgstr "Přístup se nepodařilo odebrat"
+
 msgid "Could not rename the session"
 msgstr "Relaci se nepodařilo přejmenovat"
 
@@ -4874,6 +4934,9 @@ msgstr "Nepodařilo se znovu otevřít"
 
 msgid "Could not reopen this comment"
 msgstr "Tento komentář se nepodařilo znovu otevřít"
+
+msgid "Could not resend the invite"
+msgstr "Pozvánku se nepodařilo znovu odeslat"
 
 msgid "Could not resolve this comment"
 msgstr "Tento komentář se nepodařilo vyřešit"
@@ -4895,6 +4958,9 @@ msgstr "Revizi se nepodařilo odeslat"
 
 msgid "Could not set icon"
 msgstr "Nepodařilo se nastavit ikonu"
+
+msgid "Could not share"
+msgstr "Nepodařilo se sdílet"
 
 msgid "Could not start agent"
 msgstr "Nepodařilo se spustit agenta"
@@ -4931,6 +4997,9 @@ msgstr "Prompt se nepodařilo odeslat. Zkuste to znovu."
 
 msgid "Could not take a screenshot"
 msgstr "Nepodařilo se pořídit snímek obrazovky"
+
+msgid "Could not undo"
+msgstr "Nepodařilo se vrátit zpět"
 
 msgid "Could not update plugin"
 msgstr "Plugin se nepodařilo aktualizovat"
@@ -5450,6 +5519,9 @@ msgstr "Ctrl+Shift+kliknutí"
 
 msgid "Current"
 msgstr "Aktuální"
+
+msgid "Current access"
+msgstr "Aktuální přístup"
 
 msgid "Current level"
 msgstr "Aktuální úroveň"
@@ -6533,6 +6605,9 @@ msgstr "Líbí se vám Superset?"
 
 msgid "Ensure no regression"
 msgstr "Zajisti žádnou regresi"
+
+msgid "Enter a full email address"
+msgstr "Zadejte celou e-mailovou adresu"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "Zadejte nadřazený adresář na {hostName}"
@@ -8014,6 +8089,9 @@ msgstr "právě probíhá"
 msgid "Hard reload"
 msgstr "Vynucené načtení znovu"
 
+msgid "Has access"
+msgstr "Má přístup"
+
 msgid "Has conflicts"
 msgstr "Má konflikty"
 
@@ -8729,6 +8807,12 @@ msgstr "Pozvánka nenalezena"
 msgid "Invitation sent to {email}"
 msgstr "Pozvánka odeslána na {email}"
 
+msgid "Invite"
+msgstr "Pozvat"
+
+msgid "Invite {label} to join {organizationName}"
+msgstr "Pozvat {label} do {organizationName}"
+
 msgid "Invite and manage members, assign roles, and control permissions"
 msgstr "Zvěte a spravujte členy, přidělujte role a řiďte oprávnění"
 
@@ -8738,11 +8822,23 @@ msgstr "Pozvat člena"
 msgid "Invite Member"
 msgstr "Pozvat člena"
 
+msgid "Invite pending"
+msgstr "Pozvánka čeká"
+
+msgid "Invite people on a paid plan"
+msgstr "Zvěte lidi s placeným tarifem"
+
 msgid "Invite teammate"
 msgstr "Pozvat kolegu"
 
+msgid "Invite to {organizationName}"
+msgstr "Pozvat do {organizationName}"
+
 msgid "Invite your team to shared workspaces. See real-time updates, sync configurations, and manage team access across agents."
 msgstr "Pozvěte tým do sdílených pracovních prostorů. Sledujte změny v reálném čase, synchronizujte konfiguraci a spravujte přístup týmu napříč agenty."
+
+msgid "Invited"
+msgstr "Pozván(a)"
 
 msgid "Invited By"
 msgstr "Pozval"
@@ -8929,6 +9025,9 @@ msgstr "Udržovat dokumentaci aktuální"
 
 msgid "Keep editing"
 msgstr "Pokračovat v úpravách"
+
+msgid "Keep typing an email to invite"
+msgstr "Pokračujte v psaní e-mailu pro pozvání"
 
 msgid "Keep waiting"
 msgstr "Počkat dál"
@@ -9221,6 +9320,15 @@ msgstr "Baví vás vývoj v Superset?"
 
 msgid "Lime"
 msgstr "Limetková"
+
+msgid "Limit access"
+msgstr "Omezit přístup"
+
+msgid "Limit to {organizationName}?"
+msgstr "Omezit na {organizationName}?"
+
+msgid "Limit to people invited?"
+msgstr "Omezit na pozvané lidi?"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -9580,11 +9688,17 @@ msgstr "Nastavit jako výchozí"
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "Nastavit jako výchozí — nové terminály a agenty spouštět na tomto účtu."
 
+msgid "Make public"
+msgstr "Zveřejnit"
+
 msgid "Make sure the device is awake, online, and running Superset."
 msgstr "Ujistěte se, že je zařízení probuzené, online a běží na něm Superset."
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "Udělat ze stylu čipu výchozí TooltipContent"
+
+msgid "Make this page public?"
+msgstr "Zveřejnit tuto stránku?"
 
 msgid "Makes the Run button launch this terminal script for matching projects."
 msgstr "Tlačítko Spustit bude u odpovídajících projektů spouštět tento terminálový skript."
@@ -10036,6 +10150,9 @@ msgstr "Další možnosti vytvoření"
 msgid "More options"
 msgstr "Další možnosti"
 
+msgid "More options for {name}"
+msgstr "Další možnosti pro {name}"
+
 msgid "More pages"
 msgstr "Další stránky"
 
@@ -10122,6 +10239,9 @@ msgstr "Jméno aktualizováno!"
 
 msgid "Nameless Foreman"
 msgstr "Bezejmenný mistr"
+
+msgid "Names, emails, or teams"
+msgstr "Jména, e-maily nebo týmy"
 
 msgid "Namespace new branches for this project. Defaults to the host-wide Git setting."
 msgstr "Zařaďte nové větve tohoto projektu pod jmenný prostor. Ve výchozím stavu se použije nastavení Gitu pro celého hosta."
@@ -10707,6 +10827,9 @@ msgstr "Zde není k dispozici žádný mobilní simulátor. Je potřeba cloudov�
 msgid "No name on file"
 msgstr "Není uloženo žádné jméno"
 
+msgid "No one in {organizationName} matches"
+msgstr "V {organizationName} nikdo neodpovídá"
+
 msgid "No open issues found."
 msgstr "Nenalezeny žádné otevřené issues."
 
@@ -11289,6 +11412,9 @@ msgstr "Nyní online"
 msgid "Online Now"
 msgstr "Právě online"
 
+msgid "Only {organizationName} admins can invite new people"
+msgstr "Nové lidi mohou zvát jen správci {organizationName}"
+
 msgid "Only an organization owner can change the plan. Ask yours to upgrade."
 msgstr "Tarif může změnit jen vlastník organizace. Požádejte ho o přechod na Pro."
 
@@ -11322,6 +11448,9 @@ msgstr "Fakturaci mohou spravovat jen vlastníci"
 msgid "Only owners can update organization settings"
 msgstr "Nastavení organizace mohou měnit jen vlastníci"
 
+msgid "Only people invited"
+msgstr "Jen pozvaní lidé"
+
 msgid "Only people who opted in appear here."
 msgstr "Objevují se tu jen lidé, kteří se sami přihlásili."
 
@@ -11337,6 +11466,9 @@ msgstr "Příkaz k probuzení může nastavit jen vlastník hosta"
 msgid "Only the owner can change this"
 msgstr "Změnit to může jen vlastník"
 
+msgid "Only the owner can change who this is shared with"
+msgstr "Změnit, s kým se sdílí, může jen vlastník"
+
 msgid "Only the owner can run this automation"
 msgstr "Tuto automatizaci může spustit jen vlastník"
 
@@ -11346,11 +11478,17 @@ msgstr "Historii promptů může zobrazit jen vlastník"
 msgid "Only the owner or an organization owner can delete this automation"
 msgstr "Tuto automatizaci může smazat jen vlastník nebo vlastník organizace"
 
+msgid "Only the people listed above can open it"
+msgstr "Otevřít ho mohou jen lidé uvedení výše"
+
 msgid "Only the person who created this page can change it"
 msgstr "Tuto stránku může měnit jen ten, kdo ji vytvořil"
 
 msgid "Only the person who created this page can change these."
 msgstr "Tuto stránku může měnit jen ten, kdo ji vytvořil."
+
+msgid "Only the person who created this workspace can change these."
+msgstr "Toto může změnit jen ten, kdo tento pracovní prostor vytvořil."
 
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "Smazat ho může jen autor vlákna nebo vlastník stránky"
@@ -11735,6 +11873,9 @@ msgstr "Otevřít terminálový skript 8"
 
 msgid "Open Terminal Script 9"
 msgstr "Otevřít terminálový skript 9"
+
+msgid "Open terminals and prompt agents"
+msgstr "Otevírat terminály a zadávat prompty agentům"
 
 msgid "Open the Changes pane in a new tab, or focus the existing one"
 msgstr "Otevře panel Změny na nové kartě, nebo zaměří existující"
@@ -12183,6 +12324,9 @@ msgstr "Čekající pozvánky"
 msgid "People"
 msgstr "Lidé"
 
+msgid "People outside {organizationName} lose access, and the public link stops working."
+msgstr "Lidé mimo {organizationName} ztratí přístup a veřejný odkaz přestane fungovat."
+
 msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
 msgstr "Lidé, kteří paywall poprvé viděli za posledních {PAYWALL_FUNNEL_WEEKS} týdnů, a jak daleko došli. Fáze počítá každého, kdo se do ní dostal po tomto zobrazení, takže nedávné kohorty ještě dozrávají."
 
@@ -12213,6 +12357,9 @@ msgstr "„{projectName}“ trvale smazán"
 #. placeholder {0}: team.name
 msgid "Permanently remove <0>{0}</0> and all of its members. This can't be undone."
 msgstr "Trvale odstranit <0>{0}</0> a všechny jeho členy. Nelze vrátit zpět."
+
+msgid "Permission level"
+msgstr "Úroveň oprávnění"
 
 msgid "Permissions"
 msgstr "Oprávnění"
@@ -13025,6 +13172,12 @@ msgstr "Přečíst průvodce"
 msgid "Read the guide to parallel coding agents"
 msgstr "Přečíst průvodce paralelními kódovacími agenty"
 
+msgid "Read the page"
+msgstr "Číst stránku"
+
+msgid "Read the page and leave comments"
+msgstr "Číst stránku a přidávat komentáře"
+
 msgid "Read the setup guide"
 msgstr "Přečíst průvodce nastavením"
 
@@ -13279,6 +13432,9 @@ msgstr "Odebrat"
 msgid "Remove {0}"
 msgstr "Odebrat {0}"
 
+msgid "Remove {label}"
+msgstr "Odebrat {label}"
+
 msgid "Remove {label}?"
 msgstr "Odebrat {label}?"
 
@@ -13353,6 +13509,9 @@ msgstr "Odebrat…"
 
 msgid "Removed {credential} for {agentLabel}."
 msgstr "{credential} pro {agentLabel} odstraněno."
+
+msgid "Removed {name}"
+msgstr "Odebráno: {name}"
 
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel} odebrán."
@@ -13548,6 +13707,9 @@ msgstr "Vyžadovaná verze: {minimumVersion}+"
 
 msgid "Requires iOS 26 or later. Included with Superset Pro."
 msgstr "Vyžaduje iOS 26 nebo novější. Součást Superset Pro."
+
+msgid "Resend invite"
+msgstr "Znovu odeslat pozvánku"
 
 msgid "Reserved by OS"
 msgstr "Vyhrazeno systémem"
@@ -14520,6 +14682,9 @@ msgstr "Podívejte se, kde se vašich posledních 30 dní umístí ve veřejném
 msgid "Select"
 msgstr "Výběr"
 
+msgid "Select a person"
+msgstr "Vyberte osobu"
+
 msgid "Select a project"
 msgstr "Vyberte projekt"
 
@@ -14646,6 +14811,9 @@ msgstr "Vyberte adresář terminálového skriptu"
 msgid "Select worktree location"
 msgstr "Vyberte umístění worktree"
 
+msgid "Selected"
+msgstr "Vybráno"
+
 msgid "Selected agent is not available on this host"
 msgstr "Vybraný agent není na tomto hostu dostupný"
 
@@ -14720,6 +14888,10 @@ msgstr "Odešle {0} znaků kontextu terminálu (přibližně {1} tokenů) agento
 
 msgid "Sent"
 msgstr "Odesláno"
+
+#. placeholder {0}: grantee.email
+msgid "Sent the invite to {0} again"
+msgstr "Pozvánka byla znovu odeslána na {0}"
 
 msgid "Sent to agent"
 msgstr "Odesláno agentovi"
@@ -14916,6 +15088,9 @@ msgstr "Sdílená verze"
 
 msgid "Shared with everyone"
 msgstr "Sdíleno se všemi"
+
+msgid "Shared with me"
+msgstr "Sdíleno se mnou"
 
 msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
 msgstr "Sdílí checkout projektu — soubory, git index a větev — s ostatními lokálními pracovními prostory"
@@ -15279,6 +15454,9 @@ msgstr "Zatím přeskočit"
 
 msgid "Skipped"
 msgstr "Přeskočeno"
+
+msgid "Skipped {blocked} not in {organizationName}. Only admins can invite new people."
+msgstr "Přeskočeno adres mimo {organizationName}: {blocked}. Nové lidi mohou zvát jen správci."
 
 msgid "Slack Account Linked"
 msgstr "Účet Slack propojen"
@@ -16220,6 +16398,9 @@ msgstr "Karta"
 msgid "Tab per command"
 msgstr "Karta na příkaz"
 
+msgid "Tab to fill"
+msgstr "Tab pro doplnění"
+
 msgid "Table"
 msgstr "Tabulka"
 
@@ -16499,6 +16680,9 @@ msgstr "Tento koncový bod není povolen."
 
 msgid "That handle is taken."
 msgstr "Tato přezdívka je obsazená."
+
+msgid "That invitation is no longer pending"
+msgstr "Tato pozvánka už nečeká na přijetí"
 
 msgid "That Linear issue doesn't exist or you can't see it."
 msgstr "Tento úkol v Linearu neexistuje nebo k němu nemáte přístup."
@@ -16850,6 +17034,9 @@ msgstr "Tyto příkazy se spustí automaticky při vytvoření pracovního prost
 
 msgid "These ports are still in use"
 msgstr "Tyto porty se stále používají"
+
+msgid "They get full access"
+msgstr "Získají plný přístup"
 
 msgid "Thinking"
 msgstr "Uvažování"
@@ -18065,6 +18252,9 @@ msgstr "Verze"
 msgid "Version {0}"
 msgstr "Verze {0}"
 
+msgid "Version {sharedVersion}"
+msgstr "Verze {sharedVersion}"
+
 msgid "Version {version}"
 msgstr "Verze {version}"
 
@@ -18085,6 +18275,10 @@ msgstr "Verze nenalezena"
 
 msgid "Version unknown"
 msgstr "Neznámá verze"
+
+#. placeholder {0}: effective.via
+msgid "via {0}"
+msgstr "přes {0}"
 
 msgid "Video"
 msgstr "Video"
@@ -18411,6 +18605,9 @@ msgstr "Co chcete udělat?"
 
 msgid "What early users say"
 msgstr "Co říkají první uživatelé"
+
+msgid "What general access allows"
+msgstr "Co obecný přístup umožňuje"
 
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Na co nás Google zobrazuje a kolik z toho není naše vlastní jméno."
@@ -18853,11 +19050,17 @@ msgstr "Prohlížíte si verzi {version}, jen pro čtení"
 msgid "You can attach up to {MAX_ATTACHMENTS} files"
 msgstr "Můžete přiložit nejvýše {MAX_ATTACHMENTS} souborů"
 
+msgid "You can only share with people and teams in this organization"
+msgstr "Sdílet můžete jen s lidmi a týmy v této organizaci"
+
 msgid "You can restore it from Settings → Projects for 30 days. The repository folder is never deleted."
 msgstr "Můžete ho obnovit v Nastavení → Projekty po dobu 30 dnů. Složka repozitáře se nikdy nemaže."
 
 msgid "You can see how we work before you talk to us."
 msgstr "Než s námi začnete mluvit, můžete vidět, jak pracujeme."
+
+msgid "You can view this page but not comment on it"
+msgstr "Tuto stránku můžete zobrazit, ale ne komentovat"
 
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."

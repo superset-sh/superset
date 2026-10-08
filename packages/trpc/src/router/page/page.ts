@@ -29,6 +29,7 @@ import {
 	isNotNull,
 	isNull,
 	lt,
+	ne,
 	notExists,
 	or,
 	type SQL,
@@ -40,7 +41,14 @@ import { deletePageStorage } from "../../lib/page-store";
 import { deleteObjects, objectExists, presignedGetUrl } from "../../lib/r2";
 import { protectedProcedure, publicProcedure, userError } from "../../trpc";
 import { requireActiveOrgMembership } from "../utils/active-org";
-import { assertPageReadable, assertPageWritable } from "./access";
+import {
+	assertPageReadable,
+	assertPageWritable,
+	loadPageShareRole,
+	pageAccess,
+	pageReadableBy,
+	pageSharedWith,
+} from "./access";
 import { pageAssetRouter } from "./assets";
 import { decodePageCursor, encodePageCursor } from "./cursor";
 import { pageUrl } from "./page-url";
@@ -65,12 +73,14 @@ import {
 	publicPageSchema,
 	publishPageSchema,
 	pullPageSchema,
+	setPageOrganizationRoleSchema,
 	setPageVisibilitySchema,
 	setPageWatchSchema,
 	setSharedVersionSchema,
 	updatePageSchema,
 } from "./schema";
 import { resolveSharedVersion, servedVersion } from "./shared-version";
+import { pageSharingRouter } from "./sharing";
 import {
 	deletePageObjects,
 	mintPageTicket,
@@ -87,20 +97,25 @@ import {
 } from "./watch-ownership";
 import { assertWorkspaceAccess } from "./workspace-access";
 
-function visibilityFilter(userId: string) {
-	return or(
-		eq(pages.visibility, "org"),
-		eq(pages.visibility, "everyone"),
-		and(eq(pages.visibility, "just_me"), eq(pages.createdByUserId, userId)),
+/** Someone else's page shared with `userId`, whatever its general access. */
+function sharedWithScope(userId: string) {
+	return and(
+		or(isNull(pages.createdByUserId), ne(pages.createdByUserId, userId)),
+		pageSharedWith(userId),
 	);
 }
 
-function scopeFilter(scope: PageListScope): SQL | undefined {
+function scopeFilter(scope: PageListScope, userId: string): SQL | undefined {
 	switch (scope) {
 		case "team":
 			return sql`${pages.visibility} <> 'just_me'`;
 		case "mine":
-			return eq(pages.visibility, "just_me");
+			return and(
+				eq(pages.visibility, "just_me"),
+				eq(pages.createdByUserId, userId),
+			);
+		case "shared":
+			return sharedWithScope(userId);
 		default:
 			return undefined;
 	}
@@ -110,12 +125,15 @@ function scopeFilter(scope: PageListScope): SQL | undefined {
  * Shared by `list` and `counts` so a tab's count and its contents can't be
  * answered by two different WHERE clauses.
  */
-function pageFilters(input: {
-	search?: string | undefined;
-	scope?: PageListScope | undefined;
-	authorId?: string | undefined;
-	ids?: string[] | undefined;
-}): (SQL | undefined)[] {
+function pageFilters(
+	input: {
+		search?: string | undefined;
+		scope?: PageListScope | undefined;
+		authorId?: string | undefined;
+		ids?: string[] | undefined;
+	},
+	userId: string,
+): (SQL | undefined)[] {
 	const filters: (SQL | undefined)[] = [];
 
 	if (input.search) {
@@ -129,7 +147,7 @@ function pageFilters(input: {
 		);
 	}
 
-	if (input.scope) filters.push(scopeFilter(input.scope));
+	if (input.scope) filters.push(scopeFilter(input.scope, userId));
 	if (input.authorId) filters.push(eq(pages.createdByUserId, input.authorId));
 	// An empty array is "no pins", which must return nothing rather than
 	// degrade to the unfiltered list.
@@ -150,7 +168,7 @@ async function pageNotFound(identity: SQL, userId: string): Promise<TRPCError> {
 			),
 		)
 		.innerJoin(organizations, eq(organizations.id, pages.organizationId))
-		.where(and(identity, visibilityFilter(userId)))
+		.where(and(identity, pageReadableBy(userId)))
 		.limit(1);
 
 	if (!elsewhere) {
@@ -195,7 +213,7 @@ async function loadPage({
 	if (!page) {
 		throw await pageNotFound(identity, userId);
 	}
-	assertPageReadable(page, userId);
+	assertPageReadable(page, userId, await loadPageShareRole(page, userId));
 	return page;
 }
 
@@ -291,8 +309,8 @@ async function listPageBatch({
 
 	const filters: (SQL | undefined)[] = [
 		eq(pages.organizationId, organizationId),
-		visibilityFilter(userId),
-		...pageFilters(input ?? {}),
+		pageReadableBy(userId),
+		...pageFilters(input ?? {}, userId),
 	];
 
 	if (input?.cursor) {
@@ -396,6 +414,7 @@ async function listPageBatch({
 
 export const pageRouter = {
 	assets: pageAssetRouter,
+	sharing: pageSharingRouter,
 	...pageReportRouter,
 
 	/**
@@ -529,18 +548,19 @@ export const pageRouter = {
 
 			const filters: (SQL | undefined)[] = [
 				eq(pages.organizationId, organizationId),
-				visibilityFilter(userId),
-				...pageFilters({
-					search: input?.search,
-					authorId: input?.authorId,
-				}),
+				pageReadableBy(userId),
+				...pageFilters(
+					{ search: input?.search, authorId: input?.authorId },
+					userId,
+				),
 			];
 
 			const pinned = input?.pinnedIds ?? [];
 			const selection = {
 				all: sql<number>`count(*)::int`,
 				team: sql<number>`count(*) filter (where ${pages.visibility} <> 'just_me')::int`,
-				mine: sql<number>`count(*) filter (where ${pages.visibility} = 'just_me')::int`,
+				mine: sql<number>`count(*) filter (where ${scopeFilter("mine", userId)})::int`,
+				shared: sql<number>`count(*) filter (where ${sharedWithScope(userId)})::int`,
 				pinned: pinned.length
 					? sql<number>`count(*) filter (where ${inArray(pages.id, pinned)})::int`
 					: sql<number>`0::int`,
@@ -599,16 +619,16 @@ export const pageRouter = {
 				.where(
 					and(
 						eq(pages.organizationId, organizationId),
-						visibilityFilter(userId),
+						pageReadableBy(userId),
 						// `authorId` deliberately absent; `search` still applies.
-						...pageFilters({ search: input?.search }),
+						...pageFilters({ search: input?.search }, userId),
 						isNotNull(pages.createdByUserId),
 					),
 				)
 				.groupBy(pages.createdByUserId, users.name, users.image);
 
 			return {
-				...(row ?? { all: 0, team: 0, mine: 0, pinned: 0 }),
+				...(row ?? { all: 0, team: 0, mine: 0, shared: 0, pinned: 0 }),
 				workspaces,
 				authors,
 			};
@@ -793,6 +813,20 @@ export const pageRouter = {
 			return { id: updated.id, visibility: updated.visibility };
 		}),
 
+	setOrganizationRole: protectedProcedure
+		.input(setPageOrganizationRoleSchema)
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			const userId = ctx.session.user.id;
+			const page = await loadPage({ id: input.id, organizationId, userId });
+			assertPageWritable(page, userId);
+			await db
+				.update(pages)
+				.set({ organizationRole: input.role })
+				.where(eq(pages.id, page.id));
+			return { id: page.id, organizationRole: input.role };
+		}),
+
 	claimWatch: protectedProcedure
 		.input(
 			z.object({
@@ -922,7 +956,17 @@ export const pageRouter = {
 				userId: ctx.session.user.id,
 			});
 
-			return { owner: await loadOwner(page.createdByUserId) };
+			const userId = ctx.session.user.id;
+			const { canComment, canManage } = pageAccess(
+				page,
+				userId,
+				await loadPageShareRole(page, userId),
+			);
+			return {
+				owner: await loadOwner(page.createdByUserId),
+				canComment,
+				canManage,
+			};
 		}),
 
 	setSharedVersion: protectedProcedure

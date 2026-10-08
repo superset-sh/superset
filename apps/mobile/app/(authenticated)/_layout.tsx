@@ -1,18 +1,13 @@
 import { useLingui } from "@lingui/react/macro";
-import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Redirect, Stack, usePathname } from "expo-router";
-import { Platform, View } from "react-native";
+import { View } from "react-native";
 import { usePrimeRelayUrl } from "@/hooks/usePrimeRelayUrl";
 import { useRealtimeNudges } from "@/hooks/useRealtimeNudges";
 import { useSession } from "@/lib/auth/client";
+import { glassHeaderOptions, sheetDetents } from "@/lib/navigation";
 import { VoiceLayer } from "@/screens/(authenticated)/voice/VoiceLayer";
 
 export const unstable_settings = { anchor: "(home)" };
-
-// iPad shows a form sheet as a fixed-size centered card, so a partial detent
-// only shrinks the card and clips what is inside it.
-const sheetDetents = (phoneDetents: number[]) =>
-	Platform.OS === "ios" && Platform.isPad ? [1.0] : phoneDetents;
 
 const pageScreenOptions = {
 	headerShown: true,
@@ -24,18 +19,6 @@ const settingsScreenOptions = (title: string) => ({
 	...pageScreenOptions,
 	title,
 });
-
-const glassHeaderOptions = {
-	headerShown: true,
-	headerTransparent: true,
-	headerLargeTitle: false,
-	headerBackButtonDisplayMode: "minimal",
-	headerShadowVisible: false,
-	...(isLiquidGlassAvailable()
-		? {}
-		: { headerBlurEffect: "systemUltraThinMaterial" as const }),
-	headerStyle: { backgroundColor: "transparent" },
-} as const;
 
 export default function AuthenticatedLayout() {
 	usePrimeRelayUrl();
@@ -138,10 +121,18 @@ export default function AuthenticatedLayout() {
 					name="pages/[slug]/share"
 					options={{
 						presentation: "formSheet",
-						title: t({ message: "Share page" }),
-						sheetAllowedDetents: sheetDetents([0.75]),
+						headerShown: false,
+						sheetAllowedDetents: [1.0],
 						sheetGrabberVisible: true,
-						...glassHeaderOptions,
+					}}
+				/>
+				<Stack.Screen
+					name="workspace/[id]/share"
+					options={{
+						presentation: "formSheet",
+						headerShown: false,
+						sheetAllowedDetents: [1.0],
+						sheetGrabberVisible: true,
 					}}
 				/>
 				<Stack.Screen

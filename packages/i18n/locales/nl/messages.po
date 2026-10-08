@@ -96,6 +96,9 @@ msgstr "(geen uitvoer)"
 msgid "(so far)"
 msgstr "(tot nu toe)"
 
+msgid "(you)"
+msgstr "(jij)"
+
 #. placeholder {0}: connections.length
 msgid "{0, plural, one {# account connected} other {# accounts connected}}"
 msgstr "{0, plural, one {# account verbonden} other {# accounts verbonden}}"
@@ -187,6 +190,7 @@ msgstr "{0, plural, one {# in behandeling} other {# in behandeling}}"
 
 #. placeholder {0}: chosenLeads.length
 #. placeholder {0}: chosenPeople.length
+#. placeholder {0}: grantee.memberCount
 msgid "{0, plural, one {# person} other {# people}}"
 msgstr "{0, plural, one {# persoon} other {# personen}}"
 
@@ -643,6 +647,9 @@ msgstr "{actor} heeft de beschrijving bewerkt"
 msgid "{actor} joined"
 msgstr "{actor} is erbij gekomen"
 
+msgid "{actor} limited the workspace to people invited"
+msgstr "{actor} heeft de werkruimte beperkt tot uitgenodigde personen"
+
 msgid "{actor} linked {chip}"
 msgstr "{actor} heeft {chip} gekoppeld"
 
@@ -652,9 +659,6 @@ msgstr "{actor} heeft {chip} gekoppeld · voorgesteld door {suggestedBy}"
 msgid "{actor} linked the workspace {workspace}"
 msgstr "{actor} heeft de workspace {workspace} gekoppeld"
 
-msgid "{actor} made the workspace private"
-msgstr "{actor} heeft de workspace privé gemaakt"
-
 msgid "{actor} moved the task from {from} to {to}"
 msgstr "{actor} heeft de taak van {from} naar {to} verplaatst"
 
@@ -663,6 +667,9 @@ msgstr "{actor} heeft {badge} geopend"
 
 msgid "{actor} published {chip}"
 msgstr "{actor} heeft {chip} gepubliceerd"
+
+msgid "{actor} removed access for {target}"
+msgstr "{actor} heeft de toegang voor {target} verwijderd"
 
 msgid "{actor} removed the assignee"
 msgstr "{actor} heeft de toegewezene verwijderd"
@@ -691,6 +698,9 @@ msgstr "{actor} heeft de prioriteit op {to} gezet"
 
 msgid "{actor} set the status to {to}"
 msgstr "{actor} heeft de status op {to} gezet"
+
+msgid "{actor} shared the workspace with {target}"
+msgstr "{actor} heeft de werkruimte gedeeld met {target}"
 
 msgid "{actor} shared the workspace with the organization"
 msgstr "{actor} heeft de workspace gedeeld met de organisatie"
@@ -1532,6 +1542,12 @@ msgstr "Voorwaarden accepteren"
 msgid "Access denied"
 msgstr "Toegang geweigerd"
 
+msgid "Access for {name}"
+msgstr "Toegang voor {name}"
+
+msgid "Access for the people you add"
+msgstr "Toegang voor de personen die je toevoegt"
+
 msgid "Access your email address"
 msgstr "Je e-mailadres inzien"
 
@@ -1728,8 +1744,17 @@ msgstr "Luisterende agent toevoegen"
 msgid "Add member"
 msgstr "Lid toevoegen"
 
+msgid "Add more…"
+msgstr "Meer toevoegen…"
+
 msgid "Add one from the menu in the sidebar to get started."
 msgstr "Voeg er een toe via het menu in de zijbalk om te beginnen."
+
+msgid "Add people"
+msgstr "Personen toevoegen"
+
+msgid "Add people or teams by name or email"
+msgstr "Voeg personen of teams toe op naam of e-mail"
 
 msgid "Add photos or files"
 msgstr "Foto's of bestanden toevoegen"
@@ -1805,6 +1830,10 @@ msgstr "1 bestand toegevoegd aan {where}"
 
 msgid "Added only when launching with a prompt — e.g. <0>--</0>, <1>--prompt</1>, <2>-i</2>."
 msgstr "Alleen toegevoegd bij starten met een prompt — bijv. <0>--</0>, <1>--prompt</1>, <2>-i</2>."
+
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
+msgstr "Voor het toevoegen van mensen aan {organizationName} is een betaald abonnement nodig. Het abonnement van je organisatie wordt beheerd door de eigenaar op {0}."
 
 msgid "Address Comments with Agent"
 msgstr "Opmerkingen afhandelen met agent"
@@ -2303,11 +2332,27 @@ msgstr "Elke thread-gebeurtenis"
 msgid "Anyone"
 msgstr "Iedereen"
 
+#. placeholder {0}: share.organizationName
+msgid "Anyone in {0} who isn't listed here loses access, including anyone who has it open now."
+msgstr "Iedereen in {0} die hier niet staat, verliest de toegang, ook wie het nu open heeft."
+
+msgid "Anyone in {organizationName} who isn't listed here loses access."
+msgstr "Iedereen in {organizationName} die hier niet staat, verliest de toegang."
+
+msgid "Anyone in {organizationName} with the link can open it"
+msgstr "Iedereen in {organizationName} met de link kan het openen"
+
 msgid "Anyone in your organization"
 msgstr "Iedereen in je organisatie"
 
 msgid "Anyone with the link"
 msgstr "Iedereen met de link"
+
+msgid "Anyone with the link can view it, including people outside {organizationName} and people who aren't signed in."
+msgstr "Iedereen met de link kan hem bekijken, ook personen buiten {organizationName} en personen die niet zijn aangemeld."
+
+msgid "Anyone with the link can view it, signed in or not"
+msgstr "Iedereen met de link kan het bekijken, ingelogd of niet"
 
 msgid "anything"
 msgstr "wat dan ook"
@@ -3240,6 +3285,9 @@ msgstr "Toegang tot de camera is niet toegestaan"
 msgid "Camera is not available"
 msgstr "Camera is niet beschikbaar"
 
+msgid "Can comment"
+msgstr "Kan reageren"
+
 msgid "Can I switch plans or cancel anytime?"
 msgstr "Kan ik altijd van plan wisselen of opzeggen?"
 
@@ -3251,6 +3299,9 @@ msgstr "Kan zonder conflicten worden gemerged"
 
 msgid "Can the headline say what happens after sign-up?"
 msgstr "Kan de kop zeggen wat er na het aanmelden gebeurt?"
+
+msgid "Can view"
+msgstr "Kan bekijken"
 
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Kun je de tooltips in de hele app standaardiseren?"
@@ -3276,6 +3327,9 @@ msgstr "Download annuleren"
 msgid "Cancel edits"
 msgstr "Bewerkingen annuleren"
 
+msgid "Cancel invite"
+msgstr "Uitnodiging annuleren"
+
 msgid "Cancel plan"
 msgstr "Plan opzeggen"
 
@@ -3291,6 +3345,9 @@ msgstr "Opzeggen..."
 
 msgid "Cancelled"
 msgstr "Geannuleerd"
+
+msgid "Cancelled the invite for {name}"
+msgstr "Uitnodiging voor {name} geannuleerd"
 
 #. placeholder {0}: format(new Date(cancelAt), "MMMM d, yyyy")
 #. placeholder {0}: formatDate(cancelAt)
@@ -4709,17 +4766,17 @@ msgstr "Kan bestanden niet toevoegen"
 msgid "Could not branch the chat"
 msgstr "Kan de chat niet vertakken"
 
+msgid "Could not change access"
+msgstr "Kan toegang niet wijzigen"
+
 msgid "Could not change the mode"
 msgstr "Kan de modus niet wijzigen"
 
 msgid "Could not change the shared version"
 msgstr "Kan de gedeelde versie niet wijzigen"
 
-msgid "Could not change who can see this page"
-msgstr "Kan niet wijzigen wie deze pagina kan zien"
-
-msgid "Could not change who can see this workspace"
-msgstr "Kan niet wijzigen wie deze werkruimte kan zien"
+msgid "Could not change who has access"
+msgstr "Kan niet wijzigen wie toegang heeft"
 
 msgid "Could not check your plan. Check your connection and try again."
 msgstr "Je abonnement kon niet worden gecontroleerd. Controleer je verbinding en probeer het opnieuw."
@@ -4863,6 +4920,9 @@ msgstr "Kan cloudwerkruimte niet vastleggen"
 msgid "Could not record environment"
 msgstr "Omgeving kon niet worden opgeslagen"
 
+msgid "Could not remove access"
+msgstr "Kan toegang niet verwijderen"
+
 msgid "Could not rename the session"
 msgstr "Kan de naam van de sessie niet wijzigen"
 
@@ -4874,6 +4934,9 @@ msgstr "Kan niet heropenen"
 
 msgid "Could not reopen this comment"
 msgstr "Deze reactie kon niet worden heropend"
+
+msgid "Could not resend the invite"
+msgstr "Kan de uitnodiging niet opnieuw versturen"
 
 msgid "Could not resolve this comment"
 msgstr "Deze reactie kon niet worden opgelost"
@@ -4895,6 +4958,9 @@ msgstr "Kan review niet versturen"
 
 msgid "Could not set icon"
 msgstr "Kan icoon niet instellen"
+
+msgid "Could not share"
+msgstr "Delen mislukt"
 
 msgid "Could not start agent"
 msgstr "Kan agent niet starten"
@@ -4931,6 +4997,9 @@ msgstr "Kan prompt niet insturen. Probeer het opnieuw."
 
 msgid "Could not take a screenshot"
 msgstr "Kan geen screenshot maken"
+
+msgid "Could not undo"
+msgstr "Ongedaan maken mislukt"
 
 msgid "Could not update plugin"
 msgstr "Kan plugin niet bijwerken"
@@ -5450,6 +5519,9 @@ msgstr "Ctrl+Shift+klik"
 
 msgid "Current"
 msgstr "Huidig"
+
+msgid "Current access"
+msgstr "Huidige toegang"
 
 msgid "Current level"
 msgstr "Huidig niveau"
@@ -6533,6 +6605,9 @@ msgstr "Bevalt Superset?"
 
 msgid "Ensure no regression"
 msgstr "Zorg dat er geen regressie is"
+
+msgid "Enter a full email address"
+msgstr "Voer een volledig e-mailadres in"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "Voer een bovenliggende map op {hostName} in"
@@ -8014,6 +8089,9 @@ msgstr "nu bezig"
 msgid "Hard reload"
 msgstr "Hard herladen"
 
+msgid "Has access"
+msgstr "Heeft toegang"
+
 msgid "Has conflicts"
 msgstr "Heeft conflicten"
 
@@ -8729,6 +8807,12 @@ msgstr "Uitnodiging niet gevonden"
 msgid "Invitation sent to {email}"
 msgstr "Uitnodiging verstuurd naar {email}"
 
+msgid "Invite"
+msgstr "Uitnodigen"
+
+msgid "Invite {label} to join {organizationName}"
+msgstr "{label} uitnodigen voor {organizationName}"
+
 msgid "Invite and manage members, assign roles, and control permissions"
 msgstr "Nodig leden uit en beheer ze, wijs rollen toe en regel rechten"
 
@@ -8738,11 +8822,23 @@ msgstr "Lid uitnodigen"
 msgid "Invite Member"
 msgstr "Lid uitnodigen"
 
+msgid "Invite pending"
+msgstr "Uitnodiging openstaand"
+
+msgid "Invite people on a paid plan"
+msgstr "Nodig mensen uit met een betaald abonnement"
+
 msgid "Invite teammate"
 msgstr "Teamgenoot uitnodigen"
 
+msgid "Invite to {organizationName}"
+msgstr "Uitnodigen voor {organizationName}"
+
 msgid "Invite your team to shared workspaces. See real-time updates, sync configurations, and manage team access across agents."
 msgstr "Nodig je team uit voor gedeelde werkruimtes. Zie realtime updates, synchroniseer configuraties en beheer teamtoegang over agents heen."
+
+msgid "Invited"
+msgstr "Uitgenodigd"
 
 msgid "Invited By"
 msgstr "Uitgenodigd door"
@@ -8929,6 +9025,9 @@ msgstr "Docs actueel houden"
 
 msgid "Keep editing"
 msgstr "Verder bewerken"
+
+msgid "Keep typing an email to invite"
+msgstr "Typ verder een e-mailadres om uit te nodigen"
 
 msgid "Keep waiting"
 msgstr "Blijven wachten"
@@ -9221,6 +9320,15 @@ msgstr "Bouw je graag met Superset?"
 
 msgid "Lime"
 msgstr "Limoen"
+
+msgid "Limit access"
+msgstr "Toegang beperken"
+
+msgid "Limit to {organizationName}?"
+msgstr "Beperken tot {organizationName}?"
+
+msgid "Limit to people invited?"
+msgstr "Beperken tot uitgenodigde personen?"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -9580,11 +9688,17 @@ msgstr "Standaard maken"
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "Standaard maken — start nieuwe terminals en agents op dit account."
 
+msgid "Make public"
+msgstr "Openbaar maken"
+
 msgid "Make sure the device is awake, online, and running Superset."
 msgstr "Zorg dat het apparaat wakker en online is en dat Superset erop draait."
 
 msgid "Make the chip style the TooltipContent default"
 msgstr "Maak de chipstijl de standaard voor TooltipContent"
+
+msgid "Make this page public?"
+msgstr "Deze pagina openbaar maken?"
 
 msgid "Makes the Run button launch this terminal script for matching projects."
 msgstr "Laat de knop Uitvoeren dit terminalscript starten voor overeenkomende projecten."
@@ -10036,6 +10150,9 @@ msgstr "Meer aanmaakopties"
 msgid "More options"
 msgstr "Meer opties"
 
+msgid "More options for {name}"
+msgstr "Meer opties voor {name}"
+
 msgid "More pages"
 msgstr "Meer pagina's"
 
@@ -10122,6 +10239,9 @@ msgstr "Naam bijgewerkt!"
 
 msgid "Nameless Foreman"
 msgstr "Naamloze Voorman"
+
+msgid "Names, emails, or teams"
+msgstr "Namen, e-mails of teams"
 
 msgid "Namespace new branches for this project. Defaults to the host-wide Git setting."
 msgstr "Geef nieuwe branches van dit project een eigen naamruimte. Standaard geldt de Git-instelling voor de hele host."
@@ -10707,6 +10827,9 @@ msgstr "Hier is geen mobiele simulator beschikbaar. Hiervoor is een Limrun-compa
 msgid "No name on file"
 msgstr "Geen naam bekend"
 
+msgid "No one in {organizationName} matches"
+msgstr "Niemand in {organizationName} komt overeen"
+
 msgid "No open issues found."
 msgstr "Geen open issues gevonden."
 
@@ -11289,6 +11412,9 @@ msgstr "Nu online"
 msgid "Online Now"
 msgstr "Nu online"
 
+msgid "Only {organizationName} admins can invite new people"
+msgstr "Alleen beheerders van {organizationName} kunnen nieuwe personen uitnodigen"
+
 msgid "Only an organization owner can change the plan. Ask yours to upgrade."
 msgstr "Alleen een eigenaar van de organisatie kan het plan wijzigen. Vraag de jouwe om te upgraden."
 
@@ -11322,6 +11448,9 @@ msgstr "Alleen eigenaren kunnen de facturering beheren"
 msgid "Only owners can update organization settings"
 msgstr "Alleen eigenaren kunnen organisatie-instellingen bijwerken"
 
+msgid "Only people invited"
+msgstr "Alleen uitgenodigde personen"
+
 msgid "Only people who opted in appear here."
 msgstr "Alleen mensen die zich hebben aangemeld verschijnen hier."
 
@@ -11337,6 +11466,9 @@ msgstr "Alleen de eigenaar van de host kan het wake-commando instellen"
 msgid "Only the owner can change this"
 msgstr "Alleen de eigenaar kan dit wijzigen"
 
+msgid "Only the owner can change who this is shared with"
+msgstr "Alleen de eigenaar kan wijzigen met wie dit wordt gedeeld"
+
 msgid "Only the owner can run this automation"
 msgstr "Alleen de eigenaar kan deze automatisering uitvoeren"
 
@@ -11346,11 +11478,17 @@ msgstr "Alleen de eigenaar kan de promptgeschiedenis bekijken"
 msgid "Only the owner or an organization owner can delete this automation"
 msgstr "Alleen de eigenaar of een organisatie-eigenaar kan deze automatisering verwijderen"
 
+msgid "Only the people listed above can open it"
+msgstr "Alleen de mensen hierboven kunnen het openen"
+
 msgid "Only the person who created this page can change it"
 msgstr "Alleen degene die deze pagina heeft gemaakt kan hem wijzigen"
 
 msgid "Only the person who created this page can change these."
 msgstr "Alleen degene die deze pagina heeft gemaakt kan dit wijzigen."
+
+msgid "Only the person who created this workspace can change these."
+msgstr "Alleen degene die deze workspace heeft gemaakt, kan dit wijzigen."
 
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "Alleen de auteur van de thread of de eigenaar van de pagina kan hem verwijderen"
@@ -11735,6 +11873,9 @@ msgstr "Terminalscript 8 openen"
 
 msgid "Open Terminal Script 9"
 msgstr "Terminalscript 9 openen"
+
+msgid "Open terminals and prompt agents"
+msgstr "Terminals openen en agents prompts geven"
 
 msgid "Open the Changes pane in a new tab, or focus the existing one"
 msgstr "Opent het wijzigingenpaneel in een nieuw tabblad, of focust het bestaande"
@@ -12183,6 +12324,9 @@ msgstr "Openstaande uitnodigingen"
 msgid "People"
 msgstr "Personen"
 
+msgid "People outside {organizationName} lose access, and the public link stops working."
+msgstr "Personen buiten {organizationName} verliezen de toegang en de openbare link werkt niet meer."
+
 msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
 msgstr "Personen die de paywall voor het eerst zagen in de afgelopen {PAYWALL_FUNNEL_WEEKS} weken, en hoe ver ze kwamen. Een stap telt iedereen die deze na die weergave bereikte, dus recente cohorten zijn nog niet volgroeid."
 
@@ -12213,6 +12357,9 @@ msgstr "\"{projectName}\" definitief verwijderd"
 #. placeholder {0}: team.name
 msgid "Permanently remove <0>{0}</0> and all of its members. This can't be undone."
 msgstr "Verwijder <0>{0}</0> en al zijn leden definitief. Dit kan niet ongedaan worden gemaakt."
+
+msgid "Permission level"
+msgstr "Machtigingsniveau"
 
 msgid "Permissions"
 msgstr "Rechten"
@@ -13025,6 +13172,12 @@ msgstr "Lees de gids"
 msgid "Read the guide to parallel coding agents"
 msgstr "Lees de gids over parallelle coding agents"
 
+msgid "Read the page"
+msgstr "De pagina lezen"
+
+msgid "Read the page and leave comments"
+msgstr "De pagina lezen en reacties plaatsen"
+
 msgid "Read the setup guide"
 msgstr "Lees de installatiegids"
 
@@ -13279,6 +13432,9 @@ msgstr "Verwijderen"
 msgid "Remove {0}"
 msgstr "{0} verwijderen"
 
+msgid "Remove {label}"
+msgstr "{label} verwijderen"
+
 msgid "Remove {label}?"
 msgstr "{label} verwijderen?"
 
@@ -13353,6 +13509,9 @@ msgstr "Verwijderen…"
 
 msgid "Removed {credential} for {agentLabel}."
 msgstr "{credential} voor {agentLabel} verwijderd."
+
+msgid "Removed {name}"
+msgstr "{name} verwijderd"
 
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel} verwijderd."
@@ -13548,6 +13707,9 @@ msgstr "Vereiste versie: {minimumVersion}+"
 
 msgid "Requires iOS 26 or later. Included with Superset Pro."
 msgstr "Vereist iOS 26 of nieuwer. Inbegrepen bij Superset Pro."
+
+msgid "Resend invite"
+msgstr "Uitnodiging opnieuw versturen"
 
 msgid "Reserved by OS"
 msgstr "Gereserveerd door het OS"
@@ -14520,6 +14682,9 @@ msgstr "Bekijk waar je laatste 30 dagen staan op de publieke ranglijst. Alleen t
 msgid "Select"
 msgstr "Select"
 
+msgid "Select a person"
+msgstr "Selecteer een persoon"
+
 msgid "Select a project"
 msgstr "Kies een project"
 
@@ -14646,6 +14811,9 @@ msgstr "Map voor terminalscript kiezen"
 msgid "Select worktree location"
 msgstr "Locatie voor worktree kiezen"
 
+msgid "Selected"
+msgstr "Geselecteerd"
+
 msgid "Selected agent is not available on this host"
 msgstr "De gekozen agent is niet beschikbaar op deze host"
 
@@ -14720,6 +14888,10 @@ msgstr "Stuurt {0} tekens terminalcontext (ongeveer {1} tokens) naar {2}."
 
 msgid "Sent"
 msgstr "Verstuurd"
+
+#. placeholder {0}: grantee.email
+msgid "Sent the invite to {0} again"
+msgstr "Uitnodiging opnieuw verstuurd naar {0}"
 
 msgid "Sent to agent"
 msgstr "Naar agent gestuurd"
@@ -14916,6 +15088,9 @@ msgstr "Gedeelde versie"
 
 msgid "Shared with everyone"
 msgstr "Gedeeld met iedereen"
+
+msgid "Shared with me"
+msgstr "Gedeeld met mij"
 
 msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
 msgstr "Deelt de checkout van het project — bestanden, git-index en branch — met de andere lokale werkruimtes"
@@ -15279,6 +15454,9 @@ msgstr "Nu overslaan"
 
 msgid "Skipped"
 msgstr "Overgeslagen"
+
+msgid "Skipped {blocked} not in {organizationName}. Only admins can invite new people."
+msgstr "{blocked} niet in {organizationName} overgeslagen. Alleen beheerders kunnen nieuwe personen uitnodigen."
 
 msgid "Slack Account Linked"
 msgstr "Slack-account gekoppeld"
@@ -16220,6 +16398,9 @@ msgstr "Tabblad"
 msgid "Tab per command"
 msgstr "Tabblad per commando"
 
+msgid "Tab to fill"
+msgstr "Tab om in te vullen"
+
 msgid "Table"
 msgstr "Tabel"
 
@@ -16499,6 +16680,9 @@ msgstr "Dat endpoint is niet toegestaan."
 
 msgid "That handle is taken."
 msgstr "Die handle is al bezet."
+
+msgid "That invitation is no longer pending"
+msgstr "Die uitnodiging staat niet meer open"
 
 msgid "That Linear issue doesn't exist or you can't see it."
 msgstr "Die Linear-issue bestaat niet of je kunt hem niet zien."
@@ -16850,6 +17034,9 @@ msgstr "Deze commando's draaien automatisch wanneer een werkruimte wordt aangema
 
 msgid "These ports are still in use"
 msgstr "Deze poorten zijn nog in gebruik"
+
+msgid "They get full access"
+msgstr "Ze krijgen volledige toegang"
 
 msgid "Thinking"
 msgstr "Redenering"
@@ -18065,6 +18252,9 @@ msgstr "Versie"
 msgid "Version {0}"
 msgstr "Versie {0}"
 
+msgid "Version {sharedVersion}"
+msgstr "Versie {sharedVersion}"
+
 msgid "Version {version}"
 msgstr "Versie {version}"
 
@@ -18085,6 +18275,10 @@ msgstr "Versie niet gevonden"
 
 msgid "Version unknown"
 msgstr "Versie onbekend"
+
+#. placeholder {0}: effective.via
+msgid "via {0}"
+msgstr "via {0}"
 
 msgid "Video"
 msgstr "Video"
@@ -18411,6 +18605,9 @@ msgstr "Wat wil je doen?"
 
 msgid "What early users say"
 msgstr "Wat de eerste gebruikers zeggen"
+
+msgid "What general access allows"
+msgstr "Wat algemene toegang toestaat"
 
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Waarvoor Google ons toont en hoeveel daarvan niet onze eigen naam is."
@@ -18853,11 +19050,17 @@ msgstr "Je bekijkt versie {version}, alleen-lezen"
 msgid "You can attach up to {MAX_ATTACHMENTS} files"
 msgstr "Je kunt maximaal {MAX_ATTACHMENTS} bestanden toevoegen"
 
+msgid "You can only share with people and teams in this organization"
+msgstr "Je kunt alleen delen met personen en teams in deze organisatie"
+
 msgid "You can restore it from Settings → Projects for 30 days. The repository folder is never deleted."
 msgstr "Je kunt het 30 dagen lang herstellen via Instellingen → Projecten. De repositorymap wordt nooit verwijderd."
 
 msgid "You can see how we work before you talk to us."
 msgstr "Je kunt zien hoe we werken voordat je met ons praat."
+
+msgid "You can view this page but not comment on it"
+msgstr "Je kunt deze pagina bekijken, maar er niet op reageren"
 
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."

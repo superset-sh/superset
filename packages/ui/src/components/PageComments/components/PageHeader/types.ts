@@ -1,4 +1,11 @@
 import type { PageVisibility } from "@superset/shared/usercontent";
+import type {
+	InviteNewMode,
+	ShareAddRequest,
+	ShareDirectory,
+	ShareGrantee,
+	ShareGranteeRef,
+} from "../../../ShareAccess";
 
 export type { PageVisibility } from "@superset/shared/usercontent";
 
@@ -29,6 +36,23 @@ export interface PageHeaderPage {
 	servedVersion: number | null;
 }
 
+export type PageShareRole = "view" | "comment";
+
+/** Who the page is shared with beyond its general access, and how to change that. */
+export interface PageHeaderSharing {
+	grantees: ShareGrantee[];
+	organizationRole: PageShareRole;
+	directory: ShareDirectory;
+	organizationName: string;
+	inviteNew: InviteNewMode;
+	onUpgrade: () => void;
+	onAdd: (request: ShareAddRequest) => Promise<void>;
+	onRemove: (grantee: ShareGranteeRef) => Promise<void>;
+	onSetRole: (grantee: ShareGranteeRef, role: PageShareRole) => Promise<void>;
+	onSetOrganizationRole: (role: PageShareRole) => Promise<void>;
+	onResendInvite: (invitationId: string) => Promise<void>;
+}
+
 export interface PageHeaderActions {
 	onSetVisibility: (visibility: PageVisibility) => Promise<void>;
 	onSetSharedVersion: (version: number | null) => Promise<void>;
@@ -37,4 +61,5 @@ export interface PageHeaderActions {
 	onRefresh: () => void;
 	onPreviewVersion: (version: number | null) => void;
 	previewVersion?: number | null;
+	sharing: PageHeaderSharing;
 }

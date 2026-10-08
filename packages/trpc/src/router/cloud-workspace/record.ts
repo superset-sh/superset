@@ -14,6 +14,7 @@ import {
 	taskProjects,
 	taskStatuses,
 	tasks,
+	teams,
 	users,
 } from "@superset/db/schema";
 import { retiredTaskColumns } from "@superset/db/task-list-query";
@@ -214,6 +215,35 @@ export async function addLabel(args: {
 	);
 }
 
+/** Who a share or unshare was for, if the person, team, or invitation still exists. */
+function shareTargetOf(row: {
+	entry: { targetEmail: string | null };
+	targetUser: {
+		userId: string | null;
+		name: string | null;
+		image: string | null;
+	} | null;
+	targetTeam: { id: string | null; name: string | null } | null;
+}) {
+	if (row.targetUser?.userId && row.targetUser.name !== null) {
+		return {
+			kind: "user" as const,
+			person: {
+				userId: row.targetUser.userId,
+				name: row.targetUser.name,
+				image: row.targetUser.image,
+			},
+		};
+	}
+	if (row.targetTeam?.id && row.targetTeam.name !== null) {
+		return { kind: "team" as const, name: row.targetTeam.name };
+	}
+	if (row.entry.targetEmail) {
+		return { kind: "email" as const, email: row.entry.targetEmail };
+	}
+	return null;
+}
+
 export const cloudWorkspaceRecordRouter = {
 	/** One box in any state, archived included, with what its record page shows. */
 	get: jwtProcedure
@@ -307,6 +337,7 @@ export const cloudWorkspaceRecordRouter = {
 			const fromProject = alias(taskProjects, "from_project");
 			const toProject = alias(taskProjects, "to_project");
 			const proposer = alias(users, "proposer");
+			const targetUser = alias(users, "target_user");
 			const rows = await db
 				.select({
 					entry: cloudWorkspaceActivity,
@@ -350,6 +381,12 @@ export const cloudWorkspaceRecordRouter = {
 						name: proposer.name,
 						image: proposer.image,
 					},
+					targetUser: {
+						userId: targetUser.id,
+						name: targetUser.name,
+						image: targetUser.image,
+					},
+					targetTeam: { id: teams.id, name: teams.name },
 				})
 				.from(cloudWorkspaceActivity)
 				.leftJoin(users, eq(users.id, cloudWorkspaceActivity.actorUserId))
@@ -377,6 +414,11 @@ export const cloudWorkspaceRecordRouter = {
 					eq(suggestions.id, cloudWorkspaceActivity.suggestionId),
 				)
 				.leftJoin(proposer, eq(proposer.id, suggestions.proposedByUserId))
+				.leftJoin(
+					targetUser,
+					eq(targetUser.id, cloudWorkspaceActivity.targetUserId),
+				)
+				.leftJoin(teams, eq(teams.id, cloudWorkspaceActivity.targetTeamId))
 				.where(eq(cloudWorkspaceActivity.cloudWorkspaceId, row.id))
 				.orderBy(asc(cloudWorkspaceActivity.createdAt));
 
@@ -431,6 +473,7 @@ export const cloudWorkspaceRecordRouter = {
 				page: row.page?.id ? row.page : null,
 				suggestedBy: row.suggestedBy?.userId ? row.suggestedBy : null,
 				suggestionSource: row.suggestion?.source ?? null,
+				shareTarget: shareTargetOf(row),
 			}));
 			if (entries.some((entry) => entry.event === "created")) return entries;
 			// Boxes made before the log existed still show where they started.
@@ -469,6 +512,7 @@ export const cloudWorkspaceRecordRouter = {
 					page: null,
 					suggestedBy: null,
 					suggestionSource: null,
+					shareTarget: null,
 				},
 				...entries,
 			];

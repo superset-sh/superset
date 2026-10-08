@@ -110,9 +110,16 @@ export function useWorkspaceHeaderActions(
 		);
 	};
 
-	// `anchor` places the iPad share popover; iPhone ignores it.
+	// A cloud workspace opens its people sheet; `anchor` places the iPad share popover otherwise.
 	const shareWorkspace = (anchor?: number) => {
 		if (!workspace) return;
+		if (isCloud) {
+			router.push({
+				pathname: "/(authenticated)/workspace/[id]/share",
+				params: { id: workspace.id },
+			});
+			return;
+		}
 		void Share.share({ url: workspaceShareUrl(workspace.id) }, { anchor });
 	};
 
