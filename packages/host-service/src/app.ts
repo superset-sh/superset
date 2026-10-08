@@ -119,6 +119,10 @@ export interface CreateAppResult {
 	 */
 	launchSandboxAgent: () => Promise<void>;
 	resumeCrashedAgents: () => Promise<void>;
+	/** Every PR any workspace on this host has linked, for the sandbox's own reporter. */
+	readLinkedPullRequests: () => Promise<
+		{ repository: string; number: number; linkedAt: number }[]
+	>;
 	terminalAgentStore: TerminalAgentStore;
 	dispose: () => Promise<void>;
 }
@@ -620,6 +624,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		eventBus,
 		launchSandboxAgent,
 		resumeCrashedAgents,
+		readLinkedPullRequests: () => pullRequestRuntime.listLinkedPullRequests(),
 		terminalAgentStore,
 		dispose,
 	};

@@ -17,6 +17,10 @@ export {
 	type RemoteBranchPage,
 } from "./list-branches";
 export {
+	type ReportSandboxPullRequestsOutcome,
+	reportSandboxPullRequests,
+} from "./pull-requests";
+export {
 	type RefreshSandboxCredentialsOutcome,
 	refreshSandboxCredentials,
 } from "./refresh-credentials";
