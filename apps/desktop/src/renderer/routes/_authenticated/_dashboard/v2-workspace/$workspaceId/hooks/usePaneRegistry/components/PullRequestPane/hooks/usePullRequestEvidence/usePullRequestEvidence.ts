@@ -7,7 +7,7 @@ export function usePullRequestEvidence(workspaceId: string, enabled: boolean) {
 		refetchOnWindowFocus: true,
 	};
 	const pages = cloudTrpc.page.listPaginated.useQuery(
-		{ workspaceId, limit: 4 },
+		{ workspaceId, limit: 3 },
 		options,
 	);
 	const counts = cloudTrpc.page.counts.useQuery({ workspaceId }, options);

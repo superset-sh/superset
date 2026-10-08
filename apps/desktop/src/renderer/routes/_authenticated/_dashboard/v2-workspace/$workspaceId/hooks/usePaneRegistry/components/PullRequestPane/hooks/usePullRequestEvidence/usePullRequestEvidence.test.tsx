@@ -18,7 +18,7 @@ afterAll(() => {
 });
 
 describe("workspace evidence queries", () => {
-	test("fetches only four workspace pages and never queries for an unrelated PR", async () => {
+	test("fetches only three workspace pages and never queries for an unrelated PR", async () => {
 		const asked: { path: string; input: unknown }[] = [];
 		const link: TRPCLink<AppRouter> =
 			() =>
@@ -55,7 +55,7 @@ describe("workspace evidence queries", () => {
 		expect(asked).toEqual([
 			{
 				path: "page.listPaginated",
-				input: { workspaceId: "workspace-a", limit: 4 },
+				input: { workspaceId: "workspace-a", limit: 3 },
 			},
 			{ path: "page.counts", input: { workspaceId: "workspace-a" } },
 		]);

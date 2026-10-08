@@ -34,12 +34,8 @@ export function PullRequestSummaryContent({
 			header={
 				<PullRequestItemHeader data={data} actionTarget={commentTarget} />
 			}
-			info={(variant) => (
-				<div className="space-y-6">
-					<PullRequestInfo data={data} variant={variant} />
-					{aside}
-				</div>
-			)}
+			info={(variant) => <PullRequestInfo data={data} variant={variant} />}
+			aside={aside}
 		>
 			<PullRequestMarkdown body={data.body} />
 			<div className="mt-6">

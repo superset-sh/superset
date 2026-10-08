@@ -6,23 +6,21 @@ const meta = {
 	component: PullRequestEvidence,
 	decorators: [
 		(Story) => (
-			<div className="w-full max-w-[434px]">
+			<div className="w-[22rem]">
 				<Story />
 			</div>
 		),
 	],
 	args: {
-		pages: ["Test Results", "Screenshots", "CDP Video", "UI Review"].map(
-			(title, index) => ({
-				id: `page-${index}`,
-				slug: `page-${index}`,
-				title,
-				thumbnailUrl:
-					index % 2 === 0
-						? "/fixtures/thumb-notes.jpg"
-						: "/fixtures/thumb-trace.jpg",
-			}),
-		),
+		pages: ["Test Results", "Screenshots", "CDP Video"].map((title, index) => ({
+			id: `page-${index}`,
+			slug: `page-${index}`,
+			title,
+			thumbnailUrl:
+				index % 2 === 0
+					? "/fixtures/thumb-notes.jpg"
+					: "/fixtures/thumb-trace.jpg",
+		})),
 		totalCount: 5,
 		hasMore: true,
 		isPending: false,
@@ -37,15 +35,6 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const WithPages: Story = {};
-export const NarrowRail: Story = {
-	decorators: [
-		(Story) => (
-			<div className="w-[352px]">
-				<Story />
-			</div>
-		),
-	],
-};
 export const Loading: Story = {
 	args: { pages: [], totalCount: undefined, isPending: true },
 };

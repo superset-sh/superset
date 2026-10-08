@@ -26,7 +26,7 @@ afterAll(() => {
 	reactActGlobal.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
 });
 
-const pages = ["Test Results", "Screenshots", "CDP Video", "UI Review"].map(
+const pages = ["Test Results", "Screenshots", "CDP Video"].map(
 	(title, index) => ({
 		id: `page-${index}`,
 		slug: `page-${index}`,
@@ -58,7 +58,7 @@ describe("PR evidence", () => {
 		);
 		fireEvent.click(view.getByRole("button", { name: "Screenshots" }));
 		expect(onOpenPage).toHaveBeenCalledWith(pages[1]);
-		fireEvent.click(view.getByRole("button", { name: "View all (+1 more)" }));
+		fireEvent.click(view.getByRole("button", { name: "View all (+2 more)" }));
 		expect(onViewAll).toHaveBeenCalledTimes(1);
 		expect(view.getByRole("heading").textContent).toBe("Pages5");
 	});
