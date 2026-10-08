@@ -3,11 +3,11 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { getI18nInstance } from "@superset/i18n/server";
 import type { Metadata } from "next";
 import { CTASection } from "@/app/[lang]/components/CTASection";
+import { ProductHeroActions } from "@/app/[lang]/components/ProductHeroActions";
 import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { HowItWorks } from "./components/HowItWorks";
 import { PagesDemoVideo } from "./components/PagesDemoVideo";
-import { PagesHeroActions } from "./components/PagesHeroActions";
 import { PagesHeroVideo } from "./components/PagesHeroVideo";
 import { FEATURES } from "./constants";
 
@@ -49,7 +49,7 @@ export default async function PagesPage() {
 								it, and the agent makes the changes.
 							</Trans>
 						</p>
-						<PagesHeroActions />
+						<ProductHeroActions source="pages" docsPath="/pages" />
 					</div>
 					<PagesHeroVideo />
 				</section>

@@ -6,18 +6,26 @@ import { useState } from "react";
 import { DownloadButton } from "@/app/[lang]/components/DownloadButton";
 import { WaitlistModal } from "@/app/[lang]/components/WaitlistModal";
 
-export function PagesHeroActions() {
+interface ProductHeroActionsProps {
+	source: "pages" | "automations" | "browser" | "plugins";
+	docsPath: string;
+}
+
+export function ProductHeroActions({
+	source,
+	docsPath,
+}: ProductHeroActionsProps) {
 	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
 
 	return (
 		<>
 			<div className="mt-8 flex flex-wrap items-center gap-3">
 				<DownloadButton
-					source="pages"
+					source={source}
 					onJoinWaitlist={() => setIsWaitlistOpen(true)}
 				/>
 				<a
-					href={`${COMPANY.DOCS_URL}/pages`}
+					href={`${COMPANY.DOCS_URL}${docsPath}`}
 					className="border border-border px-6 py-3 text-foreground transition-colors hover:bg-muted"
 				>
 					<Trans>Read the docs</Trans>
