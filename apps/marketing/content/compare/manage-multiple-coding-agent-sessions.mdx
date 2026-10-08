@@ -2,7 +2,7 @@
 title: "How to Manage Multiple Claude Code and Codex Sessions in 2026"
 description: "Too many Claude Code and Codex terminals? See tmux, Claude Code agent view, cmux, Conductor, Orca, Nimbalyst, VS Code, and Superset for tracking agent status."
 date: 2026-10-07
-lastUpdated: 2026-10-07
+lastUpdated: 2026-10-08
 type: "roundup"
 competitors:
   - tmux
@@ -155,7 +155,7 @@ Name each session after its task, keep transcripts readable, and make sessions c
 - **Names:** rename a terminal session in Superset from the session dropdown; the name sticks across restarts. In tmux, name sessions per task.
 - **Transcripts:** `superset agents read` returns the saved Claude Code or Codex conversation, including what scrolled off screen. Claude Code's `claude logs <id>` shows recent output for background sessions.
 - **Recovery:** if an agent's terminal dies from a crash or reboot, Superset relaunches it with the agent's resume command, for example `claude --resume <session-id>`.
-- **Away from the desk:** the Superset iPhone app shows agent sessions and diffs from your phone (Pro plan). See [Remote Access](https://docs.superset.sh/remote-access).
+- **Away from the desk:** the Superset iPhone and iPad app shows agent sessions and diffs away from your desk (Pro plan). See [Remote Access](https://docs.superset.sh/remote-access).
 
 ---
 
