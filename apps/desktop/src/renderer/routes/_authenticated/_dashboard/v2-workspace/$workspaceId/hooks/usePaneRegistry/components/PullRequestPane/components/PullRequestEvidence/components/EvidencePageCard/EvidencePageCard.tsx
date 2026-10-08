@@ -18,7 +18,7 @@ export function EvidencePageCard({ page, onOpen }: EvidencePageCardProps) {
 			type="button"
 			onClick={() => onOpen(page)}
 			title={page.title}
-			className="flex min-w-0 flex-col gap-3 rounded-lg bg-muted p-2 text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+			className="relative flex min-w-0 flex-col gap-3 rounded-lg bg-muted p-2 text-foreground after:pointer-events-none after:absolute after:inset-0 after:rounded-lg after:bg-fill-hover after:opacity-0 after:transition-opacity hover:after:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 		>
 			<span className="flex h-16 w-full overflow-hidden rounded-lg">
 				<PageThumbnail
