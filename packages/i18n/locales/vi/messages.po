@@ -15472,8 +15472,8 @@ msgstr "Tạo workspace ngay từ một ticket Linear. Agent nhận việc và b
 msgid "Start agent"
 msgstr "Bắt đầu agent"
 
-msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
-msgstr "Khởi chạy agent, theo dõi trực tiếp và xem xét diff từ điện thoại. Mã của bạn vẫn nằm trên máy của bạn."
+msgid "Start agents, follow them live on your Lock Screen, and review the diff from your phone. Your code stays on your machines."
+msgstr "Khởi chạy agent, theo dõi trực tiếp trên Màn hình khóa và xem xét diff từ điện thoại. Mã của bạn vẫn nằm trên máy của bạn."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Hãy khởi động một agent hoặc terminal để bắt đầu làm việc trong workspace này."
@@ -15481,8 +15481,8 @@ msgstr "Hãy khởi động một agent hoặc terminal để bắt đầu làm 
 msgid "Start browsing"
 msgstr "Bắt đầu duyệt web"
 
-msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "Khởi chạy agent lập trình, theo dõi trực tiếp và xem xét diff từ điện thoại. Đã có trên App Store; Android sắp ra mắt."
+msgid "Start coding agents, follow them live on your Lock Screen, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "Khởi chạy agent lập trình, theo dõi trực tiếp trên Màn hình khóa và xem xét diff từ điện thoại. Đã có trên App Store; Android sắp ra mắt."
 
 msgid "Start date"
 msgstr "Ngày bắt đầu"
@@ -16413,8 +16413,8 @@ msgstr "Daemon không chuyển được các phiên đang chạy sang bản bina
 msgid "The desktop app runs on macOS and Linux today. Drop your email and we'll let you know the moment the Windows build ships."
 msgstr "Chúng tôi đang đưa Superset lên Windows & Linux. Để lại email và chúng tôi sẽ báo ngay khi sẵn sàng."
 
-msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents."
-msgstr "Ứng dụng máy tính chạy trên macOS, kèm bản AppImage Linux thử nghiệm; Windows chưa có. Ngoài ứng dụng máy tính còn có CLI, SDK TypeScript và server MCP, nên bạn có thể điều khiển Superset từ script, terminal và các agent khác."
+msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An iPhone app on the App Store lets you check on agents and review their diffs from your phone."
+msgstr "Ứng dụng máy tính chạy trên macOS, kèm bản AppImage Linux thử nghiệm; Windows chưa có. Ngoài ứng dụng máy tính còn có CLI, SDK TypeScript và server MCP, nên bạn có thể điều khiển Superset từ script, terminal và các agent khác. Ứng dụng iPhone trên App Store cho phép bạn theo dõi các agent và xem lại diff của chúng ngay trên điện thoại."
 
 msgid "The device that hosts this project is unavailable."
 msgstr "Thiết bị chứa dự án này không khả dụng."

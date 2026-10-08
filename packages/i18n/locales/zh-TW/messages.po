@@ -15472,8 +15472,8 @@ msgstr "直接從Linear工單啟動工作區。代理程式接手，並以一個
 msgid "Start agent"
 msgstr "啟動代理"
 
-msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
-msgstr "在手機上啟動 agent、即時追蹤並審查差異。你的程式碼始終留在你的機器上。"
+msgid "Start agents, follow them live on your Lock Screen, and review the diff from your phone. Your code stays on your machines."
+msgstr "在手機上啟動 agent、在鎖定畫面即時追蹤並審查差異。你的程式碼始終留在你的機器上。"
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "啟動一個代理程式或終端，開始在此工作區中工作。"
@@ -15481,8 +15481,8 @@ msgstr "啟動一個代理程式或終端，開始在此工作區中工作。"
 msgid "Start browsing"
 msgstr "開始瀏覽"
 
-msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "在手機上啟動程式開發 agent、即時追蹤並審查差異。現已在 App Store 上架；Android 版即將推出。"
+msgid "Start coding agents, follow them live on your Lock Screen, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "在手機上啟動程式開發 agent、在鎖定畫面即時追蹤並審查差異。現已在 App Store 上架；Android 版即將推出。"
 
 msgid "Start date"
 msgstr "開始日期"
@@ -16413,8 +16413,8 @@ msgstr "守護程式無法將你的活動會話移交給新的二進位檔案。
 msgid "The desktop app runs on macOS and Linux today. Drop your email and we'll let you know the moment the Windows build ships."
 msgstr "我們正在把Superset帶到Windows和Linux。留下電子郵件，一上線就通知你。"
 
-msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents."
-msgstr "桌面應用程式支援macOS，另有實驗性的Linux AppImage；Windows暫未提供。除了桌面應用程式，還有CLI、TypeScript SDK和MCP伺服器，你可以從指令碼、終端和其他代理程式來驅動Superset。"
+msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An iPhone app on the App Store lets you check on agents and review their diffs from your phone."
+msgstr "桌面應用程式支援macOS，另有實驗性的Linux AppImage；Windows暫未提供。除了桌面應用程式，還有CLI、TypeScript SDK和MCP伺服器，你可以從指令碼、終端和其他代理程式來驅動Superset。App Store上的iPhone應用程式讓你在手機上查看代理並審閱它們的差異。"
 
 msgid "The device that hosts this project is unavailable."
 msgstr "承載這個專案的裝置不可用。"

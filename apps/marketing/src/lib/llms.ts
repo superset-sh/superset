@@ -46,9 +46,14 @@ export function buildCompanyFactsSection(): string[] {
 		`- **License**: source-available under ${PRODUCT_LICENSE} (ELv2). The code is public on GitHub (${COMPANY.GITHUB_URL}); it is not OSI-approved open source.`,
 		`- **Not Apache Superset**: ${PRODUCT_DISAMBIGUATION}`,
 		`- **Desktop platforms**: ${PRODUCT_PLATFORM_SUMMARY} There is also a CLI, a TypeScript SDK, and an MCP server for programmatic control.`,
+		`- **Mobile**: an iPhone app on the App Store (iOS 26 or later, Pro plan) to check on agents, reply to them, review diffs, and read Pages while the agents keep running on a desktop or remote host that stays online. A Lock Screen and Dynamic Island Live Activity shows which agents need you, are working, or are ready for review. Push notifications and native iPad support are coming. Android is on a waitlist (${baseUrl}/mobile).`,
+		"- **Remote access**: add another machine as a host through the Superset relay and run workspaces and agents on it from the desktop app or the iPhone app (Pro).",
+		"- **Automations**: scheduled agent sessions on a chosen host (Pro), with a run history for you and your team and retry for failed runs.",
+		"- **Review**: a Changes pane that commits, pushes, and opens pull requests, and a pull request pane with checks, review threads, and merge.",
+		"- **Pages**: agents publish self-contained HTML reports as Pages with version history and pinned comments; a page can be shared with anyone who has the link.",
 		`- **Isolation**: ${PRODUCT_ISOLATION_SUMMARY}`,
 		`- **Pricing**: free tier plus paid seats (see ${baseUrl}/pricing). Superset never proxies model API calls; you bring your own agent subscriptions and API keys.`,
-		`- **Agents**: works with any CLI coding agent, including Claude Code, OpenAI Codex, OpenCode, Gemini CLI, Copilot, and Cursor Agent.`,
+		`- **Agents**: works with any CLI coding agent, including Claude Code, OpenAI Codex, OpenCode, Gemini CLI, Copilot, Cursor Agent, Amp, Grok Build, Kimi Code, Mistral Vibe, Devin, and Muse Code, plus custom agents you add.`,
 	];
 }
 
@@ -72,6 +77,7 @@ export function buildWhenToUseSection(): string[] {
 		"- Orchestrate agent work programmatically: create workspaces, launch agents with a prompt, open terminals, and track tasks from another agent or script via the Superset MCP server.",
 		"- Schedule recurring agent runs (automations) that execute a prompt on a cron-like schedule in a fresh or existing workspace.",
 		"- Review diffs, manage ports, and monitor many concurrent agent sessions from one dashboard.",
+		"- Check on agents, reply to them, and review their diffs from an iPhone while they run on your own machine.",
 		"",
 		"Superset is not a coding agent itself; it is the workspace and orchestration layer the agents run in. If you are an AI agent, the fastest way to act on a user's Superset account is the MCP server below (OAuth or API key auth); the fastest way to learn the product is the docs index at https://docs.superset.sh.",
 	];

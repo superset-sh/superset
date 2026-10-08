@@ -15472,8 +15472,8 @@ msgstr "Avvia un workspace direttamente da un ticket Linear. L'agente lo prende 
 msgid "Start agent"
 msgstr "Avvia agente"
 
-msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
-msgstr "Avvia gli agenti, seguili in tempo reale e rivedi il diff dal telefono. Il tuo codice resta sulle tue macchine."
+msgid "Start agents, follow them live on your Lock Screen, and review the diff from your phone. Your code stays on your machines."
+msgstr "Avvia gli agenti, seguili in tempo reale dalla schermata di blocco e rivedi il diff dal telefono. Il tuo codice resta sulle tue macchine."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Avvia un agente o un terminale per iniziare a lavorare in questo workspace."
@@ -15481,8 +15481,8 @@ msgstr "Avvia un agente o un terminale per iniziare a lavorare in questo workspa
 msgid "Start browsing"
 msgstr "Inizia a navigare"
 
-msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "Avvia agenti di programmazione, seguili in tempo reale e rivedi il diff dal telefono. Disponibile su App Store; Android è in arrivo."
+msgid "Start coding agents, follow them live on your Lock Screen, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "Avvia agenti di programmazione, seguili in tempo reale dalla schermata di blocco e rivedi il diff dal telefono. Disponibile su App Store; Android è in arrivo."
 
 msgid "Start date"
 msgstr "Data di inizio"
@@ -16413,8 +16413,8 @@ msgstr "Il daemon non è riuscito a trasferire le sessioni attive al nuovo binar
 msgid "The desktop app runs on macOS and Linux today. Drop your email and we'll let you know the moment the Windows build ships."
 msgstr "Stiamo portando Superset su Windows e Linux. Lascia la tua email e ti avviseremo appena è pronto."
 
-msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents."
-msgstr "L'app desktop gira su macOS, con un AppImage Linux sperimentale; Windows non è ancora disponibile. Oltre all'app desktop ci sono una CLI, un SDK TypeScript e un server MCP, così puoi guidare Superset da script, terminali e altri agenti."
+msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An iPhone app on the App Store lets you check on agents and review their diffs from your phone."
+msgstr "L'app desktop gira su macOS, con un AppImage Linux sperimentale; Windows non è ancora disponibile. Oltre all'app desktop ci sono una CLI, un SDK TypeScript e un server MCP, così puoi guidare Superset da script, terminali e altri agenti. Un'app per iPhone sull'App Store ti permette di controllare gli agenti e rivedere i loro diff dal telefono."
 
 msgid "The device that hosts this project is unavailable."
 msgstr "Il dispositivo che ospita questo progetto non è disponibile."
