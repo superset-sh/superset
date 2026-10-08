@@ -1,3 +1,5 @@
+import { PAGE_KIT_CSS } from "./kit";
+
 const LIGHT_TOKENS = `color-scheme: light;
 	--sp-bg: oklch(1 0 0);
 	--sp-surface: oklch(0.97 0 0);
@@ -10,7 +12,11 @@ const LIGHT_TOKENS = `color-scheme: light;
 	--sp-chart-2: oklch(0.6 0.118 184.704);
 	--sp-chart-3: oklch(0.398 0.07 227.392);
 	--sp-chart-4: oklch(0.828 0.189 84.429);
-	--sp-chart-5: oklch(0.769 0.188 70.08);`;
+	--sp-chart-5: oklch(0.769 0.188 70.08);
+	--sp-ok: oklch(0.55 0.14 152);
+	--sp-warn: oklch(0.6 0.13 75);
+	--sp-bad: oklch(0.577 0.215 27.3);
+	--sp-info: oklch(0.55 0.15 250);`;
 
 const DARK_TOKENS = `color-scheme: dark;
 	--sp-bg: oklch(0.178 0 0);
@@ -24,7 +30,11 @@ const DARK_TOKENS = `color-scheme: dark;
 	--sp-chart-2: oklch(0.696 0.17 162.48);
 	--sp-chart-3: oklch(0.769 0.188 70.08);
 	--sp-chart-4: oklch(0.627 0.265 303.9);
-	--sp-chart-5: oklch(0.645 0.246 16.439);`;
+	--sp-chart-5: oklch(0.645 0.246 16.439);
+	--sp-ok: oklch(0.72 0.16 155);
+	--sp-warn: oklch(0.82 0.15 84);
+	--sp-bad: oklch(0.704 0.191 22.2);
+	--sp-info: oklch(0.72 0.13 245);`;
 
 export const PAGE_THEME_CSS = `:where(:root),
 :where(:root:has(> body.light)) {
@@ -225,4 +235,4 @@ export const PAGE_THEME_CSS = `:where(:root),
 :where(::selection) {
 	background: color-mix(in srgb, var(--sp-accent) 30%, transparent);
 }
-`;
+${PAGE_KIT_CSS}`;
