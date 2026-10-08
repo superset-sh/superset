@@ -23,6 +23,23 @@ export function isTransientV1MigrationFailure(reason: string): boolean {
 	return TRANSIENT_PATTERNS.some((pattern) => pattern.test(normalized));
 }
 
+/**
+ * The pass reached a host-service older than this desktop: it does not know a
+ * procedure the migration calls, or (1.23.x and older) rejects queries sent
+ * as POST. That is a still-running host-service adopted after a desktop
+ * update, so a retry against the same process fails the same way.
+ */
+const HOST_VERSION_SKEW_PATTERNS: readonly RegExp[] = [
+	/no procedure found on path/,
+	/procedure .* not found on server/,
+	/unsupported post-request to query procedure/,
+];
+
+export function isHostVersionSkewV1MigrationFailure(reason: string): boolean {
+	const normalized = reason.toLowerCase();
+	return HOST_VERSION_SKEW_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
 const RETRY_DELAYS_MS = [30_000, 2 * 60_000, 5 * 60_000] as const;
 
 /** `null` once the schedule is exhausted: give up until the next boot. */

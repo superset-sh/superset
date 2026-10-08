@@ -21,6 +21,7 @@ import {
 import { electronV1MigrationIpc } from "renderer/lib/v1-migration/ipc";
 import { planV2SurfacePass } from "renderer/lib/v1-migration/pass";
 import {
+	isHostVersionSkewV1MigrationFailure,
 	isTransientV1MigrationFailure,
 	nextV1MigrationRetryDelayMs,
 } from "renderer/lib/v1-migration/retry";
@@ -46,7 +47,9 @@ import { appendPendingMigratedTerminals } from "renderer/stores/workspace-create
  * Cross-instance single-flight via a main-process lock file. A pass that
  * throws, or leaves the gate open only for transient reasons (network,
  * host-service down), re-arms itself on a short backoff within the session;
- * anything else waits for the next boot.
+ * anything else waits for the next boot. A v1-surface pass that throws
+ * because the adopted host-service is older than this desktop resets that
+ * host-service once per session first, so the retry reaches a current one.
  */
 async function listGatingFailureReasons(
 	organizationId: string,
@@ -84,6 +87,7 @@ export function V1AutoMigration() {
 	const retryAttemptsRef = useRef<Map<string, number>>(new Map());
 	const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const retryOrgRef = useRef<string | null>(null);
+	const hostResetOrgsRef = useRef<Set<string>>(new Set());
 	const [retryTick, setRetryTick] = useState(0);
 
 	const organizationId = session?.session?.activeOrganizationId ?? null;
@@ -296,12 +300,37 @@ export function V1AutoMigration() {
 			} catch (err) {
 				// Retries next boot; the ledger holds whatever progress landed.
 				console.error("[v1-migration] auto pass failed", err);
+				const message = err instanceof Error ? err.message : String(err);
+				const durationMs = Date.now() - startedAt;
+				// Only on the v1 surface: nothing there runs on the host-service
+				// yet, while on v2 a reset would take the user's terminals down.
+				let hostReset: "ok" | "failed" | undefined;
+				if (
+					!isV2CloudEnabled &&
+					isHostVersionSkewV1MigrationFailure(message) &&
+					!hostResetOrgsRef.current.has(organizationId)
+				) {
+					hostResetOrgsRef.current.add(organizationId);
+					try {
+						await electronTrpcClient.hostServiceCoordinator.reset.mutate({
+							organizationId,
+						});
+						hostReset = "ok";
+					} catch (resetError) {
+						hostReset = "failed";
+						console.error(
+							"[v1-migration] host-service reset failed",
+							resetError,
+						);
+					}
+				}
 				posthog.capture("v1_auto_migration_failed", {
 					trigger,
-					duration_ms: Date.now() - startedAt,
-					error: err instanceof Error ? err.message : String(err),
+					duration_ms: durationMs,
+					error: message,
+					host_reset: hostReset,
 				});
-				scheduleRetry([err instanceof Error ? err.message : String(err)]);
+				scheduleRetry([message]);
 			} finally {
 				if (locked) {
 					void electronTrpcClient.migration.releaseRunLock
