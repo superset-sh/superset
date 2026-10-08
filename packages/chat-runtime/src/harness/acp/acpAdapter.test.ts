@@ -860,6 +860,50 @@ describe("AcpAdapter on protocol v2", () => {
 		await adapter.dispose();
 	});
 
+	it("names the MCP server and tool of a Claude MCP call, and keeps them across updates", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+
+		agent.notify("sess-1", {
+			sessionUpdate: "tool_call_update",
+			toolCallId: "tc-mcp",
+			title: "mcp__linear__save_issue",
+			kind: "other",
+			_meta: { claudeCode: { toolName: "mcp__linear__save_issue" } },
+		});
+		agent.notify("sess-1", {
+			sessionUpdate: "tool_call_update",
+			toolCallId: "tc-mcp",
+			status: "completed",
+		});
+		agent.notify("sess-1", {
+			sessionUpdate: "tool_call_update",
+			toolCallId: "tc-bash",
+			title: "ls",
+			kind: "execute",
+			_meta: { claudeCode: { toolName: "Bash" } },
+		});
+		await flush();
+
+		const toolCalls = itemsOf(events).filter((i) => i.kind === "tool_call");
+		const mcpCalls = toolCalls.filter((i) => i.id === "tc-mcp");
+		const last = mcpCalls[mcpCalls.length - 1];
+		expect(last && "mcpServer" in last ? last.mcpServer : null).toEqual({
+			name: "linear",
+			tool: "save_issue",
+		});
+		expect(last && "toolName" in last ? last.toolName : "").toBe(
+			"mcp__linear__save_issue",
+		);
+		const bash = toolCalls.find((i) => i.id === "tc-bash");
+		expect(bash && "mcpServer" in bash ? bash.mcpServer : undefined).toBe(
+			undefined,
+		);
+
+		await adapter.dispose();
+	});
+
 	it("appends tool_call_content_chunk output and keeps it across updates", async () => {
 		const agent = new FakeAcpAgent();
 		const { adapter, events } = startAdapter(agent);

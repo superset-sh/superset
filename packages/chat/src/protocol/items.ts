@@ -121,6 +121,13 @@ export const toolCallSchema = z.looseObject({
 	rawInput: z.unknown().optional(),
 	rawOutput: z.unknown().optional(),
 	subagent: z.boolean().optional(),
+	mcpServer: z
+		.looseObject({
+			name: z.string(),
+			tool: z.string(),
+			source: z.string().optional(),
+		})
+		.optional(),
 });
 export type ToolCall = z.infer<typeof toolCallSchema>;
 

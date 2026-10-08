@@ -993,6 +993,16 @@ export class AcpAdapter implements HarnessAdapter {
 			update.rawInput === undefined ? prior?.rawInput : update.rawInput;
 		const rawOutput =
 			update.rawOutput === undefined ? prior?.rawOutput : update.rawOutput;
+		const claudeCode = update._meta?.claudeCode;
+		const mcpMatch = claudeCode?.toolName?.match(/^mcp__(.+?)__(.+)$/);
+		const mcpSource = claudeCode?.mcpServer?.source ?? prior?.mcpServer?.source;
+		const mcpServer: ToolCall["mcpServer"] = mcpMatch
+			? {
+					name: mcpMatch[1] as string,
+					tool: mcpMatch[2] as string,
+					...(mcpSource ? { source: mcpSource } : {}),
+				}
+			: prior?.mcpServer;
 		const item: ToolCall = {
 			id: update.toolCallId,
 			kind: "tool_call",
@@ -1000,7 +1010,12 @@ export class AcpAdapter implements HarnessAdapter {
 			toolKind: update.kind
 				? toolKind(update.kind)
 				: (prior?.toolKind ?? "other"),
-			toolName: update.name ?? update.kind ?? prior?.toolName ?? "tool",
+			toolName:
+				update.name ??
+				claudeCode?.toolName ??
+				update.kind ??
+				prior?.toolName ??
+				"tool",
 			status: update.status
 				? toolStatus(update.status)
 				: (prior?.status ?? "running"),
@@ -1014,6 +1029,7 @@ export class AcpAdapter implements HarnessAdapter {
 					: {}),
 			...(rawInput !== undefined ? { rawInput } : {}),
 			...(rawOutput !== undefined ? { rawOutput } : {}),
+			...(mcpServer ? { mcpServer } : {}),
 		};
 		this.toolCalls.set(update.toolCallId, item);
 		this.emitItem(item, turnId);
@@ -1045,6 +1061,7 @@ export class AcpAdapter implements HarnessAdapter {
 				: {}),
 			...(prior?.rawInput !== undefined ? { rawInput: prior.rawInput } : {}),
 			...(prior?.rawOutput !== undefined ? { rawOutput: prior.rawOutput } : {}),
+			...(prior?.mcpServer ? { mcpServer: prior.mcpServer } : {}),
 		};
 		this.toolCalls.set(toolCallId, item);
 		this.emitItem(item, turnId);

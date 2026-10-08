@@ -109,6 +109,19 @@ export const acpToolCallUpdateSchema = z.looseObject({
 	locations: z.array(acpLocationSchema).nullable().optional(),
 	rawInput: z.unknown().optional(),
 	rawOutput: z.unknown().optional(),
+	_meta: z
+		.looseObject({
+			claudeCode: z
+				.looseObject({
+					toolName: z.string().optional(),
+					mcpServer: z
+						.looseObject({ name: z.string(), source: z.string().optional() })
+						.optional(),
+				})
+				.optional(),
+		})
+		.nullish()
+		.catch(undefined),
 });
 export type AcpToolCallUpdate = z.infer<typeof acpToolCallUpdateSchema>;
 

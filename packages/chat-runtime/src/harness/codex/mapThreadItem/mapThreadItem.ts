@@ -268,6 +268,7 @@ export function mapThreadItem(
 				],
 				rawInput: known.arguments,
 				rawOutput: known.error ?? known.result,
+				mcpServer: { name: known.server, tool: known.tool },
 			};
 
 		case "dynamicToolCall":
