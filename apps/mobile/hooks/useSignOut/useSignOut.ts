@@ -2,7 +2,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { signOut } from "@/lib/auth/client";
-import { unregisterFromPush } from "@/lib/push";
 import { clearWarmTerminals } from "@/lib/terminal/warmTerminalCache";
 
 export function useSignOut() {
@@ -13,9 +12,6 @@ export function useSignOut() {
 	const handleSignOut = useCallback(async () => {
 		setIsSigningOut(true);
 		try {
-			await unregisterFromPush().catch((error) => {
-				console.warn("[push] failed to unregister this device:", error);
-			});
 			await signOut();
 			queryClient.clear();
 			// Cached scrollback belongs to the account that just left.
