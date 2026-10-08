@@ -2873,6 +2873,9 @@ msgstr "Berdasarkan {0} token dalam 30 hari terakhir, menghitung {1}."
 msgid "Become a design partner"
 msgstr "Jadi mitra pengembangan"
 
+msgid "Become a design partner."
+msgstr "Jadilah mitra desain."
+
 msgid "Before"
 msgstr "Sebelum"
 
@@ -6731,6 +6734,9 @@ msgstr "Jelaskan cara kerja repositori ini…"
 msgid "Explain to me how this repository works"
 msgstr "Jelaskan cara kerja repositori ini"
 
+msgid "Explore Pages"
+msgstr "Jelajahi Halaman"
+
 msgid "Explored"
 msgstr "Sudah dijelajahi"
 
@@ -10184,6 +10190,9 @@ msgstr "Tidak pernah"
 msgid "Never asks before acting"
 msgstr "Tidak pernah bertanya dulu"
 
+msgid "New"
+msgstr "Baru"
+
 msgctxt "badge on a page published since the menu was last opened"
 msgid "New"
 msgstr "Baru"
@@ -11792,9 +11801,6 @@ msgstr "Atau minta agen coding Anda memasang CLI Superset."
 
 msgid "Orange"
 msgstr "Oranye"
-
-msgid "Orchestrate any coding agent."
-msgstr "Orkestrasi agen coding apa pun."
 
 msgid "Orchestrate Parallel Agents"
 msgstr "Orkestrasi Agen Paralel"
@@ -14436,6 +14442,9 @@ msgstr "Lihat perbandingan Superset dengan alat lain"
 msgid "See how we work"
 msgstr "Lihat cara kami bekerja"
 
+msgid "See how your agent usage compares."
+msgstr "Bandingkan penggunaan agen Anda."
+
 msgid "See how your agent usage compares. Explore the models behind each profile."
 msgstr "Bandingkan penggunaan agen Anda dengan pengguna lain. Jelajahi model di balik setiap profil."
 
@@ -16799,6 +16808,9 @@ msgstr "Theme Preview Card"
 
 msgid "Themes"
 msgstr "Tema"
+
+msgid "Themes and agents for Superset."
+msgstr "Tema dan agen untuk Superset."
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "Perintah ini berjalan otomatis saat workspace dibuat. <0>Baca dokumentasi kami<1/></0>"

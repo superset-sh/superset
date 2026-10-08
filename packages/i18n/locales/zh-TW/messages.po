@@ -2873,6 +2873,9 @@ msgstr "基於最近30天的{0}個token，統計{1}。"
 msgid "Become a design partner"
 msgstr "成為共創夥伴"
 
+msgid "Become a design partner."
+msgstr "成為設計合作夥伴。"
+
 msgid "Before"
 msgstr "變更前"
 
@@ -6731,6 +6734,9 @@ msgstr "講講這個儲存庫是怎麼運作的…"
 msgid "Explain to me how this repository works"
 msgstr "講講這個儲存庫是怎麼運作的"
 
+msgid "Explore Pages"
+msgstr "了解頁面"
+
 msgid "Explored"
 msgstr "已探索"
 
@@ -10184,6 +10190,9 @@ msgstr "從未"
 msgid "Never asks before acting"
 msgstr "執行前從不詢問"
 
+msgid "New"
+msgstr "新功能"
+
 msgctxt "badge on a page published since the menu was last opened"
 msgid "New"
 msgstr "新"
@@ -11792,9 +11801,6 @@ msgstr "或者讓你的編碼代理程式安裝Superset CLI。"
 
 msgid "Orange"
 msgstr "橙色"
-
-msgid "Orchestrate any coding agent."
-msgstr "編排任意編碼代理程式。"
 
 msgid "Orchestrate Parallel Agents"
 msgstr "編排並行代理程式"
@@ -14436,6 +14442,9 @@ msgstr "看看Superset與其他工具的對比"
 msgid "See how we work"
 msgstr "看看我們如何工作"
 
+msgid "See how your agent usage compares."
+msgstr "看看你的代理程式使用量排名。"
+
 msgid "See how your agent usage compares. Explore the models behind each profile."
 msgstr "比較你與其他開發者的代理程式用量，探索每個個人檔案使用的模型。"
 
@@ -16799,6 +16808,9 @@ msgstr "主題預覽卡片"
 
 msgid "Themes"
 msgstr "主題"
+
+msgid "Themes and agents for Superset."
+msgstr "Superset 的主題與代理程式。"
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "建立工作區時會自動執行這些命令。<0>閱讀文件<1/></0>"

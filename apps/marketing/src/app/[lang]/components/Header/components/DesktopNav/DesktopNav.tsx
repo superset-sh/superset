@@ -13,12 +13,8 @@ import {
 import { cn } from "@superset/ui/utils";
 import Link from "next/link";
 import { useState } from "react";
-import {
-	type NavLink,
-	PRODUCT_LINKS,
-	RESOURCE_LINKS,
-	TOP_LEVEL_LINKS,
-} from "../../constants";
+import { type NavLink, RESOURCE_LINKS, TOP_LEVEL_LINKS } from "../../constants";
+import { ProductMenu } from "./components/ProductMenu";
 
 const triggerClass = cn(
 	navigationMenuTriggerStyle(),
@@ -39,7 +35,11 @@ export function DesktopNav() {
 	};
 
 	return (
-		<NavigationMenu value={openMenu} onValueChange={setOpenMenu}>
+		<NavigationMenu
+			value={openMenu}
+			onValueChange={setOpenMenu}
+			viewport={false}
+		>
 			<NavigationMenuList>
 				<NavigationMenuItem value="product">
 					<NavigationMenuTrigger
@@ -48,12 +48,8 @@ export function DesktopNav() {
 					>
 						<Trans>Product</Trans>
 					</NavigationMenuTrigger>
-					<NavigationMenuContent>
-						<ul className="flex w-[320px] flex-col gap-1 p-2">
-							{PRODUCT_LINKS.map((link) => (
-								<NavListItem key={link.href} link={link} />
-							))}
-						</ul>
+					<NavigationMenuContent className="md:fixed md:top-[calc(4rem-0.25rem)] md:left-[max(1rem,calc(50%-30rem))] md:w-[min(60rem,calc(100vw-2rem))]">
+						<ProductMenu />
 					</NavigationMenuContent>
 				</NavigationMenuItem>
 

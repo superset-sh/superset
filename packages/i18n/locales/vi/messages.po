@@ -2873,6 +2873,9 @@ msgstr "Dựa trên {0} token trong 30 ngày qua, tính cả {1}."
 msgid "Become a design partner"
 msgstr "Trở thành đối tác đồng phát triển"
 
+msgid "Become a design partner."
+msgstr "Trở thành đối tác thiết kế."
+
 msgid "Before"
 msgstr "Trước"
 
@@ -6731,6 +6734,9 @@ msgstr "Giải thích repository này hoạt động thế nào…"
 msgid "Explain to me how this repository works"
 msgstr "Giải thích cho tôi repository này hoạt động thế nào"
 
+msgid "Explore Pages"
+msgstr "Khám phá Trang"
+
 msgid "Explored"
 msgstr "Đã tìm hiểu"
 
@@ -10184,6 +10190,9 @@ msgstr "Chưa bao giờ"
 msgid "Never asks before acting"
 msgstr "Không bao giờ hỏi trước"
 
+msgid "New"
+msgstr "Mới"
+
 msgctxt "badge on a page published since the menu was last opened"
 msgid "New"
 msgstr "Mới"
@@ -11792,9 +11801,6 @@ msgstr "Hoặc bảo coding agent của bạn cài CLI Superset."
 
 msgid "Orange"
 msgstr "Cam"
-
-msgid "Orchestrate any coding agent."
-msgstr "Điều phối mọi coding agent."
 
 msgid "Orchestrate Parallel Agents"
 msgstr "Điều phối agent song song"
@@ -14436,6 +14442,9 @@ msgstr "Xem Superset so với các công cụ khác"
 msgid "See how we work"
 msgstr "Xem cách chúng tôi làm việc"
 
+msgid "See how your agent usage compares."
+msgstr "So sánh mức dùng agent của bạn."
+
 msgid "See how your agent usage compares. Explore the models behind each profile."
 msgstr "So sánh mức sử dụng tác tử của bạn với người khác. Khám phá các mô hình trong từng hồ sơ."
 
@@ -16799,6 +16808,9 @@ msgstr "Theme Preview Card"
 
 msgid "Themes"
 msgstr "Chủ đề"
+
+msgid "Themes and agents for Superset."
+msgstr "Giao diện và agent cho Superset."
 
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "Các lệnh này chạy tự động khi một workspace được tạo. <0>Đọc tài liệu<1/></0>"

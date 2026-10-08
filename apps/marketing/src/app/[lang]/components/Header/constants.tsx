@@ -6,53 +6,88 @@ export interface NavLink {
 	href: string;
 	label: ReactNode;
 	description?: ReactNode;
+	badge?: ReactNode;
 	external?: boolean;
 }
 
-export const PRODUCT_LINKS: NavLink[] = [
+export interface NavSection {
+	id: string;
+	title: ReactNode;
+	links: NavLink[];
+}
+
+export const PRODUCT_SECTIONS: NavSection[] = [
 	{
-		href: "/",
-		label: <Trans>Overview</Trans>,
-		description: <Trans>Orchestrate any coding agent.</Trans>,
+		id: "features",
+		title: <Trans>Features</Trans>,
+		links: [
+			{
+				href: "/pages",
+				label: <Trans>Pages</Trans>,
+				description: (
+					<Trans>Share agent work as a link your team can comment on.</Trans>
+				),
+			},
+			{
+				href: "/mobile",
+				label: <Trans>Mobile</Trans>,
+				description: <Trans>Run your agents from your phone.</Trans>,
+			},
+			{
+				href: "/mcp-install",
+				label: "MCP",
+				description: <Trans>Connect any AI agent to Superset.</Trans>,
+			},
+			{
+				href: "/marketplace",
+				label: <Trans>Marketplace</Trans>,
+				description: <Trans>Themes and agents for Superset.</Trans>,
+			},
+			{
+				href: "/cloud",
+				label: <Trans>Cloud</Trans>,
+				description: <Trans>Become a design partner.</Trans>,
+				badge: <Trans>Coming soon</Trans>,
+			},
+		],
 	},
 	{
-		href: "/mobile",
-		label: <Trans>Mobile</Trans>,
-		description: <Trans>Run your agents from your phone.</Trans>,
-	},
-	{
-		href: "/pages",
-		label: <Trans>Pages</Trans>,
-		description: (
-			<Trans>Share agent work as a link your team can comment on.</Trans>
-		),
-	},
-	{
-		href: "/leaderboard",
-		label: <Trans>Leaderboard</Trans>,
-		description: (
-			<Trans>
-				See how your agent usage compares. Explore the models behind each
-				profile.
-			</Trans>
-		),
-	},
-	{
-		href: "/changelog",
-		label: <Trans>Changelog</Trans>,
-		description: <Trans>New releases and product updates.</Trans>,
-	},
-	{
-		href: "/roadmap",
-		label: <Trans>Roadmap</Trans>,
-		description: <Trans>What we're building now and next.</Trans>,
-	},
-	{
-		href: "/mcp-install",
-		label: "MCP",
-		description: <Trans>Connect any AI agent to Superset.</Trans>,
+		id: "updates",
+		title: <Trans>Updates</Trans>,
+		links: [
+			{
+				href: "/changelog",
+				label: <Trans>Changelog</Trans>,
+				description: <Trans>New releases and product updates.</Trans>,
+			},
+			{
+				href: "/roadmap",
+				label: <Trans>Roadmap</Trans>,
+				description: <Trans>What we're building now and next.</Trans>,
+			},
+			{
+				href: "/leaderboard",
+				label: <Trans>Leaderboard</Trans>,
+				description: <Trans>See how your agent usage compares.</Trans>,
+			},
+		],
 	},
 ];
+
+export const PRODUCT_LINKS: NavLink[] = PRODUCT_SECTIONS.flatMap(
+	(section) => section.links,
+);
+
+export const PRODUCT_FEATURED = {
+	href: "/pages",
+	image: "/pages/hero-poster.webp",
+	eyebrow: <Trans>New</Trans>,
+	title: <Trans>Superset Pages</Trans>,
+	description: (
+		<Trans>Share agent work as a link your team can comment on.</Trans>
+	),
+	cta: <Trans>Explore Pages</Trans>,
+};
 
 export const RESOURCE_LINKS: NavLink[] = [
 	{
