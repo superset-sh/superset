@@ -39,6 +39,7 @@ import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
 import {
 	autumnBillingDeps,
+	seatItem,
 	setAutumnSeats,
 	withAutumnBilling,
 } from "./lib/billing";
@@ -828,11 +829,13 @@ export const auth = betterAuth({
 					const stripeSub = await stripeClient.subscriptions.retrieve(
 						subscription.stripeSubscriptionId,
 					);
-					const itemId = stripeSub.items.data[0]?.id;
+					const seat = seatItem(stripeSub);
+					const itemId = seat?.id;
 
-					if (billingUsesAutumn) {
-						await setAutumnSeats(organization.id, quantity);
-					} else if (itemId) {
+					const seatsSetInAutumn =
+						billingUsesAutumn &&
+						(await setAutumnSeats(organization.id, quantity));
+					if (!seatsSetInAutumn && itemId) {
 						await stripeClient.subscriptions.update(
 							subscription.stripeSubscriptionId,
 							{
@@ -845,8 +848,8 @@ export const auth = betterAuth({
 					const recipients = await getOrganizationBillingRecipients(
 						organization.id,
 					);
-					const pricePerSeat = stripeSub.items.data[0]?.price?.unit_amount ?? 0;
-					const currency = stripeSub.items.data[0]?.price?.currency ?? "usd";
+					const pricePerSeat = seat?.price?.unit_amount ?? 0;
+					const currency = seat?.price?.currency ?? "usd";
 					const newMonthlyTotal = formatPrice(
 						pricePerSeat * quantity,
 						currency,
@@ -854,7 +857,7 @@ export const auth = betterAuth({
 					// unit_amount is per billing period: on an annual price the total
 					// above is yearly, and calling it monthly understates it 12x.
 					const billingInterval =
-						stripeSub.items.data[0]?.price?.recurring?.interval === "year"
+						seat?.price?.recurring?.interval === "year"
 							? ("yearly" as const)
 							: ("monthly" as const);
 
@@ -943,11 +946,13 @@ export const auth = betterAuth({
 					const stripeSub = await stripeClient.subscriptions.retrieve(
 						subscription.stripeSubscriptionId,
 					);
-					const itemId = stripeSub.items.data[0]?.id;
+					const seat = seatItem(stripeSub);
+					const itemId = seat?.id;
 
-					if (billingUsesAutumn) {
-						await setAutumnSeats(organization.id, quantity);
-					} else if (itemId) {
+					const seatsSetInAutumn =
+						billingUsesAutumn &&
+						(await setAutumnSeats(organization.id, quantity));
+					if (!seatsSetInAutumn && itemId) {
 						await stripeClient.subscriptions.update(
 							subscription.stripeSubscriptionId,
 							{
@@ -960,8 +965,8 @@ export const auth = betterAuth({
 					const recipients = await getOrganizationBillingRecipients(
 						organization.id,
 					);
-					const pricePerSeat = stripeSub.items.data[0]?.price?.unit_amount ?? 0;
-					const currency = stripeSub.items.data[0]?.price?.currency ?? "usd";
+					const pricePerSeat = seat?.price?.unit_amount ?? 0;
+					const currency = seat?.price?.currency ?? "usd";
 					const newMonthlyTotal = formatPrice(
 						pricePerSeat * quantity,
 						currency,
@@ -969,7 +974,7 @@ export const auth = betterAuth({
 					// unit_amount is per billing period: on an annual price the total
 					// above is yearly, and calling it monthly understates it 12x.
 					const billingInterval =
-						stripeSub.items.data[0]?.price?.recurring?.interval === "year"
+						seat?.price?.recurring?.interval === "year"
 							? ("yearly" as const)
 							: ("monthly" as const);
 

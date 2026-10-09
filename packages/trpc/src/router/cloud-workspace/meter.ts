@@ -13,7 +13,8 @@ import { publishCloudWorkspaceJob } from "./jobs";
 export const STANDARD_BOX_VCPUS = 4;
 const MIN_RUNNING_REPORT_MS = 60_000;
 const RECONCILE_LOOKBACK_MS = 30 * 60 * 1000;
-const RECONCILE_CONCURRENCY = 10;
+const RECONCILE_CONCURRENCY = 25;
+const FIRST_SIGHT_GRACE_MS = 24 * 60 * 60 * 1000;
 
 type SessionRow = typeof cloudWorkspaceSessions.$inferSelect;
 
@@ -31,6 +32,18 @@ export function unreportedMs(row: SessionRow): number {
 	const delta = row.observedMs - row.reportedMs;
 	if (row.stoppedAt === null && delta < MIN_RUNNING_REPORT_MS) return 0;
 	return Math.max(0, delta);
+}
+
+export function initialReportedMs(
+	session: SandboxSession,
+	now: number,
+	context: { reporting: boolean; firstSight: boolean },
+): number {
+	const ms = observedMs(session, now);
+	if (!context.reporting) return ms;
+	const endedLongAgo =
+		session.endedAt !== null && session.endedAt < now - FIRST_SIGHT_GRACE_MS;
+	return context.firstSight && endedLongAgo ? ms : 0;
 }
 
 export function meteringCutoff(bounds: {
@@ -90,25 +103,23 @@ async function recordSessions(workspace: {
 	await db
 		.insert(cloudWorkspaceSessions)
 		.values(
-			sessions.map((session) => {
-				const ms = observedMs(session, now);
-				const settled = !autumn || (firstSight && session.endedAt !== null);
-				return {
-					id: session.id,
-					cloudWorkspaceId: workspace.id,
-					vcpus: session.vcpus,
-					startedAt: new Date(session.startedAt),
-					stoppedAt:
-						session.endedAt === null ? null : new Date(session.endedAt),
-					observedMs: ms,
-					reportedMs: settled ? ms : 0,
-				};
-			}),
+			sessions.map((session) => ({
+				id: session.id,
+				cloudWorkspaceId: workspace.id,
+				vcpus: session.vcpus,
+				startedAt: new Date(session.startedAt),
+				stoppedAt: session.endedAt === null ? null : new Date(session.endedAt),
+				observedMs: observedMs(session, now),
+				reportedMs: initialReportedMs(session, now, {
+					reporting: autumn !== null,
+					firstSight,
+				}),
+			})),
 		)
 		.onConflictDoUpdate({
 			target: cloudWorkspaceSessions.id,
 			set: {
-				stoppedAt: sql`excluded.stopped_at`,
+				stoppedAt: sql`coalesce(excluded.stopped_at, ${cloudWorkspaceSessions.stoppedAt})`,
 				observedMs: observed,
 				...(autumn ? {} : { reportedMs: observed }),
 				updatedAt: new Date(),
@@ -147,6 +158,8 @@ async function reportSession(args: {
 			featureId: BOX_MINUTES_FEATURE_ID,
 			value: boxMinutes(delta, row.vcpus),
 			idempotencyKey: `${row.id}:${row.reportedMs}-${to}`,
+			timestamp: row.startedAt.getTime() + to,
+			overageBehavior: "overflow",
 			properties: {
 				cloudWorkspaceId: row.cloudWorkspaceId,
 				sessionId: row.id,
@@ -208,9 +221,16 @@ export async function meterCloudWorkspace(
 		return { reportedMs: 0 };
 	}
 
-	await ensureAutumnCustomer(workspace.organizationId);
 	let reportedMs = 0;
 	const failures: unknown[] = [];
+	try {
+		await ensureAutumnCustomer(workspace.organizationId);
+	} catch (error) {
+		throw new UsageReportError(
+			[error],
+			`[cloud-workspace] ${cloudWorkspaceId} Autumn customer unavailable`,
+		);
+	}
 	for (const row of unsettled) {
 		try {
 			reportedMs += await reportSession({
@@ -247,7 +267,7 @@ export async function queueMeterCloudWorkspace(
 }
 
 export async function reconcileCloudWorkspaceUsage(): Promise<{
-	metered: number;
+	queued: number;
 	failed: number;
 }> {
 	const names = await listActiveWorkspaceSandboxes(
@@ -285,17 +305,23 @@ export async function reconcileCloudWorkspaceUsage(): Promise<{
 	let failed = 0;
 	for (let i = 0; i < ids.length; i += RECONCILE_CONCURRENCY) {
 		const results = await Promise.allSettled(
-			ids.slice(i, i + RECONCILE_CONCURRENCY).map(meterCloudWorkspace),
+			ids.slice(i, i + RECONCILE_CONCURRENCY).map((cloudWorkspaceId) =>
+				publishCloudWorkspaceJob({
+					path: "/api/cloud-workspaces/meter",
+					body: { cloudWorkspaceId },
+					runLocally: (body) => meterCloudWorkspace(body.cloudWorkspaceId),
+				}),
+			),
 		);
 		for (const result of results) {
 			if (result.status === "rejected") {
 				failed += 1;
 				console.error(
-					"[cloud-workspace] reconcile meter failed",
+					"[cloud-workspace] reconcile queue failed",
 					result.reason,
 				);
 			}
 		}
 	}
-	return { metered: ids.length - failed, failed };
+	return { queued: ids.length - failed, failed };
 }

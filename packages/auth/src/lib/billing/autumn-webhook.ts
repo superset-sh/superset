@@ -12,7 +12,10 @@ export async function handleAutumnWebhook(args: {
 	body: string;
 }): Promise<{ status: number; synced?: string }> {
 	const secret = env.AUTUMN_WEBHOOK_SECRET;
-	if (!secret) return { status: 503 };
+	if (!secret) {
+		console.error("[billing/autumn-webhook] AUTUMN_WEBHOOK_SECRET is not set");
+		return { status: 503 };
+	}
 	const valid = verifySvixSignature({
 		secret,
 		id: args.headers.get("svix-id"),

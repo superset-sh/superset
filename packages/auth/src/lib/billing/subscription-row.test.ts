@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { PLAN_TIERS } from "@superset/shared/billing";
 import type Stripe from "stripe";
-import { isPaidAutumnPlan, legacyPlanName } from "./plans";
+import { isPaidAutumnPlan, legacyPlanName, planFromStripePrice } from "./plans";
 import {
 	subscriptionRowFromStripe,
 	subscriptionTransitions,
@@ -149,9 +149,19 @@ describe("plan names old clients understand", () => {
 		expect(legacyPlanName("enterprise_acme")).toBe("enterprise");
 	});
 
-	test("free plans are not paid", () => {
-		expect(isPaidAutumnPlan("hobby")).toBe(false);
-		expect(isPaidAutumnPlan("free")).toBe(false);
+	test("only known paid plans grant Pro; a new Autumn plan does not by default", () => {
 		expect(isPaidAutumnPlan("pro")).toBe(true);
+		expect(isPaidAutumnPlan("pro_annual")).toBe(true);
+		expect(isPaidAutumnPlan("enterprise_acme")).toBe(true);
+		expect(isPaidAutumnPlan("hobby")).toBe(false);
+		expect(isPaidAutumnPlan("starter_trial")).toBe(false);
+	});
+
+	test("an enterprise subscription made in Stripe reads as enterprise from its price", () => {
+		const prices = { pro: ["price_m", "price_y"], enterprise: ["price_e"] };
+		expect(planFromStripePrice("price_e", prices)).toBe("enterprise");
+		expect(planFromStripePrice("price_y", prices)).toBe("pro");
+		expect(planFromStripePrice("price_autumn", prices)).toBeNull();
+		expect(planFromStripePrice(undefined, prices)).toBeNull();
 	});
 });

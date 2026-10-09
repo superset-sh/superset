@@ -1,3 +1,4 @@
+import { seatItem } from "@superset/auth/billing";
 import { db } from "@superset/db/client";
 import { subscriptions } from "@superset/db/schema";
 import * as authSchema from "@superset/db/schema/auth";
@@ -109,7 +110,8 @@ async function enrichFromSubscription(
 		where: eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId),
 	});
 
-	const price = stripeSub.items.data[0]?.price;
+	const seat = seatItem(stripeSub);
+	const price = seat?.price;
 	const interval = price?.recurring?.interval === "year" ? "yearly" : "monthly";
 
 	return {
@@ -117,7 +119,7 @@ async function enrichFromSubscription(
 		planName: dbSub?.plan ?? "Pro",
 		stripeCustomerId: customerId,
 		stripeSubscriptionId,
-		seatCount: stripeSub.items.data[0]?.quantity ?? 1,
+		seatCount: seat?.quantity ?? 1,
 		pricePerSeatCents: price?.unit_amount ?? 0,
 		currency: price?.currency ?? "usd",
 		interval,

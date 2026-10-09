@@ -36,7 +36,7 @@ export interface AutumnBillingDeps {
 		planId: string;
 		featureQuantities: { featureId: string; quantity: number }[];
 		successUrl: string;
-		redirectMode: "if_required";
+		redirectMode: "always";
 		checkoutSessionParams: Record<string, unknown>;
 	}): Promise<{ paymentUrl: string | null }>;
 	update(params: {
@@ -55,6 +55,7 @@ export interface AutumnBillingDeps {
 	): Promise<LiveSubscription | null>;
 	countBillableSeats(organizationId: string): Promise<number>;
 	sync(organizationId: string): Promise<void>;
+	handleStripeWebhook(request: Request): Promise<void>;
 }
 
 export interface UpgradeBody {
@@ -93,7 +94,7 @@ export async function upgradeWithAutumn(
 		planId: autumnPlanIdFor(annual),
 		featureQuantities: [{ featureId: SEATS_FEATURE_ID, quantity: seats }],
 		successUrl: body.successUrl,
-		redirectMode: "if_required",
+		redirectMode: "always",
 		checkoutSessionParams: {
 			cancel_url: body.cancelUrl,
 			allow_promotion_codes: !annual,
@@ -199,12 +200,6 @@ interface ReferencedContext {
 	};
 }
 
-/**
- * Serves the Stripe plugin's subscription endpoints from Autumn, on the same
- * paths with the same body schemas and middleware, so released clients keep
- * calling `authClient.subscription.*` unchanged. Stripe's own webhook is
- * acknowledged without being processed: Autumn's webhook writes the rows.
- */
 export function withAutumnBilling<Plugin extends StripePluginShape>(
 	plugin: Plugin,
 	options: { enabled: boolean; deps: () => AutumnBillingDeps },
@@ -261,7 +256,15 @@ export function withAutumnBilling<Plugin extends StripePluginShape>(
 			stripeWebhook: createAuthEndpoint(
 				webhook.path,
 				webhook.options,
-				async (ctx) => ctx.json({ success: true }),
+				async (ctx) => {
+					if (!ctx.request) {
+						throw new APIError("BAD_REQUEST", {
+							message: "Request body is required",
+						});
+					}
+					await options.deps().handleStripeWebhook(ctx.request);
+					return ctx.json({ success: true });
+				},
 			),
 		},
 	};

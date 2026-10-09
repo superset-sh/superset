@@ -1,3 +1,5 @@
+import { billingUsesAutumn } from "@superset/auth/autumn";
+import { seatItem, setAutumnSeats } from "@superset/auth/billing";
 import { stripeClient } from "@superset/auth/stripe";
 import { db, dbWs } from "@superset/db/client";
 import {
@@ -81,11 +83,14 @@ export async function purgeAccount(userId: string): Promise<void> {
 				subscription?.stripeSubscriptionId &&
 				subscription.plan !== "enterprise"
 			) {
+				const seatsSetInAutumn =
+					billingUsesAutumn &&
+					(await setAutumnSeats(membership.organizationId, remainingSeats));
 				const stripeSub = await stripeClient.subscriptions.retrieve(
 					subscription.stripeSubscriptionId,
 				);
-				const itemId = stripeSub.items.data[0]?.id;
-				if (itemId) {
+				const itemId = seatItem(stripeSub)?.id;
+				if (!seatsSetInAutumn && itemId) {
 					await stripeClient.subscriptions.update(
 						subscription.stripeSubscriptionId,
 						{

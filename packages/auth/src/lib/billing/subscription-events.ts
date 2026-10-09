@@ -14,6 +14,7 @@ import {
 } from "../../utils/billing";
 import { captureBillingEvent } from "../billing-analytics";
 import { resend } from "../resend";
+import { seatItem } from "./subscription-row";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
@@ -93,13 +94,14 @@ export async function notifySubscriptionStarted({
 
 	const owners = await getOrganizationOwners(subscription.referenceId);
 
-	const interval = stripeSubscription.items.data[0]?.price?.recurring
-		?.interval as "month" | "year" | undefined;
+	const interval = seatItem(stripeSubscription)?.price?.recurring?.interval as
+		| "month"
+		| "year"
+		| undefined;
 	const billingInterval = interval === "year" ? "yearly" : "monthly";
 
-	const pricePerSeat =
-		stripeSubscription.items.data[0]?.price?.unit_amount ?? 0;
-	const currency = stripeSubscription.items.data[0]?.price?.currency ?? "usd";
+	const pricePerSeat = seatItem(stripeSubscription)?.price?.unit_amount ?? 0;
+	const currency = seatItem(stripeSubscription)?.price?.currency ?? "usd";
 	const amount = formatPrice(pricePerSeat, currency);
 
 	await resend.batch.send(

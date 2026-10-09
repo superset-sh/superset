@@ -62,6 +62,9 @@ function fakeDeps(): AutumnBillingDeps {
 		sync: async (id) => {
 			calls.push({ method: "sync", params: id });
 		},
+		handleStripeWebhook: async () => {
+			calls.push({ method: "stripeWebhook", params: null });
+		},
 	};
 }
 
@@ -230,7 +233,7 @@ describe("upgrade", () => {
 			planId: "pro",
 			featureQuantities: [{ featureId: "seats", quantity: 3 }],
 			successUrl: body.successUrl,
-			redirectMode: "if_required",
+			redirectMode: "always",
 			checkoutSessionParams: {
 				cancel_url: WEB,
 				allow_promotion_codes: true,
@@ -254,7 +257,7 @@ describe("upgrade", () => {
 		expect(params.checkoutSessionParams.allow_promotion_codes).toBe(false);
 	});
 
-	test("a card on file upgrades now, syncs, and sends the client to the success page", async () => {
+	test("with no checkout page needed, upgrade syncs and sends the client to the success page", async () => {
 		paymentUrl = null;
 		const result = await upgradeWithAutumn(fakeDeps(), {
 			userId: "user_1",

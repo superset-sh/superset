@@ -2,14 +2,16 @@ import { db } from "@superset/db/client";
 import { subscriptions } from "@superset/db/schema";
 import * as authSchema from "@superset/db/schema/auth";
 import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
-import { eq, inArray } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { autumnClient } from "./autumn";
 import { env } from "./env";
 import {
+	isPaidAutumnPlan,
 	PRO_ANNUAL_PLAN_ID,
 	PRO_MONTHLY_PLAN_ID,
 	SEATS_FEATURE_ID,
 } from "./lib/billing/plans";
+import { seatItem } from "./lib/billing/subscription-row";
 import { stripeClient } from "./stripe";
 
 const PLAN_BY_PRICE: Record<string, string> = {
@@ -22,6 +24,7 @@ const apply = process.argv.includes("--apply");
 
 async function main() {
 	if (!autumnClient) throw new Error("AUTUMN_SECRET_KEY is not set");
+	const autumn = autumnClient;
 	const rows = await db
 		.select({
 			organizationId: subscriptions.referenceId,
@@ -34,56 +37,85 @@ async function main() {
 			authSchema.organizations,
 			eq(authSchema.organizations.id, subscriptions.referenceId),
 		)
-		.where(inArray(subscriptions.status, [...ACTIVE_SUBSCRIPTION_STATUSES]));
+		.where(inArray(subscriptions.status, [...ACTIVE_SUBSCRIPTION_STATUSES]))
+		.orderBy(desc(subscriptions.createdAt));
 
-	let imported = 0;
-	const skipped: string[] = [];
+	const seen = new Set<string>();
+	const counts = { imported: 0, alreadyLinked: 0, skipped: 0 };
 	for (const row of rows) {
-		if (!row.stripeSubscriptionId || !row.stripeCustomerId) {
-			skipped.push(`${row.organizationId}: no Stripe ids`);
-			continue;
-		}
-		const stripeSubscription = await stripeClient.subscriptions.retrieve(
-			row.stripeSubscriptionId,
-		);
-		const item = stripeSubscription.items.data[0];
-		const planId = item ? PLAN_BY_PRICE[item.price.id] : undefined;
-		if (!item || !planId) {
-			skipped.push(`${row.organizationId}: unknown price ${item?.price.id}`);
-			continue;
-		}
-		const result = await autumnClient.billing.import({
-			customerId: row.organizationId,
-			customerData: { name: row.name },
-			processors: [{ type: "stripe", id: row.stripeCustomerId }],
-			billables: [
-				{
-					processor: "stripe",
-					link: { subscriptionId: row.stripeSubscriptionId },
-					plan: {
-						planId,
-						featureQuantities: [
-							{ featureId: SEATS_FEATURE_ID, quantity: item.quantity ?? 1 },
-						],
+		if (seen.has(row.organizationId)) continue;
+		seen.add(row.organizationId);
+		const label = `${row.organizationId} (${row.stripeSubscriptionId})`;
+		try {
+			if (!row.stripeSubscriptionId || !row.stripeCustomerId) {
+				counts.skipped += 1;
+				console.log(`[autumn-import] skip ${label}: no Stripe ids`);
+				continue;
+			}
+			const existing = await autumn.customers
+				.get({ customerId: row.organizationId })
+				.catch(() => null);
+			if (
+				existing?.subscriptions.some((subscription) =>
+					isPaidAutumnPlan(subscription.planId),
+				)
+			) {
+				counts.alreadyLinked += 1;
+				continue;
+			}
+			const stripeSubscription = await stripeClient.subscriptions.retrieve(
+				row.stripeSubscriptionId,
+			);
+			const seat = seatItem(stripeSubscription);
+			const planId = seat ? PLAN_BY_PRICE[seat.price.id] : undefined;
+			console.log(
+				`[autumn-import] ${label}: status=${stripeSubscription.status} items=${stripeSubscription.items.data.length} discounts=${stripeSubscription.discounts.length} trial_end=${stripeSubscription.trial_end ?? "-"}`,
+			);
+			if (!seat || !planId) {
+				counts.skipped += 1;
+				console.log(
+					`[autumn-import] skip ${label}: unknown price ${seat?.price.id}`,
+				);
+				continue;
+			}
+			const result = await autumn.billing.import({
+				customerId: row.organizationId,
+				customerData: { name: row.name },
+				processors: [{ type: "stripe", id: row.stripeCustomerId }],
+				billables: [
+					{
+						processor: "stripe",
+						link: { subscriptionId: row.stripeSubscriptionId },
+						plan: {
+							planId,
+							featureQuantities: [
+								{ featureId: SEATS_FEATURE_ID, quantity: seat.quantity ?? 1 },
+							],
+						},
 					},
-				},
-			],
-			dryRun: !apply,
-		});
-		const mismatches = result.flashed.filter(
-			(entry) => entry.mismatch || entry.skipped,
-		);
-		if (mismatches.length > 0) {
-			skipped.push(`${row.organizationId}: ${JSON.stringify(mismatches)}`);
-			continue;
+				],
+				dryRun: !apply,
+			});
+			const problems = result.flashed.filter(
+				(entry) => entry.mismatch || entry.skipped,
+			);
+			if (problems.length > 0) {
+				counts.skipped += 1;
+				console.log(
+					`[autumn-import] skip ${label}: ${JSON.stringify(problems)}`,
+				);
+				continue;
+			}
+			counts.imported += 1;
+		} catch (error) {
+			counts.skipped += 1;
+			console.error(`[autumn-import] failed ${label}`, error);
 		}
-		imported += 1;
 	}
 
 	console.log(
-		`[autumn-import] ${apply ? "imported" : "would import"} ${imported} of ${rows.length}`,
+		`[autumn-import] ${apply ? "imported" : "would import"} ${counts.imported}, already linked ${counts.alreadyLinked}, skipped ${counts.skipped}, of ${seen.size} organizations`,
 	);
-	for (const line of skipped) console.log(`[autumn-import] skipped ${line}`);
 }
 
 await main();

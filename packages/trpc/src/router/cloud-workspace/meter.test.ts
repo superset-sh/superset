@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { sessionEndedAt } from "../../lib/sandbox/vercel";
-import { boxMinutes, meteringCutoff, observedMs, unreportedMs } from "./meter";
+import {
+	boxMinutes,
+	initialReportedMs,
+	meteringCutoff,
+	observedMs,
+	unreportedMs,
+} from "./meter";
 
 const row = {
 	id: "sess_1",
@@ -78,5 +84,31 @@ describe("meter", () => {
 			sessionEndedAt({ status: "stopping", requestedStopAt: 4, updatedAt: 9 }),
 		).toBe(4);
 		expect(sessionEndedAt({ status: "aborted", updatedAt: 9 })).toBe(9);
+	});
+
+	test("a first meter settles only history older than a day; recent sessions are billed", () => {
+		const now = 10 * 24 * 60 * 60 * 1000;
+		const day = 24 * 60 * 60 * 1000;
+		const old = {
+			id: "a",
+			vcpus: 4,
+			startedAt: now - 3 * day,
+			endedAt: now - 2 * day,
+		};
+		const recent = {
+			id: "b",
+			vcpus: 4,
+			startedAt: now - 600_000,
+			endedAt: now - 60_000,
+		};
+		const reporting = { reporting: true, firstSight: true };
+		expect(initialReportedMs(old, now, reporting)).toBe(day);
+		expect(initialReportedMs(recent, now, reporting)).toBe(0);
+		expect(
+			initialReportedMs(old, now, { ...reporting, firstSight: false }),
+		).toBe(0);
+		expect(
+			initialReportedMs(recent, now, { reporting: false, firstSight: false }),
+		).toBe(540_000);
 	});
 });

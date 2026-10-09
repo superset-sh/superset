@@ -4,12 +4,12 @@ function toDate(seconds: number | null | undefined): Date | null {
 	return seconds ? new Date(seconds * 1000) : null;
 }
 
-function seatItem(
+export function seatItem(
 	stripeSubscription: Stripe.Subscription,
 ): Stripe.SubscriptionItem | undefined {
 	const items = stripeSubscription.items.data;
 	return (
-		items.find((item) => item.price.recurring?.usage_type !== "metered") ??
+		items.find((item) => item.price?.recurring?.usage_type !== "metered") ??
 		items[0]
 	);
 }

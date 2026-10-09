@@ -45,14 +45,6 @@ export async function POST(request: Request) {
 		if (!isFeedbackEligible(subscription, payload.canceledAt)) {
 			return Response.json({ skipped: "cancellation no longer eligible" });
 		}
-		if (
-			!subscription.items.data.some(
-				({ price }) =>
-					price.id === env.STRIPE_PRO_MONTHLY_PRICE_ID ||
-					price.id === env.STRIPE_PRO_YEARLY_PRICE_ID,
-			)
-		)
-			return Response.json({ skipped: "not a Pro price" });
 		const localSubscription = await db.query.subscriptions.findFirst({
 			where: and(
 				eq(subscriptions.stripeSubscriptionId, subscription.id),
