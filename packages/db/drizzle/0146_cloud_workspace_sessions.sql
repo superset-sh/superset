@@ -6,6 +6,7 @@ CREATE TABLE "cloud_workspace_sessions" (
 	"stopped_at" timestamp with time zone,
 	"observed_ms" integer DEFAULT 0 NOT NULL,
 	"reported_ms" integer DEFAULT 0 NOT NULL,
+	"inflight_to_ms" integer,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );

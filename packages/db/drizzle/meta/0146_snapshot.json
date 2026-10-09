@@ -1,5 +1,5 @@
 {
-  "id": "a5390510-fbe0-45fb-9ad0-8871c8be8a54",
+  "id": "08904670-54e5-4bf3-92b3-a278c5033b5c",
   "prevId": "3e174d9c-4cd7-4136-bc0f-fb7dc8e4e057",
   "version": "7",
   "dialect": "postgresql",
@@ -6900,6 +6900,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
+        },
+        "inflight_to_ms": {
+          "name": "inflight_to_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",

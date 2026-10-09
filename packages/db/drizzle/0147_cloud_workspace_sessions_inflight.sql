@@ -1,1 +1,0 @@
-ALTER TABLE "cloud_workspace_sessions" ADD COLUMN "inflight_to_ms" integer;
