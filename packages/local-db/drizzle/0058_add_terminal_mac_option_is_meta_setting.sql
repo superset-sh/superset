@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `terminal_mac_option_is_meta` integer;
