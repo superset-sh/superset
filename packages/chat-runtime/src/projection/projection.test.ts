@@ -36,28 +36,28 @@ describe("ChatSessionStore", () => {
 	test("keeps the harness session id the agent reports", () => {
 		runtime.journal.append("s1", {
 			type: "session",
-			session: sessionState({ harnessSessionId: "claude-abc" }),
+			session: sessionState({ harnessSessionId: "agent-session-1" }),
 		});
 		runtime.journal.append("s1", {
 			type: "session",
 			session: sessionState({ status: "running" }),
 		});
 		expect(runtime.sessions.get("s1")).toMatchObject({
-			harnessSessionId: "claude-abc",
+			harnessSessionId: "agent-session-1",
 		});
 	});
 
 	test("backfills a harness session id that only the journal has", () => {
 		runtime.journal.append("s1", {
 			type: "session",
-			session: sessionState({ harnessSessionId: "claude-abc" }),
+			session: sessionState({ harnessSessionId: "agent-session-1" }),
 		});
 		setHarnessSessionId(runtime.db, "s1", null);
 		runtime.journal.forget("s1");
 
 		const { session } = runtime.commands.getSession({ sessionId: "s1" });
 
-		expect(session?.harnessSessionId).toBe("claude-abc");
+		expect(session?.harnessSessionId).toBe("agent-session-1");
 	});
 
 	test("reflects journal projection writes", () => {

@@ -269,6 +269,7 @@ export class CodexAdapter implements HarnessAdapter {
 
 			this.emitSession({
 				status: "idle",
+				harnessSessionId: this.threadId,
 				modeId: this.modeId,
 				availableModes: [...CODEX_MODES],
 				...(this.modelId ? { modelId: this.modelId } : {}),

@@ -119,6 +119,33 @@ describe("ClaudeAdapter", () => {
 		).toBe(true);
 	});
 
+	test("reports the session id the stream carries, once", async () => {
+		const harness = createHarness();
+		const reported: string[] = [];
+		const collect = async () => {
+			for (let index = 0; index < 20; index += 1) {
+				const next = await harness.iterator.next();
+				if (next.done) return;
+				if (next.value.kind === "turn") return;
+				if (
+					next.value.kind === "session" &&
+					next.value.session.harnessSessionId
+				)
+					reported.push(next.value.session.harnessSessionId);
+			}
+		};
+
+		harness.adapter.prompt([{ type: "text", text: "first" }]);
+		harness.emit({ type: "system", subtype: "init", session_id: "session-1" });
+		harness.emit({
+			...(messageStart("msg_1") as object),
+			session_id: "session-1",
+		});
+		await collect();
+
+		expect(reported).toEqual(["session-1"]);
+	});
+
 	test("dispose aborts the underlying session", async () => {
 		const harness = createHarness();
 		harness.adapter.prompt([{ type: "text", text: "first" }]);

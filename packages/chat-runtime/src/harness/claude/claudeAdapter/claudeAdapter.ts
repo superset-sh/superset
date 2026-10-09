@@ -181,6 +181,7 @@ export class ClaudeAdapter implements HarnessAdapter {
 	private readonly abortController = new AbortController();
 	private translator: ClaudeTranslator | null = null;
 	private session: ClaudeSession | null = null;
+	private sessionId: string | null = null;
 	private modeId: ClaudePermissionMode = "default";
 	private pump: Promise<void> | null = null;
 	private disposed = false;
@@ -325,6 +326,7 @@ export class ClaudeAdapter implements HarnessAdapter {
 		try {
 			for await (const message of stream) {
 				if (this.disposed) return;
+				this.reportSessionId(message);
 				for (const event of translator.translate(message)) {
 					this.events.push(event);
 				}
@@ -334,6 +336,17 @@ export class ClaudeAdapter implements HarnessAdapter {
 				this.events.push(event);
 			}
 		}
+	}
+
+	private reportSessionId(message: unknown): void {
+		if (typeof message !== "object" || message === null) return;
+		const sessionId = (message as { session_id?: unknown }).session_id;
+		if (typeof sessionId !== "string" || sessionId === this.sessionId) return;
+		this.sessionId = sessionId;
+		this.events.push({
+			kind: "session",
+			session: { harnessSessionId: sessionId },
+		});
 	}
 
 	private requestApproval(
