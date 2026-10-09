@@ -160,7 +160,6 @@
         "@hono/node-server": "2.0.10",
         "@hookform/resolvers": "5.2.2",
         "@lezer/highlight": "1.2.3",
-        "@limrun/ui": "0.16.0",
         "@lingui/core": "6.8.0",
         "@lingui/react": "6.8.0",
         "@novnc/novnc": "1.7.0",
@@ -2317,8 +2316,6 @@
     "@lezer/xml": ["@lezer/xml@1.0.6", "", { "dependencies": { "@lezer/common": "^1.2.0", "@lezer/highlight": "^1.0.0", "@lezer/lr": "^1.0.0" } }, "sha512-CdDwirL0OEaStFue/66ZmFSeppuL6Dwjlk8qk153mSQwiSH/Dlri4GNymrNWnUmPl2Um7QfV1FO9KFUyX3Twww=="],
 
     "@lezer/yaml": ["@lezer/yaml@1.0.4", "", { "dependencies": { "@lezer/common": "^1.2.0", "@lezer/highlight": "^1.0.0", "@lezer/lr": "^1.4.0" } }, "sha512-2lrrHqxalACEbxIbsjhqGpSW8kWpUKuY6RHgnSAFZa6qK62wvnPxA8hGOwOoDbwHcOFs5M4o27mjGu+P7TvBmw=="],
-
-    "@limrun/ui": ["@limrun/ui@0.16.0", "", { "dependencies": { "clsx": "^2.1.1" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" } }, "sha512-n6BQuQ2xIOp55aX9NSK7J2PZAXJPADD9T0BtCXthDMiy/TPj6ZSq52eLxJzl8hQYXtX/SF4UDOCjWw3VTKAnEg=="],
 
     "@linear/sdk": ["@linear/sdk@68.1.1", "", { "dependencies": { "@graphql-typed-document-node/core": "^3.1.0", "graphql": "^15.4.0" } }, "sha512-6IDbyEGsOFORRrG9fL9oQkZ1FAbdtV4W1qfT82gYPVh4UzefXQwNpljgR3Nsm1Tb11cZyf3reoJpPFqGcj01zw=="],
 

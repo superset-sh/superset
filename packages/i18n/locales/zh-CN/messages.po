@@ -10758,8 +10758,8 @@ msgstr "没有已合并的拉取请求。"
 msgid "No messages yet"
 msgstr "还没有消息"
 
-msgid "No mobile simulator available here. This needs either a Limrun-enabled cloud sandbox or a local iOS/Android toolchain."
-msgstr "此处没有可用的移动模拟器。需要支持 Limrun 的云沙箱，或本地 iOS/Android 工具链。"
+msgid "No mobile simulator available here. This needs either an EAS simulator on a cloud sandbox or a local iOS/Android toolchain."
+msgstr "此处没有可用的移动模拟器。需要云沙箱上的 EAS 模拟器，或本地 iOS/Android 工具链。"
 
 msgid "No name on file"
 msgstr "未登记姓名"
@@ -16776,9 +16776,6 @@ msgstr "找不到服务器"
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "登录链接不完整。请重试。"
-
-msgid "The simulator instance was terminated."
-msgstr "模拟器实例已终止。"
 
 msgid "The site's certificate authority is not trusted"
 msgstr "该站点的证书颁发机构不受信任"

@@ -76,7 +76,6 @@
 		"@hono/node-server": "2.0.10",
 		"@hookform/resolvers": "5.2.2",
 		"@lezer/highlight": "1.2.3",
-		"@limrun/ui": "0.16.0",
 		"@lingui/core": "6.8.0",
 		"@lingui/react": "6.8.0",
 		"@novnc/novnc": "1.7.0",

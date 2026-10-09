@@ -10758,8 +10758,8 @@ msgstr "マージ済みのプルリクエストはありません。"
 msgid "No messages yet"
 msgstr "メッセージはまだありません"
 
-msgid "No mobile simulator available here. This needs either a Limrun-enabled cloud sandbox or a local iOS/Android toolchain."
-msgstr "ここで利用できるモバイルシミュレーターがありません。Limrun対応のクラウドサンドボックスか、ローカルのiOS/Androidツールチェーンのいずれかが必要です。"
+msgid "No mobile simulator available here. This needs either an EAS simulator on a cloud sandbox or a local iOS/Android toolchain."
+msgstr "ここで利用できるモバイルシミュレーターがありません。クラウドサンドボックス上のEASシミュレーターか、ローカルのiOS/Androidツールチェーンのいずれかが必要です。"
 
 msgid "No name on file"
 msgstr "登録された名前はありません"
@@ -16776,9 +16776,6 @@ msgstr "サーバーが見つかりませんでした"
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "サインインリンクが不完全でした。もう一度お試しください。"
-
-msgid "The simulator instance was terminated."
-msgstr "シミュレーターインスタンスが終了しました。"
 
 msgid "The site's certificate authority is not trusted"
 msgstr "サイトの認証局が信頼されていません"

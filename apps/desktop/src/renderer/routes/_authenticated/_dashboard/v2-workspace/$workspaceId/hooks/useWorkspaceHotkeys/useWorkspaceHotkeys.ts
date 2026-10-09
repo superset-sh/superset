@@ -278,7 +278,7 @@ export function useWorkspaceHotkeys({
 	);
 
 	// Not gated on isSandbox: a local machine with Xcode/Android SDK gets a
-	// mobile pane too, just backed by a local simulator instead of Limrun.
+	// mobile pane too, backed by a local simulator.
 	useHotkey("SPLIT_WITH_MOBILE", () => {
 		const state = store.getState();
 		const active = state.getActivePane();

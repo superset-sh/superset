@@ -10758,8 +10758,8 @@ msgstr "No hay pull requests fusionadas."
 msgid "No messages yet"
 msgstr "Aún no hay mensajes"
 
-msgid "No mobile simulator available here. This needs either a Limrun-enabled cloud sandbox or a local iOS/Android toolchain."
-msgstr "No hay ningún simulador móvil disponible aquí. Se necesita un entorno aislado en la nube compatible con Limrun o una cadena de herramientas local de iOS/Android."
+msgid "No mobile simulator available here. This needs either an EAS simulator on a cloud sandbox or a local iOS/Android toolchain."
+msgstr "No hay ningún simulador móvil disponible aquí. Se necesita un simulador de EAS en un entorno aislado en la nube o una cadena de herramientas local de iOS/Android."
 
 msgid "No name on file"
 msgstr "No hay ningún nombre registrado"
@@ -16776,9 +16776,6 @@ msgstr "No se encontró el servidor"
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "El enlace de inicio de sesión estaba incompleto. Inténtalo de nuevo."
-
-msgid "The simulator instance was terminated."
-msgstr "La instancia del simulador finalizó."
 
 msgid "The site's certificate authority is not trusted"
 msgstr "La autoridad de certificación del sitio no es de confianza"

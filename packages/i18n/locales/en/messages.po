@@ -10758,8 +10758,8 @@ msgstr "No merged pull requests."
 msgid "No messages yet"
 msgstr "No messages yet"
 
-msgid "No mobile simulator available here. This needs either a Limrun-enabled cloud sandbox or a local iOS/Android toolchain."
-msgstr "No mobile simulator available here. This needs either a Limrun-enabled cloud sandbox or a local iOS/Android toolchain."
+msgid "No mobile simulator available here. This needs either an EAS simulator on a cloud sandbox or a local iOS/Android toolchain."
+msgstr "No mobile simulator available here. This needs either an EAS simulator on a cloud sandbox or a local iOS/Android toolchain."
 
 msgid "No name on file"
 msgstr "No name on file"
@@ -16776,9 +16776,6 @@ msgstr "The server could not be found"
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "The sign-in link was incomplete. Please try again."
-
-msgid "The simulator instance was terminated."
-msgstr "The simulator instance was terminated."
 
 msgid "The site's certificate authority is not trusted"
 msgstr "The site's certificate authority is not trusted"

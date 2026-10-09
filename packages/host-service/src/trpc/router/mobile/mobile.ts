@@ -14,12 +14,7 @@ import {
 
 const run = promisify(execFile);
 
-export type MobileBackend =
-	| "eas"
-	| "limrun"
-	| "local-ios"
-	| "local-android"
-	| "none";
+export type MobileBackend = "eas" | "local-ios" | "local-android" | "none";
 
 async function commandExists(cmd: string): Promise<boolean> {
 	try {
@@ -62,62 +57,11 @@ function findAndroidSdk(): string | null {
  * whichever local toolchain is installed. */
 export async function detectMobileBackend(): Promise<MobileBackend> {
 	if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") {
-		if (easSimulatorConfigured()) return "eas";
-		return process.env.LIM_API_KEY ? "limrun" : "none";
+		return easSimulatorConfigured() ? "eas" : "none";
 	}
 	if (await hasIosSimulators()) return "local-ios";
 	if (findAndroidSdk() || (await commandExists("adb"))) return "local-android";
 	return "none";
-}
-
-interface LimrunStatus {
-	endpointWebSocketUrl?: string;
-	token?: string;
-}
-interface LimrunInstance {
-	status?: LimrunStatus;
-}
-
-/** Mints or reuses a Limrun instance and returns just enough for
- * `<RemoteControl />`: the org-wide LIM_API_KEY never leaves this process. */
-async function createLimrunSession(platform: "ios" | "android") {
-	const apiKey = process.env.LIM_API_KEY;
-	if (!apiKey) {
-		throw new TRPCError({
-			code: "PRECONDITION_FAILED",
-			message: "LIM_API_KEY is not set on this sandbox",
-		});
-	}
-	const workspaceId = process.env.SUPERSET_SANDBOX_WORKSPACE_ID ?? "local";
-	const resource = platform === "ios" ? "ios_instances" : "android_instances";
-	const response = await fetch(
-		`https://api.limrun.com/v1/${resource}?wait=true&reuseIfExists=true`,
-		{
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${apiKey}`,
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({
-				metadata: { labels: { "superset-workspace": workspaceId } },
-			}),
-		},
-	);
-	if (!response.ok) {
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: `Limrun ${resource} create failed (${response.status}): ${await response.text()}`,
-		});
-	}
-	const instance = (await response.json()) as LimrunInstance;
-	const { endpointWebSocketUrl, token } = instance.status ?? {};
-	if (!endpointWebSocketUrl || !token) {
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: "Limrun instance has no endpointWebSocketUrl/token yet",
-		});
-	}
-	return { endpointWebSocketUrl, token, platform };
 }
 
 /** An OS-assigned free port, so two workspaces on one machine never collide. */
@@ -354,12 +298,6 @@ export const mobileRouter = router({
 	status: protectedProcedure.query(async () => {
 		return { backend: await detectMobileBackend() };
 	}),
-
-	/** For the cloud/Limrun backend: mints (or reuses) an instance and hands
-	 * back just the WebSocket URL + token `<RemoteControl />` needs. */
-	limrunSession: protectedProcedure
-		.input(z.object({ platform: z.enum(["ios", "android"]).default("ios") }))
-		.mutation(async ({ input }) => createLimrunSession(input.platform)),
 
 	easSessions: protectedProcedure.query(() => listEasSimulatorSessions()),
 
