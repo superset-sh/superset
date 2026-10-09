@@ -16,6 +16,7 @@ interface PullRequestSummaryContentProps {
 	commentTarget?: PullRequestCommentTarget | null;
 	/** Rendered under the conversation (the workspace pane's review threads). */
 	children?: ReactNode;
+	aside?: ReactNode;
 }
 
 /**
@@ -26,6 +27,7 @@ export function PullRequestSummaryContent({
 	data,
 	commentTarget = null,
 	children,
+	aside,
 }: PullRequestSummaryContentProps) {
 	return (
 		<PullRequestPageBody
@@ -33,6 +35,7 @@ export function PullRequestSummaryContent({
 				<PullRequestItemHeader data={data} actionTarget={commentTarget} />
 			}
 			info={(variant) => <PullRequestInfo data={data} variant={variant} />}
+			aside={aside}
 		>
 			<PullRequestMarkdown body={data.body} />
 			<div className="mt-6">

@@ -1,7 +1,9 @@
 import { Badge } from "@superset/ui/badge";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useState } from "react";
+import { useSaveImageToDownloads } from "renderer/routes/_authenticated/hooks/useSaveImageToDownloads";
 import { useChatPaneActions } from "../../../../../../providers/ChatPaneActionsProvider";
+import { PreviewableImage } from "./components/PreviewableImage";
 
 const MAX_THUMBNAIL_BYTES = 5 * 1024 * 1024;
 
@@ -13,6 +15,7 @@ export function AttachmentImage({
 	type: string;
 }) {
 	const { workspaceId } = useChatPaneActions();
+	const saveImageToDownloads = useSaveImageToDownloads();
 	const name = path.split("/").pop() ?? path;
 	const { data: workspace } = workspaceTrpc.workspace.get.useQuery(
 		{ id: workspaceId ?? "" },
@@ -44,13 +47,13 @@ export function AttachmentImage({
 		return (
 			<div className="size-40 animate-pulse rounded-2xl bg-foreground/10" />
 		);
+	const src = `data:${type};base64,${data.content}`;
 	return (
-		<img
-			alt={name}
-			className="size-40 rounded-2xl border border-border object-cover"
-			draggable={false}
+		<PreviewableImage
+			filename={name}
+			onDownload={() => saveImageToDownloads(src, name)}
 			onError={() => setUnrenderable(true)}
-			src={`data:${type};base64,${data.content}`}
+			src={src}
 		/>
 	);
 }

@@ -10,7 +10,7 @@
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
-		"test": "bun test --isolate --pass-with-no-tests"
+		"test": "bun test --pass-with-no-tests"
 	},
 	"dependencies": {
 		"@lexical/react": "0.41.0",

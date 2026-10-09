@@ -1,4 +1,5 @@
 import { workspaceTrpc } from "@superset/workspace-client";
+import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
 	isSamePullRequest,
@@ -12,25 +13,34 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestDetailTabs";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { normalizeThreadsToComments } from "../../../../components/CommentsSection/utils/normalizeThreadsToComments";
-import type { CommentPaneData, PullRequestPaneData } from "../../../../types";
+import type {
+	CommentPaneData,
+	PagePaneData,
+	PullRequestPaneData,
+} from "../../../../types";
 import {
 	type OpenReviewDiff,
 	useReviewCommentNavigation,
 } from "../../../useReviewCommentNavigation";
 import { PullRequestComments } from "./components/PullRequestComments";
+import { PullRequestEvidence } from "./components/PullRequestEvidence";
+import { usePullRequestEvidence } from "./hooks/usePullRequestEvidence";
 import { usePullRequestPaneDetail } from "./hooks/usePullRequestPaneDetail";
 
 interface PullRequestPaneProps {
 	data: PullRequestPaneData;
 	onOpenDiff: OpenReviewDiff;
 	onOpenComment: (comment: CommentPaneData) => void;
+	onOpenPage: (page: PagePaneData) => void;
 }
 
 export function PullRequestPane({
 	data,
 	onOpenDiff,
 	onOpenComment,
+	onOpenPage,
 }: PullRequestPaneProps) {
+	const navigate = useNavigate();
 	const [activeTab, setActiveTab] = useState<PullRequestDetailTab>("summary");
 	const { workspace, hostUrl: workspaceHostUrl } = useWorkspace();
 	const detail = usePullRequestPaneDetail(data);
@@ -45,6 +55,10 @@ export function PullRequestPane({
 		? pullRequestRefFromUrl(linkedPR.data.url)
 		: null;
 	const isLinkedPR = linkedRef !== null && isSamePullRequest(linkedRef, data);
+	const evidence = usePullRequestEvidence(
+		workspace.id,
+		isLinkedPR && activeTab === "summary",
+	);
 	const threads = workspaceTrpc.git.getPullRequestThreads.useQuery(
 		{ workspaceId: workspace.id },
 		{
@@ -104,6 +118,26 @@ export function PullRequestPane({
 				hostUrl={workspaceHostUrl}
 				hostId={workspace.hostId}
 				commentTarget={commentTarget}
+				summaryAside={
+					isLinkedPR ? (
+						<PullRequestEvidence
+							{...evidence}
+							onOpenPage={(page) =>
+								onOpenPage({
+									pageId: page.id,
+									slug: page.slug,
+									title: page.title,
+								})
+							}
+							onViewAll={() =>
+								void navigate({
+									to: "/pages",
+									search: { workspace: workspace.id },
+								})
+							}
+						/>
+					) : null
+				}
 			>
 				{isLinkedPR ? (
 					<PullRequestComments

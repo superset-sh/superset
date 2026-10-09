@@ -54,6 +54,8 @@ export type SessionClient = {
 	sessionId: string;
 	getSession(): Promise<ChatRouterOutputs["getSession"]>;
 	getItems(page?: GetItemsPage): Promise<ChatRouterOutputs["getItems"]>;
+	getOutline(): Promise<ChatRouterOutputs["getOutline"]>;
+	getItemBodies(itemIds: string[]): Promise<ChatRouterOutputs["getItemBodies"]>;
 	prompt(options: PromptOptions): Promise<ChatRouterOutputs["prompt"]>;
 	removeQueuedPrompt(itemId: string): Promise<void>;
 	steerQueuedPrompt(itemId: string): Promise<void>;
@@ -85,6 +87,11 @@ export function createSessionClient(
 				before: page.before,
 				limit: page.limit,
 			}),
+
+		getOutline: () => options.transport.getOutline({ sessionId }),
+
+		getItemBodies: (itemIds) =>
+			options.transport.getItemBodies({ sessionId, itemIds }),
 
 		prompt: (promptOptions) =>
 			options.transport.prompt({

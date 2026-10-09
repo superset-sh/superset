@@ -31,7 +31,7 @@
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
-		"test": "bun test --isolate --pass-with-no-tests",
+		"test": "bun test --pass-with-no-tests",
 		"bench": "bun test src/cache-and-paths-memory.bench.ts",
 		"build:types": "tsc -p tsconfig.types.json"
 	},

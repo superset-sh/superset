@@ -13,6 +13,7 @@ import { protectedProcedure, queryProcedure, router } from "../../index";
 
 type FsErrnoCode =
 	| "ENOENT"
+	| "EEXIST"
 	| "EISDIR"
 	| "ENOTDIR"
 	| "EACCES"
@@ -26,6 +27,7 @@ interface FsErrnoCause {
 
 const ERRNO_TO_TRPC: Record<FsErrnoCode, TRPCError["code"]> = {
 	ENOENT: "NOT_FOUND",
+	EEXIST: "CONFLICT",
 	EISDIR: "BAD_REQUEST",
 	ENOTDIR: "BAD_REQUEST",
 	EACCES: "FORBIDDEN",

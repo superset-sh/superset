@@ -10,7 +10,7 @@
 		"assets": "bun run src/assets/produce.ts",
 		"release": "bun run src/environments/release.ts",
 		"seed": "bun run src/environments/seed.ts",
-		"test": "bun test --isolate",
+		"test": "bun test",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {

@@ -27,6 +27,7 @@ export function PullRequestDetailContent({
 	repoFullName,
 	detail,
 	children,
+	summaryAside,
 	commentTarget = null,
 }: {
 	activeTab: PullRequestDetailTab;
@@ -43,6 +44,7 @@ export function PullRequestDetailContent({
 		refetch: () => unknown;
 	};
 	children?: ReactNode;
+	summaryAside?: ReactNode;
 	/** Where a conversation comment posts; null hides the composer. */
 	commentTarget?: PullRequestCommentTarget | null;
 }) {
@@ -86,6 +88,7 @@ export function PullRequestDetailContent({
 					<PullRequestSummaryContent
 						data={detail.data}
 						commentTarget={commentTarget}
+						aside={summaryAside}
 					>
 						{children}
 					</PullRequestSummaryContent>

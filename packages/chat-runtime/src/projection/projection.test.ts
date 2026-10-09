@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import type { ChatRuntime } from "../index";
 import { sessionState } from "../testing/fixtures";
 import { createTestRuntime } from "../testing/testRuntime";
+import { setHarnessSessionId } from "./projection";
 
 describe("ChatSessionStore", () => {
 	let runtime: ChatRuntime;
@@ -32,13 +33,31 @@ describe("ChatSessionStore", () => {
 		).toEqual(["codex"]);
 	});
 
-	test("keeps the harness session id in its own column", () => {
-		runtime.sessions.setHarnessSessionId("s1", "claude-abc");
-		const row = runtime.sessions.get("s1");
-		expect(row).toMatchObject({
-			sessionId: "s1",
-			harnessSessionId: "claude-abc",
+	test("keeps the harness session id the agent reports", () => {
+		runtime.journal.append("s1", {
+			type: "session",
+			session: sessionState({ harnessSessionId: "agent-session-1" }),
 		});
+		runtime.journal.append("s1", {
+			type: "session",
+			session: sessionState({ status: "running" }),
+		});
+		expect(runtime.sessions.get("s1")).toMatchObject({
+			harnessSessionId: "agent-session-1",
+		});
+	});
+
+	test("backfills a harness session id that only the journal has", () => {
+		runtime.journal.append("s1", {
+			type: "session",
+			session: sessionState({ harnessSessionId: "agent-session-1" }),
+		});
+		setHarnessSessionId(runtime.db, "s1", null);
+		runtime.journal.forget("s1");
+
+		const { session } = runtime.commands.getSession({ sessionId: "s1" });
+
+		expect(session?.harnessSessionId).toBe("agent-session-1");
 	});
 
 	test("reflects journal projection writes", () => {

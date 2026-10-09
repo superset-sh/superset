@@ -28,7 +28,7 @@
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
-		"test": "bun test --isolate"
+		"test": "bun test"
 	},
 	"dependencies": {
 		"@superset/shared": "workspace:*"

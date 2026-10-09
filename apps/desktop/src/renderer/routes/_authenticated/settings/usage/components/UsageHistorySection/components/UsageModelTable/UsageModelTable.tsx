@@ -46,7 +46,7 @@ export function UsageModelTable({ history }: { history: UsageHistory }) {
 							<span
 								className="size-1.5 shrink-0 rounded-[2px]"
 								style={{
-									background: AGENT_CHART_CONFIG[row.agent].color,
+									background: AGENT_CHART_CONFIG[row.agent]?.color,
 								}}
 							/>
 							<span className="truncate">{row.model}</span>

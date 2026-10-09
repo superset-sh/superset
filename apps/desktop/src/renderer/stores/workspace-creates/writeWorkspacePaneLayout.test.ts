@@ -13,6 +13,7 @@ type LocalStateRow = {
 		sectionId: string | null;
 		isHidden: boolean;
 	};
+	rightSidebarOpen?: boolean;
 };
 
 type SectionRow = { sectionId: string; projectId: string; tabOrder: number };
@@ -148,5 +149,32 @@ describe("writeWorkspacePaneLayout", () => {
 		create(collections, "alpha");
 
 		expect(projectOrder(PROJECT_ID)).toEqual(["zeta", "alpha"]);
+	});
+
+	it("starts a new workspace with the right sidebar closed", () => {
+		const { collections } = makeCollections([]);
+
+		create(collections, "beta");
+
+		expect(
+			collections.v2WorkspaceLocalState.get("beta")?.rightSidebarOpen,
+		).toBe(false);
+	});
+
+	it("keeps the right sidebar state of a workspace that already has a row", () => {
+		const { collections } = makeCollections([
+			{ ...draggedRow("alpha", 1), rightSidebarOpen: true },
+			draggedRow("zeta", 2),
+		]);
+
+		create(collections, "alpha");
+		create(collections, "zeta");
+
+		expect(
+			collections.v2WorkspaceLocalState.get("alpha")?.rightSidebarOpen,
+		).toBe(true);
+		expect(
+			collections.v2WorkspaceLocalState.get("zeta")?.rightSidebarOpen,
+		).toBeUndefined();
 	});
 });

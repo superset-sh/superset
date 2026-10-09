@@ -5,6 +5,7 @@ export * from "./harness/harness";
 export * from "./markdown/fenceState";
 export * from "./markdown/splitBlocks";
 export * from "./outbox/outbox";
+export * from "./outline";
 export * from "./reducer/reducer";
 export * from "./timeline/deriveTimeline";
 export * from "./transcript/transcript";

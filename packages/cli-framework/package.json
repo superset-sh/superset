@@ -13,7 +13,7 @@
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",
-		"test": "bun test --isolate"
+		"test": "bun test"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",

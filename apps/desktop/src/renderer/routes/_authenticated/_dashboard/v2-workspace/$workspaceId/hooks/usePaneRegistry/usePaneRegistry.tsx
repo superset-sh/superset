@@ -72,6 +72,7 @@ import {
 	findTerminalPaneLocation,
 	focusOrAddTerminalPane,
 } from "../../utils/focusTerminalPane";
+import { openPagePaneInStore } from "../../utils/openPagePaneInStore";
 import { openSubagentPaneInStore } from "../../utils/openSubagentPaneInStore";
 import { useAgentSessionLauncher } from "../useAgentSessionLauncher";
 import type { OpenReviewDiff } from "../useReviewCommentNavigation";
@@ -899,6 +900,7 @@ export function usePaneRegistry({
 						data={ctx.pane.data as PullRequestPaneData}
 						onOpenDiff={onOpenDiff}
 						onOpenComment={onOpenComment}
+						onOpenPage={(page) => openPagePaneInStore(ctx.store, page)}
 					/>
 				),
 				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => (

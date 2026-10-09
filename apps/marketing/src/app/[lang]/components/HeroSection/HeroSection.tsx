@@ -125,7 +125,7 @@ export function HeroSection() {
 											? "/mobile"
 											: `/${i18n.locale}/mobile`
 								}
-								aria-label={t({ message: "Superset for iPhone" })}
+								aria-label={t({ message: "Superset for iPhone and iPad" })}
 								className="flex size-11 shrink-0 items-center justify-center border border-border bg-background text-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand sm:size-12"
 							>
 								<FaApple aria-hidden="true" className="size-5" />

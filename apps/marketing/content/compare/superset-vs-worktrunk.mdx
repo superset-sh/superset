@@ -2,7 +2,7 @@
 title: "Superset vs Worktrunk (2026): Worktree CLI or Desktop Agent Workspace?"
 description: "Compare Worktrunk, a Git worktree CLI for parallel AI agents, with Superset, a desktop app that adds terminals, diff review, PRs, and remote hosts."
 date: 2026-10-07
-lastUpdated: 2026-10-07
+lastUpdated: 2026-10-08
 type: "1v1"
 competitors:
   - worktrunk
@@ -15,7 +15,7 @@ keywords:
   - parallel coding agents
 ---
 
-Worktrunk and Superset both put each coding agent in its own Git worktree. Worktrunk is a free, open-source CLI (`wt`) that makes worktrees as easy to create, merge, and remove as branches, and it runs on macOS, Linux, and Windows. Superset is a desktop app that builds on the same worktree model and adds terminals, diff review, a pull request pane, a browser pane, remote hosts, and an iPhone app. If you live in the terminal and want a light tool, Worktrunk may be all you need. If you want one window to review and ship the work of many agents, try Superset. Some people use both.
+Worktrunk and Superset both put each coding agent in its own Git worktree. Worktrunk is a free, open-source CLI (`wt`) that makes worktrees as easy to create, merge, and remove as branches, and it runs on macOS, Linux, and Windows. Superset is a desktop app that builds on the same worktree model and adds terminals, diff review, a pull request pane, a browser pane, remote hosts, and an iPhone and iPad app. If you live in the terminal and want a light tool, Worktrunk may be all you need. If you want one window to review and ship the work of many agents, try Superset. Some people use both.
 
 ## At a Glance
 
@@ -29,7 +29,7 @@ Worktrunk and Superset both put each coding agent in its own Git worktree. Workt
 | Dev-server ports | Setup scripts per workspace; detected ports and a browser pane | `hash_port` template filter gives each worktree its own port |
 | Setup and teardown | Project setup and teardown commands | Hooks on create, pre-merge, post-merge, and more |
 | Commit messages | Written by you or your agent | LLM commit messages generated from the diff |
-| Remote and mobile | Remote hosts with per-member access (Pro); iPhone app (iOS 26+, Pro) | Local only; see their docs |
+| Remote and mobile | Remote hosts with per-member access (Pro); iPhone and iPad app (iOS or iPadOS 26+, Pro) | Local only; see their docs |
 | Platforms | macOS; experimental Linux AppImage; no Windows | macOS, Linux, Windows (as `git-wt` through Winget) |
 | Pricing | Free; Pro $20 per user/month, or $15 billed yearly; Enterprise custom | Free |
 | License | Source-available, Elastic License 2.0 | MIT OR Apache-2.0 |
@@ -69,13 +69,13 @@ Keep one tool in charge of each worktree's lifecycle. If Superset created a work
 
 Worktrunk is a local CLI. Its metadata stays in your repository's `.git` directory, and its docs do not describe remote hosts or a mobile app. You can still run it over SSH on another machine.
 
-Superset can add remote hosts through its relay, with access granted per member on Pro. The iPhone app on the App Store (iOS 26+, Pro) lets you check agents, read diffs, and send follow-ups to a host that stays online, with a Lock Screen Live Activity. Android is on a waitlist.
+Superset can add remote hosts through its relay, with access granted per member on Pro. The iPhone and iPad app on the App Store (iOS or iPadOS 26+, Pro) lets you check agents, read diffs, and send follow-ups to a host that stays online, with a Lock Screen Live Activity. Android is on a waitlist.
 
 ## Pricing
 
 Worktrunk is free and open source under MIT OR Apache-2.0. We found no paid tier.
 
-Superset has a Free plan for one user. Pro costs $20 per user per month, or $15 per user per month billed yearly, and adds automations, remote hosts, the iPhone app, and GitHub, Linear, and Slack integrations. Enterprise pricing is custom. See [pricing](/pricing). With either tool, you pay your agent provider separately. Superset does not proxy model calls.
+Superset has a Free plan for one user. Pro costs $20 per user per month, or $15 per user per month billed yearly, and adds automations, remote hosts, the iPhone and iPad app, and GitHub, Linear, and Slack integrations. Enterprise pricing is custom. See [pricing](/pricing). With either tool, you pay your agent provider separately. Superset does not proxy model calls.
 
 ## Choose Worktrunk if / Choose Superset if
 
@@ -91,7 +91,7 @@ Superset has a Free plan for one user. Pro costs $20 per user per month, or $15 
 - You run many agents and the hard part is reviewing and shipping their work.
 - You want diffs, commits, pull requests, checks, and review threads in one app.
 - You want a browser pane next to the agent, with Design Mode.
-- You need remote hosts shared with a team, scheduled automations, or an iPhone app.
+- You need remote hosts shared with a team, scheduled automations, or an iPhone and iPad app.
 
 ## Verdict
 

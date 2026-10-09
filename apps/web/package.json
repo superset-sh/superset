@@ -4,7 +4,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"test": "bun test --isolate src",
+		"test": "bun test src",
 		"build": "next build",
 		"clean": "git clean -xdf .cache .next .turbo node_modules",
 		"predev": "bun run --filter=@superset/i18n build",

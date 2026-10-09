@@ -33,6 +33,7 @@ class FakeAcpAgent {
 	holdSelections = false;
 	rejectSelections = false;
 	private heldSelections: number[] = [];
+	private heldPrompts: number[] = [];
 	/** Advertise `_session/steering` and answer it with this outcome. */
 	steeringOutcome: string | null = null;
 	/** Leave session/prompt unanswered, as a turn still running does. */
@@ -84,6 +85,34 @@ class FakeAcpAgent {
 			},
 		});
 		return id;
+	}
+
+	requestElicitation(params: Record<string, unknown>, id = 9002): number {
+		this.deliver({
+			jsonrpc: "2.0",
+			id,
+			method: "elicitation/create",
+			params: { mode: "form", sessionId: "sess-1", ...params },
+		});
+		return id;
+	}
+
+	cancelRequest(requestId: number): void {
+		this.deliver({
+			jsonrpc: "2.0",
+			method: "$/cancel_request",
+			params: { requestId },
+		});
+	}
+
+	releasePrompts(stopReason: string): void {
+		for (const id of this.heldPrompts.splice(0)) {
+			this.respond(id, { stopReason });
+		}
+	}
+
+	responseTo(id: number): Record<string, unknown> | undefined {
+		return this.sent.find((frame) => frame.id === id && !frame.method);
 	}
 
 	releaseSelections(): void {
@@ -196,7 +225,7 @@ class FakeAcpAgent {
 			} else if (frame.method === "_session/steering") {
 				this.respond(frame.id as number, { outcome: this.steeringOutcome });
 			} else if (frame.method === "session/prompt" && this.holdPrompts) {
-				return;
+				this.heldPrompts.push(frame.id as number);
 			} else if (frame.method === "session/prompt") {
 				this.notify("sess-1", {
 					sessionUpdate: "agent_message_chunk",
@@ -821,6 +850,282 @@ describe("AcpAdapter", () => {
 
 		await adapter.dispose();
 	});
+
+	it("advertises form elicitation and answers a question form", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+
+		const initialize = agent.sent.find((f) => f.method === "initialize");
+		expect(initialize?.params).toMatchObject({
+			clientCapabilities: { elicitation: { form: {} } },
+			capabilities: { elicitation: { form: {} } },
+		});
+
+		const requestId = agent.requestElicitation({
+			toolCallId: "tc-ask",
+			message: "Which database?",
+			requestedSchema: {
+				type: "object",
+				properties: {
+					question_0: {
+						type: "string",
+						title: "Database",
+						oneOf: [
+							{ const: "Postgres", title: "Postgres", description: "SQL" },
+							{ const: "Redis", title: "Redis" },
+						],
+					},
+					question_0_custom: { type: "string", title: "Other" },
+				},
+			},
+		});
+		await flush();
+
+		const approval = itemsOf(events).find((i) => i.kind === "approval_request");
+		expect(approval).toMatchObject({
+			targetItemId: "tc-ask",
+			form: {
+				message: "Which database?",
+				fields: [
+					{
+						id: "question_0",
+						title: "Database",
+						input: "single",
+						options: [
+							{ value: "Postgres", label: "Postgres", description: "SQL" },
+							{ value: "Redis", label: "Redis" },
+						],
+					},
+					{ id: "question_0_custom", title: "Other", input: "text" },
+				],
+			},
+		});
+
+		adapter.respondToApproval(approval?.id ?? "", {
+			type: "form",
+			values: { question_0: "Redis" },
+		});
+		await flush();
+
+		expect(agent.responseTo(requestId)?.result).toEqual({
+			action: "accept",
+			content: { question_0: "Redis" },
+		});
+
+		await adapter.dispose();
+	});
+
+	it("types a generic form's answers by its schema", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+
+		const requestId = agent.requestElicitation({
+			message: "Configure",
+			requestedSchema: {
+				type: "object",
+				required: ["confirm"],
+				properties: {
+					confirm: { type: "boolean", title: "Confirm" },
+					count: { type: "integer" },
+					ratio: { type: "number" },
+					size: {
+						type: "string",
+						enum: ["s", "l"],
+						enumNames: ["Small", "Large"],
+					},
+				},
+			},
+		});
+		await flush();
+
+		const approval = itemsOf(events).find((i) => i.kind === "approval_request");
+		expect(approval).toMatchObject({
+			targetItemId: null,
+			form: {
+				fields: [
+					{ id: "confirm", input: "boolean", required: true },
+					{ id: "count", input: "integer" },
+					{ id: "ratio", input: "number" },
+					{
+						id: "size",
+						input: "single",
+						options: [
+							{ value: "s", label: "Small" },
+							{ value: "l", label: "Large" },
+						],
+					},
+				],
+			},
+		});
+
+		adapter.respondToApproval(approval?.id ?? "", {
+			type: "form",
+			values: { confirm: "true", count: "3", ratio: "2.5", size: "l" },
+		});
+		await flush();
+
+		expect(agent.responseTo(requestId)?.result).toEqual({
+			action: "accept",
+			content: { confirm: true, count: 3, ratio: 2.5, size: "l" },
+		});
+
+		await adapter.dispose();
+	});
+
+	it("keeps a form pending when an answer misses a required field or is not a whole number", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+
+		const requestId = agent.requestElicitation({
+			message: "Configure",
+			requestedSchema: {
+				type: "object",
+				required: ["confirm"],
+				properties: {
+					confirm: { type: "boolean" },
+					count: { type: "integer" },
+				},
+			},
+		});
+		await flush();
+		const approvalId =
+			itemsOf(events).find((i) => i.kind === "approval_request")?.id ?? "";
+
+		adapter.respondToApproval(approvalId, {
+			type: "form",
+			values: { count: "3" },
+		});
+		adapter.respondToApproval(approvalId, {
+			type: "form",
+			values: { confirm: "true", count: "3.9" },
+		});
+		await flush();
+		expect(agent.responseTo(requestId)).toBeUndefined();
+
+		adapter.respondToApproval(approvalId, {
+			type: "form",
+			values: { confirm: "false", count: "4" },
+		});
+		await flush();
+		expect(agent.responseTo(requestId)?.result).toEqual({
+			action: "accept",
+			content: { confirm: false, count: 4 },
+		});
+
+		await adapter.dispose();
+	});
+
+	it("answers a form with decline for an allow and cancel for a cancel", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+
+		const allowId = agent.requestElicitation({ message: "First" }, 9002);
+		const cancelId = agent.requestElicitation({ message: "Second" }, 9003);
+		await flush();
+
+		const [first, second] = itemsOf(events).filter(
+			(i) => i.kind === "approval_request",
+		);
+		adapter.respondToApproval(first?.id ?? "", { type: "accept" });
+		adapter.respondToApproval(second?.id ?? "", { type: "cancel" });
+		await flush();
+
+		expect(agent.responseTo(allowId)?.result).toEqual({ action: "decline" });
+		expect(agent.responseTo(cancelId)?.result).toEqual({ action: "cancel" });
+
+		await adapter.dispose();
+	});
+
+	it("rejects a url-mode or malformed elicitation", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+
+		const urlId = agent.requestElicitation(
+			{ mode: "url", message: "Sign in", url: "https://example.com" },
+			9002,
+		);
+		const malformedId = agent.requestElicitation({}, 9003);
+		await flush();
+
+		expect(agent.responseTo(urlId)?.error).toMatchObject({ code: -32602 });
+		expect(agent.responseTo(malformedId)?.error).toMatchObject({
+			code: -32602,
+		});
+		expect(
+			itemsOf(events).some((i) => i.kind === "approval_request"),
+		).toBeFalse();
+
+		await adapter.dispose();
+	});
+
+	it("does not allow a permission request on a form decision", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter } = startAdapter(agent);
+		await flush();
+
+		agent.requestPermission("sess-1", "tc-1");
+		await flush();
+		adapter.respondToApproval("approval:tc-1", { type: "form", values: {} });
+		await flush();
+
+		expect(agent.lastPermissionResponse()?.result).toEqual({
+			outcome: { outcome: "cancelled" },
+		});
+
+		await adapter.dispose();
+	});
+
+	it("cancels a turn's pending form when the turn ends", async () => {
+		const agent = new FakeAcpAgent();
+		agent.holdPrompts = true;
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+		adapter.prompt([{ type: "text", text: "ask me" }]);
+		await flush();
+
+		const requestId = agent.requestElicitation({ message: "Which?" });
+		await flush();
+		agent.releasePrompts("cancelled");
+		await flush();
+
+		const approvals = itemsOf(events).filter(
+			(i) => i.kind === "approval_request",
+		);
+		expect(approvals.at(-1)).toMatchObject({ status: "stale" });
+		expect(agent.responseTo(requestId)?.result).toEqual({ action: "cancel" });
+
+		await adapter.dispose();
+	});
+
+	it("marks a form stale when the agent cancels its request", async () => {
+		const agent = new FakeAcpAgent();
+		agent.holdPrompts = true;
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+		adapter.prompt([{ type: "text", text: "ask me" }]);
+		await flush();
+
+		const requestId = agent.requestElicitation({ message: "Which?" });
+		await flush();
+		agent.cancelRequest(requestId);
+		await flush();
+
+		const approvals = itemsOf(events).filter(
+			(i) => i.kind === "approval_request",
+		);
+		expect(approvals.at(-1)).toMatchObject({ status: "stale" });
+		const statuses = events.flatMap((e) =>
+			e.kind === "session" && e.session.status ? [e.session.status] : [],
+		);
+		expect(statuses.at(-1)).toBe("running");
+
+		await adapter.dispose();
+	});
 });
 
 describe("AcpAdapter on protocol v2", () => {
@@ -855,6 +1160,50 @@ describe("AcpAdapter on protocol v2", () => {
 		);
 		expect(toolCall && "status" in toolCall ? toolCall.status : "").toBe(
 			"running",
+		);
+
+		await adapter.dispose();
+	});
+
+	it("names the MCP server and tool of a Claude MCP call, and keeps them across updates", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+
+		agent.notify("sess-1", {
+			sessionUpdate: "tool_call_update",
+			toolCallId: "tc-mcp",
+			title: "mcp__linear__save_issue",
+			kind: "other",
+			_meta: { claudeCode: { toolName: "mcp__linear__save_issue" } },
+		});
+		agent.notify("sess-1", {
+			sessionUpdate: "tool_call_update",
+			toolCallId: "tc-mcp",
+			status: "completed",
+		});
+		agent.notify("sess-1", {
+			sessionUpdate: "tool_call_update",
+			toolCallId: "tc-bash",
+			title: "ls",
+			kind: "execute",
+			_meta: { claudeCode: { toolName: "Bash" } },
+		});
+		await flush();
+
+		const toolCalls = itemsOf(events).filter((i) => i.kind === "tool_call");
+		const mcpCalls = toolCalls.filter((i) => i.id === "tc-mcp");
+		const last = mcpCalls[mcpCalls.length - 1];
+		expect(last && "mcpServer" in last ? last.mcpServer : null).toEqual({
+			name: "linear",
+			tool: "save_issue",
+		});
+		expect(last && "toolName" in last ? last.toolName : "").toBe(
+			"mcp__linear__save_issue",
+		);
+		const bash = toolCalls.find((i) => i.id === "tc-bash");
+		expect(bash && "mcpServer" in bash ? bash.mcpServer : undefined).toBe(
+			undefined,
 		);
 
 		await adapter.dispose();
@@ -1889,7 +2238,10 @@ describe("AcpAdapter on protocol v2", () => {
 		expect(params.info?.name).toBe("superset");
 		expect(params.info?.version).toBeString();
 		// v2 renamed the field; v1 agents still read the old name.
-		expect(params.capabilities).toEqual({ _meta: AIR_CLIENT_META });
+		expect(params.capabilities).toEqual({
+			elicitation: { form: {} },
+			_meta: AIR_CLIENT_META,
+		});
 		expect(params.clientCapabilities).toBeDefined();
 
 		await adapter.dispose();

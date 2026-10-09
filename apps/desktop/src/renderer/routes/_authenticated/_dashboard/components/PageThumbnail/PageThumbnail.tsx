@@ -7,6 +7,7 @@ interface PageThumbnailProps {
 	src: string | null;
 	/** Takes the height its container gives it instead of the capture's aspect ratio, cropping from the top. */
 	fill?: boolean;
+	className?: string;
 }
 
 /**
@@ -14,7 +15,11 @@ interface PageThumbnailProps {
  * usercontent origin; one that has not been captured yet 404s, and the card
  * shows a placeholder until the next list refetch.
  */
-export function PageThumbnail({ src, fill = false }: PageThumbnailProps) {
+export function PageThumbnail({
+	src,
+	fill = false,
+	className,
+}: PageThumbnailProps) {
 	const [failed, setFailed] = useState<{ src: string; at: number } | null>(
 		null,
 	);
@@ -30,6 +35,7 @@ export function PageThumbnail({ src, fill = false }: PageThumbnailProps) {
 			className={cn(
 				"relative w-full overflow-hidden bg-muted/40",
 				fill && "min-h-0 flex-1",
+				className,
 			)}
 			style={fill ? undefined : { aspectRatio: THUMBNAIL_ASPECT_RATIO }}
 		>

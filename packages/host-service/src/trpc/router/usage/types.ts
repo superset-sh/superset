@@ -2,7 +2,7 @@
  * Agents that can appear in usage history/analytics. Quota accounts exist
  * only for agents listed by QuotaCapableAgent; the rest surface transcript-derived token
  * history. Agents whose CLIs record no usable local usage data (gemini, amp,
- * kimi, vibe, kiro, droid, hermes, mastracode) are intentionally absent.
+ * kimi, vibe, kiro, droid, mastracode) are intentionally absent.
  */
 export type UsageAgent =
 	| "claude"
@@ -16,7 +16,8 @@ export type UsageAgent =
 	| "omp"
 	| "fx"
 	| "muse"
-	| "devin";
+	| "devin"
+	| "hermes";
 
 /** The subset of agents with quota accounts. Claude and Codex logins are
  * also switchable; OpenCode's are the Anthropic/OpenAI subscriptions it is

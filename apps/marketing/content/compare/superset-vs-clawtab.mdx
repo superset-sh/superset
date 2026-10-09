@@ -1,8 +1,8 @@
 ---
 title: "Superset vs ClawTab (2026): tmux control plane or agent workspace app?"
-description: "Compare Superset and ClawTab for running Claude Code and Codex, checking on agents from an iPhone, scheduling jobs, review, pricing, and licensing."
+description: "Compare Superset and ClawTab for running Claude Code and Codex, checking on agents from an iPhone or iPad, scheduling jobs, review, pricing, and licensing."
 date: 2026-10-07
-lastUpdated: 2026-10-07
+lastUpdated: 2026-10-08
 type: "1v1"
 competitors:
   - clawtab
@@ -16,7 +16,7 @@ keywords:
   - worktree agent workspace
 ---
 
-ClawTab is a free, MIT-licensed control plane that runs Claude Code, Codex, and OpenCode in durable tmux panes, with a headless daemon for schedules and remote access and an iPhone and iPad app. Superset is a desktop app that gives each task its own Git worktree and branch, with a terminal, diff review, pull requests, and a browser pane in one window, plus an iPhone app. Pick ClawTab if you want to keep your terminal workflow and add a phone and a scheduler on top. Pick Superset if you want each agent isolated on its own branch and want to review and ship its work in the same app.
+ClawTab is a free, MIT-licensed control plane that runs Claude Code, Codex, and OpenCode in durable tmux panes, with a headless daemon for schedules and remote access and an iPhone and iPad app. Superset is a desktop app that gives each task its own Git worktree and branch, with a terminal, diff review, pull requests, and a browser pane in one window, plus an iPhone and iPad app. Pick ClawTab if you want to keep your terminal workflow and add a phone and a scheduler on top. Pick Superset if you want each agent isolated on its own branch and want to review and ship its work in the same app.
 
 ## At a Glance
 
@@ -27,7 +27,7 @@ ClawTab is a free, MIT-licensed control plane that runs Claude Code, Codex, and 
 | Isolation | Git worktree and branch per workspace | Durable tmux panes; worktrees not described in its docs |
 | Review | Changes pane that commits, pushes, and opens PRs; PR pane with checks, review threads, and merge | Terminal output; diff review not described in its docs |
 | Desktop | macOS; experimental Linux AppImage; no Windows | macOS; Linux x86_64 and ARM64; no native Windows |
-| Phone | iPhone app on the App Store (iOS 26+, Pro) with a Lock Screen Live Activity | iPhone and iPad app on the App Store; web app works on Android |
+| Phone | iPhone and iPad app on the App Store (iOS or iPadOS 26+, Pro) with a Lock Screen Live Activity | iPhone and iPad app on the App Store; web app works on Android |
 | Phone alerts | Live Activity today; push notifications coming | Alerts when an agent asks a question; push listed in its README |
 | Scheduling | Pro automations on a selected host, with run history and retry | Cron and one-time jobs run by the daemon |
 | Remote hosts | Hosts you add through the relay, with access per member (Pro) | Paired Mac and Linux hosts through hosted Remote or your own relay |
@@ -56,13 +56,13 @@ ClawTab keeps sessions alive and separate as processes. Its docs do not describe
 
 Superset creates a Git worktree and branch for each workspace, so each agent has its own working files and its own diff. Worktrees are not a sandbox: processes are not isolated, and combined branches can still conflict. See [git worktrees for AI agents](/compare/git-worktrees-for-ai-agents).
 
-## Which is better for monitoring agents from an iPhone?
+## Which is better for monitoring agents from an iPhone or iPad?
 
 Both have an App Store app, and in both the agent keeps running on your computer. See our guide to [monitoring coding agents from an iPhone](/compare/monitor-coding-agents-from-iphone) for the full field.
 
-ClawTab is ahead on device coverage today. Its app runs on iPhone and iPad, the web app covers Android and any browser, and it alerts you when an agent asks a question. Its Remote page lists push notifications and a self-hosted relay in the free tier.
+Both apps run on iPhone and iPad. ClawTab still reaches more devices: its web app covers Android and any browser, and it alerts you when an agent asks a question. Its Remote page lists push notifications and a self-hosted relay in the free tier.
 
-[Superset for iPhone](/mobile) needs iOS 26 or later and Pro. It lists workspaces across every host you can access, with a marker for working, waiting, failed, or ready for review. While the app is open, a Live Activity on the Lock Screen and Dynamic Island shows which agents need you; it does not update in the background yet. You can reply in the agent's terminal, review diffs file by file, check pull request status, and merge. Push notifications and native iPad support are coming, not shipped. Android is on a [waitlist](/mobile#android).
+[Superset for iPhone and iPad](/mobile) needs iOS 26 or iPadOS 26 or later and Pro. It lists workspaces across every host you can access, with a marker for working, waiting, failed, or ready for review. While the app is open, a Live Activity on the Lock Screen and Dynamic Island shows which agents need you; it does not update in the background yet. You can reply in the agent's terminal, review diffs file by file, check pull request status, and merge. Push notifications are coming, not shipped. Android is on a [waitlist](/mobile#android).
 
 ## How do remote hosts and relays compare?
 
@@ -74,14 +74,14 @@ Superset connects hosts through its relay. A headless machine runs `superset sta
 
 ClawTab's local tools are free and MIT-licensed with no account. Hosted Remote costs $4.99/month. Self-hosting the relay is free.
 
-Superset is free for one user. Pro is $20 per user/month, or $15 billed yearly, and covers the iPhone app, remote hosts, automations, and GitHub, Linear, and Slack integrations. Enterprise is custom. See [pricing](/pricing). With either product, Claude Code or Codex usage is billed by its provider.
+Superset is free for one user. Pro is $20 per user/month, or $15 billed yearly, and covers the iPhone and iPad app, remote hosts, automations, and GitHub, Linear, and Slack integrations. Enterprise is custom. See [pricing](/pricing). With either product, Claude Code or Codex usage is billed by its provider.
 
 ## Choose ClawTab if / Choose Superset if
 
 **Choose ClawTab if:**
 
 - You live in tmux and want to keep that workflow
-- You need an iPad app, Android through the web, or Linux as a first-class desktop
+- You need Android through the web, or Linux as a first-class desktop
 - You want an MIT license or a relay you host yourself
 - You want phone access for a few dollars a month
 
@@ -95,7 +95,7 @@ Superset is free for one user. Pro is $20 per user/month, or $15 billed yearly, 
 
 ## Verdict
 
-ClawTab is a light, open layer over tmux, and it covers more devices for phone and tablet access. Superset is a full workspace app: it isolates each task on a branch and takes the work through review to a merged pull request. If your pain is "I can't see my tmux agents from my phone", start with ClawTab. If your pain is "several agents are editing my repo and I need to review and ship their work", start with Superset.
+ClawTab is a light, open layer over tmux, and its web app reaches Android and any browser. Superset is a full workspace app: it isolates each task on a branch and takes the work through review to a merged pull request. If your pain is "I can't see my tmux agents from my phone", start with ClawTab. If your pain is "several agents are editing my repo and I need to review and ship their work", start with Superset.
 
 ## Frequently Asked Questions
 
