@@ -11798,6 +11798,9 @@ msgstr "Mở trong PostHog"
 msgid "Open in Pull Requests"
 msgstr "Mở trong Pull request"
 
+msgid "Open in right pane"
+msgstr "Mở ở ngăn bên phải"
+
 msgid "Open in Scira AI"
 msgstr "Mở trong Scira AI"
 
@@ -14225,6 +14228,9 @@ msgstr "Nhập nâng cao ({hotkeyText})"
 
 msgid "Rich input for the terminal"
 msgstr "Ô nhập nâng cao cho terminal"
+
+msgid "right pane"
+msgstr "ngăn bên phải"
 
 msgid "Right-click here"
 msgstr "Nhấp chuột phải ở đây"

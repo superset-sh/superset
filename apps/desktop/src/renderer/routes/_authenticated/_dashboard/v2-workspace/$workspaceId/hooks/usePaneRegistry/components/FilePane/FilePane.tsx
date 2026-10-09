@@ -4,6 +4,7 @@ import { useCallback, useEffect } from "react";
 import { FileSaveConflictDialog } from "renderer/components/FileSaveConflictDialog";
 import { MarkdownResourceProvider } from "renderer/components/MarkdownRenderer/providers/MarkdownResourceProvider";
 import type { LinkAction } from "renderer/lib/clickPolicy";
+import { useRightPaneLinkTarget } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/providers/RightPaneLinkTargetProvider";
 import { getPathDirectory } from "shared/absolute-paths";
 import { useStore } from "zustand";
 import {
@@ -105,11 +106,12 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 		[context.actions, data],
 	);
 
+	const rightPane = useRightPaneLinkTarget();
 	const handleOpenUrl = useCallback(
 		(url: string, action: LinkAction) => {
-			runUrlLinkAction({ store: context.store }, url, action);
+			runUrlLinkAction({ store: context.store, rightPane }, url, action);
 		},
-		[context.store],
+		[context.store, rightPane],
 	);
 
 	const handlePositionRevealed = useCallback(() => {

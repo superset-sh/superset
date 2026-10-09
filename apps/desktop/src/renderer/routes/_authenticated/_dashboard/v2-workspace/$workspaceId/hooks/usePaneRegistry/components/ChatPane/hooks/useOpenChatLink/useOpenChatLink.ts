@@ -11,6 +11,7 @@ import {
 } from "renderer/lib/clickPolicy";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
 import { useRevealInFinder } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useRevealInFinder";
+import { useRightPaneLinkTarget } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/providers/RightPaneLinkTargetProvider";
 import type {
 	OpenFile,
 	PaneViewerData,
@@ -45,6 +46,7 @@ export function useOpenChatLink({
 	const getUrlAction = useUrlLinkAction("2-tier");
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
 	const revealInFinder = useRevealInFinder(workspaceId);
+	const rightPane = useRightPaneLinkTarget();
 	const { data: workspace } = workspaceTrpc.workspace.get.useQuery({
 		id: workspaceId,
 	});
@@ -59,6 +61,7 @@ export function useOpenChatLink({
 		openInExternalEditor,
 		revealInFinder,
 		worktreePath: undefined,
+		rightPane,
 	});
 	depsRef.current = {
 		store,
@@ -67,6 +70,7 @@ export function useOpenChatLink({
 		openInExternalEditor,
 		revealInFinder,
 		worktreePath: workspace?.worktreePath ?? undefined,
+		rightPane,
 	};
 
 	return useCallback(

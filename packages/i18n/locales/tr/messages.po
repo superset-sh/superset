@@ -11798,6 +11798,9 @@ msgstr "PostHog'da aç"
 msgid "Open in Pull Requests"
 msgstr "Pull request'lerde aç"
 
+msgid "Open in right pane"
+msgstr "Sağ panelde aç"
+
 msgid "Open in Scira AI"
 msgstr "Scira AI'da aç"
 
@@ -14225,6 +14228,9 @@ msgstr "Zengin giriş ({hotkeyText})"
 
 msgid "Rich input for the terminal"
 msgstr "Terminal için zengin giriş"
+
+msgid "right pane"
+msgstr "sağ panel"
 
 msgid "Right-click here"
 msgstr "Buraya sağ tıklayın"

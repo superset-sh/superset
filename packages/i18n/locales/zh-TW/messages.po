@@ -11798,6 +11798,9 @@ msgstr "在PostHog中開啟"
 msgid "Open in Pull Requests"
 msgstr "在拉取請求中開啟"
 
+msgid "Open in right pane"
+msgstr "在右側面板中開啟"
+
 msgid "Open in Scira AI"
 msgstr "在Scira AI中開啟"
 
@@ -14225,6 +14228,9 @@ msgstr "富輸入（{hotkeyText}）"
 
 msgid "Rich input for the terminal"
 msgstr "終端富文字輸入"
+
+msgid "right pane"
+msgstr "右側面板"
 
 msgid "Right-click here"
 msgstr "在這裡右鍵點選"

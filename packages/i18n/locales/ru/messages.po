@@ -11798,6 +11798,9 @@ msgstr "Открыть в PostHog"
 msgid "Open in Pull Requests"
 msgstr "Открыть в разделе «Пул-реквесты»"
 
+msgid "Open in right pane"
+msgstr "Открыть в правой панели"
+
 msgid "Open in Scira AI"
 msgstr "Открыть в Scira AI"
 
@@ -14225,6 +14228,9 @@ msgstr "Расширенный ввод ({hotkeyText})"
 
 msgid "Rich input for the terminal"
 msgstr "Расширенный ввод для терминала"
+
+msgid "right pane"
+msgstr "правая панель"
 
 msgid "Right-click here"
 msgstr "Кликните здесь правой кнопкой"

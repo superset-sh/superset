@@ -11798,6 +11798,9 @@ msgstr "In PostHog öffnen"
 msgid "Open in Pull Requests"
 msgstr "In Pull Requests öffnen"
 
+msgid "Open in right pane"
+msgstr "Im rechten Bereich öffnen"
+
 msgid "Open in Scira AI"
 msgstr "In Scira AI öffnen"
 
@@ -14225,6 +14228,9 @@ msgstr "Rich-Eingabe ({hotkeyText})"
 
 msgid "Rich input for the terminal"
 msgstr "Rich-Eingabe fürs Terminal"
+
+msgid "right pane"
+msgstr "rechter Bereich"
 
 msgid "Right-click here"
 msgstr "Hier rechtsklicken"

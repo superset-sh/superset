@@ -11798,6 +11798,9 @@ msgstr "Buka di PostHog"
 msgid "Open in Pull Requests"
 msgstr "Buka di Pull request"
 
+msgid "Open in right pane"
+msgstr "Buka di panel kanan"
+
 msgid "Open in Scira AI"
 msgstr "Buka di Scira AI"
 
@@ -14225,6 +14228,9 @@ msgstr "Input kaya ({hotkeyText})"
 
 msgid "Rich input for the terminal"
 msgstr "Input kaya untuk terminal"
+
+msgid "right pane"
+msgstr "panel kanan"
 
 msgid "Right-click here"
 msgstr "Klik kanan di sini"

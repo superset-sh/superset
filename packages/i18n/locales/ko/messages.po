@@ -11798,6 +11798,9 @@ msgstr "PostHog에서 열기"
 msgid "Open in Pull Requests"
 msgstr "풀 리퀘스트에서 열기"
 
+msgid "Open in right pane"
+msgstr "오른쪽 패널에서 열기"
+
 msgid "Open in Scira AI"
 msgstr "Scira AI에서 열기"
 
@@ -14225,6 +14228,9 @@ msgstr "리치 입력 ({hotkeyText})"
 
 msgid "Rich input for the terminal"
 msgstr "터미널용 리치 입력"
+
+msgid "right pane"
+msgstr "오른쪽 패널"
 
 msgid "Right-click here"
 msgstr "여기를 오른쪽 클릭"

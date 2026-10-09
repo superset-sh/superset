@@ -1,6 +1,7 @@
 import type { RendererContext } from "@superset/panes";
 import { useCallback } from "react";
 import { tierFor, useUrlLinkAction } from "renderer/lib/clickPolicy";
+import { useRightPaneLinkTarget } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/providers/RightPaneLinkTargetProvider";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { runUrlLinkAction } from "../../../../utils/runTerminalLinkAction";
 import type { OpenPage } from "../../../ChatSession/providers/ChatPaneActionsProvider";
@@ -14,13 +15,14 @@ export function useOpenChatPage(
 	store: RendererContext<PaneViewerData>["store"],
 ): OpenPage {
 	const getUrlAction = useUrlLinkAction("2-tier");
+	const rightPane = useRightPaneLinkTarget();
 	return useCallback(
 		(url, event) => {
 			const action =
 				getUrlAction(event, url) ??
 				(tierFor(event, "2-tier") === "plain" ? "pane" : null);
-			if (action) runUrlLinkAction({ store }, url, action);
+			if (action) runUrlLinkAction({ store, rightPane }, url, action);
 		},
-		[getUrlAction, store],
+		[getUrlAction, store, rightPane],
 	);
 }

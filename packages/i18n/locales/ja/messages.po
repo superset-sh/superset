@@ -11798,6 +11798,9 @@ msgstr "PostHogで開く"
 msgid "Open in Pull Requests"
 msgstr "プルリクエスト画面で開く"
 
+msgid "Open in right pane"
+msgstr "右ペインで開く"
+
 msgid "Open in Scira AI"
 msgstr "Scira AIで開く"
 
@@ -14225,6 +14228,9 @@ msgstr "リッチ入力 ({hotkeyText})"
 
 msgid "Rich input for the terminal"
 msgstr "ターミナルのリッチ入力"
+
+msgid "right pane"
+msgstr "右ペイン"
 
 msgid "Right-click here"
 msgstr "ここを右クリック"
