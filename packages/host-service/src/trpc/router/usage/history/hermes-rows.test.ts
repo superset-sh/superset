@@ -107,6 +107,32 @@ describe("hermesRowsToEntries", () => {
 		expect(labels.get("20260824_073317_28278b")).toBe("Fix the flaky test");
 	});
 
+	test("compares one resolved cost so an actual session total does not repeat estimated row costs", () => {
+		const out: UsageLogEntry[] = [];
+		hermesRowsToEntries(
+			[session({ input_tokens: 1500, actual_cost_usd: 0.12 })],
+			[modelRow({ input_tokens: 1000, estimated_cost_usd: 0.12 })],
+			0,
+			out,
+		);
+		expect(out.map((e) => [e.uncachedInput, e.costUsd])).toEqual([
+			[1000, 0.12],
+			[500, undefined],
+		]);
+	});
+
+	test("keeps a session remainder that has a cost but no tokens", () => {
+		const out: UsageLogEntry[] = [];
+		hermesRowsToEntries(
+			[session({ input_tokens: 1000, estimated_cost_usd: 0.5 })],
+			[modelRow({ input_tokens: 1000, estimated_cost_usd: 0.2 })],
+			0,
+			out,
+		);
+		expect(out[1]).toMatchObject({ uncachedInput: 0, output: 0 });
+		expect(out[1]?.costUsd).toBeCloseTo(0.3);
+	});
+
 	test("skips empty sessions, rows before the cutoff, and rows of unknown sessions", () => {
 		const out: UsageLogEntry[] = [];
 		hermesRowsToEntries(
