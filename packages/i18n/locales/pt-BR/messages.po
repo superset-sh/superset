@@ -8786,6 +8786,9 @@ msgstr "Faturas e forma de pagamento"
 msgid "iOS app"
 msgstr "App para iOS"
 
+msgid "iOS Simulator"
+msgstr "Simulador do iOS"
+
 msgid "IP restrictions"
 msgstr "Restrições de IP"
 
@@ -10923,6 +10926,9 @@ msgstr "Nenhuma sessão ainda"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "Nenhum atalho corresponde a \"{searchQuery}\""
+
+msgid "No simulator is running."
+msgstr "Nenhum simulador em execução."
 
 msgid "No sites are signed in"
 msgstr "Nenhum site com login feito"

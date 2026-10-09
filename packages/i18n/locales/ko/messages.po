@@ -8786,6 +8786,9 @@ msgstr "청구서 및 결제 수단"
 msgid "iOS app"
 msgstr "iOS 앱"
 
+msgid "iOS Simulator"
+msgstr "iOS 시뮬레이터"
+
 msgid "IP restrictions"
 msgstr "IP 제한"
 
@@ -10923,6 +10926,9 @@ msgstr "아직 세션이 없습니다"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "\"{searchQuery}\"과(와) 일치하는 단축키가 없습니다"
+
+msgid "No simulator is running."
+msgstr "실행 중인 시뮬레이터가 없습니다."
 
 msgid "No sites are signed in"
 msgstr "로그인한 사이트가 없습니다"

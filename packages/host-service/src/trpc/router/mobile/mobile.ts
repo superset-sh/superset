@@ -7,10 +7,19 @@ import { promisify } from "node:util";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../../index";
+import {
+	easSimulatorConfigured,
+	listEasSimulatorSessions,
+} from "./eas-simulator";
 
 const run = promisify(execFile);
 
-export type MobileBackend = "limrun" | "local-ios" | "local-android" | "none";
+export type MobileBackend =
+	| "eas"
+	| "limrun"
+	| "local-ios"
+	| "local-android"
+	| "none";
 
 async function commandExists(cmd: string): Promise<boolean> {
 	try {
@@ -48,11 +57,12 @@ function findAndroidSdk(): string | null {
 	return null;
 }
 
-/** What this host can show a mobile pane with: a sandbox always prefers
- * Limrun (no local toolchain at all); a real machine prefers whichever
- * local toolchain is installed. */
+/** What this host can show a mobile pane with: a sandbox has no local
+ * toolchain, so it takes a hosted simulator; a real machine prefers
+ * whichever local toolchain is installed. */
 export async function detectMobileBackend(): Promise<MobileBackend> {
 	if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") {
+		if (easSimulatorConfigured()) return "eas";
 		return process.env.LIM_API_KEY ? "limrun" : "none";
 	}
 	if (await hasIosSimulators()) return "local-ios";
@@ -350,6 +360,8 @@ export const mobileRouter = router({
 	limrunSession: protectedProcedure
 		.input(z.object({ platform: z.enum(["ios", "android"]).default("ios") }))
 		.mutation(async ({ input }) => createLimrunSession(input.platform)),
+
+	easSessions: protectedProcedure.query(() => listEasSimulatorSessions()),
 
 	/** Released desktop builds embed this URL in a `<webview>`. The hub lists
 	 * both platforms, so `platform` no longer selects anything. */

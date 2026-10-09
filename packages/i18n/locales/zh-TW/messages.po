@@ -8786,6 +8786,9 @@ msgstr "發票與支付方式"
 msgid "iOS app"
 msgstr "iOS應用"
 
+msgid "iOS Simulator"
+msgstr "iOS 模擬器"
+
 msgid "IP restrictions"
 msgstr "IP限制"
 
@@ -10923,6 +10926,9 @@ msgstr "還沒有會話"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "沒有找到與「{searchQuery}」匹配的快速鍵"
+
+msgid "No simulator is running."
+msgstr "沒有執行中的模擬器。"
 
 msgid "No sites are signed in"
 msgstr "沒有已登入的站點"

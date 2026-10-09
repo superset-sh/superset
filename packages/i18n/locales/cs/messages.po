@@ -8786,6 +8786,9 @@ msgstr "Faktury a způsob platby"
 msgid "iOS app"
 msgstr "Aplikace pro iOS"
 
+msgid "iOS Simulator"
+msgstr "Simulátor iOS"
+
 msgid "IP restrictions"
 msgstr "Omezení podle IP"
 
@@ -10923,6 +10926,9 @@ msgstr "Zatím žádné relace"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "Hledání „{searchQuery}“ neodpovídají žádné zkratky"
+
+msgid "No simulator is running."
+msgstr "Žádný simulátor neběží."
 
 msgid "No sites are signed in"
 msgstr "Nikde nejste přihlášeni"

@@ -8786,6 +8786,9 @@ msgstr "請求書と支払い方法"
 msgid "iOS app"
 msgstr "iOSアプリ"
 
+msgid "iOS Simulator"
+msgstr "iOSシミュレータ"
+
 msgid "IP restrictions"
 msgstr "IP制限"
 
@@ -10923,6 +10926,9 @@ msgstr "セッションはまだありません"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "「{searchQuery}」に一致するショートカットがありません"
+
+msgid "No simulator is running."
+msgstr "実行中のシミュレータはありません。"
 
 msgid "No sites are signed in"
 msgstr "サインイン中のサイトはありません"

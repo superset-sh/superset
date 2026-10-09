@@ -10,10 +10,7 @@ const MAX_LINES = 1000;
 export type LogScope = "all" | "app";
 
 interface UseDeviceLogsOptions {
-	hubUrl: string;
-	platform: "ios" | "android";
-	deviceId: string;
-	scope: LogScope;
+	url: string;
 	paused: boolean;
 }
 
@@ -22,13 +19,7 @@ interface UseDeviceLogsOptions {
  * reader does not match the event format this hub sends. The hub's own
  * streams carry time, process and level, so the drawer reads them directly.
  */
-export function useDeviceLogs({
-	hubUrl,
-	platform,
-	deviceId,
-	scope,
-	paused,
-}: UseDeviceLogsOptions) {
+export function useDeviceLogs({ url, paused }: UseDeviceLogsOptions) {
 	const [logs, setLogs] = useState<LogEntry[]>([]);
 	const [connected, setConnected] = useState(false);
 	const sequence = useRef(0);
@@ -36,11 +27,6 @@ export function useDeviceLogs({
 	pausedRef.current = paused;
 
 	useEffect(() => {
-		const device = encodeURIComponent(deviceId);
-		const url =
-			platform === "ios"
-				? `${hubUrl}/vendor/serve-sim/logs?device=${device}${scope === "app" ? "&scope=user-apps" : ""}`
-				: `${hubUrl}/vendor/serve-emu/api/logcat?device=${device}`;
 		setLogs([]);
 		const source = new EventSource(url);
 		const append = (entries: LogEntry[]) => {
@@ -67,7 +53,7 @@ export function useDeviceLogs({
 			source.close();
 			setConnected(false);
 		};
-	}, [hubUrl, platform, deviceId, scope]);
+	}, [url]);
 
 	const clear = useCallback(() => setLogs([]), []);
 	return { logs, clear, connected };

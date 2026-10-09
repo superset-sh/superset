@@ -5,8 +5,8 @@ import {
 	TbLayoutSidebarRight,
 	TbLogs,
 } from "react-icons/tb";
-import { DeviceControlButton } from "../DeviceControlButton";
-import { FloatingBar } from "../FloatingBar";
+import { DeviceControlButton } from "../../../DeviceControlButton";
+import { FloatingBar } from "../../../FloatingBar";
 
 interface DeviceActionsProps {
 	expanded: boolean;

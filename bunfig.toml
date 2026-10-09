@@ -17,6 +17,8 @@ minimumReleaseAge = 259200
 # The ACP adapters track the protocol draft and cut releases daily, so the
 # version the registry serves is always inside the window, and so are the agent
 # SDKs they depend on. The adapter pins are exact.
+# @expo/hub-client: the Mobile pane needs its session-token support for EAS
+# Simulator, which only exists in releases newer than the window. Exact pin.
 minimumReleaseAgeExcludes = [
   "@agentclientprotocol/claude-agent-acp",
   "@agentclientprotocol/codex-acp",
@@ -32,6 +34,7 @@ minimumReleaseAgeExcludes = [
   "@anthropic-ai/claude-agent-sdk-win32-x64",
   "@openai/codex",
   "@vercel/sandbox",
+  "@expo/hub-client",
   "@expo/ui",
   "@pierre/diffs",
   "expo",

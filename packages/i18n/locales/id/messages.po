@@ -8786,6 +8786,9 @@ msgstr "Faktur dan metode pembayaran"
 msgid "iOS app"
 msgstr "Aplikasi iOS"
 
+msgid "iOS Simulator"
+msgstr "Simulator iOS"
+
 msgid "IP restrictions"
 msgstr "Pembatasan IP"
 
@@ -10923,6 +10926,9 @@ msgstr "Belum ada sesi"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "Tidak ada pintasan yang cocok dengan \"{searchQuery}\""
+
+msgid "No simulator is running."
+msgstr "Tidak ada simulator yang berjalan."
 
 msgid "No sites are signed in"
 msgstr "Tidak ada situs yang sedang masuk"

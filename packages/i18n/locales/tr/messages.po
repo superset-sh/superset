@@ -8786,6 +8786,9 @@ msgstr "Faturalar ve ödeme yöntemi"
 msgid "iOS app"
 msgstr "iOS uygulaması"
 
+msgid "iOS Simulator"
+msgstr "iOS Simülatörü"
+
 msgid "IP restrictions"
 msgstr "IP kısıtlamaları"
 
@@ -10923,6 +10926,9 @@ msgstr "Henüz oturum yok"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "\"{searchQuery}\" ile eşleşen kısayol bulunamadı"
+
+msgid "No simulator is running."
+msgstr "Çalışan simülatör yok."
 
 msgid "No sites are signed in"
 msgstr "Oturum açılmış site yok"

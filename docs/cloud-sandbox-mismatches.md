@@ -320,6 +320,14 @@ rows read the same collection as every other row.
 **Drag ordering isn't wired** — the cloud section sits outside the DnD
 containers. **Open.**
 
+**Sleep stops nothing a sandbox started on a third party.** On a machine
+someone owns, quitting the app disposes host-service, which stops what it
+started. A sandbox that goes to sleep is stopped from outside, so a remote
+resource started from it keeps running. Measured with an EAS simulator
+session: it stayed `IN_PROGRESS` (and billed) after `workspaces sleep`.
+**Open**; `apps/mobile/scripts/eas-dev.sh` starts its session with an idle
+timeout, which bounds it.
+
 **A sandbox's host-service is frozen at the version it was provisioned with,
 and nothing updates it. Open, and the most consequential item on this list.**
 On a machine someone owns, the desktop app ships host-service and updates it:

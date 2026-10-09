@@ -8786,6 +8786,9 @@ msgstr "Factures et moyen de paiement"
 msgid "iOS app"
 msgstr "Application iOS"
 
+msgid "iOS Simulator"
+msgstr "Simulateur iOS"
+
 msgid "IP restrictions"
 msgstr "Restrictions par IP"
 
@@ -10923,6 +10926,9 @@ msgstr "Aucune session pour l'instant"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "Aucun raccourci ne correspond à « {searchQuery} »"
+
+msgid "No simulator is running."
+msgstr "Aucun simulateur n’est en cours d’exécution."
 
 msgid "No sites are signed in"
 msgstr "Aucun site connecté"

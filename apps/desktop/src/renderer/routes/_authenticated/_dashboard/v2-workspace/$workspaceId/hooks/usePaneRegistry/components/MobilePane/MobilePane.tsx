@@ -3,10 +3,12 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useEffect, useState } from "react";
+import { CloudSimulator } from "./components/CloudSimulator";
 import { LocalDevices } from "./components/LocalDevices";
 
-/** Mobile simulator backed by whichever this host can produce: Limrun on a
- * cloud sandbox, or a local iOS/Android simulator on a real machine. */
+/** Mobile simulator backed by whichever this host can produce: a hosted
+ * simulator on a cloud sandbox, or a local iOS/Android simulator on a real
+ * machine. */
 export function MobilePane() {
 	const { t } = useLingui();
 	const statusQuery = workspaceTrpc.mobile.status.useQuery();
@@ -21,6 +23,14 @@ export function MobilePane() {
 		// platform picker for a generic Android target is future work.
 		if (backend === "limrun") startLimrun({ platform: "ios" });
 	}, [backend, startLimrun]);
+
+	if (backend === "eas") {
+		return (
+			<div className="size-full bg-background">
+				<CloudSimulator />
+			</div>
+		);
+	}
 
 	if (backend === "local-ios" || backend === "local-android") {
 		return (

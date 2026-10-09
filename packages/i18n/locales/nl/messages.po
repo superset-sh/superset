@@ -8786,6 +8786,9 @@ msgstr "Facturen en betaalmethode"
 msgid "iOS app"
 msgstr "iOS-app"
 
+msgid "iOS Simulator"
+msgstr "iOS-simulator"
+
 msgid "IP restrictions"
 msgstr "IP-beperkingen"
 
@@ -10923,6 +10926,9 @@ msgstr "Nog geen sessies"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "Geen sneltoetsen gevonden voor \"{searchQuery}\""
+
+msgid "No simulator is running."
+msgstr "Er is geen simulator actief."
 
 msgid "No sites are signed in"
 msgstr "Je bent op geen enkele site ingelogd"

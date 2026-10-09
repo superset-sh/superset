@@ -8786,6 +8786,9 @@ msgstr "Invoices and payment method"
 msgid "iOS app"
 msgstr "iOS app"
 
+msgid "iOS Simulator"
+msgstr "iOS Simulator"
+
 msgid "IP restrictions"
 msgstr "IP restrictions"
 
@@ -10923,6 +10926,9 @@ msgstr "No sessions yet"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "No shortcuts found matching \"{searchQuery}\""
+
+msgid "No simulator is running."
+msgstr "No simulator is running."
 
 msgid "No sites are signed in"
 msgstr "No sites are signed in"
