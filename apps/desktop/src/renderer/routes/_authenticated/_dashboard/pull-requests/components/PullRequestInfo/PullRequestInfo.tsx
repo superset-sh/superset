@@ -78,8 +78,11 @@ function InfoSection({ variant, label, icon, action, children }: SectionProps) {
 
 function ActorLabel({ actor }: { actor: PullRequestDetailActor }) {
 	return (
-		<span
-			className="flex min-w-0 max-w-full items-center gap-1.5"
+		<a
+			href={`https://github.com/${actor.login}`}
+			target="_blank"
+			rel="noopener noreferrer"
+			className="flex min-w-0 max-w-full items-center gap-1.5 rounded-sm hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 			title={actor.login}
 		>
 			<Avatar className="size-4 rounded-full ring-1 ring-border/50">
@@ -92,7 +95,7 @@ function ActorLabel({ actor }: { actor: PullRequestDetailActor }) {
 				</AvatarFallback>
 			</Avatar>
 			<span className="truncate">{actor.name ?? actor.login}</span>
-		</span>
+		</a>
 	);
 }
 

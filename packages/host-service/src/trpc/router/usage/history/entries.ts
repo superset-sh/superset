@@ -8,6 +8,8 @@ import { collectCursorEntries } from "./cursor";
 import { collectDevinEntries } from "./devin";
 import { collectFxEntries } from "./fx";
 import { collectGrokEntries, grokHomes } from "./grok";
+import { collectHermesEntries } from "./hermes";
+import { hermesHomes } from "./hermes-homes";
 import { collectLogFiles, dedupeLogFiles } from "./logs";
 import { collectMuseEntries } from "./muse";
 import { collectOpencodeEntries } from "./opencode";
@@ -146,6 +148,12 @@ export async function collectUsageEntries(
 			run: (out: UsageLogEntry[]) =>
 				Promise.resolve(collectDevinEntries(cutoffMs, out, sessionLabels)),
 		},
+		...hermesHomes().map((hermesHome) => ({
+			run: (out: UsageLogEntry[]) =>
+				Promise.resolve(
+					collectHermesEntries(hermesHome, cutoffMs, out, sessionLabels),
+				),
+		})),
 		{
 			// Cursor is the one networked collector (no local token counts
 			// exist) — a signed-out CLI or an offline host contributes nothing.
