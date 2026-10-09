@@ -77,42 +77,26 @@ export default function AuthenticatedLayout() {
   "empty". Keep loading while it is pending and say you could not check when it failed; Home once
   painted "is offline" on every cold start because presence defaulted to `false`.
 - **Verifying in the real app:** on a machine with Xcode, `.agents/skills/mobile-sim-verification/SKILL.md`.
-  On a cloud sandbox (no local Xcode/simulator), run `apps/mobile/scripts/limrun-dev.sh` — it encodes
-  everything below so nobody has to rediscover it. `apps/mobile/scripts/eas-dev.sh` does the same on an
-  EAS simulator: it installs the finished simulator build that matches this checkout's fingerprint
-  (building one only when none exists), forwards Metro and the API over local egress, and tags the
-  session with the workspace id, which is how the desktop Mobile pane finds it. Use `.agents/skills/limrun-expo-development/SKILL.md`
-  and `.agents/skills/limrun-xcode/SKILL.md` directly only when the script's flow doesn't fit. Found and
-  verified getting mobile sign-in working on a sandbox (2026-10-02):
-  - **Builds are shared, not redone per sandbox.** `lim xcode build --upload <name>` puts the built app in
-    Limrun's asset storage keyed by bundle id + branch; `lim ios create --install-asset <name>` installs it
-    on a fresh simulator with no Xcode sandbox and no build at all (seconds, confirmed). A real Xcode build
-    is only needed once per branch, or again after a *native* change (new native module, Info.plist/
-    entitlements, native config) — pure JS/TS changes ship through Metro against the same installed shell.
-    The script checks for an existing asset by default and only builds when none exists or `--rebuild` is
-    passed.
-  - **`lim xcode build` fails resolving Swift packages** (`posix_spawn error: Operation not permitted`
-    resolving a local SPM manifest, e.g. for `expo-modules-jsi`) unless the sandbox's manifest-loading
-    sandbox is disabled first, once per Xcode sandbox *instance*:
-    `lim xcode run --id <id> -- 'defaults write com.apple.dt.Xcode IDEPackageSupportDisableManifestSandbox -bool YES && defaults write com.apple.dt.Xcode IDEPackageSupportDisablePluginExecutionSandbox -bool YES'`.
-    Confirmed by test (2026-10-02) that this does **not** survive a disk-snapshot publish/restore cycle
-    either (`--snapshot-key`/`--snapshot-restore-keys` only covers the synced project workspace, not
-    `~/Library/Preferences`) — there is no Limrun-side way to persist it, so the script reapplies it
-    unconditionally every time it goes through Xcode, cheap and idempotent.
-  - **`.env` never reaches the remote build** — it's gitignored, and Limrun's sync drops gitignored
-    paths. Any `EXPO_PUBLIC_*` value a *native* config plugin reads at prebuild time (not a plain JS
-    `process.env` read, which Metro inlines locally and ships fine) must go through `lim xcode build --env
-    KEY=VALUE` instead, sourced from this box's own `.env`. `EXPO_PUBLIC_SENTRY_DSN_MOBILE` is the one that
-    bites first: an empty or missing value makes `@sentry/react-native`'s native init crash the app on
-    launch with a bare SIGSEGV before any JS runs, which looks nothing like a Sentry problem. A real DSN is
-    now provisioned as an environment secret (flows into `.env` like the other apps' real DSNs already do);
-    `.env.local.example` also seeds a syntactically valid placeholder as a fallback where the secret isn't
-    set. Either way the script forwards whatever this box's `.env` actually has via `--env` — Limrun never
-    sees `.env` directly regardless of which value is in it.
-  - **The native project is generated once and reused.** A later `--env` change has no effect until a build
-    passes `--expo-force-prebuild`; routine JS-only iteration should skip it (it reinstalls CocoaPods, several
-    minutes) — the script only passes it when asked to. Likewise tunnel the API port (`lim ios tunnel
-    --selector localhost:8081 --selector localhost:<api-port>`), not just Metro's — the app's own network
-    calls need it too; the script reads `$API_PORT` from `.env` rather than assuming a fixed port.
+  On a cloud sandbox (no local Xcode/simulator), run `apps/mobile/scripts/eas-dev.sh`; see
+  `.agents/skills/mobile-eas-dev/SKILL.md`. The script encodes what was found getting the app running
+  on an EAS simulator from a sandbox (2026-10-09), so nobody has to rediscover it:
+  - **Builds are matched by fingerprint, not rebuilt per sandbox.** The script installs the finished
+    `development-simulator` build whose native fingerprint matches this checkout and builds one only
+    when none exists: the first time, or after a *native* change (new native module, Info.plist,
+    entitlements, native config). JS/TS changes ship through Metro against the same installed build.
+  - **The runtime version must come out the same here and on EAS,** or the build fails at "Configure
+    expo-updates". It is a fingerprint of the install and the app config, so `eas.json` pins bun and
+    marks every profile with `MOBILE_EAS_BUILD` (which makes `app.config.ts` skip the root `.env`),
+    and the script removes `EXPO_PUBLIC_*` from the build and fingerprint commands: a sandbox already
+    has the dev values in its shell.
+  - **The simulator reaches this machine only through local egress,** and the egress client can only
+    start once the session exists. The app's first load therefore always fails; the script loads it
+    again when the tunnel is up. A port the app calls must be passed as `--egress-allow`; the script
+    reads `$API_PORT` from `.env` rather than assuming a fixed port.
+  - **Native Sentry starts only when `EXPO_PUBLIC_SENTRY_DSN_MOBILE` is set.** Native init without a
+    DSN crashes the app at launch with a bare SIGSEGV before any JS runs, and the EAS `development`
+    environment has no DSN.
+  - **Call `agent-device` directly.** Through `eas simulator:exec npx agent-device` each command
+    takes about 25 s on a sandbox; installed globally it takes about 1 s.
 - **Iterating on a native module?** Build its own pod scheme (`-scheme Composer`), not the app —
   the difference between ~6s and minutes.
