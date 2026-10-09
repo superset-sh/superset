@@ -125,7 +125,8 @@ export default ({ config }: ConfigContext) => ({
 			{
 				organization: "superset-sh",
 				project: "mobile",
-				useNativeInit: true,
+				// Native init with no DSN crashes the app at launch.
+				useNativeInit: Boolean(process.env.EXPO_PUBLIC_SENTRY_DSN_MOBILE),
 				options: {
 					dsn: process.env.EXPO_PUBLIC_SENTRY_DSN_MOBILE,
 					environment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT,

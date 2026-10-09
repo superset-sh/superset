@@ -78,7 +78,10 @@ export default function AuthenticatedLayout() {
   painted "is offline" on every cold start because presence defaulted to `false`.
 - **Verifying in the real app:** on a machine with Xcode, `.agents/skills/mobile-sim-verification/SKILL.md`.
   On a cloud sandbox (no local Xcode/simulator), run `apps/mobile/scripts/limrun-dev.sh` — it encodes
-  everything below so nobody has to rediscover it. Use `.agents/skills/limrun-expo-development/SKILL.md`
+  everything below so nobody has to rediscover it. `apps/mobile/scripts/eas-dev.sh` does the same on an
+  EAS simulator: it installs the finished simulator build that matches this checkout's fingerprint
+  (building one only when none exists), forwards Metro and the API over local egress, and tags the
+  session with the workspace id, which is how the desktop Mobile pane finds it. Use `.agents/skills/limrun-expo-development/SKILL.md`
   and `.agents/skills/limrun-xcode/SKILL.md` directly only when the script's flow doesn't fit. Found and
   verified getting mobile sign-in working on a sandbox (2026-10-02):
   - **Builds are shared, not redone per sandbox.** `lim xcode build --upload <name>` puts the built app in

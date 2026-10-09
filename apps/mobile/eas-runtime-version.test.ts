@@ -14,11 +14,24 @@ const INSTALLS_DEPENDENCIES =
 // those differ between bun versions. A builder on another bun rejects builds
 // submitted from this repo, and its updates target a runtime no build has.
 describe("EAS resolves the runtime version this repository does", () => {
-	const { build } = JSON.parse(
-		readFileSync(join(import.meta.dir, "eas.json"), "utf8"),
-	) as {
-		build: Record<string, { bun?: string; env?: Record<string, string> }>;
+	interface BuildProfile {
+		extends?: string;
+		bun?: string;
+		env?: Record<string, string>;
+	}
+	const profiles = (
+		JSON.parse(readFileSync(join(import.meta.dir, "eas.json"), "utf8")) as {
+			build: Record<string, BuildProfile>;
+		}
+	).build;
+	const resolve = (name: string): BuildProfile => {
+		const { extends: parent, ...own } = profiles[name] ?? {};
+		const inherited = parent ? resolve(parent) : {};
+		return { ...inherited, ...own, env: { ...inherited.env, ...own.env } };
 	};
+	const build = Object.fromEntries(
+		Object.keys(profiles).map((name) => [name, resolve(name)]),
+	);
 
 	test("every build profile pins it", () => {
 		for (const [profile, config] of Object.entries(build)) {

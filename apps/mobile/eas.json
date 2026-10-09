@@ -14,6 +14,12 @@
 				"MOBILE_EAS_BUILD": "1"
 			}
 		},
+		"development-simulator": {
+			"extends": "development",
+			"ios": {
+				"simulator": true
+			}
+		},
 		"preview": {
 			"bun": "1.4.2",
 			"distribution": "internal",
