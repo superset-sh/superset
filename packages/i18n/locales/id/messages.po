@@ -2921,6 +2921,10 @@ msgstr "Badge, avatar, kartu, tabel, dan daftar"
 msgid "Baking the chip style into tooltip.tsx"
 msgstr "Menanamkan gaya chip ke tooltip.tsx"
 
+#. placeholder {0}: account.resetCredits.availableCount
+msgid "Banked resets: {0}"
+msgstr "Reset tersimpan: {0}"
+
 msgid "Bar"
 msgstr "Batang"
 
@@ -10584,6 +10588,10 @@ msgstr "Branch berikutnya"
 
 msgid "Next comment"
 msgstr "Komentar berikutnya"
+
+#. placeholder {0}: formatDateTime( account.resetCredits.nextExpiresAt, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", }, )
+msgid "Next expires {0}"
+msgstr "Berikutnya kedaluwarsa {0}"
 
 msgid "Next file"
 msgstr "File berikutnya"
