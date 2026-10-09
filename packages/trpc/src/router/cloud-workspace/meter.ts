@@ -17,6 +17,8 @@ const RECONCILE_CONCURRENCY = 10;
 
 type SessionRow = typeof cloudWorkspaceSessions.$inferSelect;
 
+export class UsageReportError extends AggregateError {}
+
 export function boxMinutes(ms: number, vcpus: number): number {
 	return (ms / 60_000) * (vcpus / STANDARD_BOX_VCPUS);
 }
@@ -221,7 +223,7 @@ export async function meterCloudWorkspace(
 		}
 	}
 	if (failures.length > 0) {
-		throw new AggregateError(
+		throw new UsageReportError(
 			failures,
 			`[cloud-workspace] ${cloudWorkspaceId} usage report failed`,
 		);

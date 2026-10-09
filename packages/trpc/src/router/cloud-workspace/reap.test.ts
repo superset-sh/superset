@@ -18,6 +18,7 @@ let sandboxCalls: string[] = [];
 let queued: Array<{ path: string; body: unknown; delaySeconds?: number }> = [];
 let failingStage: Stage | null = null;
 let meterCalls: string[] = [];
+let meterFailure: Error | null = null;
 
 stub(db.query.cloudWorkspaces, { findFirst: () => Promise.resolve(row) });
 stub(sandbox, {
@@ -51,7 +52,9 @@ stub(jobs, {
 stub(meter, {
 	meterCloudWorkspace: () => {
 		meterCalls.push("meter");
-		return Promise.resolve({ reportedMs: 0 });
+		return meterFailure
+			? Promise.reject(meterFailure)
+			: Promise.resolve({ reportedMs: 0 });
 	},
 	queueMeterCloudWorkspace: () => {
 		meterCalls.push("queue");
@@ -119,6 +122,7 @@ describe("reapArchivedCloudWorkspace", () => {
 		sandboxCalls = [];
 		queued = [];
 		meterCalls = [];
+		meterFailure = null;
 	});
 
 	test("the stop stage stops the box and queues its meter", async () => {
@@ -128,6 +132,22 @@ describe("reapArchivedCloudWorkspace", () => {
 		expect(sandboxCalls).toEqual(["stop:ws-box"]);
 		expect(meterCalls).toEqual(["queue"]);
 		expect(queued).toEqual([]);
+	});
+
+	test("a delete whose sessions could not be saved keeps the box for the retry", async () => {
+		meterFailure = new Error("vercel down");
+		await expect(
+			reapArchivedCloudWorkspace({ ...input, stage: "delete" }),
+		).rejects.toThrow("vercel down");
+		expect(sandboxCalls).toEqual([]);
+	});
+
+	test("a delete whose usage could not be sent still deletes: the sessions are saved", async () => {
+		meterFailure = new meter.UsageReportError([], "autumn down");
+		expect(
+			await reapArchivedCloudWorkspace({ ...input, stage: "delete" }),
+		).toBe("reaped");
+		expect(sandboxCalls).toEqual(["delete:ws-box"]);
 	});
 
 	test("the delete stage meters the box before deleting it", async () => {
