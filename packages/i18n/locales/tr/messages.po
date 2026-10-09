@@ -8786,6 +8786,9 @@ msgstr "Faturalar ve ödeme yöntemi"
 msgid "iOS app"
 msgstr "iOS uygulaması"
 
+msgid "iOS Simulator"
+msgstr "iOS Simülatörü"
+
 msgid "IP restrictions"
 msgstr "IP kısıtlamaları"
 
@@ -10755,8 +10758,8 @@ msgstr "Birleştirilmiş pull request yok."
 msgid "No messages yet"
 msgstr "Henüz mesaj yok"
 
-msgid "No mobile simulator available here. This needs either a Limrun-enabled cloud sandbox or a local iOS/Android toolchain."
-msgstr "Burada kullanılabilir bir mobil simülatör yok. Limrun destekli bir bulut korumalı alanı veya yerel bir iOS/Android araç zinciri gerekir."
+msgid "No mobile simulator available here. This needs either an EAS simulator on a cloud sandbox or a local iOS/Android toolchain."
+msgstr "Burada kullanılabilir bir mobil simülatör yok. Bulut korumalı alanında bir EAS simülatörü veya yerel bir iOS/Android araç zinciri gerekir."
 
 msgid "No name on file"
 msgstr "Kayıtlı ad yok"
@@ -10923,6 +10926,9 @@ msgstr "Henüz oturum yok"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "\"{searchQuery}\" ile eşleşen kısayol bulunamadı"
+
+msgid "No simulator is running."
+msgstr "Çalışan simülatör yok."
 
 msgid "No sites are signed in"
 msgstr "Oturum açılmış site yok"
@@ -16770,9 +16776,6 @@ msgstr "Sunucu bulunamadı"
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "Oturum açma bağlantısı eksikti. Lütfen yeniden deneyin."
-
-msgid "The simulator instance was terminated."
-msgstr "Simülatör örneği sonlandırıldı."
 
 msgid "The site's certificate authority is not trusted"
 msgstr "Sitenin sertifika yetkilisine güvenilmiyor"

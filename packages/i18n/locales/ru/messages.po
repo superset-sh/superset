@@ -8786,6 +8786,9 @@ msgstr "Счета и способ оплаты"
 msgid "iOS app"
 msgstr "Приложение для iOS"
 
+msgid "iOS Simulator"
+msgstr "Симулятор iOS"
+
 msgid "IP restrictions"
 msgstr "Ограничения по IP"
 
@@ -10755,8 +10758,8 @@ msgstr "Нет объединённых пул-реквестов."
 msgid "No messages yet"
 msgstr "Сообщений пока нет"
 
-msgid "No mobile simulator available here. This needs either a Limrun-enabled cloud sandbox or a local iOS/Android toolchain."
-msgstr "Здесь нет доступного мобильного симулятора. Нужна облачная песочница с поддержкой Limrun или локальный набор инструментов iOS/Android."
+msgid "No mobile simulator available here. This needs either an EAS simulator on a cloud sandbox or a local iOS/Android toolchain."
+msgstr "Здесь нет доступного мобильного симулятора. Нужен симулятор EAS в облачной песочнице или локальный набор инструментов iOS/Android."
 
 msgid "No name on file"
 msgstr "Имя не указано"
@@ -10923,6 +10926,9 @@ msgstr "Сессий пока нет"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "Не найдено сочетаний по запросу «{searchQuery}»"
+
+msgid "No simulator is running."
+msgstr "Нет запущенных симуляторов."
 
 msgid "No sites are signed in"
 msgstr "Нет сайтов, где выполнен вход"
@@ -16770,9 +16776,6 @@ msgstr "Не удалось найти сервер"
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "Ссылка для входа была неполной. Попробуйте ещё раз."
-
-msgid "The simulator instance was terminated."
-msgstr "Экземпляр симулятора был завершён."
 
 msgid "The site's certificate authority is not trusted"
 msgstr "Удостоверяющий центр сайта не является доверенным"

@@ -8786,6 +8786,9 @@ msgstr "Fatture e metodo di pagamento"
 msgid "iOS app"
 msgstr "App iOS"
 
+msgid "iOS Simulator"
+msgstr "Simulatore iOS"
+
 msgid "IP restrictions"
 msgstr "Restrizioni IP"
 
@@ -10755,8 +10758,8 @@ msgstr "Nessuna pull request unita."
 msgid "No messages yet"
 msgstr "Ancora nessun messaggio"
 
-msgid "No mobile simulator available here. This needs either a Limrun-enabled cloud sandbox or a local iOS/Android toolchain."
-msgstr "Nessun simulatore mobile disponibile qui. Serve un sandbox cloud compatibile con Limrun oppure una toolchain locale iOS/Android."
+msgid "No mobile simulator available here. This needs either an EAS simulator on a cloud sandbox or a local iOS/Android toolchain."
+msgstr "Nessun simulatore mobile disponibile qui. Serve un simulatore EAS in un sandbox cloud oppure una toolchain locale iOS/Android."
 
 msgid "No name on file"
 msgstr "Nessun nome registrato"
@@ -10923,6 +10926,9 @@ msgstr "Ancora nessuna sessione"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "Nessuna scorciatoia trovata per \"{searchQuery}\""
+
+msgid "No simulator is running."
+msgstr "Nessun simulatore in esecuzione."
 
 msgid "No sites are signed in"
 msgstr "Nessun sito con accesso effettuato"
@@ -16770,9 +16776,6 @@ msgstr "Impossibile trovare il server"
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "Il link di accesso era incompleto. Riprova."
-
-msgid "The simulator instance was terminated."
-msgstr "L’istanza del simulatore è stata terminata."
 
 msgid "The site's certificate authority is not trusted"
 msgstr "L'autorità di certificazione del sito non è attendibile"

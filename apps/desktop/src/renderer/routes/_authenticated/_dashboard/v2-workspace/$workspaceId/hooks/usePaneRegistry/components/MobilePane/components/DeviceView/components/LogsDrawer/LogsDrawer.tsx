@@ -11,17 +11,19 @@ import {
 	LuTrash2,
 	LuX,
 } from "react-icons/lu";
-import { DeviceControlButton } from "../DeviceControlButton";
+import { DeviceControlButton } from "../../../DeviceControlButton";
 import { LogLevelMenu } from "./components/LogLevelMenu";
 import { LogRow } from "./components/LogRow";
 import { type LogScope, useDeviceLogs } from "./hooks/useDeviceLogs";
+
+export type { LogScope };
+
 import type { LogEntry, LogLevel } from "./utils/parseLogLine";
 
 interface LogsDrawerProps {
-	hubUrl: string;
 	platform: "ios" | "android";
-	deviceId: string;
 	deviceName: string;
+	streamUrl: (scope: LogScope) => string;
 	onClose: () => void;
 }
 
@@ -32,10 +34,9 @@ const asText = (logs: LogEntry[]) =>
 	logs.map((log) => [log.time, log.process, log.message].join("\t")).join("\n");
 
 export function LogsDrawer({
-	hubUrl,
 	platform,
-	deviceId,
 	deviceName,
+	streamUrl,
 	onClose,
 }: LogsDrawerProps) {
 	const { t } = useLingui();
@@ -47,10 +48,7 @@ export function LogsDrawer({
 	);
 	const [height, setHeight] = useState(DEFAULT_HEIGHT);
 	const { logs, clear, connected } = useDeviceLogs({
-		hubUrl,
-		platform,
-		deviceId,
-		scope,
+		url: streamUrl(scope),
 		paused,
 	});
 

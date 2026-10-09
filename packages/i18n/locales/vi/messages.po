@@ -8786,6 +8786,9 @@ msgstr "Hóa đơn và phương thức thanh toán"
 msgid "iOS app"
 msgstr "Ứng dụng iOS"
 
+msgid "iOS Simulator"
+msgstr "Trình mô phỏng iOS"
+
 msgid "IP restrictions"
 msgstr "Giới hạn IP"
 
@@ -10755,8 +10758,8 @@ msgstr "Không có pull request nào đã merge."
 msgid "No messages yet"
 msgstr "Chưa có tin nhắn nào"
 
-msgid "No mobile simulator available here. This needs either a Limrun-enabled cloud sandbox or a local iOS/Android toolchain."
-msgstr "Không có trình giả lập di động nào khả dụng ở đây. Cần có hộp cát đám mây hỗ trợ Limrun hoặc bộ công cụ iOS/Android cục bộ."
+msgid "No mobile simulator available here. This needs either an EAS simulator on a cloud sandbox or a local iOS/Android toolchain."
+msgstr "Không có trình giả lập di động nào khả dụng ở đây. Cần có trình mô phỏng EAS trên hộp cát đám mây hoặc bộ công cụ iOS/Android cục bộ."
 
 msgid "No name on file"
 msgstr "Chưa có tên nào được lưu"
@@ -10923,6 +10926,9 @@ msgstr "Chưa có phiên nào"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "Không có phím tắt nào khớp \"{searchQuery}\""
+
+msgid "No simulator is running."
+msgstr "Không có trình mô phỏng nào đang chạy."
 
 msgid "No sites are signed in"
 msgstr "Không có trang nào đang đăng nhập"
@@ -16770,9 +16776,6 @@ msgstr "Không tìm thấy server"
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "Liên kết đăng nhập không đầy đủ. Vui lòng thử lại."
-
-msgid "The simulator instance was terminated."
-msgstr "Phiên bản trình giả lập đã bị chấm dứt."
 
 msgid "The site's certificate authority is not trusted"
 msgstr "Tổ chức cấp chứng chỉ của trang không được tin cậy"

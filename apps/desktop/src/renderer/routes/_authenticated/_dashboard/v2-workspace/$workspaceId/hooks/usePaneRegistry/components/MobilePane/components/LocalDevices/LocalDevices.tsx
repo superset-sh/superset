@@ -3,9 +3,9 @@ import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useState } from "react";
+import { PaneMessage } from "../PaneMessage";
 import { DevicePicker, type LocalDevice } from "./components/DevicePicker";
 import { DeviceSession } from "./components/DeviceSession";
-import { PaneMessage } from "./components/PaneMessage";
 
 const deviceKey = (device: LocalDevice) => `${device.platform}:${device.name}`;
 

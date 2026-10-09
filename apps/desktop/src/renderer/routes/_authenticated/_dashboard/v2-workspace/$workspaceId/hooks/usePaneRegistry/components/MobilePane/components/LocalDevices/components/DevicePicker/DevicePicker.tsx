@@ -9,7 +9,7 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { TbChevronDown } from "react-icons/tb";
-import { FloatingBar } from "../FloatingBar";
+import { FloatingBar } from "../../../FloatingBar";
 
 export interface LocalDevice {
 	id: string;

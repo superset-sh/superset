@@ -8786,6 +8786,9 @@ msgstr "청구서 및 결제 수단"
 msgid "iOS app"
 msgstr "iOS 앱"
 
+msgid "iOS Simulator"
+msgstr "iOS 시뮬레이터"
+
 msgid "IP restrictions"
 msgstr "IP 제한"
 
@@ -10755,8 +10758,8 @@ msgstr "머지된 풀 리퀘스트가 없습니다."
 msgid "No messages yet"
 msgstr "아직 메시지가 없습니다"
 
-msgid "No mobile simulator available here. This needs either a Limrun-enabled cloud sandbox or a local iOS/Android toolchain."
-msgstr "여기에서 사용할 수 있는 모바일 시뮬레이터가 없습니다. Limrun을 지원하는 클라우드 샌드박스 또는 로컬 iOS/Android 툴체인이 필요합니다."
+msgid "No mobile simulator available here. This needs either an EAS simulator on a cloud sandbox or a local iOS/Android toolchain."
+msgstr "여기에서 사용할 수 있는 모바일 시뮬레이터가 없습니다. 클라우드 샌드박스의 EAS 시뮬레이터 또는 로컬 iOS/Android 툴체인이 필요합니다."
 
 msgid "No name on file"
 msgstr "등록된 이름 없음"
@@ -10923,6 +10926,9 @@ msgstr "아직 세션이 없습니다"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "\"{searchQuery}\"과(와) 일치하는 단축키가 없습니다"
+
+msgid "No simulator is running."
+msgstr "실행 중인 시뮬레이터가 없습니다."
 
 msgid "No sites are signed in"
 msgstr "로그인한 사이트가 없습니다"
@@ -16770,9 +16776,6 @@ msgstr "서버를 찾을 수 없습니다"
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "로그인 링크가 완전하지 않습니다. 다시 시도해 주세요."
-
-msgid "The simulator instance was terminated."
-msgstr "시뮬레이터 인스턴스가 종료되었습니다."
 
 msgid "The site's certificate authority is not trusted"
 msgstr "사이트의 인증 기관을 신뢰할 수 없습니다"

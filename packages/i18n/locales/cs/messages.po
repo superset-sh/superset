@@ -8786,6 +8786,9 @@ msgstr "Faktury a způsob platby"
 msgid "iOS app"
 msgstr "Aplikace pro iOS"
 
+msgid "iOS Simulator"
+msgstr "Simulátor iOS"
+
 msgid "IP restrictions"
 msgstr "Omezení podle IP"
 
@@ -10755,8 +10758,8 @@ msgstr "Žádné sloučené pull requesty."
 msgid "No messages yet"
 msgstr "Zatím žádné zprávy"
 
-msgid "No mobile simulator available here. This needs either a Limrun-enabled cloud sandbox or a local iOS/Android toolchain."
-msgstr "Zde není k dispozici žádný mobilní simulátor. Je potřeba cloudový sandbox s podporou Limrun nebo místní sada nástrojů iOS/Android."
+msgid "No mobile simulator available here. This needs either an EAS simulator on a cloud sandbox or a local iOS/Android toolchain."
+msgstr "Zde není k dispozici žádný mobilní simulátor. Je potřeba simulátor EAS v cloudovém sandboxu nebo místní sada nástrojů iOS/Android."
 
 msgid "No name on file"
 msgstr "Není uloženo žádné jméno"
@@ -10923,6 +10926,9 @@ msgstr "Zatím žádné relace"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "Hledání „{searchQuery}“ neodpovídají žádné zkratky"
+
+msgid "No simulator is running."
+msgstr "Žádný simulátor neběží."
 
 msgid "No sites are signed in"
 msgstr "Nikde nejste přihlášeni"
@@ -16770,9 +16776,6 @@ msgstr "Server se nepodařilo najít"
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "Přihlašovací odkaz byl neúplný. Zkuste to prosím znovu."
-
-msgid "The simulator instance was terminated."
-msgstr "Instance simulátoru byla ukončena."
 
 msgid "The site's certificate authority is not trusted"
 msgstr "Certifikační autorita webu není důvěryhodná"

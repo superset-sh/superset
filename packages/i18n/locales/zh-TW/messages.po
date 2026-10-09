@@ -8786,6 +8786,9 @@ msgstr "發票與支付方式"
 msgid "iOS app"
 msgstr "iOS應用"
 
+msgid "iOS Simulator"
+msgstr "iOS 模擬器"
+
 msgid "IP restrictions"
 msgstr "IP限制"
 
@@ -10755,8 +10758,8 @@ msgstr "沒有已合併的拉取請求。"
 msgid "No messages yet"
 msgstr "還沒有訊息"
 
-msgid "No mobile simulator available here. This needs either a Limrun-enabled cloud sandbox or a local iOS/Android toolchain."
-msgstr "此處沒有可用的行動模擬器。需要支援 Limrun 的雲端沙盒，或本機 iOS/Android 工具鏈。"
+msgid "No mobile simulator available here. This needs either an EAS simulator on a cloud sandbox or a local iOS/Android toolchain."
+msgstr "此處沒有可用的行動模擬器。需要雲端沙盒上的 EAS 模擬器，或本機 iOS/Android 工具鏈。"
 
 msgid "No name on file"
 msgstr "未登記姓名"
@@ -10923,6 +10926,9 @@ msgstr "還沒有會話"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "沒有找到與「{searchQuery}」匹配的快速鍵"
+
+msgid "No simulator is running."
+msgstr "沒有執行中的模擬器。"
 
 msgid "No sites are signed in"
 msgstr "沒有已登入的站點"
@@ -16770,9 +16776,6 @@ msgstr "找不到伺服器"
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "登入連結不完整。請重試。"
-
-msgid "The simulator instance was terminated."
-msgstr "模擬器執行個例已終止。"
 
 msgid "The site's certificate authority is not trusted"
 msgstr "該站點的證書頒發機構不受信任"
