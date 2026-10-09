@@ -54,10 +54,6 @@ export function LinkTierMapper({
 	const searchQuery = useSettingsSearchQuery();
 	const isRightPaneAreaEnabled =
 		useFeatureFlagEnabled(FEATURE_FLAGS.RIGHT_PANE_AREA) === true;
-	const actions: LinkAction[] =
-		surface === "url" && isRightPaneAreaEnabled
-			? [...ACTIONS, "rightPane"]
-			: ACTIONS;
 	const pick = useCallback(
 		(tier: LinkTier, nextSlot: SlotValue) => {
 			const nextAction = fromSlot(nextSlot);
@@ -78,6 +74,11 @@ export function LinkTierMapper({
 			<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
 				{TIERS.map((tier) => {
 					const id = `${idPrefix}-${tier}`;
+					const actions: LinkAction[] =
+						surface === "url" &&
+						(isRightPaneAreaEnabled || value[tier] === "rightPane")
+							? [...ACTIONS, "rightPane"]
+							: ACTIONS;
 					return (
 						<div
 							key={tier}

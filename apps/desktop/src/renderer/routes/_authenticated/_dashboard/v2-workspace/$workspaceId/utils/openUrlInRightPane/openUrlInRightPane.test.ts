@@ -21,10 +21,13 @@ function browser(id: string, url: string, pinned = false) {
 	return { id, kind: "browser", pinned, data: { url } as PaneViewerData };
 }
 
-function storeWith(tabs: ReturnType<typeof tab>[]) {
+function storeWith(
+	tabs: ReturnType<typeof tab>[],
+	activeTabId = tabs[0]?.id ?? null,
+) {
 	const initialState: WorkspaceState<PaneViewerData> = {
 		version: 1,
-		activeTabId: tabs[0]?.id ?? null,
+		activeTabId,
 		tabs,
 	};
 	return createWorkspaceStore<PaneViewerData>({ initialState });
@@ -48,21 +51,44 @@ describe("openUrlInRightPane", () => {
 		expect(browserUrls(store)).toEqual(["https://example.com"]);
 	});
 
-	it("reuses an unpinned browser in another tab and activates that tab", () => {
-		const store = storeWith([
-			tab("tab-1", {
-				id: "chat",
-				kind: "chat",
-				data: {} as PaneViewerData,
-			}),
-			tab("tab-2", browser("b1", "https://old.example.com")),
-		]);
+	it("reuses the unpinned browser in the active tab", () => {
+		const store = storeWith(
+			[
+				tab("tab-1", browser("b1", "http://localhost:3000/")),
+				tab("tab-2", browser("b2", "https://docs.example.com")),
+			],
+			"tab-2",
+		);
 
 		openUrlInRightPane(store, "https://new.example.com");
 
-		expect(store.getState().tabs).toHaveLength(2);
 		expect(store.getState().activeTabId).toBe("tab-2");
-		expect(browserUrls(store)).toEqual(["https://new.example.com"]);
+		expect(browserUrls(store)).toEqual([
+			"http://localhost:3000/",
+			"https://new.example.com",
+		]);
+	});
+
+	it("adds a tab when the active tab has no browser", () => {
+		const store = storeWith(
+			[
+				tab("tab-1", browser("b1", "http://localhost:3000/")),
+				tab("tab-2", {
+					id: "chat",
+					kind: "chat",
+					data: {} as PaneViewerData,
+				}),
+			],
+			"tab-2",
+		);
+
+		openUrlInRightPane(store, "https://new.example.com");
+
+		expect(store.getState().tabs).toHaveLength(3);
+		expect(browserUrls(store)).toEqual([
+			"http://localhost:3000/",
+			"https://new.example.com",
+		]);
 	});
 
 	it("leaves a pinned browser alone and adds a tab", () => {

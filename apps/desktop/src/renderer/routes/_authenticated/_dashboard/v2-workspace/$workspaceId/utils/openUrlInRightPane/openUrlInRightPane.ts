@@ -8,13 +8,14 @@ export function openUrlInRightPane(
 ): void {
 	const state = store.getState();
 	const newPane = { kind: "browser", data: { url } };
-	for (const tab of state.tabs) {
-		const browser = Object.values(tab.panes).find(
+	const activeTab = state.getActiveTab();
+	const browser =
+		activeTab &&
+		Object.values(activeTab.panes).find(
 			(pane) => pane.kind === "browser" && !pane.pinned,
 		);
-		if (!browser) continue;
-		state.setActiveTab(tab.id);
-		state.replacePane({ tabId: tab.id, paneId: browser.id, newPane });
+	if (activeTab && browser) {
+		state.replacePane({ tabId: activeTab.id, paneId: browser.id, newPane });
 		return;
 	}
 	state.addTab({ panes: [newPane] });
