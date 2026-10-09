@@ -16,6 +16,14 @@
 			"types": "./src/env.ts",
 			"default": "./src/env.ts"
 		},
+		"./autumn": {
+			"types": "./src/autumn.ts",
+			"default": "./src/autumn.ts"
+		},
+		"./billing": {
+			"types": "./src/lib/billing/index.ts",
+			"default": "./src/lib/billing/index.ts"
+		},
 		"./stripe": {
 			"types": "./src/stripe.ts",
 			"default": "./src/stripe.ts"
@@ -39,6 +47,7 @@
 		"@upstash/qstash": "2.10.1",
 		"@upstash/ratelimit": "2.0.8",
 		"@upstash/redis": "1.37.0",
+		"autumn-js": "1.3.55",
 		"better-auth": "1.6.22",
 		"dotenv": "17.3.1",
 		"drizzle-orm": "0.45.2",

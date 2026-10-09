@@ -1,9 +1,6 @@
+import { ensureAutumnCustomer } from "@superset/auth/billing";
 import { db } from "@superset/db/client";
-import {
-	cloudWorkspaceSessions,
-	cloudWorkspaces,
-	organizations,
-} from "@superset/db/schema";
+import { cloudWorkspaceSessions, cloudWorkspaces } from "@superset/db/schema";
 import { and, count, eq, inArray, isNull, lt, max, or, sql } from "drizzle-orm";
 import { autumn, BOX_MINUTES_FEATURE_ID } from "../../lib/billing/autumn";
 import {
@@ -177,15 +174,10 @@ export async function meterCloudWorkspace(
 			provider: cloudWorkspaces.provider,
 			providerSandboxId: cloudWorkspaces.providerSandboxId,
 			organizationId: cloudWorkspaces.organizationId,
-			organizationName: organizations.name,
 			createdByUserId: cloudWorkspaces.createdByUserId,
 			createdAt: cloudWorkspaces.createdAt,
 		})
 		.from(cloudWorkspaces)
-		.innerJoin(
-			organizations,
-			eq(organizations.id, cloudWorkspaces.organizationId),
-		)
 		.where(eq(cloudWorkspaces.id, cloudWorkspaceId));
 	if (!workspace || workspace.provider !== "vercel") return { reportedMs: 0 };
 
@@ -214,10 +206,7 @@ export async function meterCloudWorkspace(
 		return { reportedMs: 0 };
 	}
 
-	await autumn.customers.getOrCreate({
-		customerId: workspace.organizationId,
-		name: workspace.organizationName,
-	});
+	await ensureAutumnCustomer(workspace.organizationId);
 	let reportedMs = 0;
 	const failures: unknown[] = [];
 	for (const row of unsettled) {
