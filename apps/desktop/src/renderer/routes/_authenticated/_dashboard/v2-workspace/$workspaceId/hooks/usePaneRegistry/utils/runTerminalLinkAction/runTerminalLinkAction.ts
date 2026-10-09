@@ -9,6 +9,7 @@ import type {
 	PaneViewerData,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { openPagePaneInStore } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/openPagePaneInStore";
+import { openUrlInRightPane } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/openUrlInRightPane";
 import { openUrlInV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/openUrlInV2Workspace";
 import type { StoreApi } from "zustand/vanilla";
 
@@ -65,24 +66,6 @@ export function runUrlLinkAction(
 		target: action === "newTab" ? "new-tab" : "current-tab",
 		url,
 	});
-}
-
-function openUrlInRightPane(
-	store: StoreApi<WorkspaceStore<PaneViewerData>>,
-	url: string,
-): void {
-	const state = store.getState();
-	const newPane = { kind: "browser", data: { url } };
-	for (const tab of state.tabs) {
-		const browser = Object.values(tab.panes).find(
-			(pane) => pane.kind === "browser" && !pane.pinned,
-		);
-		if (!browser) continue;
-		state.setActiveTab(tab.id);
-		state.replacePane({ tabId: tab.id, paneId: browser.id, newPane });
-		return;
-	}
-	state.addTab({ panes: [newPane] });
 }
 
 export function runFileLinkAction(
