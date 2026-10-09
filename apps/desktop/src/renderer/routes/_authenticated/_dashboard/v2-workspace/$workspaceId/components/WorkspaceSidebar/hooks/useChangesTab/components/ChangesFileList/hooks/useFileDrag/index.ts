@@ -1,1 +1,1 @@
-export { setFileDragData, useFileDrag } from "./useFileDrag";
+export { useFileDrag } from "./useFileDrag";
