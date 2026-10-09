@@ -14,6 +14,7 @@ import { env } from "@/env";
 import { connectorStateCookie } from "@/lib/integrations/oauthFlow";
 import { resolveCallback } from "@/lib/integrations/resolveCallback";
 import { connectorStateSchema, verifySignedState } from "@/lib/oauth-state";
+import { enqueueWatchSetup } from "../../../integrations/google/lib/enqueueWatchSetup";
 
 function callbackParams(method: ConnectorMethod): string[] {
 	if (method.type === "oauth2") return ["code"];
@@ -96,6 +97,8 @@ export async function GET(
 				: "";
 			return web(`?error=account_already_linked${owner}`);
 		}
+		// Gmail triggers need a mailbox watch, which nothing else creates.
+		if (slug === "google") await enqueueWatchSetup(result.connectionId);
 	} catch (error) {
 		console.error(`[connectors/${slug}] callback failed:`, error);
 		return web("?error=token_exchange_failed");

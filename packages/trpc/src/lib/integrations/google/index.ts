@@ -17,6 +17,7 @@ export {
 	watchMailbox,
 } from "../../../router/integration/google/gmail";
 export {
+	canReadGmail,
 	findGoogleConnection,
 	findGoogleConnectionById,
 	googleConfigOf,
