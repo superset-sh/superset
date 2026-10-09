@@ -239,6 +239,11 @@ export class AcpAdapter implements HarnessAdapter {
 		{ item: ToolCall; turnId: string }
 	>();
 	private readonly finishedSubagents = new Set<string>();
+	/**
+	 * The adapter drops a task's updates once the subagent that started it
+	 * finishes, so the task ends with its subagent.
+	 */
+	private readonly subagentTasks = new Map<string, Set<string>>();
 	private readonly backgroundTasks: BackgroundTasks;
 	/** Start of each named v2 plan, so a revision keeps its place in the order. */
 	private readonly planItems = new Map<string, number>();
@@ -714,7 +719,7 @@ export class AcpAdapter implements HarnessAdapter {
 
 		switch (variant) {
 			case "async_task_spawned":
-				this.handleAsyncTaskSpawned(outer.data.update);
+				this.handleAsyncTaskSpawned(outer.data.sessionId, outer.data.update);
 				return;
 			case "async_task_progress":
 				this.handleAsyncTaskProgress(outer.data.update);
@@ -1203,6 +1208,9 @@ export class AcpAdapter implements HarnessAdapter {
 		this.subagents.delete(sessionId);
 		this.finishedSubagents.add(sessionId);
 		this.backgroundTasks.end(run.item.id);
+		for (const taskId of this.subagentTasks.get(sessionId) ?? [])
+			this.backgroundTasks.end(taskId);
+		this.subagentTasks.delete(sessionId);
 		this.emitItem(
 			{
 				...run.item,
@@ -1225,10 +1233,14 @@ export class AcpAdapter implements HarnessAdapter {
 		this.backgroundTasks.update(run.item.id, { detail: update.data.title });
 	}
 
-	private handleAsyncTaskSpawned(raw: unknown): void {
+	private handleAsyncTaskSpawned(sessionId: string, raw: unknown): void {
 		const parsed = airAsyncTaskSpawnedSchema.safeParse(raw);
 		if (!parsed.success) return;
 		const { asyncTaskId, name, description, canStop } = parsed.data;
+		if (this.subagents.has(sessionId)) {
+			const tasks = this.subagentTasks.get(sessionId) ?? new Set<string>();
+			this.subagentTasks.set(sessionId, tasks.add(asyncTaskId));
+		}
 		this.backgroundTasks.start({
 			id: asyncTaskId,
 			kind: "process",

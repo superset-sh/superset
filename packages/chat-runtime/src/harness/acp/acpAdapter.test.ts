@@ -1314,6 +1314,45 @@ describe("AcpAdapter on protocol v2", () => {
 		await adapter.dispose();
 	});
 
+	it("ends a subagent's background task with the subagent", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+
+		agent.notify("sess-1", {
+			sessionUpdate: "subagent_spawned",
+			subagentSessionId: "child-1",
+			name: "Wait",
+		});
+		agent.notify("child-1", {
+			sessionUpdate: "async_task_spawned",
+			asyncTaskId: "task-1",
+			name: "sleep 120",
+			canStop: true,
+		});
+		agent.notify("sess-1", {
+			sessionUpdate: "async_task_spawned",
+			asyncTaskId: "task-2",
+			name: "bun run dev",
+			canStop: true,
+		});
+		agent.notify("sess-1", {
+			sessionUpdate: "subagent_state_update",
+			subagentSessionId: "child-1",
+			state: "completed",
+		});
+		await flush();
+
+		const lists = events.flatMap((event) =>
+			event.kind === "session" && event.session.backgroundTasks
+				? [event.session.backgroundTasks.map((task) => task.name)]
+				: [],
+		);
+		expect(lists.at(-1)).toEqual(["bun run dev"]);
+
+		await adapter.dispose();
+	});
+
 	it("reports a running turn as awaiting background work once the agent's cycle ends", async () => {
 		const agent = new FakeAcpAgent();
 		agent.steeringOutcome = "injected";
