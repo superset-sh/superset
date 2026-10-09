@@ -1,4 +1,5 @@
 import { cn } from "@superset/ui/utils";
+import { useStatusColorOverride } from "renderer/stores/status-colors";
 import type { ActivePaneStatus } from "shared/tabs-types";
 
 // Re-export for consumers
@@ -49,6 +50,10 @@ interface StatusIndicatorProps {
  */
 export function StatusIndicator({ status, className }: StatusIndicatorProps) {
 	const config = STATUS_CONFIG[status];
+	const colorOverride = useStatusColorOverride(status);
+	const colorStyle = colorOverride
+		? { backgroundColor: colorOverride }
+		: undefined;
 
 	return (
 		<span className={cn("relative flex size-1.5 shrink-0", className)}>
@@ -56,15 +61,17 @@ export function StatusIndicator({ status, className }: StatusIndicatorProps) {
 				<span
 					className={cn(
 						"absolute inline-flex h-full w-full animate-ping rounded-full opacity-75",
-						config.pingColor,
+						!colorOverride && config.pingColor,
 					)}
+					style={colorStyle}
 				/>
 			)}
 			<span
 				className={cn(
 					"relative inline-flex size-full rounded-full",
-					config.dotColor,
+					!colorOverride && config.dotColor,
 				)}
+				style={colorStyle}
 			/>
 		</span>
 	);
