@@ -1,4 +1,5 @@
 import type { ToolCall, ToolKind } from "@superset/chat/protocol";
+import { useItemBody } from "@superset/chat/react";
 import {
 	ArrowRightLeft,
 	Brain,
@@ -38,6 +39,7 @@ function preview(text: string): string {
 }
 
 export function ToolCallItem({ item }: { item: ToolCall }) {
+	useItemBody(item);
 	const details = item.content.map((content, index) => {
 		const key = `${content.type}:${index}`;
 		if (content.type === "terminal") {

@@ -4,7 +4,11 @@ import type {
 	SessionSnapshot,
 	TurnGroup,
 } from "@superset/chat/core";
-import type { ApprovalRequest, Decision } from "@superset/chat/protocol";
+import type {
+	ApprovalRequest,
+	Decision,
+	ToolCall,
+} from "@superset/chat/protocol";
 import {
 	MessageScroller,
 	useMessageScroller,
@@ -31,8 +35,9 @@ import {
 } from "../../constants";
 import type { ChatForkTarget } from "../../types";
 import { pageLinkFinder } from "../../utils/pageLinks";
-import { TurnGroupSection } from "./components/TurnGroupSection";
+import { TranscriptRowItem } from "./components/TranscriptRowItem";
 import { useLoadOlderOnReach } from "./hooks/useLoadOlderOnReach";
+import { useNearRows } from "./hooks/useNearRows";
 import { useScrollAnchorKey } from "./hooks/useScrollAnchorKey";
 import { useScrollbarGutter } from "./hooks/useScrollbarGutter";
 import { lastReplyKeys } from "./utils/lastReplyKeys";
@@ -59,6 +64,7 @@ export type TranscriptProps = {
 	outbox: OutboxEntry[];
 	hasOlder: boolean;
 	onLoadOlder: () => Promise<boolean>;
+	onRequestItemBodies: (itemIds: readonly string[]) => void;
 	onRespond: (approvalId: string, decision: Decision) => void;
 	onFork?: ((target: ChatForkTarget) => void) | undefined;
 	canForkToWorktree?: boolean;
@@ -97,13 +103,15 @@ export function Transcript({
 	onDiscardPrompt,
 	onFork,
 	onLoadOlder,
+	onRequestItemBodies,
 	onRespond,
 	onRetryPrompt,
 	outbox,
 	snapshot,
 }: TranscriptProps) {
 	const { t } = useLingui();
-	const [viewportRef, scrollbarGutter] = useScrollbarGutter<HTMLDivElement>();
+	const [viewportRef, scrollbarGutter, viewport] =
+		useScrollbarGutter<HTMLDivElement>();
 	const olderPages = useLoadOlderOnReach({ hasOlder, onLoadOlder });
 	const scroller = useMessageScroller();
 	const scrollerRef = useRef(scroller);
@@ -157,12 +165,41 @@ export function Transcript({
 		return targets;
 	}, [approvals]);
 
+	const commandsInApprovals = useMemo(() => {
+		const ids = new Set<string>();
+		for (const approval of approvals) {
+			const target = approval.targetItemId
+				? snapshot.items.get(approval.targetItemId)?.item
+				: undefined;
+			if (
+				target?.kind === "tool_call" &&
+				(target as ToolCall).toolKind === "execute" &&
+				(target as ToolCall).title === approval.title
+			) {
+				ids.add(target.id);
+			}
+		}
+		return ids;
+	}, [approvals, snapshot.items]);
+
 	const rows = useMemo(
-		() => transcriptRows(groups, outbox, pendingApprovalTargets, findPageLinks),
-		[groups, outbox, pendingApprovalTargets],
+		() =>
+			transcriptRows(
+				groups,
+				outbox,
+				pendingApprovalTargets,
+				findPageLinks,
+				commandsInApprovals,
+			),
+		[groups, outbox, pendingApprovalTargets, commandsInApprovals],
 	);
 
 	const lastReplies = useMemo(() => lastReplyKeys(rows), [rows]);
+	const { seenRowKeys, observeRow } = useNearRows(
+		rows,
+		viewport,
+		onRequestItemBodies,
+	);
 
 	const anchorRowKey = useScrollAnchorKey(rows, outbox, {
 		turnRunning: groups.at(-1)?.turn?.status === "running",
@@ -177,33 +214,35 @@ export function Transcript({
 		});
 	}, [firstPendingApprovalId]);
 
-	const contentChildren = rows.map((row, index) => (
-		<MessageScroller.Item
-			className={cn(
-				REMEMBER_SIZE_CLASSNAME,
-				index < rows.length - RECENT_ROWS_RENDERED_IN_FULL &&
-					OFFSCREEN_CLASSNAME,
-				"px-4 pb-1",
-				proseTopPadding(row, rows[index - 1]),
-			)}
-			key={row.key}
-			messageId={rowMessageId(row)}
-			scrollAnchor={row.key === anchorRowKey}
-		>
-			<TurnGroupSection
+	const contentChildren = rows.map((row, index) => {
+		const recent = index >= rows.length - RECENT_ROWS_RENDERED_IN_FULL;
+		const scrollAnchor = row.key === anchorRowKey;
+		return (
+			<TranscriptRowItem
 				canForkToWorktree={canForkToWorktree}
-				lastReply={lastReplies.has(row.key)}
+				className={cn(
+					REMEMBER_SIZE_CLASSNAME,
+					!recent && OFFSCREEN_CLASSNAME,
+					"px-4 pb-1",
+					proseTopPadding(row, rows[index - 1]),
+				)}
 				isEntryCollapsed={isEntryCollapsed}
+				key={row.key}
+				lastReply={lastReplies.has(row.key)}
+				messageId={rowMessageId(row)}
 				onDiscardPrompt={onDiscardPrompt}
 				onFork={onFork}
 				onRespond={onRespond}
 				onRetryPrompt={onRetryPrompt}
 				onToggleEntry={onToggleEntry}
+				rendered={recent || scrollAnchor || seenRowKeys.has(row.key)}
 				row={row}
+				rowRef={observeRow(row.key)}
+				scrollAnchor={scrollAnchor}
 				snapshot={snapshot}
 			/>
-		</MessageScroller.Item>
-	));
+		);
+	});
 
 	return (
 		<MessageScroller.Root className="relative flex min-h-0 min-w-0 flex-1 flex-col">

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type {
 	ApprovalRequest,
 	Decision,
+	FormField,
 	Item,
 	Plan,
 	SessionConfigOption,
@@ -39,7 +40,7 @@ import type {
 	SpawnAcpOptions,
 } from "./rpcClient";
 import { AcpRpcClient, spawnAcpTransport } from "./rpcClient";
-import type { AcpConfigSelectOption } from "./wire";
+import type { AcpConfigSelectOption, AcpElicitationProperty } from "./wire";
 import {
 	ACP_STEERING_METHOD,
 	type AcpContentBlock,
@@ -47,6 +48,7 @@ import {
 	acpAvailableCommandsUpdateSchema,
 	acpConfigOptionUpdateSchema,
 	acpContentBlockSchema,
+	acpCreateElicitationParamsSchema,
 	acpInitializeResponseSchema,
 	acpMessageSchema,
 	acpNewSessionResponseSchema,
@@ -184,6 +186,7 @@ type PendingApproval = {
 	requestId: number | string;
 	turnId: string;
 	item: ApprovalRequest;
+	fieldTypes?: Record<string, string | undefined>;
 };
 
 type AcpSessionModes = NonNullable<
@@ -219,6 +222,95 @@ function isApprovalOptionKind(
 	kind: string | undefined,
 ): kind is "allow_once" | "allow_always" | "reject_once" | "reject_always" {
 	return kind !== undefined && APPROVAL_OPTION_KINDS.has(kind);
+}
+
+type AcpEnumOption = { const: string; title?: string; description?: string };
+
+function enumOptions(
+	values: string[] | undefined,
+	names?: string[],
+): AcpEnumOption[] | undefined {
+	return values?.map((value, index) => ({
+		const: value,
+		title: names?.[index] ?? value,
+	}));
+}
+
+function formField(
+	id: string,
+	property: AcpElicitationProperty,
+	required: boolean,
+): FormField {
+	const base = {
+		id,
+		...(property.title ? { title: property.title } : {}),
+		...(property.description ? { description: property.description } : {}),
+		...(required ? { required } : {}),
+	};
+	if (property.type === "boolean") return { ...base, input: "boolean" };
+	const choices: AcpEnumOption[] | undefined =
+		property.type === "array"
+			? (property.items?.anyOf ?? enumOptions(property.items?.enum))
+			: (property.oneOf ?? enumOptions(property.enum, property.enumNames));
+	if (!choices) {
+		if (property.type === "integer") return { ...base, input: "integer" };
+		if (property.type === "number") return { ...base, input: "number" };
+		return { ...base, input: "text" };
+	}
+	return {
+		...base,
+		input: property.type === "array" ? "multi" : "single",
+		options: choices.map((choice) => ({
+			value: choice.const,
+			label: choice.title ?? choice.const,
+			...(choice.description ? { description: choice.description } : {}),
+		})),
+	};
+}
+
+function formContent(
+	values: Record<string, string | string[]>,
+	fieldTypes: Record<string, string | undefined>,
+): Record<string, unknown> {
+	const content: Record<string, unknown> = {};
+	for (const [id, value] of Object.entries(values)) {
+		const type = fieldTypes[id];
+		if (Array.isArray(value)) content[id] = value;
+		else if (type === "boolean") content[id] = value === "true";
+		else if (type === "number" || type === "integer")
+			content[id] = Number(value);
+		else content[id] = value;
+	}
+	return content;
+}
+
+function formErrors(
+	values: Record<string, string | string[]>,
+	fields: readonly FormField[],
+	fieldTypes: Record<string, string | undefined>,
+): string[] {
+	const errors: string[] = [];
+	for (const field of fields) {
+		const value = values[field.id];
+		const empty =
+			value === undefined ||
+			(Array.isArray(value) ? value.length === 0 : value.trim() === "");
+		if (empty) {
+			if (field.required) errors.push(field.id);
+			continue;
+		}
+		const type = fieldTypes[field.id];
+		if (type !== "number" && type !== "integer") continue;
+		const parsed = Number(value);
+		if (
+			typeof value !== "string" ||
+			!Number.isFinite(parsed) ||
+			(type === "integer" && !Number.isInteger(parsed))
+		) {
+			errors.push(field.id);
+		}
+	}
+	return errors;
 }
 
 export class AcpAdapter implements HarnessAdapter {
@@ -336,6 +428,21 @@ export class AcpAdapter implements HarnessAdapter {
 	respondToApproval(approvalId: string, decision: Decision): void {
 		const pending = this.pendingApprovals.get(approvalId);
 		if (!pending || !this.client) return;
+		if (
+			decision.type === "form" &&
+			pending.item.form &&
+			formErrors(
+				decision.values,
+				pending.item.form.fields,
+				pending.fieldTypes ?? {},
+			).length > 0
+		) {
+			this.emitNotice(
+				"error",
+				"That answer is missing a required field or has an invalid number, so it was not sent.",
+			);
+			return;
+		}
 		this.pendingApprovals.delete(approvalId);
 		this.client.respond(
 			pending.requestId,
@@ -526,15 +633,15 @@ export class AcpAdapter implements HarnessAdapter {
 				// `capabilities`, so both names go out and one request serves either
 				// side of the bump.
 				info: CLIENT_INFO,
-				// Nothing to advertise either way: v2 moved fs and terminal out of
-				// client capabilities entirely, and receiving `subagent_update` is a
-				// baseline v2 requirement rather than a capability.
-				capabilities: { _meta: AIR_CLIENT_META },
+				// v2 moved fs and terminal out of client capabilities entirely.
+				// Without form elicitation, claude-agent-acp drops AskUserQuestion.
+				capabilities: { elicitation: { form: {} }, _meta: AIR_CLIENT_META },
 				// Do not advertise fs/terminal: the agent falls back to its own
 				// Read/Edit/Bash tools, which run headless in the workspace.
 				clientCapabilities: {
 					fs: { readTextFile: false, writeTextFile: false },
 					terminal: false,
+					elicitation: { form: {} },
 					_meta: AIR_CLIENT_META,
 				},
 			});
@@ -660,9 +767,11 @@ export class AcpAdapter implements HarnessAdapter {
 			});
 			if (stopReason === "refusal")
 				this.emitNotice("info", "The agent declined to continue.");
+			this.cancelPendingApprovals(turnId);
 			this.emitSession({ status: "idle" });
 		} catch (error) {
 			this.flushOpenText();
+			this.cancelPendingApprovals(turnId);
 			this.emitTurn({
 				id: turnId,
 				status: "failed",
@@ -676,6 +785,10 @@ export class AcpAdapter implements HarnessAdapter {
 	}
 
 	private handleNotification({ method, params }: AcpNotification): void {
+		if (method === "$/cancel_request") {
+			this.dropCancelledRequest(params);
+			return;
+		}
 		if (method !== "session/update") return;
 		const outer = acpSessionNotificationSchema.safeParse(params);
 		if (!outer.success) return;
@@ -993,6 +1106,16 @@ export class AcpAdapter implements HarnessAdapter {
 			update.rawInput === undefined ? prior?.rawInput : update.rawInput;
 		const rawOutput =
 			update.rawOutput === undefined ? prior?.rawOutput : update.rawOutput;
+		const claudeCode = update._meta?.claudeCode;
+		const mcpMatch = claudeCode?.toolName?.match(/^mcp__(.+?)__(.+)$/);
+		const mcpSource = claudeCode?.mcpServer?.source ?? prior?.mcpServer?.source;
+		const mcpServer: ToolCall["mcpServer"] = mcpMatch
+			? {
+					name: mcpMatch[1] as string,
+					tool: mcpMatch[2] as string,
+					...(mcpSource ? { source: mcpSource } : {}),
+				}
+			: prior?.mcpServer;
 		const item: ToolCall = {
 			id: update.toolCallId,
 			kind: "tool_call",
@@ -1000,7 +1123,12 @@ export class AcpAdapter implements HarnessAdapter {
 			toolKind: update.kind
 				? toolKind(update.kind)
 				: (prior?.toolKind ?? "other"),
-			toolName: update.name ?? update.kind ?? prior?.toolName ?? "tool",
+			toolName:
+				update.name ??
+				claudeCode?.toolName ??
+				update.kind ??
+				prior?.toolName ??
+				"tool",
 			status: update.status
 				? toolStatus(update.status)
 				: (prior?.status ?? "running"),
@@ -1014,6 +1142,7 @@ export class AcpAdapter implements HarnessAdapter {
 					: {}),
 			...(rawInput !== undefined ? { rawInput } : {}),
 			...(rawOutput !== undefined ? { rawOutput } : {}),
+			...(mcpServer ? { mcpServer } : {}),
 		};
 		this.toolCalls.set(update.toolCallId, item);
 		this.emitItem(item, turnId);
@@ -1045,6 +1174,7 @@ export class AcpAdapter implements HarnessAdapter {
 				: {}),
 			...(prior?.rawInput !== undefined ? { rawInput: prior.rawInput } : {}),
 			...(prior?.rawOutput !== undefined ? { rawOutput: prior.rawOutput } : {}),
+			...(prior?.mcpServer ? { mcpServer: prior.mcpServer } : {}),
 		};
 		this.toolCalls.set(toolCallId, item);
 		this.emitItem(item, turnId);
@@ -1329,6 +1459,10 @@ export class AcpAdapter implements HarnessAdapter {
 	}
 
 	private handleServerRequest(request: AcpServerRequest): void {
+		if (request.method === "elicitation/create") {
+			this.handleElicitation(request);
+			return;
+		}
 		if (request.method !== "session/request_permission") {
 			this.client?.respondWithError(
 				request.id,
@@ -1371,11 +1505,62 @@ export class AcpAdapter implements HarnessAdapter {
 		this.emitSession({ status: "awaiting_input" });
 	}
 
+	private handleElicitation(request: AcpServerRequest): void {
+		const parsed = acpCreateElicitationParamsSchema.safeParse(request.params);
+		if (!parsed.success || (parsed.data.mode ?? "form") !== "form") {
+			this.client?.respondWithError(
+				request.id,
+				-32602,
+				"invalid elicitation request",
+			);
+			return;
+		}
+		const turnId = this.resolveTurnId();
+		const targetItemId = parsed.data.toolCallId ?? null;
+		const approvalId = `elicitation:${this.mintId()}`;
+		const properties = parsed.data.requestedSchema?.properties ?? {};
+		const required = new Set(parsed.data.requestedSchema?.required ?? []);
+		const item: ApprovalRequest = {
+			id: approvalId,
+			kind: "approval_request",
+			targetItemId,
+			title: parsed.data.message,
+			status: "pending",
+			startedAtMs: this.nextStartMs(),
+			form: {
+				message: parsed.data.message,
+				fields: Object.entries(properties).map(([id, property]) =>
+					formField(id, property, required.has(id)),
+				),
+			},
+		};
+		this.pendingApprovals.set(approvalId, {
+			requestId: request.id,
+			turnId,
+			item,
+			fieldTypes: Object.fromEntries(
+				Object.entries(properties).map(([id, property]) => [id, property.type]),
+			),
+		});
+		this.emitItem(item, turnId);
+		this.emitSession({ status: "awaiting_input" });
+	}
+
 	private approvalOutcome(
 		pending: PendingApproval,
 		decision: Decision,
 	): unknown {
-		if (decision.type === "cancel")
+		if (pending.item.form) {
+			if (decision.type === "form") {
+				return {
+					action: "accept",
+					content: formContent(decision.values, pending.fieldTypes ?? {}),
+				};
+			}
+			if (decision.type === "cancel") return { action: "cancel" };
+			return { action: "decline" };
+		}
+		if (decision.type === "cancel" || decision.type === "form")
 			return { outcome: { outcome: "cancelled" } };
 		if (decision.type === "option") {
 			return { outcome: { outcome: "selected", optionId: decision.optionId } };
@@ -1454,6 +1639,43 @@ export class AcpAdapter implements HarnessAdapter {
 		this.emitNotice("error", `acp agent exited (code ${code ?? "null"})`);
 		this.emitSession({ status: "dead" });
 		this.queue.close();
+	}
+
+	private cancelPendingApprovals(turnId: string): void {
+		for (const [approvalId, pending] of [...this.pendingApprovals]) {
+			if (pending.turnId !== turnId) continue;
+			this.pendingApprovals.delete(approvalId);
+			this.client?.respond(
+				pending.requestId,
+				this.approvalOutcome(pending, { type: "cancel" }),
+			);
+			this.emitItem(
+				{ ...pending.item, status: "stale", completedAtMs: this.now() },
+				pending.turnId,
+			);
+		}
+	}
+
+	private dropCancelledRequest(params: unknown): void {
+		const requestId = (params as { requestId?: unknown } | undefined)
+			?.requestId;
+		let dropped = false;
+		for (const [approvalId, pending] of [...this.pendingApprovals]) {
+			if (pending.requestId !== requestId) continue;
+			this.pendingApprovals.delete(approvalId);
+			dropped = true;
+			this.emitItem(
+				{ ...pending.item, status: "stale", completedAtMs: this.now() },
+				pending.turnId,
+			);
+		}
+		if (
+			dropped &&
+			this.pendingApprovals.size === 0 &&
+			this.currentTurn?.status === "running"
+		) {
+			this.emitSession({ status: "running" });
+		}
 	}
 
 	private stalePendingApprovals(): void {

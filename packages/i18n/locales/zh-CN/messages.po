@@ -259,6 +259,10 @@ msgstr "{0, plural, one {#个工作区} other {#个工作区}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {#个运行中的智能体仍在使用之前的账户。切换只对新启动生效。} other {#个运行中的智能体仍在使用之前的账户。切换只对新启动生效。}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, other {提出了 # 个问题}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {评论将发送给此智能体} other {评论将发送给这些智能体}}"
@@ -462,6 +466,12 @@ msgstr "最近完整周 {0}"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "还有{0}个——请细化搜索"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "第 {0} 个，共 {1} 个"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2189,6 +2199,9 @@ msgstr "请允许麦克风访问以使用语音输入"
 msgid "Allow remote access to this device via relay"
 msgstr "允许通过中继远程访问本设备"
 
+msgid "Allow this action?"
+msgstr "允许此操作？"
+
 msgid "Allowed"
 msgstr "已允许"
 
@@ -2293,6 +2306,9 @@ msgstr "匿名装配工"
 
 msgid "another device"
 msgstr "另一台设备"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "请在桌面端回答此问题，或跳过。"
 
 msgid "Answered"
 msgstr "已回答"
@@ -6648,6 +6664,9 @@ msgstr "用得还顺手吗？"
 msgid "Ensure no regression"
 msgstr "确保没有回归"
 
+msgid "Enter a number"
+msgstr "输入数字"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "请输入{hostName}上的父目录"
 
@@ -6665,6 +6684,9 @@ msgstr "请输入有效的重复规则。"
 
 msgid "Enter a value."
 msgstr "请输入一个值。"
+
+msgid "Enter a whole number"
+msgstr "输入整数"
 
 msgid "Enter URL or search..."
 msgstr "输入URL或搜索..."
@@ -10597,6 +10619,9 @@ msgstr "思路不错"
 msgid "Nice, open a PR when ready."
 msgstr "不错，准备好就开个PR。"
 
+msgid "No"
+msgstr "否"
+
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "此主机上没有{0}登录——登录后用量会显示在这里。"
@@ -14322,6 +14347,9 @@ msgstr "运行终端命令并与其他应用程序交互。"
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "设置完成后在“工作区设置”终端中运行智能体，而不是另外启动第二个终端"
 
+msgid "Run this command?"
+msgstr "运行此命令？"
+
 msgid "Run workspace command"
 msgstr "运行工作区命令"
 
@@ -14837,6 +14865,9 @@ msgstr "选择智能体"
 
 msgid "Select All"
 msgstr "全选"
+
+msgid "Select all that apply"
+msgstr "选择所有适用项"
 
 msgid "Select an agent"
 msgstr "选择智能体"
@@ -15668,6 +15699,12 @@ msgstr "Superset 团队会审核此页面。只有在需要你补充信息时我
 
 msgid "Something else"
 msgstr "其他问题"
+
+msgid "Something else? Add it here"
+msgstr "还有其他？在此添加"
+
+msgid "Something else? Type your own answer"
+msgstr "还有其他？输入你自己的回答"
 
 msgid "Something went wrong"
 msgstr "出了点问题"
@@ -17933,6 +17970,9 @@ msgstr "输入组织名称以确认。"
 msgid "Type to search files..."
 msgstr "输入以搜索文件..."
 
+msgid "Type your answer"
+msgstr "输入你的回答"
+
 msgid "TypeScript"
 msgstr "TypeScript"
 
@@ -19214,6 +19254,9 @@ msgstr "按年"
 
 msgid "Yellow"
 msgstr "黄色"
+
+msgid "Yes"
+msgstr "是"
 
 msgid "Yes, demote me"
 msgstr "是，降低我的角色"

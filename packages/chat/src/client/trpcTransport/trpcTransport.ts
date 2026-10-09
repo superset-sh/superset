@@ -14,7 +14,13 @@ type Mutation =
 	| "closeSession"
 	| "forkSession";
 
-type Query = "getSession" | "getQueue" | "listSessions" | "getItems";
+type Query =
+	| "getSession"
+	| "getQueue"
+	| "listSessions"
+	| "getItems"
+	| "getOutline"
+	| "getItemBodies";
 
 /** A tRPC client for the chat router, by shape rather than by router type. */
 export type ChatTrpcClient = {
@@ -42,5 +48,7 @@ export function chatTransportFromTrpc(client: ChatTrpcClient): ChatTransport {
 		getQueue: (input) => client.getQueue.query(input),
 		listSessions: (input) => client.listSessions.query(input),
 		getItems: (input) => client.getItems.query(input),
+		getOutline: (input) => client.getOutline.query(input),
+		getItemBodies: (input) => client.getItemBodies.query(input),
 	};
 }

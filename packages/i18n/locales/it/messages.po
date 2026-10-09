@@ -259,6 +259,10 @@ msgstr "{0, plural, one {# workspace} other {# workspace}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {Un agente in esecuzione usa ancora l'account precedente: il cambio vale solo per i nuovi avvii.} other {# agenti in esecuzione usano ancora l'account precedente: il cambio vale solo per i nuovi avvii.}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, one {# domanda posta} other {# domande poste}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {I commenti vanno a questo agente} other {I commenti vanno a questi agenti}}"
@@ -462,6 +466,12 @@ msgstr "{0} nell'ultima settimana completa"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "Altri {0} — affina la ricerca"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "{0} di {1}"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2189,6 +2199,9 @@ msgstr "Consenti l'accesso al microfono per usare la dettatura"
 msgid "Allow remote access to this device via relay"
 msgstr "Consenti l'accesso remoto a questo dispositivo tramite relay"
 
+msgid "Allow this action?"
+msgstr "Consentire questa azione?"
+
 msgid "Allowed"
 msgstr "Consentito"
 
@@ -2293,6 +2306,9 @@ msgstr "Assemblatore Anonimo"
 
 msgid "another device"
 msgstr "un altro dispositivo"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "Rispondi a questa domanda dal desktop o saltala."
 
 msgid "Answered"
 msgstr "Risposto"
@@ -6648,6 +6664,9 @@ msgstr "Ti piace Superset?"
 msgid "Ensure no regression"
 msgstr "Assicurati che non ci siano regressioni"
 
+msgid "Enter a number"
+msgstr "Inserisci un numero"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "Inserisci una directory padre su {hostName}"
 
@@ -6665,6 +6684,9 @@ msgstr "Inserisci una regola di ricorrenza valida."
 
 msgid "Enter a value."
 msgstr "Inserisci un valore."
+
+msgid "Enter a whole number"
+msgstr "Inserisci un numero intero"
 
 msgid "Enter URL or search..."
 msgstr "Inserisci un URL o cerca..."
@@ -10597,6 +10619,9 @@ msgstr "Buon approccio"
 msgid "Nice, open a PR when ready."
 msgstr "Ottimo, apri una PR quando è pronta."
 
+msgid "No"
+msgstr "No"
+
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Nessun accesso {0} su questo host — accedi e l'utilizzo comparirà qui."
@@ -14322,6 +14347,9 @@ msgstr "Eseguire comandi da terminale e interagire con altre applicazioni."
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Esegui l'agente nel terminale Workspace Setup una volta terminata la configurazione, invece di avviare un secondo terminale accanto"
 
+msgid "Run this command?"
+msgstr "Eseguire questo comando?"
+
 msgid "Run workspace command"
 msgstr "Esegui il comando del workspace"
 
@@ -14837,6 +14865,9 @@ msgstr "Seleziona un agente"
 
 msgid "Select All"
 msgstr "Seleziona tutto"
+
+msgid "Select all that apply"
+msgstr "Seleziona tutte le opzioni pertinenti"
 
 msgid "Select an agent"
 msgstr "Seleziona un agente"
@@ -15668,6 +15699,12 @@ msgstr "Qualcuno del team Superset esaminerà questa pagina. Ti contatteremo sol
 
 msgid "Something else"
 msgstr "Altro"
+
+msgid "Something else? Add it here"
+msgstr "Altro? Aggiungilo qui"
+
+msgid "Something else? Type your own answer"
+msgstr "Altro? Scrivi la tua risposta"
 
 msgid "Something went wrong"
 msgstr "Qualcosa è andato storto"
@@ -17933,6 +17970,9 @@ msgstr "Digita il nome dell'organizzazione per confermare."
 msgid "Type to search files..."
 msgstr "Digita per cercare file..."
 
+msgid "Type your answer"
+msgstr "Scrivi la tua risposta"
+
 msgid "TypeScript"
 msgstr "TypeScript"
 
@@ -19214,6 +19254,9 @@ msgstr "Annuale"
 
 msgid "Yellow"
 msgstr "Giallo"
+
+msgid "Yes"
+msgstr "Sì"
 
 msgid "Yes, demote me"
 msgstr "Sì, retrocedimi"

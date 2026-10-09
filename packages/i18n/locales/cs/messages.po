@@ -259,6 +259,10 @@ msgstr "{0, plural, one {# pracovní prostor} few {# pracovní prostory} many {#
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {# běžící agent stále používá předchozí účet — přepnutí platí jen pro nová spuštění.} few {# běžící agenti stále používají předchozí účet — přepnutí platí jen pro nová spuštění.} many {# běžícího agenta stále používá předchozí účet — přepnutí platí jen pro nová spuštění.} other {# běžících agentů stále používá předchozí účet — přepnutí platí jen pro nová spuštění.}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, one {Položena # otázka} few {Položeny # otázky} many {Položeno # otázek} other {Položeno # otázek}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Komentáře jdou tomuto agentovi} few {Komentáře jdou těmto agentům} many {Komentáře jdou těmto agentům} other {Komentáře jdou těmto agentům}}"
@@ -462,6 +466,12 @@ msgstr "{0} za poslední celý týden"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "Ještě {0} — upřesněte hledání"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "{0} z {1}"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2189,6 +2199,9 @@ msgstr "Pro diktování povolte přístup k mikrofonu"
 msgid "Allow remote access to this device via relay"
 msgstr "Povolit vzdálený přístup k tomuto zařízení přes relay"
 
+msgid "Allow this action?"
+msgstr "Povolit tuto akci?"
+
 msgid "Allowed"
 msgstr "Povoleno"
 
@@ -2293,6 +2306,9 @@ msgstr "Anonymní montér"
 
 msgid "another device"
 msgstr "jiné zařízení"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "Odpovězte na tuto otázku na počítači, nebo ji přeskočte."
 
 msgid "Answered"
 msgstr "Zodpovězeno"
@@ -6648,6 +6664,9 @@ msgstr "Líbí se vám Superset?"
 msgid "Ensure no regression"
 msgstr "Zajisti žádnou regresi"
 
+msgid "Enter a number"
+msgstr "Zadejte číslo"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "Zadejte nadřazený adresář na {hostName}"
 
@@ -6665,6 +6684,9 @@ msgstr "Zadejte platné pravidlo opakování."
 
 msgid "Enter a value."
 msgstr "Zadejte hodnotu."
+
+msgid "Enter a whole number"
+msgstr "Zadejte celé číslo"
 
 msgid "Enter URL or search..."
 msgstr "Zadejte URL nebo hledejte..."
@@ -10597,6 +10619,9 @@ msgstr "Dobrý přístup"
 msgid "Nice, open a PR when ready."
 msgstr "Super, až budeš mít hotovo, otevři PR."
 
+msgid "No"
+msgstr "Ne"
+
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Na tomto hostu nejsou žádná přihlášení {0} — přihlaste se a využití se objeví tady."
@@ -14322,6 +14347,9 @@ msgstr "Spouštět příkazy v terminálu a pracovat s dalšími aplikacemi."
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Spustit agenta v terminálu Workspace Setup, jakmile setup doběhne, místo spuštění druhého terminálu vedle něj"
 
+msgid "Run this command?"
+msgstr "Spustit tento příkaz?"
+
 msgid "Run workspace command"
 msgstr "Spustit příkaz pracovního prostoru"
 
@@ -14837,6 +14865,9 @@ msgstr "Vyberte agenta"
 
 msgid "Select All"
 msgstr "Vybrat vše"
+
+msgid "Select all that apply"
+msgstr "Vyberte vše, co platí"
 
 msgid "Select an agent"
 msgstr "Vyberte agenta"
@@ -15668,6 +15699,12 @@ msgstr "Někdo z týmu Superset tuto stránku posoudí. Ozveme se jen tehdy, kdy
 
 msgid "Something else"
 msgstr "Něco jiného"
+
+msgid "Something else? Add it here"
+msgstr "Něco jiného? Přidejte to sem"
+
+msgid "Something else? Type your own answer"
+msgstr "Něco jiného? Napište vlastní odpověď"
 
 msgid "Something went wrong"
 msgstr "Něco se pokazilo"
@@ -17933,6 +17970,9 @@ msgstr "Pro potvrzení napište název organizace."
 msgid "Type to search files..."
 msgstr "Pište pro hledání souborů..."
 
+msgid "Type your answer"
+msgstr "Napište odpověď"
+
 msgid "TypeScript"
 msgstr "TypeScript"
 
@@ -19214,6 +19254,9 @@ msgstr "Ročně"
 
 msgid "Yellow"
 msgstr "Žlutá"
+
+msgid "Yes"
+msgstr "Ano"
 
 msgid "Yes, demote me"
 msgstr "Ano, degradovat mě"

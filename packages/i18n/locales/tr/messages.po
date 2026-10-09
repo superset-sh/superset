@@ -259,6 +259,10 @@ msgstr "{0, plural, one {# çalışma alanı} other {# çalışma alanı}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {Çalışan bir ajan hâlâ önceki hesabı kullanıyor — geçiş yalnızca yeni başlatmalar için geçerli.} other {Çalışan # ajan hâlâ önceki hesabı kullanıyor — geçiş yalnızca yeni başlatmalar için geçerli.}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, one {# soru soruldu} other {# soru soruldu}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Yorumlar bu ajana gider} other {Yorumlar bu ajanlara gider}}"
@@ -462,6 +466,12 @@ msgstr "son tam hafta {0}"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "{0} tane daha — aramanızı daraltın"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "{0} / {1}"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2189,6 +2199,9 @@ msgstr "Sesle yazmak için mikrofon erişimine izin verin"
 msgid "Allow remote access to this device via relay"
 msgstr "Bu cihaza röle üzerinden uzaktan erişime izin ver"
 
+msgid "Allow this action?"
+msgstr "Bu işleme izin verilsin mi?"
+
 msgid "Allowed"
 msgstr "İzin verildi"
 
@@ -2293,6 +2306,9 @@ msgstr "Anonim Montajcı"
 
 msgid "another device"
 msgstr "başka bir cihaz"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "Bu soruyu masaüstünde yanıtlayın veya atlayın."
 
 msgid "Answered"
 msgstr "Yanıtlandı"
@@ -6648,6 +6664,9 @@ msgstr "Superset'ten memnun musunuz?"
 msgid "Ensure no regression"
 msgstr "Regresyon olmadığından emin ol"
 
+msgid "Enter a number"
+msgstr "Bir sayı girin"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "{hostName} üzerinde bir üst dizin girin"
 
@@ -6665,6 +6684,9 @@ msgstr "Geçerli bir yineleme kuralı girin."
 
 msgid "Enter a value."
 msgstr "Bir değer girin."
+
+msgid "Enter a whole number"
+msgstr "Bir tam sayı girin"
 
 msgid "Enter URL or search..."
 msgstr "URL girin veya arayın..."
@@ -10597,6 +10619,9 @@ msgstr "Güzel yaklaşım"
 msgid "Nice, open a PR when ready."
 msgstr "Güzel, hazır olduğunda bir PR aç."
 
+msgid "No"
+msgstr "Hayır"
+
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Bu host'ta {0} oturumu yok — oturum açın, kullanım burada görünsün."
@@ -14322,6 +14347,9 @@ msgstr "Terminal komutları çalıştırın ve diğer uygulamalarla etkileşin."
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Yanında ikinci bir terminal başlatmak yerine, kurulum bittikten sonra ajanı Çalışma Alanı Kurulumu terminalinde çalıştır"
 
+msgid "Run this command?"
+msgstr "Bu komut çalıştırılsın mı?"
+
 msgid "Run workspace command"
 msgstr "Çalışma alanı komutunu çalıştır"
 
@@ -14837,6 +14865,9 @@ msgstr "Ajan seç"
 
 msgid "Select All"
 msgstr "Tümünü seç"
+
+msgid "Select all that apply"
+msgstr "Uygun olanların tümünü seçin"
 
 msgid "Select an agent"
 msgstr "Bir ajan seçin"
@@ -15668,6 +15699,12 @@ msgstr "Superset ekibinden biri bu sayfayı inceleyecek. Yalnızca ek bilgiye ih
 
 msgid "Something else"
 msgstr "Başka bir şey"
+
+msgid "Something else? Add it here"
+msgstr "Başka bir şey mi? Buraya ekleyin"
+
+msgid "Something else? Type your own answer"
+msgstr "Başka bir şey mi? Kendi yanıtınızı yazın"
 
 msgid "Something went wrong"
 msgstr "Bir şeyler ters gitti"
@@ -17933,6 +17970,9 @@ msgstr "Onaylamak için kuruluş adını yazın."
 msgid "Type to search files..."
 msgstr "Dosya aramak için yazın..."
 
+msgid "Type your answer"
+msgstr "Yanıtınızı yazın"
+
 msgid "TypeScript"
 msgstr "TypeScript"
 
@@ -19214,6 +19254,9 @@ msgstr "Yıllık"
 
 msgid "Yellow"
 msgstr "Sarı"
+
+msgid "Yes"
+msgstr "Evet"
 
 msgid "Yes, demote me"
 msgstr "Evet, rolümü düşür"

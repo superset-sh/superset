@@ -259,6 +259,10 @@ msgstr "{0, plural, one {# workspace} other {# workspace}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {# agent đang chạy vẫn dùng tài khoản trước — việc chuyển chỉ áp dụng cho lần khởi chạy mới.} other {# agent đang chạy vẫn dùng tài khoản trước — việc chuyển chỉ áp dụng cho lần khởi chạy mới.}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, other {Đã hỏi # câu hỏi}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Bình luận sẽ được gửi tới agent này} other {Bình luận sẽ được gửi tới các agent này}}"
@@ -462,6 +466,12 @@ msgstr "{0} tuần trọn vẹn gần nhất"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "còn {0} nữa — hãy thu hẹp tìm kiếm"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "{0} / {1}"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2189,6 +2199,9 @@ msgstr "Cho phép truy cập micro để dùng đọc chính tả"
 msgid "Allow remote access to this device via relay"
 msgstr "Cho phép truy cập từ xa vào thiết bị này qua relay"
 
+msgid "Allow this action?"
+msgstr "Cho phép thao tác này?"
+
 msgid "Allowed"
 msgstr "Đã cho phép"
 
@@ -2293,6 +2306,9 @@ msgstr "Thợ lắp ráp ẩn danh"
 
 msgid "another device"
 msgstr "thiết bị khác"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "Trả lời câu hỏi này trên máy tính, hoặc bỏ qua."
 
 msgid "Answered"
 msgstr "Đã trả lời"
@@ -6648,6 +6664,9 @@ msgstr "Thích Superset chứ?"
 msgid "Ensure no regression"
 msgstr "Đảm bảo không có hồi quy"
 
+msgid "Enter a number"
+msgstr "Nhập một số"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "Hãy nhập một thư mục cha trên {hostName}"
 
@@ -6665,6 +6684,9 @@ msgstr "Hãy nhập một quy tắc lặp hợp lệ."
 
 msgid "Enter a value."
 msgstr "Hãy nhập một giá trị."
+
+msgid "Enter a whole number"
+msgstr "Nhập một số nguyên"
 
 msgid "Enter URL or search..."
 msgstr "Nhập URL hoặc tìm kiếm..."
@@ -10597,6 +10619,9 @@ msgstr "Cách tiếp cận hay"
 msgid "Nice, open a PR when ready."
 msgstr "Tốt, mở PR khi sẵn sàng nhé."
 
+msgid "No"
+msgstr "Không"
+
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Chưa có lần đăng nhập {0} nào trên host này — hãy đăng nhập và mức sử dụng sẽ hiện ở đây."
@@ -14322,6 +14347,9 @@ msgstr "Chạy lệnh terminal và tương tác với ứng dụng khác."
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Chạy agent trong terminal Workspace Setup sau khi setup xong thay vì mở thêm một terminal thứ hai bên cạnh"
 
+msgid "Run this command?"
+msgstr "Chạy lệnh này?"
+
 msgid "Run workspace command"
 msgstr "Chạy lệnh của workspace"
 
@@ -14837,6 +14865,9 @@ msgstr "Chọn agent"
 
 msgid "Select All"
 msgstr "Chọn tất cả"
+
+msgid "Select all that apply"
+msgstr "Chọn tất cả các mục phù hợp"
 
 msgid "Select an agent"
 msgstr "Chọn một agent"
@@ -15668,6 +15699,12 @@ msgstr "Một thành viên của nhóm Superset sẽ xem xét trang này. Chúng
 
 msgid "Something else"
 msgstr "Vấn đề khác"
+
+msgid "Something else? Add it here"
+msgstr "Còn gì khác? Thêm vào đây"
+
+msgid "Something else? Type your own answer"
+msgstr "Còn gì khác? Nhập câu trả lời của bạn"
 
 msgid "Something went wrong"
 msgstr "Đã xảy ra lỗi"
@@ -17933,6 +17970,9 @@ msgstr "Nhập tên tổ chức để xác nhận."
 msgid "Type to search files..."
 msgstr "Gõ để tìm tệp..."
 
+msgid "Type your answer"
+msgstr "Nhập câu trả lời của bạn"
+
 msgid "TypeScript"
 msgstr "TypeScript"
 
@@ -19214,6 +19254,9 @@ msgstr "Hằng năm"
 
 msgid "Yellow"
 msgstr "Vàng"
+
+msgid "Yes"
+msgstr "Có"
 
 msgid "Yes, demote me"
 msgstr "Có, hạ quyền tôi"

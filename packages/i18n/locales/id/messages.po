@@ -259,6 +259,10 @@ msgstr "{0, plural, one {# workspace} other {# workspace}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {# agen yang sedang berjalan masih memakai akun sebelumnya — pergantian hanya berlaku untuk peluncuran baru.} other {# agen yang sedang berjalan masih memakai akun sebelumnya — pergantian hanya berlaku untuk peluncuran baru.}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, other {Mengajukan # pertanyaan}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Komentar masuk ke agen ini} other {Komentar masuk ke agen-agen ini}}"
@@ -462,6 +466,12 @@ msgstr "{0} minggu penuh terakhir"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "{0} lagi — persempit pencarian Anda"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "{0} dari {1}"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2189,6 +2199,9 @@ msgstr "Izinkan akses mikrofon untuk memakai dikte"
 msgid "Allow remote access to this device via relay"
 msgstr "Izinkan akses jarak jauh ke perangkat ini melalui relay"
 
+msgid "Allow this action?"
+msgstr "Izinkan tindakan ini?"
+
 msgid "Allowed"
 msgstr "Diizinkan"
 
@@ -2293,6 +2306,9 @@ msgstr "Perakit Anonim"
 
 msgid "another device"
 msgstr "perangkat lain"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "Jawab pertanyaan ini di desktop, atau lewati."
 
 msgid "Answered"
 msgstr "Dijawab"
@@ -6648,6 +6664,9 @@ msgstr "Menikmati Superset?"
 msgid "Ensure no regression"
 msgstr "Pastikan tidak ada regresi"
 
+msgid "Enter a number"
+msgstr "Masukkan angka"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "Masukkan direktori induk di {hostName}"
 
@@ -6665,6 +6684,9 @@ msgstr "Masukkan aturan pengulangan yang valid."
 
 msgid "Enter a value."
 msgstr "Masukkan sebuah nilai."
+
+msgid "Enter a whole number"
+msgstr "Masukkan bilangan bulat"
 
 msgid "Enter URL or search..."
 msgstr "Masukkan URL atau cari..."
@@ -10597,6 +10619,9 @@ msgstr "Pendekatan yang bagus"
 msgid "Nice, open a PR when ready."
 msgstr "Bagus, buka PR kalau sudah siap."
 
+msgid "No"
+msgstr "Tidak"
+
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Tidak ada login {0} di host ini — masuk dan penggunaannya akan muncul di sini."
@@ -14322,6 +14347,9 @@ msgstr "Menjalankan perintah terminal dan berinteraksi dengan aplikasi lain."
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Jalankan agen di terminal Workspace Setup setelah setup selesai, bukan membuka terminal kedua di sampingnya"
 
+msgid "Run this command?"
+msgstr "Jalankan perintah ini?"
+
 msgid "Run workspace command"
 msgstr "Jalankan perintah workspace"
 
@@ -14837,6 +14865,9 @@ msgstr "Pilih agen"
 
 msgid "Select All"
 msgstr "Pilih Semua"
+
+msgid "Select all that apply"
+msgstr "Pilih semua yang sesuai"
 
 msgid "Select an agent"
 msgstr "Pilih agen"
@@ -15668,6 +15699,12 @@ msgstr "Seseorang dari tim Superset akan meninjau halaman ini. Kami hanya menghu
 
 msgid "Something else"
 msgstr "Hal lain"
+
+msgid "Something else? Add it here"
+msgstr "Ada yang lain? Tambahkan di sini"
+
+msgid "Something else? Type your own answer"
+msgstr "Ada yang lain? Ketik jawaban Anda sendiri"
 
 msgid "Something went wrong"
 msgstr "Terjadi kesalahan"
@@ -17933,6 +17970,9 @@ msgstr "Ketik nama organisasinya untuk konfirmasi."
 msgid "Type to search files..."
 msgstr "Ketik untuk mencari file..."
 
+msgid "Type your answer"
+msgstr "Ketik jawaban Anda"
+
 msgid "TypeScript"
 msgstr "TypeScript"
 
@@ -19214,6 +19254,9 @@ msgstr "Tahunan"
 
 msgid "Yellow"
 msgstr "Kuning"
+
+msgid "Yes"
+msgstr "Ya"
 
 msgid "Yes, demote me"
 msgstr "Ya, turunkan peran saya"

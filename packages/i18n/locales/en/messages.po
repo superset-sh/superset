@@ -259,6 +259,10 @@ msgstr "{0, plural, one {# workspace} other {# workspaces}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, one {Asked # question} other {Asked # questions}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
@@ -462,6 +466,12 @@ msgstr "{0} last full week"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "{0} more — refine your search"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "{0} of {1}"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2189,6 +2199,9 @@ msgstr "Allow microphone access to use dictation"
 msgid "Allow remote access to this device via relay"
 msgstr "Allow remote access to this device via relay"
 
+msgid "Allow this action?"
+msgstr "Allow this action?"
+
 msgid "Allowed"
 msgstr "Allowed"
 
@@ -2293,6 +2306,9 @@ msgstr "Anonymous Assembler"
 
 msgid "another device"
 msgstr "another device"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "Answer this question on desktop, or skip it."
 
 msgid "Answered"
 msgstr "Answered"
@@ -6648,6 +6664,9 @@ msgstr "Enjoying Superset?"
 msgid "Ensure no regression"
 msgstr "Ensure no regression"
 
+msgid "Enter a number"
+msgstr "Enter a number"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "Enter a parent directory on {hostName}"
 
@@ -6665,6 +6684,9 @@ msgstr "Enter a valid recurrence rule."
 
 msgid "Enter a value."
 msgstr "Enter a value."
+
+msgid "Enter a whole number"
+msgstr "Enter a whole number"
 
 msgid "Enter URL or search..."
 msgstr "Enter URL or search..."
@@ -10597,6 +10619,9 @@ msgstr "Nice approach"
 msgid "Nice, open a PR when ready."
 msgstr "Nice, open a PR when ready."
 
+msgid "No"
+msgstr "No"
+
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "No {0} logins on this host — sign in and usage appears here."
@@ -14322,6 +14347,9 @@ msgstr "Run terminal commands and interact with other applications."
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 
+msgid "Run this command?"
+msgstr "Run this command?"
+
 msgid "Run workspace command"
 msgstr "Run workspace command"
 
@@ -14837,6 +14865,9 @@ msgstr "Select agent"
 
 msgid "Select All"
 msgstr "Select All"
+
+msgid "Select all that apply"
+msgstr "Select all that apply"
 
 msgid "Select an agent"
 msgstr "Select an agent"
@@ -15668,6 +15699,12 @@ msgstr "Someone on the Superset team will review this page. We only follow up if
 
 msgid "Something else"
 msgstr "Something else"
+
+msgid "Something else? Add it here"
+msgstr "Something else? Add it here"
+
+msgid "Something else? Type your own answer"
+msgstr "Something else? Type your own answer"
 
 msgid "Something went wrong"
 msgstr "Something went wrong"
@@ -17933,6 +17970,9 @@ msgstr "Type the organization name to confirm."
 msgid "Type to search files..."
 msgstr "Type to search files..."
 
+msgid "Type your answer"
+msgstr "Type your answer"
+
 msgid "TypeScript"
 msgstr "TypeScript"
 
@@ -19214,6 +19254,9 @@ msgstr "Yearly"
 
 msgid "Yellow"
 msgstr "Yellow"
+
+msgid "Yes"
+msgstr "Yes"
 
 msgid "Yes, demote me"
 msgstr "Yes, demote me"

@@ -1,4 +1,12 @@
 import { randomUUID } from "node:crypto";
+import {
+	emptySnapshot,
+	outlineSnapshot,
+	reduceMany,
+	type SessionOutline,
+	type SessionSnapshot,
+	type StoredItem,
+} from "@superset/chat/core";
 import type {
 	CancelTurnInput,
 	CloseSessionInput,
@@ -18,7 +26,9 @@ import {
 	closeSessionInputSchema,
 	createSessionInputSchema,
 	forkSessionInputSchema,
+	getItemBodiesInputSchema,
 	getItemsInputSchema,
+	getOutlineInputSchema,
 	getSessionInputSchema,
 	listSessionsInputSchema,
 	promptInputSchema,
@@ -33,8 +43,8 @@ import { z } from "zod";
 import type { ChatDb, ChatSessionRow } from "../../db";
 import type { ChatJournal } from "../../journal";
 import type { ChatSessionStore } from "../../projection";
-import type { PageResult } from "../../replay";
-import { readPage } from "../../replay";
+import type { ChatResetReason, PageResult } from "../../replay";
+import { latestSeq, readPage, readSince } from "../../replay";
 import type {
 	LiveSessionRegistry,
 	PromptResult,
@@ -103,7 +113,19 @@ export type ChatCommands = {
 	getQueue(input: GetSessionInput): GetQueueResult;
 	listSessions(input: ListSessionsCommandInput): ChatSessionListEntry[];
 	getItems(input: z.input<typeof getItemsInputSchema>): PageResult;
+	getOutline(input: z.input<typeof getOutlineInputSchema>): OutlineResult;
+	getItemBodies(
+		input: z.input<typeof getItemBodiesInputSchema>,
+	): ItemBodiesResult;
 };
+
+export type OutlineResult =
+	| { ok: true; outline: SessionOutline }
+	| { ok: false; reset: ChatResetReason };
+
+export type ItemBodiesResult =
+	| { ok: true; items: StoredItem[] }
+	| { ok: false; reset: ChatResetReason };
 
 export type CommandsOptions = {
 	journal: ChatJournal;
@@ -114,8 +136,56 @@ export type CommandsOptions = {
 	mintSessionId?: () => string;
 };
 
+const MAX_CACHED_REPLAY_EVENTS = 20_000;
+
 export function createCommands(options: CommandsOptions): ChatCommands {
 	const mintSessionId = options.mintSessionId ?? randomUUID;
+
+	const replays = new Map<
+		string,
+		{ epoch: string; seq: number; snapshot: SessionSnapshot }
+	>();
+	const replaySession = (
+		sessionId: string,
+	):
+		| { ok: true; snapshot: SessionSnapshot }
+		| { ok: false; reset: ChatResetReason } => {
+		const session = options.sessions.get(sessionId);
+		if (!session) return { ok: false, reset: "session_not_found" };
+		const seq = latestSeq(options.db, sessionId, session.epoch);
+		const cached = replays.get(sessionId);
+		const base =
+			cached && cached.epoch === session.epoch && cached.seq <= seq
+				? cached
+				: null;
+		if (base && base.seq === seq) {
+			return { ok: true, snapshot: base.snapshot };
+		}
+		const replay = readSince(options.db, sessionId, {
+			epoch: session.epoch,
+			seq: base?.seq ?? 0,
+		});
+		if (!replay.ok) return replay;
+		const snapshot = reduceMany(
+			base?.snapshot ?? emptySnapshot(),
+			replay.envelopes,
+		);
+		replays.delete(sessionId);
+		replays.set(sessionId, {
+			epoch: session.epoch,
+			seq: replay.envelopes.at(-1)?.cursor.seq ?? base?.seq ?? 0,
+			snapshot,
+		});
+		let cachedEvents = 0;
+		for (const entry of replays.values()) cachedEvents += entry.seq;
+		for (const [key, entry] of replays) {
+			if (cachedEvents <= MAX_CACHED_REPLAY_EVENTS || key === sessionId) break;
+			replays.delete(key);
+			cachedEvents -= entry.seq;
+		}
+		if (cachedEvents > MAX_CACHED_REPLAY_EVENTS) replays.delete(sessionId);
+		return { ok: true, snapshot };
+	};
 
 	const listSessions = (
 		input: ListSessionsCommandInput,
@@ -271,6 +341,7 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 		async closeSession(input) {
 			const parsed: CloseSessionInput = closeSessionInputSchema.parse(input);
 			const wasLive = options.live.get(parsed.sessionId) !== null;
+			replays.delete(parsed.sessionId);
 			try {
 				await options.live.dispose(parsed.sessionId);
 			} finally {
@@ -280,7 +351,10 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 
 		async closeScope(scopeId) {
 			const closed = await options.live.disposeScope(scopeId);
-			for (const sessionId of closed) options.journal.announce(sessionId);
+			for (const sessionId of closed) {
+				replays.delete(sessionId);
+				options.journal.announce(sessionId);
+			}
 		},
 
 		getSession(input) {
@@ -313,6 +387,26 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 				before: parsed.before,
 				limit: parsed.limit,
 			});
+		},
+
+		getOutline(input) {
+			const { sessionId } = getOutlineInputSchema.parse(input);
+			const replayed = replaySession(sessionId);
+			if (!replayed.ok) return replayed;
+			return { ok: true, outline: outlineSnapshot(replayed.snapshot) };
+		},
+
+		getItemBodies(input) {
+			const { sessionId, itemIds } = getItemBodiesInputSchema.parse(input);
+			const replayed = replaySession(sessionId);
+			if (!replayed.ok) return replayed;
+			return {
+				ok: true,
+				items: itemIds.flatMap((id) => {
+					const stored = replayed.snapshot.items.get(id);
+					return stored ? [stored] : [];
+				}),
+			};
 		},
 	};
 }
