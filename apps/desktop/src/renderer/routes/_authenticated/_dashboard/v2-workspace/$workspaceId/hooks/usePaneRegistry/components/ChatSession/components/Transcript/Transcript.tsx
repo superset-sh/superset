@@ -162,7 +162,27 @@ export function Transcript({
 		[groups, outbox, pendingApprovalTargets],
 	);
 
+	useEffect(() => {
+		const opened = rows.filter(
+			(row) =>
+				row.kind === "tool_run" &&
+				!row.defaultCollapsed &&
+				!entryOverrides.has(row.key),
+		);
+		if (opened.length === 0) return;
+		setEntryOverrides((previous) => {
+			const next = new Map(previous);
+			for (const row of opened) next.set(row.key, false);
+			return next;
+		});
+	}, [rows, entryOverrides]);
+
 	const lastReplies = useMemo(() => lastReplyKeys(rows), [rows]);
+	const availableCommands = snapshot.session?.availableCommands;
+	const commands = useMemo(
+		() => new Map(availableCommands?.map((command) => [command.name, command])),
+		[availableCommands],
+	);
 
 	const anchorRowKey = useScrollAnchorKey(rows, outbox, {
 		turnRunning: groups.at(-1)?.turn?.status === "running",

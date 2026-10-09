@@ -96,7 +96,7 @@ export function AgentMessageRow({
 							</button>
 						</TooltipTrigger>
 						<TooltipContent>
-							{copied ? <Trans>Copied</Trans> : <Trans>Copy message</Trans>}
+							<Trans>Copy message</Trans>
 						</TooltipContent>
 					</Tooltip>
 					{onFork && (
