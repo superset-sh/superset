@@ -29,6 +29,15 @@ describe("organizationPluginProblem", () => {
 		).toContain("not a connector");
 	});
 
+	test("a Superset plugin's name is refused", () => {
+		expect(
+			organizationPluginProblem({
+				...manifest({ connector: { slug: "neon_mcp" } }),
+				name: "neon",
+			}),
+		).toContain("name of a Superset plugin");
+	});
+
 	test("a plugin with no connector needs an https tool server", () => {
 		const mcp = (url: string) => ({ mcp: { type: "streamable-http", url } });
 		expect(organizationPluginProblem(manifest({}))).toContain("no tools");

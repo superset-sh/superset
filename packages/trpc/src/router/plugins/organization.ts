@@ -1,7 +1,10 @@
 import { db } from "@superset/db/client";
 import { organizationPlugins } from "@superset/db/schema";
 import { getConnector } from "@superset/shared/connectors";
-import { organizationMarketplace } from "@superset/shared/plugins";
+import {
+	organizationMarketplace,
+	PLUGIN_CATALOG,
+} from "@superset/shared/plugins";
 import { pluginManifestSchema } from "@superset/shared/plugins/manifest-schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, asc, eq, isNotNull } from "drizzle-orm";
@@ -39,6 +42,10 @@ function unknown(name: string) {
 export function organizationPluginProblem(
 	manifest: PluginManifest,
 ): string | null {
+	if (PLUGIN_CATALOG.some((plugin) => plugin.name === manifest.name)) {
+		return `"${manifest.name}" is the name of a Superset plugin`;
+	}
+
 	const slug = pluginConnector(manifest);
 	const url = supersetExtension(manifest)?.mcp?.url;
 
