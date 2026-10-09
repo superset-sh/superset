@@ -67,7 +67,7 @@ jobs:
 
   deploy-api:
     name: Deploy API to Vercel
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production
     needs: deploy-database
@@ -277,7 +277,7 @@ jobs:
 
   deploy-web:
     name: Deploy Web to Vercel
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production
     needs: deploy-database
@@ -380,7 +380,7 @@ jobs:
 
   deploy-marketing:
     name: Deploy Marketing to Vercel
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production
     needs: deploy-database
@@ -474,7 +474,7 @@ jobs:
 
   deploy-admin:
     name: Deploy Admin to Vercel
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production
     needs: deploy-database
@@ -774,7 +774,7 @@ jobs:
 
   deploy-docs:
     name: Deploy Docs to Vercel
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production
     needs: deploy-database
