@@ -6,7 +6,11 @@ import {
 	runningTurnId,
 } from "@superset/chat/core";
 import type { Decision } from "@superset/chat/protocol";
-import { useChatSession, useTimeline } from "@superset/chat/react";
+import {
+	ItemBodiesProvider,
+	useChatSession,
+	useTimeline,
+} from "@superset/chat/react";
 import { randomUUID } from "expo-crypto";
 import { useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
@@ -386,36 +390,38 @@ export const ChatSessionView = forwardRef<
 					<Text className="text-foreground text-xs font-medium">{banner}</Text>
 				</View>
 			) : null}
-			<GestureDetector gesture={tap}>
-				<View className="flex-1">
-					<Conversation
-						contentContainerClassName="px-4"
-						contentContainerStyle={{
-							paddingTop: headerHeight + 16 + (banner ? BANNER_SPACE : 0),
-						}}
-						data={rows}
-						keyExtractor={(row) => row.key}
-						ListHeaderComponent={
-							chat.hasOlder ? (
-								<Pressable
-									accessibilityRole="button"
-									className="bg-secondary mb-4 self-center rounded-full px-3.5 py-1.5 active:opacity-70"
-									onPress={() => void chat.loadOlder()}
-								>
-									<Text className="text-foreground text-xs font-medium">
-										<Trans>Load earlier messages</Trans>
-									</Text>
-								</Pressable>
-							) : null
-						}
-						ListFooterComponent={<View style={{ height: dockHeight + 8 }} />}
-						renderItem={renderRow}
-					>
-						<StickToBottom inset={dockHeight} />
-						<ScrollToBottom inset={dockHeight} />
-					</Conversation>
-				</View>
-			</GestureDetector>
+			<ItemBodiesProvider requestItemBodies={chat.requestItemBodies}>
+				<GestureDetector gesture={tap}>
+					<View className="flex-1">
+						<Conversation
+							contentContainerClassName="px-4"
+							contentContainerStyle={{
+								paddingTop: headerHeight + 16 + (banner ? BANNER_SPACE : 0),
+							}}
+							data={rows}
+							keyExtractor={(row) => row.key}
+							ListHeaderComponent={
+								chat.hasOlder ? (
+									<Pressable
+										accessibilityRole="button"
+										className="bg-secondary mb-4 self-center rounded-full px-3.5 py-1.5 active:opacity-70"
+										onPress={() => void chat.loadOlder()}
+									>
+										<Text className="text-foreground text-xs font-medium">
+											<Trans>Load earlier messages</Trans>
+										</Text>
+									</Pressable>
+								) : null
+							}
+							ListFooterComponent={<View style={{ height: dockHeight + 8 }} />}
+							renderItem={renderRow}
+						>
+							<StickToBottom inset={dockHeight} />
+							<ScrollToBottom inset={dockHeight} />
+						</Conversation>
+					</View>
+				</GestureDetector>
+			</ItemBodiesProvider>
 			<View
 				className="absolute inset-x-0 bottom-0 gap-2 px-3 pb-2"
 				onLayout={(event) => setDockHeight(event.nativeEvent.layout.height)}

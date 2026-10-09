@@ -55,6 +55,10 @@ export const decisionSchema = z.discriminatedUnion("type", [
 	z.looseObject({ type: z.literal("decline") }),
 	z.looseObject({ type: z.literal("cancel") }),
 	z.looseObject({ type: z.literal("option"), optionId: z.string().min(1) }),
+	z.looseObject({
+		type: z.literal("form"),
+		values: z.record(z.string(), z.union([z.string(), z.array(z.string())])),
+	}),
 ]);
 export type Decision = z.infer<typeof decisionSchema>;
 
@@ -121,6 +125,14 @@ export const toolCallSchema = z.looseObject({
 	rawInput: z.unknown().optional(),
 	rawOutput: z.unknown().optional(),
 	subagent: z.boolean().optional(),
+	bodyOmitted: z.boolean().optional(),
+	mcpServer: z
+		.looseObject({
+			name: z.string(),
+			tool: z.string(),
+			source: z.string().optional(),
+		})
+		.optional(),
 });
 export type ToolCall = z.infer<typeof toolCallSchema>;
 
@@ -135,6 +147,24 @@ export const planSchema = z.looseObject({
 	),
 });
 export type Plan = z.infer<typeof planSchema>;
+
+export const formFieldSchema = z.looseObject({
+	id: z.string().min(1),
+	title: z.string().optional(),
+	description: z.string().optional(),
+	input: z.enum(["single", "multi", "text", "number", "integer", "boolean"]),
+	required: z.boolean().optional(),
+	options: z
+		.array(
+			z.looseObject({
+				value: z.string(),
+				label: z.string(),
+				description: z.string().optional(),
+			}),
+		)
+		.optional(),
+});
+export type FormField = z.infer<typeof formFieldSchema>;
 
 export const approvalRequestSchema = z.looseObject({
 	...itemBaseFields,
@@ -152,6 +182,9 @@ export const approvalRequestSchema = z.looseObject({
 					.optional(),
 			}),
 		)
+		.optional(),
+	form: z
+		.looseObject({ message: z.string(), fields: z.array(formFieldSchema) })
 		.optional(),
 	status: z.enum(["pending", "answered", "stale"]),
 	decision: decisionSchema.optional(),

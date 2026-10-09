@@ -259,6 +259,10 @@ msgstr "{0, plural, one {# pracovní prostor} few {# pracovní prostory} many {#
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {# běžící agent stále používá předchozí účet — přepnutí platí jen pro nová spuštění.} few {# běžící agenti stále používají předchozí účet — přepnutí platí jen pro nová spuštění.} many {# běžícího agenta stále používá předchozí účet — přepnutí platí jen pro nová spuštění.} other {# běžících agentů stále používá předchozí účet — přepnutí platí jen pro nová spuštění.}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, one {Položena # otázka} few {Položeny # otázky} many {Položeno # otázek} other {Položeno # otázek}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Komentáře jdou tomuto agentovi} few {Komentáře jdou těmto agentům} many {Komentáře jdou těmto agentům} other {Komentáře jdou těmto agentům}}"
@@ -462,6 +466,12 @@ msgstr "{0} za poslední celý týden"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "Ještě {0} — upřesněte hledání"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "{0} z {1}"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2189,6 +2199,9 @@ msgstr "Pro diktování povolte přístup k mikrofonu"
 msgid "Allow remote access to this device via relay"
 msgstr "Povolit vzdálený přístup k tomuto zařízení přes relay"
 
+msgid "Allow this action?"
+msgstr "Povolit tuto akci?"
+
 msgid "Allowed"
 msgstr "Povoleno"
 
@@ -2293,6 +2306,9 @@ msgstr "Anonymní montér"
 
 msgid "another device"
 msgstr "jiné zařízení"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "Odpovězte na tuto otázku na počítači, nebo ji přeskočte."
 
 msgid "Answered"
 msgstr "Zodpovězeno"
@@ -3527,8 +3543,8 @@ msgstr "Zkontrolovat aktualizace"
 msgid "Check for Updates..."
 msgstr "Zkontrolovat aktualizace..."
 
-msgid "Check on running agents and read what they changed from your phone."
-msgstr "Sledujte běžící agenty a čtěte jejich změny přímo z telefonu."
+msgid "Check on running agents and read what they changed from your iPhone or iPad."
+msgstr "Kontrolujte běžící agenty a čtěte, co změnili, na iPhonu nebo iPadu."
 
 msgid "Check resources"
 msgstr "Zkontrolovat prostředky"
@@ -6648,6 +6664,9 @@ msgstr "Líbí se vám Superset?"
 msgid "Ensure no regression"
 msgstr "Zajisti žádnou regresi"
 
+msgid "Enter a number"
+msgstr "Zadejte číslo"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "Zadejte nadřazený adresář na {hostName}"
 
@@ -6665,6 +6684,9 @@ msgstr "Zadejte platné pravidlo opakování."
 
 msgid "Enter a value."
 msgstr "Zadejte hodnotu."
+
+msgid "Enter a whole number"
+msgstr "Zadejte celé číslo"
 
 msgid "Enter URL or search..."
 msgstr "Zadejte URL nebo hledejte..."
@@ -7954,8 +7976,8 @@ msgstr "Pořídit Superset Pro"
 msgid "Get the best out of Pro"
 msgstr "Využijte Pro naplno"
 
-msgid "Get the iPhone app"
-msgstr "Získat aplikaci pro iPhone"
+msgid "Get the iPhone and iPad app"
+msgstr "Stáhnout aplikaci pro iPhone a iPad"
 
 msgid "Ghost"
 msgstr "Ghost"
@@ -10597,6 +10619,9 @@ msgstr "Dobrý přístup"
 msgid "Nice, open a PR when ready."
 msgstr "Super, až budeš mít hotovo, otevři PR."
 
+msgid "No"
+msgstr "Ne"
+
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Na tomto hostu nejsou žádná přihlášení {0} — přihlaste se a využití se objeví tady."
@@ -11832,8 +11857,8 @@ msgstr "Otevřít na GitHubu"
 msgid "Open Page in Default Browser"
 msgstr "Otevřít stránku ve výchozím prohlížeči"
 
-msgid "Open pages and reply to comments from the Superset iPhone app."
-msgstr "Otevírejte stránky a odpovídejte na komentáře z aplikace Superset pro iPhone."
+msgid "Open pages and reply to comments from the Superset app on iPhone and iPad."
+msgstr "Otevírejte stránky a odpovídejte na komentáře v aplikaci Superset na iPhonu a iPadu."
 
 msgid "Open Plugins in the Superset app and pick one. The install is saved to your account."
 msgstr "Otevřete Pluginy v aplikaci Superset a vyberte jeden. Instalace se uloží do vašeho účtu."
@@ -12235,6 +12260,9 @@ msgstr "Stránky"
 
 msgid "Pages could not be loaded"
 msgstr "Stránky se nepodařilo načíst"
+
+msgid "Pages open in a grid, and floating keyboards work. Requires iPadOS 26 or later."
+msgstr "Stránky se otevírají v mřížce a plovoucí klávesnice fungují. Vyžaduje iPadOS 26 nebo novější."
 
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "Stránky, na kterých relace začaly, s podílem těch, kteří odešli bez druhé stránky. Srovnávací stránky jsou SEO plocha."
@@ -13792,8 +13820,8 @@ msgstr "Povinné"
 msgid "Required version: {minimumVersion}+"
 msgstr "Vyžadovaná verze: {minimumVersion}+"
 
-msgid "Requires iOS 26 or later. Included with Superset Pro."
-msgstr "Vyžaduje iOS 26 nebo novější. Součást Superset Pro."
+msgid "Requires iOS 26 or iPadOS 26 or later. Included with Superset Pro."
+msgstr "Vyžaduje iOS 26 nebo iPadOS 26 či novější. Součást Superset Pro."
 
 msgid "Reserved by OS"
 msgstr "Vyhrazeno systémem"
@@ -14319,6 +14347,9 @@ msgstr "Spouštět příkazy v terminálu a pracovat s dalšími aplikacemi."
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Spustit agenta v terminálu Workspace Setup, jakmile setup doběhne, místo spuštění druhého terminálu vedle něj"
 
+msgid "Run this command?"
+msgstr "Spustit tento příkaz?"
+
 msgid "Run workspace command"
 msgstr "Spustit příkaz pracovního prostoru"
 
@@ -14834,6 +14865,9 @@ msgstr "Vyberte agenta"
 
 msgid "Select All"
 msgstr "Vybrat vše"
+
+msgid "Select all that apply"
+msgstr "Vyberte vše, co platí"
 
 msgid "Select an agent"
 msgstr "Vyberte agenta"
@@ -15666,6 +15700,12 @@ msgstr "Někdo z týmu Superset tuto stránku posoudí. Ozveme se jen tehdy, kdy
 msgid "Something else"
 msgstr "Něco jiného"
 
+msgid "Something else? Add it here"
+msgstr "Něco jiného? Přidejte to sem"
+
+msgid "Something else? Type your own answer"
+msgstr "Něco jiného? Napište vlastní odpověď"
+
 msgid "Something went wrong"
 msgstr "Něco se pokazilo"
 
@@ -15901,8 +15941,8 @@ msgstr "Založte pracovní prostor rovnou z ticketu v Linearu. Agent ho převezm
 msgid "Start agent"
 msgstr "Spustit agenta"
 
-msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
-msgstr "Spouštějte agenty, sledujte je živě a kontrolujte diff z telefonu. Váš kód zůstává na vašich počítačích."
+msgid "Start agents, follow them live, and review the diff from your iPhone or iPad. Your code stays on your machines."
+msgstr "Spouštějte agenty, sledujte je živě a kontrolujte diff z iPhonu nebo iPadu. Váš kód zůstává na vašich počítačích."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Spusťte agenta nebo terminál a začněte v tomto pracovním prostoru pracovat."
@@ -15913,8 +15953,8 @@ msgstr "Začněte prohlížet"
 msgid "Start building in two."
 msgstr "Začněte stavět ve dvou."
 
-msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "Spouštějte programovací agenty, sledujte je živě a kontrolujte diff z telefonu. K dispozici v App Store; Android již brzy."
+msgid "Start coding agents, follow them live, and review the diff from your iPhone or iPad. Available on the App Store; Android is coming soon."
+msgstr "Spouštějte kódovací agenty, sledujte je živě a kontrolujte diff z iPhonu nebo iPadu. K dispozici v App Storu; Android brzy."
 
 msgid "Start date"
 msgstr "Datum zahájení"
@@ -16246,11 +16286,8 @@ msgstr "Desktopová aplikace Superset"
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise je Superset pro týmy. Ozvěte se a řekneme vám, co obsahuje a jak může fungovat ve vaší organizaci."
 
-msgid "Superset for iPhone"
-msgstr "Superset pro iPhone"
-
-msgid "Superset for iPhone page"
-msgstr "Stránka Superset pro iPhone"
+msgid "Superset for iPhone and iPad"
+msgstr "Superset pro iPhone a iPad"
 
 msgid "Superset for press"
 msgstr "Superset pro média"
@@ -16339,6 +16376,9 @@ msgstr "Superset Mobile přichází na iPhone"
 msgid "Superset Mobile lets developers continue the Superset workspaces they already use on their computer from an iPhone."
 msgstr "Superset Mobile umožňuje vývojářům pokračovat z iPhonu v pracovních prostorech Superset, které už používají na počítači."
 
+msgid "Superset Mobile page"
+msgstr "Stránka Superset Mobile"
+
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobile spouští agenty na počítačích, které připojíte."
 
@@ -16353,6 +16393,9 @@ msgstr "Superset potřebuje Plný přístup k disku, aby mohl číst data jinéh
 
 msgid "Superset next to others"
 msgstr "Superset vedle ostatních"
+
+msgid "Superset on iPad, showing a pull request and a workspace list"
+msgstr "Superset na iPadu s pull requestem a seznamem workspaců"
 
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset získá pouze oprávnění, o která tento konektor žádá. Kdykoli je můžete odvolat odpojením."
@@ -16914,8 +16957,8 @@ msgstr "Démon nedokázal předat vaše živé relace nové binárce. Důvod:"
 msgid "The desktop app runs on macOS and Linux today. Drop your email and we'll let you know the moment the Windows build ships."
 msgstr "Superset chystáme i pro Windows a Linux. Nechte nám e-mail a dáme vám vědět, jakmile bude hotovo."
 
-msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An iPhone app on the App Store lets you check on agents and review their diffs from your phone."
-msgstr "Desktopová aplikace běží na macOS, k tomu je experimentální AppImage pro Linux; Windows zatím nejsou dostupné. Kromě desktopové aplikace je tu CLI, TypeScript SDK a MCP server, takže Superset můžete řídit ze skriptů, terminálů i jiných agentů. Aplikace pro iPhone z App Storu vám umožní kontrolovat agenty a procházet jejich diffy z telefonu."
+msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An app for iPhone and iPad on the App Store lets you check on agents and review their diffs away from your desk."
+msgstr "Desktopová aplikace běží na macOS, k tomu je experimentální AppImage pro Linux; Windows zatím nejsou dostupné. Kromě desktopové aplikace je tu CLI, TypeScript SDK a MCP server, takže Superset můžete řídit ze skriptů, terminálů i jiných agentů. Aplikace pro iPhone a iPad z App Storu vám umožní kontrolovat agenty a procházet jejich diffy, i když nejste u stolu."
 
 msgid "The device that hosts this project is unavailable."
 msgstr "Zařízení, které hostuje tento projekt, není dostupné."
@@ -17105,6 +17148,9 @@ msgstr "Běh byl přeskočen, protože <0>{0}</0> není připojen k Superset rel
 
 msgid "The run was skipped because this device isn't connected to the Superset relay. Automations go through the relay even when they run on this device. Enable relay access, then run it again."
 msgstr "Běh byl přeskočen, protože toto zařízení není připojené k Superset relay. Automatizace jdou přes relay, i když běží na tomto zařízení. Povolte přístup přes relay a spusťte ji znovu."
+
+msgid "The same app runs natively on iPad, in portrait and landscape."
+msgstr "Stejná aplikace běží na iPadu nativně, na výšku i na šířku."
 
 msgid "The scorecard"
 msgstr "Hodnocení"
@@ -17923,6 +17969,9 @@ msgstr "Pro potvrzení napište název organizace."
 
 msgid "Type to search files..."
 msgstr "Pište pro hledání souborů..."
+
+msgid "Type your answer"
+msgstr "Napište odpověď"
 
 msgid "TypeScript"
 msgstr "TypeScript"
@@ -19205,6 +19254,9 @@ msgstr "Ročně"
 
 msgid "Yellow"
 msgstr "Žlutá"
+
+msgid "Yes"
+msgstr "Ano"
 
 msgid "Yes, demote me"
 msgstr "Ano, degradovat mě"

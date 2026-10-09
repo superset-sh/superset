@@ -1,0 +1,1 @@
+export { newerThan } from "./newerThan";

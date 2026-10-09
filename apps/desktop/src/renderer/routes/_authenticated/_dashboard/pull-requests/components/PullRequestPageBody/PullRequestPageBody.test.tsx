@@ -35,12 +35,11 @@ describe("PR summary body layout", () => {
 		expect(narrow.getAllByTestId("aside")).toHaveLength(1);
 		expect(narrow.getByTestId("info-rows")).toBeTruthy();
 		expect(narrow.queryByTestId("info-column")).toBeNull();
-		expect(
-			narrow
-				.getByText("Description")
-				.compareDocumentPosition(narrow.getByTestId("aside")) &
-				Node.DOCUMENT_POSITION_FOLLOWING,
-		).toBeTruthy();
+		const follows = (a: Element, b: Element) =>
+			Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+		const aside = narrow.getByTestId("aside");
+		expect(follows(narrow.getByTestId("info-rows"), aside)).toBe(true);
+		expect(follows(aside, narrow.getByText("Description"))).toBe(true);
 		narrow.unmount();
 
 		const wide = renderBody(1000);

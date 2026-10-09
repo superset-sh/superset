@@ -96,6 +96,23 @@ describe("filesystem router integration", () => {
 		expect(result).toBeNull();
 	});
 
+	test("movePath onto a taken name is a CONFLICT and moves nothing", async () => {
+		const sourcePath = join(scenario.repo.repoPath, "source.txt");
+		const takenPath = join(scenario.repo.repoPath, "taken.txt");
+		writeFileSync(sourcePath, "source");
+		writeFileSync(takenPath, "taken");
+
+		await expect(
+			scenario.host.trpc.filesystem.movePath.mutate({
+				workspaceId: scenario.workspaceId,
+				sourceAbsolutePath: sourcePath,
+				destinationAbsolutePath: takenPath,
+			}),
+		).rejects.toMatchObject({ data: { code: "CONFLICT" } });
+		expect(readFileSync(sourcePath, "utf8")).toBe("source");
+		expect(readFileSync(takenPath, "utf8")).toBe("taken");
+	});
+
 	test("searchFiles with empty query returns no matches", async () => {
 		const result = await scenario.host.trpc.filesystem.searchFiles.query({
 			workspaceId: scenario.workspaceId,

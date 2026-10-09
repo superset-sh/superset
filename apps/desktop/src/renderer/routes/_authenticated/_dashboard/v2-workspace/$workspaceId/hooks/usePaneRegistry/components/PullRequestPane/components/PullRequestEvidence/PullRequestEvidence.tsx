@@ -52,7 +52,7 @@ export function PullRequestEvidence({
 			{isPending ? (
 				<output
 					aria-label={t({ message: "Loading…" })}
-					className="grid grid-cols-3 gap-2.5"
+					className="grid grid-cols-[repeat(auto-fill,101px)] gap-2.5"
 				>
 					{[0, 1, 2].map((key) => (
 						<Skeleton key={key} className="h-[108px] rounded-lg" />
@@ -61,7 +61,7 @@ export function PullRequestEvidence({
 			) : (
 				<>
 					{pages.length > 0 ? (
-						<div className="grid grid-cols-3 gap-2.5">
+						<div className="grid grid-cols-[repeat(auto-fill,101px)] gap-2.5">
 							{pages.map((page) => (
 								<EvidencePageCard
 									key={page.id}

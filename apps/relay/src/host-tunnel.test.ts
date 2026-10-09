@@ -2,8 +2,6 @@
 import { expect, mock, test } from "bun:test";
 import type { Connection } from "partyserver";
 
-mock.module("partyserver", () => ({ Server: class {} }));
-
 const { HostTunnel } = await import("./host-tunnel");
 
 function socket(id: string, kind: "host" | "client" | "dial") {

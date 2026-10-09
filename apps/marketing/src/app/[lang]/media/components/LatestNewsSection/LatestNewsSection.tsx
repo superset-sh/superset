@@ -69,7 +69,7 @@ export function LatestNewsSection({ lang }: LatestNewsSectionProps) {
 						href={mobilePath}
 						className="border border-border px-4 py-2 text-foreground transition-colors hover:border-foreground"
 					>
-						<Trans>Superset for iPhone page</Trans>
+						<Trans>Superset Mobile page</Trans>
 					</Link>
 				</div>
 			</article>

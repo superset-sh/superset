@@ -12,7 +12,7 @@
 		"prebuild:dist": "bun run --filter=@superset/i18n build",
 		"build:dist": "bun run scripts/build-dist.ts",
 		"typecheck": "tsc --noEmit",
-		"test": "bun test --isolate"
+		"test": "bun test"
 	},
 	"dependencies": {
 		"@clack/prompts": "0.10.1",
