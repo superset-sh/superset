@@ -1030,6 +1030,13 @@
       "when": 1791582336839,
       "tag": "0146_cloud_workspace_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 147,
+      "version": "7",
+      "when": 1791582961937,
+      "tag": "0147_cloud_workspace_sessions_inflight",
+      "breakpoints": true
     }
   ]
 }

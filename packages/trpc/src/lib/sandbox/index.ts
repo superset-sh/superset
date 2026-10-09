@@ -51,6 +51,7 @@ export {
 	type SandboxSession,
 	SandboxUnavailableError,
 	sandboxExists,
+	sessionEndedAt,
 	settleSandbox,
 	stopAndSnapshot,
 	stopSandbox,

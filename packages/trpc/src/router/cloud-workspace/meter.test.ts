@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { boxMinutes, observedMs, unreportedMs } from "./meter";
+import { sessionEndedAt } from "../../lib/sandbox/vercel";
+import { boxMinutes, meteringCutoff, observedMs, unreportedMs } from "./meter";
 
 const row = {
 	id: "sess_1",
@@ -9,6 +10,7 @@ const row = {
 	stoppedAt: null as Date | null,
 	observedMs: 0,
 	reportedMs: 0,
+	inflightToMs: null as number | null,
 	createdAt: new Date(0),
 	updatedAt: new Date(0),
 };
@@ -41,5 +43,40 @@ describe("meter", () => {
 				reportedMs: 60_000,
 			}),
 		).toBe(30_000);
+	});
+
+	test("a session still open is read again until Vercel reports its stop", () => {
+		expect(
+			meteringCutoff({
+				oldestOpenStart: new Date(1_000),
+				lastStop: new Date(5_000),
+				workspaceCreatedAt: new Date(0),
+			}),
+		).toBe(1_000);
+		expect(
+			meteringCutoff({
+				oldestOpenStart: null,
+				lastStop: new Date(5_000),
+				workspaceCreatedAt: new Date(0),
+			}),
+		).toBe(5_000);
+		expect(
+			meteringCutoff({
+				oldestOpenStart: null,
+				lastStop: null,
+				workspaceCreatedAt: new Date(7),
+			}),
+		).toBe(7);
+	});
+
+	test("a session that ended without a stop time ends at its last update", () => {
+		expect(sessionEndedAt({ status: "running", updatedAt: 9 })).toBeNull();
+		expect(
+			sessionEndedAt({ status: "stopped", stoppedAt: 5, updatedAt: 9 }),
+		).toBe(5);
+		expect(
+			sessionEndedAt({ status: "stopping", requestedStopAt: 4, updatedAt: 9 }),
+		).toBe(4);
+		expect(sessionEndedAt({ status: "aborted", updatedAt: 9 })).toBe(9);
 	});
 });

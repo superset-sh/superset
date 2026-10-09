@@ -4,7 +4,7 @@ import {
 	cloudWorkspaces,
 	organizations,
 } from "@superset/db/schema";
-import { and, eq, inArray, isNull, lt, max, or, sql } from "drizzle-orm";
+import { and, count, eq, inArray, isNull, lt, max, or, sql } from "drizzle-orm";
 import { autumn, BOX_MINUTES_FEATURE_ID } from "../../lib/billing/autumn";
 import {
 	listActiveWorkspaceSandboxes,
@@ -34,33 +34,77 @@ export function unreportedMs(row: SessionRow): number {
 	return Math.max(0, delta);
 }
 
-async function recordSessions(
-	cloudWorkspaceId: string,
-	providerSandboxId: string,
-): Promise<void> {
-	const [latest] = await db
-		.select({ stoppedAt: max(cloudWorkspaceSessions.stoppedAt) })
+export function meteringCutoff(bounds: {
+	oldestOpenStart: Date | null;
+	lastStop: Date | null;
+	workspaceCreatedAt: Date;
+}): number {
+	return (
+		bounds.oldestOpenStart ??
+		bounds.lastStop ??
+		bounds.workspaceCreatedAt
+	).getTime();
+}
+
+async function recordSessions(workspace: {
+	id: string;
+	providerSandboxId: string;
+	createdAt: Date;
+}): Promise<void> {
+	const [bounds] = await db
+		.select({
+			oldestOpenStart:
+				sql<Date | null>`min(${cloudWorkspaceSessions.startedAt}) filter (where ${cloudWorkspaceSessions.stoppedAt} is null)`.mapWith(
+					cloudWorkspaceSessions.startedAt,
+				),
+			lastStop: max(cloudWorkspaceSessions.stoppedAt),
+			count: count(),
+		})
 		.from(cloudWorkspaceSessions)
-		.where(eq(cloudWorkspaceSessions.cloudWorkspaceId, cloudWorkspaceId));
-	const now = Date.now();
+		.where(eq(cloudWorkspaceSessions.cloudWorkspaceId, workspace.id));
+	const firstSight = (bounds?.count ?? 0) === 0;
 	const sessions = await listSandboxSessions(
-		providerSandboxId,
-		latest?.stoppedAt?.getTime() ?? now,
+		workspace.providerSandboxId,
+		meteringCutoff({
+			oldestOpenStart: bounds?.oldestOpenStart ?? null,
+			lastStop: bounds?.lastStop ?? null,
+			workspaceCreatedAt: workspace.createdAt,
+		}),
 	);
+	if (sessions === null) {
+		await db
+			.update(cloudWorkspaceSessions)
+			.set({
+				stoppedAt: sql`${cloudWorkspaceSessions.startedAt} + make_interval(secs => ${cloudWorkspaceSessions.observedMs} / 1000.0)`,
+			})
+			.where(
+				and(
+					eq(cloudWorkspaceSessions.cloudWorkspaceId, workspace.id),
+					isNull(cloudWorkspaceSessions.stoppedAt),
+				),
+			);
+		return;
+	}
 	if (sessions.length === 0) return;
+	const now = Date.now();
 	const observed = sql`greatest(${cloudWorkspaceSessions.observedMs}, excluded.observed_ms)`;
 	await db
 		.insert(cloudWorkspaceSessions)
 		.values(
-			sessions.map((session) => ({
-				id: session.id,
-				cloudWorkspaceId,
-				vcpus: session.vcpus,
-				startedAt: new Date(session.startedAt),
-				stoppedAt: session.endedAt === null ? null : new Date(session.endedAt),
-				observedMs: observedMs(session, now),
-				reportedMs: autumn ? 0 : observedMs(session, now),
-			})),
+			sessions.map((session) => {
+				const ms = observedMs(session, now);
+				const settled = !autumn || (firstSight && session.endedAt !== null);
+				return {
+					id: session.id,
+					cloudWorkspaceId: workspace.id,
+					vcpus: session.vcpus,
+					startedAt: new Date(session.startedAt),
+					stoppedAt:
+						session.endedAt === null ? null : new Date(session.endedAt),
+					observedMs: ms,
+					reportedMs: settled ? ms : 0,
+				};
+			}),
 		)
 		.onConflictDoUpdate({
 			target: cloudWorkspaceSessions.id,
@@ -79,47 +123,49 @@ async function reportSession(args: {
 	createdByUserId: string | null;
 }): Promise<number> {
 	const { row } = args;
-	const delta = unreportedMs(row);
-	if (!autumn || delta === 0) return 0;
-	const claimed = await db
-		.update(cloudWorkspaceSessions)
-		.set({ reportedMs: row.observedMs })
-		.where(
-			and(
-				eq(cloudWorkspaceSessions.id, row.id),
-				eq(cloudWorkspaceSessions.reportedMs, row.reportedMs),
-			),
-		)
-		.returning({ id: cloudWorkspaceSessions.id });
-	if (claimed.length === 0) return 0;
-	try {
-		await autumn.track(
-			{
-				customerId: args.organizationId,
-				featureId: BOX_MINUTES_FEATURE_ID,
-				value: boxMinutes(delta, row.vcpus),
-				properties: {
-					cloudWorkspaceId: row.cloudWorkspaceId,
-					sessionId: row.id,
-					userId: args.createdByUserId,
-					vcpus: row.vcpus,
-					wallMs: delta,
-				},
-			},
-			{ headers: { "Idempotency-Key": `${row.id}:${row.observedMs}` } },
-		);
-	} catch (error) {
-		await db
+	if (!autumn) return 0;
+	let to = row.inflightToMs;
+	if (to === null) {
+		if (unreportedMs(row) === 0) return 0;
+		const claimed = await db
 			.update(cloudWorkspaceSessions)
-			.set({ reportedMs: row.reportedMs })
+			.set({ inflightToMs: row.observedMs })
 			.where(
 				and(
 					eq(cloudWorkspaceSessions.id, row.id),
-					eq(cloudWorkspaceSessions.reportedMs, row.observedMs),
+					eq(cloudWorkspaceSessions.reportedMs, row.reportedMs),
+					isNull(cloudWorkspaceSessions.inflightToMs),
 				),
-			);
-		throw error;
+			)
+			.returning({ id: cloudWorkspaceSessions.id });
+		if (claimed.length === 0) return 0;
+		to = row.observedMs;
 	}
+	const delta = to - row.reportedMs;
+	await autumn.batchTrack([
+		{
+			customerId: args.organizationId,
+			featureId: BOX_MINUTES_FEATURE_ID,
+			value: boxMinutes(delta, row.vcpus),
+			idempotencyKey: `${row.id}:${row.reportedMs}-${to}`,
+			properties: {
+				cloudWorkspaceId: row.cloudWorkspaceId,
+				sessionId: row.id,
+				userId: args.createdByUserId,
+				vcpus: row.vcpus,
+				wallMs: delta,
+			},
+		},
+	]);
+	await db
+		.update(cloudWorkspaceSessions)
+		.set({ reportedMs: to, inflightToMs: null })
+		.where(
+			and(
+				eq(cloudWorkspaceSessions.id, row.id),
+				eq(cloudWorkspaceSessions.inflightToMs, to),
+			),
+		);
 	return delta;
 }
 
@@ -133,6 +179,7 @@ export async function meterCloudWorkspace(
 			organizationId: cloudWorkspaces.organizationId,
 			organizationName: organizations.name,
 			createdByUserId: cloudWorkspaces.createdByUserId,
+			createdAt: cloudWorkspaces.createdAt,
 		})
 		.from(cloudWorkspaces)
 		.innerJoin(
@@ -142,7 +189,11 @@ export async function meterCloudWorkspace(
 		.where(eq(cloudWorkspaces.id, cloudWorkspaceId));
 	if (!workspace || workspace.provider !== "vercel") return { reportedMs: 0 };
 
-	await recordSessions(cloudWorkspaceId, workspace.providerSandboxId);
+	await recordSessions({
+		id: cloudWorkspaceId,
+		providerSandboxId: workspace.providerSandboxId,
+		createdAt: workspace.createdAt,
+	});
 	if (!autumn) return { reportedMs: 0 };
 
 	const unsettled = await db
@@ -157,7 +208,11 @@ export async function meterCloudWorkspace(
 				),
 			),
 		);
-	if (!unsettled.some((row) => unreportedMs(row) > 0)) return { reportedMs: 0 };
+	if (
+		!unsettled.some((row) => row.inflightToMs !== null || unreportedMs(row) > 0)
+	) {
+		return { reportedMs: 0 };
+	}
 
 	await autumn.customers.getOrCreate({
 		customerId: workspace.organizationId,
