@@ -90,7 +90,17 @@ export function useMentionSources(
 						[provider.id]: false,
 					}));
 				})
-				.catch(() => {});
+				.catch(() => {
+					if (controller.signal.aborted) return;
+					setSearchEntries((previous) => ({
+						...previous,
+						[provider.id]: [],
+					}));
+					setSearchPending((previous) => ({
+						...previous,
+						[provider.id]: false,
+					}));
+				});
 		}
 		return () => controller.abort();
 	}, [menuOpen, query]);

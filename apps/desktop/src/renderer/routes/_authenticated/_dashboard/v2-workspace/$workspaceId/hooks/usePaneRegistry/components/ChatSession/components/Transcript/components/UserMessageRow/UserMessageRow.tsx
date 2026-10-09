@@ -30,7 +30,7 @@ function segmentChip(
 ) {
 	const { element, text } = segment;
 	if (!element) return null;
-	if (element.elementKind === "slash_command") {
+	if (element.elementKind === "slash_command" && text.startsWith("/")) {
 		const name = text.slice(1);
 		return commandChip(name, commands?.get(name)?.description);
 	}

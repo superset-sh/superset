@@ -28,7 +28,6 @@ import { usePageFavorites } from "renderer/routes/_authenticated/_dashboard/hook
 import { usePagesList } from "renderer/routes/_authenticated/_dashboard/hooks/usePagesList";
 import { pagesListInput } from "renderer/routes/_authenticated/_dashboard/utils/pagesListInput";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
-import { useStore } from "zustand";
 import type { StoreApi } from "zustand/vanilla";
 import type { CreateNewAgentSession } from "../../hooks/useAgentSessionLauncher";
 import { useChatWiring } from "../../hooks/usePaneRegistry/components/ChatSession/hooks/useSessionClient";
@@ -197,18 +196,34 @@ export function WorkspaceActivityMenu({
 		() => collectBackgroundWork(bindings.values(), detachedTerminals),
 		[bindings, detachedTerminals],
 	);
-	const tabs = useStore(store, (state) => state.tabs);
-	const sourceLabels = useMemo(() => {
-		const labels = new Map<string, string>();
-		for (const tab of tabs) {
-			for (const pane of Object.values(tab.panes)) {
-				const data = pane.data as { terminalId?: string; chatTitle?: string };
-				const label = tab.titleOverride ?? pane.titleOverride ?? data.chatTitle;
-				if (data.terminalId && label) labels.set(data.terminalId, label);
-			}
-		}
-		return labels;
-	}, [tabs]);
+	const getSourceLabelsSnapshot = useCallback(
+		() =>
+			JSON.stringify(
+				[store, ...linkedStores]
+					.flatMap((paneStore) => paneStore.getState().tabs)
+					.flatMap((tab) =>
+						Object.values(tab.panes).flatMap((pane) => {
+							const data = pane.data as {
+								terminalId?: string;
+								chatTitle?: string;
+							};
+							const label =
+								tab.titleOverride ?? pane.titleOverride ?? data.chatTitle;
+							return data.terminalId && label ? [[data.terminalId, label]] : [];
+						}),
+					),
+			),
+		[store, linkedStores],
+	);
+	const sourceLabelsKey = useSyncExternalStore(
+		subscribeAttachedStores,
+		getSourceLabelsSnapshot,
+		getSourceLabelsSnapshot,
+	);
+	const sourceLabels = useMemo(
+		() => new Map<string, string>(JSON.parse(sourceLabelsKey)),
+		[sourceLabelsKey],
+	);
 	const workSourceCount = new Set(
 		[...processes, ...subagents].map((work) => work.terminalId),
 	).size;

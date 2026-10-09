@@ -1375,6 +1375,7 @@ export class AcpAdapter implements HarnessAdapter {
 		const parsed = airAsyncTaskSpawnedSchema.safeParse(raw);
 		if (!parsed.success) return;
 		const { asyncTaskId, name, description, canStop } = parsed.data;
+		if (this.finishedSubagents.has(sessionId)) return;
 		if (this.subagents.has(sessionId)) {
 			const tasks = this.subagentTasks.get(sessionId) ?? new Set<string>();
 			this.subagentTasks.set(sessionId, tasks.add(asyncTaskId));

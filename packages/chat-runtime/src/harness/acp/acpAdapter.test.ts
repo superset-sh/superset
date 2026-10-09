@@ -1713,6 +1713,20 @@ describe("AcpAdapter on protocol v2", () => {
 		);
 		expect(lists.at(-1)).toEqual(["bun run dev"]);
 
+		agent.notify("child-1", {
+			sessionUpdate: "async_task_spawned",
+			asyncTaskId: "task-3",
+			name: "late",
+			canStop: true,
+		});
+		await flush();
+		const names = events.flatMap((event) =>
+			event.kind === "session" && event.session.backgroundTasks
+				? event.session.backgroundTasks.map((task) => task.name)
+				: [],
+		);
+		expect(names).not.toContain("late");
+
 		await adapter.dispose();
 	});
 
