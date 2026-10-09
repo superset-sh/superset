@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import type { OutboxEntry, TurnGroup } from "@superset/chat/core";
-import type { ToolCall, UserMessage } from "@superset/chat/protocol";
+import type {
+	ApprovalRequest,
+	ToolCall,
+	UserMessage,
+} from "@superset/chat/protocol";
 import { pageLinkFinder } from "../../../../utils/pageLinks";
 import { transcriptRows } from "./transcriptRows";
 
@@ -47,6 +51,43 @@ function publish(id: string, startedAtMs: number): ToolCall {
 }
 
 describe("transcriptRows", () => {
+	test("an approval is after its target only when the target row is right above", () => {
+		const approval: ApprovalRequest = {
+			id: "approval:tool-1",
+			kind: "approval_request",
+			targetItemId: "tool-1",
+			title: "superset pages publish report.html",
+			status: "answered",
+			startedAtMs: 6,
+		};
+		const between = {
+			id: "a1",
+			kind: "agent_message" as const,
+			text: "ok",
+			startedAtMs: 5,
+		};
+		const rowsFor = (entries: TurnGroup["entries"]) =>
+			transcriptRows(
+				[{ turnId: "t1", turn: null, entries }],
+				[],
+				new Set(),
+				find,
+			).find((row) => row.kind === "item" && row.item.id === approval.id);
+
+		const adjacent = rowsFor([
+			{ kind: "tool_run", items: [publish("tool-1", 4)] },
+			{ kind: "item", item: approval },
+		]);
+		const separated = rowsFor([
+			{ kind: "tool_run", items: [publish("tool-1", 4)] },
+			{ kind: "item", item: between },
+			{ kind: "item", item: approval },
+		]);
+
+		expect(adjacent).toMatchObject({ afterTarget: true });
+		expect(separated).not.toHaveProperty("afterTarget");
+	});
+
 	test("a prompt keeps one key from sending, through its echo, into its turn", () => {
 		const pending = transcriptRows([], [sending], new Set(), find);
 		const echoed = transcriptRows(
@@ -81,52 +122,42 @@ describe("transcriptRows", () => {
 		expect(rows[0]?.groupStart).toBe(true);
 	});
 
-	test("a tool run collapses once the turn moves past it, not before", () => {
-		const tool = (id: string, status: "running" | "completed") => ({
-			id,
-			kind: "tool_call" as const,
-			title: id,
-			toolKind: "execute" as const,
-			toolName: "Bash",
-			status,
-			content: [],
-			startedAtMs: 3,
-		});
-		const reply = {
-			kind: "item" as const,
-			item: {
-				id: "a1",
-				kind: "agent_message" as const,
-				text: "ok",
-				startedAtMs: 4,
-			},
-		};
+	test("a tool run starts collapsed unless it waits on an approval", () => {
 		const running = { id: "t1", status: "running" as const, startedAtMs: 2 };
-		const collapsedFlags = (entries: TurnGroup["entries"]) =>
+		const collapsedFlags = (pendingApprovalTargets: ReadonlySet<string>) =>
 			transcriptRows(
-				[{ turnId: "t1", turn: running, entries }],
+				[
+					{
+						turnId: "t1",
+						turn: running,
+						entries: [
+							{
+								kind: "tool_run",
+								items: [
+									{
+										id: "b1",
+										kind: "tool_call",
+										title: "b1",
+										toolKind: "execute",
+										toolName: "Bash",
+										status: "running",
+										content: [],
+										startedAtMs: 3,
+									},
+								],
+							},
+						],
+					},
+				],
 				[],
-				new Set(),
+				pendingApprovalTargets,
 				find,
 			)
 				.filter((row) => row.kind === "tool_run")
 				.map((row) => row.kind === "tool_run" && row.defaultCollapsed);
 
-		expect(
-			collapsedFlags([{ kind: "tool_run", items: [tool("b1", "completed")] }]),
-		).toEqual([false]);
-		expect(
-			collapsedFlags([
-				{ kind: "tool_run", items: [tool("b1", "completed")] },
-				reply,
-			]),
-		).toEqual([true]);
-		expect(
-			collapsedFlags([
-				{ kind: "tool_run", items: [tool("b1", "running")] },
-				reply,
-			]),
-		).toEqual([false]);
+		expect(collapsedFlags(new Set())).toEqual([true]);
+		expect(collapsedFlags(new Set(["b1"]))).toEqual([false]);
 	});
 
 	test("a settled turn shows a page its tool run printed and its reply did not link", () => {

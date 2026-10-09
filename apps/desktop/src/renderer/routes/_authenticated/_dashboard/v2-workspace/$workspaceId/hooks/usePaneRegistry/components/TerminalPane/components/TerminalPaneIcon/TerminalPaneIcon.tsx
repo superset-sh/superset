@@ -6,20 +6,22 @@ import { useTerminalAgentBinding } from "renderer/hooks/host-service/useTerminal
 interface TerminalPaneIconProps {
 	workspaceId: string;
 	terminalId: string;
+	agentId?: string;
 }
 
 /**
- * Pane icon that swaps in the running agent's logo when the host-service
- * `terminalAgents` tracker has detected one in this terminal. Falls back
- * to the generic terminal glyph when no agent is bound or the agent id
- * has no preset icon.
+ * Pane icon that shows the agent's logo: the pane's own `agentId` when it
+ * has one (a chat pane), else the agent the host-service `terminalAgents`
+ * tracker detected in this terminal. Falls back to the generic terminal
+ * glyph when there is no agent or the agent id has no preset icon.
  */
 export function TerminalPaneIcon({
 	workspaceId,
 	terminalId,
+	agentId: paneAgentId,
 }: TerminalPaneIconProps) {
 	const binding = useTerminalAgentBinding(workspaceId, terminalId);
-	const agentId = binding?.agentId;
+	const agentId = paneAgentId ?? binding?.agentId;
 	const iconSrc = usePresetIcon(agentId ?? "");
 
 	if (agentId && iconSrc) {

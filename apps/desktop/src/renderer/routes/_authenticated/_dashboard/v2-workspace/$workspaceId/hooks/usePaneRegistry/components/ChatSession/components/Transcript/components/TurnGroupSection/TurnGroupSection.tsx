@@ -1,6 +1,12 @@
 import type { OutboxEntry, SessionSnapshot } from "@superset/chat/core";
 import { displayText } from "@superset/chat/core";
-import type { Decision, UserMessage } from "@superset/chat/protocol";
+import type {
+	ApprovalRequest,
+	AvailableCommand,
+	Decision,
+	Item,
+	UserMessage,
+} from "@superset/chat/protocol";
 import type { ReactNode } from "react";
 import type { ChatForkTarget } from "../../../../types";
 import type { PageLink } from "../../../../utils/pageLinks";
@@ -32,6 +38,15 @@ function pageCards(pages: readonly PageLink[] | undefined): ReactNode {
 	));
 }
 
+function approvalTarget(
+	snapshot: SessionSnapshot,
+	item: Item,
+): Item | undefined {
+	if (item.kind !== "approval_request") return undefined;
+	const targetId = (item as ApprovalRequest).targetItemId;
+	return targetId ? snapshot.items.get(targetId)?.item : undefined;
+}
+
 export type TurnGroupSectionProps = {
 	row: TranscriptRow;
 	lastReply: boolean;
@@ -43,6 +58,7 @@ export type TurnGroupSectionProps = {
 	onDiscardPrompt: (clientId: string) => void;
 	onFork?: ((target: ChatForkTarget) => void) | undefined;
 	canForkToWorktree?: boolean;
+	commands?: ReadonlyMap<string, AvailableCommand> | undefined;
 };
 
 /**
@@ -53,6 +69,7 @@ export type TurnGroupSectionProps = {
  */
 export function TurnGroupSection({
 	canForkToWorktree,
+	commands,
 	lastReply,
 	isEntryCollapsed,
 	onDiscardPrompt,
@@ -76,7 +93,10 @@ export function TurnGroupSection({
 			return (
 				<>
 					<ItemRow
+						afterTarget={row.afterTarget}
+						approvalTarget={approvalTarget(snapshot, row.item)}
 						canForkToWorktree={canForkToWorktree}
+						commands={commands}
 						lastReply={lastReply}
 						harness={harness}
 						item={row.item}
@@ -91,6 +111,7 @@ export function TurnGroupSection({
 		case "outbox":
 			return (
 				<ItemRow
+					commands={commands}
 					harness={harness}
 					item={outboxMessage(row.entry)}
 					onRespond={onRespond}

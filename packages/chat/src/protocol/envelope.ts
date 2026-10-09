@@ -38,6 +38,7 @@ export const availableCommandSchema = z.looseObject({
 	name: z.string().min(1),
 	description: z.string().optional(),
 	hint: z.string().optional(),
+	category: z.enum(["native", "mcp"]).optional(),
 });
 export type AvailableCommand = z.infer<typeof availableCommandSchema>;
 

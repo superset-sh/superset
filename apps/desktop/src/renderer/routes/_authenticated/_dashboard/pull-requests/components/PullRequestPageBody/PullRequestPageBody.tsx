@@ -7,7 +7,7 @@ interface PullRequestPageBodyProps {
 	header: ReactNode;
 	/** The info in either shape: rows under the header in a narrow pane, a column in a wide one. */
 	info: (variant: PullRequestInfoVariant) => ReactNode;
-	/** Rendered once: under the info column in a wide pane, after the content in a narrow one. */
+	/** Rendered once: under the info column in a wide pane, under the info rows in a narrow one. */
 	aside?: ReactNode;
 	children: ReactNode;
 }
@@ -34,12 +34,12 @@ export function PullRequestPageBody({
 					<div className="min-w-0 flex-1">
 						{header}
 						{variant === "rows" ? (
-							<div className="mb-4">{info("rows")}</div>
+							<div className="mb-4 space-y-6">
+								{info("rows")}
+								{aside}
+							</div>
 						) : null}
 						{children}
-						{variant === "rows" && aside ? (
-							<div className="mt-6">{aside}</div>
-						) : null}
 					</div>
 					{variant === "column" ? (
 						<aside className="sticky top-1 w-[22rem] shrink-0 space-y-6">

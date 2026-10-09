@@ -2,7 +2,7 @@
 title: "How to Run Coding Agents on a Remote Machine or Always-On Host (2026)"
 description: "Run Claude Code, Codex, and other coding agents on a remote Linux server, shared host, or Mac mini, and keep them working when your laptop closes."
 date: 2026-10-07
-lastUpdated: 2026-10-07
+lastUpdated: 2026-10-08
 type: "tutorial"
 competitors:
   - vs-code
@@ -60,7 +60,7 @@ Install the agent CLIs and the repo on the Linux server, then connect a Mac clie
 | VS Code or Cursor + Remote-SSH | Linux server | Editor | One remote project at a time, editor-first |
 | SSH + tmux (+ Tailscale) | Linux server | Terminal | Full control, any agent, no extra software |
 | Coder | Your infrastructure | Browser, IDE, or SSH | Teams that want templated workspaces per developer |
-| Superset | Linux server (host service) | Superset desktop app, CLI, or iPhone app | Several CLI agents in parallel, each in its own worktree |
+| Superset | Linux server (host service) | Superset desktop app, CLI, or iPhone and iPad app | Several CLI agents in parallel, each in its own worktree |
 
 For Superset on a Linux server, the CLI installer supports Linux on x64 and arm64. On a server with no browser, sign in with an API key from **Settings → API Keys**:
 
@@ -90,7 +90,7 @@ KillMode=process
 
 Keep `KillMode=process`; other modes stop every terminal and agent when the service restarts. Add `--auto-update` to a daemon start if you want the host to update itself.
 
-You can then check on agents from your laptop when it wakes, or from [Superset for iPhone](/blog/superset-mobile) (Pro, iOS 26 or later). Scheduled [Automations](https://docs.superset.sh/automations) also target a device, so a nightly run can fire on the always-on host. If that device is offline at fire time, the run fails and the next one is scheduled normally.
+You can then check on agents from your laptop when it wakes, or from [Superset for iPhone and iPad](/blog/superset-mobile) (Pro, iOS 26 or iPadOS 26 or later). Scheduled [Automations](https://docs.superset.sh/automations) also target a device, so a nightly run can fire on the always-on host. If that device is offline at fire time, the run fails and the next one is scheduled normally.
 
 ## Our team has a shared development machine. How do we give each agent a separate workspace?
 

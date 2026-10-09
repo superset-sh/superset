@@ -1,1 +1,4 @@
-export { TurnGroupSection } from "./TurnGroupSection";
+export {
+	TurnGroupSection,
+	type TurnGroupSectionProps,
+} from "./TurnGroupSection";

@@ -259,6 +259,10 @@ msgstr "{0, plural, one {워크스페이스 #개} other {워크스페이스 #개
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {실행 중인 에이전트 #개가 아직 이전 계정을 사용하고 있습니다. 전환은 새 실행에만 적용됩니다.} other {실행 중인 에이전트 #개가 아직 이전 계정을 사용하고 있습니다. 전환은 새 실행에만 적용됩니다.}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, other {질문 #개를 했습니다}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {댓글은 이 에이전트에게 전달됩니다} other {댓글은 이 에이전트들에게 전달됩니다}}"
@@ -462,6 +466,12 @@ msgstr "최근 완전한 주 {0}"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "{0}개 더 있습니다 — 검색어를 좁혀 보세요"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "{0} / {1}"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2189,6 +2199,9 @@ msgstr "받아쓰기를 사용하려면 마이크 접근을 허용하세요"
 msgid "Allow remote access to this device via relay"
 msgstr "릴레이를 통해 이 기기에 원격 액세스 허용"
 
+msgid "Allow this action?"
+msgstr "이 작업을 허용할까요?"
+
 msgid "Allowed"
 msgstr "허용됨"
 
@@ -2293,6 +2306,9 @@ msgstr "익명의 조립공"
 
 msgid "another device"
 msgstr "다른 기기"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "이 질문은 데스크톱에서 답하거나 건너뛰세요."
 
 msgid "Answered"
 msgstr "응답함"
@@ -3527,8 +3543,8 @@ msgstr "업데이트 확인"
 msgid "Check for Updates..."
 msgstr "업데이트 확인..."
 
-msgid "Check on running agents and read what they changed from your phone."
-msgstr "휴대폰에서 실행 중인 에이전트를 확인하고 무엇을 변경했는지 읽어보세요."
+msgid "Check on running agents and read what they changed from your iPhone or iPad."
+msgstr "iPhone이나 iPad에서 실행 중인 에이전트를 확인하고 변경 내용을 읽어 보세요."
 
 msgid "Check resources"
 msgstr "리소스 확인"
@@ -6648,6 +6664,9 @@ msgstr "Superset이 마음에 드시나요?"
 msgid "Ensure no regression"
 msgstr "회귀가 없는지 확인해 주세요"
 
+msgid "Enter a number"
+msgstr "숫자 입력"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "{hostName}의 상위 디렉터리를 입력하세요"
 
@@ -6665,6 +6684,9 @@ msgstr "유효한 반복 규칙을 입력하세요."
 
 msgid "Enter a value."
 msgstr "값을 입력하세요."
+
+msgid "Enter a whole number"
+msgstr "정수 입력"
 
 msgid "Enter URL or search..."
 msgstr "URL 또는 검색어 입력..."
@@ -7402,6 +7424,9 @@ msgstr "작업 상태를 업데이트하지 못했습니다"
 msgid "Failed to update task title"
 msgstr "작업 제목을 업데이트하지 못했습니다"
 
+msgid "Failed to update task tracker"
+msgstr "작업 관리 위치를 업데이트하지 못했습니다"
+
 msgid "Failed to update team. Please try again."
 msgstr "팀을 변경하지 못했습니다. 다시 시도해 주세요."
 
@@ -7954,8 +7979,8 @@ msgstr "Superset Pro 시작하기"
 msgid "Get the best out of Pro"
 msgstr "Pro를 최대한 활용하기"
 
-msgid "Get the iPhone app"
-msgstr "iPhone 앱 받기"
+msgid "Get the iPhone and iPad app"
+msgstr "iPhone 및 iPad 앱 받기"
 
 msgid "Ghost"
 msgstr "고스트"
@@ -9908,6 +9933,9 @@ msgstr "MCP 관리자"
 msgid "MCP Server"
 msgstr "MCP 서버"
 
+msgid "MCP Server Commands"
+msgstr "MCP 서버 명령"
+
 msgid "Mean"
 msgstr "평균"
 
@@ -10596,6 +10624,9 @@ msgstr "좋은 접근"
 
 msgid "Nice, open a PR when ready."
 msgstr "좋아요, 준비되면 PR을 올려 주세요."
+
+msgid "No"
+msgstr "아니요"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -11832,8 +11863,8 @@ msgstr "GitHub에서 열기"
 msgid "Open Page in Default Browser"
 msgstr "기본 브라우저에서 페이지 열기"
 
-msgid "Open pages and reply to comments from the Superset iPhone app."
-msgstr "Superset iPhone 앱에서 페이지를 열고 댓글에 답글을 달 수 있습니다."
+msgid "Open pages and reply to comments from the Superset app on iPhone and iPad."
+msgstr "iPhone 및 iPad용 Superset 앱에서 페이지를 열고 댓글에 답글을 남기세요."
 
 msgid "Open Plugins in the Superset app and pick one. The install is saved to your account."
 msgstr "Superset 앱에서 플러그인을 열고 하나를 고르세요. 설치 내역은 계정에 저장됩니다."
@@ -12235,6 +12266,9 @@ msgstr "페이지"
 
 msgid "Pages could not be loaded"
 msgstr "페이지를 불러오지 못했습니다"
+
+msgid "Pages open in a grid, and floating keyboards work. Requires iPadOS 26 or later."
+msgstr "페이지가 그리드로 열리고 플로팅 키보드도 지원합니다. iPadOS 26 이상이 필요합니다."
 
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "세션이 시작된 페이지와 두 번째 페이지 없이 떠난 비율. 비교 페이지가 SEO의 주 무대입니다."
@@ -13792,8 +13826,8 @@ msgstr "필수"
 msgid "Required version: {minimumVersion}+"
 msgstr "필요한 버전: {minimumVersion} 이상"
 
-msgid "Requires iOS 26 or later. Included with Superset Pro."
-msgstr "iOS 26 이상이 필요합니다. Superset Pro에 포함되어 있습니다."
+msgid "Requires iOS 26 or iPadOS 26 or later. Included with Superset Pro."
+msgstr "iOS 26 또는 iPadOS 26 이상이 필요합니다. Superset Pro에 포함되어 있습니다."
 
 msgid "Reserved by OS"
 msgstr "OS에서 예약됨"
@@ -14319,6 +14353,9 @@ msgstr "터미널 명령을 실행하고 다른 애플리케이션과 상호작�
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "터미널을 하나 더 띄우는 대신, 설정이 끝난 뒤 워크스페이스 설정 터미널에서 에이전트를 실행합니다"
 
+msgid "Run this command?"
+msgstr "이 명령을 실행할까요?"
+
 msgid "Run workspace command"
 msgstr "워크스페이스 명령 실행"
 
@@ -14834,6 +14871,9 @@ msgstr "에이전트 선택"
 
 msgid "Select All"
 msgstr "모두 선택"
+
+msgid "Select all that apply"
+msgstr "해당하는 항목을 모두 선택하세요"
 
 msgid "Select an agent"
 msgstr "에이전트 선택"
@@ -15666,6 +15706,12 @@ msgstr "Superset 팀이 이 페이지를 검토합니다. 추가 정보가 필�
 msgid "Something else"
 msgstr "기타"
 
+msgid "Something else? Add it here"
+msgstr "다른 답이 있나요? 여기에 추가하세요"
+
+msgid "Something else? Type your own answer"
+msgstr "다른 답이 있나요? 직접 입력하세요"
+
 msgid "Something went wrong"
 msgstr "문제가 발생했습니다"
 
@@ -15901,8 +15947,8 @@ msgstr "Linear 티켓에서 바로 워크스페이스를 시작하세요. 에이
 msgid "Start agent"
 msgstr "에이전트 시작"
 
-msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
-msgstr "휴대폰에서 에이전트를 시작하고, 실시간으로 따라가고, diff를 리뷰하세요. 코드는 내 머신에 그대로 남습니다."
+msgid "Start agents, follow them live, and review the diff from your iPhone or iPad. Your code stays on your machines."
+msgstr "iPhone이나 iPad에서 에이전트를 시작하고, 실시간으로 따라가고, diff를 리뷰하세요. 코드는 내 머신에 그대로 남습니다."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "에이전트나 터미널을 시작해 이 워크스페이스에서 작업을 시작하세요."
@@ -15913,8 +15959,8 @@ msgstr "탐색 시작"
 msgid "Start building in two."
 msgstr "두 단계로 빌드를 시작하세요."
 
-msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "휴대폰에서 코딩 에이전트를 시작하고, 실시간으로 따라가고, diff를 리뷰하세요. App Store에서 받을 수 있으며 Android는 출시 예정입니다."
+msgid "Start coding agents, follow them live, and review the diff from your iPhone or iPad. Available on the App Store; Android is coming soon."
+msgstr "iPhone이나 iPad에서 코딩 에이전트를 시작하고, 실시간으로 따라가고, diff를 리뷰하세요. App Store에서 이용할 수 있으며 Android는 곧 출시됩니다."
 
 msgid "Start date"
 msgstr "시작일"
@@ -16246,11 +16292,8 @@ msgstr "Superset 데스크톱 앱"
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise는 팀을 위한 Superset입니다. 어떤 기능이 포함되고 조직에 어떻게 적용할 수 있는지 문의해 주세요."
 
-msgid "Superset for iPhone"
-msgstr "iPhone용 Superset"
-
-msgid "Superset for iPhone page"
-msgstr "iPhone용 Superset 페이지"
+msgid "Superset for iPhone and iPad"
+msgstr "iPhone 및 iPad용 Superset"
 
 msgid "Superset for press"
 msgstr "언론을 위한 Superset"
@@ -16339,6 +16382,9 @@ msgstr "Superset Mobile, iPhone 출시"
 msgid "Superset Mobile lets developers continue the Superset workspaces they already use on their computer from an iPhone."
 msgstr "Superset Mobile을 사용하면 개발자는 컴퓨터에서 쓰던 Superset 워크스페이스를 iPhone에서 이어서 작업할 수 있습니다."
 
+msgid "Superset Mobile page"
+msgstr "Superset Mobile 페이지"
+
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobile은 연결한 컴퓨터에서 에이전트를 실행합니다."
 
@@ -16353,6 +16399,9 @@ msgstr "다른 브라우저의 데이터를 읽으려면 Superset에 전체 디�
 
 msgid "Superset next to others"
 msgstr "다른 도구와 비교한 Superset"
+
+msgid "Superset on iPad, showing a pull request and a workspace list"
+msgstr "iPad의 Superset. 풀 리퀘스트와 워크스페이스 목록이 보입니다"
 
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset는 이 커넥터가 요청한 권한만 받습니다. 언제든지 연결을 해제해 취소할 수 있습니다."
@@ -16638,11 +16687,17 @@ msgstr "작업이 Linear에 동기화됨"
 msgid "Task title"
 msgstr "작업 제목"
 
+msgid "Task tracker updated"
+msgstr "작업 관리 위치가 업데이트되었습니다"
+
 msgid "Tasks"
 msgstr "작업"
 
 msgid "Tasks created in Superset will be synced to this Linear team."
 msgstr "Superset에서 만든 작업이 이 Linear 팀으로 동기화됩니다."
+
+msgid "Tasks, the CLI and agents follow this. Each member uses their own Linear account."
+msgstr "작업, CLI, 에이전트가 이 설정을 따릅니다. 각 멤버는 자신의 Linear 계정을 사용합니다."
 
 msgid "Tax ID"
 msgstr "세금 ID"
@@ -16914,8 +16969,8 @@ msgstr "데몬이 실행 중인 세션을 새 바이너리로 넘기지 못했�
 msgid "The desktop app runs on macOS and Linux today. Drop your email and we'll let you know the moment the Windows build ships."
 msgstr "Superset을 Windows와 Linux로 확장하고 있습니다. 이메일을 남겨 주시면 준비되는 대로 알려 드립니다."
 
-msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An iPhone app on the App Store lets you check on agents and review their diffs from your phone."
-msgstr "데스크톱 앱은 macOS에서 실행되며 실험적인 Linux AppImage가 있습니다. Windows는 아직 지원하지 않습니다. 데스크톱 앱 외에 CLI, TypeScript SDK, MCP 서버가 있어 스크립트, 터미널, 다른 에이전트에서 Superset을 조작할 수 있습니다. App Store의 iPhone 앱으로 휴대폰에서 에이전트를 확인하고 diff를 검토할 수 있습니다."
+msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An app for iPhone and iPad on the App Store lets you check on agents and review their diffs away from your desk."
+msgstr "데스크톱 앱은 macOS에서 실행되며 실험적인 Linux AppImage가 있습니다. Windows는 아직 지원하지 않습니다. 데스크톱 앱 외에 CLI, TypeScript SDK, MCP 서버가 있어 스크립트, 터미널, 다른 에이전트에서 Superset을 조작할 수 있습니다. App Store의 iPhone 및 iPad 앱으로 자리를 비운 동안에도 에이전트를 확인하고 diff를 검토할 수 있습니다."
 
 msgid "The device that hosts this project is unavailable."
 msgstr "이 프로젝트를 호스팅하는 기기를 사용할 수 없습니다."
@@ -17105,6 +17160,9 @@ msgstr "<0>{0}</0>이(가) Superset 릴레이에 연결되어 있지 않아 실�
 
 msgid "The run was skipped because this device isn't connected to the Superset relay. Automations go through the relay even when they run on this device. Enable relay access, then run it again."
 msgstr "이 기기가 Superset 릴레이에 연결되어 있지 않아 실행을 건너뛰었습니다. 자동화는 이 기기에서 실행되더라도 릴레이를 거칩니다. 릴레이 접근을 활성화한 뒤 다시 실행하세요."
+
+msgid "The same app runs natively on iPad, in portrait and landscape."
+msgstr "같은 앱이 iPad에서 네이티브로 실행되며 세로와 가로 방향을 모두 지원합니다."
 
 msgid "The scorecard"
 msgstr "성적표"
@@ -17796,6 +17854,9 @@ msgstr "예산과 지출 관리"
 msgid "Track down that flaky test…"
 msgstr "불안정한 테스트 추적하기…"
 
+msgid "Track tasks in"
+msgstr "작업 관리 위치"
+
 msgid "Tracking"
 msgstr "추적 기간"
 
@@ -17927,6 +17988,9 @@ msgstr "확인하려면 조직 이름을 입력하세요."
 
 msgid "Type to search files..."
 msgstr "입력해서 파일 검색..."
+
+msgid "Type your answer"
+msgstr "답변 입력"
 
 msgid "TypeScript"
 msgstr "TypeScript"
@@ -18060,6 +18124,9 @@ msgstr "알 수 없는 계정"
 
 msgid "Unknown author"
 msgstr "알 수 없는 작성자"
+
+msgid "Unknown command /{name}"
+msgstr "알 수 없는 명령 /{name}"
 
 msgid "Unknown device"
 msgstr "알 수 없는 기기"
@@ -19209,6 +19276,9 @@ msgstr "연간"
 
 msgid "Yellow"
 msgstr "노랑"
+
+msgid "Yes"
+msgstr "예"
 
 msgid "Yes, demote me"
 msgstr "네, 강등하겠습니다"

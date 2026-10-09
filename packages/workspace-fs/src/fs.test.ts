@@ -411,6 +411,27 @@ describe("createDirectory", () => {
 
 		expect(didThrow).toEqual(true);
 	});
+
+	it("creates and writes into a new folder when the root is reached through a symlink", async () => {
+		const realRoot = await createTempRoot();
+		const linkParent = await createTempRoot();
+		const rootPath = path.join(linkParent, "workspace");
+		await fs.symlink(realRoot, rootPath);
+		const dirPath = path.join(rootPath, ".superset", "attachments");
+
+		await createDirectory({ rootPath, absolutePath: dirPath, recursive: true });
+		await writeFile({
+			absolutePath: path.join(dirPath, "shot.png"),
+			content: "png",
+		});
+
+		expect(
+			await fs.readFile(
+				path.join(realRoot, ".superset", "attachments", "shot.png"),
+				"utf-8",
+			),
+		).toEqual("png");
+	});
 });
 
 describe("createUniqueEntry", () => {

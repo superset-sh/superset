@@ -373,6 +373,7 @@ export function SessionView({
 							onDiscardPrompt={session.discardPrompt}
 							onFork={onFork ? forkWithTranscript : undefined}
 							onLoadOlder={loadOlder}
+							onRequestItemBodies={session.requestItemBodies}
 							onRespond={onRespond}
 							onRetryPrompt={session.retryPrompt}
 							outbox={session.outbox}

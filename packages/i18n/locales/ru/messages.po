@@ -259,6 +259,10 @@ msgstr "{0, plural, one {# рабочая область} few {# рабочие 
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {# работающий агент всё ещё использует прежний аккаунт — переключение действует только для новых запусков.} few {# работающих агента всё ещё используют прежний аккаунт — переключение действует только для новых запусков.} many {# работающих агентов всё ещё используют прежний аккаунт — переключение действует только для новых запусков.} other {# работающего агента всё ещё использует прежний аккаунт — переключение действует только для новых запусков.}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, one {Задан # вопрос} few {Задано # вопроса} many {Задано # вопросов} other {Задано # вопроса}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Комментарии отправляются этому агенту} few {Комментарии отправляются этим агентам} many {Комментарии отправляются этим агентам} other {Комментарии отправляются этим агентам}}"
@@ -462,6 +466,12 @@ msgstr "{0} за последнюю полную неделю"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "ещё {0} — уточните запрос"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "{0} из {1}"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2189,6 +2199,9 @@ msgstr "Разрешите доступ к микрофону, чтобы исп
 msgid "Allow remote access to this device via relay"
 msgstr "Разрешить удалённый доступ к этому устройству через реле"
 
+msgid "Allow this action?"
+msgstr "Разрешить это действие?"
+
 msgid "Allowed"
 msgstr "Разрешено"
 
@@ -2293,6 +2306,9 @@ msgstr "Анонимный сборщик"
 
 msgid "another device"
 msgstr "другое устройство"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "Ответьте на этот вопрос на компьютере или пропустите его."
 
 msgid "Answered"
 msgstr "Отвечено"
@@ -3527,8 +3543,8 @@ msgstr "Проверить обновления"
 msgid "Check for Updates..."
 msgstr "Проверить обновления..."
 
-msgid "Check on running agents and read what they changed from your phone."
-msgstr "Следите за работающими агентами и смотрите, что они изменили, прямо с телефона."
+msgid "Check on running agents and read what they changed from your iPhone or iPad."
+msgstr "Проверяйте запущенных агентов и смотрите, что они изменили, с iPhone или iPad."
 
 msgid "Check resources"
 msgstr "Проверить ресурсы"
@@ -6648,6 +6664,9 @@ msgstr "Нравится Superset?"
 msgid "Ensure no regression"
 msgstr "Убедись, что нет регрессии"
 
+msgid "Enter a number"
+msgstr "Введите число"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "Введите родительскую папку на {hostName}"
 
@@ -6665,6 +6684,9 @@ msgstr "Введите корректное правило повторения.
 
 msgid "Enter a value."
 msgstr "Введите значение."
+
+msgid "Enter a whole number"
+msgstr "Введите целое число"
 
 msgid "Enter URL or search..."
 msgstr "Введите URL или запрос..."
@@ -7402,6 +7424,9 @@ msgstr "Не удалось изменить статус задачи"
 msgid "Failed to update task title"
 msgstr "Не удалось изменить название задачи"
 
+msgid "Failed to update task tracker"
+msgstr "Не удалось обновить систему управления задачами"
+
 msgid "Failed to update team. Please try again."
 msgstr "Не удалось обновить команду. Попробуйте ещё раз."
 
@@ -7954,8 +7979,8 @@ msgstr "Получить Superset Pro"
 msgid "Get the best out of Pro"
 msgstr "Используйте Pro по максимуму"
 
-msgid "Get the iPhone app"
-msgstr "Скачать приложение для iPhone"
+msgid "Get the iPhone and iPad app"
+msgstr "Скачать приложение для iPhone и iPad"
 
 msgid "Ghost"
 msgstr "Ghost"
@@ -9908,6 +9933,9 @@ msgstr "Менеджер MCP"
 msgid "MCP Server"
 msgstr "Сервер MCP"
 
+msgid "MCP Server Commands"
+msgstr "Команды сервера MCP"
+
 msgid "Mean"
 msgstr "Среднее"
 
@@ -10596,6 +10624,9 @@ msgstr "Хороший подход"
 
 msgid "Nice, open a PR when ready."
 msgstr "Отлично, открой PR, когда будет готово."
+
+msgid "No"
+msgstr "Нет"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -11832,8 +11863,8 @@ msgstr "Открыть на GitHub"
 msgid "Open Page in Default Browser"
 msgstr "Открыть страницу в браузере по умолчанию"
 
-msgid "Open pages and reply to comments from the Superset iPhone app."
-msgstr "Открывайте страницы и отвечайте на комментарии в приложении Superset для iPhone."
+msgid "Open pages and reply to comments from the Superset app on iPhone and iPad."
+msgstr "Открывайте страницы и отвечайте на комментарии в приложении Superset на iPhone и iPad."
 
 msgid "Open Plugins in the Superset app and pick one. The install is saved to your account."
 msgstr "Откройте «Плагины» в приложении Superset и выберите один. Установка сохранится в вашем аккаунте."
@@ -12235,6 +12266,9 @@ msgstr "Страницы"
 
 msgid "Pages could not be loaded"
 msgstr "Не удалось загрузить страницы"
+
+msgid "Pages open in a grid, and floating keyboards work. Requires iPadOS 26 or later."
+msgstr "Страницы открываются сеткой, плавающая клавиатура тоже работает. Нужна iPadOS 26 или новее."
 
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "Страницы, с которых начались сессии, и доля ушедших без второй страницы. Страницы сравнения — это SEO-поверхность."
@@ -13792,8 +13826,8 @@ msgstr "Обязательное"
 msgid "Required version: {minimumVersion}+"
 msgstr "Требуемая версия: {minimumVersion}+"
 
-msgid "Requires iOS 26 or later. Included with Superset Pro."
-msgstr "Требуется iOS 26 или новее. Входит в Superset Pro."
+msgid "Requires iOS 26 or iPadOS 26 or later. Included with Superset Pro."
+msgstr "Нужна iOS 26 или iPadOS 26 или новее. Входит в Superset Pro."
 
 msgid "Reserved by OS"
 msgstr "Занято ОС"
@@ -14319,6 +14353,9 @@ msgstr "Запускать команды в терминале и взаимо�
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Запускать агента в терминале настройки рабочей области после завершения установки вместо запуска второго терминала рядом"
 
+msgid "Run this command?"
+msgstr "Выполнить эту команду?"
+
 msgid "Run workspace command"
 msgstr "Запустить команду рабочей области"
 
@@ -14834,6 +14871,9 @@ msgstr "Выбрать агента"
 
 msgid "Select All"
 msgstr "Выделить всё"
+
+msgid "Select all that apply"
+msgstr "Выберите все подходящие варианты"
 
 msgid "Select an agent"
 msgstr "Выберите агента"
@@ -15666,6 +15706,12 @@ msgstr "Команда Superset проверит эту страницу. Мы �
 msgid "Something else"
 msgstr "Другое"
 
+msgid "Something else? Add it here"
+msgstr "Что-то другое? Добавьте здесь"
+
+msgid "Something else? Type your own answer"
+msgstr "Что-то другое? Введите свой ответ"
+
 msgid "Something went wrong"
 msgstr "Что-то пошло не так"
 
@@ -15901,8 +15947,8 @@ msgstr "Запускайте рабочую область прямо из ти�
 msgid "Start agent"
 msgstr "Запустить агента"
 
-msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
-msgstr "Запускайте агентов, следите за ними в реальном времени и проверяйте diff с телефона. Ваш код остаётся на ваших машинах."
+msgid "Start agents, follow them live, and review the diff from your iPhone or iPad. Your code stays on your machines."
+msgstr "Запускайте агентов, следите за ними в реальном времени и проверяйте diff с iPhone или iPad. Ваш код остаётся на ваших машинах."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Запустите агента или терминал, чтобы начать работу в этой рабочей области."
@@ -15913,8 +15959,8 @@ msgstr "Начните просмотр"
 msgid "Start building in two."
 msgstr "Начните разработку за два."
 
-msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "Запускайте агентов для программирования, следите за ними в реальном времени и проверяйте diff с телефона. Доступно в App Store; версия для Android скоро появится."
+msgid "Start coding agents, follow them live, and review the diff from your iPhone or iPad. Available on the App Store; Android is coming soon."
+msgstr "Запускайте агентов для кода, следите за ними в реальном времени и проверяйте diff с iPhone или iPad. Доступно в App Store; Android скоро."
 
 msgid "Start date"
 msgstr "Дата начала"
@@ -16246,11 +16292,8 @@ msgstr "Десктопное приложение Superset"
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise — это Superset для команд. Напишите нам, чтобы узнать, что входит и как это подойдёт вашей организации."
 
-msgid "Superset for iPhone"
-msgstr "Superset для iPhone"
-
-msgid "Superset for iPhone page"
-msgstr "Страница Superset для iPhone"
+msgid "Superset for iPhone and iPad"
+msgstr "Superset для iPhone и iPad"
 
 msgid "Superset for press"
 msgstr "Superset для прессы"
@@ -16339,6 +16382,9 @@ msgstr "Superset Mobile вышел на iPhone"
 msgid "Superset Mobile lets developers continue the Superset workspaces they already use on their computer from an iPhone."
 msgstr "Superset Mobile позволяет разработчикам продолжать с iPhone работу в тех рабочих областях Superset, которыми они уже пользуются на компьютере."
 
+msgid "Superset Mobile page"
+msgstr "Страница Superset Mobile"
+
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobile запускает агентов на компьютерах, которые вы подключили."
 
@@ -16353,6 +16399,9 @@ msgstr "Superset нужен полный доступ к диску, чтобы 
 
 msgid "Superset next to others"
 msgstr "Superset и другие"
+
+msgid "Superset on iPad, showing a pull request and a workspace list"
+msgstr "Superset на iPad: пул-реквест и список воркспейсов"
 
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset получает только те разрешения, которые запрашивает этот коннектор. Отключите его в любой момент, чтобы отозвать их."
@@ -16638,11 +16687,17 @@ msgstr "Задача синхронизирована с Linear"
 msgid "Task title"
 msgstr "Название задачи"
 
+msgid "Task tracker updated"
+msgstr "Система управления задачами обновлена"
+
 msgid "Tasks"
 msgstr "Задачи"
 
 msgid "Tasks created in Superset will be synced to this Linear team."
 msgstr "Задачи, созданные в Superset, будут синхронизироваться с этой командой Linear."
+
+msgid "Tasks, the CLI and agents follow this. Each member uses their own Linear account."
+msgstr "Задачи, CLI и агенты работают с выбранной системой. Каждый участник использует свой аккаунт Linear."
 
 msgid "Tax ID"
 msgstr "Налоговый номер"
@@ -16914,8 +16969,8 @@ msgstr "Демону не удалось передать живые сесси�
 msgid "The desktop app runs on macOS and Linux today. Drop your email and we'll let you know the moment the Windows build ships."
 msgstr "Мы готовим Superset для Windows и Linux. Оставьте email, и мы сообщим, как только будет готово."
 
-msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An iPhone app on the App Store lets you check on agents and review their diffs from your phone."
-msgstr "Десктопное приложение работает на macOS, есть экспериментальный AppImage для Linux; Windows пока нет. Кроме приложения есть CLI, TypeScript SDK и сервер MCP, так что Superset можно водить из скриптов, терминалов и других агентов. Приложение для iPhone в App Store позволяет следить за агентами и просматривать их диффы с телефона."
+msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An app for iPhone and iPad on the App Store lets you check on agents and review their diffs away from your desk."
+msgstr "Десктопное приложение работает на macOS, есть экспериментальный AppImage для Linux; Windows пока нет. Кроме приложения есть CLI, TypeScript SDK и сервер MCP, так что Superset можно водить из скриптов, терминалов и других агентов. Приложение для iPhone и iPad в App Store позволяет следить за агентами и просматривать их диффы, даже когда вы не за рабочим столом."
 
 msgid "The device that hosts this project is unavailable."
 msgstr "Устройство, где размещён этот проект, недоступно."
@@ -17105,6 +17160,9 @@ msgstr "Запуск пропущен: <0>{0}</0> не подключён к р�
 
 msgid "The run was skipped because this device isn't connected to the Superset relay. Automations go through the relay even when they run on this device. Enable relay access, then run it again."
 msgstr "Запуск пропущен: это устройство не подключено к реле Superset. Автоматизации идут через реле, даже когда выполняются на этом устройстве. Включите доступ через реле и запустите снова."
+
+msgid "The same app runs natively on iPad, in portrait and landscape."
+msgstr "То же приложение работает на iPad нативно, в портретной и альбомной ориентации."
 
 msgid "The scorecard"
 msgstr "Таблица оценок"
@@ -17796,6 +17854,9 @@ msgstr "Следите за бюджетами и расходами"
 msgid "Track down that flaky test…"
 msgstr "Найди причину нестабильного теста…"
 
+msgid "Track tasks in"
+msgstr "Где вести задачи"
+
 msgid "Tracking"
 msgstr "Отслеживание"
 
@@ -17927,6 +17988,9 @@ msgstr "Введите название организации для подтв
 
 msgid "Type to search files..."
 msgstr "Начните вводить, чтобы найти файлы..."
+
+msgid "Type your answer"
+msgstr "Введите ответ"
 
 msgid "TypeScript"
 msgstr "TypeScript"
@@ -18060,6 +18124,9 @@ msgstr "Неизвестный аккаунт"
 
 msgid "Unknown author"
 msgstr "Неизвестный автор"
+
+msgid "Unknown command /{name}"
+msgstr "Неизвестная команда /{name}"
 
 msgid "Unknown device"
 msgstr "Неизвестное устройство"
@@ -19209,6 +19276,9 @@ msgstr "Ежегодно"
 
 msgid "Yellow"
 msgstr "Жёлтый"
+
+msgid "Yes"
+msgstr "Да"
 
 msgid "Yes, demote me"
 msgstr "Да, понизить меня"

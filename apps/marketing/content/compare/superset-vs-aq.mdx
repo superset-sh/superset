@@ -2,7 +2,7 @@
 title: "Superset vs AQ (2026): Desktop Agent Workspace vs Cloud Team Harness"
 description: "Compare Superset and AQ for running coding agents: desktop vs browser, local vs cloud runners, team sessions, review, and pricing."
 date: 2026-10-07
-lastUpdated: 2026-10-07
+lastUpdated: 2026-10-08
 type: "1v1"
 competitors:
   - aq
@@ -30,7 +30,7 @@ This comparison is published by Superset. AQ details were checked against [aq.de
 | Agents | Any CLI agent, plus custom agents you add | Claude Code, Codex, Cursor Agent, Kimi, Grok, Antigravity CLI, and others, plus its own AQ Composer agent |
 | Team sessions | Shared hosts with per-member access; teammates open workspaces on hosts they can reach | Multiplayer: teammates watch the same live terminal and can request control |
 | Review | Changes pane that commits, pushes, and opens PRs; PR pane with checks, review threads, and merge | Live previews with pinned comments that go to the agent; PRs tracked per workspace |
-| Phone | iPhone app (iOS 26+, Pro) with Lock Screen Live Activity | Same workspace in a mobile browser |
+| Phone | iPhone and iPad app (iOS or iPadOS 26+, Pro) with Lock Screen Live Activity | Same workspace in a mobile browser |
 | Intake | Linear, GitHub, and Slack integrations (Pro) | Linear `ai-task` label creates a workspace; API, webhooks, MCP |
 | Pricing | Free; Pro $20/user/month or $15 billed yearly; Enterprise custom | Free solo sandbox; Team $50/user/month early access |
 | License | Source-available, Elastic License 2.0 | Proprietary |
@@ -43,7 +43,7 @@ AQ calls itself "the multiplayer coding harness." Its headline is "Run every cod
 
 This is the main split. AQ runs every session on a runner VM. On the Free plan that is a private AQ-managed sandbox that sleeps when idle. On Team it is either a VM you connect from your own cloud account or a dedicated AQ machine that never sleeps. Agents keep working when your laptop closes, and nothing runs on your laptop.
 
-Superset is local-first. Agents run on your Mac or Linux machine by default, next to your editor and local tools. To keep work going away from your desk, add another machine as a host through the Superset relay, and run workspaces there from the desktop or iPhone app (Pro). Superset cloud workspaces are in early access only, so if you want a managed cloud machine today, AQ has it and Superset does not.
+Superset is local-first. Agents run on your Mac or Linux machine by default, next to your editor and local tools. To keep work going away from your desk, add another machine as a host through the Superset relay, and run workspaces there from the desktop or iPhone and iPad app (Pro). Superset cloud workspaces are in early access only, so if you want a managed cloud machine today, AQ has it and Superset does not.
 
 ## Can teammates join the same agent session?
 
@@ -67,7 +67,7 @@ Both start free, and both leave model usage on your own agent subscriptions.
 | Paid | Pro: $20/user/month, or $15 billed yearly | Team: $50/user/month early access, locked for 12 months, then $100; standard price $200 |
 | Large teams | Enterprise: custom, with SSO, SCIM, audit logs, and an uptime SLA | Contact sales |
 
-Superset Pro adds remote hosts, automations, the iPhone app, and the GitHub, Linear, and Slack integrations. AQ Team adds teammates, shared workspaces, guest links, your own cloud runners, an always-on machine, and $10 of Composer credits per seat. Superset does not include compute; you run agents on machines you already have. Check [Superset pricing](/pricing) and [AQ pricing](https://aq.dev/pricing) for current terms.
+Superset Pro adds remote hosts, automations, the iPhone and iPad app, and the GitHub, Linear, and Slack integrations. AQ Team adds teammates, shared workspaces, guest links, your own cloud runners, an always-on machine, and $10 of Composer credits per seat. Superset does not include compute; you run agents on machines you already have. Check [Superset pricing](/pricing) and [AQ pricing](https://aq.dev/pricing) for current terms.
 
 ## Choose AQ if
 
@@ -80,7 +80,7 @@ Superset Pro adds remote hosts, automations, the iPhone app, and the GitHub, Lin
 
 - You want agents on your own machine, next to your local tools, with no VM to run.
 - You review through diffs, commits, and pull requests, with checks and review threads in the same app.
-- You want a native iPhone app with a Lock Screen Live Activity.
+- You want a native iPhone and iPad app with a Lock Screen Live Activity.
 - You want scheduled automations with run history, any CLI agent, or source you can read under Elastic License 2.0.
 
 ## Verdict

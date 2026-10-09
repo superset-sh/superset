@@ -51,6 +51,7 @@ export function codexDecision(
 		case "decline":
 			return "decline";
 		case "cancel":
+		case "form":
 			return "cancel";
 		case "option": {
 			const option = options.find(

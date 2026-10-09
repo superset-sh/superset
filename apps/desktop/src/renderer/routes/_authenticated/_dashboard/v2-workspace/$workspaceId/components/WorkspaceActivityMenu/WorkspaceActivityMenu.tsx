@@ -196,6 +196,37 @@ export function WorkspaceActivityMenu({
 		() => collectBackgroundWork(bindings.values(), detachedTerminals),
 		[bindings, detachedTerminals],
 	);
+	const getSourceLabelsSnapshot = useCallback(
+		() =>
+			JSON.stringify(
+				[store, ...linkedStores]
+					.flatMap((paneStore) => paneStore.getState().tabs)
+					.flatMap((tab) =>
+						Object.values(tab.panes).flatMap((pane) => {
+							const data = pane.data as {
+								terminalId?: string;
+								chatTitle?: string;
+							};
+							const label =
+								tab.titleOverride ?? pane.titleOverride ?? data.chatTitle;
+							return data.terminalId && label ? [[data.terminalId, label]] : [];
+						}),
+					),
+			),
+		[store, linkedStores],
+	);
+	const sourceLabelsKey = useSyncExternalStore(
+		subscribeAttachedStores,
+		getSourceLabelsSnapshot,
+		getSourceLabelsSnapshot,
+	);
+	const sourceLabels = useMemo(
+		() => new Map<string, string>(JSON.parse(sourceLabelsKey)),
+		[sourceLabelsKey],
+	);
+	const workSourceCount = new Set(
+		[...processes, ...subagents].map((work) => work.terminalId),
+	).size;
 	const stoppableAgentTasks = processes.filter(
 		(work) => work.stop?.type === "chat",
 	);
@@ -362,6 +393,9 @@ export function WorkspaceActivityMenu({
 			<BackgroundWorkRow
 				key={work.key}
 				work={work}
+				source={
+					workSourceCount > 1 ? sourceLabels.get(work.terminalId) : undefined
+				}
 				now={now}
 				stopping={stopping.has(work.key)}
 				onOpen={handleOpenWork}

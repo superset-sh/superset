@@ -56,6 +56,7 @@ import { useAgentModelPreference } from "renderer/hooks/useAgentModelPreference"
 import { useAgentModePreference } from "renderer/hooks/useAgentModePreference";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { useSelectedHostProjectIds } from "renderer/hooks/useSelectedHostProjectIds";
+import { useTaskTracker } from "renderer/hooks/useTaskTracker";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { CLOUD_AGENT_CHOICES } from "renderer/hooks/useV2AgentChoices/cloud-agent-choices";
 import { track } from "renderer/lib/analytics";
@@ -383,6 +384,7 @@ export function NewWorkspaceScreen({
 		removeLinkedPR,
 	} = useLinkedContext(draft.linkedIssues, updateDraft);
 	const linkTaskLabel = t({ message: "Link task" });
+	const taskTracker = useTaskTracker();
 
 	// Restore the last-used launch host once per mount, like the modal does.
 	// A host named in the URL (the sidebar's Cloud "+") wins, and applies when
@@ -950,28 +952,31 @@ export function NewWorkspaceScreen({
 						}
 						toolbarEnd={
 							<div className="flex items-center gap-2">
-								<IssueLinkCommand
-									onSelect={addLinkedIssue}
-									tooltipLabel={linkTaskLabel}
-								>
-									<PromptInputButton
-										aria-label={linkTaskLabel}
-										className={`${PILL_BUTTON_CLASS} w-[22px]`}
+								{!taskTracker ? null : taskTracker === "linear" ? (
+									<LinearIssueLinkCommand
+										onSelect={addLinkedLinearIssue}
+										tooltipLabel={t({ message: "Link Linear issue" })}
 									>
-										<HiOutlineCheckCircle className="size-3.5" />
-									</PromptInputButton>
-								</IssueLinkCommand>
-								<LinearIssueLinkCommand
-									onSelect={addLinkedLinearIssue}
-									tooltipLabel={t({ message: "Link Linear issue" })}
-								>
-									<PromptInputButton
-										aria-label={t({ message: "Link Linear issue" })}
-										className={`${PILL_BUTTON_CLASS} w-[22px]`}
+										<PromptInputButton
+											aria-label={t({ message: "Link Linear issue" })}
+											className={`${PILL_BUTTON_CLASS} w-[22px]`}
+										>
+											<SiLinear className="size-3.5" />
+										</PromptInputButton>
+									</LinearIssueLinkCommand>
+								) : (
+									<IssueLinkCommand
+										onSelect={addLinkedIssue}
+										tooltipLabel={linkTaskLabel}
 									>
-										<SiLinear className="size-3.5" />
-									</PromptInputButton>
-								</LinearIssueLinkCommand>
+										<PromptInputButton
+											aria-label={linkTaskLabel}
+											className={`${PILL_BUTTON_CLASS} w-[22px]`}
+										>
+											<HiOutlineCheckCircle className="size-3.5" />
+										</PromptInputButton>
+									</IssueLinkCommand>
+								)}
 								<GitHubIssueLinkCommand
 									onSelect={(issue) =>
 										addLinkedGitHubIssue(
