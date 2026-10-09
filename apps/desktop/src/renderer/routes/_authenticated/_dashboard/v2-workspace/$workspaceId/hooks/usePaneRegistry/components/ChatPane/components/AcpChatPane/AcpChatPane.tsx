@@ -196,7 +196,10 @@ export function AcpChatPane({
 		],
 	);
 
-	const agentSessionId = agent?.sessionId;
+	// A pane adopted in the background never saw the stream report the agent
+	// session, so recovery takes it from the host's row instead.
+	const agentSessionId =
+		agent?.sessionId ?? stored?.session?.harnessSessionId ?? undefined;
 	// Resuming when there is a session to resume, and a plain new one when the
 	// pane was opened straight onto the chat and no agent has run yet.
 	useEffect(() => {

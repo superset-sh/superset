@@ -359,16 +359,15 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 
 		getSession(input) {
 			const parsed: GetSessionInput = getSessionInputSchema.parse(input);
+			const seq = options.sessions.get(parsed.sessionId)
+				? options.journal.cursor(parsed.sessionId).seq
+				: null;
+			// Reading the cursor can backfill the row, so read the row after it.
 			const session = options.sessions.get(parsed.sessionId);
 			return {
 				live: options.live.get(parsed.sessionId) !== null,
 				session,
-				cursor: session
-					? {
-							epoch: session.epoch,
-							seq: options.journal.cursor(parsed.sessionId).seq,
-						}
-					: null,
+				cursor: session && seq !== null ? { epoch: session.epoch, seq } : null,
 			};
 		},
 
