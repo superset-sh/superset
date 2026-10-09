@@ -8,7 +8,7 @@
 		"start": "bun run src/index.ts",
 		"deploy": "./scripts/deploy.sh",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
-		"test": "bun test --isolate"
+		"test": "bun test"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "0.78.0",

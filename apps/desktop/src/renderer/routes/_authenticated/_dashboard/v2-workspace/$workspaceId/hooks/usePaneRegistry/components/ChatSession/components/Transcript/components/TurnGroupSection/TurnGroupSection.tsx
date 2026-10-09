@@ -1,8 +1,10 @@
 import type { OutboxEntry, SessionSnapshot } from "@superset/chat/core";
 import { displayText } from "@superset/chat/core";
 import type {
+	ApprovalRequest,
 	AvailableCommand,
 	Decision,
+	Item,
 	UserMessage,
 } from "@superset/chat/protocol";
 import type { ReactNode } from "react";
@@ -34,6 +36,15 @@ function pageCards(pages: readonly PageLink[] | undefined): ReactNode {
 			url={page.url}
 		/>
 	));
+}
+
+function approvalTarget(
+	snapshot: SessionSnapshot,
+	item: Item,
+): Item | undefined {
+	if (item.kind !== "approval_request") return undefined;
+	const targetId = (item as ApprovalRequest).targetItemId;
+	return targetId ? snapshot.items.get(targetId)?.item : undefined;
 }
 
 export type TurnGroupSectionProps = {
@@ -82,6 +93,8 @@ export function TurnGroupSection({
 			return (
 				<>
 					<ItemRow
+						afterTarget={row.afterTarget}
+						approvalTarget={approvalTarget(snapshot, row.item)}
 						canForkToWorktree={canForkToWorktree}
 						commands={commands}
 						lastReply={lastReply}

@@ -200,7 +200,7 @@ earns its place by catching a regression quickly.
 - **One test per behaviour.** Stress, fuzz and "adversarial" suites that build many real git
   repositories or processes do not go in the repo. When a probe finds a bug, keep the one
   regression test for it.
-- **Any order, clean checkout.** Suites run with `bun test --isolate`, in an order that differs
+- **Any order, clean checkout.** Each package's suite runs in one process, in an order that differs
   between machines, with no root `.env`. Do not `mock.module` a module that other files import for
   real (`env`, a client, a logger). Give the code its input instead: a parameter, a placeholder in
   the package's test preload, or a local server.

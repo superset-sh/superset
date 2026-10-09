@@ -4,7 +4,12 @@ import {
 	toolRunKey,
 	transcriptItemKey,
 } from "@superset/chat/core";
-import type { Item, ToolCall, UserMessage } from "@superset/chat/protocol";
+import type {
+	ApprovalRequest,
+	Item,
+	ToolCall,
+	UserMessage,
+} from "@superset/chat/protocol";
 import type { PageLink, PageLinkFinder } from "../../../../utils/pageLinks";
 import { turnPageLinks } from "../turnPageLinks";
 
@@ -26,6 +31,8 @@ export type TranscriptRow =
 			pages?: readonly PageLink[];
 			/** Slugs an agent message leaves to the earlier message that shows them. */
 			pagesShownEarlier?: string;
+			/** An approval whose target tool call is the row right above it. */
+			afterTarget?: boolean;
 	  }
 	| { kind: "outbox"; key: string; groupStart: boolean; entry: OutboxEntry }
 	| {
@@ -50,6 +57,7 @@ export function transcriptRows(
 	outbox: readonly OutboxEntry[],
 	pendingApprovalTargets: ReadonlySet<string>,
 	findPageLinks: PageLinkFinder,
+	hiddenToolIds: ReadonlySet<string> = new Set(),
 ): TranscriptRow[] {
 	const rows: TranscriptRow[] = [];
 	const echoedClientIds = new Set<string>();
@@ -81,6 +89,7 @@ export function transcriptRows(
 				placeClock();
 			}
 			if (entry.kind === "item") {
+				if (hiddenToolIds.has(entry.item.id)) return;
 				const clientId =
 					entry.item.kind === "user_message"
 						? (entry.item as UserMessage).clientId
@@ -88,6 +97,16 @@ export function transcriptRows(
 				if (clientId) echoedClientIds.add(clientId);
 				const pages = links.fromTools.get(entry.item.id);
 				const pagesShownEarlier = links.shownEarlier.get(entry.item.id);
+				const targetId =
+					entry.item.kind === "approval_request"
+						? (entry.item as ApprovalRequest).targetItemId
+						: null;
+				const above = groupStart ? undefined : rows.at(-1);
+				const afterTarget =
+					targetId !== null &&
+					((above?.kind === "item" && above.item.id === targetId) ||
+						(above?.kind === "tool_run" &&
+							above.items.at(-1)?.id === targetId));
 				push({
 					kind: "item",
 					key: transcriptItemKey(entry.item),
@@ -95,18 +114,19 @@ export function transcriptRows(
 					item: entry.item,
 					...(pages ? { pages } : {}),
 					...(pagesShownEarlier ? { pagesShownEarlier } : {}),
+					...(afterTarget ? { afterTarget } : {}),
 				});
 				return;
 			}
-			const pages = entry.items.flatMap(
-				(tool) => links.fromTools.get(tool.id) ?? [],
-			);
+			const items = entry.items.filter((tool) => !hiddenToolIds.has(tool.id));
+			if (items.length === 0) return;
+			const pages = items.flatMap((tool) => links.fromTools.get(tool.id) ?? []);
 			push({
 				kind: "tool_run",
 				key: toolRunKey(group.turnId, entry.items, index),
 				groupStart,
-				items: entry.items,
-				defaultCollapsed: !entry.items.some((tool) =>
+				items,
+				defaultCollapsed: !items.some((tool) =>
 					pendingApprovalTargets.has(tool.id),
 				),
 				...(pages.length > 0 ? { pages } : {}),

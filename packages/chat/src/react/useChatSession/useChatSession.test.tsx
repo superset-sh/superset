@@ -18,6 +18,7 @@ import {
 import type { ChatTransport, SessionClient } from "../../client";
 import { createSessionClient } from "../../client";
 import { emptySnapshot, reduceMany } from "../../core";
+import type { ToolCall } from "../../protocol/items";
 import { createManualWait } from "../../testing/manualWait";
 import { createMemoryStreamServer } from "../../testing/memoryStream";
 import { registerDom } from "../../testing/registerDom";
@@ -88,6 +89,64 @@ async function startStack(): Promise<Stack> {
 				wait: overrides.wait,
 			}),
 	};
+}
+
+function olderHost(transport: ChatTransport): ChatTransport {
+	return new Proxy(transport, {
+		get: (target, prop, receiver) =>
+			prop === "getOutline"
+				? () => Promise.reject(new Error("No procedure found"))
+				: Reflect.get(target, prop, receiver),
+	});
+}
+
+const OMITTED_TOOL: ToolCall = {
+	id: "tool-1",
+	kind: "tool_call",
+	startedAtMs: 1,
+	title: "ls",
+	toolKind: "execute",
+	toolName: "Bash",
+	status: "completed",
+	content: [],
+	bodyOmitted: true,
+};
+
+function withOmittedTool(transport: ChatTransport): ChatTransport {
+	return new Proxy(transport, {
+		get: (target, prop, receiver) => {
+			if (prop === "getOutline") {
+				return async (input: { sessionId: string }) => {
+					const result = await target.getOutline(input);
+					if (!result.ok) return result;
+					const turnId = result.outline.turns[0]?.id ?? "t1";
+					return {
+						ok: true,
+						outline: {
+							...result.outline,
+							items: [...result.outline.items, { item: OMITTED_TOOL, turnId }],
+						},
+					};
+				};
+			}
+			if (prop === "getItemBodies") {
+				return async () => ({
+					ok: true,
+					items: [
+						{
+							item: {
+								...OMITTED_TOOL,
+								bodyOmitted: undefined,
+								content: [{ type: "text", text: "a\nb" }],
+							},
+							turnId: "t1",
+						},
+					],
+				});
+			}
+			return Reflect.get(target, prop, receiver);
+		},
+	});
 }
 
 let latest: ChatSession | null = null;
@@ -313,7 +372,7 @@ describe("useChatSession", () => {
 			() => stack.runtime.sessions.get(stack.sessionId)?.status === "idle",
 		);
 
-		const client = stack.makeClient();
+		const client = stack.makeClient({ transport: olderHost(stack.transport) });
 		const view = render(<Probe client={client} pageSize={2} />);
 		await domWaitFor(() => expect(session().status).toBe("ready"));
 		expect(session().hasOlder).toBe(true);
@@ -330,6 +389,234 @@ describe("useChatSession", () => {
 		expect(session().snapshot).toEqual(
 			reduceMany(emptySnapshot(), full.envelopes),
 		);
+		view.unmount();
+		client.close();
+		await stack.runtime.dispose();
+	});
+
+	test("seeds the whole session from the outline, with nothing left to page", async () => {
+		const stack = await startStack();
+		const seedClient = stack.makeClient();
+		for (const text of ["one", "two"]) {
+			await seedClient.prompt({
+				clientId: randomUUID(),
+				content: [{ type: "text", text }],
+			});
+			await waitFor(
+				() => stack.runtime.sessions.get(stack.sessionId)?.status === "idle",
+			);
+		}
+
+		const client = stack.makeClient();
+		const view = render(<Probe client={client} pageSize={1} />);
+		await domWaitFor(() => expect(session().status).toBe("ready"));
+		const full = await client.getItems({});
+		if (!full.ok) throw new Error("expected page");
+		expect(session().hasOlder).toBe(false);
+		expect([...session().snapshot.items.keys()]).toEqual([
+			...reduceMany(emptySnapshot(), full.envelopes).items.keys(),
+		]);
+		view.unmount();
+		client.close();
+		await stack.runtime.dispose();
+	});
+
+	test("fills an omitted tool call body on request", async () => {
+		const stack = await startStack();
+		const client = stack.makeClient({
+			transport: withOmittedTool(stack.transport),
+		});
+		const view = render(<Probe client={client} />);
+		await domWaitFor(() => expect(session().status).toBe("ready"));
+		expect(session().snapshot.items.get("tool-1")?.item).toEqual(OMITTED_TOOL);
+
+		act(() => session().requestItemBodies(["tool-1"]));
+		await domWaitFor(() => {
+			const tool = session().snapshot.items.get("tool-1")?.item as
+				| ToolCall
+				| undefined;
+			expect(tool?.content).toEqual([{ type: "text", text: "a\nb" }]);
+		});
+		view.unmount();
+		client.close();
+		await stack.runtime.dispose();
+	});
+
+	test("keeps events that stream in while a resync fetches the outline", async () => {
+		const stack = await startStack();
+		let hold: Promise<void> | null = null;
+		let release = () => {};
+		const transport = new Proxy(stack.transport, {
+			get: (target, prop, receiver) =>
+				prop === "getOutline"
+					? async (input: { sessionId: string }) => {
+							const result = await target.getOutline(input);
+							if (hold) await hold;
+							return result;
+						}
+					: Reflect.get(target, prop, receiver),
+		});
+		const client = stack.makeClient({ transport });
+		const view = render(<Probe client={client} />);
+		await domWaitFor(() => expect(session().status).toBe("ready"));
+		act(() => {
+			session().sendPrompt([{ type: "text", text: "one" }]);
+		});
+		await domWaitFor(() =>
+			expect(session().snapshot.items.has("a1")).toBe(true),
+		);
+		await domWaitFor(() =>
+			expect(session().snapshot.session?.status).toBe("idle"),
+		);
+
+		hold = new Promise((resolve) => {
+			release = resolve;
+		});
+		act(() => {
+			stack.runtime.subscriptions.publish({
+				v: 1,
+				sessionId: stack.sessionId,
+				ts: Date.now(),
+				reset: { reason: "journal_missing" },
+			});
+		});
+		await Bun.sleep(20);
+		act(() => {
+			session().sendPrompt([{ type: "text", text: "two" }]);
+		});
+		await domWaitFor(() =>
+			expect(session().snapshot.items.has("a2")).toBe(true),
+		);
+		act(() => release());
+		await domWaitFor(() => expect(session().snapshot.pendingReset).toBeNull());
+		await Bun.sleep(20);
+		expect(session().snapshot.items.has("a2")).toBe(true);
+		view.unmount();
+		client.close();
+		await stack.runtime.dispose();
+	});
+
+	test("resyncs again for a reset that arrives during a resync", async () => {
+		const stack = await startStack();
+		let outlines = 0;
+		let hold: Promise<void> | null = null;
+		let release = () => {};
+		const transport = new Proxy(stack.transport, {
+			get: (target, prop, receiver) =>
+				prop === "getOutline"
+					? async (input: { sessionId: string }) => {
+							outlines += 1;
+							const result = await target.getOutline(input);
+							if (hold) await hold;
+							return result;
+						}
+					: Reflect.get(target, prop, receiver),
+		});
+		const client = stack.makeClient({ transport });
+		const view = render(<Probe client={client} />);
+		await domWaitFor(() => expect(session().status).toBe("ready"));
+		const seeded = outlines;
+
+		hold = new Promise((resolve) => {
+			release = resolve;
+		});
+		const reset = () =>
+			act(() => {
+				stack.runtime.subscriptions.publish({
+					v: 1,
+					sessionId: stack.sessionId,
+					ts: Date.now(),
+					reset: { reason: "journal_missing" },
+				});
+			});
+		reset();
+		await domWaitFor(() => expect(outlines).toBe(seeded + 1));
+		reset();
+		hold = null;
+		act(() => release());
+		await domWaitFor(() => expect(outlines).toBe(seeded + 2));
+		await domWaitFor(() => expect(session().snapshot.pendingReset).toBeNull());
+		view.unmount();
+		client.close();
+		await stack.runtime.dispose();
+	});
+
+	test("re-requests a body that was in flight across a resync", async () => {
+		const stack = await startStack();
+		let release = () => {};
+		const hold = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const requests: string[][] = [];
+		const omitted = withOmittedTool(stack.transport);
+		const transport = new Proxy(omitted, {
+			get: (target, prop, receiver) =>
+				prop === "getItemBodies"
+					? async (input: { sessionId: string; itemIds: string[] }) => {
+							requests.push(input.itemIds);
+							const result = await target.getItemBodies(input);
+							if (requests.length === 1) await hold;
+							return result;
+						}
+					: Reflect.get(target, prop, receiver),
+		});
+		const client = stack.makeClient({ transport });
+		const view = render(<Probe client={client} />);
+		await domWaitFor(() => expect(session().status).toBe("ready"));
+
+		act(() => session().requestItemBodies(["tool-1"]));
+		await domWaitFor(() => expect(requests).toHaveLength(1));
+		act(() => {
+			stack.runtime.subscriptions.publish({
+				v: 1,
+				sessionId: stack.sessionId,
+				ts: Date.now(),
+				reset: { reason: "journal_missing" },
+			});
+		});
+		await domWaitFor(() => expect(requests).toEqual([["tool-1"], ["tool-1"]]));
+		await domWaitFor(() =>
+			expect(session().snapshot.items.get("tool-1")?.item).not.toEqual(
+				OMITTED_TOOL,
+			),
+		);
+		act(() => release());
+		await Bun.sleep(20);
+		expect(session().snapshot.items.get("tool-1")?.item).not.toEqual(
+			OMITTED_TOOL,
+		);
+		view.unmount();
+		client.close();
+		await stack.runtime.dispose();
+	});
+
+	test("retries a failed body request after a backoff", async () => {
+		const stack = await startStack();
+		let failures = 1;
+		const omitted = withOmittedTool(stack.transport);
+		const transport = new Proxy(omitted, {
+			get: (target, prop, receiver) =>
+				prop === "getItemBodies"
+					? (input: { sessionId: string; itemIds: string[] }) =>
+							failures-- > 0
+								? Promise.reject(new Error("offline"))
+								: target.getItemBodies(input)
+					: Reflect.get(target, prop, receiver),
+		});
+		const manual = createManualWait();
+		const client = stack.makeClient({ transport });
+		const view = render(<Probe client={client} wait={manual.wait} />);
+		await domWaitFor(() => expect(session().status).toBe("ready"));
+
+		act(() => session().requestItemBodies(["tool-1"]));
+		await domWaitFor(() => expect(manual.pendingCount()).toBeGreaterThan(0));
+		act(() => manual.flush());
+		await domWaitFor(() => {
+			const tool = session().snapshot.items.get("tool-1")?.item as
+				| ToolCall
+				| undefined;
+			expect(tool?.content).toEqual([{ type: "text", text: "a\nb" }]);
+		});
 		view.unmount();
 		client.close();
 		await stack.runtime.dispose();
@@ -355,6 +642,8 @@ describe("useChatSession", () => {
 				getItemsCalls += 1;
 				return stack.transport.getItems(input);
 			},
+			getOutline: () => Promise.reject(new Error("No procedure found")),
+			getItemBodies: (input) => stack.transport.getItemBodies(input),
 		};
 		const client = stack.makeClient({ transport: countingTransport });
 		const view = render(<Probe client={client} />);

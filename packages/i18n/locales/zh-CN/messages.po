@@ -259,6 +259,10 @@ msgstr "{0, plural, one {#个工作区} other {#个工作区}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {#个运行中的智能体仍在使用之前的账户。切换只对新启动生效。} other {#个运行中的智能体仍在使用之前的账户。切换只对新启动生效。}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, other {提出了 # 个问题}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {评论将发送给此智能体} other {评论将发送给这些智能体}}"
@@ -462,6 +466,12 @@ msgstr "最近完整周 {0}"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "还有{0}个——请细化搜索"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "第 {0} 个，共 {1} 个"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2189,6 +2199,9 @@ msgstr "请允许麦克风访问以使用语音输入"
 msgid "Allow remote access to this device via relay"
 msgstr "允许通过中继远程访问本设备"
 
+msgid "Allow this action?"
+msgstr "允许此操作？"
+
 msgid "Allowed"
 msgstr "已允许"
 
@@ -2293,6 +2306,9 @@ msgstr "匿名装配工"
 
 msgid "another device"
 msgstr "另一台设备"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "请在桌面端回答此问题，或跳过。"
 
 msgid "Answered"
 msgstr "已回答"
@@ -3527,8 +3543,8 @@ msgstr "检查更新"
 msgid "Check for Updates..."
 msgstr "检查更新..."
 
-msgid "Check on running agents and read what they changed from your phone."
-msgstr "在手机上查看运行中的智能体，并了解它们改动了什么。"
+msgid "Check on running agents and read what they changed from your iPhone or iPad."
+msgstr "在 iPhone 或 iPad 上查看运行中的智能体，并阅读它们做出的更改。"
 
 msgid "Check resources"
 msgstr "检查资源"
@@ -6648,6 +6664,9 @@ msgstr "用得还顺手吗？"
 msgid "Ensure no regression"
 msgstr "确保没有回归"
 
+msgid "Enter a number"
+msgstr "输入数字"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "请输入{hostName}上的父目录"
 
@@ -6665,6 +6684,9 @@ msgstr "请输入有效的重复规则。"
 
 msgid "Enter a value."
 msgstr "请输入一个值。"
+
+msgid "Enter a whole number"
+msgstr "输入整数"
 
 msgid "Enter URL or search..."
 msgstr "输入URL或搜索..."
@@ -7954,8 +7976,8 @@ msgstr "获取Superset Pro"
 msgid "Get the best out of Pro"
 msgstr "充分利用 Pro"
 
-msgid "Get the iPhone app"
-msgstr "获取 iPhone 应用"
+msgid "Get the iPhone and iPad app"
+msgstr "获取 iPhone 和 iPad 应用"
 
 msgid "Ghost"
 msgstr "幽灵"
@@ -10600,6 +10622,9 @@ msgstr "思路不错"
 msgid "Nice, open a PR when ready."
 msgstr "不错，准备好就开个PR。"
 
+msgid "No"
+msgstr "否"
+
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "此主机上没有{0}登录——登录后用量会显示在这里。"
@@ -11835,8 +11860,8 @@ msgstr "在GitHub上打开"
 msgid "Open Page in Default Browser"
 msgstr "在默认浏览器中打开页面"
 
-msgid "Open pages and reply to comments from the Superset iPhone app."
-msgstr "在 Superset iPhone 应用中打开页面并回复评论。"
+msgid "Open pages and reply to comments from the Superset app on iPhone and iPad."
+msgstr "在 Superset 的 iPhone 和 iPad 应用中打开页面并回复评论。"
 
 msgid "Open Plugins in the Superset app and pick one. The install is saved to your account."
 msgstr "在 Superset 应用中打开“插件”并选择一个。安装记录会保存到你的账号。"
@@ -12238,6 +12263,9 @@ msgstr "页面"
 
 msgid "Pages could not be loaded"
 msgstr "无法加载页面"
+
+msgid "Pages open in a grid, and floating keyboards work. Requires iPadOS 26 or later."
+msgstr "页面以网格显示，并支持浮动键盘。需要 iPadOS 26 或更高版本。"
 
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "会话开始的页面，以及未看第二页就离开的比例。对比页是 SEO 的主阵地。"
@@ -13795,8 +13823,8 @@ msgstr "必填"
 msgid "Required version: {minimumVersion}+"
 msgstr "所需版本：{minimumVersion}+"
 
-msgid "Requires iOS 26 or later. Included with Superset Pro."
-msgstr "需要 iOS 26 或更高版本。包含在 Superset Pro 中。"
+msgid "Requires iOS 26 or iPadOS 26 or later. Included with Superset Pro."
+msgstr "需要 iOS 26 或 iPadOS 26 或更高版本。包含在 Superset Pro 中。"
 
 msgid "Reserved by OS"
 msgstr "已被系统占用"
@@ -14322,6 +14350,9 @@ msgstr "运行终端命令并与其他应用程序交互。"
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "设置完成后在“工作区设置”终端中运行智能体，而不是另外启动第二个终端"
 
+msgid "Run this command?"
+msgstr "运行此命令？"
+
 msgid "Run workspace command"
 msgstr "运行工作区命令"
 
@@ -14837,6 +14868,9 @@ msgstr "选择智能体"
 
 msgid "Select All"
 msgstr "全选"
+
+msgid "Select all that apply"
+msgstr "选择所有适用项"
 
 msgid "Select an agent"
 msgstr "选择智能体"
@@ -15669,6 +15703,12 @@ msgstr "Superset 团队会审核此页面。只有在需要你补充信息时我
 msgid "Something else"
 msgstr "其他问题"
 
+msgid "Something else? Add it here"
+msgstr "还有其他？在此添加"
+
+msgid "Something else? Type your own answer"
+msgstr "还有其他？输入你自己的回答"
+
 msgid "Something went wrong"
 msgstr "出了点问题"
 
@@ -15904,8 +15944,8 @@ msgstr "直接从Linear工单启动工作区。智能体接手，并以一个PR�
 msgid "Start agent"
 msgstr "启动代理"
 
-msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
-msgstr "在手机上启动智能体、实时跟进并审查差异。你的代码始终留在你的机器上。"
+msgid "Start agents, follow them live, and review the diff from your iPhone or iPad. Your code stays on your machines."
+msgstr "在 iPhone 或 iPad 上启动智能体、实时跟进并审查差异。你的代码始终留在你的机器上。"
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "启动一个智能体或终端，开始在此工作区中工作。"
@@ -15916,8 +15956,8 @@ msgstr "开始浏览"
 msgid "Start building in two."
 msgstr "两步开始构建。"
 
-msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "在手机上启动编程智能体、实时跟进并审查差异。现已上架 App Store；Android 版即将推出。"
+msgid "Start coding agents, follow them live, and review the diff from your iPhone or iPad. Available on the App Store; Android is coming soon."
+msgstr "在 iPhone 或 iPad 上启动编程智能体、实时跟进并审查差异。已在 App Store 上架；Android 版即将推出。"
 
 msgid "Start date"
 msgstr "开始日期"
@@ -16249,11 +16289,8 @@ msgstr "Superset 桌面应用"
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise是面向团队的Superset。联系我们，了解它包含什么，以及如何适配你的组织。"
 
-msgid "Superset for iPhone"
-msgstr "iPhone 版 Superset"
-
-msgid "Superset for iPhone page"
-msgstr "iPhone 版 Superset 页面"
+msgid "Superset for iPhone and iPad"
+msgstr "iPhone 和 iPad 版 Superset"
 
 msgid "Superset for press"
 msgstr "面向媒体的 Superset"
@@ -16342,6 +16379,9 @@ msgstr "Superset Mobile 登陆 iPhone"
 msgid "Superset Mobile lets developers continue the Superset workspaces they already use on their computer from an iPhone."
 msgstr "借助 Superset Mobile，开发者可以在 iPhone 上继续使用他们在电脑上已经在用的 Superset 工作区。"
 
+msgid "Superset Mobile page"
+msgstr "Superset Mobile 页面"
+
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobile在你连接的电脑上运行智能体。"
 
@@ -16356,6 +16396,9 @@ msgstr "Superset需要“完全磁盘访问权限”才能读取其他浏览器�
 
 msgid "Superset next to others"
 msgstr "Superset 与其他工具对比"
+
+msgid "Superset on iPad, showing a pull request and a workspace list"
+msgstr "iPad 上的 Superset，显示一个拉取请求和工作区列表"
 
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset 只获得此连接器请求的权限。你可以随时断开连接以撤销。"
@@ -16917,8 +16960,8 @@ msgstr "守护进程无法将你的活动会话移交给新的二进制文件。
 msgid "The desktop app runs on macOS and Linux today. Drop your email and we'll let you know the moment the Windows build ships."
 msgstr "桌面应用目前支持macOS和Linux。留下邮箱，Windows版本一发布就通知你。"
 
-msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An iPhone app on the App Store lets you check on agents and review their diffs from your phone."
-msgstr "桌面应用支持macOS，另有实验性的Linux AppImage；Windows暂未提供。除了桌面应用，还有CLI、TypeScript SDK和MCP服务器，你可以从脚本、终端和其他智能体来驱动Superset。App Store上的iPhone应用让你在手机上查看智能体并审阅它们的差异。"
+msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An app for iPhone and iPad on the App Store lets you check on agents and review their diffs away from your desk."
+msgstr "桌面应用支持macOS，另有实验性的Linux AppImage；Windows暂未提供。除了桌面应用，还有CLI、TypeScript SDK和MCP服务器，你可以从脚本、终端和其他智能体来驱动Superset。App Store上的iPhone和iPad应用让你离开工位时也能查看智能体并审阅它们的差异。"
 
 msgid "The device that hosts this project is unavailable."
 msgstr "承载这个项目的设备不可用。"
@@ -17108,6 +17151,9 @@ msgstr "这次运行被跳过了，因为<0>{0}</0>没有连接到Superset中继
 
 msgid "The run was skipped because this device isn't connected to the Superset relay. Automations go through the relay even when they run on this device. Enable relay access, then run it again."
 msgstr "这次运行被跳过了，因为此设备没有连接到Superset中继。即使自动化在本设备上运行，也要经过中继。请启用中继访问，然后重新运行。"
+
+msgid "The same app runs natively on iPad, in portrait and landscape."
+msgstr "同一个应用在 iPad 上原生运行，支持竖屏和横屏。"
 
 msgid "The scorecard"
 msgstr "评分表"
@@ -17926,6 +17972,9 @@ msgstr "输入组织名称以确认。"
 
 msgid "Type to search files..."
 msgstr "输入以搜索文件..."
+
+msgid "Type your answer"
+msgstr "输入你的回答"
 
 msgid "TypeScript"
 msgstr "TypeScript"
@@ -19211,6 +19260,9 @@ msgstr "按年"
 
 msgid "Yellow"
 msgstr "黄色"
+
+msgid "Yes"
+msgstr "是"
 
 msgid "Yes, demote me"
 msgstr "是，降低我的角色"

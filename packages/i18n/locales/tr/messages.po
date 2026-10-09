@@ -259,6 +259,10 @@ msgstr "{0, plural, one {# çalışma alanı} other {# çalışma alanı}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {Çalışan bir ajan hâlâ önceki hesabı kullanıyor — geçiş yalnızca yeni başlatmalar için geçerli.} other {Çalışan # ajan hâlâ önceki hesabı kullanıyor — geçiş yalnızca yeni başlatmalar için geçerli.}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, one {# soru soruldu} other {# soru soruldu}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Yorumlar bu ajana gider} other {Yorumlar bu ajanlara gider}}"
@@ -462,6 +466,12 @@ msgstr "son tam hafta {0}"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "{0} tane daha — aramanızı daraltın"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "{0} / {1}"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2189,6 +2199,9 @@ msgstr "Sesle yazmak için mikrofon erişimine izin verin"
 msgid "Allow remote access to this device via relay"
 msgstr "Bu cihaza röle üzerinden uzaktan erişime izin ver"
 
+msgid "Allow this action?"
+msgstr "Bu işleme izin verilsin mi?"
+
 msgid "Allowed"
 msgstr "İzin verildi"
 
@@ -2293,6 +2306,9 @@ msgstr "Anonim Montajcı"
 
 msgid "another device"
 msgstr "başka bir cihaz"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "Bu soruyu masaüstünde yanıtlayın veya atlayın."
 
 msgid "Answered"
 msgstr "Yanıtlandı"
@@ -3527,8 +3543,8 @@ msgstr "Güncellemeleri denetle"
 msgid "Check for Updates..."
 msgstr "Güncellemeleri denetle..."
 
-msgid "Check on running agents and read what they changed from your phone."
-msgstr "Çalışan ajanları telefonunuzdan kontrol edin ve neyi değiştirdiklerini okuyun."
+msgid "Check on running agents and read what they changed from your iPhone or iPad."
+msgstr "Çalışan ajanları kontrol edin ve neleri değiştirdiklerini iPhone veya iPad'inizden okuyun."
 
 msgid "Check resources"
 msgstr "Kaynakları denetle"
@@ -6648,6 +6664,9 @@ msgstr "Superset'ten memnun musunuz?"
 msgid "Ensure no regression"
 msgstr "Regresyon olmadığından emin ol"
 
+msgid "Enter a number"
+msgstr "Bir sayı girin"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "{hostName} üzerinde bir üst dizin girin"
 
@@ -6665,6 +6684,9 @@ msgstr "Geçerli bir yineleme kuralı girin."
 
 msgid "Enter a value."
 msgstr "Bir değer girin."
+
+msgid "Enter a whole number"
+msgstr "Bir tam sayı girin"
 
 msgid "Enter URL or search..."
 msgstr "URL girin veya arayın..."
@@ -7954,8 +7976,8 @@ msgstr "Superset Pro'yu edinin"
 msgid "Get the best out of Pro"
 msgstr "Pro’dan en iyi şekilde yararlanın"
 
-msgid "Get the iPhone app"
-msgstr "iPhone uygulamasını edinin"
+msgid "Get the iPhone and iPad app"
+msgstr "iPhone ve iPad uygulamasını edinin"
 
 msgid "Ghost"
 msgstr "Hayalet"
@@ -10600,6 +10622,9 @@ msgstr "Güzel yaklaşım"
 msgid "Nice, open a PR when ready."
 msgstr "Güzel, hazır olduğunda bir PR aç."
 
+msgid "No"
+msgstr "Hayır"
+
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Bu host'ta {0} oturumu yok — oturum açın, kullanım burada görünsün."
@@ -11835,8 +11860,8 @@ msgstr "GitHub'da aç"
 msgid "Open Page in Default Browser"
 msgstr "Sayfayı varsayılan tarayıcıda aç"
 
-msgid "Open pages and reply to comments from the Superset iPhone app."
-msgstr "Sayfaları açın ve yorumları iPhone için Superset uygulamasından yanıtlayın."
+msgid "Open pages and reply to comments from the Superset app on iPhone and iPad."
+msgstr "iPhone ve iPad'deki Superset uygulamasından sayfaları açın ve yorumlara yanıt verin."
 
 msgid "Open Plugins in the Superset app and pick one. The install is saved to your account."
 msgstr "Superset uygulamasında Eklentiler'i açın ve birini seçin. Kurulum hesabınıza kaydedilir."
@@ -12238,6 +12263,9 @@ msgstr "Sayfalar"
 
 msgid "Pages could not be loaded"
 msgstr "Sayfalar yüklenemedi"
+
+msgid "Pages open in a grid, and floating keyboards work. Requires iPadOS 26 or later."
+msgstr "Sayfalar ızgara düzeninde açılır ve yüzen klavyeler çalışır. iPadOS 26 veya üstü gerekir."
 
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "Oturumların başladığı sayfalar ve ikinci bir sayfa görmeden ayrılanların payı. Karşılaştırma sayfaları SEO yüzeyidir."
@@ -13795,8 +13823,8 @@ msgstr "Gerekli"
 msgid "Required version: {minimumVersion}+"
 msgstr "Gerekli sürüm: {minimumVersion}+"
 
-msgid "Requires iOS 26 or later. Included with Superset Pro."
-msgstr "iOS 26 veya sonrası gerekir. Superset Pro'ya dahildir."
+msgid "Requires iOS 26 or iPadOS 26 or later. Included with Superset Pro."
+msgstr "iOS 26 veya iPadOS 26 ya da üstü gerekir. Superset Pro'ya dahildir."
 
 msgid "Reserved by OS"
 msgstr "İşletim sistemi tarafından ayrılmış"
@@ -14322,6 +14350,9 @@ msgstr "Terminal komutları çalıştırın ve diğer uygulamalarla etkileşin."
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Yanında ikinci bir terminal başlatmak yerine, kurulum bittikten sonra ajanı Çalışma Alanı Kurulumu terminalinde çalıştır"
 
+msgid "Run this command?"
+msgstr "Bu komut çalıştırılsın mı?"
+
 msgid "Run workspace command"
 msgstr "Çalışma alanı komutunu çalıştır"
 
@@ -14837,6 +14868,9 @@ msgstr "Ajan seç"
 
 msgid "Select All"
 msgstr "Tümünü seç"
+
+msgid "Select all that apply"
+msgstr "Uygun olanların tümünü seçin"
 
 msgid "Select an agent"
 msgstr "Bir ajan seçin"
@@ -15669,6 +15703,12 @@ msgstr "Superset ekibinden biri bu sayfayı inceleyecek. Yalnızca ek bilgiye ih
 msgid "Something else"
 msgstr "Başka bir şey"
 
+msgid "Something else? Add it here"
+msgstr "Başka bir şey mi? Buraya ekleyin"
+
+msgid "Something else? Type your own answer"
+msgstr "Başka bir şey mi? Kendi yanıtınızı yazın"
+
 msgid "Something went wrong"
 msgstr "Bir şeyler ters gitti"
 
@@ -15904,8 +15944,8 @@ msgstr "Doğrudan bir Linear biletinden çalışma alanı başlatın. Ajan işi 
 msgid "Start agent"
 msgstr "Ajanı başlat"
 
-msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
-msgstr "Telefonunuzdan ajanları başlatın, canlı takip edin ve diff'i inceleyin. Kodunuz makinelerinizde kalır."
+msgid "Start agents, follow them live, and review the diff from your iPhone or iPad. Your code stays on your machines."
+msgstr "iPhone veya iPad'inizden ajanları başlatın, canlı takip edin ve diff'i inceleyin. Kodunuz makinelerinizde kalır."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Bu çalışma alanında çalışmaya başlamak için bir ajan veya terminal başlatın."
@@ -15916,8 +15956,8 @@ msgstr "Taramaya başlayın"
 msgid "Start building in two."
 msgstr "İki adımda geliştirmeye başlayın."
 
-msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "Telefonunuzdan kodlama ajanlarını başlatın, canlı takip edin ve diff'i inceleyin. App Store'da mevcut; Android yakında geliyor."
+msgid "Start coding agents, follow them live, and review the diff from your iPhone or iPad. Available on the App Store; Android is coming soon."
+msgstr "iPhone veya iPad'inizden kodlama ajanlarını başlatın, canlı takip edin ve diff'i inceleyin. App Store'da mevcut; Android yakında geliyor."
 
 msgid "Start date"
 msgstr "Başlangıç tarihi"
@@ -16249,11 +16289,8 @@ msgstr "Superset masaüstü uygulaması"
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise, takımlar için Superset'tir. Nelerin dahil olduğunu ve kuruluşunuzda nasıl işleyebileceğini öğrenmek için bize ulaşın."
 
-msgid "Superset for iPhone"
-msgstr "iPhone için Superset"
-
-msgid "Superset for iPhone page"
-msgstr "iPhone için Superset sayfası"
+msgid "Superset for iPhone and iPad"
+msgstr "iPhone ve iPad için Superset"
 
 msgid "Superset for press"
 msgstr "Basın için Superset"
@@ -16342,6 +16379,9 @@ msgstr "Superset Mobile iPhone'da yayında"
 msgid "Superset Mobile lets developers continue the Superset workspaces they already use on their computer from an iPhone."
 msgstr "Superset Mobile ile geliştiriciler, bilgisayarlarında zaten kullandıkları Superset çalışma alanlarına iPhone'dan devam edebilir."
 
+msgid "Superset Mobile page"
+msgstr "Superset Mobile sayfası"
+
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobile, ajanları bağladığınız bilgisayarlarda çalıştırır."
 
@@ -16356,6 +16396,9 @@ msgstr "Superset'in başka bir tarayıcının verilerini okuyabilmesi için Tam 
 
 msgid "Superset next to others"
 msgstr "Superset ve diğerleri"
+
+msgid "Superset on iPad, showing a pull request and a workspace list"
+msgstr "iPad'de Superset; bir pull request ve bir çalışma alanı listesi gösteriliyor"
 
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset yalnızca bu bağlayıcının istediği izinleri alır. İzinleri geri almak için istediğiniz zaman bağlantıyı kesin."
@@ -16917,8 +16960,8 @@ msgstr "Daemon, canlı oturumlarınızı yeni ikili dosyaya devredemedi. Nedeni:
 msgid "The desktop app runs on macOS and Linux today. Drop your email and we'll let you know the moment the Windows build ships."
 msgstr "Superset'i Windows ve Linux'a getiriyoruz. E-postanızı bırakın, hazır olduğu anda haber verelim."
 
-msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An iPhone app on the App Store lets you check on agents and review their diffs from your phone."
-msgstr "Masaüstü uygulaması macOS'ta çalışır; deneysel bir Linux AppImage vardır, Windows henüz kullanılamıyor. Masaüstü uygulamasının ötesinde bir CLI, bir TypeScript SDK ve bir MCP sunucusu var; böylece Superset'i betiklerden, terminallerden ve diğer ajanlardan yönetebilirsiniz. App Store'daki iPhone uygulamasıyla ajanlarınızı telefonunuzdan takip edebilir ve diff'lerini inceleyebilirsiniz."
+msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An app for iPhone and iPad on the App Store lets you check on agents and review their diffs away from your desk."
+msgstr "Masaüstü uygulaması macOS'ta çalışır; deneysel bir Linux AppImage vardır, Windows henüz kullanılamıyor. Masaüstü uygulamasının ötesinde bir CLI, bir TypeScript SDK ve bir MCP sunucusu var; böylece Superset'i betiklerden, terminallerden ve diğer ajanlardan yönetebilirsiniz. App Store'daki iPhone ve iPad uygulamasıyla masanızdan uzaktayken de ajanlarınızı takip edebilir ve diff'lerini inceleyebilirsiniz."
 
 msgid "The device that hosts this project is unavailable."
 msgstr "Bu projeyi barındıran cihaz kullanılamıyor."
@@ -17108,6 +17151,9 @@ msgstr "<0>{0}</0> Superset rölesine bağlı olmadığı için çalıştırma a
 
 msgid "The run was skipped because this device isn't connected to the Superset relay. Automations go through the relay even when they run on this device. Enable relay access, then run it again."
 msgstr "Bu cihaz Superset rölesine bağlı olmadığı için çalıştırma atlandı. Otomasyonlar bu cihazda çalışsa bile röle üzerinden gider. Röle erişimini etkinleştirip yeniden çalıştırın."
+
+msgid "The same app runs natively on iPad, in portrait and landscape."
+msgstr "Aynı uygulama iPad'de yerel olarak, dikey ve yatay modda çalışır."
 
 msgid "The scorecard"
 msgstr "Puan tablosu"
@@ -17926,6 +17972,9 @@ msgstr "Onaylamak için kuruluş adını yazın."
 
 msgid "Type to search files..."
 msgstr "Dosya aramak için yazın..."
+
+msgid "Type your answer"
+msgstr "Yanıtınızı yazın"
 
 msgid "TypeScript"
 msgstr "TypeScript"
@@ -19211,6 +19260,9 @@ msgstr "Yıllık"
 
 msgid "Yellow"
 msgstr "Sarı"
+
+msgid "Yes"
+msgstr "Evet"
 
 msgid "Yes, demote me"
 msgstr "Evet, rolümü düşür"

@@ -271,4 +271,43 @@ describe("chat commands", () => {
 		);
 		await runtime.dispose();
 	});
+
+	test("getOutline returns the whole session and getItemBodies its items by id", async () => {
+		const { runtime } = newRuntime();
+		const created = createSession(runtime);
+		runtime.commands.prompt({
+			commandId: randomUUID(),
+			sessionId: created.sessionId,
+			clientId: "client-1",
+			content: [{ type: "text", text: "hello" }],
+		});
+		await waitFor(
+			() => runtime.sessions.get(created.sessionId)?.status === "idle",
+		);
+
+		const outline = runtime.commands.getOutline({
+			sessionId: created.sessionId,
+		});
+		expect(outline.ok).toBe(true);
+		if (!outline.ok) return;
+		expect(outline.outline.items.map(({ item }) => item.kind)).toEqual([
+			"user_message",
+			"agent_message",
+		]);
+		expect(outline.outline.turns.map((turn) => turn.id)).toEqual(["t1"]);
+		expect(outline.outline.cursor).not.toBeNull();
+
+		const bodies = runtime.commands.getItemBodies({
+			sessionId: created.sessionId,
+			itemIds: ["a1", "missing"],
+		});
+		expect(bodies.ok && bodies.items.map(({ item }) => item.id)).toEqual([
+			"a1",
+		]);
+		expect(runtime.commands.getOutline({ sessionId: "missing" })).toEqual({
+			ok: false,
+			reset: "session_not_found",
+		});
+		await runtime.dispose();
+	});
 });

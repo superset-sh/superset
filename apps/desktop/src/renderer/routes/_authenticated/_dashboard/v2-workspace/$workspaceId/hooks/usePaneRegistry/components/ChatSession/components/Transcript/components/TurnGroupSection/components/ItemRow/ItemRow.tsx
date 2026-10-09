@@ -14,6 +14,8 @@ import { type PendingPrompt, UserMessageRow } from "../../../UserMessageRow";
 
 export type ItemRowProps = {
 	item: Item;
+	approvalTarget?: Item | undefined;
+	afterTarget?: boolean;
 	text: string;
 	harness: string | undefined;
 	commands?: ReadonlyMap<string, AvailableCommand> | undefined;
@@ -26,6 +28,8 @@ export type ItemRowProps = {
 };
 
 export const ItemRow = memo(function ItemRow({
+	afterTarget = false,
+	approvalTarget,
 	canForkToWorktree,
 	commands,
 	lastReply = false,
@@ -68,7 +72,14 @@ export const ItemRow = memo(function ItemRow({
 		case "plan":
 			return <PlanRow item={item} />;
 		case "approval_request":
-			return <ApprovalRow item={item} onRespond={onRespond} />;
+			return (
+				<ApprovalRow
+					afterTarget={afterTarget}
+					item={item}
+					onRespond={onRespond}
+					target={approvalTarget}
+				/>
+			);
 		case "notice":
 			return <NoticeRow item={item} />;
 	}

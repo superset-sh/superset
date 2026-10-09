@@ -259,6 +259,10 @@ msgstr "{0, plural, one {# workspace} other {# workspace}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {# agen yang sedang berjalan masih memakai akun sebelumnya — pergantian hanya berlaku untuk peluncuran baru.} other {# agen yang sedang berjalan masih memakai akun sebelumnya — pergantian hanya berlaku untuk peluncuran baru.}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, other {Mengajukan # pertanyaan}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Komentar masuk ke agen ini} other {Komentar masuk ke agen-agen ini}}"
@@ -462,6 +466,12 @@ msgstr "{0} minggu penuh terakhir"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "{0} lagi — persempit pencarian Anda"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "{0} dari {1}"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2189,6 +2199,9 @@ msgstr "Izinkan akses mikrofon untuk memakai dikte"
 msgid "Allow remote access to this device via relay"
 msgstr "Izinkan akses jarak jauh ke perangkat ini melalui relay"
 
+msgid "Allow this action?"
+msgstr "Izinkan tindakan ini?"
+
 msgid "Allowed"
 msgstr "Diizinkan"
 
@@ -2293,6 +2306,9 @@ msgstr "Perakit Anonim"
 
 msgid "another device"
 msgstr "perangkat lain"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "Jawab pertanyaan ini di desktop, atau lewati."
 
 msgid "Answered"
 msgstr "Dijawab"
@@ -3527,8 +3543,8 @@ msgstr "Periksa Pembaruan"
 msgid "Check for Updates..."
 msgstr "Periksa Pembaruan..."
 
-msgid "Check on running agents and read what they changed from your phone."
-msgstr "Pantau agen yang sedang berjalan dan baca apa yang mereka ubah dari ponsel Anda."
+msgid "Check on running agents and read what they changed from your iPhone or iPad."
+msgstr "Pantau agen yang sedang berjalan dan baca apa yang mereka ubah dari iPhone atau iPad Anda."
 
 msgid "Check resources"
 msgstr "Periksa sumber daya"
@@ -6648,6 +6664,9 @@ msgstr "Menikmati Superset?"
 msgid "Ensure no regression"
 msgstr "Pastikan tidak ada regresi"
 
+msgid "Enter a number"
+msgstr "Masukkan angka"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "Masukkan direktori induk di {hostName}"
 
@@ -6665,6 +6684,9 @@ msgstr "Masukkan aturan pengulangan yang valid."
 
 msgid "Enter a value."
 msgstr "Masukkan sebuah nilai."
+
+msgid "Enter a whole number"
+msgstr "Masukkan bilangan bulat"
 
 msgid "Enter URL or search..."
 msgstr "Masukkan URL atau cari..."
@@ -7954,8 +7976,8 @@ msgstr "Dapatkan Superset Pro"
 msgid "Get the best out of Pro"
 msgstr "Maksimalkan Pro"
 
-msgid "Get the iPhone app"
-msgstr "Dapatkan aplikasi iPhone"
+msgid "Get the iPhone and iPad app"
+msgstr "Dapatkan aplikasi iPhone dan iPad"
 
 msgid "Ghost"
 msgstr "Ghost"
@@ -10600,6 +10622,9 @@ msgstr "Pendekatan yang bagus"
 msgid "Nice, open a PR when ready."
 msgstr "Bagus, buka PR kalau sudah siap."
 
+msgid "No"
+msgstr "Tidak"
+
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Tidak ada login {0} di host ini — masuk dan penggunaannya akan muncul di sini."
@@ -11835,8 +11860,8 @@ msgstr "Buka di GitHub"
 msgid "Open Page in Default Browser"
 msgstr "Buka Halaman di Browser Bawaan"
 
-msgid "Open pages and reply to comments from the Superset iPhone app."
-msgstr "Buka halaman dan balas komentar dari aplikasi Superset di iPhone."
+msgid "Open pages and reply to comments from the Superset app on iPhone and iPad."
+msgstr "Buka halaman dan balas komentar dari aplikasi Superset di iPhone dan iPad."
 
 msgid "Open Plugins in the Superset app and pick one. The install is saved to your account."
 msgstr "Buka Plugin di aplikasi Superset dan pilih salah satu. Instalasi tersimpan di akun Anda."
@@ -12238,6 +12263,9 @@ msgstr "Halaman"
 
 msgid "Pages could not be loaded"
 msgstr "Halaman tidak dapat dimuat"
+
+msgid "Pages open in a grid, and floating keyboards work. Requires iPadOS 26 or later."
+msgstr "Halaman terbuka dalam grid, dan keyboard mengambang berfungsi. Memerlukan iPadOS 26 atau lebih baru."
 
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "Halaman tempat sesi dimulai, dengan porsi yang pergi tanpa halaman kedua. Halaman perbandingan adalah permukaan SEO."
@@ -13795,8 +13823,8 @@ msgstr "Wajib"
 msgid "Required version: {minimumVersion}+"
 msgstr "Versi yang diperlukan: {minimumVersion}+"
 
-msgid "Requires iOS 26 or later. Included with Superset Pro."
-msgstr "Memerlukan iOS 26 atau lebih baru. Termasuk dalam Superset Pro."
+msgid "Requires iOS 26 or iPadOS 26 or later. Included with Superset Pro."
+msgstr "Memerlukan iOS 26 atau iPadOS 26 atau lebih baru. Termasuk dalam Superset Pro."
 
 msgid "Reserved by OS"
 msgstr "Dipakai OS"
@@ -14322,6 +14350,9 @@ msgstr "Menjalankan perintah terminal dan berinteraksi dengan aplikasi lain."
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Jalankan agen di terminal Workspace Setup setelah setup selesai, bukan membuka terminal kedua di sampingnya"
 
+msgid "Run this command?"
+msgstr "Jalankan perintah ini?"
+
 msgid "Run workspace command"
 msgstr "Jalankan perintah workspace"
 
@@ -14837,6 +14868,9 @@ msgstr "Pilih agen"
 
 msgid "Select All"
 msgstr "Pilih Semua"
+
+msgid "Select all that apply"
+msgstr "Pilih semua yang sesuai"
 
 msgid "Select an agent"
 msgstr "Pilih agen"
@@ -15669,6 +15703,12 @@ msgstr "Seseorang dari tim Superset akan meninjau halaman ini. Kami hanya menghu
 msgid "Something else"
 msgstr "Hal lain"
 
+msgid "Something else? Add it here"
+msgstr "Ada yang lain? Tambahkan di sini"
+
+msgid "Something else? Type your own answer"
+msgstr "Ada yang lain? Ketik jawaban Anda sendiri"
+
 msgid "Something went wrong"
 msgstr "Terjadi kesalahan"
 
@@ -15904,8 +15944,8 @@ msgstr "Mulai workspace langsung dari tiket Linear. Agen mengambilnya dan melapo
 msgid "Start agent"
 msgstr "Mulai agen"
 
-msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
-msgstr "Mulai agen, ikuti secara langsung, dan tinjau diff dari ponsel Anda. Kode Anda tetap di mesin Anda."
+msgid "Start agents, follow them live, and review the diff from your iPhone or iPad. Your code stays on your machines."
+msgstr "Mulai agen, ikuti secara langsung, dan tinjau diff dari iPhone atau iPad Anda. Kode Anda tetap di mesin Anda."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Mulai sebuah agen atau terminal untuk mulai bekerja di workspace ini."
@@ -15916,8 +15956,8 @@ msgstr "Mulai menjelajah"
 msgid "Start building in two."
 msgstr "Mulai membangun dalam dua."
 
-msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "Mulai agen coding, ikuti secara langsung, dan tinjau diff dari ponsel Anda. Tersedia di App Store; Android segera hadir."
+msgid "Start coding agents, follow them live, and review the diff from your iPhone or iPad. Available on the App Store; Android is coming soon."
+msgstr "Mulai agen coding, ikuti secara langsung, dan tinjau diff dari iPhone atau iPad Anda. Tersedia di App Store; Android segera hadir."
 
 msgid "Start date"
 msgstr "Tanggal mulai"
@@ -16249,11 +16289,8 @@ msgstr "Aplikasi desktop Superset"
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise adalah Superset untuk tim. Hubungi kami untuk tahu lebih banyak soal apa saja yang termasuk dan bagaimana cocoknya untuk organisasi Anda."
 
-msgid "Superset for iPhone"
-msgstr "Superset untuk iPhone"
-
-msgid "Superset for iPhone page"
-msgstr "Halaman Superset untuk iPhone"
+msgid "Superset for iPhone and iPad"
+msgstr "Superset untuk iPhone dan iPad"
 
 msgid "Superset for press"
 msgstr "Superset untuk pers"
@@ -16342,6 +16379,9 @@ msgstr "Superset Mobile hadir di iPhone"
 msgid "Superset Mobile lets developers continue the Superset workspaces they already use on their computer from an iPhone."
 msgstr "Superset Mobile memungkinkan developer melanjutkan workspace Superset yang sudah mereka gunakan di komputer dari iPhone."
 
+msgid "Superset Mobile page"
+msgstr "Halaman Superset Mobile"
+
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobile menjalankan agen di komputer yang Anda hubungkan."
 
@@ -16356,6 +16396,9 @@ msgstr "Superset butuh Full Disk Access untuk membaca data browser lain. Berikan
 
 msgid "Superset next to others"
 msgstr "Superset dibanding yang lain"
+
+msgid "Superset on iPad, showing a pull request and a workspace list"
+msgstr "Superset di iPad, menampilkan pull request dan daftar workspace"
 
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset hanya menerima izin yang diminta konektor ini. Putuskan koneksi kapan saja untuk mencabutnya."
@@ -16917,8 +16960,8 @@ msgstr "Daemon tidak bisa menyerahkan sesi aktif Anda ke biner yang baru. Alasan
 msgid "The desktop app runs on macOS and Linux today. Drop your email and we'll let you know the moment the Windows build ships."
 msgstr "Kami sedang membawa Superset ke Windows & Linux. Tinggalkan email Anda dan kami akan mengabari begitu siap."
 
-msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An iPhone app on the App Store lets you check on agents and review their diffs from your phone."
-msgstr "Aplikasi desktopnya berjalan di macOS, dengan AppImage Linux eksperimental; Windows belum tersedia. Selain aplikasi desktop ada CLI, SDK TypeScript, dan server MCP, jadi Anda bisa mengendalikan Superset dari skrip, terminal, dan agen lain. Aplikasi iPhone di App Store memungkinkan Anda memantau agen dan meninjau diff mereka dari ponsel."
+msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An app for iPhone and iPad on the App Store lets you check on agents and review their diffs away from your desk."
+msgstr "Aplikasi desktopnya berjalan di macOS, dengan AppImage Linux eksperimental; Windows belum tersedia. Selain aplikasi desktop ada CLI, SDK TypeScript, dan server MCP, jadi Anda bisa mengendalikan Superset dari skrip, terminal, dan agen lain. Aplikasi iPhone dan iPad di App Store memungkinkan Anda memantau agen dan meninjau diff mereka saat jauh dari meja."
 
 msgid "The device that hosts this project is unavailable."
 msgstr "Perangkat yang menjadi host proyek ini tidak tersedia."
@@ -17108,6 +17151,9 @@ msgstr "Run dilewati karena <0>{0}</0> tidak terhubung ke relay Superset. Pastik
 
 msgid "The run was skipped because this device isn't connected to the Superset relay. Automations go through the relay even when they run on this device. Enable relay access, then run it again."
 msgstr "Run dilewati karena perangkat ini tidak terhubung ke relay Superset. Otomatisasi melewati relay bahkan saat berjalan di perangkat ini. Aktifkan akses relay, lalu jalankan lagi."
+
+msgid "The same app runs natively on iPad, in portrait and landscape."
+msgstr "Aplikasi yang sama berjalan native di iPad, dalam mode potret dan lanskap."
 
 msgid "The scorecard"
 msgstr "Kartu skor"
@@ -17926,6 +17972,9 @@ msgstr "Ketik nama organisasinya untuk konfirmasi."
 
 msgid "Type to search files..."
 msgstr "Ketik untuk mencari file..."
+
+msgid "Type your answer"
+msgstr "Ketik jawaban Anda"
 
 msgid "TypeScript"
 msgstr "TypeScript"
@@ -19211,6 +19260,9 @@ msgstr "Tahunan"
 
 msgid "Yellow"
 msgstr "Kuning"
+
+msgid "Yes"
+msgstr "Ya"
 
 msgid "Yes, demote me"
 msgstr "Ya, turunkan peran saya"

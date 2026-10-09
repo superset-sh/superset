@@ -10,11 +10,20 @@ import {
 	DEFAULT_BACKOFF_MAX_MS,
 } from "../../client";
 import type { OutboxEntry, SessionSnapshot } from "../../core";
-import { emptySnapshot, Outbox, reduceMany } from "../../core";
+import {
+	emptySnapshot,
+	hasOmittedBody,
+	Outbox,
+	reduceMany,
+	snapshotFromOutline,
+	withItemBodies,
+} from "../../core";
 import type { Cursor } from "../../protocol/cursor";
 import type { DeltaChannel, Envelope } from "../../protocol/envelope";
-import { isDurableEnvelope } from "../../protocol/envelope";
+import { isDurableEnvelope, isResetEnvelope } from "../../protocol/envelope";
 import type { Decision, UserContent, UserMessage } from "../../protocol/items";
+
+import { newerThan } from "./utils/newerThan";
 
 export type FrameScheduler = (flush: () => void) => () => void;
 
@@ -37,6 +46,35 @@ const defaultWait: Wait = (callback, delayMs) => {
 };
 
 const SEED_TIMEOUT_MS = 10_000;
+const MAX_BODIES_PER_REQUEST = 100;
+const MAX_BODY_ATTEMPTS = 3;
+
+type Seed =
+	| { kind: "outline"; snapshot: SessionSnapshot }
+	| { kind: "page"; envelopes: Envelope[]; nextBefore: Cursor | null };
+
+async function fetchSeed(
+	client: SessionClient,
+	pageSize: number | undefined,
+	timed: <T>(request: Promise<T>) => Promise<T> = (request) => request,
+): Promise<Seed | null> {
+	try {
+		const outline = await timed(client.getOutline());
+		if (outline.ok) {
+			return {
+				kind: "outline",
+				snapshot: snapshotFromOutline(outline.outline),
+			};
+		}
+	} catch {}
+	const page = await timed(client.getItems({ limit: pageSize }));
+	if (!page.ok) return null;
+	return {
+		kind: "page",
+		envelopes: page.envelopes,
+		nextBefore: page.nextBefore,
+	};
+}
 
 export const DEFAULT_DELTAS: readonly DeltaChannel[] = [
 	"text",
@@ -61,6 +99,7 @@ export type ChatSession = {
 	unreachable: boolean;
 	outbox: OutboxEntry[];
 	hasOlder: boolean;
+	requestItemBodies(itemIds: readonly string[]): void;
 	sendPrompt(
 		content: UserContent[],
 		steer?: { expectedTurnId: string },
@@ -111,6 +150,8 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 	const cancelFlushRef = useRef<(() => void) | null>(null);
 	const nextBeforeRef = useRef<Cursor | null>(null);
 	const resyncingRef = useRef(false);
+	const resyncAgainRef = useRef(false);
+	const resyncBufferRef = useRef<Envelope[] | null>(null);
 	const clientRef = useRef(client);
 	clientRef.current = client;
 
@@ -145,6 +186,7 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 		pendingRef.current = [];
 		if (batch.length === 0) return;
 		confirmEchoes(outbox, batch);
+		resyncBufferRef.current?.push(...batch);
 		setSnapshot((prev) => reduceMany(prev, batch));
 	}, [outbox]);
 
@@ -158,25 +200,130 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 		[commit],
 	);
 
-	const resync = useCallback(async () => {
-		if (resyncingRef.current) return;
-		resyncingRef.current = true;
-		try {
-			const page = await client.getItems({ limit: pageSize });
-			if (clientRef.current !== client) return;
-			if (!page.ok) return;
-			nextBeforeRef.current = page.nextBefore;
-			setHasOlder(page.nextBefore !== null);
-			setSnapshot((prev) =>
+	const requestedBodiesRef = useRef(new Set<string>());
+	const bodyQueueRef = useRef<string[]>([]);
+	const bodyFlushRef = useRef(false);
+	const bodyAttemptsRef = useRef(new Map<string, number>());
+	const seedGenerationRef = useRef(0);
+	const requestItemBodiesRef = useRef<(itemIds: readonly string[]) => void>(
+		() => {},
+	);
+
+	const requestItemBodies = useCallback(
+		(itemIds: readonly string[]) => {
+			for (const id of itemIds) {
+				if (requestedBodiesRef.current.has(id)) continue;
+				requestedBodiesRef.current.add(id);
+				bodyQueueRef.current.push(id);
+			}
+			if (bodyFlushRef.current || bodyQueueRef.current.length === 0) return;
+			bodyFlushRef.current = true;
+			queueMicrotask(() => {
+				bodyFlushRef.current = false;
+				const queued = bodyQueueRef.current;
+				bodyQueueRef.current = [];
+				const generation = seedGenerationRef.current;
+				const current = () =>
+					clientRef.current === client &&
+					seedGenerationRef.current === generation;
+				for (let i = 0; i < queued.length; i += MAX_BODIES_PER_REQUEST) {
+					const chunk = queued.slice(i, i + MAX_BODIES_PER_REQUEST);
+					const retry = () => {
+						if (!current()) return;
+						const again: string[] = [];
+						for (const id of chunk) {
+							requestedBodiesRef.current.delete(id);
+							const attempts = (bodyAttemptsRef.current.get(id) ?? 0) + 1;
+							bodyAttemptsRef.current.set(id, attempts);
+							if (attempts < MAX_BODY_ATTEMPTS) again.push(id);
+						}
+						if (again.length === 0) return;
+						const attempt = bodyAttemptsRef.current.get(again[0] ?? "") ?? 1;
+						waitRef.current(
+							() => {
+								if (current()) requestItemBodiesRef.current(again);
+							},
+							DEFAULT_BACKOFF_INITIAL_MS * 2 ** attempt,
+						);
+					};
+					client.getItemBodies(chunk).then((result) => {
+						if (!current()) return;
+						if (!result.ok) return retry();
+						setSnapshot((prev) => withItemBodies(prev, result.items));
+					}, retry);
+				}
+			});
+		},
+		[client],
+	);
+	requestItemBodiesRef.current = requestItemBodies;
+
+	const applySeed = useCallback(
+		(seed: Seed, merge: boolean, arrived: readonly Envelope[] = []) => {
+			const requested = requestedBodiesRef.current;
+			requestedBodiesRef.current = new Set();
+			bodyAttemptsRef.current = new Map();
+			seedGenerationRef.current += 1;
+			if (seed.kind === "outline") {
+				nextBeforeRef.current = null;
+				setHasOlder(false);
+				const seeded = reduceMany(
+					seed.snapshot,
+					newerThan(seed.snapshot, arrived),
+				);
+				setSnapshot(seeded);
+				const stillOmitted = [...requested].filter((id) => {
+					const stored = seeded.items.get(id);
+					return stored !== undefined && hasOmittedBody(stored.item);
+				});
+				if (stillOmitted.length > 0) {
+					requestItemBodiesRef.current(stillOmitted);
+				}
+				return seeded;
+			}
+			nextBeforeRef.current = seed.nextBefore;
+			setHasOlder(seed.nextBefore !== null);
+			const apply = (prev: SessionSnapshot) =>
 				reduceMany(
 					{ ...prev, cursor: null, pendingReset: null },
-					page.envelopes,
-				),
-			);
-		} finally {
-			resyncingRef.current = false;
-		}
-	}, [client, pageSize]);
+					seed.envelopes,
+				);
+			if (merge) {
+				setSnapshot(apply);
+				return null;
+			}
+			const seeded = apply(emptySnapshot());
+			setSnapshot(seeded);
+			return seeded;
+		},
+		[],
+	);
+
+	const resync = useCallback(
+		async (afterReset = false) => {
+			if (resyncingRef.current) {
+				if (afterReset) resyncAgainRef.current = true;
+				return;
+			}
+			resyncingRef.current = true;
+			try {
+				do {
+					resyncAgainRef.current = false;
+					resyncBufferRef.current = [];
+					const seed = await fetchSeed(client, pageSize).catch(() => null);
+					if (clientRef.current !== client) return;
+					const seeded = seed
+						? applySeed(seed, true, resyncBufferRef.current)
+						: null;
+					if (seeded?.pendingReset) resyncAgainRef.current = true;
+				} while (resyncAgainRef.current);
+			} finally {
+				resyncingRef.current = false;
+				resyncBufferRef.current = null;
+			}
+		},
+		[client, pageSize, applySeed],
+	);
 
 	useEffect(() => {
 		if (snapshot.pendingReset) void resync();
@@ -227,10 +374,10 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 
 		const seed = async (attempt: number) => {
 			let session: Awaited<ReturnType<SessionClient["getSession"]>>;
-			let page: Awaited<ReturnType<SessionClient["getItems"]>>;
+			let seed: Seed | null;
 			try {
 				session = await timed(client.getSession());
-				page = await timed(client.getItems({ limit: pageSize }));
+				seed = await fetchSeed(client, pageSize, timed);
 			} catch {
 				if (cancelled) return;
 				setUnreachable(true);
@@ -239,20 +386,18 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 			}
 			setUnreachable(false);
 			if (cancelled) return;
-			let seeded = emptySnapshot();
-			if (page.ok) {
-				seeded = reduceMany(seeded, page.envelopes);
-				nextBeforeRef.current = page.nextBefore;
-				setHasOlder(page.nextBefore !== null);
-			}
-			setSnapshot(seeded);
+			let seeded: SessionSnapshot | null = null;
+			if (seed) seeded = applySeed(seed, false);
+			else setSnapshot(emptySnapshot());
 			setStatus("ready");
 			stream = client.subscribe({
 				deltas,
-				since: seeded.cursor ?? session.cursor,
-				onEnvelope: enqueue,
+				since: seeded?.cursor ?? session.cursor,
+				onEnvelope: (envelope) => {
+					if (!isResetEnvelope(envelope)) enqueue(envelope);
+				},
 				onReset: () => {
-					void resync();
+					void resync(true);
 				},
 				onStatusChange: setConnection,
 			});
@@ -261,13 +406,14 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 
 		return () => {
 			cancelled = true;
+			seedGenerationRef.current += 1;
 			cancelRetry?.();
 			cancelFlushRef.current?.();
 			cancelFlushRef.current = null;
 			pendingRef.current = [];
 			stream?.close();
 		};
-	}, [client, deltasKey, pageSize, enqueue, resync]);
+	}, [client, deltasKey, pageSize, enqueue, resync, applySeed]);
 
 	const sendPrompt = useCallback(
 		(content: UserContent[], steer?: { expectedTurnId: string }) => {
@@ -359,6 +505,7 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 		unreachable,
 		outbox: outboxEntries,
 		hasOlder,
+		requestItemBodies,
 		sendPrompt,
 		retryPrompt,
 		discardPrompt,

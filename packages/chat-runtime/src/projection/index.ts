@@ -5,6 +5,7 @@ export {
 	readSessionRow,
 	removeSessionRow,
 	resetSessionForEpoch,
+	setHarnessSessionId,
 	setSessionEpoch,
 	writeSessionProjection,
 } from "./projection";

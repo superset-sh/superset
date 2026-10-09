@@ -13,5 +13,5 @@ export function useScrollbarGutter<T extends HTMLElement>() {
 		observer.observe(element);
 		return () => observer.disconnect();
 	}, [element]);
-	return [setElement, gutter] as const;
+	return [setElement, gutter, element] as const;
 }

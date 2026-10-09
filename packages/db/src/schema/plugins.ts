@@ -28,6 +28,11 @@ export const pluginInstalls = pgTable(
 
 		enabled: boolean().notNull().default(true),
 
+		organizationPluginId: uuid("organization_plugin_id").references(
+			() => organizationPlugins.id,
+			{ onDelete: "cascade" },
+		),
+
 		installedAt: timestamp("installed_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at")
 			.notNull()
@@ -41,6 +46,9 @@ export const pluginInstalls = pgTable(
 			table.pluginName,
 		),
 		index("plugin_installs_user_idx").on(table.userId),
+		index("plugin_installs_organization_plugin_idx").on(
+			table.organizationPluginId,
+		),
 	],
 );
 
@@ -81,6 +89,40 @@ export const pluginMarketplaces = pgTable(
 
 export type InsertPluginMarketplace = typeof pluginMarketplaces.$inferInsert;
 export type SelectPluginMarketplace = typeof pluginMarketplaces.$inferSelect;
+
+export const organizationPlugins = pgTable(
+	"organization_plugins",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+
+		name: text().notNull(),
+		version: text().notNull(),
+		manifest: jsonb().notNull(),
+
+		uploadedByUserId: uuid("uploaded_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		publishedAt: timestamp("published_at"),
+
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		uniqueIndex("organization_plugins_organization_name_unique").on(
+			table.organizationId,
+			table.name,
+		),
+	],
+);
+
+export type InsertOrganizationPlugin = typeof organizationPlugins.$inferInsert;
+export type SelectOrganizationPlugin = typeof organizationPlugins.$inferSelect;
 
 export const pluginOauthClients = pgTable(
 	"plugin_oauth_clients",

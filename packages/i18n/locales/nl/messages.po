@@ -259,6 +259,10 @@ msgstr "{0, plural, one {# werkruimte} other {# werkruimtes}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {Eén draaiende agent gebruikt nog het vorige account — de wissel geldt alleen voor nieuwe starts.} other {# draaiende agents gebruiken nog het vorige account — de wissel geldt alleen voor nieuwe starts.}}"
 
+#. placeholder {0}: pages.length
+msgid "{0, plural, one {Asked # question} other {Asked # questions}}"
+msgstr "{0, plural, one {# vraag gesteld} other {# vragen gesteld}}"
+
 #. placeholder {0}: Math.max(watchers.length, 1)
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Reacties gaan naar deze agent} other {Reacties gaan naar deze agents}}"
@@ -462,6 +466,12 @@ msgstr "{0} in de laatste volledige week"
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "Nog {0} — verfijn je zoekopdracht"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: pages.length
+msgctxt "question progress"
+msgid "{0} of {1}"
+msgstr "{0} van {1}"
 
 #. placeholder {0}: summary.failing
 #. placeholder {1}: summary.relevantChecks.length
@@ -2189,6 +2199,9 @@ msgstr "Geef toegang tot de microfoon om te dicteren"
 msgid "Allow remote access to this device via relay"
 msgstr "Externe toegang tot dit apparaat via de relay toestaan"
 
+msgid "Allow this action?"
+msgstr "Deze actie toestaan?"
+
 msgid "Allowed"
 msgstr "Toegestaan"
 
@@ -2293,6 +2306,9 @@ msgstr "Anonieme Assembleur"
 
 msgid "another device"
 msgstr "een ander apparaat"
+
+msgid "Answer this question on desktop, or skip it."
+msgstr "Beantwoord deze vraag op desktop, of sla hem over."
 
 msgid "Answered"
 msgstr "Beantwoord"
@@ -3527,8 +3543,8 @@ msgstr "Controleren op updates"
 msgid "Check for Updates..."
 msgstr "Controleren op updates..."
 
-msgid "Check on running agents and read what they changed from your phone."
-msgstr "Bekijk lopende agents en lees vanaf je telefoon wat ze hebben gewijzigd."
+msgid "Check on running agents and read what they changed from your iPhone or iPad."
+msgstr "Bekijk lopende agents en lees op je iPhone of iPad wat ze hebben veranderd."
 
 msgid "Check resources"
 msgstr "Resources controleren"
@@ -6648,6 +6664,9 @@ msgstr "Bevalt Superset?"
 msgid "Ensure no regression"
 msgstr "Zorg dat er geen regressie is"
 
+msgid "Enter a number"
+msgstr "Voer een getal in"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "Voer een bovenliggende map op {hostName} in"
 
@@ -6665,6 +6684,9 @@ msgstr "Voer een geldige herhalingsregel in."
 
 msgid "Enter a value."
 msgstr "Voer een waarde in."
+
+msgid "Enter a whole number"
+msgstr "Voer een geheel getal in"
 
 msgid "Enter URL or search..."
 msgstr "Voer URL of zoekterm in..."
@@ -7954,8 +7976,8 @@ msgstr "Neem Superset Pro"
 msgid "Get the best out of Pro"
 msgstr "Haal het beste uit Pro"
 
-msgid "Get the iPhone app"
-msgstr "Download de iPhone-app"
+msgid "Get the iPhone and iPad app"
+msgstr "Download de iPhone- en iPad-app"
 
 msgid "Ghost"
 msgstr "Ghost"
@@ -10600,6 +10622,9 @@ msgstr "Goede aanpak"
 msgid "Nice, open a PR when ready."
 msgstr "Mooi, open een PR als het klaar is."
 
+msgid "No"
+msgstr "Nee"
+
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Geen {0}-logins op deze host — log in en het gebruik verschijnt hier."
@@ -11835,8 +11860,8 @@ msgstr "Openen op GitHub"
 msgid "Open Page in Default Browser"
 msgstr "Pagina openen in standaardbrowser"
 
-msgid "Open pages and reply to comments from the Superset iPhone app."
-msgstr "Open pagina's en reageer op opmerkingen vanuit de Superset iPhone-app."
+msgid "Open pages and reply to comments from the Superset app on iPhone and iPad."
+msgstr "Open pages en reageer op opmerkingen in de Superset-app op iPhone en iPad."
 
 msgid "Open Plugins in the Superset app and pick one. The install is saved to your account."
 msgstr "Open Plugins in de Superset-app en kies er een. De installatie wordt bij je account opgeslagen."
@@ -12238,6 +12263,9 @@ msgstr "Pagina's"
 
 msgid "Pages could not be loaded"
 msgstr "Pagina's konden niet worden geladen"
+
+msgid "Pages open in a grid, and floating keyboards work. Requires iPadOS 26 or later."
+msgstr "Pages openen in een raster en zwevende toetsenborden werken. Vereist iPadOS 26 of later."
 
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "Pagina's waarop sessies begonnen, met het aandeel dat vertrok zonder een tweede pagina. De vergelijkingspagina's zijn het SEO-oppervlak."
@@ -13795,8 +13823,8 @@ msgstr "Verplicht"
 msgid "Required version: {minimumVersion}+"
 msgstr "Vereiste versie: {minimumVersion}+"
 
-msgid "Requires iOS 26 or later. Included with Superset Pro."
-msgstr "Vereist iOS 26 of nieuwer. Inbegrepen bij Superset Pro."
+msgid "Requires iOS 26 or iPadOS 26 or later. Included with Superset Pro."
+msgstr "Vereist iOS 26 of iPadOS 26 of later. Inbegrepen bij Superset Pro."
 
 msgid "Reserved by OS"
 msgstr "Gereserveerd door het OS"
@@ -14322,6 +14350,9 @@ msgstr "Terminalcommando's uitvoeren en met andere applicaties werken."
 msgid "Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
 msgstr "Draai de agent in de terminal van de werkruimte-setup zodra die klaar is, in plaats van er een tweede terminal naast te starten"
 
+msgid "Run this command?"
+msgstr "Deze opdracht uitvoeren?"
+
 msgid "Run workspace command"
 msgstr "Werkruimtecommando uitvoeren"
 
@@ -14837,6 +14868,9 @@ msgstr "Agent kiezen"
 
 msgid "Select All"
 msgstr "Alles selecteren"
+
+msgid "Select all that apply"
+msgstr "Selecteer alles wat van toepassing is"
 
 msgid "Select an agent"
 msgstr "Kies een agent"
@@ -15669,6 +15703,12 @@ msgstr "Iemand van het Superset-team beoordeelt deze pagina. We nemen alleen con
 msgid "Something else"
 msgstr "Iets anders"
 
+msgid "Something else? Add it here"
+msgstr "Iets anders? Voeg het hier toe"
+
+msgid "Something else? Type your own answer"
+msgstr "Iets anders? Typ je eigen antwoord"
+
 msgid "Something went wrong"
 msgstr "Er is iets misgegaan"
 
@@ -15904,8 +15944,8 @@ msgstr "Start een werkruimte rechtstreeks vanuit een Linear-ticket. De agent pak
 msgid "Start agent"
 msgstr "Agent starten"
 
-msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
-msgstr "Start agents, volg ze live en review de diff vanaf je telefoon. Je code blijft op je machines."
+msgid "Start agents, follow them live, and review the diff from your iPhone or iPad. Your code stays on your machines."
+msgstr "Start agents, volg ze live en review de diff vanaf je iPhone of iPad. Je code blijft op je machines."
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Start een agent of een terminal om in deze werkruimte te werken."
@@ -15916,8 +15956,8 @@ msgstr "Begin met browsen"
 msgid "Start building in two."
 msgstr "Begin met bouwen in twee."
 
-msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
-msgstr "Start coding agents, volg ze live en review de diff vanaf je telefoon. Beschikbaar in de App Store; Android komt binnenkort."
+msgid "Start coding agents, follow them live, and review the diff from your iPhone or iPad. Available on the App Store; Android is coming soon."
+msgstr "Start coding agents, volg ze live en review de diff vanaf je iPhone of iPad. Beschikbaar in de App Store; Android komt binnenkort."
 
 msgid "Start date"
 msgstr "Startdatum"
@@ -16249,11 +16289,8 @@ msgstr "Superset-desktopapp"
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise is Superset voor teams. Neem contact op om te horen wat erbij zit en hoe het voor jouw organisatie kan werken."
 
-msgid "Superset for iPhone"
-msgstr "Superset voor iPhone"
-
-msgid "Superset for iPhone page"
-msgstr "Pagina over Superset voor iPhone"
+msgid "Superset for iPhone and iPad"
+msgstr "Superset voor iPhone en iPad"
 
 msgid "Superset for press"
 msgstr "Superset voor de pers"
@@ -16342,6 +16379,9 @@ msgstr "Superset Mobile verschijnt op iPhone"
 msgid "Superset Mobile lets developers continue the Superset workspaces they already use on their computer from an iPhone."
 msgstr "Met Superset Mobile gaan ontwikkelaars vanaf een iPhone verder in de Superset-werkruimtes die ze al op hun computer gebruiken."
 
+msgid "Superset Mobile page"
+msgstr "Pagina over Superset Mobile"
+
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobile draait agents op de computers die je koppelt."
 
@@ -16356,6 +16396,9 @@ msgstr "Superset heeft Volledige Schijftoegang nodig om de gegevens van een ande
 
 msgid "Superset next to others"
 msgstr "Superset naast andere tools"
+
+msgid "Superset on iPad, showing a pull request and a workspace list"
+msgstr "Superset op iPad, met een pull request en een lijst met workspaces"
 
 msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
 msgstr "Superset ontvangt alleen de rechten die deze connector vraagt. Verbreek de verbinding wanneer je wilt om ze in te trekken."
@@ -16917,8 +16960,8 @@ msgstr "De daemon kon je actieve sessies niet overdragen aan de nieuwe binary. R
 msgid "The desktop app runs on macOS and Linux today. Drop your email and we'll let you know the moment the Windows build ships."
 msgstr "We brengen Superset naar Windows en Linux. Laat je e-mailadres achter, dan laten we het weten zodra het klaar is."
 
-msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An iPhone app on the App Store lets you check on agents and review their diffs from your phone."
-msgstr "De desktop-app draait op macOS, met een experimentele Linux-AppImage; Windows is er nog niet. Naast de desktop-app zijn er een CLI, een TypeScript-SDK en een MCP-server, zodat je Superset kunt aansturen vanuit scripts, terminals en andere agents. Met een iPhone-app in de App Store bekijk je je agents en hun diffs vanaf je telefoon."
+msgid "The desktop app runs on macOS, with an experimental Linux AppImage; Windows is not yet available. Beyond the desktop app there's a CLI, a TypeScript SDK, and an MCP server, so you can drive Superset from scripts, terminals, and other agents. An app for iPhone and iPad on the App Store lets you check on agents and review their diffs away from your desk."
+msgstr "De desktop-app draait op macOS, met een experimentele Linux-AppImage; Windows is er nog niet. Naast de desktop-app zijn er een CLI, een TypeScript-SDK en een MCP-server, zodat je Superset kunt aansturen vanuit scripts, terminals en andere agents. Met een app voor iPhone en iPad in de App Store bekijk je je agents en hun diffs, ook als je niet achter je bureau zit."
 
 msgid "The device that hosts this project is unavailable."
 msgstr "Het apparaat dat dit project host is niet beschikbaar."
@@ -17108,6 +17151,9 @@ msgstr "De run is overgeslagen omdat <0>{0}</0> niet met de Superset-relay verbo
 
 msgid "The run was skipped because this device isn't connected to the Superset relay. Automations go through the relay even when they run on this device. Enable relay access, then run it again."
 msgstr "De run is overgeslagen omdat dit apparaat niet met de Superset-relay verbonden is. Automatiseringen lopen via de relay, ook als ze op dit apparaat draaien. Schakel relaytoegang in en voer het opnieuw uit."
+
+msgid "The same app runs natively on iPad, in portrait and landscape."
+msgstr "Dezelfde app draait native op iPad, staand en liggend."
 
 msgid "The scorecard"
 msgstr "De scorekaart"
@@ -17926,6 +17972,9 @@ msgstr "Typ de naam van de organisatie om te bevestigen."
 
 msgid "Type to search files..."
 msgstr "Typ om bestanden te zoeken..."
+
+msgid "Type your answer"
+msgstr "Typ je antwoord"
 
 msgid "TypeScript"
 msgstr "TypeScript"
@@ -19211,6 +19260,9 @@ msgstr "Jaarlijks"
 
 msgid "Yellow"
 msgstr "Geel"
+
+msgid "Yes"
+msgstr "Ja"
 
 msgid "Yes, demote me"
 msgstr "Ja, degradeer mij"
