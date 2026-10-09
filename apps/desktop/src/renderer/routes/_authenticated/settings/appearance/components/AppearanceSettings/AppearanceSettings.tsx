@@ -8,6 +8,7 @@ import {
 import { FontSettingSection } from "./components/FontSettingSection";
 import { LanguageSection } from "./components/LanguageSection";
 import { MarkdownStyleSection } from "./components/MarkdownStyleSection";
+import { StatusColorsSection } from "./components/StatusColorsSection";
 import { ThemeSection } from "./components/ThemeSection";
 
 /**
@@ -37,6 +38,10 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 	);
 	const showMarkdown = isItemVisible(
 		SETTING_ITEM_ID.APPEARANCE_MARKDOWN,
+		visibleItems,
+	);
+	const showStatusColors = isItemVisible(
+		SETTING_ITEM_ID.APPEARANCE_STATUS_COLORS,
 		visibleItems,
 	);
 	const showEditorFont = isItemVisible(
@@ -69,7 +74,10 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 			</div>
 
 			<SectionList>
-				{(showThemeSection || showLanguage || showMarkdown) && (
+				{(showThemeSection ||
+					showLanguage ||
+					showMarkdown ||
+					showStatusColors) && (
 					<div
 						key="appearance-card"
 						className="rounded-lg border border-border overflow-hidden divide-y divide-border"
@@ -77,6 +85,7 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 						{showThemeSection && <ThemeSection />}
 						{showLanguage && <LanguageSection />}
 						{showMarkdown && <MarkdownStyleSection />}
+						{showStatusColors && <StatusColorsSection />}
 					</div>
 				)}
 				{(showEditorFont || showTerminalFont) && (
