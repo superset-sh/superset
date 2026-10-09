@@ -4,8 +4,10 @@ import {
 } from "@superset/shared/agent-catalog";
 import { boundTranscriptText } from "@superset/shared/terminal-session-handoff";
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
+import { workspaces } from "../../../db/schema";
 import type { EventBus } from "../../../events";
 import { reconcileMissingTerminalSessions } from "../../../terminal/reaper/reaper";
 import {
@@ -35,6 +37,7 @@ import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { type AgentRunResult, runAgentInWorkspace } from "../agents/agents";
 import { toTerminalSessionError } from "../terminal/errors";
+import { getEffectiveProjectPin } from "../usage/default-account";
 
 type GetOrCreateResult = {
 	binding: TerminalAgentBinding;
@@ -205,19 +208,34 @@ export async function resumeTerminalAgentSession(
  * Live agent sessions a default-account switch cannot reach: their PTY env
  * was frozen at spawn, so they keep the old login until relaunched. A
  * session qualifies when its binding captured a session id and its config
- * both belongs to `provider` — the presetId keying resolveDefaultAccountEnv —
+ * both belongs to `provider` — the presetId keying resolveAccountEnv —
  * and knows how to resume. A session idle since it started ("Attached")
  * counts: it is exactly the agent the user would otherwise have to close and
  * relaunch by hand, and the resume path starts it fresh when it has no
- * conversation yet. Sessions that fail the bar are left running rather than
- * killed without a way back.
+ * conversation yet. With `projectId`, only that project's sessions count
+ * (a pin change); without it, sessions in a project pinned for `provider`
+ * are skipped, since a default switch does not change their account.
+ * Sessions that fail the bar are left running rather than killed without a
+ * way back.
  */
 export function listAccountRestartCandidates(
 	db: HostDb,
 	store: TerminalAgentStore,
 	provider: "claude" | "codex",
+	projectId?: string,
 ): Array<{ binding: TerminalAgentBinding; agentLabel: string }> {
 	const out: Array<{ binding: TerminalAgentBinding; agentLabel: string }> = [];
+	const projectWorkspaceIds =
+		projectId === undefined
+			? null
+			: new Set(
+					db
+						.select({ id: workspaces.id })
+						.from(workspaces)
+						.where(eq(workspaces.projectId, projectId))
+						.all()
+						.map((row) => row.id),
+				);
 	for (const binding of store.list()) {
 		if (!binding.agentSessionId || binding.chatSessionId) continue;
 		const config = resolveHostAgentConfig(
@@ -226,6 +244,13 @@ export function listAccountRestartCandidates(
 		);
 		if (!config || config.presetId !== provider) continue;
 		if (config.resumeArgs.length === 0) continue;
+		if (projectWorkspaceIds) {
+			if (!projectWorkspaceIds.has(binding.workspaceId)) continue;
+		} else if (
+			getEffectiveProjectPin(db, provider, binding.workspaceId) !== null
+		) {
+			continue;
+		}
 		out.push({ binding, agentLabel: config.label });
 	}
 	return out;
@@ -296,11 +321,13 @@ export async function resumeCrashedAgentSessions(
 export async function restartAccountSessions(
 	deps: ResumeSessionDeps,
 	provider: "claude" | "codex",
+	projectId?: string,
 ): Promise<{ restartedTerminalIds: string[] }> {
 	const candidates = listAccountRestartCandidates(
 		deps.db,
 		deps.terminalAgentStore,
 		provider,
+		projectId,
 	);
 	const restartedTerminalIds: string[] = [];
 	for (const { binding } of candidates) {
@@ -370,6 +397,11 @@ const agentDefinitionIdSchema = z.union([
 	z.enum(BUILTIN_AGENT_IDS),
 	z.string().regex(/^custom:.+$/, "must be a builtin id or `custom:<name>`"),
 ]) as z.ZodType<AgentDefinitionId>;
+
+const accountRestartInputSchema = z.object({
+	provider: z.enum(["claude", "codex"]),
+	projectId: z.string().optional(),
+});
 
 const GET_OR_CREATE_TIMEOUT_MS = 10_000;
 
@@ -510,12 +542,13 @@ export const terminalAgentsRouter = router({
 	 * separately so the Usage tab can ask before restarting anything.
 	 */
 	accountRestartCandidates: protectedProcedure
-		.input(z.object({ provider: z.enum(["claude", "codex"]) }))
+		.input(accountRestartInputSchema)
 		.query(({ ctx, input }) =>
 			listAccountRestartCandidates(
 				ctx.db,
 				ctx.terminalAgentStore,
 				input.provider,
+				input.projectId,
 			).map(({ binding, agentLabel }) => ({
 				terminalId: binding.terminalId,
 				workspaceId: binding.workspaceId,
@@ -525,7 +558,7 @@ export const terminalAgentsRouter = router({
 
 	/** See {@link restartAccountSessions}. */
 	restartAccountSessions: protectedProcedure
-		.input(z.object({ provider: z.enum(["claude", "codex"]) }))
+		.input(accountRestartInputSchema)
 		.mutation(({ ctx, input }) =>
 			restartAccountSessions(
 				{
@@ -538,6 +571,7 @@ export const terminalAgentsRouter = router({
 					eventBus: ctx.eventBus,
 				},
 				input.provider,
+				input.projectId,
 			),
 		),
 

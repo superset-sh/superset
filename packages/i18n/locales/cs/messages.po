@@ -1606,6 +1606,9 @@ msgstr "Účet čeká na smazání."
 msgid "Account name"
 msgstr "Název účtu"
 
+msgid "Account not found: {pinned}"
+msgstr "Účet nenalezen: {pinned}"
+
 msgid "Account pending deletion"
 msgstr "Účet čeká na smazání"
 
@@ -1896,6 +1899,9 @@ msgstr "Proti main"
 
 msgid "Agent"
 msgstr "Agent"
+
+msgid "Agent accounts"
+msgstr "Účty agentů"
 
 msgid "Agent commands"
 msgstr "Příkazy agentů"
@@ -5715,6 +5721,10 @@ msgstr "Výchozí"
 msgid "default · secondary · outline · ghost · link · destructive"
 msgstr "default · secondary · outline · ghost · link · destructive"
 
+#. placeholder {0}: label(hostDefault)
+msgid "Default ({0})"
+msgstr "Výchozí ({0})"
+
 msgid "Default ({defaultWorktreePath})"
 msgstr "Výchozí ({defaultWorktreePath})"
 
@@ -7378,6 +7388,9 @@ msgstr "Nepodařilo se přepnout organizaci. Zkuste to prosím znovu."
 
 msgid "Failed to trigger run"
 msgstr "Nepodařilo se spustit běh"
+
+msgid "Failed to update agent account"
+msgstr "Nepodařilo se aktualizovat účet agenta"
 
 msgid "Failed to update agent settings"
 msgstr "Nepodařilo se aktualizovat nastavení agenta"
@@ -14498,6 +14511,9 @@ msgstr "\"{0}\" uloženo jako prostředí"
 msgid "Saved to Downloads"
 msgstr "Uloženo do Stažených souborů"
 
+msgid "Saved, but open terminals keep their current account until reopened."
+msgstr "Uloženo, ale otevřené terminály si ponechají aktuální účet, dokud je znovu neotevřete."
+
 msgid "Saving as an environment..."
 msgstr "Ukládání jako prostředí..."
 
@@ -16586,6 +16602,9 @@ msgstr "Systémový"
 
 msgid "System design"
 msgstr "Návrh systému"
+
+msgid "System login"
+msgstr "Systémové přihlášení"
 
 msgid "System memory"
 msgstr "Systémová paměť"
@@ -18985,6 +19004,9 @@ msgstr "Kteří agenti jsou podporovaní?"
 
 msgid "Which AI coding agents are supported?"
 msgstr "Kteří AI kódovací agenti jsou podporovaní?"
+
+msgid "Which login agents use in this project. Defaults to the account chosen in Usage."
+msgstr "Které přihlášení agenti v tomto projektu používají. Výchozí je účet zvolený ve Využití."
 
 msgid "Who can open this page from its link"
 msgstr "Kdo může tuto stránku otevřít z odkazu"

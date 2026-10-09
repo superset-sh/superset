@@ -337,7 +337,7 @@ function validateForkSessionIsResolvable(
 		agentId: config.presetId,
 		sessionId: input.forkSessionId,
 		worktreePath,
-		env: agentLaunchEnv(db, config),
+		env: agentLaunchEnv(db, config, input.workspaceId),
 	});
 	if (resolvable === false) {
 		throw new TRPCError({
@@ -457,7 +457,7 @@ export function buildTerminalAgentLaunch(
 	);
 	const modelEnv = buildAgentModelEnv(launchPresetId, input.model);
 	return {
-		fullCommand: `${envOverlayPrefix({ ...agentLaunchEnv(db, config), ...modelEnv })}${command}`,
+		fullCommand: `${envOverlayPrefix({ ...agentLaunchEnv(db, config, input.workspaceId), ...modelEnv })}${command}`,
 		label: config.label,
 	};
 }

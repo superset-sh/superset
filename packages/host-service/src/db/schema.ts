@@ -111,6 +111,10 @@ export const projects = sqliteTable(
 		// this project (e.g. "include the Linear ticket id in the branch name").
 		// Null means the default naming behavior.
 		namingInstructions: text("naming_instructions"),
+		// Per-project agent account override. Null falls back to the host-wide
+		// default in `host_settings`; empty string pins the system-default login.
+		claudeConfigDir: text("claude_config_dir"),
+		codexHome: text("codex_home"),
 		// Empty string means "not yet backfilled" — the startup sweep targets
 		// these rows (name from cloud legacy row if reachable, else basename).
 		name: text().notNull().default(""),

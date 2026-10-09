@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { HostDb } from "../db";
 import { terminalAgentBindings, workspaces } from "../db/schema";
-import { resolveDefaultAccountEnv } from "../trpc/router/usage/default-account";
+import { resolveAccountEnv } from "../trpc/router/usage/default-account";
 import { agentLaunchEnv, resolveHostAgentConfig } from "./agent-config";
 import type { HarnessSessionRef } from "./harness-sessions";
 
@@ -46,8 +46,8 @@ export function terminalHarnessSession(
 			worktreePath,
 			reportedPath: binding.transcriptPath,
 			env: config
-				? agentLaunchEnv(db, config)
-				: resolveDefaultAccountEnv(db, binding.agentId),
+				? agentLaunchEnv(db, config, binding.workspaceId)
+				: resolveAccountEnv(db, binding.agentId, binding.workspaceId),
 		},
 		endedAt: binding.endedAt,
 	};

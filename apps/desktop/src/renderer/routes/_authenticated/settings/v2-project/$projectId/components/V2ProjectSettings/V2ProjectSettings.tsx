@@ -4,10 +4,14 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useHostUsageQuota } from "renderer/hooks/host-service/useHostUsageQuota";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { AGENT_LABELS } from "renderer/routes/_authenticated/settings/utils/agent-labels";
 import type { HostSelectOption } from "../../../../components/HostSelect";
+import { SettingsRow } from "../../../../components/SettingsRow";
+import { AgentAccountSection } from "./components/AgentAccountSection";
 import { DeleteProjectSection } from "./components/DeleteProjectSection";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 import { V2ProjectSettingsBody } from "./components/V2ProjectSettingsBody";
@@ -122,6 +126,19 @@ export function V2ProjectSettings({
 		el.focus({ preventScroll: true });
 	}, [focusField, hostProject, projectId]);
 
+	const { data: usageAccounts = [], isSuccess: usageAccountsLoaded } =
+		useHostUsageQuota(targetHostUrl);
+	const agentAccounts = (["claude", "codex"] as const)
+		.map((agent) => ({
+			agent,
+			accounts: usageAccounts.filter((account) => account.agent === agent),
+			pinned:
+				(agent === "claude"
+					? hostProject?.claudeConfigDir
+					: hostProject?.codexHome) ?? null,
+		}))
+		.filter((item) => item.accounts.length > 1 || item.pinned !== null);
+
 	if (!project) {
 		if (!isReady) return null;
 		return (
@@ -167,6 +184,29 @@ export function V2ProjectSettings({
 				targetHostUrl ? (
 					<V2ScriptsEditor hostUrl={targetHostUrl} projectId={projectId} />
 				) : null
+			}
+			agentAccounts={
+				targetHostUrl &&
+				hostProject &&
+				usageAccountsLoaded &&
+				agentAccounts.length > 0
+					? agentAccounts.map((item) => (
+							<SettingsRow
+								key={item.agent}
+								label={AGENT_LABELS[item.agent]}
+								htmlFor={`project-${item.agent}-account`}
+							>
+								<AgentAccountSection
+									projectId={projectId}
+									hostUrl={targetHostUrl}
+									agent={item.agent}
+									accounts={item.accounts}
+									pinned={item.pinned}
+									onChanged={() => refetchHostProject()}
+								/>
+							</SettingsRow>
+						))
+					: null
 			}
 			dangerZone={
 				<DeleteProjectSection

@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import type { HostDb } from "../db";
 import { projects, workspaces } from "../db/schema";
 import { buildHostLaunchEnv, waitForTerminalBaseEnv } from "../terminal/env";
-import { resolveDefaultAccountTerminalEnv } from "../trpc/router/usage/default-account";
+import { resolveAccountTerminalEnv } from "../trpc/router/usage/default-account";
 
 function workspacePaths(
 	db: HostDb,
@@ -69,7 +69,7 @@ export async function buildChatAgentEnv(options: {
 				workspacePath: paths.workspacePath || options.cwd,
 				rootPath: paths.rootPath,
 			}),
-			...resolveDefaultAccountTerminalEnv(options.db),
+			...resolveAccountTerminalEnv(options.db, options.workspaceId),
 		}),
 	);
 }

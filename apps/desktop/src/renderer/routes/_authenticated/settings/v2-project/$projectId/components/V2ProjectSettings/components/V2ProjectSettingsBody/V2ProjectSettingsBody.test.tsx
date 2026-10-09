@@ -64,6 +64,7 @@ function renderBody(props: Partial<BodyProps> = {}) {
 					onHostChange={() => {}}
 					onHostProjectChanged={() => {}}
 					locationSection={<div data-testid="location" />}
+					agentAccounts={null}
 					scriptsEditor={<div data-testid="scripts" />}
 					dangerZone={<div data-testid="danger" />}
 					{...props}
@@ -107,6 +108,16 @@ describe("V2ProjectSettingsBody", () => {
 		);
 		expect(view.container.querySelector("#project-sparse-checkout")).toBe(null);
 		expect(view.getByLabelText("Change project icon and color")).toBeDefined();
+	});
+
+	test("shows the agent accounts section only when it is given rows", () => {
+		expect(renderBody().queryByText("Agent accounts")).toBe(null);
+		cleanup();
+		const view = renderBody({
+			agentAccounts: <div data-testid="agent-accounts" />,
+		});
+		expect(view.getByText("Agent accounts")).toBeDefined();
+		expect(view.getByTestId("agent-accounts")).toBeDefined();
 	});
 
 	test("places the location, scripts and danger-zone sections it is given", () => {

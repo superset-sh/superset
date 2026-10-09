@@ -39,6 +39,7 @@ interface V2ProjectSettingsBodyProps {
 	onHostChange: (hostId: string) => void;
 	onHostProjectChanged: () => unknown;
 	locationSection: ReactNode;
+	agentAccounts: ReactNode;
 	scriptsEditor: ReactNode;
 	dangerZone: ReactNode;
 }
@@ -56,6 +57,7 @@ export function V2ProjectSettingsBody({
 	onHostChange,
 	onHostProjectChanged,
 	locationSection,
+	agentAccounts,
 	scriptsEditor,
 	dangerZone,
 }: V2ProjectSettingsBodyProps) {
@@ -183,6 +185,18 @@ export function V2ProjectSettingsBody({
 						/>
 					)}
 				</SettingsSection>
+
+				{agentAccounts && (
+					<SettingsSection
+						title={t({ message: "Agent accounts" })}
+						description={t({
+							message:
+								"Which login agents use in this project. Defaults to the account chosen in Usage.",
+						})}
+					>
+						{agentAccounts}
+					</SettingsSection>
+				)}
 
 				<SettingsSection
 					title={t({

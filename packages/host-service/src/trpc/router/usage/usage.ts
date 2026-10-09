@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import { MAX_BACKFILL_DAYS } from "@superset/trpc/leaderboard-periods";
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import {
@@ -26,6 +27,7 @@ import { fetchCodexAccounts } from "./codex";
 import {
 	getDefaultAccountSelections,
 	setDefaultAccountSelection,
+	syncWorkspaceAccountPins,
 } from "./default-account";
 import { fetchGrokAccounts } from "./grok-quota";
 import { countAgentPrsByDay } from "./history/agent-prs";
@@ -38,6 +40,69 @@ import {
 } from "./profiles";
 import { validateSessionAccount } from "./session-account/session-account";
 import type { UsageAccount } from "./types";
+
+/** Only accept a discovered login: the value lands in a shell env overlay,
+ * and a typo'd dir would boot agents signed out. */
+async function assertKnownAccount(
+	agent: "claude" | "codex",
+	selection: string | null,
+): Promise<void> {
+	if (selection === null) return;
+	const accounts = await getQuota(false);
+	const known = accounts.some(
+		(account) => account.agent === agent && account.selection === selection,
+	);
+	if (!known) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `No ${agent} login found at ${selection} — refresh usage and pick again.`,
+		});
+	}
+}
+
+/**
+ * Best-effort: the pin is already saved, and every new terminal publishes
+ * its workspace's pin again, so a failed write must not fail the mutation.
+ */
+function publishWorkspaceAccountPins(
+	...args: Parameters<typeof syncWorkspaceAccountPins>
+): boolean {
+	try {
+		syncWorkspaceAccountPins(...args);
+		return true;
+	} catch (error) {
+		console.warn(
+			"[host-service] syncing workspace account pins failed:",
+			error,
+		);
+		return false;
+	}
+}
+
+/**
+ * A profile dir is a whole config root, not just a login: without
+ * provisioning, agents launched there lose the user's skills, plugins, MCP
+ * servers and settings along with Superset's lifecycle hooks — and, for
+ * Claude, the shared session history. Best-effort — a failed share must not
+ * undo the switch, and provisioning retries on the next switch and at host
+ * boot.
+ */
+async function provisionSelectedAccount(
+	agent: "claude" | "codex",
+	selection: string | null,
+): Promise<void> {
+	if (selection === null) return;
+	try {
+		await (agent === "claude"
+			? provisionClaudeAccount(selection)
+			: provisionCodexAccount(selection));
+	} catch (error) {
+		console.warn(
+			`[host-service] provisioning ${agent} account ${selection} failed (continuing):`,
+			error,
+		);
+	}
+}
 
 /**
  * Agent quota endpoints are undocumented and rate-limit-sensitive, so
@@ -202,50 +267,58 @@ export const usageRouter = router({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (input.selection !== null) {
-				// Only accept a discovered login: the value lands in a shell env
-				// overlay, and a typo'd dir would boot agents signed out.
-				const accounts = await getQuota(false);
-				const known = accounts.some(
-					(account) =>
-						account.agent === input.agent &&
-						account.selection === input.selection,
-				);
-				if (!known) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: `No ${input.agent} login found at ${input.selection} — refresh usage and pick again.`,
-					});
-				}
-			}
+			await assertKnownAccount(input.agent, input.selection);
 			setDefaultAccountSelection(ctx.db, input.agent, input.selection);
-			// A profile dir is a whole config root, not just a login: without
-			// provisioning, agents launched there lose the user's skills,
-			// plugins, MCP servers and settings along with Superset's lifecycle
-			// hooks — and, for Claude, the shared session history. Best-effort —
-			// a failed share must not undo the switch, and provisioning retries
-			// on the next switch and at host boot.
-			if (input.selection !== null) {
-				try {
-					await (input.agent === "claude"
-						? provisionClaudeAccount(input.selection)
-						: provisionCodexAccount(input.selection));
-				} catch (error) {
-					console.warn(
-						`[host-service] provisioning ${input.agent} account ${input.selection} failed (continuing):`,
-						error,
-					);
-				}
-			}
+			await provisionSelectedAccount(input.agent, input.selection);
 			return { success: true as const };
+		}),
+
+	/**
+	 * Pin a project's agent launches to one login (selection null = the
+	 * system default), or clear the pin with a null account so the project
+	 * follows the host default again.
+	 */
+	setProjectAccount: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().uuid(),
+				agent: z.enum(["claude", "codex"]),
+				account: z.object({ selection: z.string().nullable() }).nullable(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const selection = input.account?.selection ?? null;
+			await assertKnownAccount(input.agent, selection);
+			const pin = input.account ? (selection ?? "") : null;
+			const updated = ctx.db
+				.update(projects)
+				.set(
+					input.agent === "claude"
+						? { claudeConfigDir: pin }
+						: { codexHome: pin },
+				)
+				.where(eq(projects.id, input.projectId))
+				.returning({ id: projects.id })
+				.get();
+			if (!updated) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `Project not set up locally: ${input.projectId}`,
+				});
+			}
+			const pinsPublished = publishWorkspaceAccountPins(ctx.db, {
+				projectId: input.projectId,
+			});
+			await provisionSelectedAccount(input.agent, selection);
+			return { success: true as const, pinsPublished };
 		}),
 
 	/**
 	 * Deletes a secondary profile: its dir plus, for Claude on macOS, its
 	 * scoped keychain items. The system default (selection null) is never
 	 * removable, and only currently discovered profiles are accepted. A
-	 * default pointer at the removed profile is cleared so agents fall back
-	 * to the system login instead of a dead dir.
+	 * default pointer or project pin at the removed profile is cleared so
+	 * agents fall back instead of launching on a dead dir.
 	 */
 	removeAccount: protectedProcedure
 		.input(
@@ -280,6 +353,20 @@ export const usageRouter = router({
 			if (pointer === input.selection) {
 				setDefaultAccountSelection(ctx.db, input.agent, null);
 			}
+			const pinColumn =
+				input.agent === "claude"
+					? projects.claudeConfigDir
+					: projects.codexHome;
+			ctx.db
+				.update(projects)
+				.set(
+					input.agent === "claude"
+						? { claudeConfigDir: null }
+						: { codexHome: null },
+				)
+				.where(eq(pinColumn, input.selection))
+				.run();
+			publishWorkspaceAccountPins(ctx.db);
 			// The quota cache still lists the removed account; drop it so the
 			// next query re-discovers.
 			cachedQuota = null;

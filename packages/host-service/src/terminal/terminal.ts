@@ -48,7 +48,10 @@ import { matchesAgentBinding } from "../terminal-agents/matches-agent-binding.ts
 import { markTerminalAgentBindingEnded } from "../terminal-agents/persistence.ts";
 import type { TerminalAgentStore } from "../terminal-agents/store.ts";
 import type { TerminalAgentBinding } from "../terminal-agents/types.ts";
-import { resolveDefaultAccountTerminalEnv } from "../trpc/router/usage/default-account.ts";
+import {
+	resolveAccountTerminalEnv,
+	syncWorkspaceAccountPins,
+} from "../trpc/router/usage/default-account.ts";
 import {
 	DaemonClient,
 	type Signal as DaemonSignal,
@@ -3090,6 +3093,13 @@ async function createTerminalSessionUnlocked({
 	const supersetHomeDir = resolveSupersetHomeDir();
 	const shell = resolveLaunchShell(baseEnv);
 	const shellArgs = getShellLaunchArgs({ shell, supersetHomeDir });
+	let pinsPublished = true;
+	try {
+		syncWorkspaceAccountPins(db, { workspaceId });
+	} catch (error) {
+		pinsPublished = false;
+		console.warn("[terminal] syncing workspace account pin failed:", error);
+	}
 	const ptyEnv = {
 		...buildHostLaunchEnv({
 			themeType,
@@ -3100,10 +3110,11 @@ async function createTerminalSessionUnlocked({
 			rootPath,
 			hostAgentHookUrl: getHostAgentHookUrl(),
 		}),
-		// Usage-tab default account: provider CLIs typed or preset-launched in
-		// this terminal run on the selected login. Baked at spawn as the fast
-		// path; the agent wrappers re-resolve later switches at launch time.
-		...resolveDefaultAccountTerminalEnv(db),
+		// Usage-tab account (or the project's pinned one): provider CLIs typed
+		// or preset-launched in this terminal run on the selected login. Baked
+		// at spawn as the fast path; the agent wrappers re-resolve later
+		// switches and pins at launch time.
+		...resolveAccountTerminalEnv(db, workspaceId, { pinsPublished }),
 		SUPERSET_ACCOUNT_ATTRIBUTION_TOKEN: issueAttributionToken(terminalId),
 	};
 

@@ -1606,6 +1606,9 @@ msgstr "Аккаунт ожидает удаления."
 msgid "Account name"
 msgstr "Имя аккаунта"
 
+msgid "Account not found: {pinned}"
+msgstr "Аккаунт не найден: {pinned}"
+
 msgid "Account pending deletion"
 msgstr "Аккаунт ожидает удаления"
 
@@ -1896,6 +1899,9 @@ msgstr "Против main"
 
 msgid "Agent"
 msgstr "Агент"
+
+msgid "Agent accounts"
+msgstr "Аккаунты агентов"
 
 msgid "Agent commands"
 msgstr "Команды агентов"
@@ -5715,6 +5721,10 @@ msgstr "По умолчанию"
 msgid "default · secondary · outline · ghost · link · destructive"
 msgstr "default · secondary · outline · ghost · link · destructive"
 
+#. placeholder {0}: label(hostDefault)
+msgid "Default ({0})"
+msgstr "По умолчанию ({0})"
+
 msgid "Default ({defaultWorktreePath})"
 msgstr "По умолчанию ({defaultWorktreePath})"
 
@@ -7378,6 +7388,9 @@ msgstr "Не удалось сменить организацию. Попроб�
 
 msgid "Failed to trigger run"
 msgstr "Не удалось запустить"
+
+msgid "Failed to update agent account"
+msgstr "Не удалось обновить аккаунт агента"
 
 msgid "Failed to update agent settings"
 msgstr "Не удалось обновить настройки агента"
@@ -14498,6 +14511,9 @@ msgstr "«{0}» сохранено как окружение"
 msgid "Saved to Downloads"
 msgstr "Сохранено в «Загрузки»"
 
+msgid "Saved, but open terminals keep their current account until reopened."
+msgstr "Сохранено, но открытые терминалы сохраняют текущий аккаунт, пока их не откроют заново."
+
 msgid "Saving as an environment..."
 msgstr "Сохранение как среда..."
 
@@ -16586,6 +16602,9 @@ msgstr "Системная"
 
 msgid "System design"
 msgstr "Системный дизайн"
+
+msgid "System login"
+msgstr "Системный аккаунт"
 
 msgid "System memory"
 msgstr "Системная память"
@@ -18985,6 +19004,9 @@ msgstr "Какие агенты поддерживаются?"
 
 msgid "Which AI coding agents are supported?"
 msgstr "Какие AI-агенты для кода поддерживаются?"
+
+msgid "Which login agents use in this project. Defaults to the account chosen in Usage."
+msgstr "Какой аккаунт используют агенты в этом проекте. По умолчанию — аккаунт, выбранный в разделе «Использование»."
 
 msgid "Who can open this page from its link"
 msgstr "Кто может открыть эту страницу по ссылке"

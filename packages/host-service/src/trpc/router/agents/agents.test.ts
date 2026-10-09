@@ -1,6 +1,13 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	realpathSync,
+	rmSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { TRPCError } from "@trpc/server";
@@ -11,7 +18,11 @@ import type { HostDb } from "../../../db";
 import * as schema from "../../../db/schema";
 import { TerminalAgentStore } from "../../../terminal-agents";
 import { claudeProjectDirName } from "../../../terminal-agents/harness-sessions/claude";
-import { setDefaultAccountSelection } from "../usage/default-account";
+import {
+	resolveAccountEnv,
+	setDefaultAccountSelection,
+	syncWorkspaceAccountPins,
+} from "../usage/default-account";
 import {
 	bindResumedSession,
 	buildAgentCommandString,
@@ -535,7 +546,7 @@ describe("buildTerminalAgentLaunch", () => {
 });
 
 describe("buildTerminalAgentLaunch default account env", () => {
-	// tmpdir always exists, which is all resolveDefaultAccountEnv checks.
+	// tmpdir always exists, which is all resolveAccountEnv checks.
 	const existingDir = tmpdir();
 
 	// setDefaultAccountSelection also publishes the host-wide pointer files
@@ -656,6 +667,182 @@ describe("buildTerminalAgentLaunch default account env", () => {
 		});
 		expect(launch.fullCommand).toBe("'claude' 'hi'");
 	});
+
+	function seedProjectWorkspace(
+		db: HostDb,
+		claudeConfigDir: string | null,
+		codexHome: string | null = null,
+	) {
+		db.insert(schema.projects)
+			.values({
+				id: "22222222-2222-2222-2222-222222222222",
+				repoPath: existingDir,
+				claudeConfigDir,
+				codexHome,
+			})
+			.run();
+		db.insert(schema.workspaces)
+			.values({
+				id: "11111111-1111-1111-1111-111111111111",
+				projectId: "22222222-2222-2222-2222-222222222222",
+				worktreePath: existingDir,
+				branch: "main",
+			})
+			.run();
+	}
+
+	it("lets a project-pinned account beat the host default", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		const pinnedDir = mkdtempSync(join(tmpdir(), "project-account-"));
+		seedProjectWorkspace(db, pinnedDir);
+		setDefaultAccountSelection(db, "claude", existingDir);
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "claude",
+			prompt: "hi",
+		});
+		expect(launch.fullCommand).toBe(
+			`CLAUDE_CONFIG_DIR='${pinnedDir}' SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR='${pinnedDir}' 'claude' 'hi'`,
+		);
+	});
+
+	it("lets a project pin the system login over the host default", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		seedProjectWorkspace(db, "");
+		setDefaultAccountSelection(db, "claude", existingDir);
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "claude",
+			prompt: "hi",
+		});
+		expect(launch.fullCommand).toBe("'claude' 'hi'");
+	});
+
+	it("falls back to the host default when the pinned dir is gone", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		seedProjectWorkspace(db, "/no/such/profile-dir");
+		setDefaultAccountSelection(db, "claude", existingDir);
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "claude",
+			prompt: "hi",
+		});
+		expect(launch.fullCommand).toBe(
+			`CLAUDE_CONFIG_DIR='${existingDir}' SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR='${existingDir}' 'claude' 'hi'`,
+		);
+	});
+
+	function withAmbientCodexHome(run: (ambient: string) => void) {
+		const previous = process.env.CODEX_HOME;
+		const ambient = join(supersetHome, "ambient-codex");
+		process.env.CODEX_HOME = ambient;
+		try {
+			run(ambient);
+		} finally {
+			if (previous === undefined) delete process.env.CODEX_HOME;
+			else process.env.CODEX_HOME = previous;
+		}
+	}
+
+	it("lets a project-pinned Codex home beat the host default", () => {
+		withAmbientCodexHome((ambient) => {
+			const db = createTestDb();
+			const pinnedHome = mkdtempSync(join(tmpdir(), "project-codex-"));
+			seedProjectWorkspace(db, null, pinnedHome);
+			setDefaultAccountSelection(db, "codex", existingDir);
+			expect(
+				resolveAccountEnv(db, "codex", "11111111-1111-1111-1111-111111111111"),
+			).toEqual({
+				SUPERSET_AMBIENT_CODEX_HOME: ambient,
+				CODEX_HOME: pinnedHome,
+				SUPERSET_DEFAULT_CODEX_HOME: pinnedHome,
+			});
+		});
+	});
+
+	it("points a Codex system-login pin at the ambient home", () => {
+		withAmbientCodexHome((ambient) => {
+			const db = createTestDb();
+			seedProjectWorkspace(db, null, "");
+			setDefaultAccountSelection(db, "codex", existingDir);
+			expect(
+				resolveAccountEnv(db, "codex", "11111111-1111-1111-1111-111111111111"),
+			).toEqual({
+				SUPERSET_AMBIENT_CODEX_HOME: ambient,
+				CODEX_HOME: ambient,
+				SUPERSET_DEFAULT_CODEX_HOME: ambient,
+			});
+		});
+	});
+
+	function withOrganizationId(id: string | undefined, run: () => void) {
+		const previous = process.env.ORGANIZATION_ID;
+		if (id === undefined) delete process.env.ORGANIZATION_ID;
+		else process.env.ORGANIZATION_ID = id;
+		try {
+			run();
+		} finally {
+			if (previous === undefined) delete process.env.ORGANIZATION_ID;
+			else process.env.ORGANIZATION_ID = previous;
+		}
+	}
+
+	it("publishes and clears the workspace pin files the wrappers read", () =>
+		withOrganizationId(undefined, () => {
+			const db = createTestDb();
+			seedProjectWorkspace(db, "");
+			const pinDir = join(
+				process.env.SUPERSET_HOME_DIR ?? "",
+				"state",
+				"workspace-accounts",
+				"_",
+				"11111111-1111-1111-1111-111111111111",
+			);
+			syncWorkspaceAccountPins(db, {
+				projectId: "22222222-2222-2222-2222-222222222222",
+			});
+			expect(
+				readFileSync(join(pinDir, "default-claude-config-dir"), "utf8"),
+			).toBe("");
+			expect(existsSync(join(pinDir, "default-codex-home"))).toBe(false);
+
+			db.update(schema.projects).set({ claudeConfigDir: null }).run();
+			syncWorkspaceAccountPins(db);
+			expect(existsSync(join(pinDir, "default-claude-config-dir"))).toBe(false);
+		}));
+
+	it("reaps only this org's pins for workspaces it no longer has", () =>
+		withOrganizationId("org-a", () => {
+			const db = createTestDb();
+			seedProjectWorkspace(db, "");
+			const pinsRoot = join(
+				process.env.SUPERSET_HOME_DIR ?? "",
+				"state",
+				"workspace-accounts",
+			);
+			const stale = join(pinsRoot, "org-a", "deleted-workspace");
+			const otherOrg = join(pinsRoot, "org-b", "deleted-workspace");
+			mkdirSync(stale, { recursive: true });
+			mkdirSync(otherOrg, { recursive: true });
+
+			syncWorkspaceAccountPins(db);
+
+			expect(existsSync(stale)).toBe(false);
+			expect(existsSync(otherOrg)).toBe(true);
+			expect(
+				existsSync(
+					join(
+						pinsRoot,
+						"org-a",
+						"11111111-1111-1111-1111-111111111111",
+						"default-claude-config-dir",
+					),
+				),
+			).toBe(true);
+		}));
 });
 
 describe("validateAgentModelSelection", () => {
