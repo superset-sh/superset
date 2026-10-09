@@ -932,6 +932,9 @@ msgstr "{kindLabel} tema"
 msgid "{label} (partial week)"
 msgstr "{label} (kısmi hafta)"
 
+msgid "{label} color"
+msgstr "{label} rengi"
+
 msgid "{label} in cloud workspaces"
 msgstr "Bulut çalışma alanlarında {label}"
 
@@ -4077,6 +4080,9 @@ msgstr "Toplanıyor…"
 
 msgid "Color"
 msgstr "Renk"
+
+msgid "Colors of the dots that show agent status on workspaces, tabs and agents."
+msgstr "Çalışma alanlarında, sekmelerde ve ajanlarda ajan durumunu gösteren noktaların renkleri."
 
 msgid "Combine all commits"
 msgstr "Tüm commit'leri birleştirir"
@@ -13841,6 +13847,9 @@ msgstr "Terminal tarafından ayrılmış"
 msgid "Reset"
 msgstr "Sıfırla"
 
+msgid "Reset {label} color"
+msgstr "{label} rengini sıfırla"
+
 msgid "reset agents"
 msgstr "ajanları sıfırlama"
 
@@ -16065,6 +16074,9 @@ msgstr "Durum"
 
 msgid "Status changed"
 msgstr "Durum değişti"
+
+msgid "Status colors"
+msgstr "Durum renkleri"
 
 msgid "Stay connected (refresh tokens)"
 msgstr "Bağlı kalma (yenileme token'ları)"

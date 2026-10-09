@@ -932,6 +932,9 @@ msgstr "{kindLabel} motiv"
 msgid "{label} (partial week)"
 msgstr "{label} (neúplný týden)"
 
+msgid "{label} color"
+msgstr "Barva: {label}"
+
 msgid "{label} in cloud workspaces"
 msgstr "{label} v cloudových pracovních prostorech"
 
@@ -4077,6 +4080,9 @@ msgstr "Sbírám data…"
 
 msgid "Color"
 msgstr "Barva"
+
+msgid "Colors of the dots that show agent status on workspaces, tabs and agents."
+msgstr "Barvy teček, které ukazují stav agentů u pracovních prostorů, karet a agentů."
 
 msgid "Combine all commits"
 msgstr "Spojí všechny commity"
@@ -13841,6 +13847,9 @@ msgstr "Vyhrazeno terminálem"
 msgid "Reset"
 msgstr "Obnovit"
 
+msgid "Reset {label} color"
+msgstr "Obnovit barvu: {label}"
+
 msgid "reset agents"
 msgstr "resetovat agenty"
 
@@ -16065,6 +16074,9 @@ msgstr "Stav"
 
 msgid "Status changed"
 msgstr "Změna stavu"
+
+msgid "Status colors"
+msgstr "Barvy stavů"
 
 msgid "Stay connected (refresh tokens)"
 msgstr "zůstat připojená (obnovovací tokeny)"

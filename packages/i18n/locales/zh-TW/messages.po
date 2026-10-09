@@ -932,6 +932,9 @@ msgstr "{kindLabel}主題"
 msgid "{label} (partial week)"
 msgstr "{label}（不完整週）"
 
+msgid "{label} color"
+msgstr "{label} 顏色"
+
 msgid "{label} in cloud workspaces"
 msgstr "雲端工作區中的{label}"
 
@@ -4077,6 +4080,9 @@ msgstr "正在收集…"
 
 msgid "Color"
 msgstr "顏色"
+
+msgid "Colors of the dots that show agent status on workspaces, tabs and agents."
+msgstr "在工作區、分頁和代理程式上顯示代理程式狀態的圓點顏色。"
 
 msgid "Combine all commits"
 msgstr "把所有提交合成一個"
@@ -13841,6 +13847,9 @@ msgstr "已被終端佔用"
 msgid "Reset"
 msgstr "重置"
 
+msgid "Reset {label} color"
+msgstr "重設 {label} 顏色"
+
 msgid "reset agents"
 msgstr "重置代理程式"
 
@@ -16065,6 +16074,9 @@ msgstr "狀態"
 
 msgid "Status changed"
 msgstr "狀態變更"
+
+msgid "Status colors"
+msgstr "狀態顏色"
 
 msgid "Stay connected (refresh tokens)"
 msgstr "保持連線（重新整理權杖）"

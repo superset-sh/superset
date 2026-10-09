@@ -932,6 +932,9 @@ msgstr "{kindLabel} thema"
 msgid "{label} (partial week)"
 msgstr "{label} (onvolledige week)"
 
+msgid "{label} color"
+msgstr "Kleur voor {label}"
+
 msgid "{label} in cloud workspaces"
 msgstr "{label} in cloudwerkruimtes"
 
@@ -4077,6 +4080,9 @@ msgstr "Verzamelen…"
 
 msgid "Color"
 msgstr "Kleur"
+
+msgid "Colors of the dots that show agent status on workspaces, tabs and agents."
+msgstr "Kleuren van de stippen die de agentstatus tonen bij werkruimtes, tabbladen en agents."
 
 msgid "Combine all commits"
 msgstr "Alle commits samenvoegen"
@@ -13841,6 +13847,9 @@ msgstr "Gereserveerd door de terminal"
 msgid "Reset"
 msgstr "Resetten"
 
+msgid "Reset {label} color"
+msgstr "Kleur voor {label} herstellen"
+
 msgid "reset agents"
 msgstr "agents resetten"
 
@@ -16065,6 +16074,9 @@ msgstr "Status"
 
 msgid "Status changed"
 msgstr "Status gewijzigd"
+
+msgid "Status colors"
+msgstr "Statuskleuren"
 
 msgid "Stay connected (refresh tokens)"
 msgstr "Verbonden blijven (refresh-tokens)"

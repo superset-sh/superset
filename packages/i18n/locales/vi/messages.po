@@ -932,6 +932,9 @@ msgstr "Chủ đề {kindLabel}"
 msgid "{label} (partial week)"
 msgstr "{label} (tuần chưa đủ)"
 
+msgid "{label} color"
+msgstr "Màu {label}"
+
 msgid "{label} in cloud workspaces"
 msgstr "{label} trong workspace cloud"
 
@@ -4077,6 +4080,9 @@ msgstr "Đang thu thập…"
 
 msgid "Color"
 msgstr "Màu"
+
+msgid "Colors of the dots that show agent status on workspaces, tabs and agents."
+msgstr "Màu của các chấm hiển thị trạng thái agent trên workspace, tab và agent."
 
 msgid "Combine all commits"
 msgstr "Gộp toàn bộ commit"
@@ -13841,6 +13847,9 @@ msgstr "Terminal đã dùng"
 msgid "Reset"
 msgstr "Đặt lại"
 
+msgid "Reset {label} color"
+msgstr "Đặt lại màu {label}"
+
 msgid "reset agents"
 msgstr "đặt lại agent"
 
@@ -16065,6 +16074,9 @@ msgstr "Trạng thái"
 
 msgid "Status changed"
 msgstr "Trạng thái thay đổi"
+
+msgid "Status colors"
+msgstr "Màu trạng thái"
 
 msgid "Stay connected (refresh tokens)"
 msgstr "Duy trì kết nối (refresh token)"

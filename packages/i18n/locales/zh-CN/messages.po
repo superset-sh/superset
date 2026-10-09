@@ -932,6 +932,9 @@ msgstr "{kindLabel}主题"
 msgid "{label} (partial week)"
 msgstr "{label}（不完整周）"
 
+msgid "{label} color"
+msgstr "{label} 颜色"
+
 msgid "{label} in cloud workspaces"
 msgstr "云端工作区中的{label}"
 
@@ -4077,6 +4080,9 @@ msgstr "正在收集…"
 
 msgid "Color"
 msgstr "颜色"
+
+msgid "Colors of the dots that show agent status on workspaces, tabs and agents."
+msgstr "在工作区、标签页和智能体上显示智能体状态的圆点颜色。"
 
 msgid "Combine all commits"
 msgstr "把所有提交合成一个"
@@ -13841,6 +13847,9 @@ msgstr "已被终端占用"
 msgid "Reset"
 msgstr "重置"
 
+msgid "Reset {label} color"
+msgstr "重置 {label} 颜色"
+
 msgid "reset agents"
 msgstr "重置智能体"
 
@@ -16065,6 +16074,9 @@ msgstr "状态"
 
 msgid "Status changed"
 msgstr "状态变更"
+
+msgid "Status colors"
+msgstr "状态颜色"
 
 msgid "Stay connected (refresh tokens)"
 msgstr "保持连接（刷新令牌）"
