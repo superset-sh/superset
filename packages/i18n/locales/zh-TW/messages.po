@@ -9908,6 +9908,9 @@ msgstr "MCP管理器"
 msgid "MCP Server"
 msgstr "MCP伺服器"
 
+msgid "MCP Server Commands"
+msgstr "MCP伺服器命令"
+
 msgid "Mean"
 msgstr "平均"
 
@@ -18056,6 +18059,9 @@ msgstr "未知帳號"
 
 msgid "Unknown author"
 msgstr "未知作者"
+
+msgid "Unknown command /{name}"
+msgstr "未知命令 /{name}"
 
 msgid "Unknown device"
 msgstr "未知裝置"

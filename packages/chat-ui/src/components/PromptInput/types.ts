@@ -6,6 +6,7 @@ export type ComposerChip = {
 	brandColor?: string;
 	// Icon as a URL string so chips stay serializable data.
 	iconUrl?: string;
+	description?: string;
 	data?: unknown;
 };
 
@@ -66,6 +67,7 @@ export type ComposerMentionProvider = {
 export type PromptInputCommand = {
 	id: string;
 	title: string;
+	hint?: string;
 	description?: string;
 	icon?: ReactNode;
 	rightIcon?: ReactNode;
@@ -126,7 +128,10 @@ export type PromptInputProps = {
 	// Spans of a stored draft that were chips before it was serialized, so
 	// they come back as chips. Runs on the draft as read, never on typing.
 	findChips?: (text: string) => ComposerChipMatch[];
-	onSubmit?: (payload: PromptInputSubmitPayload) => void;
+	/** Returning `false` keeps the draft in the editor. */
+	onSubmit?: (
+		payload: PromptInputSubmitPayload,
+	) => false | void | Promise<void>;
 	onStop?: () => void;
 	header?: ReactNode;
 	onAddFiles?: (files: File[]) => void;

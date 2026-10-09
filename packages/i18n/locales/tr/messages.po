@@ -9908,6 +9908,9 @@ msgstr "MCP yöneticisi"
 msgid "MCP Server"
 msgstr "MCP sunucusu"
 
+msgid "MCP Server Commands"
+msgstr "MCP sunucusu komutları"
+
 msgid "Mean"
 msgstr "Ortalama"
 
@@ -18056,6 +18059,9 @@ msgstr "Bilinmeyen hesap"
 
 msgid "Unknown author"
 msgstr "Bilinmeyen yazar"
+
+msgid "Unknown command /{name}"
+msgstr "Bilinmeyen komut /{name}"
 
 msgid "Unknown device"
 msgstr "Bilinmeyen cihaz"

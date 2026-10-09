@@ -9908,6 +9908,9 @@ msgstr "Gestionnaire MCP"
 msgid "MCP Server"
 msgstr "Serveur MCP"
 
+msgid "MCP Server Commands"
+msgstr "Commandes du serveur MCP"
+
 msgid "Mean"
 msgstr "Moyenne"
 
@@ -18056,6 +18059,9 @@ msgstr "Compte inconnu"
 
 msgid "Unknown author"
 msgstr "Auteur inconnu"
+
+msgid "Unknown command /{name}"
+msgstr "Commande inconnue /{name}"
 
 msgid "Unknown device"
 msgstr "Appareil inconnu"

@@ -1,4 +1,4 @@
-import type { Decision, Item } from "@superset/chat/protocol";
+import type { AvailableCommand, Decision, Item } from "@superset/chat/protocol";
 import { isKnownItem } from "@superset/chat/protocol";
 import { memo } from "react";
 import type { ChatForkTarget } from "../../../../../../types";
@@ -16,6 +16,7 @@ export type ItemRowProps = {
 	item: Item;
 	text: string;
 	harness: string | undefined;
+	commands?: ReadonlyMap<string, AvailableCommand> | undefined;
 	pending?: PendingPrompt | undefined;
 	onRespond: (approvalId: string, decision: Decision) => void;
 	onFork?: ((target: ChatForkTarget) => void) | undefined;
@@ -26,6 +27,7 @@ export type ItemRowProps = {
 
 export const ItemRow = memo(function ItemRow({
 	canForkToWorktree,
+	commands,
 	lastReply = false,
 	harness,
 	item,
@@ -40,7 +42,14 @@ export const ItemRow = memo(function ItemRow({
 	}
 	switch (item.kind) {
 		case "user_message":
-			return <UserMessageRow harness={harness} item={item} pending={pending} />;
+			return (
+				<UserMessageRow
+					commands={commands}
+					harness={harness}
+					item={item}
+					pending={pending}
+				/>
+			);
 		case "agent_message":
 			return (
 				<AgentMessageRow

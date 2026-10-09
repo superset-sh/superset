@@ -13,6 +13,7 @@ export const textElementSchema = z.looseObject({
 		end: z.number().int().nonnegative(),
 	}),
 	elementKind: z.enum(["file_mention", "slash_command", "other"]),
+	label: z.string().optional(),
 });
 export type TextElement = z.infer<typeof textElementSchema>;
 

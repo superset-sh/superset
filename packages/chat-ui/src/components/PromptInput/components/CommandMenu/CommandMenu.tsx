@@ -56,6 +56,11 @@ export function CommandMenu({
 									{command.icon ?? <SlashSquareIcon className="size-4.5" />}
 								</span>
 								<span className="shrink-0 font-medium">{command.title}</span>
+								{command.hint && (
+									<span className="shrink-0 text-muted-foreground">
+										{command.hint}
+									</span>
+								)}
 								{command.description && (
 									<span className="ml-auto min-w-0 truncate pl-6 text-muted-foreground">
 										{command.description}

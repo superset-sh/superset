@@ -9908,6 +9908,9 @@ msgstr "Trình quản lý MCP"
 msgid "MCP Server"
 msgstr "Server MCP"
 
+msgid "MCP Server Commands"
+msgstr "Lệnh server MCP"
+
 msgid "Mean"
 msgstr "Trung bình"
 
@@ -18056,6 +18059,9 @@ msgstr "Tài khoản không xác định"
 
 msgid "Unknown author"
 msgstr "Tác giả không xác định"
+
+msgid "Unknown command /{name}"
+msgstr "Lệnh không xác định /{name}"
 
 msgid "Unknown device"
 msgstr "Thiết bị không rõ"

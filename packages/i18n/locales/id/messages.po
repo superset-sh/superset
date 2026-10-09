@@ -9908,6 +9908,9 @@ msgstr "Manajer MCP"
 msgid "MCP Server"
 msgstr "Server MCP"
 
+msgid "MCP Server Commands"
+msgstr "Perintah server MCP"
+
 msgid "Mean"
 msgstr "Rata-rata"
 
@@ -18056,6 +18059,9 @@ msgstr "Akun tidak dikenal"
 
 msgid "Unknown author"
 msgstr "Penulis tidak dikenal"
+
+msgid "Unknown command /{name}"
+msgstr "Perintah tidak dikenal /{name}"
 
 msgid "Unknown device"
 msgstr "Perangkat tidak diketahui"

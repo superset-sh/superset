@@ -9908,6 +9908,9 @@ msgstr "MCPマネージャー"
 msgid "MCP Server"
 msgstr "MCPサーバー"
 
+msgid "MCP Server Commands"
+msgstr "MCPサーバーのコマンド"
+
 msgid "Mean"
 msgstr "平均"
 
@@ -18056,6 +18059,9 @@ msgstr "不明なアカウント"
 
 msgid "Unknown author"
 msgstr "不明な作成者"
+
+msgid "Unknown command /{name}"
+msgstr "不明なコマンド /{name}"
 
 msgid "Unknown device"
 msgstr "不明なデバイス"

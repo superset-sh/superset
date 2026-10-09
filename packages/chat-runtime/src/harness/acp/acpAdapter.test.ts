@@ -722,7 +722,16 @@ describe("AcpAdapter", () => {
 					sessionUpdate: "available_commands_update",
 					availableCommands: [
 						{ name: "review", description: "Review the diff" },
-						{ name: "compact", description: "Compact the context" },
+						{
+							name: "compact",
+							description: "Compact the context",
+							_meta: { command_category: "native" },
+						},
+						{
+							name: "mcp:search",
+							description: "Search",
+							_meta: { command_category: "unknown" },
+						},
 						{ name: "", description: "dropped: no name" },
 					],
 				},
@@ -739,7 +748,12 @@ describe("AcpAdapter", () => {
 			.pop();
 		expect(commands).toEqual([
 			{ name: "review", description: "Review the diff" },
-			{ name: "compact", description: "Compact the context" },
+			{
+				name: "compact",
+				description: "Compact the context",
+				category: "native",
+			},
+			{ name: "mcp:search", description: "Search" },
 		]);
 
 		await adapter.dispose();

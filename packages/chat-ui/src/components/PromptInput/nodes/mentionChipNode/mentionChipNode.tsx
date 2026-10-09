@@ -6,39 +6,18 @@ import {
 	type Spread,
 } from "lexical";
 import type { JSX } from "react";
+import { Chip } from "../../../Chip";
 import type { ComposerChip } from "../../types";
 
 function MentionChipComponent({
 	nodeKey,
-	label,
-	brandColor,
-	iconUrl,
+	chip,
 }: {
 	nodeKey: NodeKey;
-	label: string;
-	brandColor: string | null;
-	iconUrl: string | null;
+	chip: ComposerChip;
 }) {
 	const [isSelected] = useLexicalNodeSelection(nodeKey);
-	return (
-		<span
-			className="prompt-input-chip"
-			data-mention-chip="true"
-			data-selected={isSelected || undefined}
-			style={
-				brandColor
-					? ({ "--chip-color": brandColor } as React.CSSProperties)
-					: undefined
-			}
-		>
-			{iconUrl && (
-				<span className="prompt-input-chip-icon">
-					<img src={iconUrl} alt="" draggable={false} />
-				</span>
-			)}
-			<span className="prompt-input-chip-label">{label}</span>
-		</span>
-	);
+	return <Chip chip={chip} mention selected={isSelected} />;
 }
 
 export type SerializedMentionChipNode = Spread<
@@ -48,6 +27,7 @@ export type SerializedMentionChipNode = Spread<
 		brandColor: string | null;
 		iconUrl: string | null;
 		dataJson: string | null;
+		description?: string;
 	},
 	SerializedLexicalNode
 >;
@@ -58,6 +38,7 @@ export class MentionChipNode extends DecoratorNode<JSX.Element> {
 	__brandColor: string | null;
 	__iconUrl: string | null;
 	__dataJson: string | null;
+	__description: string | null;
 
 	static getType(): string {
 		return "mention-chip";
@@ -70,6 +51,7 @@ export class MentionChipNode extends DecoratorNode<JSX.Element> {
 			node.__brandColor,
 			node.__iconUrl,
 			node.__dataJson,
+			node.__description,
 			node.__key,
 		);
 	}
@@ -80,9 +62,11 @@ export class MentionChipNode extends DecoratorNode<JSX.Element> {
 		brandColor: string | null,
 		iconUrl: string | null,
 		dataJson: string | null,
+		description: string | null = null,
 		key?: NodeKey,
 	) {
 		super(key);
+		this.__description = description;
 		this.__label = label;
 		this.__serialized = serialized;
 		this.__brandColor = brandColor;
@@ -97,6 +81,7 @@ export class MentionChipNode extends DecoratorNode<JSX.Element> {
 			chip.brandColor ?? null,
 			chip.iconUrl ?? null,
 			chip.data === undefined ? null : JSON.stringify(chip.data),
+			chip.description ?? null,
 		);
 	}
 
@@ -106,6 +91,7 @@ export class MentionChipNode extends DecoratorNode<JSX.Element> {
 			serialized: this.__serialized,
 			brandColor: this.__brandColor ?? undefined,
 			iconUrl: this.__iconUrl ?? undefined,
+			...(this.__description ? { description: this.__description } : {}),
 			data: this.__dataJson == null ? undefined : JSON.parse(this.__dataJson),
 		};
 	}
@@ -117,6 +103,7 @@ export class MentionChipNode extends DecoratorNode<JSX.Element> {
 			serialized.brandColor,
 			serialized.iconUrl,
 			serialized.dataJson,
+			serialized.description ?? null,
 		);
 	}
 
@@ -129,6 +116,7 @@ export class MentionChipNode extends DecoratorNode<JSX.Element> {
 			brandColor: this.__brandColor,
 			iconUrl: this.__iconUrl,
 			dataJson: this.__dataJson,
+			...(this.__description ? { description: this.__description } : {}),
 		};
 	}
 
@@ -149,13 +137,6 @@ export class MentionChipNode extends DecoratorNode<JSX.Element> {
 	}
 
 	decorate(): JSX.Element {
-		return (
-			<MentionChipComponent
-				nodeKey={this.__key}
-				label={this.__label}
-				brandColor={this.__brandColor}
-				iconUrl={this.__iconUrl}
-			/>
-		);
+		return <MentionChipComponent nodeKey={this.__key} chip={this.toChip()} />;
 	}
 }

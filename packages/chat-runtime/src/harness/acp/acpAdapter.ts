@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type {
 	ApprovalRequest,
+	AvailableCommand,
 	Decision,
 	Item,
 	Plan,
@@ -88,6 +89,12 @@ const TOOL_KIND_BY_ACP: Record<string, ToolKind> = {
 	switch_mode: "other",
 	other: "other",
 };
+
+function commandCategory(
+	category: unknown,
+): Pick<AvailableCommand, "category"> {
+	return category === "native" || category === "mcp" ? { category } : {};
+}
 
 function toolKind(kind: string | undefined): ToolKind {
 	return (kind && TOOL_KIND_BY_ACP[kind]) || "other";
@@ -855,6 +862,7 @@ export class AcpAdapter implements HarnessAdapter {
 					name: command.name,
 					...(command.description ? { description: command.description } : {}),
 					...(command.input?.hint ? { hint: command.input.hint } : {}),
+					...commandCategory(command._meta?.command_category),
 				})),
 		});
 	}

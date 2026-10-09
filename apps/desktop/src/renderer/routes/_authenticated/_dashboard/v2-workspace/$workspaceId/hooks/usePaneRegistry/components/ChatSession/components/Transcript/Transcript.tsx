@@ -212,6 +212,7 @@ export function Transcript({
 		>
 			<TurnGroupSection
 				canForkToWorktree={canForkToWorktree}
+				commands={commands}
 				lastReply={lastReplies.has(row.key)}
 				isEntryCollapsed={isEntryCollapsed}
 				onDiscardPrompt={onDiscardPrompt}

@@ -451,7 +451,8 @@ export function ComposerBody({
 		if (!text && files.length === 0 && !stateRef.current.allowEmptySubmit) {
 			return;
 		}
-		stateRef.current.onSubmit?.({ text, files, mentions, steer });
+		if (stateRef.current.onSubmit?.({ text, files, mentions, steer }) === false)
+			return;
 		historyNavigationRef.current?.reset();
 		if (!stateRef.current.clearOnSubmit) return;
 		editor.update(() => $getRoot().clear());
