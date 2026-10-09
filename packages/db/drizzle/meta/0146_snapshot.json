@@ -1,5 +1,5 @@
 {
-  "id": "08904670-54e5-4bf3-92b3-a278c5033b5c",
+  "id": "1ef72501-6679-4aba-81c7-1abc8f5e39e0",
   "prevId": "3e174d9c-4cd7-4136-bc0f-fb7dc8e4e057",
   "version": "7",
   "dialect": "postgresql",
@@ -6904,6 +6904,12 @@
         "inflight_to_ms": {
           "name": "inflight_to_ms",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "inflight_since": {
+          "name": "inflight_since",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },

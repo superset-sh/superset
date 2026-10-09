@@ -15,6 +15,9 @@ const MIN_RUNNING_REPORT_MS = 60_000;
 const RECONCILE_LOOKBACK_MS = 30 * 60 * 1000;
 const RECONCILE_CONCURRENCY = 25;
 const FIRST_SIGHT_GRACE_MS = 24 * 60 * 60 * 1000;
+const AUTUMN_DEDUPE_SAFE_MS = 20 * 60 * 60 * 1000;
+const RECORDED_EVENT_WINDOW_MS = 5 * 60 * 1000;
+const RECORDED_EVENT_PAGES = 5;
 
 type SessionRow = typeof cloudWorkspaceSessions.$inferSelect;
 
@@ -44,6 +47,49 @@ export function initialReportedMs(
 	const endedLongAgo =
 		session.endedAt !== null && session.endedAt < now - FIRST_SIGHT_GRACE_MS;
 	return context.firstSight && endedLongAgo ? ms : 0;
+}
+
+export function rangeKey(row: SessionRow, to: number): string {
+	return `${row.id}:${row.reportedMs}-${to}`;
+}
+
+export function dedupeMayHaveExpired(
+	inflightSince: Date | null,
+	now: number,
+): boolean {
+	return (
+		inflightSince !== null &&
+		now - inflightSince.getTime() > AUTUMN_DEDUPE_SAFE_MS
+	);
+}
+
+async function usageAlreadyRecorded(args: {
+	organizationId: string;
+	key: string;
+	timestamp: number;
+}): Promise<boolean> {
+	if (!autumn) return false;
+	let startCursor: string | undefined;
+	for (let page = 0; page < RECORDED_EVENT_PAGES; page += 1) {
+		const { list, nextCursor } = await autumn.events.list({
+			customerId: args.organizationId,
+			featureId: BOX_MINUTES_FEATURE_ID,
+			customRange: {
+				start: args.timestamp - RECORDED_EVENT_WINDOW_MS,
+				end: args.timestamp + RECORDED_EVENT_WINDOW_MS,
+			},
+			limit: 100,
+			...(startCursor ? { startCursor } : {}),
+		});
+		if (list.some((event) => event.properties?.rangeKey === args.key)) {
+			return true;
+		}
+		if (!nextCursor) return false;
+		startCursor = nextCursor;
+	}
+	throw new Error(
+		`[cloud-workspace] could not confirm whether ${args.key} was recorded`,
+	);
 }
 
 export function meteringCutoff(bounds: {
@@ -139,7 +185,7 @@ async function reportSession(args: {
 		if (unreportedMs(row) === 0) return 0;
 		const claimed = await db
 			.update(cloudWorkspaceSessions)
-			.set({ inflightToMs: row.observedMs })
+			.set({ inflightToMs: row.observedMs, inflightSince: new Date() })
 			.where(
 				and(
 					eq(cloudWorkspaceSessions.id, row.id),
@@ -152,26 +198,38 @@ async function reportSession(args: {
 		to = row.observedMs;
 	}
 	const delta = to - row.reportedMs;
-	await autumn.batchTrack([
-		{
-			customerId: args.organizationId,
-			featureId: BOX_MINUTES_FEATURE_ID,
-			value: boxMinutes(delta, row.vcpus),
-			idempotencyKey: `${row.id}:${row.reportedMs}-${to}`,
-			timestamp: row.startedAt.getTime() + to,
-			overageBehavior: "overflow",
-			properties: {
-				cloudWorkspaceId: row.cloudWorkspaceId,
-				sessionId: row.id,
-				userId: args.createdByUserId,
-				vcpus: row.vcpus,
-				wallMs: delta,
+	const key = rangeKey(row, to);
+	const timestamp = row.startedAt.getTime() + to;
+	const recorded =
+		dedupeMayHaveExpired(row.inflightSince, Date.now()) &&
+		(await usageAlreadyRecorded({
+			organizationId: args.organizationId,
+			key,
+			timestamp,
+		}));
+	if (!recorded) {
+		await autumn.batchTrack([
+			{
+				customerId: args.organizationId,
+				featureId: BOX_MINUTES_FEATURE_ID,
+				value: boxMinutes(delta, row.vcpus),
+				idempotencyKey: key,
+				timestamp,
+				overageBehavior: "overflow",
+				properties: {
+					cloudWorkspaceId: row.cloudWorkspaceId,
+					sessionId: row.id,
+					userId: args.createdByUserId,
+					vcpus: row.vcpus,
+					wallMs: delta,
+					rangeKey: key,
+				},
 			},
-		},
-	]);
+		]);
+	}
 	await db
 		.update(cloudWorkspaceSessions)
-		.set({ reportedMs: to, inflightToMs: null })
+		.set({ reportedMs: to, inflightToMs: null, inflightSince: null })
 		.where(
 			and(
 				eq(cloudWorkspaceSessions.id, row.id),
