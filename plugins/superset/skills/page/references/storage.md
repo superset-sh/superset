@@ -114,7 +114,7 @@ choice. Set `data-author` on each `sp-vote` to your `userId` from
         option.setAttribute("aria-pressed", String((final?.choice ?? mine) === option.dataset.value));
         option.disabled = locked() || Boolean(final);
       }
-      if (close) close.hidden = locked() || !store.author || Boolean(final) || !mine;
+      if (close) close.hidden = locked() || !store.author || me !== author || Boolean(final) || !mine;
       if (status) {
         status.textContent = final
           ? `Closed: ${final.choice}`
@@ -153,7 +153,7 @@ choice. Set `data-author` on each `sp-vote` to your `userId` from
       render();
     });
     store.subscribe(`${key}:final`, (records) => {
-      final = records.find((record) => record.userId === author && record.value?.choice)?.value ?? final;
+      final = records.find((record) => record.userId === author && record.value?.choice)?.value ?? null;
       render();
     });
   }

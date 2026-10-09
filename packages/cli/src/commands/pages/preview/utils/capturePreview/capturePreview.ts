@@ -131,9 +131,10 @@ export async function capturePreview({
 			await send("Emulation.setEmulatedMedia", {
 				features: [{ name: "prefers-color-scheme", value: theme }],
 			});
-			const loaded = cdp.waitFor("Page.loadEventFired", sessionId);
-			await send("Page.navigate", { url: wrapperUrl });
-			await loaded;
+			await Promise.all([
+				cdp.waitFor("Page.loadEventFired", sessionId),
+				send("Page.navigate", { url: wrapperUrl }),
+			]);
 
 			const { frameTree } = (await send("Page.getFrameTree")) as {
 				frameTree: { childFrames?: { frame: { id: string } }[] };

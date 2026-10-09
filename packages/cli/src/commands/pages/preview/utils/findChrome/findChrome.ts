@@ -8,7 +8,15 @@ export interface ChromeSearch {
 	home: string;
 	isExecutable: (path: string) => boolean;
 	listDir: (dir: string) => string[];
+	which: (command: string) => string | null;
 }
+
+const PATH_COMMANDS = [
+	"google-chrome-stable",
+	"google-chrome",
+	"chromium",
+	"chromium-browser",
+];
 
 const PLAYWRIGHT_BINARIES: Record<string, Record<string, string[]>> = {
 	"chromium-": {
@@ -98,6 +106,7 @@ function systemCandidates(search: ChromeSearch): string[] {
 		"/usr/bin/chromium-browser",
 		"/usr/bin/chromium",
 		"/usr/local/bin/chromium",
+		"/snap/bin/chromium",
 		"/opt/google/chrome/chrome",
 	];
 }
@@ -113,9 +122,15 @@ export function chromeCandidates(search: ChromeSearch): string[] {
 export function findChrome(
 	search: ChromeSearch = systemSearch(),
 ): string | null {
-	return (
-		chromeCandidates(search).find((path) => search.isExecutable(path)) ?? null
+	const installed = chromeCandidates(search).find((path) =>
+		search.isExecutable(path),
 	);
+	if (installed || search.env.SUPERSET_CHROME_PATH) return installed ?? null;
+	for (const command of PATH_COMMANDS) {
+		const found = search.which(command);
+		if (found) return found;
+	}
+	return null;
 }
 
 function systemSearch(): ChromeSearch {
@@ -127,6 +142,7 @@ function systemSearch(): ChromeSearch {
 			const stat = statSync(path, { throwIfNoEntry: false });
 			return Boolean(stat?.isFile() && stat.mode & 0o111);
 		},
+		which: (command) => Bun.which(command),
 		listDir: (dir) => {
 			try {
 				return readdirSync(dir);

@@ -1,5 +1,14 @@
 import { readFileSync, realpathSync, statSync } from "node:fs";
-import { basename, dirname, extname, join, resolve, sep } from "node:path";
+import {
+	basename,
+	dirname,
+	extname,
+	isAbsolute,
+	join,
+	relative,
+	resolve,
+	sep,
+} from "node:path";
 import { CLIError } from "@superset/cli-framework";
 import {
 	FILE_CONTENT_SECURITY_POLICY,
@@ -42,22 +51,29 @@ function notFound(): Response {
 }
 
 function resolveRequest(site: PreviewSite, pathname: string): string | null {
-	let relative: string;
+	let requested: string;
 	try {
-		relative = decodeURIComponent(pathname).replace(/^\/+/, "");
+		requested = decodeURIComponent(pathname).replace(/^\/+/, "");
 	} catch {
 		return null;
 	}
-	if (!relative || relative === basename(site.entry)) return site.entry;
-	if (!site.assets || relative.startsWith("_superset/")) return null;
-	let file: string;
+	if (!requested || requested === basename(site.entry)) return site.entry;
+	if (!site.assets || requested.startsWith("_superset/")) return null;
 	try {
-		file = realpathSync(resolve(site.root, relative));
+		const file = realpathSync(resolve(site.root, requested));
+		const fromRoot = relative(site.root, file);
+		if (
+			!fromRoot ||
+			fromRoot === ".." ||
+			fromRoot.startsWith(`..${sep}`) ||
+			isAbsolute(fromRoot)
+		) {
+			return null;
+		}
+		return statSync(file).isFile() ? file : null;
 	} catch {
 		return null;
 	}
-	if (!file.startsWith(site.root + sep)) return null;
-	return statSync(file).isFile() ? file : null;
 }
 
 export function previewResponse(

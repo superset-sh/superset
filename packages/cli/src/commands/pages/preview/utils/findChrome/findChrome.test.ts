@@ -8,6 +8,7 @@ function search(overrides: Partial<ChromeSearch>): ChromeSearch {
 		home: "/Users/ada",
 		isExecutable: () => false,
 		listDir: () => [],
+		which: () => null,
 		...overrides,
 	};
 }
@@ -41,6 +42,29 @@ describe("findChrome", () => {
 		expect(
 			findChrome(search({ isExecutable: (path) => path === chrome })),
 		).toBe(chrome);
+	});
+
+	test("finds Ubuntu's snap Chromium", () => {
+		expect(
+			findChrome(
+				search({
+					platform: "linux",
+					isExecutable: (path) => path === "/snap/bin/chromium",
+				}),
+			),
+		).toBe("/snap/bin/chromium");
+	});
+
+	test("falls back to a browser on PATH", () => {
+		expect(
+			findChrome(
+				search({
+					platform: "linux",
+					which: (command) =>
+						command === "chromium" ? "/home/ada/.local/bin/chromium" : null,
+				}),
+			),
+		).toBe("/home/ada/.local/bin/chromium");
 	});
 
 	test("returns null when nothing is installed", () => {

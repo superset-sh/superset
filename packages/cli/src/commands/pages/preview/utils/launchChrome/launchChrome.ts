@@ -51,7 +51,11 @@ export async function launchChrome(
 	const profile = mkdtempSync(join(tmpdir(), "superset-page-preview-"));
 	const child = Bun.spawn(
 		[executable, ...CHROME_ARGS, `--user-data-dir=${profile}`, "about:blank"],
-		{ stdout: "ignore", stderr: "ignore" },
+		{
+			stdout: "ignore",
+			stderr: "ignore",
+			env: { ...process.env, DBUS_SESSION_BUS_ADDRESS: "disabled:" },
+		},
 	);
 	const cleanup = () => rmSync(profile, { recursive: true, force: true });
 	try {
