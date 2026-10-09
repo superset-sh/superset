@@ -77,6 +77,10 @@ export const terminalAgentBindings = sqliteTable(
 		// (Claude's hook `transcript_path`). Cleared when the binding moves to
 		// another session.
 		transcriptPath: text("transcript_path"),
+		// The CLAUDE_CONFIG_DIR / CODEX_HOME the agent launched under, as its
+		// hook reported it; null for the provider's default home. A crash
+		// resume relaunches into it. Cleared when another agent binds.
+		accountProfile: text("account_profile"),
 	},
 	(table) => [
 		index("terminal_agent_bindings_workspace_id_idx").on(table.workspaceId),

@@ -17,7 +17,10 @@ import type {
 	TerminalAgentId,
 	TerminalAgentStore,
 } from "../../../terminal-agents";
-import { resolveHostAgentConfig } from "../../../terminal-agents/agent-config";
+import {
+	accountProfileEnv,
+	resolveHostAgentConfig,
+} from "../../../terminal-agents/agent-config";
 import { terminalHarnessSession } from "../../../terminal-agents/harness-session-ref";
 import { hasHarnessSession } from "../../../terminal-agents/harness-sessions";
 import { readHarnessTranscriptOffLoop } from "../../../terminal-agents/harness-sessions/read-off-loop";
@@ -25,6 +28,7 @@ import {
 	claimResumeCandidateBinding,
 	findResumeCandidateBinding,
 	findResumedSuccessorTerminalId,
+	getTerminalAgentAccountProfile,
 	getTerminalAgentBinding,
 	listResumeCandidateBindings,
 	markResumeCandidateResumedInto,
@@ -60,6 +64,7 @@ export interface ResumeSessionDeps {
 		agent: string;
 		prompt: string;
 		resumeSessionId?: string;
+		accountEnv?: Record<string, string>;
 	}) => Promise<AgentRunResult>;
 	disposeSession: (
 		terminalId: string,
@@ -112,12 +117,13 @@ function bindingHasHarnessSession(
  * shows none, the agent is launched fresh instead of `--resume`-ing into "no
  * conversation found". A store that does hold one (a resumed session idle
  * since its restore) or cannot be read resumes as usual. Nothing is lost
- * either way: the pane comes back as the same agent on the current default
- * account.
+ * either way: the pane comes back as the same agent, on the account home it
+ * launched under unless `onDefaultAccount` asks for the current default.
  */
 export async function resumeTerminalAgentSession(
 	deps: ResumeSessionDeps,
 	input: { workspaceId: string; terminalId: string },
+	{ onDefaultAccount = false }: { onDefaultAccount?: boolean } = {},
 ): Promise<ResumeResult> {
 	const { workspaceId, terminalId } = input;
 	const key = `${workspaceId}::${terminalId}`;
@@ -149,6 +155,10 @@ export async function resumeTerminalAgentSession(
 			claimed.lastEventType !== "Attached" ||
 			deps.hasSession(claimed) !== false;
 
+		const accountProfile = onDefaultAccount
+			? null
+			: getTerminalAgentAccountProfile(deps.db, terminalId);
+
 		let result: AgentRunResult;
 		try {
 			result = await deps.runAgent({
@@ -156,6 +166,9 @@ export async function resumeTerminalAgentSession(
 				agent: config.id,
 				prompt: "",
 				...(resumable ? { resumeSessionId: claimed.agentSessionId } : {}),
+				...(accountProfile
+					? { accountEnv: accountProfileEnv(claimed.agentId, accountProfile) }
+					: {}),
 			});
 		} catch (error) {
 			unclaimResumeCandidateBinding(deps.db, terminalId);
@@ -312,10 +325,14 @@ export async function restartAccountSessions(
 		try {
 			const disposed = await deps.disposeSession(binding.terminalId);
 			if (!disposed.daemonCloseSucceeded) continue;
-			const result = await resumeTerminalAgentSession(deps, {
-				workspaceId: binding.workspaceId,
-				terminalId: binding.terminalId,
-			});
+			const result = await resumeTerminalAgentSession(
+				deps,
+				{
+					workspaceId: binding.workspaceId,
+					terminalId: binding.terminalId,
+				},
+				{ onDefaultAccount: true },
+			);
 			if (!result.resumed) continue;
 		} catch (error) {
 			console.warn("[terminal-agents] account-switch restart failed", {
