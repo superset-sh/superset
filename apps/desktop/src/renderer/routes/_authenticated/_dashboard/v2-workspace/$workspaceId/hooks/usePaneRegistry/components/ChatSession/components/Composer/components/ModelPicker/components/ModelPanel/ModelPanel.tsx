@@ -37,11 +37,14 @@ const SHORTCUT_MODIFIER =
 export function ModelPanel({
 	agentSwitcher,
 	model,
+	onLeave,
 	onPick,
 	searchRef,
 }: {
 	agentSwitcher?: AgentSwitcher;
 	model: SessionConfigOption | undefined;
+	/** Tab past the last agent tab (or Shift+Tab before the first) leaves the panel. */
+	onLeave?: (direction: 1 | -1) => void;
 	onPick: (modelId: string) => void;
 	searchRef: RefObject<HTMLInputElement | null>;
 }) {
@@ -126,14 +129,19 @@ export function ModelPanel({
 		setQuery("");
 	};
 	const cycleTab = (direction: 1 | -1) => {
-		if (tabs.length === 0) return;
 		const index = tabs.findIndex((entry) => entry.presetId === tab);
-		const next = tabs[(index + direction + tabs.length) % tabs.length];
+		const target = index + direction;
+		if (onLeave && (target < 0 || target >= tabs.length)) {
+			onLeave(direction);
+			return;
+		}
+		const next = tabs[(target + tabs.length) % tabs.length];
 		if (next) selectTab(next.presetId);
 	};
 	// Tab walks the agent tabs instead of leaving the menu; mod+digit picks a row.
 	const onPanelKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
 		if (event.key === "Tab") {
+			if (tabs.length === 0 && !onLeave) return;
 			event.preventDefault();
 			event.stopPropagation();
 			cycleTab(event.shiftKey ? -1 : 1);

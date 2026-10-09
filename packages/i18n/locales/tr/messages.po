@@ -7442,6 +7442,9 @@ msgstr "Başarısız"
 msgid "FAQ"
 msgstr "SSS"
 
+msgid "Fast"
+msgstr "Hızlı"
+
 msgid "Fatal"
 msgstr "Kritik"
 

@@ -7442,6 +7442,9 @@ msgstr "Fehlgeschlagen"
 msgid "FAQ"
 msgstr "FAQ"
 
+msgid "Fast"
+msgstr "Schnell"
+
 msgid "Fatal"
 msgstr "Fatal"
 

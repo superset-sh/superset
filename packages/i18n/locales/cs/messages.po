@@ -7442,6 +7442,9 @@ msgstr "Selhání"
 msgid "FAQ"
 msgstr "FAQ"
 
+msgid "Fast"
+msgstr "Rychlý"
+
 msgid "Fatal"
 msgstr "Fatální"
 

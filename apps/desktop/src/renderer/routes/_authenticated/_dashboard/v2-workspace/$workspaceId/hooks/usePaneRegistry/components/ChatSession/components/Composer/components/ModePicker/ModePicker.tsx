@@ -23,6 +23,7 @@ import {
 	PILL_CHEVRON_CLASS,
 	PILL_TRIGGER_CLASS,
 } from "../../constants";
+import { useOptimisticSelections } from "../../hooks/useOptimisticSelections";
 
 export type SessionMode = { id: string; label: string };
 
@@ -47,6 +48,8 @@ export function ModePicker({
 	onSelect: (modeId: string) => void;
 }) {
 	const { t } = useLingui();
+	const { shown, select } = useOptimisticSelections({ mode: currentModeId });
+	const shownModeId = shown("mode");
 	const offeredModes = modes.filter((mode) => !HIDDEN_MODE_IDS.has(mode.id));
 	if (offeredModes.length < 2) return null;
 
@@ -109,7 +112,7 @@ export function ModePicker({
 	});
 
 	const current =
-		modes.find((mode) => mode.id === currentModeId) ?? offeredModes[0];
+		modes.find((mode) => mode.id === shownModeId) ?? offeredModes[0];
 	if (!current) return null;
 	const currentCopy = copyFor(current);
 	const CurrentIcon = currentCopy.icon;
@@ -160,7 +163,8 @@ export function ModePicker({
 							)}
 							key={mode.id}
 							onSelect={() => {
-								if (mode.id !== currentModeId) onSelect(mode.id);
+								if (mode.id === shownModeId) return;
+								select("mode", mode.id, () => onSelect(mode.id));
 							}}
 						>
 							<span className="flex h-4 w-4 shrink-0 items-center justify-center">

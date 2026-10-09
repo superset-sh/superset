@@ -7442,6 +7442,9 @@ msgstr "Thất bại"
 msgid "FAQ"
 msgstr "FAQ"
 
+msgid "Fast"
+msgstr "Nhanh"
+
 msgid "Fatal"
 msgstr "Nghiêm trọng"
 

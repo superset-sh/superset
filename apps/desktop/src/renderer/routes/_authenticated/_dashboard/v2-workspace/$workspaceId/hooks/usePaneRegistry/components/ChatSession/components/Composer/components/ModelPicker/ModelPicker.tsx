@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type { SessionConfigOption } from "@superset/chat/protocol";
 import {
 	DropdownMenu,
@@ -10,7 +11,7 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { cn } from "@superset/ui/utils";
-import { type KeyboardEvent, useRef, useState } from "react";
+import { type KeyboardEvent, useMemo, useRef, useState } from "react";
 import { LuCheck, LuChevronDown, LuZap } from "react-icons/lu";
 import {
 	getPresetIcon,
@@ -22,6 +23,7 @@ import {
 	PILL_CHEVRON_CLASS,
 	PILL_TRIGGER_CLASS,
 } from "../../constants";
+import { useOptimisticSelections } from "../../hooks/useOptimisticSelections";
 import { EffortSliderCard } from "./components/EffortSliderCard";
 import { ModelPanel } from "./components/ModelPanel";
 import type { AgentSwitcher } from "./types";
@@ -55,17 +57,39 @@ export function ModelPicker({
 	configOptions,
 	onSelect,
 }: ModelPickerProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const searchRef = useRef<HTMLInputElement>(null);
+	const settingsRef = useRef<HTMLDivElement>(null);
 	const isDark = useIsDarkTheme();
+	const settled = useMemo(
+		() =>
+			Object.fromEntries(
+				configOptions.map((option) => [option.id, option.currentValue]),
+			),
+		[configOptions],
+	);
+	const { shown, select } = useOptimisticSelections(settled);
+	const options = useMemo(
+		() =>
+			configOptions.map((option) => {
+				const value = shown(option.id) ?? option.currentValue;
+				return value === option.currentValue
+					? option
+					: { ...option, currentValue: value };
+			}),
+		[configOptions, shown],
+	);
+	const choose = (configId: string, value: string) =>
+		select(configId, value, () => onSelect(configId, value));
 	const agentIcon = agentSwitcher
 		? getPresetIcon(agentSwitcher.currentPresetId, isDark)
 		: undefined;
-	const model = configOptions.find(
+	const model = options.find(
 		(option) => option.category === "model" && option.options.length > 0,
 	);
 	const canSwitchAgent = (agentSwitcher?.agents.length ?? 0) > 1;
-	const settings = configOptions.filter(
+	const settings = options.filter(
 		(option) =>
 			option.category !== "model" &&
 			option.category !== "mode" &&
@@ -92,8 +116,37 @@ export function ModelPicker({
 		currentAgentLabel ??
 		settings[0]?.label;
 	const pick = (option: SessionConfigOption, value: string) => {
-		if (value !== option.currentValue) onSelect(option.id, value);
+		if (value !== option.currentValue) choose(option.id, value);
 		setOpen(false);
+	};
+	// Radix traps Tab inside the menu, so the settings row below the model
+	// panel is only reachable by hand: Tab past the last agent tab lands on
+	// its first control, Tab past its last control returns to the search.
+	const settingsControls = () =>
+		Array.from(
+			settingsRef.current?.querySelectorAll<HTMLElement>(
+				'button:not([tabindex="-1"]), [data-slot="slider-thumb"], [role="menuitem"]',
+			) ?? [],
+		);
+	const leavePanel = (direction: 1 | -1) => {
+		const controls = settingsControls();
+		(direction === 1 ? controls[0] : controls.at(-1))?.focus();
+	};
+	const onSettingsKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+		if (event.key !== "Tab") return;
+		event.preventDefault();
+		event.stopPropagation();
+		const controls = settingsControls();
+		const next =
+			controls.indexOf(document.activeElement as HTMLElement) +
+			(event.shiftKey ? -1 : 1);
+		if (next >= 0 && next < controls.length) {
+			controls[next]?.focus();
+		} else if (searchRef.current) {
+			searchRef.current.focus();
+		} else {
+			controls.at(next < 0 ? -1 : 0)?.focus();
+		}
 	};
 	// Hovering a row moves menu focus to it; typing must still reach the search.
 	const sendTypingToSearch = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -112,14 +165,18 @@ export function ModelPicker({
 					aria-label={fast.label}
 					aria-pressed={fastOn}
 					className={cn(
-						"flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-foreground/[0.07] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-						fastOn ? "text-highlight" : "text-muted-foreground/70",
+						PILL_TRIGGER_CLASS,
+						"gap-1",
+						fastOn
+							? "text-highlight hover:text-highlight"
+							: "text-muted-foreground",
 					)}
-					onClick={() => onSelect(fast.id, fastOn ? "off" : "on")}
+					onClick={() => choose(fast.id, fastOn ? "off" : "on")}
 					title={fast.label}
 					type="button"
 				>
 					<LuZap className={cn("size-3.5", fastOn && "fill-current")} />
+					<span>{t({ message: "Fast" })}</span>
 				</button>
 			) : null}
 			<DropdownMenu onOpenChange={setOpen} open={open}>
@@ -163,6 +220,7 @@ export function ModelPicker({
 								}
 							}
 							model={model}
+							onLeave={settings.length > 0 ? leavePanel : undefined}
 							onPick={(modelId) => {
 								if (model) pick(model, modelId);
 							}}
@@ -175,12 +233,14 @@ export function ModelPicker({
 								"flex flex-col gap-px p-1",
 								showsModels && "border-t",
 							)}
+							onKeyDownCapture={onSettingsKeyDown}
+							ref={settingsRef}
 						>
 							{effort ? (
 								<EffortSliderCard
 									effort={effort}
 									fast={fast}
-									onSelect={onSelect}
+									onSelect={choose}
 								/>
 							) : null}
 							{rows.map((option) => (

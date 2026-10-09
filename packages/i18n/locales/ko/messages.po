@@ -7442,6 +7442,9 @@ msgstr "실패"
 msgid "FAQ"
 msgstr "FAQ"
 
+msgid "Fast"
+msgstr "빠름"
+
 msgid "Fatal"
 msgstr "치명적"
 

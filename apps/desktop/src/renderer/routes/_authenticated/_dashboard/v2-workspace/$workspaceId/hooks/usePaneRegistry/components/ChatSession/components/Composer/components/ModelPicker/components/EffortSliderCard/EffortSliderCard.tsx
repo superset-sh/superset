@@ -1,10 +1,15 @@
+import { useLingui } from "@lingui/react/macro";
 import type { SessionConfigOption } from "@superset/chat/protocol";
 import { Slider } from "@superset/ui/slider";
 import { cn } from "@superset/ui/utils";
+import { useState } from "react";
 import { LuZap } from "react-icons/lu";
 
 const SNAP_MOTION_CLASS =
 	"transition-[left,right,width] duration-150 ease-[cubic-bezier(0.22,1.1,0.36,1)] motion-reduce:transition-none";
+
+const FAST_PILL_CLASS =
+	"flex h-6 shrink-0 items-center gap-1 rounded-md px-1.5 text-[11px] font-medium";
 
 export function EffortSliderCard({
 	effort,
@@ -15,26 +20,32 @@ export function EffortSliderCard({
 	fast: SessionConfigOption | undefined;
 	onSelect: (configId: string, value: string) => void;
 }) {
+	const { t } = useLingui();
 	const levels = effort.options;
 	const lastIndex = Math.max(levels.length - 1, 0);
-	const index = Math.max(
+	const settledIndex = Math.max(
 		levels.findIndex((level) => level.id === effort.currentValue),
 		0,
 	);
+	// The thumb follows the pointer; the agent hears about it once, on release.
+	const [dragIndex, setDragIndex] = useState<number | null>(null);
+	const index = dragIndex ?? settledIndex;
 	const fastOn = fast?.currentValue === "on";
+	const fastLabel = t({ message: "Fast" });
 	const marks = levels.map((_, i) =>
 		lastIndex === 0 ? 0 : (i / lastIndex) * 100,
 	);
 
 	return (
 		<div className="px-1 pt-0.5 pb-1" data-slot="effort-slider-card">
-			<div className="grid grid-cols-[1.5rem_minmax(0,1fr)_1.5rem] items-center gap-1">
+			<div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1">
 				{fast ? (
 					<button
 						aria-label={fast.label}
 						aria-pressed={fastOn}
 						className={cn(
-							"flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-foreground/[0.06] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+							FAST_PILL_CLASS,
+							"cursor-pointer transition-colors hover:bg-foreground/[0.06] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 							fastOn ? "text-highlight" : "text-muted-foreground/70",
 						)}
 						onClick={() => onSelect(fast.id, fastOn ? "off" : "on")}
@@ -42,6 +53,7 @@ export function EffortSliderCard({
 						type="button"
 					>
 						<LuZap className={cn("size-3.5", fastOn && "fill-current")} />
+						<span>{fastLabel}</span>
 					</button>
 				) : (
 					<span aria-hidden="true" className="size-6" />
@@ -49,7 +61,14 @@ export function EffortSliderCard({
 				<span className="truncate text-center text-[13px] font-medium text-highlight">
 					{levels[index]?.label ?? effort.label}
 				</span>
-				<span aria-hidden="true" className="size-6" />
+				{fast ? (
+					<span aria-hidden="true" className={cn(FAST_PILL_CLASS, "invisible")}>
+						<LuZap className="size-3.5" />
+						<span>{fastLabel}</span>
+					</span>
+				) : (
+					<span aria-hidden="true" className="size-6" />
+				)}
 			</div>
 			<div className="mt-1 px-0.5">
 				<Slider
@@ -57,7 +76,9 @@ export function EffortSliderCard({
 					className="group/slider py-0.5"
 					max={lastIndex}
 					min={0}
-					onValueChange={([next]) => {
+					onValueChange={([next]) => setDragIndex(next ?? null)}
+					onValueCommit={([next]) => {
+						setDragIndex(null);
 						const level = next === undefined ? undefined : levels[next];
 						if (level && level.id !== effort.currentValue) {
 							onSelect(effort.id, level.id);
