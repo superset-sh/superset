@@ -47,11 +47,8 @@ const LEGACY_FLOW_SCOPES = new Set<string>([
 ]);
 
 /**
- * A refresh token only refreshes with the OAuth client that issued it, and no
- * column records which one that was. The connector flow (the Gmail plugin)
- * signs in with the GOOGLE_TEMP client and asks for more scopes than the
- * legacy flow, so a row with those scopes tries that client first. The other
- * client is always the fallback.
+ * A refresh token only works with the client that issued it, and no column
+ * records which. Connector-flow rows (GOOGLE_TEMP client) carry wider scopes.
  */
 export function refreshClientsFor(
 	scopes: string[] | null,
@@ -78,11 +75,7 @@ function configuredRefreshClients(scopes: string[] | null) {
 	);
 }
 
-/**
- * Runs `refresh` with each client in turn until one is accepted. Google
- * answers `unauthorized_client` for a token from another client. An
- * `invalid_grant` wins over that, so a revoked grant is still reported as one.
- */
+/** `invalid_grant` wins over `unauthorized_client`, so a revoked grant still disconnects. */
 export async function refreshWithIssuingClient<T>(
 	clients: GoogleOAuthClient[],
 	refresh: (client: GoogleOAuthClient) => Promise<T>,

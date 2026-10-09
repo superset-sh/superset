@@ -13,7 +13,6 @@ export type GmailWatchOutcome =
 	| { status: "current" | "no_gmail_scope" | "watched" }
 	| {
 			status: "rewatched_after_lapse";
-			lapsedAt: number;
 			catchUp: MailboxSyncResult | { error: string };
 	  };
 
@@ -37,14 +36,16 @@ export type GmailWatchDeps = {
 export async function reconcileWatches(
 	connectionId: string,
 	topicName: string,
-	now = Date.now(),
 ): Promise<ReconcileResult> {
 	const connection = await findGoogleConnectionById(connectionId);
 	const result: ReconcileResult = { gmail: null, errors: [] };
 	if (!connection || connection.disconnectedAt) return result;
 
 	try {
-		result.gmail = await reconcileGmailWatch(connection, { topicName, now });
+		result.gmail = await reconcileGmailWatch(connection, {
+			topicName,
+			now: Date.now(),
+		});
 		if (
 			result.gmail.status === "rewatched_after_lapse" &&
 			"error" in result.gmail.catchUp
@@ -85,10 +86,9 @@ export async function reconcileGmailWatch(
 	});
 	if (expiresAt === undefined || expiresAt > now) return { status: "watched" };
 
-	// No push arrived after the lapse, so mail from then on is only recorded
-	// when something walks the history. Do it now, not at the next push.
+	// Nothing pushed while the watch was dead; record that mail now.
 	const catchUp = await sync(connection).catch((error: unknown) => ({
 		error: error instanceof Error ? error.message : String(error),
 	}));
-	return { status: "rewatched_after_lapse", lapsedAt: expiresAt, catchUp };
+	return { status: "rewatched_after_lapse", catchUp };
 }

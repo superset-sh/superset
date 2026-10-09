@@ -16,11 +16,8 @@ const TIME_BUDGET_MS = 240_000;
 const bodySchema = z.object({ connectionId: z.string().uuid().optional() });
 
 /**
- * Renews every Gmail watch inside the renew window, re-creates any that
- * lapsed or never existed, and catches up the mail a lapsed one missed. Also
- * run once for a single connection right after it connects. Any failure
- * answers 500, so QStash retries the run and reports it; a retry only redoes
- * what is still due.
+ * Daily, and once per connection right after it connects. Any failure answers
+ * 500 so QStash retries and reports it; a retry only redoes what is still due.
  */
 export async function POST(request: Request) {
 	const body = await request.text();

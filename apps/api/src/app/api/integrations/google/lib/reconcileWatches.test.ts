@@ -81,14 +81,12 @@ describe("reconcileGmailWatch", () => {
 
 	test("re-watches a lapsed watch and catches up the missed mail", async () => {
 		const { calls, deps } = harness();
-		const lapsedAt = NOW - 34 * HOUR;
 		const outcome = await reconcileGmailWatch(
-			connection({ historyId: "1", watchExpiresAt: lapsedAt }),
+			connection({ historyId: "1", watchExpiresAt: NOW - 34 * HOUR }),
 			deps,
 		);
 		expect(outcome).toEqual({
 			status: "rewatched_after_lapse",
-			lapsedAt,
 			catchUp: { baseline: false, added: 3, recorded: 3, matched: 1 },
 		});
 		expect(calls.patched).toEqual([
