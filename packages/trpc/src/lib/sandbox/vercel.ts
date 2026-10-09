@@ -525,6 +525,65 @@ export async function stopSandbox(providerSandboxId: string): Promise<void> {
 	await sandbox.stop();
 }
 
+export interface SandboxSession {
+	id: string;
+	vcpus: number;
+	startedAt: number;
+	endedAt: number | null;
+}
+
+const SESSIONS_PAGE_SIZE = 50;
+
+export async function listSandboxSessions(
+	providerSandboxId: string,
+	since: number,
+): Promise<SandboxSession[]> {
+	const sandbox = await getSandbox(providerSandboxId);
+	if (!sandbox) return [];
+	const sessions: SandboxSession[] = [];
+	for await (const session of await sandbox.listSessions({
+		sortOrder: "desc",
+		limit: SESSIONS_PAGE_SIZE,
+	})) {
+		if (session.startedAt === undefined) continue;
+		const endedAt =
+			session.stoppedAt ??
+			session.abortedAt ??
+			session.requestedStopAt ??
+			(session.status === "failed" ? session.updatedAt : null);
+		if (endedAt !== null && endedAt < since) break;
+		sessions.push({
+			id: session.id,
+			vcpus: session.vcpus,
+			startedAt: session.startedAt,
+			endedAt,
+		});
+	}
+	return sessions;
+}
+
+const SESSION_MAX_MS = 24 * 60 * 60 * 1000;
+
+export async function listActiveWorkspaceSandboxes(
+	since: number,
+): Promise<string[]> {
+	const names: string[] = [];
+	const oldestRunning = Date.now() - SESSION_MAX_MS;
+	for await (const sandbox of await Sandbox.list({
+		...credentials(),
+		tags: { kind: "workspace" },
+		sortBy: "statusUpdatedAt",
+		sortOrder: "desc",
+	})) {
+		const updatedAt = sandbox.statusUpdatedAt ?? sandbox.updatedAt;
+		if (updatedAt < oldestRunning) break;
+		if (sandbox.status !== "stopped" || updatedAt >= since) {
+			names.push(sandbox.name);
+		}
+	}
+	return names;
+}
+
 /** Best-effort: a sandbox already gone is the state we wanted. */
 export async function deleteSandbox(providerSandboxId: string): Promise<void> {
 	const sandbox = await getSandbox(providerSandboxId);

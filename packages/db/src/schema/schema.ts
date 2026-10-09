@@ -999,6 +999,38 @@ export const cloudWorkspacePresence = pgTable(
 	],
 );
 
+export const cloudWorkspaceSessions = pgTable(
+	"cloud_workspace_sessions",
+	{
+		id: text().primaryKey(),
+		cloudWorkspaceId: uuid("cloud_workspace_id")
+			.notNull()
+			.references(() => cloudWorkspaces.id, { onDelete: "cascade" }),
+		vcpus: integer().notNull(),
+		startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+		stoppedAt: timestamp("stopped_at", { withTimezone: true }),
+		observedMs: integer("observed_ms").notNull().default(0),
+		reportedMs: integer("reported_ms").notNull().default(0),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("cloud_workspace_sessions_cloud_workspace_id_idx").on(
+			table.cloudWorkspaceId,
+		),
+		index("cloud_workspace_sessions_unsettled_idx")
+			.on(table.cloudWorkspaceId)
+			.where(
+				sql`${table.stoppedAt} is null or ${table.reportedMs} < ${table.observedMs}`,
+			),
+	],
+);
+
 export const cloudWorkspaceTasks = pgTable(
 	"cloud_workspace_tasks",
 	{

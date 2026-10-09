@@ -15,6 +15,7 @@ import {
 	stopSandbox,
 } from "../../lib/sandbox";
 import { generateCloudWorkspaceName } from "./generate-name";
+import { queueMeterCloudWorkspace } from "./meter";
 import { transitionCloudWorkspace } from "./transition";
 
 export const FALLBACK_NAME = "Cloud workspace";
@@ -138,6 +139,7 @@ async function provision(
 			return "skipped";
 		}
 		nudge(row.organizationId, "cloud_workspaces");
+		await queueMeterCloudWorkspace(row.id);
 		// The box is booting; the environment it needs arrives once host-service
 		// answers. The client's own wake pushes it again, so a workspace nobody
 		// opens still gets it (an agent launched at boot waits for this).

@@ -8,6 +8,7 @@ import {
 	stopAndSnapshot,
 	wakeSandbox,
 } from "../../lib/sandbox";
+import { queueMeterCloudWorkspace } from "./meter";
 import { transitionCloudWorkspace } from "./transition";
 
 type CloudWorkspaceRow = typeof cloudWorkspaces.$inferSelect;
@@ -37,6 +38,7 @@ export async function wakeCloudWorkspace(
 			.set(set)
 			.where(eq(cloudWorkspaces.id, row.id));
 	}
+	if (booted) await queueMeterCloudWorkspace(row.id);
 	return {
 		hostTarget,
 		agentCredentialsChanged:
