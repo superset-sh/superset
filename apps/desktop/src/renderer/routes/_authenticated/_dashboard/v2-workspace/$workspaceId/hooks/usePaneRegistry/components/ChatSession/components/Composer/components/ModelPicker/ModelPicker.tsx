@@ -113,7 +113,7 @@ export function ModelPicker({
 					aria-pressed={fastOn}
 					className={cn(
 						"flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-foreground/[0.07] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-						fastOn ? "text-amber-500" : "text-muted-foreground/70",
+						fastOn ? "text-highlight" : "text-muted-foreground/70",
 					)}
 					onClick={() => onSelect(fast.id, fastOn ? "off" : "on")}
 					title={fast.label}

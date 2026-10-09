@@ -35,7 +35,7 @@ type ModeCopy = {
 
 const HIDDEN_MODE_IDS = new Set(["plan", "acceptEdits", "workspace-write"]);
 const SOLID_ICONS = new Set<LucideIcon>([Pause, Play, FastForward]);
-const UNRESTRICTED_TINT = "text-amber-500";
+const UNRESTRICTED_TINT = "text-highlight";
 
 export function ModePicker({
 	currentModeId,

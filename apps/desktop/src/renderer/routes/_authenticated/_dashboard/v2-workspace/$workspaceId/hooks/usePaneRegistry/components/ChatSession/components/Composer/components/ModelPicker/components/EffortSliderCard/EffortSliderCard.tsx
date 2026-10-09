@@ -35,7 +35,7 @@ export function EffortSliderCard({
 						aria-pressed={fastOn}
 						className={cn(
 							"flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-foreground/[0.06] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-							fastOn ? "text-amber-500" : "text-muted-foreground/70",
+							fastOn ? "text-highlight" : "text-muted-foreground/70",
 						)}
 						onClick={() => onSelect(fast.id, fastOn ? "off" : "on")}
 						title={fast.label}
@@ -46,7 +46,7 @@ export function EffortSliderCard({
 				) : (
 					<span aria-hidden="true" className="size-6" />
 				)}
-				<span className="truncate text-center text-[13px] font-medium text-amber-500">
+				<span className="truncate text-center text-[13px] font-medium text-highlight">
 					{levels[index]?.label ?? effort.label}
 				</span>
 				<span aria-hidden="true" className="size-6" />
@@ -64,7 +64,7 @@ export function EffortSliderCard({
 						}
 					}}
 					rangeClassName={cn(
-						"rounded-full bg-amber-500",
+						"rounded-full bg-highlight",
 						SNAP_MOTION_CLASS,
 						index === 0 && "opacity-0",
 					)}
