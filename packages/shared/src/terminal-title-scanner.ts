@@ -65,13 +65,47 @@ export function normalizeTerminalTitle(title: string): string | null {
 	return chars.slice(0, MAX_TERMINAL_TITLE_LENGTH).join("");
 }
 
+function utf8SequenceLength(lead: number): number {
+	if (lead >= 0xc2 && lead <= 0xdf) return 2;
+	if (lead >= 0xe0 && lead <= 0xef) return 3;
+	if (lead >= 0xf0 && lead <= 0xf4) return 4;
+	return 0;
+}
+
+// 0x9C/0x9D are also UTF-8 continuation bytes (✳ is E2 9C B3). They are C1
+// controls only as raw bytes or as U+009C/U+009D (C2 9C, C2 9D).
+function isInsideUtf8Char(input: Uint8Array, index: number): boolean {
+	let lead = index - 1;
+	while (lead >= 0 && index - lead < 4) {
+		const b = input[lead] as number;
+		if (b < 0x80 || b > 0xbf) break;
+		lead--;
+	}
+	if (lead < 0) return false;
+	const leadByte = input[lead] as number;
+	if (leadByte === 0xc2) return false;
+	return index - lead < utf8SequenceLength(leadByte);
+}
+
+// Start of an unfinished UTF-8 character at the end of input, else input.length.
+function incompleteUtf8TailStart(input: Uint8Array): number {
+	for (let i = input.length - 1; i >= 0 && input.length - i <= 3; i--) {
+		const b = input[i] as number;
+		if (b >= 0x80 && b <= 0xbf) continue;
+		return input.length - i < utf8SequenceLength(b) ? i : input.length;
+	}
+	return input.length;
+}
+
 function findOscStart(
 	input: Uint8Array,
 	from: number,
 ): { index: number; length: number } | null {
 	for (let i = from; i < input.length; i++) {
 		const b = input[i];
-		if (b === C1_OSC_BYTE) return { index: i, length: 1 };
+		if (b === C1_OSC_BYTE && !isInsideUtf8Char(input, i)) {
+			return { index: i, length: 1 };
+		}
 		if (
 			b === ESC_BYTE &&
 			i + 1 < input.length &&
@@ -90,7 +124,9 @@ function findOscTerminator(
 	for (let i = from; i < input.length; i++) {
 		const b = input[i];
 		if (b === BEL_BYTE) return { index: i, length: 1 };
-		if (b === C1_ST_BYTE) return { index: i, length: 1 };
+		if (b === C1_ST_BYTE && !isInsideUtf8Char(input, i)) {
+			return { index: i, length: 1 };
+		}
 		if (
 			b === ESC_BYTE &&
 			i + 1 < input.length &&
@@ -168,11 +204,15 @@ export function scanForTerminalTitle(
 	while (searchIndex < input.length) {
 		const oscStart = findOscStart(input, searchIndex);
 		if (!oscStart) {
-			// Hold a trailing ESC so a `]` arriving in the next chunk still
-			// resolves to an OSC start.
-			state.buffer =
+			// Hold a trailing ESC (a `]` may follow in the next chunk) and a
+			// split UTF-8 character (its continuation bytes are not C1).
+			const tailStart =
 				input.length > 0 && input[input.length - 1] === ESC_BYTE
-					? copySlice(input, input.length - 1)
+					? input.length - 1
+					: incompleteUtf8TailStart(input);
+			state.buffer =
+				tailStart < input.length
+					? copySlice(input, tailStart)
 					: new Uint8Array(0);
 			return { updates };
 		}
