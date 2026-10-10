@@ -14,7 +14,9 @@ export const HostWorkspacesContext =
  * fan-out; single-host scoped calls are fine (they share query keys).
  */
 export function HostWorkspacesProvider({ children }: { children: ReactNode }) {
-	const value = useHostWorkspacesSource();
+	const value = useHostWorkspacesSource(undefined, {
+		pruneArchivedState: true,
+	});
 	return (
 		<HostWorkspacesContext.Provider value={value}>
 			{children}

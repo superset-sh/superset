@@ -148,4 +148,34 @@ describe("host.db migrations", () => {
 
 		expect(new Set(whens).size).toBe(whens.length);
 	});
+
+	test("purge confirmation migration preserves existing rows without inventing historical proof", () => {
+		const sqlite = open();
+		try {
+			runMigrations(
+				drizzle(sqlite),
+				folderWithout({ omit: [], through: "0037_project_soft_delete" }),
+			);
+			sqlite.exec(
+				"INSERT INTO workspaces (id, worktree_path, branch, created_at) VALUES ('existing', '/fixture', 'main', 1)",
+			);
+			sqlite.exec(
+				"INSERT INTO terminal_sessions (id, origin_workspace_id, created_at) VALUES ('terminal', 'existing', 1)",
+			);
+			runMigrations(drizzle(sqlite), MIGRATIONS_FOLDER);
+			runMigrations(drizzle(sqlite), MIGRATIONS_FOLDER);
+			expect(sqlite.query("SELECT id FROM workspaces").all()).toEqual([
+				{ id: "existing" },
+			]);
+			expect(
+				sqlite.query("SELECT origin_workspace_id FROM terminal_sessions").all(),
+			).toEqual([{ origin_workspace_id: "existing" }]);
+			expect(
+				sqlite.query("SELECT * FROM workspace_purge_tombstones").all(),
+			).toEqual([]);
+			expect(sqlite.query("PRAGMA foreign_key_check").all()).toEqual([]);
+		} finally {
+			sqlite.close();
+		}
+	});
 });

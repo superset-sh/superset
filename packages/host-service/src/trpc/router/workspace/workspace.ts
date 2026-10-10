@@ -2,9 +2,13 @@ import { existsSync } from "node:fs";
 import { basename } from "node:path";
 import { workspaceTagsInputSchema } from "@superset/shared/workspace-tags";
 import { TRPCError } from "@trpc/server";
-import { eq, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { projects, workspaces } from "../../../db/schema";
+import {
+	projects,
+	workspacePurgeTombstones,
+	workspaces,
+} from "../../../db/schema";
 import {
 	getWorkspaceTags,
 	getWorkspaceTagsByWorkspaceId,
@@ -14,9 +18,116 @@ import {
 import { cancelAndWaitWorkspaceTitleCommit } from "../../../workspaces/workspace-title-jobs";
 import { protectedProcedure, router } from "../../index";
 import { resolveWorktreePath } from "../git/utils/resolve-worktree";
-import { destroyWorkspace } from "../workspace-cleanup";
+import {
+	destroyWorkspace,
+	isWorkspaceDestroyInFlight,
+} from "../workspace-cleanup";
+import { sharesProjectCheckout } from "../workspace-cleanup/is-local-checkout-workspace";
+import { isMissingPath } from "../workspace-cleanup/is-missing-path";
 
 export const workspaceRouter = router({
+	getArchivedIds: protectedProcedure
+		.input(z.object({ workspaceIds: z.array(z.string()).max(500) }))
+		.query(async ({ ctx, input }) => {
+			if (input.workspaceIds.length === 0) return [];
+			const candidates = ctx.db
+				.select({
+					id: workspaces.id,
+					worktreePath: workspaces.worktreePath,
+					type: workspaces.type,
+					repoPath: projects.repoPath,
+				})
+				.from(workspaces)
+				.leftJoin(projects, eq(projects.id, workspaces.projectId))
+				.where(
+					and(
+						inArray(workspaces.id, input.workspaceIds),
+						isNotNull(workspaces.archivedAt),
+						inArray(workspaces.archiveReason, ["deleted", "merged"]),
+						isNull(projects.deletedAt),
+					),
+				)
+				.all();
+			const archivedIds: string[] = [];
+			const sharedCheckoutIds = new Set<string>();
+			for (const candidate of candidates) {
+				if (isWorkspaceDestroyInFlight(candidate.id)) continue;
+				const shared = await sharesProjectCheckout(
+					candidate,
+					candidate.repoPath ? { repoPath: candidate.repoPath } : undefined,
+				);
+				if (shared) sharedCheckoutIds.add(candidate.id);
+				if (shared || (await isMissingPath(candidate.worktreePath)))
+					archivedIds.push(candidate.id);
+			}
+			const eligibleIds = new Set(archivedIds);
+			const missingCandidates = candidates.filter(
+				({ id }) => eligibleIds.has(id) && !sharedCheckoutIds.has(id),
+			);
+			// Another candidate's I/O may have yielded to a path recreation.
+			await Promise.all(
+				missingCandidates.map(async (candidate) => {
+					if (!(await isMissingPath(candidate.worktreePath)))
+						eligibleIds.delete(candidate.id);
+				}),
+			);
+			// A workspace created during those final checks owns its path already,
+			// even if its checkout has not finished being written to disk yet.
+			const livePaths = new Set(
+				ctx.db
+					.select({ path: workspaces.worktreePath })
+					.from(workspaces)
+					.where(
+						and(
+							inArray(
+								workspaces.worktreePath,
+								missingCandidates.map(({ worktreePath }) => worktreePath),
+							),
+							isNull(workspaces.archivedAt),
+						),
+					)
+					.all()
+					.map(({ path }) => path),
+			);
+			for (const candidate of missingCandidates) {
+				if (livePaths.has(candidate.worktreePath))
+					eligibleIds.delete(candidate.id);
+			}
+			return ctx.db
+				.select({ id: workspaces.id })
+				.from(workspaces)
+				.leftJoin(projects, eq(projects.id, workspaces.projectId))
+				.where(
+					and(
+						inArray(workspaces.id, [...eligibleIds]),
+						isNotNull(workspaces.archivedAt),
+						inArray(workspaces.archiveReason, ["deleted", "merged"]),
+						isNull(projects.deletedAt),
+					),
+				)
+				.union(
+					ctx.db
+						.select({ id: workspacePurgeTombstones.workspaceId })
+						.from(workspacePurgeTombstones)
+						.leftJoin(
+							workspaces,
+							eq(workspaces.id, workspacePurgeTombstones.workspaceId),
+						)
+						.where(
+							and(
+								inArray(
+									workspacePurgeTombstones.workspaceId,
+									input.workspaceIds,
+								),
+								isNull(workspaces.id),
+							),
+						),
+				)
+				.all()
+				.filter(({ id }) => !isWorkspaceDestroyInFlight(id))
+				.map(({ id }) => id);
+		}),
+
 	get: protectedProcedure
 		.input(z.object({ id: z.string() }))
 		.query(({ ctx, input }) => {

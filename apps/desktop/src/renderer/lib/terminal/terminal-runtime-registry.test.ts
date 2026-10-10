@@ -14,6 +14,63 @@ import {
 } from "./terminal-runtime";
 import { terminalRuntimeRegistry } from "./terminal-runtime-registry";
 
+test("workspace cleanup releases only the removed pane of a shared terminal", async () => {
+	const { cleanupWorkspacePaneRuntimes } = await import(
+		"renderer/routes/_authenticated/utils/cleanupWorkspacePaneRuntimes"
+	);
+	const terminalId = "shared-cleanup";
+	const removed = {
+		terminalId,
+		instanceId: "removed-pane",
+		transport: { sessionEnded: true },
+	};
+	const survivor = {
+		terminalId,
+		instanceId: "surviving-pane",
+		transport: { sessionEnded: true },
+	};
+	const internals = terminalRuntimeRegistry as unknown as {
+		entries: Map<string, typeof removed>;
+		entryKeysByTerminalId: Map<string, Set<string>>;
+		disposeEntry: (entry: typeof removed) => void;
+	};
+	const dispose = spyOn(internals, "disposeEntry").mockImplementation(() => {});
+	const entries = [removed, survivor];
+	for (const entry of entries)
+		internals.entries.set(`${terminalId}\u0000${entry.instanceId}`, entry);
+	internals.entryKeysByTerminalId.set(
+		terminalId,
+		new Set(entries.map((entry) => `${terminalId}\u0000${entry.instanceId}`)),
+	);
+	try {
+		cleanupWorkspacePaneRuntimes([
+			{
+				workspaceId: "removed",
+				paneLayout: {
+					tabs: [
+						{
+							panes: {
+								pane: {
+									id: removed.instanceId,
+									kind: "terminal",
+									data: { terminalId },
+								},
+							},
+						},
+					],
+				},
+			},
+		]);
+		expect(dispose).toHaveBeenCalledTimes(1);
+		expect(dispose.mock.calls[0]?.[0]).toBe(removed);
+	} finally {
+		dispose.mockRestore();
+		for (const entry of entries)
+			internals.entries.delete(`${terminalId}\u0000${entry.instanceId}`);
+		internals.entryKeysByTerminalId.delete(terminalId);
+	}
+});
+
 test("new theme assignments reset query overrides while identical assignments preserve them", async () => {
 	const { getDefaultTerminalAppearance } = await import("./appearance");
 	const appearance = getDefaultTerminalAppearance();

@@ -1,4 +1,4 @@
-import { realpathSync } from "node:fs";
+import { realpath } from "node:fs/promises";
 import { resolve } from "node:path";
 import { eq } from "drizzle-orm";
 import { projects, workspaces } from "../../../db/schema";
@@ -46,21 +46,31 @@ export async function isLocalCheckoutWorkspace(
 				.sync()
 		: undefined;
 
-	const samePath =
-		local !== undefined &&
-		project !== undefined &&
-		normalizePath(local.worktreePath) === normalizePath(project.repoPath);
-
 	return {
 		local,
 		project,
-		sharesProjectCheckout: samePath || local?.type === "local",
+		sharesProjectCheckout: local
+			? await sharesProjectCheckout(local, project)
+			: false,
 	};
 }
 
-function normalizePath(p: string): string {
+export async function sharesProjectCheckout(
+	local: Pick<WorkspaceRow, "type" | "worktreePath">,
+	project: Pick<ProjectRow, "repoPath"> | undefined,
+): Promise<boolean> {
+	if (local.type === "local") return true;
+	if (!project) return false;
+	const [workspacePath, repoPath] = await Promise.all([
+		normalizePath(local.worktreePath),
+		normalizePath(project.repoPath),
+	]);
+	return workspacePath === repoPath;
+}
+
+async function normalizePath(p: string): Promise<string> {
 	try {
-		return realpathSync(p);
+		return await realpath(p);
 	} catch {
 		return resolve(p);
 	}

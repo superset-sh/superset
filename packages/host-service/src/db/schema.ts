@@ -83,6 +83,14 @@ export const terminalAgentBindings = sqliteTable(
 	],
 );
 
+export const workspacePurgeTombstones = sqliteTable(
+	"workspace_purge_tombstones",
+	{
+		workspaceId: text("workspace_id").primaryKey(),
+		purgedAt: integer("purged_at").notNull(),
+	},
+);
+
 export const projects = sqliteTable(
 	"projects",
 	{

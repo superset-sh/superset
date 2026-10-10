@@ -16,6 +16,31 @@ const browserRuntimeRegistry = new BrowserRuntimeRegistryImpl({
 	},
 } as unknown as ConstructorParameters<typeof BrowserRuntimeRegistryImpl>[0]);
 
+test("archived browser cleanup respects the current workspace owner", () => {
+	const paneId = "shared-browser-pane";
+	const entry = {
+		workspaceId: "live",
+		webview: { remove: mock(() => {}) },
+		overlay: { remove: () => {} },
+		detachHandlers: () => {},
+	};
+	const internals = browserRuntimeRegistry as unknown as {
+		entries: Map<string, typeof entry>;
+	};
+	internals.entries.set(paneId, entry);
+	try {
+		browserRuntimeRegistry.destroy(paneId, "archived");
+		expect(internals.entries.get(paneId)).toBe(entry);
+		expect(entry.webview.remove).not.toHaveBeenCalled();
+		browserRuntimeRegistry.destroy(paneId, "live");
+		browserRuntimeRegistry.destroy(paneId, "archived");
+		expect(internals.entries.has(paneId)).toBe(false);
+		expect(entry.webview.remove).toHaveBeenCalledTimes(1);
+	} finally {
+		internals.entries.delete(paneId);
+	}
+});
+
 describe("browserRuntimeRegistry detached persistence", () => {
 	test("retains its persistence callback for navigation completion after detach", async () => {
 		const paneId = "detached-navigation-pane";

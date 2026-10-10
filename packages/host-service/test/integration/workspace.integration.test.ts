@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { eq } from "drizzle-orm";
+import { projects, workspaces } from "../../src/db/schema";
+import { __testDestroysInFlight } from "../../src/trpc/router/workspace-cleanup/workspace-cleanup";
 import {
 	archiveLocalWorkspace,
 	unarchiveLocalWorkspace,
@@ -153,5 +156,107 @@ describe("workspace list archive semantics", () => {
 		unarchiveLocalWorkspace(storeCtx(), id);
 		const restored = await scenario.host.trpc.workspace.list.query();
 		expect(restored.map((w) => w.id)).toContain(id);
+	});
+
+	test("getArchivedIds confirms only completed destructive archives among requested IDs", async () => {
+		const candidates = ["deleted", "merged", "user", null].map(
+			(reason, index) => {
+				const { id } = seedWorkspace(scenario.host, {
+					projectId: scenario.projectId,
+					worktreePath: join(scenario.repo.repoPath, `missing-${index}`),
+					branch: `feature/${index}`,
+				});
+				scenario.host.db
+					.update(workspaces)
+					.set({
+						archivedAt: Date.now(),
+						archiveReason: reason,
+					})
+					.where(eq(workspaces.id, id))
+					.run();
+				return id;
+			},
+		);
+		const input = {
+			workspaceIds: [...candidates, scenario.workspaceId, "unknown"],
+		};
+		expect(
+			(await scenario.host.trpc.workspace.getArchivedIds.query(input)).sort(),
+		).toEqual(candidates.slice(0, 2).sort());
+		__testDestroysInFlight.add(candidates[0]);
+		try {
+			expect(
+				await scenario.host.trpc.workspace.getArchivedIds.query(input),
+			).toEqual([candidates[1]]);
+		} finally {
+			__testDestroysInFlight.delete(candidates[0]);
+		}
+		unarchiveLocalWorkspace(storeCtx(), candidates[0]);
+		expect(
+			await scenario.host.trpc.workspace.getArchivedIds.query({
+				workspaceIds: [candidates[0]],
+			}),
+		).toEqual([]);
+	});
+
+	test("getArchivedIds preserves recoverable project and interrupted-delete layouts", async () => {
+		const { id: interruptedId } = seedWorkspace(scenario.host, {
+			projectId: scenario.projectId,
+			worktreePath: join(scenario.repo.repoPath, ".git"),
+			branch: "feature/interrupted",
+		});
+		archiveLocalWorkspace(storeCtx(), interruptedId, "deleted");
+		expect(
+			await scenario.host.trpc.workspace.getArchivedIds.query({
+				workspaceIds: [interruptedId],
+			}),
+		).toEqual([]);
+		const { id } = seedWorkspace(scenario.host, {
+			projectId: scenario.projectId,
+			worktreePath: join(scenario.repo.repoPath, "missing"),
+			branch: "feature/deleted-project",
+		});
+		archiveLocalWorkspace(storeCtx(), id, "deleted");
+		scenario.host.db
+			.update(projects)
+			.set({ deletedAt: Date.now() })
+			.where(eq(projects.id, scenario.projectId))
+			.run();
+		expect(
+			await scenario.host.trpc.workspace.getArchivedIds.query({
+				workspaceIds: [id],
+			}),
+		).toEqual([]);
+	});
+
+	test("getArchivedIds confirms archived shared checkouts while preserving live and in-flight rows", async () => {
+		const input = { workspaceIds: [scenario.workspaceId] };
+		expect(
+			await scenario.host.trpc.workspace.getArchivedIds.query(input),
+		).toEqual([]);
+		archiveLocalWorkspace(storeCtx(), scenario.workspaceId, "deleted");
+		__testDestroysInFlight.add(scenario.workspaceId);
+		try {
+			expect(
+				await scenario.host.trpc.workspace.getArchivedIds.query(input),
+			).toEqual([]);
+		} finally {
+			__testDestroysInFlight.delete(scenario.workspaceId);
+		}
+		unarchiveLocalWorkspace(storeCtx(), scenario.workspaceId);
+		const deletion = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
+			workspaceId: scenario.workspaceId,
+		});
+		expect(deletion.success).toBe(true);
+		expect(
+			await scenario.host.trpc.workspace.getArchivedIds.query(input),
+		).toEqual([scenario.workspaceId]);
+		expect(
+			(
+				await scenario.host.trpc.workspace.get.query({
+					id: scenario.workspaceId,
+				})
+			).worktreeExists,
+		).toBe(true);
 	});
 });

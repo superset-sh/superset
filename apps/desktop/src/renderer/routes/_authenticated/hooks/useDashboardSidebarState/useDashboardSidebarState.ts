@@ -1,4 +1,3 @@
-import type { Pane } from "@superset/panes";
 import {
 	normalizeWorkspaceTag,
 	normalizeWorkspaceTags,
@@ -9,12 +8,6 @@ import { useCallback } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { isMissingProcedureError } from "renderer/lib/isMissingProcedureError";
-import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
-import { browserRuntimeRegistry } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
-import {
-	extractPaneIds,
-	type PaneLifecycleRow,
-} from "renderer/routes/_authenticated/components/utils/paneLifecycleRows";
 import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
@@ -25,6 +18,7 @@ import {
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { cleanupWorkspacePaneRuntimes } from "renderer/routes/_authenticated/utils/cleanupWorkspacePaneRuntimes";
 import {
 	applyFolderTagChange,
 	buildSidebarFolderKey,
@@ -254,26 +248,6 @@ function ensureSidebarWorkspaceRecord(
 		paneLayout: createEmptyPaneLayout(),
 		rightSidebarOpen: false,
 	});
-}
-
-function getTerminalRuntimeId(pane: Pane<unknown>): string | null {
-	if (pane.kind !== "terminal") return null;
-	if (!pane.data || typeof pane.data !== "object") return null;
-	const data = pane.data as { terminalId?: unknown };
-	return typeof data.terminalId === "string" ? data.terminalId : null;
-}
-
-function getBrowserRuntimeId(pane: Pane<unknown>): string | null {
-	return pane.kind === "browser" ? pane.id : null;
-}
-
-function cleanupWorkspacePaneRuntimes(rows: PaneLifecycleRow[]): void {
-	for (const terminalId of extractPaneIds(rows, getTerminalRuntimeId)) {
-		terminalRuntimeRegistry.release(terminalId);
-	}
-	for (const browserId of extractPaneIds(rows, getBrowserRuntimeId)) {
-		browserRuntimeRegistry.destroy(browserId);
-	}
 }
 
 export function useDashboardSidebarState() {

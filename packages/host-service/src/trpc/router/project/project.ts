@@ -867,7 +867,8 @@ export const projectRouter = router({
 			if (!(await purgeDeletedProject(ctx, input.projectId))) {
 				throw new TRPCError({
 					code: "PRECONDITION_FAILED",
-					message: "Only a deleted project can be deleted permanently",
+					message:
+						"Project could not be deleted permanently. It must be deleted first and all worktree cleanup must finish before retrying.",
 				});
 			}
 			return { success: true };
