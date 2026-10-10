@@ -623,7 +623,7 @@ if (!gotTheLock) {
 			console.error("[main] Failed to sync plugin MCP servers:", error);
 		}
 		try {
-			installBundledCliShim();
+			await installBundledCliShim();
 		} catch (error) {
 			console.error("[main] Failed to install bundled CLI shim:", error);
 		}

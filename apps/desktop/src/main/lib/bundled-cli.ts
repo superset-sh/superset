@@ -8,6 +8,17 @@ import {
 	unlinkSync,
 	writeFileSync,
 } from "node:fs";
+import {
+	chmod,
+	copyFile,
+	mkdir,
+	mkdtemp,
+	readFile,
+	rename,
+	rm,
+	stat,
+	writeFile,
+} from "node:fs/promises";
 import path from "node:path";
 import { getBinDir } from "@superset/agent-setup/paths";
 import { app } from "electron";
@@ -126,9 +137,69 @@ function shouldReplaceShim(shimPath: string): boolean {
 	}
 }
 
-export function installBundledCliShim(
+async function persistBundledCli(
+	binDir: string,
+	bundledCliPath: string,
+): Promise<string> {
+	const cliDir = path.join(binDir, ".superset-cli");
+	const cliPath = path.join(cliDir, "superset");
+	const metadataPath = path.join(cliDir, "installed.json");
+	const source = await stat(bundledCliPath);
+	const sourceIdentity = {
+		version: app.getVersion(),
+		size: source.size,
+		mtime: Math.trunc(source.mtimeMs),
+	};
+	const installedIdentity = async () => {
+		const installed = await stat(cliPath);
+		return {
+			size: installed.size,
+			mtime: installed.mtimeMs,
+			ctime: installed.ctimeMs,
+			ino: installed.ino,
+			mode: installed.mode,
+		};
+	};
+	try {
+		const expected = JSON.stringify({
+			source: sourceIdentity,
+			installed: await installedIdentity(),
+		});
+		if ((await readFile(metadataPath, "utf8")) === expected) return cliPath;
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+			console.warn("[bundled-cli] Could not read CLI cache metadata", error);
+		}
+	}
+	await mkdir(cliDir, { recursive: true });
+	const stagingDir = await mkdtemp(path.join(cliDir, ".install-"));
+	try {
+		const stagedPath = path.join(stagingDir, "superset");
+		await copyFile(bundledCliPath, stagedPath);
+		await chmod(stagedPath, 0o755);
+		await rename(stagedPath, cliPath);
+		try {
+			const stagedMetadata = path.join(stagingDir, "installed.json");
+			await writeFile(
+				stagedMetadata,
+				JSON.stringify({
+					source: sourceIdentity,
+					installed: await installedIdentity(),
+				}),
+			);
+			await rename(stagedMetadata, metadataPath);
+		} catch (error) {
+			console.warn("[bundled-cli] Could not persist CLI cache metadata", error);
+		}
+		return cliPath;
+	} finally {
+		await rm(stagingDir, { recursive: true, force: true });
+	}
+}
+
+export async function installBundledCliShim(
 	options: InstallBundledCliShimOptions = {},
-): BundledCliInstallStatus {
+): Promise<BundledCliInstallStatus> {
 	const platform = options.platform ?? process.platform;
 	const bundledCliPath =
 		options.bundledCliPath ?? resolveBundledCliPath(platform);
@@ -148,10 +219,14 @@ export function installBundledCliShim(
 	}
 
 	mkdirSync(binDir, { recursive: true });
+	const installedCliPath =
+		platform === "linux"
+			? await persistBundledCli(binDir, bundledCliPath)
+			: bundledCliPath;
 	if (existsSync(shimPath)) {
 		unlinkSync(shimPath);
 	}
-	writeFileSync(shimPath, buildBundledCliShim(bundledCliPath, platform), {
+	writeFileSync(shimPath, buildBundledCliShim(installedCliPath, platform), {
 		mode: platform === "win32" ? 0o644 : 0o755,
 	});
 
