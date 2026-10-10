@@ -85,6 +85,7 @@ function compactRow(row: ApplicationRow) {
 		applicationId: row.applicationId,
 		name: row.name,
 		email: row.email,
+		github: row.githubUrl,
 		role: row.roleTitle,
 		stage: row.stage,
 		outcome: row.outcome,
@@ -186,7 +187,7 @@ async function main() {
 			});
 			const { candidate } = detail;
 			const events = detail.events.map((event) => ({
-				at: event.occurredAt.toISOString().slice(0, 16),
+				at: event.occurredAt.toISOString().slice(0, 19),
 				kind: event.kind,
 				by: event.authorLabel ?? event.authorName,
 				text:
@@ -254,10 +255,15 @@ async function main() {
 			const row = await resolveCandidate(target);
 			const nextFollowUpOn =
 				text === "clear" || text === "none" ? null : parseFollowUp(text);
-			const result = await call("mutation", "updateApplication", {
+			await call("mutation", "updateApplication", {
 				applicationId: row.applicationId,
 				nextFollowUpOn,
 			} satisfies RouterInputs["hiring"]["updateApplication"]);
+			const result = {
+				name: row.name,
+				applicationId: row.applicationId,
+				nextFollowUpOn,
+			};
 			return out(result, result, () =>
 				console.log(
 					nextFollowUpOn
