@@ -151,9 +151,13 @@ test("watcher overflow reloads open files beneath the watched root and preserves
 	expect(f.doc.content).toMatchObject({ value: "TOKEN=generated" });
 	f.doc.setContent("EMAIL=edited");
 	f.overflow();
+	await f.resolve(2, "TOKEN=generated");
+	expect(f.doc.content).toMatchObject({ value: "EMAIL=edited" });
+	expect(f.doc.hasExternalChange).toBe(false);
+	f.overflow();
+	await f.resolve(3, "TOKEN=changed");
 	expect(f.doc.content).toMatchObject({ value: "EMAIL=edited" });
 	expect(f.doc.hasExternalChange).toBe(true);
-	expect(f.reads).toHaveLength(2);
 	await f.cleanup();
 });
 
