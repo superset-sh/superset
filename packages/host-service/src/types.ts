@@ -5,6 +5,7 @@ import type { TRPCClient } from "@trpc/client";
 import type { HostDb } from "./db";
 import type { EventBus } from "./events";
 import type { PageWatchManager } from "./page-watch/index.ts";
+import type { ApiAuthProvider } from "./providers/auth/types";
 import type { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider, GitFactory } from "./runtime/git";
 import type { PullRequestRuntimeManager } from "./runtime/pull-requests";
@@ -43,6 +44,10 @@ export interface HostServiceContext {
 	userId?: string;
 	/** Present only when a desktop app spawned this host (has browser panes). */
 	browserBridge?: BrowserBridgeConfig;
+	/** The credential this host calls the API with. */
+	apiAuth?: ApiAuthProvider;
+	/** True only for a request that did not come through the relay. */
+	isLocalCaller?: boolean;
 }
 
 export interface BrowserBridgeConfig {

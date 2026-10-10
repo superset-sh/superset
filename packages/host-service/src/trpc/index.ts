@@ -2,6 +2,11 @@ import * as Sentry from "@sentry/node";
 import { isI18nErrorCause } from "@superset/trpc/i18n-error";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
+import {
+	inaccessiblePathMessage,
+	isPermissionDenied,
+	permissionDeniedPath,
+} from "../runtime/path-state";
 import type { HostServiceContext } from "../types";
 import { readErrorDiagnostics } from "./error-diagnostics";
 import {
@@ -103,7 +108,27 @@ const sentryMiddleware = t.middleware(async ({ next, path, type }) => {
 	return result;
 });
 
-const baseProcedure = t.procedure.use(sentryMiddleware);
+const permissionDeniedMiddleware = t.middleware(async ({ next }) => {
+	const result = await next();
+	if (
+		!result.ok &&
+		result.error.code === "INTERNAL_SERVER_ERROR" &&
+		isPermissionDenied(result.error.cause)
+	) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: inaccessiblePathMessage(
+				permissionDeniedPath(result.error.cause),
+			),
+			cause: result.error.cause,
+		});
+	}
+	return result;
+});
+
+const baseProcedure = t.procedure
+	.use(sentryMiddleware)
+	.use(permissionDeniedMiddleware);
 
 export const router = t.router;
 export const createCallerFactory = t.createCallerFactory;

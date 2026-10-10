@@ -1,7 +1,10 @@
 import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
-import { SUPERSET_USER_ID_HEADER } from "@superset/shared/host-routing";
+import {
+	SUPERSET_RELAYED_HEADER,
+	SUPERSET_USER_ID_HEADER,
+} from "@superset/shared/host-routing";
 import { SANDBOX_PORTS } from "@superset/shared/sandbox-contract";
 
 /** One frame of a 1920x1200 display is ~9 MB; this is a stalled reader, not a burst. */
@@ -516,6 +519,8 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 						c.req.header("x-superset-client-machine-id") ?? undefined,
 					userId: c.req.header(SUPERSET_USER_ID_HEADER)?.trim() || undefined,
 					browserBridge: config.browserBridge,
+					apiAuth: providers.auth,
+					isLocalCaller: c.req.header(SUPERSET_RELAYED_HEADER) === undefined,
 				} as Record<string, unknown>;
 			},
 		}),

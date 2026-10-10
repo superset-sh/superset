@@ -3,7 +3,7 @@
 // host-service event loop. Credential env is resolved in-process (it needs
 // the credential provider) and crosses as plain data.
 
-import { existsSync, mkdirSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import {
 	getGitAuthorName,
@@ -12,6 +12,7 @@ import {
 } from "../../runtime/git/identity.ts";
 import { resolveRef } from "../../runtime/git/refs.ts";
 import { createUserSimpleGit } from "../../runtime/git/simple-git.ts";
+import { isMissingPath } from "../../runtime/path-state/index.ts";
 import {
 	readWorkspaceRefs,
 	type WorkspaceRefsSnapshot,
@@ -691,7 +692,7 @@ export const gitRestoreWorktreeTask = defineWorkerTask<
 				? { kind: "already-registered" }
 				: { kind: "registered-elsewhere", path: registeredPath };
 		}
-		if (existsSync(worktreePath)) return { kind: "path-occupied" };
+		if (!isMissingPath(worktreePath)) return { kind: "path-occupied" };
 
 		let ref = await resolveRef(git, branch, { remote: remoteName });
 		if (ref?.kind !== "local" && ref?.kind !== "remote-tracking") {

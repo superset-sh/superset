@@ -1,4 +1,3 @@
-import { existsSync, lstatSync, statSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
@@ -6,6 +5,7 @@ import { eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { pullRequests, workspaces } from "../../../db/schema";
 import { invalidateLabelCache } from "../../../ports/static-ports";
+import { isMissingPath } from "../../../runtime/path-state";
 import { coercePullRequestState } from "../../../runtime/pull-requests/utils/pull-request-mappers";
 import {
 	removeDevAppProfile,
@@ -402,26 +402,6 @@ async function runDestroy(
 
 /** "merged" when the linked PR was observed merged; every other delete —
  * open/closed/draft PR or none at all — is a plain "deleted". */
-/** existsSync also answers false for a path that exists but cannot be read;
- * this answers true only when the path is really absent. */
-function isMissingDirectory(path: string): boolean {
-	try {
-		return statSync(path, { throwIfNoEntry: false }) === undefined;
-	} catch {
-		return false;
-	}
-}
-
-/** Like isMissingDirectory, but does not follow a final symlink: a dangling
- * link at the worktree path is still an entry to remove, not an absence. */
-function isMissingPath(path: string): boolean {
-	try {
-		return lstatSync(path, { throwIfNoEntry: false }) === undefined;
-	} catch {
-		return false;
-	}
-}
-
 function archiveReasonFor(
 	ctx: HostServiceContext,
 	local: { pullRequestId: string | null },
@@ -496,7 +476,9 @@ async function runDestroyPhases(
 		// load-bearing: a corrupt worktreePath must never point rm -rf at
 		// user data, so anything outside the root is left on disk (warned)
 		// while the row delete proceeds.
-		worktreeRemoved = !existsSync(local.worktreePath);
+		worktreeRemoved = isMissingPath(local.worktreePath, {
+			followSymlinks: false,
+		});
 		if (!worktreeRemoved) {
 			if (!isInsideSessionsRoot(local.worktreePath)) {
 				warnings.push(
@@ -516,7 +498,9 @@ async function runDestroyPhases(
 			}
 		}
 	} else if (local && !project) {
-		worktreeRemoved = !existsSync(local.worktreePath);
+		worktreeRemoved = isMissingPath(local.worktreePath, {
+			followSymlinks: false,
+		});
 		if (!worktreeRemoved) {
 			warnings.push(
 				`Skipped worktree removal at ${local.worktreePath}: project metadata is missing`,
@@ -524,8 +508,10 @@ async function runDestroyPhases(
 		}
 	}
 	if (local && project && !sharesProjectCheckout) {
-		worktreeRemoved = !existsSync(local.worktreePath);
-		if (!worktreeRemoved && isMissingDirectory(project.repoPath)) {
+		worktreeRemoved = isMissingPath(local.worktreePath, {
+			followSymlinks: false,
+		});
+		if (!worktreeRemoved && isMissingPath(project.repoPath)) {
 			// The project repo was moved or deleted outside Superset: there is
 			// no repository to run `git worktree remove` in, and the worktree's
 			// gitdir pointer is already dead, so no retry can ever succeed.
@@ -606,7 +592,7 @@ async function runDestroyPhases(
 					}`,
 				});
 			}
-			if (!isMissingPath(local.worktreePath)) {
+			if (!isMissingPath(local.worktreePath, { followSymlinks: false })) {
 				// Unregistered is not removed: git's unregistration and its
 				// recursive delete are not atomic, so `remove --force --force`
 				// can drop the registration and still fail partway through
@@ -647,7 +633,9 @@ async function runDestroyPhases(
 			// rather than `existsSync`: a leftover this process cannot read,
 			// or a dangling symlink, still exists and must not be reported
 			// as removed.
-			worktreeRemoved = isMissingPath(local.worktreePath);
+			worktreeRemoved = isMissingPath(local.worktreePath, {
+				followSymlinks: false,
+			});
 		}
 	}
 

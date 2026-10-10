@@ -293,3 +293,61 @@ export type HandleOwnerType = z.infer<typeof handleOwnerTypeEnum>;
 /** How a person signed their agent in: a subscription token, or a provider API key. */
 export const agentCredentialKindValues = ["subscription", "api_key"] as const;
 export type AgentCredentialKind = (typeof agentCredentialKindValues)[number];
+
+export const hiringRoleStatusValues = ["open", "paused", "closed"] as const;
+export const hiringRoleStatusEnum = z.enum(hiringRoleStatusValues);
+export type HiringRoleStatus = z.infer<typeof hiringRoleStatusEnum>;
+
+export const hiringSourceValues = [
+	"power_user",
+	"referral",
+	"waas",
+	"inbound",
+	"outbound",
+] as const;
+export const hiringSourceEnum = z.enum(hiringSourceValues);
+export type HiringSource = z.infer<typeof hiringSourceEnum>;
+
+/** The furthest step reached. Ending a process sets `outcome` and keeps the stage. */
+export const hiringStageValues = [
+	"sourced",
+	"reached_out",
+	"screen",
+	"technical",
+	"system_design",
+	"work_trial",
+	"onsite",
+	"offer",
+] as const;
+export const hiringStageEnum = z.enum(hiringStageValues);
+export type HiringStage = z.infer<typeof hiringStageEnum>;
+
+export const hiringOutcomeValues = [
+	"active",
+	"hired",
+	"rejected",
+	"withdrew",
+	"not_looking",
+] as const;
+export const hiringOutcomeEnum = z.enum(hiringOutcomeValues);
+export type HiringOutcome = z.infer<typeof hiringOutcomeEnum>;
+
+export const hiringScoreValues = [
+	"strong_hire",
+	"lean_hire",
+	"lean_no_hire",
+	"strong_no_hire",
+] as const;
+export const hiringScoreEnum = z.enum(hiringScoreValues);
+export type HiringScore = z.infer<typeof hiringScoreEnum>;
+
+export const hiringEventKindValues = [
+	"note",
+	"stage_change",
+	"outcome_change",
+	"outreach",
+	"reply",
+	"interview",
+] as const;
+export const hiringEventKindEnum = z.enum(hiringEventKindValues);
+export type HiringEventKind = z.infer<typeof hiringEventKindEnum>;

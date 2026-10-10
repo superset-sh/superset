@@ -1,3 +1,4 @@
+import { SUPERSET_RELAYED_HEADER } from "@superset/shared/host-routing";
 import {
 	describeRelayClose,
 	type HttpDialFrame,
@@ -361,6 +362,7 @@ export class TunnelClient {
 					method: header.method,
 					headers: {
 						...header.headers,
+						[SUPERSET_RELAYED_HEADER]: "1",
 						Authorization: `Bearer ${this.options.hostServiceSecret}`,
 					},
 					body: size > 0 ? body : undefined,

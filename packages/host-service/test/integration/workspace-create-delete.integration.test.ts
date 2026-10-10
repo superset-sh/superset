@@ -408,8 +408,8 @@ describe("workspace.create + workspace.delete integration", () => {
 
 	test("create() does not classify a permission-walled project directory as NOT_FOUND", async () => {
 		// Only a genuine ENOENT means the project is gone. EACCES/EPERM (macOS
-		// privacy protection, a permissions accident) must keep surfacing as an
-		// unexpected error, not get silenced as a routine missing directory.
+		// privacy protection, a permissions accident) surface as a permission
+		// error, not as a routine missing directory.
 		// root ignores mode bits; Windows has neither getuid nor POSIX traversal denial
 		if (process.platform === "win32" || process.getuid?.() === 0) return;
 		const host = await createTestHost({
@@ -429,7 +429,10 @@ describe("workspace.create + workspace.delete integration", () => {
 					name: "locked repo ws",
 					branch: "feature/locked-repo",
 				}),
-			).rejects.toMatchObject({ data: { code: "INTERNAL_SERVER_ERROR" } });
+			).rejects.toMatchObject({
+				data: { code: "FORBIDDEN" },
+				message: expect.stringContaining("does not have permission to read"),
+			});
 		} finally {
 			chmodSync(lockedParent, 0o755);
 			await host.dispose();
