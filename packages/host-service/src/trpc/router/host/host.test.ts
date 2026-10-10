@@ -1,5 +1,12 @@
 import { describe, expect, it } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { TRPCError } from "@trpc/server";
+import {
+	ConfigFileSessionTokenSource,
+	JwtApiAuthProvider,
+} from "../../../providers/auth";
 import type { HostServiceContext } from "../../../types";
 import { hostRouter } from "./host";
 
@@ -53,16 +60,48 @@ describe("host.apiToken with a token near expiry", () => {
 					invalidated++;
 				},
 			},
-			invalidations: () => invalidated,
 		};
 	};
 
-	it("refreshes an expired token before giving it out", async () => {
+	it("refreshes the expired OAuth token of a host from `superset start`", async () => {
 		const fresh = jwtExpiringIn(3600);
-		const source = sourceOf([jwtExpiringIn(-60), fresh]);
-		const caller = callerFor({ isLocalCaller: true, apiAuth: source.apiAuth });
-		expect(await caller.apiToken()).toEqual({ token: fresh });
-		expect(source.invalidations()).toBe(1);
+		const tokenEndpoint = Bun.serve({
+			port: 0,
+			fetch: () =>
+				Response.json({
+					access_token: fresh,
+					refresh_token: "rt_next",
+					expires_in: 3600,
+				}),
+		});
+		const dir = mkdtempSync(join(tmpdir(), "host-api-token-"));
+		try {
+			const configPath = join(dir, "config.json");
+			writeFileSync(
+				configPath,
+				JSON.stringify({
+					auth: {
+						accessToken: jwtExpiringIn(-60),
+						refreshToken: "rt_stored",
+						expiresAt: Date.now() - 60_000,
+					},
+				}),
+			);
+			const apiUrl = `http://127.0.0.1:${tokenEndpoint.port}`;
+			const source = new ConfigFileSessionTokenSource({ configPath, apiUrl });
+			const apiAuth = new JwtApiAuthProvider({
+				getSessionToken: () => source.getSessionToken(),
+				onInvalidateCache: () => source.invalidateCache(),
+				apiUrl,
+			});
+
+			const caller = callerFor({ isLocalCaller: true, apiAuth });
+
+			expect(await caller.apiToken()).toEqual({ token: fresh });
+		} finally {
+			tokenEndpoint.stop(true);
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 
 	it("refuses when the refreshed token still expires within minutes", async () => {
