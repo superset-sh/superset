@@ -40,6 +40,7 @@ import {
 	parseThemeConfigFile,
 	type Theme,
 } from "shared/themes";
+import { useThemeDownload } from "./hooks/useThemeDownload";
 
 const MAX_THEME_FILE_SIZE = 256 * 1024; // 256 KB
 
@@ -152,6 +153,7 @@ export function ThemeSection() {
 	const searchQuery = useSettingsSearchQuery();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [isImporting, setIsImporting] = useState(false);
+	const { download, isDownloading } = useThemeDownload();
 	const activeThemeId = useThemeId();
 	const setTheme = useSetTheme();
 	const activeTheme = useThemeStore((state) => state.activeTheme);
@@ -343,12 +345,7 @@ export function ThemeSection() {
 		const blob = new Blob([JSON.stringify(baseConfig, null, 2)], {
 			type: "application/json",
 		});
-		const url = URL.createObjectURL(blob);
-		const link = document.createElement("a");
-		link.href = url;
-		link.download = "superset-theme-base.json";
-		link.click();
-		URL.revokeObjectURL(url);
+		void download(blob);
 	};
 
 	return (
@@ -451,6 +448,7 @@ export function ThemeSection() {
 						variant="outline"
 						size="sm"
 						onClick={handleDownloadBaseTheme}
+						disabled={isDownloading}
 					>
 						<HiOutlineArrowDownTray className="mr-1.5 h-4 w-4" />
 						<Trans>Download starter</Trans>
