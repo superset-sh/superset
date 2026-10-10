@@ -1,7 +1,5 @@
-import { string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import {
-	directionOption,
 	layoutResult,
 	resolvePanesClient,
 	terminalOptions,
@@ -11,13 +9,8 @@ import {
 
 export default command({
 	description:
-		"Split a pane and show a terminal in the new pane. Creates a terminal unless --terminal is set",
-	options: {
-		...workspaceOptions,
-		pane: string().required().desc("Pane to split"),
-		direction: directionOption().required(),
-		...terminalOptions,
-	},
+		"Open a new tab with a terminal pane. Creates a terminal unless --terminal is set",
+	options: { ...workspaceOptions, ...terminalOptions },
 	run: async ({ ctx, options }) => {
 		const client = await resolvePanesClient(ctx, options);
 		const result = await withPaneTerminal(
@@ -25,15 +18,13 @@ export default command({
 			options.workspace,
 			options,
 			(terminalId) =>
-				client.panes.split.mutate({
+				client.panes.newTab.mutate({
 					workspaceId: options.workspace,
-					paneId: options.pane,
-					direction: options.direction,
 					terminalId,
 				}),
 		);
 		return layoutResult(
-			`Split ${options.pane} ${options.direction}: pane ${result.paneId}, terminal ${result.terminalId}`,
+			`New tab ${result.tabId}: pane ${result.paneId}, terminal ${result.terminalId}`,
 			result,
 		);
 	},

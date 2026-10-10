@@ -240,6 +240,26 @@ export function applyPaneLayoutOp(
 			};
 		}
 
+		case "newTab": {
+			const paneId = createPaneId();
+			const next = runInStore(state, (store) =>
+				store.addTab({
+					panes: [
+						{
+							id: paneId,
+							kind: "terminal",
+							data: { terminalId: op.terminalId },
+						},
+					],
+				}),
+			);
+			return {
+				state: keepSelection(next),
+				paneId,
+				tabId: tabIdOf(next, paneId),
+			};
+		}
+
 		case "swap": {
 			const next = swapPanes(state, op.paneId, op.withPaneId);
 			return {

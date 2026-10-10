@@ -4,6 +4,7 @@ import type {
 	PaneLayoutOpResult,
 } from "@superset/shared/pane-layout-ops";
 import { useEffect } from "react";
+import { markTerminalForBackground } from "renderer/lib/terminal/terminal-background-intents";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -25,6 +26,23 @@ const EMPTY_LAYOUT: WorkspaceState<PaneViewerData> = {
 	activeTabId: null,
 };
 
+/** Keeps a terminal closed with `keepTerminal` from being re-adopted into a new tab. */
+function backgroundClosedTerminal(
+	state: WorkspaceState<PaneViewerData>,
+	workspaceId: string,
+	op: PaneLayoutOp,
+): void {
+	if (op.type !== "close" || !op.keepTerminal) return;
+	for (const tab of state.tabs) {
+		const pane = tab.panes[op.paneId];
+		if (pane?.kind === "terminal") {
+			const { terminalId } = pane.data as { terminalId: string };
+			markTerminalForBackground(terminalId, workspaceId);
+			return;
+		}
+	}
+}
+
 function runPaneLayoutOp(
 	collections: Pick<AppCollections, "v2WorkspaceLocalState">,
 	workspaceId: string,
@@ -34,6 +52,11 @@ function runPaneLayoutOp(
 	if (mounted) {
 		const { tabs, activeTabId } = mounted.getState();
 		const outcome = applyPaneLayoutOp({ version: 1, tabs, activeTabId }, op);
+		backgroundClosedTerminal(
+			{ version: 1, tabs, activeTabId },
+			workspaceId,
+			op,
+		);
 		if (op.type !== "list") mounted.getState().replaceState(outcome.state);
 		return { ...outcome, layout: describePaneLayout(outcome.state) };
 	}
@@ -51,6 +74,7 @@ function runPaneLayoutOp(
 			EMPTY_LAYOUT,
 	);
 	const outcome = applyPaneLayoutOp(previous, op);
+	backgroundClosedTerminal(previous, workspaceId, op);
 	if (op.type !== "list") {
 		collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
 			draft.paneLayout = outcome.state;

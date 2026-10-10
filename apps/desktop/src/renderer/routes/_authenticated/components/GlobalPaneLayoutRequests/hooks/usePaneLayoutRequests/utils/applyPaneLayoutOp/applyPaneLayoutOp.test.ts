@@ -54,6 +54,29 @@ function expectError(run: () => unknown, code: PaneLayoutOpError["code"]) {
 }
 
 describe("applyPaneLayoutOp", () => {
+	test("newTab adds a terminal tab without taking focus from an open tab", () => {
+		const { state, paneId, tabId } = applyPaneLayoutOp(
+			fixture(),
+			{ type: "newTab", terminalId: "t-new" },
+			() => "new",
+		);
+		expect(paneId).toBe("new");
+		expect(state.tabs).toHaveLength(3);
+		expect(state.tabs.find((tab) => tab.id === tabId)?.panes.new?.data).toEqual(
+			{ terminalId: "t-new" },
+		);
+		expect(state.activeTabId).toBe("tab-1");
+	});
+
+	test("newTab in an empty workspace makes the new tab active", () => {
+		const { state, tabId } = applyPaneLayoutOp(
+			{ version: 1, activeTabId: null, tabs: [] },
+			{ type: "newTab", terminalId: "t-new" },
+			() => "new",
+		);
+		expect(state.activeTabId).toBe(tabId);
+	});
+
 	test("split puts a terminal pane on the requested side and keeps focus", () => {
 		const { state, paneId, tabId } = applyPaneLayoutOp(
 			fixture(),

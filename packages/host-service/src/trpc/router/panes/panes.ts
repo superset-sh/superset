@@ -6,7 +6,10 @@ import { terminalSessions } from "../../../db/schema";
 import { PaneLayoutBridgeClient } from "../../../runtime/pane-layout-bridge/pane-layout-bridge-client";
 import type { HostServiceContext } from "../../../types";
 import { getLocalWorkspace } from "../../../workspaces/local-workspace-store";
-import { protectedProcedure, router } from "../../index";
+import { createCallerFactory, protectedProcedure, router } from "../../index";
+import { terminalRouter } from "../terminal";
+
+const createTerminalCaller = createCallerFactory(terminalRouter);
 
 type PaneLayoutOp = Parameters<PaneLayoutBridgeClient["apply"]>[0]["op"];
 
@@ -75,6 +78,16 @@ export const panesRouter = router({
 			});
 		}),
 
+	newTab: protectedProcedure
+		.input(z.object({ workspaceId: z.string(), terminalId: z.string().min(1) }))
+		.mutation(({ ctx, input }) => {
+			requireWorkspaceTerminal(ctx, input.workspaceId, input.terminalId);
+			return applyOp(ctx, input.workspaceId, {
+				type: "newTab",
+				terminalId: input.terminalId,
+			});
+		}),
+
 	resize: protectedProcedure
 		.input(paneInput.extend({ ratio: z.number().gt(0).lt(1) }))
 		.mutation(({ ctx, input }) =>
@@ -101,10 +114,27 @@ export const panesRouter = router({
 		),
 
 	close: protectedProcedure
-		.input(paneInput)
-		.mutation(({ ctx, input }) =>
-			applyOp(ctx, input.workspaceId, { type: "close", paneId: input.paneId }),
-		),
+		.input(paneInput.extend({ keepTerminal: z.boolean().default(false) }))
+		.mutation(async ({ ctx, input }) => {
+			const before = await applyOp(ctx, input.workspaceId, { type: "list" });
+			const terminalId = before.layout.tabs
+				.flatMap((tab) => tab.panes)
+				.find((pane) => pane.id === input.paneId)?.terminalId;
+			const result = await applyOp(ctx, input.workspaceId, {
+				type: "close",
+				paneId: input.paneId,
+				keepTerminal: input.keepTerminal,
+			});
+			// A live terminal left without a pane is re-adopted into a new tab
+			// by the desktop, so closing ends it unless it was backgrounded.
+			if (terminalId && !input.keepTerminal) {
+				await createTerminalCaller(ctx).killSession({
+					workspaceId: input.workspaceId,
+					terminalId,
+				});
+			}
+			return { ...result, terminalId: terminalId ?? null };
+		}),
 
 	move: protectedProcedure
 		.input(paneInput.extend({ targetPaneId: z.string(), direction }))

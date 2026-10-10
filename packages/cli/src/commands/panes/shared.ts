@@ -58,6 +58,47 @@ export async function callPanes<T>(call: () => Promise<T>): Promise<T> {
 	}
 }
 
+export const terminalOptions = {
+	terminal: string().desc("Existing terminal session to show in the new pane"),
+	command: string().desc("Command to run in the new terminal"),
+};
+
+/**
+ * Runs `place` with `terminal`, or with a terminal created for it. A created
+ * terminal is killed if placing it fails, so no orphan session is left.
+ */
+export async function withPaneTerminal<T>(
+	client: HostServiceClient,
+	workspaceId: string,
+	options: { terminal?: string | null; command?: string | null },
+	place: (terminalId: string) => Promise<T>,
+): Promise<T & { terminalId: string }> {
+	if (options.terminal && options.command) {
+		throw new CLIError(
+			"--command only applies to a new terminal",
+			"Drop --terminal to create one, or drop --command",
+		);
+	}
+	const terminalId =
+		options.terminal ??
+		(
+			await client.terminal.createSession.mutate({
+				workspaceId,
+				initialCommand: options.command ?? undefined,
+			})
+		).terminalId;
+	try {
+		return { ...(await callPanes(() => place(terminalId))), terminalId };
+	} catch (error) {
+		if (!options.terminal) {
+			await client.terminal.killSession
+				.mutate({ workspaceId, terminalId })
+				.catch(() => {});
+		}
+		throw error;
+	}
+}
+
 function formatNode(
 	node: PaneLayoutNode,
 	tab: PaneLayoutTab,

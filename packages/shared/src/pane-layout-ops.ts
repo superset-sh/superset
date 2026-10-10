@@ -21,7 +21,11 @@ export const paneLayoutOpSchema = z.discriminatedUnion("type", [
 	}),
 	z.object({ type: z.literal("equalize"), tabId: z.string().optional() }),
 	z.object({ type: z.literal("focus"), paneId }),
-	z.object({ type: z.literal("close"), paneId }),
+	z.object({
+		type: z.literal("close"),
+		paneId,
+		keepTerminal: z.boolean().optional(),
+	}),
 	z.object({
 		type: z.literal("move"),
 		paneId,
@@ -29,6 +33,7 @@ export const paneLayoutOpSchema = z.discriminatedUnion("type", [
 		direction,
 	}),
 	z.object({ type: z.literal("moveToNewTab"), paneId }),
+	z.object({ type: z.literal("newTab"), terminalId: z.string().min(1) }),
 	z.object({ type: z.literal("swap"), paneId, withPaneId: paneId }),
 ]);
 
