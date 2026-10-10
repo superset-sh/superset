@@ -19,7 +19,10 @@ import { track } from "renderer/lib/analytics";
 import { setAuthToken } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { SupersetLogo } from "./components/SupersetLogo";
-import { useSessionRecovery } from "./hooks/useSessionRecovery";
+import {
+	isNetworkFetchError,
+	useSessionRecovery,
+} from "./hooks/useSessionRecovery";
 
 export const Route = createFileRoute("/sign-in/")({
 	component: SignInPage,
@@ -33,6 +36,20 @@ const SESSION_PENDING_TIMEOUT_MS = 15_000;
 
 type AuthMethod = AuthProvider | "dev";
 
+/**
+ * The host of a configured API URL, or the raw value when it cannot be parsed.
+ * The sign-in screen names the API it could not reach; under
+ * SKIP_ENV_VALIDATION that value is whatever the developer exported, so parsing
+ * it must not be able to throw out of the render (#7881 review).
+ */
+function safeHost(url: string): string {
+	try {
+		return new URL(url).host;
+	} catch {
+		return url;
+	}
+}
+
 function readLastUsedMethod(): AuthMethod | null {
 	const stored = window.localStorage.getItem(LAST_USED_METHOD_KEY);
 	return stored === "github" || stored === "google" || stored === "dev"
@@ -40,20 +57,39 @@ function readLastUsedMethod(): AuthMethod | null {
 		: null;
 }
 
-function SignInPage() {
+export function SignInPage() {
 	const signInMutation = electronTrpc.auth.signIn.useMutation();
 	const persistToken = electronTrpc.auth.persistToken.useMutation();
 	const navigate = useNavigate();
 	const [isLoadingDev, setIsLoadingDev] = useState(false);
 	const [devError, setDevError] = useState<string | null>(null);
 	const [lastUsedMethod, setLastUsedMethod] = useState(readLastUsedMethod);
-	const { hasLocalToken, isPending, session } = useSessionRecovery();
+	const { hasLocalToken, isPending, session, sessionError, refetchSession } =
+		useSessionRecovery();
+	// A session fetch that died on the network (blocked DNS, intercepted TLS,
+	// VPN down) leaves a signed-in user on this screen with no explanation, so
+	// name the API it could not reach instead of showing the sign-in form.
+	const apiUnreachable = hasLocalToken && isNetworkFetchError(sessionError);
+	// Parsed only when it is going to be shown, and through a guard: this sits
+	// above the dev bypass below, and with SKIP_ENV_VALIDATION the renderer uses
+	// raw env values, so an empty or malformed NEXT_PUBLIC_API_URL would throw
+	// out of the render before that bypass could run (#7881 review).
+	const apiHost = apiUnreachable ? safeHost(env.NEXT_PUBLIC_API_URL) : "";
 	// A session fetch that never settles must not trap the user on a spinner —
 	// fall through to the sign-in buttons after a while (#5729).
 	const pendingTimedOut = useDelayElapsed(
 		isPending,
 		SESSION_PENDING_TIMEOUT_MS,
 	);
+	// refetchSession is the raw better-auth refetch, which rejects when the API
+	// is still unreachable (a fetch TypeError). An unhandled rejection would
+	// surface in the console exactly when this Retry button is the only path
+	// left, so swallow and log it the same way the recovery hook does.
+	const onRetrySession = () => {
+		void Promise.resolve(refetchSession()).catch((error: unknown) => {
+			console.warn("[sign-in] session retry refetch failed", error);
+		});
+	};
 
 	// Dev bypass: skip sign-in entirely
 	if (env.SKIP_ENV_VALIDATION) {
@@ -175,6 +211,23 @@ function SignInPage() {
 							)}
 						</p>
 					</div>
+
+					{apiUnreachable && (
+						<div className="flex flex-col items-center gap-3 mb-8">
+							<p className="text-sm text-destructive text-center select-text cursor-text">
+								<Trans>
+									Can't reach {apiHost}. Check your network, VPN, or DNS filter.
+								</Trans>
+							</p>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => onRetrySession()}
+							>
+								<Trans>Retry</Trans>
+							</Button>
+						</div>
+					)}
 
 					<div className="flex flex-col gap-3 w-full max-w-xs">
 						{env.NODE_ENV === "development" && (

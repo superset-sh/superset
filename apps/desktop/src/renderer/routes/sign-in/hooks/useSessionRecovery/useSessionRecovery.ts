@@ -35,8 +35,26 @@ export function nextRecoveryDelayMs(
 	return Math.min(backoff * (0.5 + random), SESSION_RECOVERY_MAX_DELAY_MS);
 }
 
+/**
+ * True when the session request never reached the API at all. `fetch` rejects
+ * with a TypeError on DNS, TLS and connection failures, and any request that
+ * got an answer carries an HTTP status, so a missing status means the request
+ * died on the way out. Without this the page renders the same "no session"
+ * state for an unreachable API as for a signed-out user.
+ */
+export function isNetworkFetchError(error: unknown): boolean {
+	if (!error) return false;
+	if (error instanceof TypeError) return true;
+	return typeof (error as { status?: unknown }).status !== "number";
+}
+
 export function useSessionRecovery() {
-	const { data: session, isPending, refetch } = authClient.useSession();
+	const {
+		data: session,
+		isPending,
+		refetch,
+		error: sessionError,
+	} = authClient.useSession();
 	const isOnline = useOnlineStatus();
 	const hasLocalToken = !!getAuthToken();
 
@@ -137,5 +155,7 @@ export function useSessionRecovery() {
 		hasLocalToken,
 		isPending,
 		session,
+		sessionError,
+		refetchSession: refetch,
 	};
 }

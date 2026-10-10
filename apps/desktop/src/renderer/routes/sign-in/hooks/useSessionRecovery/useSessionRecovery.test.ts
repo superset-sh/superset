@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+	isNetworkFetchError,
 	nextRecoveryDelayMs,
 	SESSION_RECOVERY_BASE_DELAY_MS,
 	SESSION_RECOVERY_MAX_ATTEMPTS,
@@ -70,7 +71,31 @@ describe("nextRecoveryDelayMs", () => {
 			const hi = nextRecoveryDelayMs(a, 1);
 			expect(lo).not.toBe(null);
 			expect(lo as number).toBeGreaterThan(0);
-			expect(hi as number).toBeGreaterThanOrEqual(lo as number);
+			expect(hi).toBeGreaterThanOrEqual(lo as number);
 		}
+	});
+});
+
+describe("isNetworkFetchError", () => {
+	it("treats a rejected fetch as an unreachable API", () => {
+		expect(isNetworkFetchError(new TypeError("Failed to fetch"))).toBe(true);
+	});
+
+	it("treats any error without an HTTP status as unreachable", () => {
+		expect(isNetworkFetchError(new Error("socket hang up"))).toBe(true);
+	});
+
+	it("leaves answered requests alone, even a rejected session", () => {
+		expect(isNetworkFetchError({ status: 401, message: "Unauthorized" })).toBe(
+			false,
+		);
+		expect(isNetworkFetchError({ status: 500, message: "Server error" })).toBe(
+			false,
+		);
+	});
+
+	it("reports nothing when no request failed", () => {
+		expect(isNetworkFetchError(null)).toBe(false);
+		expect(isNetworkFetchError(undefined)).toBe(false);
 	});
 });

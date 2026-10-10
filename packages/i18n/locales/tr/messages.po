@@ -3340,6 +3340,9 @@ msgstr "Uzak çalışma alanı yolları harici düzenleyicide açılamaz"
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Uzak çalışma alanı yolları Finder'da açılamaz"
 
+msgid "Can't reach {apiHost}. Check your network, VPN, or DNS filter."
+msgstr "{apiHost} adresine ulaşılamıyor. Ağınızı, VPN'inizi veya DNS filtrenizi kontrol edin."
+
 msgid "Cancel"
 msgstr "İptal"
 

@@ -3340,6 +3340,9 @@ msgstr "Impossibile aprire i percorsi di un workspace remoto in un editor estern
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Impossibile aprire i percorsi di un workspace remoto nel Finder"
 
+msgid "Can't reach {apiHost}. Check your network, VPN, or DNS filter."
+msgstr "Impossibile raggiungere {apiHost}. Controlla la rete, la VPN o il filtro DNS."
+
 msgid "Cancel"
 msgstr "Annulla"
 

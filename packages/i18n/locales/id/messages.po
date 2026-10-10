@@ -3340,6 +3340,9 @@ msgstr "Tidak bisa membuka path workspace jarak jauh di editor eksternal"
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Tidak bisa membuka path workspace jarak jauh di Finder"
 
+msgid "Can't reach {apiHost}. Check your network, VPN, or DNS filter."
+msgstr "Tidak dapat menjangkau {apiHost}. Periksa jaringan, VPN, atau filter DNS Anda."
+
 msgid "Cancel"
 msgstr "Batal"
 

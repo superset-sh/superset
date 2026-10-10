@@ -3340,6 +3340,9 @@ msgstr "Пути удалённых рабочих областей нельзя
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Пути удалённых рабочих областей нельзя открыть в Finder"
 
+msgid "Can't reach {apiHost}. Check your network, VPN, or DNS filter."
+msgstr "Не удаётся подключиться к {apiHost}. Проверьте сеть, VPN или DNS-фильтр."
+
 msgid "Cancel"
 msgstr "Отмена"
 
