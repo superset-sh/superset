@@ -382,6 +382,10 @@ msgstr "{0}差で後続"
 msgid "{0} branch"
 msgstr "{0} の分岐"
 
+#. placeholder {0}: list.data.length
+msgid "{0} candidates"
+msgstr "候補者 {0} 人"
+
 #. placeholder {0}: params?.agent
 msgid "{0} cannot be signed in this way yet."
 msgstr "{0}はまだこの方法ではサインインできません。"
@@ -828,6 +832,9 @@ msgstr "{count}台のホストがこのアプリより古いホストサービ�
 
 msgid "{count}/day"
 msgstr "{count}/日"
+
+msgid "{current} of {total}"
+msgstr "{current} / {total}"
 
 msgid "{currentPage} of {totalBranches}"
 msgstr "{currentPage}/{totalBranches}"
@@ -1695,6 +1702,9 @@ msgstr "説明を追加…"
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "プロジェクト設定でライフサイクルの実行スクリプトを追加するか、ターミナルスクリプトをワークスペース実行に指定してください。"
 
+msgid "Add a note… (⌘↵ to save)"
+msgstr "メモを追加…（⌘↵ で保存）"
+
 msgid "Add a project to see GitHub issues."
 msgstr "プロジェクトを追加するとGitHub issueが表示されます。"
 
@@ -1736,6 +1746,9 @@ msgstr "添付ファイルを追加"
 
 msgid "Add Attachment"
 msgstr "添付ファイルを追加"
+
+msgid "Add candidate"
+msgstr "候補者を追加"
 
 msgid "Add command"
 msgstr "コマンドを追加"
@@ -1893,6 +1906,9 @@ msgstr "ベースとの差分"
 
 msgid "Against Main"
 msgstr "mainとの比較"
+
+msgid "agent"
+msgstr "エージェント"
 
 msgid "Agent"
 msgstr "エージェント"
@@ -2142,6 +2158,9 @@ msgstr "すべてのリポジトリ"
 msgid "All reviews"
 msgstr "すべてのレビュー"
 
+msgid "All roles"
+msgstr "すべての職種"
+
 msgid "All runs"
 msgstr "すべての実行"
 
@@ -2153,6 +2172,9 @@ msgstr "アップグレード後もすべてのセッションが維持されま
 
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "すべてのセッションを閉じ、新しいデーモンが動作しています。"
+
+msgid "All sources"
+msgstr "すべての経路"
 
 msgid "All tasks"
 msgstr "すべてのタスク"
@@ -2213,6 +2235,9 @@ msgstr "すでにアカウントをお持ちですか?<0>サインイン</0>"
 
 msgid "Already in tasks"
 msgstr "すでにタスクにあります"
+
+msgid "Already in the pipeline: {duplicateNames}"
+msgstr "すでにパイプラインにいます: {duplicateNames}"
 
 msgid "Also available as CommandDialog for ⌘K palettes"
 msgstr "⌘Kパレット向けにCommandDialogとしても利用できます"
@@ -3369,6 +3394,12 @@ msgstr "キャンセル済み"
 #. placeholder {0}: formatDate(cancelAt)
 msgid "Cancels {0} — downgrades to Free at the end of the billing period."
 msgstr "{0}をキャンセルします — 請求期間の終了時にFreeにダウングレードされます。"
+
+msgid "Candidate"
+msgstr "候補者"
+
+msgid "Candidate not found."
+msgstr "候補者が見つかりません。"
 
 msgid "Cannot {action}: no active organization is selected. Select an organization or sign in again."
 msgstr "{action}ことができません: アクティブな組織が選択されていません。組織を選択するか、もう一度サインインしてください。"
@@ -5569,6 +5600,9 @@ msgstr "現在のプラン"
 msgid "Current tab"
 msgstr "現在のタブ"
 
+msgid "Current title"
+msgstr "現在の役職"
+
 msgid "Cursor"
 msgstr "カーソル"
 
@@ -6751,6 +6785,9 @@ msgstr "各エージェントは専用の Git worktree とブランチで動作�
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "すべての軸が次のティアのために働いています。これを維持すればティアは付いてきます。"
 
+msgid "Every candidate, where they are, and who owes the next move."
+msgstr "すべての候補者の状況と、次に動くべき人。"
+
 msgid "Every day at 3:00 AM"
 msgstr "毎日 午前3:00"
 
@@ -7751,6 +7788,9 @@ msgstr "LinkedInでフォロー"
 msgid "Follow us on X/Twitter"
 msgstr "X/Twitterでフォロー"
 
+msgid "Follow-up"
+msgstr "フォローアップ"
+
 msgid "Font family"
 msgstr "フォントファミリー"
 
@@ -8307,6 +8347,12 @@ msgstr "重要度: 高"
 msgid "High usage"
 msgstr "使用量高"
 
+msgid "Hired"
+msgstr "採用"
+
+msgid "Hiring"
+msgstr "採用"
+
 msgid "history"
 msgstr "履歴"
 
@@ -8719,6 +8765,9 @@ msgstr "アプリ内ブラウザ"
 msgid "In-app PR merge"
 msgstr "アプリ内でのPRマージ"
 
+msgid "Inbound"
+msgstr "応募"
+
 msgid "Inbox triage"
 msgstr "受信トレイの仕分け"
 
@@ -8885,6 +8934,9 @@ msgstr "中断"
 
 msgid "Interrupted"
 msgstr "中断されました"
+
+msgid "Interview"
+msgstr "面接"
 
 msgid "Intro call"
 msgstr "カジュアル面談"
@@ -9247,6 +9299,12 @@ msgstr "エージェントの最終アクティビティ {0}"
 msgid "Last attached"
 msgstr "最終接続"
 
+msgid "Last contact"
+msgstr "最終連絡"
+
+msgid "Last contact {lastContact}"
+msgstr "最終連絡 {lastContact}"
+
 msgid "Last day of each month"
 msgstr "毎月末日"
 
@@ -9321,6 +9379,12 @@ msgstr "リーダーボード設定"
 
 msgid "Leaf"
 msgstr "葉"
+
+msgid "Lean hire"
+msgstr "やや採用"
+
+msgid "Lean no hire"
+msgstr "やや不採用"
 
 msgid "Learn"
 msgstr "学ぶ"
@@ -9879,6 +9943,9 @@ msgstr "未読にする"
 msgid "Mark as viewed"
 msgstr "確認済みにする"
 
+msgid "Mark hired"
+msgstr "採用済みにする"
+
 msgid "Mark Ready"
 msgstr "レビュー可能にする"
 
@@ -10278,6 +10345,9 @@ msgstr "ソフトウェアの歴史のほとんど"
 msgid "Move {count} to Group"
 msgstr "{count}件をグループへ移動"
 
+msgid "Move to {nextStageLabel}"
+msgstr "{nextStageLabel} に進める"
+
 msgid "Move to Center"
 msgstr "中央に移動"
 
@@ -10507,6 +10577,9 @@ msgstr "新規プロジェクト"
 msgid "New push to branch"
 msgstr "ブランチへの新規プッシュ"
 
+msgid "New role…"
+msgstr "新しい職種…"
+
 msgid "New session"
 msgstr "新規セッション"
 
@@ -10585,6 +10658,9 @@ msgstr "次へ"
 msgid "Next branch"
 msgstr "次のブランチ"
 
+msgid "Next candidate"
+msgstr "次の候補者"
+
 msgid "Next comment"
 msgstr "次のコメント"
 
@@ -10603,6 +10679,9 @@ msgstr "次回の実行は3日後"
 
 msgid "Next slide"
 msgstr "次のスライド"
+
+msgid "Next step"
+msgstr "次のステップ"
 
 msgid "Next Tab"
 msgstr "次のタブ"
@@ -10827,6 +10906,9 @@ msgstr "対応している形式のファイルがありません。"
 
 msgid "No files match your search"
 msgstr "検索に一致するファイルがありません"
+
+msgid "No follow-ups due. Nice."
+msgstr "期限のフォローアップはありません。お見事。"
 
 msgid "No fonts found."
 msgstr "フォントが見つかりません。"
@@ -11216,6 +11298,9 @@ msgstr "プロンプトなし起動"
 msgid "No. Your agents stay independent; Superset is the orchestration layer around them. Each task gets an isolated Git worktree, persistent sessions, diff review, and scheduled runs without tying the workflow to one provider."
 msgstr "いいえ。エージェントは独立したままで、Supersetはその周りのオーケストレーション層です。タスクごとに独立したGitワークツリー、永続的なセッション、差分レビュー、スケジュール実行が手に入り、ワークフローが特定のプロバイダーに縛られることもありません。"
 
+msgid "Nobody"
+msgstr "なし"
+
 msgid "Nobody has joined the board yet."
 msgstr "まだ誰も参加していません。"
 
@@ -11294,6 +11379,9 @@ msgstr "含まれない"
 msgid "Not loaded"
 msgstr "未読み込み"
 
+msgid "Not looking"
+msgstr "転職意向なし"
+
 msgid "Not now"
 msgstr "あとで"
 
@@ -11308,6 +11396,9 @@ msgstr "まだイベントを受信していません: Microsoft Graphが通知�
 
 msgid "Not reviewed by you"
 msgstr "自分がレビューしていない"
+
+msgid "Not scored"
+msgstr "未評価"
 
 msgid "Not sent"
 msgstr "未送信"
@@ -11373,6 +11464,9 @@ msgstr "通知"
 msgid "Notion is not configured for this environment."
 msgstr "この環境ではNotionが設定されていません。"
 
+msgid "Notion page"
+msgstr "Notion ページ"
+
 msgid "now"
 msgstr "今"
 
@@ -11419,6 +11513,9 @@ msgstr "全トークン中"
 
 msgid "Off"
 msgstr "オフ"
+
+msgid "Offer"
+msgstr "オファー"
 
 #. placeholder {0}: COMPANY.NAME
 msgid "Official documentation for {0}, the app for running 100+ coding agents in parallel."
@@ -11595,6 +11692,9 @@ msgstr "自分のみ"
 
 msgid "Only you can see this page"
 msgstr "このページはあなただけが閲覧できます"
+
+msgid "Onsite"
+msgstr "オンサイト"
 
 msgid "open"
 msgstr "開く"
@@ -12170,6 +12270,12 @@ msgstr "2026年8月時点の当社の見立てです。自チームと、近く�
 msgid "Out of scope"
 msgstr "スコープ外"
 
+msgid "Outbound"
+msgstr "アウトバウンド"
+
+msgid "Outcome change"
+msgstr "結果の変更"
+
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "成果を入力すれば、ソフトウェアが出てきます。人間は意図、制約、予算を指定します。工場は自らスケジュールを組み、継続的に出荷し、出荷したものを監視し、自らロールバックします。ほとんどの変更は人間を介さずマージされ、それでもインシデント率は上がりません。"
 
@@ -12193,6 +12299,9 @@ msgstr "出力スキーマ"
 
 msgid "Output truncated"
 msgstr "出力は省略されました"
+
+msgid "Outreach"
+msgstr "アプローチ"
 
 msgid "Overflow Fade"
 msgstr "Overflow Fade"
@@ -12488,6 +12597,9 @@ msgstr "個人"
 msgid "Phantom Forklift"
 msgstr "幻のフォークリフト"
 
+msgid "Phone"
+msgstr "電話"
+
 msgid "Phone number"
 msgstr "電話番号"
 
@@ -12523,6 +12635,9 @@ msgstr "プロジェクトの場所を選択してください"
 
 msgid "Pick a reason"
 msgstr "理由を選択"
+
+msgid "Pick a role"
+msgstr "職種を選択"
 
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "サウンドを選ぶか、独自の音声を追加してください。カスタム音声は.mp3、.wav、.ogg対応です。"
@@ -12574,6 +12689,9 @@ msgstr "ピンク"
 
 msgid "Pinned"
 msgstr "ピン留め済み"
+
+msgid "Pipeline"
+msgstr "パイプライン"
 
 msgid "PK"
 msgstr "PK"
@@ -12696,6 +12814,9 @@ msgstr "ポスト"
 
 msgid "Post comment"
 msgstr "コメントを投稿"
+
+msgid "Power user"
+msgstr "パワーユーザー"
 
 msgid "PR"
 msgstr "PR"
@@ -12822,6 +12943,9 @@ msgstr "前へ"
 
 msgid "Previous branch"
 msgstr "前のブランチ"
+
+msgid "Previous candidate"
+msgstr "前の候補者"
 
 msgid "Previous comment"
 msgstr "前のコメント"
@@ -13263,6 +13387,9 @@ msgstr "到達"
 msgid "Reached a dashboard page"
 msgstr "ダッシュボードページに到達"
 
+msgid "Reached out"
+msgstr "連絡済み"
+
 msgid "React layer of the shared pane/workspace layout engine"
 msgstr "共有のペイン/ワークスペースレイアウトエンジンのReact層"
 
@@ -13444,6 +13571,9 @@ msgstr "参照先"
 msgid "Referral"
 msgstr "リファラル"
 
+msgid "Referred by"
+msgstr "紹介者"
+
 msgid "Refresh"
 msgstr "更新"
 
@@ -13479,6 +13609,9 @@ msgstr "組み込みのエージェントと並べて、任意のCLIエージェ
 
 msgid "Registers lifecycle hooks in this agent's global config so Superset can show status and send notifications. Turning this off removes Superset's entries everywhere — status and notifications stop for this agent, including inside Superset."
 msgstr "このエージェントのグローバル設定にライフサイクルフックを登録し、Supersetがステータス表示と通知を行えるようにします。オフにするとSupersetのエントリがすべて削除され、Superset内も含めてこのエージェントのステータスと通知が停止します。"
+
+msgid "Rejected"
+msgstr "不採用"
 
 msgid "Related Posts"
 msgstr "関連記事"
@@ -14256,6 +14389,9 @@ msgstr "ロール"
 msgid "Role changed to {newRoleName}"
 msgstr "ロールを{newRoleName}に変更しました"
 
+msgid "Role title"
+msgstr "職種名"
+
 msgid "Role updated"
 msgstr "ロールを更新しました"
 
@@ -14558,9 +14694,15 @@ msgstr "SCIMプロビジョニング"
 msgid "Scope"
 msgstr "範囲"
 
+msgid "Score"
+msgstr "評価"
+
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "Scoring starts once the board can see {0} days of usage."
 msgstr "{0}日分の使用状況がそろうとスコアリングが始まります。"
+
+msgid "Screening call"
+msgstr "カジュアル面談"
 
 msgid "Screenshot copied to clipboard"
 msgstr "スクリーンショットをクリップボードにコピーしました"
@@ -14688,6 +14830,9 @@ msgstr "Linearを検索…"
 
 msgid "Search models"
 msgstr "モデルを検索"
+
+msgid "Search name, email, company, GitHub"
+msgstr "名前、メール、会社、GitHub を検索"
 
 msgid "Search pages"
 msgstr "ページを検索"
@@ -15662,6 +15807,9 @@ msgstr "このワークスペースを、インストール済みのものも含
 msgid "Snooze"
 msgstr "スヌーズ"
 
+msgid "Snooze 3 days"
+msgstr "3日後に再通知"
+
 msgid "so a border on two edges of the rotated square always faces outward."
 msgstr "回転した正方形の2辺の枠線が常に外側を向きます。"
 
@@ -15762,6 +15910,9 @@ msgstr "ソース公開"
 
 msgid "Source path (not an import)"
 msgstr "ソースパス(インポートパスではありません)"
+
+msgid "Sourced"
+msgstr "ソーシング"
 
 msgid "Sources"
 msgstr "Sources"
@@ -15874,8 +16025,14 @@ msgstr "積み重ね"
 msgid "Staff Software Engineer, Vori"
 msgstr "スタッフソフトウェアエンジニア、Vori"
 
+msgid "Stage"
+msgstr "ステージ"
+
 msgid "Stage all"
 msgstr "すべてステージ"
+
+msgid "Stage change"
+msgstr "ステージの変更"
 
 msgid "Stage file"
 msgstr "ファイルをステージ"
@@ -16156,6 +16313,12 @@ msgstr "Stripe収益"
 
 msgid "Stripe's own Sigma MRR report, computed on demand via the Query Run API"
 msgstr "StripeのSigma MRRレポートをQuery Run APIでオンデマンド計算"
+
+msgid "Strong hire"
+msgstr "強く採用"
+
+msgid "Strong no hire"
+msgstr "強く不採用"
 
 msgid "Structure, scrolling, and overflow handling"
 msgstr "構造、スクロール、オーバーフローの処理"
@@ -16444,6 +16607,10 @@ msgstr "Supersetは各接続を暗号化して保存します。ツール呼び�
 
 msgid "Superset UI"
 msgstr "Superset UI"
+
+#. placeholder {0}: supersetUser.email
+msgid "Superset user · {0}"
+msgstr "Superset ユーザー · {0}"
 
 #. placeholder {0}: formatPercent(trackedMemorySharePercent)
 msgid "Superset uses {0} of system RAM"
@@ -17847,6 +18014,9 @@ msgstr "支出合計"
 msgid "Total tokens published"
 msgstr "公開したトークンの合計"
 
+msgid "Touched"
+msgstr "連絡した"
+
 msgid "Trace charges and subscriptions"
 msgstr "課金とサブスクリプションを追跡"
 
@@ -18881,6 +19051,9 @@ msgstr "初期ユーザーの声"
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google が私たちをどの検索で表示しているか、そのうち自社名以外がどれだけか。"
 
+msgid "What happens next"
+msgstr "今後の流れ"
+
 msgid "What has to become true"
 msgstr "成立していなければならない条件"
 
@@ -19031,11 +19204,17 @@ msgstr "添付の有無を問わず"
 msgid "With the Superset mobile app, I can address production issues from anywhere."
 msgstr "Supersetのモバイルアプリがあれば、どこからでも本番環境の問題に対応できます。"
 
+msgid "Withdrew"
+msgstr "辞退"
+
 msgid "Wordmark, black"
 msgstr "ワードマーク（黒）"
 
 msgid "Wordmark, white"
 msgstr "ワードマーク（白）"
+
+msgid "Work at a Startup"
+msgstr "Work at a Startup"
 
 msgid "Work email"
 msgstr "勤務先のメールアドレス"
@@ -19045,6 +19224,9 @@ msgstr "チケットから作業を始める"
 
 msgid "Work the action items from a call"
 msgstr "通話のアクションアイテムを処理"
+
+msgid "Work trial"
+msgstr "トライアル勤務"
 
 msgid "Work with your agents across your favorite tools"
 msgstr "お気に入りのツールでエージェントと連携"

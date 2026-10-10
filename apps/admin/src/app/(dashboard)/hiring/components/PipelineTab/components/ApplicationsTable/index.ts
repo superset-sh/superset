@@ -1,0 +1,1 @@
+export { ApplicationsTable } from "./ApplicationsTable";

@@ -382,6 +382,10 @@ msgstr "{0} za vámi"
 msgid "{0} branch"
 msgstr "{0} větev"
 
+#. placeholder {0}: list.data.length
+msgid "{0} candidates"
+msgstr "Kandidáti: {0}"
+
 #. placeholder {0}: params?.agent
 msgid "{0} cannot be signed in this way yet."
 msgstr "{0} se zatím nedá přihlásit tímto způsobem."
@@ -828,6 +832,9 @@ msgstr "{count} hostitelů používá starší službu hostitele než tato aplik
 
 msgid "{count}/day"
 msgstr "{count}/den"
+
+msgid "{current} of {total}"
+msgstr "{current} z {total}"
 
 msgid "{currentPage} of {totalBranches}"
 msgstr "{currentPage} z {totalBranches}"
@@ -1695,6 +1702,9 @@ msgstr "Přidejte popis…"
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "Přidejte lifecycle run skript v nastavení projektu, nebo označte terminálový skript jako spuštění pracovního prostoru."
 
+msgid "Add a note… (⌘↵ to save)"
+msgstr "Přidat poznámku… (⌘↵ pro uložení)"
+
 msgid "Add a project to see GitHub issues."
 msgstr "Přidejte projekt a uvidíte GitHub issues."
 
@@ -1736,6 +1746,9 @@ msgstr "Přidat přílohu"
 
 msgid "Add Attachment"
 msgstr "Přidat přílohu"
+
+msgid "Add candidate"
+msgstr "Přidat kandidáta"
 
 msgid "Add command"
 msgstr "Přidat příkaz"
@@ -1893,6 +1906,9 @@ msgstr "Proti základní větvi"
 
 msgid "Against Main"
 msgstr "Proti main"
+
+msgid "agent"
+msgstr "agent"
 
 msgid "Agent"
 msgstr "Agent"
@@ -2142,6 +2158,9 @@ msgstr "Všechny repozitáře"
 msgid "All reviews"
 msgstr "Všechny revize"
 
+msgid "All roles"
+msgstr "Všechny pozice"
+
 msgid "All runs"
 msgstr "Všechny běhy"
 
@@ -2153,6 +2172,9 @@ msgstr "Všechny relace přežily aktualizaci."
 
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "Všechny relace byly zavřeny a běží čerstvý démon."
+
+msgid "All sources"
+msgstr "Všechny zdroje"
 
 msgid "All tasks"
 msgstr "Všechny úkoly"
@@ -2213,6 +2235,9 @@ msgstr "Už máte účet? <0>Přihlaste se</0>"
 
 msgid "Already in tasks"
 msgstr "Už je v úkolech"
+
+msgid "Already in the pipeline: {duplicateNames}"
+msgstr "Už je v procesu: {duplicateNames}"
 
 msgid "Also available as CommandDialog for ⌘K palettes"
 msgstr "Dostupné také jako CommandDialog pro palety ⌘K"
@@ -3369,6 +3394,12 @@ msgstr "Zrušeno"
 #. placeholder {0}: formatDate(cancelAt)
 msgid "Cancels {0} — downgrades to Free at the end of the billing period."
 msgstr "Ruší se {0} — na konci fakturačního období přejde na Free."
+
+msgid "Candidate"
+msgstr "Kandidát"
+
+msgid "Candidate not found."
+msgstr "Kandidát nenalezen."
 
 msgid "Cannot {action}: no active organization is selected. Select an organization or sign in again."
 msgstr "Nelze {action}: není vybraná žádná aktivní organizace. Vyberte organizaci nebo se znovu přihlaste."
@@ -5569,6 +5600,9 @@ msgstr "Aktuální tarif"
 msgid "Current tab"
 msgstr "Aktuální karta"
 
+msgid "Current title"
+msgstr "Současná pozice"
+
 msgid "Cursor"
 msgstr "Kurzor"
 
@@ -6751,6 +6785,9 @@ msgstr "Každý agent běží ve vlastním Git worktree a větvi, takže pracovn
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Každá osa táhne na další úroveň. Udržte to a úroveň přijde sama."
 
+msgid "Every candidate, where they are, and who owes the next move."
+msgstr "Každý kandidát, kde se nachází a kdo je na tahu."
+
 msgid "Every day at 3:00 AM"
 msgstr "Každý den ve 3:00"
 
@@ -7751,6 +7788,9 @@ msgstr "Sledujte nás na LinkedInu"
 msgid "Follow us on X/Twitter"
 msgstr "Sledujte nás na X/Twitteru"
 
+msgid "Follow-up"
+msgstr "Navazující kontakt"
+
 msgid "Font family"
 msgstr "Rodina písma"
 
@@ -8307,6 +8347,12 @@ msgstr "Vysoká závažnost"
 msgid "High usage"
 msgstr "Vysoké využití"
 
+msgid "Hired"
+msgstr "Přijat"
+
+msgid "Hiring"
+msgstr "Nábor"
+
 msgid "history"
 msgstr "historie"
 
@@ -8719,6 +8765,9 @@ msgstr "Prohlížeč v aplikaci"
 msgid "In-app PR merge"
 msgstr "Slučování PR přímo v aplikaci"
 
+msgid "Inbound"
+msgstr "Příchozí"
+
 msgid "Inbox triage"
 msgstr "Třídění doručené pošty"
 
@@ -8885,6 +8934,9 @@ msgstr "Přerušit"
 
 msgid "Interrupted"
 msgstr "Přerušeno"
+
+msgid "Interview"
+msgstr "Pohovor"
 
 msgid "Intro call"
 msgstr "Úvodní hovor"
@@ -9247,6 +9299,12 @@ msgstr "Poslední aktivita agenta {0}"
 msgid "Last attached"
 msgstr "Naposledy připojeno"
 
+msgid "Last contact"
+msgstr "Poslední kontakt"
+
+msgid "Last contact {lastContact}"
+msgstr "Poslední kontakt: {lastContact}"
+
 msgid "Last day of each month"
 msgstr "Poslední den v měsíci"
 
@@ -9321,6 +9379,12 @@ msgstr "Nastavení žebříčku"
 
 msgid "Leaf"
 msgstr "List"
+
+msgid "Lean hire"
+msgstr "Spíše přijmout"
+
+msgid "Lean no hire"
+msgstr "Spíše nepřijmout"
 
 msgid "Learn"
 msgstr "Učte se"
@@ -9879,6 +9943,9 @@ msgstr "Označit jako nepřečtené"
 msgid "Mark as viewed"
 msgstr "Označit jako zobrazené"
 
+msgid "Mark hired"
+msgstr "Označit jako přijatého"
+
 msgid "Mark Ready"
 msgstr "Označit jako připravené"
 
@@ -10278,6 +10345,9 @@ msgstr "Většina historie softwaru"
 msgid "Move {count} to Group"
 msgstr "Přesunout {count} do skupiny"
 
+msgid "Move to {nextStageLabel}"
+msgstr "Přesunout do fáze: {nextStageLabel}"
+
 msgid "Move to Center"
 msgstr "Přesunout do středu"
 
@@ -10507,6 +10577,9 @@ msgstr "Nový projekt"
 msgid "New push to branch"
 msgstr "Nový push do větve"
 
+msgid "New role…"
+msgstr "Nová pozice…"
+
 msgid "New session"
 msgstr "Nová relace"
 
@@ -10585,6 +10658,9 @@ msgstr "Další"
 msgid "Next branch"
 msgstr "Další větev"
 
+msgid "Next candidate"
+msgstr "Další kandidát"
+
 msgid "Next comment"
 msgstr "Další komentář"
 
@@ -10603,6 +10679,9 @@ msgstr "Další běh za 3 d"
 
 msgid "Next slide"
 msgstr "Další snímek"
+
+msgid "Next step"
+msgstr "Další krok"
 
 msgid "Next Tab"
 msgstr "Další karta"
@@ -10827,6 +10906,9 @@ msgstr "Žádný soubor neodpovídá povoleným typům."
 
 msgid "No files match your search"
 msgstr "Žádné soubory neodpovídají hledání"
+
+msgid "No follow-ups due. Nice."
+msgstr "Žádné navazující kontakty na řadě. Výborně."
 
 msgid "No fonts found."
 msgstr "Nenalezeny žádné fonty."
@@ -11216,6 +11298,9 @@ msgstr "Spuštění bez promptu"
 msgid "No. Your agents stay independent; Superset is the orchestration layer around them. Each task gets an isolated Git worktree, persistent sessions, diff review, and scheduled runs without tying the workflow to one provider."
 msgstr "Ne. Vaši agenti zůstávají nezávislí; Superset je orchestrační vrstva kolem nich. Každý úkol dostane izolovaný git worktree, trvalé relace, revizi rozdílů a plánované běhy, aniž byste workflow uvázali k jednomu poskytovateli."
 
+msgid "Nobody"
+msgstr "Nikdo"
+
 msgid "Nobody has joined the board yet."
 msgstr "Do žebříčku se zatím nikdo nezapojil."
 
@@ -11294,6 +11379,9 @@ msgstr "Není zahrnuto"
 msgid "Not loaded"
 msgstr "Nenačteno"
 
+msgid "Not looking"
+msgstr "Nehledá práci"
+
 msgid "Not now"
 msgstr "Teď ne"
 
@@ -11308,6 +11396,9 @@ msgstr "Zatím nepřicházejí žádné události: Microsoft Graph odmítl odbě
 
 msgid "Not reviewed by you"
 msgstr "Bez vaší revize"
+
+msgid "Not scored"
+msgstr "Bez hodnocení"
 
 msgid "Not sent"
 msgstr "Neodesláno"
@@ -11373,6 +11464,9 @@ msgstr "Oznámení"
 msgid "Notion is not configured for this environment."
 msgstr "Notion není pro toto prostředí nastavený."
 
+msgid "Notion page"
+msgstr "Stránka v Notion"
+
 msgid "now"
 msgstr "teď"
 
@@ -11419,6 +11513,9 @@ msgstr "ze všech tokenů"
 
 msgid "Off"
 msgstr "Vypnuto"
+
+msgid "Offer"
+msgstr "Nabídka"
 
 #. placeholder {0}: COMPANY.NAME
 msgid "Official documentation for {0}, the app for running 100+ coding agents in parallel."
@@ -11595,6 +11692,9 @@ msgstr "Jen vy"
 
 msgid "Only you can see this page"
 msgstr "Tuto stránku vidíte jen vy"
+
+msgid "Onsite"
+msgstr "Na místě"
 
 msgid "open"
 msgstr "otevřít"
@@ -12170,6 +12270,12 @@ msgstr "Náš pohled k srpnu 2026, na základě vlastního týmu a týmů, kter�
 msgid "Out of scope"
 msgstr "Mimo rozsah"
 
+msgid "Outbound"
+msgstr "Odchozí"
+
+msgid "Outcome change"
+msgstr "Změna výsledku"
+
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "Dovnitř výsledek, ven software. Lidé zadají záměr, omezení a rozpočet. Továrna se sama plánuje, průběžně dodává, sleduje, co dodala, a sama se vrací zpět. Většina změn se sloučí bez člověka ve smyčce a počet incidentů neroste."
 
@@ -12193,6 +12299,9 @@ msgstr "Výstupní schéma"
 
 msgid "Output truncated"
 msgstr "Výstup zkrácen"
+
+msgid "Outreach"
+msgstr "Oslovení"
 
 msgid "Overflow Fade"
 msgstr "Overflow Fade"
@@ -12488,6 +12597,9 @@ msgstr "Osobní"
 msgid "Phantom Forklift"
 msgstr "Fantomový vysokozdvih"
 
+msgid "Phone"
+msgstr "Telefon"
+
 msgid "Phone number"
 msgstr "Telefonní číslo"
 
@@ -12523,6 +12635,9 @@ msgstr "Vyberte umístění projektu"
 
 msgid "Pick a reason"
 msgstr "Vyberte důvod"
+
+msgid "Pick a role"
+msgstr "Vyberte pozici"
 
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Vyberte zvuk nebo přidejte vlastní. Vlastní zvuk podporuje .mp3, .wav a .ogg."
@@ -12574,6 +12689,9 @@ msgstr "Růžová"
 
 msgid "Pinned"
 msgstr "Připnuté"
+
+msgid "Pipeline"
+msgstr "Proces"
 
 msgid "PK"
 msgstr "PK"
@@ -12696,6 +12814,9 @@ msgstr "Zveřejnit"
 
 msgid "Post comment"
 msgstr "Odeslat komentář"
+
+msgid "Power user"
+msgstr "Pokročilý uživatel"
 
 msgid "PR"
 msgstr "PR"
@@ -12822,6 +12943,9 @@ msgstr "Předchozí"
 
 msgid "Previous branch"
 msgstr "Předchozí větev"
+
+msgid "Previous candidate"
+msgstr "Předchozí kandidát"
 
 msgid "Previous comment"
 msgstr "Předchozí komentář"
@@ -13263,6 +13387,9 @@ msgstr "Dosaženo"
 msgid "Reached a dashboard page"
 msgstr "Dosáhl stránky přehledu"
 
+msgid "Reached out"
+msgstr "Osloven"
+
 msgid "React layer of the shared pane/workspace layout engine"
 msgstr "React vrstva sdíleného enginu rozvržení panelů/pracovních prostorů"
 
@@ -13444,6 +13571,9 @@ msgstr "Reference"
 msgid "Referral"
 msgstr "Odkaz"
 
+msgid "Referred by"
+msgstr "Doporučil"
+
 msgid "Refresh"
 msgstr "Obnovit"
 
@@ -13479,6 +13609,9 @@ msgstr "Zaregistrujte vedle vestavěných libovolného CLI agenta, každého s v
 
 msgid "Registers lifecycle hooks in this agent's global config so Superset can show status and send notifications. Turning this off removes Superset's entries everywhere — status and notifications stop for this agent, including inside Superset."
 msgstr "Zaregistruje lifecycle hooky do globální konfigurace tohoto agenta, aby Superset mohl zobrazovat stav a posílat oznámení. Vypnutím se záznamy Superset odeberou všude — stav a oznámení pro tohoto agenta přestanou fungovat, i uvnitř Superset."
+
+msgid "Rejected"
+msgstr "Zamítnut"
 
 msgid "Related Posts"
 msgstr "Související články"
@@ -14256,6 +14389,9 @@ msgstr "Role"
 msgid "Role changed to {newRoleName}"
 msgstr "Role změněna na {newRoleName}"
 
+msgid "Role title"
+msgstr "Název pozice"
+
 msgid "Role updated"
 msgstr "Role změněna"
 
@@ -14558,9 +14694,15 @@ msgstr "Provisioning přes SCIM"
 msgid "Scope"
 msgstr "Rozsah"
 
+msgid "Score"
+msgstr "Hodnocení"
+
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "Scoring starts once the board can see {0} days of usage."
 msgstr "Bodování začne, jakmile žebříček uvidí dní s aktivitou: {0}."
+
+msgid "Screening call"
+msgstr "Úvodní hovor"
 
 msgid "Screenshot copied to clipboard"
 msgstr "Snímek obrazovky zkopírován do schránky"
@@ -14688,6 +14830,9 @@ msgstr "Hledat v Linearu…"
 
 msgid "Search models"
 msgstr "Hledat modely"
+
+msgid "Search name, email, company, GitHub"
+msgstr "Hledat jméno, e-mail, firmu, GitHub"
 
 msgid "Search pages"
 msgstr "Hledat stránky"
@@ -15662,6 +15807,9 @@ msgstr "Vytvoří snímek tohoto pracovního prostoru v aktuálním stavu se vš
 msgid "Snooze"
 msgstr "Odložit"
 
+msgid "Snooze 3 days"
+msgstr "Odložit o 3 dny"
+
 msgid "so a border on two edges of the rotated square always faces outward."
 msgstr "takže okraj na dvou stranách otočeného čtverce vždy směřuje ven."
 
@@ -15762,6 +15910,9 @@ msgstr "Dostupný zdrojový kód"
 
 msgid "Source path (not an import)"
 msgstr "Cesta ke zdroji (ne import)"
+
+msgid "Sourced"
+msgstr "Vyhledán"
 
 msgid "Sources"
 msgstr "Zdroje"
@@ -15874,8 +16025,14 @@ msgstr "Nad sebou"
 msgid "Staff Software Engineer, Vori"
 msgstr "Softwarový inženýr na úrovni Staff, Vori"
 
+msgid "Stage"
+msgstr "Fáze"
+
 msgid "Stage all"
 msgstr "Připravit vše"
+
+msgid "Stage change"
+msgstr "Změna fáze"
 
 msgid "Stage file"
 msgstr "Připravit soubor"
@@ -16156,6 +16313,12 @@ msgstr "tržby ze Stripe"
 
 msgid "Stripe's own Sigma MRR report, computed on demand via the Query Run API"
 msgstr "Vlastní MRR report ze Stripe Sigma, počítaný na vyžádání přes Query Run API"
+
+msgid "Strong hire"
+msgstr "Určitě přijmout"
+
+msgid "Strong no hire"
+msgstr "Určitě nepřijmout"
 
 msgid "Structure, scrolling, and overflow handling"
 msgstr "Struktura, posuv a práce s přetečením"
@@ -16444,6 +16607,10 @@ msgstr "Superset ukládá každé připojení šifrovaně. Volání nástrojů o
 
 msgid "Superset UI"
 msgstr "Superset UI"
+
+#. placeholder {0}: supersetUser.email
+msgid "Superset user · {0}"
+msgstr "Uživatel Superset · {0}"
 
 #. placeholder {0}: formatPercent(trackedMemorySharePercent)
 msgid "Superset uses {0} of system RAM"
@@ -17847,6 +18014,9 @@ msgstr "Celková útrata"
 msgid "Total tokens published"
 msgstr "Celkem zveřejněných tokenů"
 
+msgid "Touched"
+msgstr "Osloven"
+
 msgid "Trace charges and subscriptions"
 msgstr "Sledování plateb a předplatných"
 
@@ -18881,6 +19051,9 @@ msgstr "Co říkají první uživatelé"
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Na co nás Google zobrazuje a kolik z toho není naše vlastní jméno."
 
+msgid "What happens next"
+msgstr "Co bude dál"
+
 msgid "What has to become true"
 msgstr "Co se musí stát pravdou"
 
@@ -19031,11 +19204,17 @@ msgstr "s přílohou i bez ní"
 msgid "With the Superset mobile app, I can address production issues from anywhere."
 msgstr "S mobilní aplikací Superset mohu řešit problémy v produkci odkudkoli."
 
+msgid "Withdrew"
+msgstr "Odstoupil"
+
 msgid "Wordmark, black"
 msgstr "Logotyp, černý"
 
 msgid "Wordmark, white"
 msgstr "Logotyp, bílý"
+
+msgid "Work at a Startup"
+msgstr "Work at a Startup"
 
 msgid "Work email"
 msgstr "Pracovní e-mail"
@@ -19045,6 +19224,9 @@ msgstr "Práce z ticketů"
 
 msgid "Work the action items from a call"
 msgstr "Plnění úkolů z hovoru"
+
+msgid "Work trial"
+msgstr "Zkušební práce"
 
 msgid "Work with your agents across your favorite tools"
 msgstr "Pracujte s agenty napříč svými oblíbenými nástroji"

@@ -382,6 +382,10 @@ msgstr "{0} arkanızda"
 msgid "{0} branch"
 msgstr "{0} dalı"
 
+#. placeholder {0}: list.data.length
+msgid "{0} candidates"
+msgstr "{0} aday"
+
 #. placeholder {0}: params?.agent
 msgid "{0} cannot be signed in this way yet."
 msgstr "{0} henüz bu şekilde oturum açamıyor."
@@ -828,6 +832,9 @@ msgstr "{count} ana makine bu uygulamadan daha eski bir ana makine hizmeti çal�
 
 msgid "{count}/day"
 msgstr "{count}/gün"
+
+msgid "{current} of {total}"
+msgstr "{current} / {total}"
 
 msgid "{currentPage} of {totalBranches}"
 msgstr "{totalBranches} içinden {currentPage}"
@@ -1695,6 +1702,9 @@ msgstr "Açıklama ekleyin…"
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "Proje Ayarları'nda bir yaşam döngüsü çalıştırma betiği ekleyin veya bir terminal betiğini çalışma alanı çalıştırması olarak işaretleyin."
 
+msgid "Add a note… (⌘↵ to save)"
+msgstr "Not ekle… (kaydetmek için ⌘↵)"
+
 msgid "Add a project to see GitHub issues."
 msgstr "GitHub issue'larını görmek için bir proje ekleyin."
 
@@ -1736,6 +1746,9 @@ msgstr "Ek ekle"
 
 msgid "Add Attachment"
 msgstr "Ek ekle"
+
+msgid "Add candidate"
+msgstr "Aday ekle"
 
 msgid "Add command"
 msgstr "Komut ekle"
@@ -1893,6 +1906,9 @@ msgstr "Temele göre"
 
 msgid "Against Main"
 msgstr "main ile karşılaştır"
+
+msgid "agent"
+msgstr "ajan"
 
 msgid "Agent"
 msgstr "Ajan"
@@ -2142,6 +2158,9 @@ msgstr "Tüm depolar"
 msgid "All reviews"
 msgstr "Tüm incelemeler"
 
+msgid "All roles"
+msgstr "Tüm pozisyonlar"
+
 msgid "All runs"
 msgstr "Tüm çalıştırmalar"
 
@@ -2153,6 +2172,9 @@ msgstr "Yükseltme boyunca tüm oturumlar korundu."
 
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "Tüm oturumlar kapatıldı ve yeni bir daemon çalışıyor."
+
+msgid "All sources"
+msgstr "Tüm kaynaklar"
 
 msgid "All tasks"
 msgstr "Tüm görevler"
@@ -2213,6 +2235,9 @@ msgstr "Zaten hesabınız var mı? <0>Oturum açın</0>"
 
 msgid "Already in tasks"
 msgstr "Zaten görevlerde"
+
+msgid "Already in the pipeline: {duplicateNames}"
+msgstr "Zaten süreçte: {duplicateNames}"
 
 msgid "Also available as CommandDialog for ⌘K palettes"
 msgstr "⌘K paletleri için CommandDialog olarak da kullanılabilir"
@@ -3369,6 +3394,12 @@ msgstr "İptal edildi"
 #. placeholder {0}: formatDate(cancelAt)
 msgid "Cancels {0} — downgrades to Free at the end of the billing period."
 msgstr "{0} tarihinde iptal edilir — faturalandırma döneminin sonunda Ücretsiz plana düşer."
+
+msgid "Candidate"
+msgstr "Aday"
+
+msgid "Candidate not found."
+msgstr "Aday bulunamadı."
 
 msgid "Cannot {action}: no active organization is selected. Select an organization or sign in again."
 msgstr "{action} işlemi yapılamıyor: etkin kuruluş seçili değil. Bir kuruluş seçin veya yeniden oturum açın."
@@ -5569,6 +5600,9 @@ msgstr "Mevcut plan"
 msgid "Current tab"
 msgstr "Geçerli sekme"
 
+msgid "Current title"
+msgstr "Mevcut unvan"
+
 msgid "Cursor"
 msgstr "İmleç"
 
@@ -6751,6 +6785,9 @@ msgstr "Her ajan kendi Git worktree ve dalında çalışır, böylece çalışma
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Her eksen bir sonraki katman için üzerine düşeni yapıyor. Bunu sürdür, katman kendiliğinden gelir."
 
+msgid "Every candidate, where they are, and who owes the next move."
+msgstr "Her aday, hangi aşamada olduğu ve sıradaki adımın kimde olduğu."
+
 msgid "Every day at 3:00 AM"
 msgstr "Her gün 03:00'te"
 
@@ -7751,6 +7788,9 @@ msgstr "LinkedIn'de bizi takip edin"
 msgid "Follow us on X/Twitter"
 msgstr "X/Twitter'da bizi takip edin"
 
+msgid "Follow-up"
+msgstr "Takip"
+
 msgid "Font family"
 msgstr "Yazı tipi ailesi"
 
@@ -8307,6 +8347,12 @@ msgstr "Yüksek önem"
 msgid "High usage"
 msgstr "Yüksek kullanım"
 
+msgid "Hired"
+msgstr "İşe alındı"
+
+msgid "Hiring"
+msgstr "İşe alım"
+
 msgid "history"
 msgstr "geçmiş"
 
@@ -8719,6 +8765,9 @@ msgstr "Uygulama içi tarayıcı"
 msgid "In-app PR merge"
 msgstr "Uygulama içi PR birleştirme"
 
+msgid "Inbound"
+msgstr "Gelen başvuru"
+
 msgid "Inbox triage"
 msgstr "Gelen kutusu ayıklama"
 
@@ -8885,6 +8934,9 @@ msgstr "Kes"
 
 msgid "Interrupted"
 msgstr "Kesildi"
+
+msgid "Interview"
+msgstr "Mülakat"
 
 msgid "Intro call"
 msgstr "Tanışma görüşmesi"
@@ -9247,6 +9299,12 @@ msgstr "Son ajan etkinliği {0}"
 msgid "Last attached"
 msgstr "Son bağlanma"
 
+msgid "Last contact"
+msgstr "Son iletişim"
+
+msgid "Last contact {lastContact}"
+msgstr "Son iletişim {lastContact}"
+
 msgid "Last day of each month"
 msgstr "Her ayın son günü"
 
@@ -9321,6 +9379,12 @@ msgstr "Liderlik tablosu ayarları"
 
 msgid "Leaf"
 msgstr "Yaprak"
+
+msgid "Lean hire"
+msgstr "İşe almaya yakın"
+
+msgid "Lean no hire"
+msgstr "İşe almamaya yakın"
 
 msgid "Learn"
 msgstr "Öğren"
@@ -9879,6 +9943,9 @@ msgstr "Okunmadı olarak işaretle"
 msgid "Mark as viewed"
 msgstr "Görüldü olarak işaretle"
 
+msgid "Mark hired"
+msgstr "İşe alındı olarak işaretle"
+
 msgid "Mark Ready"
 msgstr "Hazır işaretle"
 
@@ -10278,6 +10345,9 @@ msgstr "Yazılım tarihinin çoğu"
 msgid "Move {count} to Group"
 msgstr "{count} öğeyi gruba taşı"
 
+msgid "Move to {nextStageLabel}"
+msgstr "{nextStageLabel} aşamasına taşı"
+
 msgid "Move to Center"
 msgstr "Ortaya taşı"
 
@@ -10507,6 +10577,9 @@ msgstr "Yeni proje"
 msgid "New push to branch"
 msgstr "Dala yeni push"
 
+msgid "New role…"
+msgstr "Yeni pozisyon…"
+
 msgid "New session"
 msgstr "Yeni oturum"
 
@@ -10585,6 +10658,9 @@ msgstr "Sonraki"
 msgid "Next branch"
 msgstr "Sonraki dal"
 
+msgid "Next candidate"
+msgstr "Sonraki aday"
+
 msgid "Next comment"
 msgstr "Sonraki yorum"
 
@@ -10603,6 +10679,9 @@ msgstr "Sonraki çalıştırma 3g içinde"
 
 msgid "Next slide"
 msgstr "Sonraki slayt"
+
+msgid "Next step"
+msgstr "Sonraki adım"
 
 msgid "Next Tab"
 msgstr "Sonraki sekme"
@@ -10827,6 +10906,9 @@ msgstr "Hiçbir dosya kabul edilen türlerle eşleşmiyor."
 
 msgid "No files match your search"
 msgstr "Aramanızla eşleşen dosya yok"
+
+msgid "No follow-ups due. Nice."
+msgstr "Bekleyen takip yok. Harika."
 
 msgid "No fonts found."
 msgstr "Yazı tipi bulunamadı."
@@ -11216,6 +11298,9 @@ msgstr "İstemsiz başlatma"
 msgid "No. Your agents stay independent; Superset is the orchestration layer around them. Each task gets an isolated Git worktree, persistent sessions, diff review, and scheduled runs without tying the workflow to one provider."
 msgstr "Hayır. Ajanlarınız bağımsız kalır; Superset onların etrafındaki orkestrasyon katmanıdır. Her görev yalıtılmış bir Git worktree'si, kalıcı oturumlar, fark incelemesi ve zamanlanmış çalıştırmalar alır; iş akışı tek bir sağlayıcıya bağlanmaz."
 
+msgid "Nobody"
+msgstr "Kimse"
+
 msgid "Nobody has joined the board yet."
 msgstr "Tabloya henüz kimse katılmadı."
 
@@ -11294,6 +11379,9 @@ msgstr "Dahil değil"
 msgid "Not loaded"
 msgstr "Yüklenmedi"
 
+msgid "Not looking"
+msgstr "İş aramıyor"
+
 msgid "Not now"
 msgstr "Şimdi değil"
 
@@ -11308,6 +11396,9 @@ msgstr "Henüz olay alınmıyor: Microsoft Graph bildirim aboneliklerini reddett
 
 msgid "Not reviewed by you"
 msgstr "Sizin incelemediğiniz"
+
+msgid "Not scored"
+msgstr "Puanlanmadı"
 
 msgid "Not sent"
 msgstr "Gönderilmedi"
@@ -11373,6 +11464,9 @@ msgstr "Bildirimler"
 msgid "Notion is not configured for this environment."
 msgstr "Notion bu ortam için yapılandırılmamış."
 
+msgid "Notion page"
+msgstr "Notion sayfası"
+
 msgid "now"
 msgstr "şimdi"
 
@@ -11419,6 +11513,9 @@ msgstr "tüm token'ların"
 
 msgid "Off"
 msgstr "Kapalı"
+
+msgid "Offer"
+msgstr "Teklif"
 
 #. placeholder {0}: COMPANY.NAME
 msgid "Official documentation for {0}, the app for running 100+ coding agents in parallel."
@@ -11595,6 +11692,9 @@ msgstr "Yalnızca siz"
 
 msgid "Only you can see this page"
 msgstr "Bu sayfayı yalnızca siz görebilirsiniz"
+
+msgid "Onsite"
+msgstr "Yüz yüze"
 
 msgid "open"
 msgstr "aç"
@@ -12170,6 +12270,12 @@ msgstr "Ağustos 2026 itibarıyla kendi ekibimize ve yakından izlediğimiz tak�
 msgid "Out of scope"
 msgstr "Kapsam dışı"
 
+msgid "Outbound"
+msgstr "Doğrudan ulaşım"
+
+msgid "Outcome change"
+msgstr "Sonuç değişikliği"
+
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "Sonuç girer, yazılım çıkar. İnsanlar niyeti, kısıtları ve bütçeyi belirtir. Fabrika kendini zamanlar, sürekli gönderir, gönderdiğini izler ve kendini geri alır. Değişikliklerin çoğu insan devreye girmeden birleşir ve olay oranı yükselmez."
 
@@ -12193,6 +12299,9 @@ msgstr "Çıktı şeması"
 
 msgid "Output truncated"
 msgstr "Çıktı kısaltıldı"
+
+msgid "Outreach"
+msgstr "İletişim"
 
 msgid "Overflow Fade"
 msgstr "Taşma solması"
@@ -12488,6 +12597,9 @@ msgstr "Kişisel"
 msgid "Phantom Forklift"
 msgstr "Hayalet Forklift"
 
+msgid "Phone"
+msgstr "Telefon"
+
 msgid "Phone number"
 msgstr "Telefon numarası"
 
@@ -12523,6 +12635,9 @@ msgstr "Bir proje konumu seçin"
 
 msgid "Pick a reason"
 msgstr "Bir neden seçin"
+
+msgid "Pick a role"
+msgstr "Bir pozisyon seç"
 
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Bir ses seçin veya kendinizinkini ekleyin. Özel ses .mp3, .wav ve .ogg destekler."
@@ -12574,6 +12689,9 @@ msgstr "Pembe"
 
 msgid "Pinned"
 msgstr "Sabitlenmiş"
+
+msgid "Pipeline"
+msgstr "Süreç"
 
 msgid "PK"
 msgstr "PK"
@@ -12696,6 +12814,9 @@ msgstr "Paylaş"
 
 msgid "Post comment"
 msgstr "Yorum gönder"
+
+msgid "Power user"
+msgstr "Deneyimli kullanıcı"
 
 msgid "PR"
 msgstr "PR"
@@ -12822,6 +12943,9 @@ msgstr "Önceki"
 
 msgid "Previous branch"
 msgstr "Önceki dal"
+
+msgid "Previous candidate"
+msgstr "Önceki aday"
 
 msgid "Previous comment"
 msgstr "Önceki yorum"
@@ -13263,6 +13387,9 @@ msgstr "Ulaşıldı"
 msgid "Reached a dashboard page"
 msgstr "Bir pano sayfasına ulaştı"
 
+msgid "Reached out"
+msgstr "Ulaşıldı"
+
 msgid "React layer of the shared pane/workspace layout engine"
 msgstr "Paylaşılan bölme/çalışma alanı düzen motorunun React katmanı"
 
@@ -13444,6 +13571,9 @@ msgstr "Referanslar"
 msgid "Referral"
 msgstr "Yönlendirme"
 
+msgid "Referred by"
+msgstr "Öneren"
+
 msgid "Refresh"
 msgstr "Yenile"
 
@@ -13479,6 +13609,9 @@ msgstr "Herhangi bir CLI ajanını, kendi adı, simgesi ve başlatma komutuyla y
 
 msgid "Registers lifecycle hooks in this agent's global config so Superset can show status and send notifications. Turning this off removes Superset's entries everywhere — status and notifications stop for this agent, including inside Superset."
 msgstr "Superset'in durum gösterebilmesi ve bildirim gönderebilmesi için bu ajanın genel yapılandırmasına yaşam döngüsü hook'ları kaydeder. Bunu kapatmak Superset'in kayıtlarını her yerden kaldırır — Superset içinde dahil olmak üzere bu ajan için durum ve bildirimler durur."
+
+msgid "Rejected"
+msgstr "Reddedildi"
 
 msgid "Related Posts"
 msgstr "İlgili yazılar"
@@ -14256,6 +14389,9 @@ msgstr "Rol"
 msgid "Role changed to {newRoleName}"
 msgstr "Rol {newRoleName} olarak değiştirildi"
 
+msgid "Role title"
+msgstr "Pozisyon adı"
+
 msgid "Role updated"
 msgstr "Rol güncellendi"
 
@@ -14558,9 +14694,15 @@ msgstr "SCIM sağlama"
 msgid "Scope"
 msgstr "Kapsam"
 
+msgid "Score"
+msgstr "Puan"
+
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "Scoring starts once the board can see {0} days of usage."
 msgstr "Puanlama, tablo {0} günlük kullanım gördüğünde başlar."
+
+msgid "Screening call"
+msgstr "Ön görüşme"
 
 msgid "Screenshot copied to clipboard"
 msgstr "Ekran görüntüsü panoya kopyalandı"
@@ -14688,6 +14830,9 @@ msgstr "Linear'da ara…"
 
 msgid "Search models"
 msgstr "Model ara"
+
+msgid "Search name, email, company, GitHub"
+msgstr "Ad, e-posta, şirket, GitHub ara"
 
 msgid "Search pages"
 msgstr "Sayfalarda ara"
@@ -15662,6 +15807,9 @@ msgstr "Bu çalışma alanının, içine kurulan her şeyle birlikte şu anki ha
 msgid "Snooze"
 msgstr "Ertele"
 
+msgid "Snooze 3 days"
+msgstr "3 gün ertele"
+
 msgid "so a border on two edges of the rotated square always faces outward."
 msgstr "böylece döndürülmüş karenin iki kenarındaki çerçeve her zaman dışa bakar."
 
@@ -15762,6 +15910,9 @@ msgstr "Kaynağı açık"
 
 msgid "Source path (not an import)"
 msgstr "Kaynak yolu (içe aktarma değil)"
+
+msgid "Sourced"
+msgstr "Bulundu"
 
 msgid "Sources"
 msgstr "Kaynaklar"
@@ -15874,8 +16025,14 @@ msgstr "Üst üste"
 msgid "Staff Software Engineer, Vori"
 msgstr "Staff Yazılım Mühendisi, Vori"
 
+msgid "Stage"
+msgstr "Aşama"
+
 msgid "Stage all"
 msgstr "Tümünü hazırla"
+
+msgid "Stage change"
+msgstr "Aşama değişikliği"
 
 msgid "Stage file"
 msgstr "Dosyayı hazırla"
@@ -16156,6 +16313,12 @@ msgstr "Stripe geliri"
 
 msgid "Stripe's own Sigma MRR report, computed on demand via the Query Run API"
 msgstr "Stripe'ın kendi Sigma MRR raporu, Query Run API üzerinden istek üzerine hesaplanır"
+
+msgid "Strong hire"
+msgstr "Kesinlikle işe al"
+
+msgid "Strong no hire"
+msgstr "Kesinlikle işe alma"
 
 msgid "Structure, scrolling, and overflow handling"
 msgstr "Yapı, kaydırma ve taşma yönetimi"
@@ -16444,6 +16607,10 @@ msgstr "Superset her bağlantıyı şifreli olarak saklar. Araç çağrıları S
 
 msgid "Superset UI"
 msgstr "Superset UI"
+
+#. placeholder {0}: supersetUser.email
+msgid "Superset user · {0}"
+msgstr "Superset kullanıcısı · {0}"
 
 #. placeholder {0}: formatPercent(trackedMemorySharePercent)
 msgid "Superset uses {0} of system RAM"
@@ -17847,6 +18014,9 @@ msgstr "Toplam harcama"
 msgid "Total tokens published"
 msgstr "Yayımlanan toplam token"
 
+msgid "Touched"
+msgstr "Ulaşıldı"
+
 msgid "Trace charges and subscriptions"
 msgstr "Ödemeleri ve abonelikleri izleyin"
 
@@ -18881,6 +19051,9 @@ msgstr "İlk kullanıcılar ne diyor"
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google bizi hangi aramalarda gösteriyor ve bunun ne kadarı kendi adımız değil."
 
+msgid "What happens next"
+msgstr "Sonraki adımlar"
+
 msgid "What has to become true"
 msgstr "Neyin gerçekleşmesi gerekiyor"
 
@@ -19031,11 +19204,17 @@ msgstr "ekli veya eksiz"
 msgid "With the Superset mobile app, I can address production issues from anywhere."
 msgstr "Superset mobil uygulamasıyla üretim ortamındaki sorunlara her yerden müdahale edebiliyorum."
 
+msgid "Withdrew"
+msgstr "Çekildi"
+
 msgid "Wordmark, black"
 msgstr "Yazı logosu, siyah"
 
 msgid "Wordmark, white"
 msgstr "Yazı logosu, beyaz"
+
+msgid "Work at a Startup"
+msgstr "Work at a Startup"
 
 msgid "Work email"
 msgstr "İş e-postası"
@@ -19045,6 +19224,9 @@ msgstr "Biletlerden çalışma"
 
 msgid "Work the action items from a call"
 msgstr "Bir görüşmenin aksiyon maddelerini yürütün"
+
+msgid "Work trial"
+msgstr "Deneme çalışması"
 
 msgid "Work with your agents across your favorite tools"
 msgstr "Ajanlarınızla en sevdiğiniz araçlar üzerinden çalışın"

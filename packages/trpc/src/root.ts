@@ -14,6 +14,7 @@ import { cloudWorkspaceRouter } from "./router/cloud-workspace";
 import { connectorsRouter } from "./router/connectors";
 import { environmentRouter } from "./router/environment";
 import { githubUserRouter } from "./router/github-user";
+import { hiringRouter } from "./router/hiring";
 import { hostManagementRouter, hostRouter } from "./router/host";
 import { integrationRouter } from "./router/integration";
 import { leaderboardRouter } from "./router/leaderboard";
@@ -47,6 +48,7 @@ export const appRouter = createTRPCRouter({
 	cloudWorkspace: cloudWorkspaceRouter,
 	environment: environmentRouter,
 	growth: growthRouter,
+	hiring: hiringRouter,
 	host: { ...hostRouter, ...hostManagementRouter },
 	connectors: connectorsRouter,
 	integration: integrationRouter,

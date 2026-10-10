@@ -38,7 +38,7 @@ export default async function DashboardLayout({
 					image: session.user.image,
 				}}
 			/>
-			<SidebarInset>
+			<SidebarInset className="min-w-0">
 				{/* z-10: grid tiles are transformed, which makes them paint over a
 				    sticky header that has no stacking order of its own. */}
 				<header className="bg-background sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b px-4">
