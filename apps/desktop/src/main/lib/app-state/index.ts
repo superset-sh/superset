@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { JSONFilePreset } from "lowdb/node";
 import { APP_STATE_PATH } from "../app-environment";
+import { pruneV1AgentSessions } from "./prune-v1-agent-sessions";
 import type { AppState } from "./schemas";
 import { defaultAppState } from "./schemas";
 
@@ -18,20 +19,17 @@ function ensureValidShape(data: Partial<AppState>): AppState {
 		...defaultAppState.tabsState,
 		...(data.tabsState ?? {}),
 	};
-	// Agent-session captures are keyed by pane id; drop entries whose pane is
-	// gone so the record can't grow past the pane set. Optional-chain: legacy
-	// app-state.json variants can carry a null panes map.
-	const v1AgentSessions = Object.fromEntries(
-		Object.entries(data.v1AgentSessions ?? {}).filter(
-			([paneId]) => tabsState.panes?.[paneId] !== undefined,
-		),
-	);
 	const tabsStateByWindow = Object.fromEntries(
 		Object.entries(data.tabsStateByWindow ?? {}).map(([key, state]) => [
 			key,
 			{ ...defaultAppState.tabsState, ...(state ?? {}) },
 		]),
 	);
+	// Keyed by pane id; dropping entries of gone panes bounds the record.
+	const v1AgentSessions = pruneV1AgentSessions(data.v1AgentSessions ?? {}, [
+		tabsState,
+		...Object.values(tabsStateByWindow),
+	]);
 	return {
 		tabsState,
 		tabsStateByWindow,
