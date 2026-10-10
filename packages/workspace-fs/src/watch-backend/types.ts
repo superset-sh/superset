@@ -14,6 +14,8 @@ export interface NativeWatchRequest {
 	ignore: string[];
 	/** Unique per attach of one watcher; grows on every re-attach. */
 	generation: number;
+	/** Aborts an attach still in progress. */
+	signal?: AbortSignal;
 	onEvents(events: NativeWatchEvent[]): void;
 	onError(error: unknown): void;
 }

@@ -217,9 +217,9 @@ describe("FsWatcherManager.pathTypes — monotonic growth", () => {
 		const rootPath = await createTempRoot();
 		tempRoots.push(rootPath);
 
-		// A real backend does not deliver events in write order (chokidar on
-		// Linux emits per file after async stats, and adds late `change`s), so
-		// the LRU order is driven here instead.
+		// A real backend does not deliver events in write order (the Linux
+		// backend emits after an async lstat per path), so the LRU order is
+		// driven here instead.
 		let emitNative: ((events: NativeWatchEvent[]) => void) | undefined;
 		const backend: NativeWatchBackend = {
 			name: "scripted",

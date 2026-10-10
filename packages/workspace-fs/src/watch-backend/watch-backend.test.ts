@@ -3,8 +3,8 @@ import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
-	chokidarWatchBackend,
 	createIgnoreMatcher,
+	directoryWatchBackend,
 	type NativeWatchBackend,
 	type NativeWatchEvent,
 	parcelWatchBackend,
@@ -52,7 +52,7 @@ async function attach(
 	return { events, errors, saw };
 }
 
-for (const backend of [parcelWatchBackend, chokidarWatchBackend]) {
+for (const backend of [parcelWatchBackend, directoryWatchBackend]) {
 	describe(`${backend.name} watch backend`, () => {
 		test("reports create, update and delete with absolute paths", async () => {
 			const root = await makeRoot();

@@ -669,6 +669,7 @@ export class FsWatcherManager {
 			rootPath: realPath,
 			ignore,
 			generation,
+			signal: state.controller.signal,
 			// A late callback from a superseded stream (suspended or replaced by
 			// recovery) describes a dead tree.
 			onError: (error) => {
