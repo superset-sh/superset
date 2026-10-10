@@ -1,13 +1,19 @@
-import { existsSync, mkdirSync, statSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 // Recursive deletes go through async `rm`: a failed clone/init rolls back an
 // entire repo directory, and rmSync would hold the event loop for the whole
 // walk.
 import { rm } from "node:fs/promises";
-import { join, resolve as resolvePath } from "node:path";
+import { dirname, join, resolve as resolvePath } from "node:path";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { TRPCError } from "@trpc/server";
 import type { GitCredentialProvider } from "../../../../runtime/git";
 import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
+import {
+	getPathState,
+	inaccessiblePathMessage,
+	isPermissionDenied,
+	isUnreadable,
+} from "../../../../runtime/path-state";
 import {
 	findMatchingRemote,
 	getGitHubRemotes,
@@ -35,13 +41,20 @@ export interface ResolvedGitHubRepo extends ResolvedRepo {
 }
 
 export function validateDirectoryPath(path: string, label: string): void {
-	if (!existsSync(path)) {
+	const state = getPathState(path);
+	if (state === "inaccessible") {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: inaccessiblePathMessage(path),
+		});
+	}
+	if (state === "missing") {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: `${label} does not exist: ${path}`,
 		});
 	}
-	if (!statSync(path).isDirectory()) {
+	if (state !== "directory") {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: `${label} is not a directory: ${path}`,
@@ -58,14 +71,19 @@ export function validateDirectoryPath(path: string, label: string): void {
  * first clone. Still rejects when the path exists but is a file.
  */
 function ensureParentDirectory(path: string): void {
-	if (existsSync(path)) {
-		if (!statSync(path).isDirectory()) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: `Parent directory is not a directory: ${path}`,
-			});
-		}
-		return;
+	const state = getPathState(path);
+	if (state === "directory") return;
+	if (state === "inaccessible") {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: inaccessiblePathMessage(path),
+		});
+	}
+	if (state === "file") {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Parent directory is not a directory: ${path}`,
+		});
 	}
 	try {
 		mkdirSync(path, { recursive: true });
@@ -210,19 +228,41 @@ async function ensureNotUnborn(repoPath: string): Promise<void> {
 	await commitInitialEmpty(repoPath);
 }
 
+// Git skips a `.git` it cannot read and reports "not a git repository".
+function findUnreadableRepoAbove(path: string): string | undefined {
+	for (let dir = resolvePath(path); ; dir = dirname(dir)) {
+		if (isUnreadable(join(dir, ".git"))) return dir;
+		if (dirname(dir) === dir) return undefined;
+	}
+}
+
 /**
  * Returns the canonical git root for `path`, or `null` when `path` is not
- * inside a git work tree. Non-throwing variant of `revParseGitRoot` — callers
- * that want to branch on "is this a git repo?" use this instead of catching.
+ * inside a git work tree. Callers that want to branch on "is this a git
+ * repo?" use this instead of catching. Still throws FORBIDDEN when git may not
+ * read `path` or the repo that holds it, so a blocked repo is never offered
+ * `git init`.
  */
 export async function tryRevParseGitRoot(path: string): Promise<string | null> {
+	let error: unknown;
 	try {
 		return (
 			await createUserSimpleGit(path).revparse(["--show-toplevel"])
 		).trim();
-	} catch {
-		return null;
+	} catch (err) {
+		error = err;
 	}
+	const blockedPath = isPermissionDenied(error)
+		? path
+		: findUnreadableRepoAbove(path);
+	if (blockedPath) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: inaccessiblePathMessage(blockedPath),
+			cause: error,
+		});
+	}
+	return null;
 }
 
 async function revParseGitRoot(path: string): Promise<string> {

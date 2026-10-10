@@ -7,6 +7,7 @@ import {
 	terminalSessions,
 	workspaces,
 } from "../db/schema";
+import { isMissingPath } from "../runtime/path-state";
 import { runTeardown } from "../runtime/teardown";
 import { disposeSessionsByWorkspaceId } from "../terminal/terminal";
 import { cleanupGitOps } from "../trpc/router/workspace-cleanup/git-ops";
@@ -145,7 +146,7 @@ export function restoreProject(
 	const restorable = workspacesDeletedWith(ctx, {
 		id: project.id,
 		deletedAt: project.deletedAt,
-	}).filter((row) => row.type === "local" || existsSync(row.worktreePath));
+	}).filter((row) => row.type === "local" || !isMissingPath(row.worktreePath));
 	ctx.db
 		.update(projects)
 		.set({ deletedAt: null, deletedByUserId: null, updatedAt: Date.now() })

@@ -15,6 +15,7 @@ export function toTerminalSessionError(
 	const { kind, error: message } = failure;
 	switch (kind) {
 		case "SESSION_WRONG_WORKSPACE":
+		case "WORKTREE_INACCESSIBLE":
 			return new TRPCError({ code: "FORBIDDEN", message, cause: { kind } });
 		case "SESSION_NOT_FOUND":
 		case "SESSION_EXITED":
