@@ -1,3 +1,5 @@
+import { githubHandle } from "../src/router/hiring/github-handle";
+
 const DAYS = /^(\d+)d$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -7,16 +9,26 @@ function localIsoDate(date: Date): string {
 	return `${date.getFullYear()}-${month}-${day}`;
 }
 
-/** `7d` or `2026-10-20` → a local `YYYY-MM-DD`. */
+const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+
+/** `7d`, `tomorrow`, a weekday (`tue`, `tuesday`: the next one after today) or `2026-10-20` → a local `YYYY-MM-DD`. */
 export function parseFollowUp(value: string, now = new Date()): string {
-	if (ISO_DATE.test(value)) return value;
-	const days = DAYS.exec(value)?.[1];
-	if (!days)
-		throw new Error(
-			`Follow-up must look like 7d or 2026-10-20, got "${value}"`,
-		);
+	const input = value.trim().toLowerCase();
+	if (ISO_DATE.test(input)) return input;
 	const date = new Date(now);
-	date.setDate(date.getDate() + Number(days));
+	const days = DAYS.exec(input)?.[1];
+	const weekday = WEEKDAYS.indexOf(input.slice(0, 3));
+	if (days) {
+		date.setDate(date.getDate() + Number(days));
+	} else if (input === "tomorrow") {
+		date.setDate(date.getDate() + 1);
+	} else if (weekday !== -1 && input.length >= 3) {
+		date.setDate(date.getDate() + (((weekday - date.getDay() + 6) % 7) + 1));
+	} else {
+		throw new Error(
+			`Follow-up must look like 7d, tomorrow, tue or 2026-10-20, got "${value}"`,
+		);
+	}
 	return localIsoDate(date);
 }
 
@@ -37,6 +49,7 @@ export function pickCandidate<T extends CandidateMatch>(
 	rows: T[],
 ): T {
 	const needle = query.trim().toLowerCase();
+	const handle = githubHandle(query);
 	const unique = [
 		...new Map(rows.map((row) => [row.candidateId, row])).values(),
 	];
@@ -44,7 +57,9 @@ export function pickCandidate<T extends CandidateMatch>(
 		(row) =>
 			row.candidateId === query ||
 			row.email?.toLowerCase() === needle ||
-			row.githubUrl?.toLowerCase().replace(/\/+$/, "").endsWith(`/${needle}`),
+			(handle !== null &&
+				row.githubUrl !== null &&
+				githubHandle(row.githubUrl) === handle),
 	);
 	const matches =
 		exact.length > 0

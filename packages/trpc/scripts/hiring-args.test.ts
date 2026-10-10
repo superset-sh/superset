@@ -19,6 +19,10 @@ describe("hiring script args", () => {
 		const now = new Date(2026, 0, 30);
 		expect(parseFollowUp("3d", now)).toBe("2026-02-02");
 		expect(parseFollowUp("2026-10-20", now)).toBe("2026-10-20");
+		expect(parseFollowUp("tomorrow", now)).toBe("2026-01-31");
+		// 2026-01-30 is a Friday: "fri" means next week's, "tue" the coming one.
+		expect(parseFollowUp("fri", now)).toBe("2026-02-06");
+		expect(parseFollowUp("Tuesday", now)).toBe("2026-02-03");
 		expect(() => parseFollowUp("soon", now)).toThrow();
 	});
 
@@ -33,6 +37,9 @@ describe("hiring script args", () => {
 			),
 		];
 		expect(pickCandidate("danishprakash", rows).candidateId).toBe("2");
+		expect(pickCandidate("github.com/DanishPrakash/", rows).candidateId).toBe(
+			"2",
+		);
 		expect(pickCandidate("DAN@example.com", rows).candidateId).toBe("1");
 		expect(() => pickCandidate("dan", rows)).toThrow(/matches 2 candidates/);
 	});

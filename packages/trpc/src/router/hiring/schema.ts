@@ -44,7 +44,10 @@ export const candidateFieldsSchema = z.object({
 	referredBy: optionalText,
 });
 
+const authorLabel = z.string().trim().max(100).optional();
+
 export const createCandidateSchema = candidateFieldsSchema.extend({
+	authorLabel,
 	roleId: z.string().uuid(),
 	stage: hiringStageEnum.default("sourced"),
 	ownerUserId: z.string().uuid().nullish(),
@@ -81,6 +84,7 @@ export const updateApplicationSchema = z.object({
 export const todaySchema = z.object({ today: isoDate }).optional();
 
 export const logTouchSchema = z.object({
+	authorLabel,
 	applicationId: z.string().uuid(),
 	nextFollowUpOn: isoDate.nullish(),
 	note: optionalText,
