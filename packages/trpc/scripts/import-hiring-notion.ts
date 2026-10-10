@@ -216,9 +216,7 @@ async function main() {
 			.filter((c) => !c.hasApplication && c.notionPageId)
 			.map((c) => [c.notionPageId, c]),
 	);
-	const takenEmails = new Set(
-		existing.filter((c) => c.hasApplication).map((c) => c.email),
-	);
+	const takenEmails = new Set(existing.map((c) => c.email));
 	const seenPageIds = new Set<string>();
 
 	const seenEmails = new Set<string>();
