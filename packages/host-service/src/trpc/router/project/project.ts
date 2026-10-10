@@ -701,7 +701,15 @@ export const projectRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			restoreProject(ctx, input.projectId);
 			const existing = ctx.db
-				.select({ id: projects.id, repoPath: projects.repoPath })
+				.select({
+					id: projects.id,
+					repoPath: projects.repoPath,
+					repoProvider: projects.repoProvider,
+					repoOwner: projects.repoOwner,
+					repoName: projects.repoName,
+					repoUrl: projects.repoUrl,
+					remoteName: projects.remoteName,
+				})
 				.from(projects)
 				.where(eq(projects.id, input.projectId))
 				.get();
@@ -813,6 +821,16 @@ export const projectRouter = router({
 
 					rejectIfRepoint(resolved.repoPath);
 					if (existing && existing.repoPath === resolved.repoPath) {
+						if (
+							origin.repoCloneUrl &&
+							(existing.repoProvider !== "github" ||
+								existing.repoOwner !== resolved.parsed?.owner ||
+								existing.repoName !== resolved.parsed?.name ||
+								existing.repoUrl !== resolved.parsed?.url ||
+								existing.remoteName !== resolved.remoteName)
+						) {
+							persistLocalProject(ctx, input.projectId, resolved);
+						}
 						return {
 							repoPath: existing.repoPath,
 						};
