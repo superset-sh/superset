@@ -3412,6 +3412,9 @@ msgstr "Kategori"
 msgid "Caution"
 msgstr "Dikkat"
 
+msgid "Center terminal content in a narrower column for easier reading"
+msgstr "Daha kolay okumak için terminal içeriğini daha dar bir sütunda ortala"
+
 msgid "Certificate Authority Invalid"
 msgstr "Sertifika yetkilisi geçersiz"
 
@@ -13319,6 +13322,9 @@ msgstr "Sayfa okunuyor"
 
 msgid "Reading usage…"
 msgstr "Kullanım okunuyor…"
+
+msgid "Reading width"
+msgstr "Okuma genişliği"
 
 msgid "Reading your local usage…"
 msgstr "Yerel kullanımınız okunuyor…"

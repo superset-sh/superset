@@ -12,6 +12,7 @@ import {
 import { TerminalConnectionIndicator } from "./components/TerminalConnectionIndicator";
 import { TerminalIdCopyMenu } from "./components/TerminalIdCopyMenu";
 import { TerminalPageWatchChip } from "./components/TerminalPageWatchChip";
+import { TerminalReadingWidthToggle } from "./components/TerminalReadingWidthToggle";
 import { TerminalSessionHandoffMenu } from "./components/TerminalSessionHandoffMenu";
 import { TerminalSubagentsMenu } from "./components/TerminalSubagentsMenu";
 
@@ -83,6 +84,7 @@ export function TerminalPaneHeaderExtras({
 				terminalId={terminalId}
 				onCreateNewAgentSession={onCreateNewAgentSession}
 			/>
+			<TerminalReadingWidthToggle />
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<button

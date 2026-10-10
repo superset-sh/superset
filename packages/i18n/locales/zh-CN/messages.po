@@ -3412,6 +3412,9 @@ msgstr "分类"
 msgid "Caution"
 msgstr "当心"
 
+msgid "Center terminal content in a narrower column for easier reading"
+msgstr "将终端内容居中显示在较窄的列中，方便阅读"
+
 msgid "Certificate Authority Invalid"
 msgstr "证书颁发机构无效"
 
@@ -13319,6 +13322,9 @@ msgstr "正在读取页面"
 
 msgid "Reading usage…"
 msgstr "正在读取用量…"
+
+msgid "Reading width"
+msgstr "阅读宽度"
 
 msgid "Reading your local usage…"
 msgstr "正在读取本地用量…"

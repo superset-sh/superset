@@ -3412,6 +3412,9 @@ msgstr "Catégorie"
 msgid "Caution"
 msgstr "Attention"
 
+msgid "Center terminal content in a narrower column for easier reading"
+msgstr "Centrer le contenu du terminal dans une colonne plus étroite pour faciliter la lecture"
+
 msgid "Certificate Authority Invalid"
 msgstr "Autorité de certification non valide"
 
@@ -13319,6 +13322,9 @@ msgstr "Lecture de la page"
 
 msgid "Reading usage…"
 msgstr "Lecture de l'utilisation…"
+
+msgid "Reading width"
+msgstr "Largeur de lecture"
 
 msgid "Reading your local usage…"
 msgstr "Lecture de votre utilisation locale…"

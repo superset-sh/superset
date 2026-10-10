@@ -10,6 +10,7 @@ import { BackgroundTerminalsSetting } from "./components/BackgroundTerminalsSett
 import { CopyOnSelectSetting } from "./components/CopyOnSelectSetting";
 import { LinkBehaviorSetting } from "./components/LinkBehaviorSetting";
 import { PresetsSection } from "./components/PresetsSection";
+import { ReadingWidthSetting } from "./components/ReadingWidthSetting";
 import { SessionsSection } from "./components/SessionsSection";
 import { V2PresetsSection } from "./components/V2PresetsSection";
 import { V2SessionsSection } from "./components/V2SessionsSection";
@@ -75,6 +76,10 @@ export function TerminalSettings({
 		SETTING_ITEM_ID.TERMINAL_COPY_ON_SELECT,
 		visibleItems,
 	);
+	const showReadingWidth = isItemVisible(
+		SETTING_ITEM_ID.TERMINAL_READING_WIDTH,
+		visibleItems,
+	);
 
 	return (
 		<div className="p-6 max-w-6xl w-full">
@@ -117,6 +122,9 @@ export function TerminalSettings({
 					<BackgroundTerminalsSetting key="background-limit" />
 				)}
 				{showCopyOnSelect && <CopyOnSelectSetting key="copy-on-select" />}
+				{isV2CloudEnabled && showReadingWidth && (
+					<ReadingWidthSetting key="reading-width" />
+				)}
 				{showSessions &&
 					(isV2CloudEnabled ? (
 						<V2SessionsSection key="sessions" />

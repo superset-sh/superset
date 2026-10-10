@@ -3412,6 +3412,9 @@ msgstr "카테고리"
 msgid "Caution"
 msgstr "주의"
 
+msgid "Center terminal content in a narrower column for easier reading"
+msgstr "터미널 내용을 좁은 열의 가운데에 배치하여 읽기 쉽게 표시합니다"
+
 msgid "Certificate Authority Invalid"
 msgstr "인증 기관이 올바르지 않음"
 
@@ -13319,6 +13322,9 @@ msgstr "페이지 읽는 중"
 
 msgid "Reading usage…"
 msgstr "사용량 읽는 중…"
+
+msgid "Reading width"
+msgstr "읽기 너비"
 
 msgid "Reading your local usage…"
 msgstr "로컬 사용량을 읽는 중…"
