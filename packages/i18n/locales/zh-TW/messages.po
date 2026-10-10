@@ -2626,6 +2626,9 @@ msgstr "同時"
 msgid "Attach files"
 msgstr "附加檔案"
 
+msgid "Attach image"
+msgstr "附加圖片"
+
 msgid "Attached"
 msgstr "已附加"
 
@@ -8553,6 +8556,9 @@ msgstr "已複製圖片"
 msgid "Image is too large (max 10MB)"
 msgstr "圖片過大（最大10MB）"
 
+msgid "Image not found — upload it first"
+msgstr "找不到圖片 — 請先上傳"
+
 #. placeholder {0}: getBaseName(filePath)
 msgid "Image preview of {0}. Zoom with plus and minus, pan with arrow keys, press 0 to reset."
 msgstr "{0}的圖片預覽。用加號和減號縮放，用方向鍵平移，按0重置。"
@@ -11533,6 +11539,9 @@ msgstr "只有主機擁有者可以更改此位置。"
 msgid "Only host owners or organization owners can delete this host"
 msgstr "只有主機擁有者或組織擁有者才能刪除此主機"
 
+msgid "Only images can be attached to a comment"
+msgstr "評論只能附加圖片"
+
 msgid "Only organization owners can modify these settings."
 msgstr "只有組織擁有者可以修改這些設定。"
 
@@ -13582,6 +13591,9 @@ msgstr "從側邊欄移除"
 
 msgid "Remove icon"
 msgstr "移除圖示"
+
+msgid "Remove image"
+msgstr "移除圖片"
 
 msgid "Remove linked issue"
 msgstr "移除關聯的議題"
@@ -17062,6 +17074,9 @@ msgstr "主機已回退到先前的版本。"
 
 msgid "The human reads every line before it merges."
 msgstr "合併前人類會逐行閱讀。"
+
+msgid "The image upload expired — attach it again"
+msgstr "圖片上傳已過期 — 請重新附加"
 
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "崗位描述變了。工程師不再是有品味的打字員，而成了有品味的排程員：拆解工作、分派給代理程式叢集、在兩個改了同一個模組的代理程式之間做裁決。"

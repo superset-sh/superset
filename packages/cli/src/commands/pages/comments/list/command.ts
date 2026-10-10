@@ -7,6 +7,7 @@ interface ThreadComment {
 	authorName: string;
 	authorKind: string;
 	body: string;
+	attachments?: { name: string; url: string }[];
 	createdAt: string | Date;
 }
 
@@ -94,6 +95,11 @@ export default command({
 							? `${comment.authorName} (agent)`
 							: comment.authorName;
 					lines.push(`  ${who}: ${indent(comment.body, "    ")}`);
+					for (const attachment of comment.attachments ?? []) {
+						lines.push(
+							`    [image ${printable(attachment.name)}] ${attachment.url}`,
+						);
+					}
 				}
 				return lines.join("\n");
 			})
@@ -106,4 +112,8 @@ function indent(text: string, prefix: string): string {
 		.split("\n")
 		.map((line, index) => (index === 0 ? line : `${prefix}${line}`))
 		.join("\n");
+}
+
+function printable(text: string): string {
+	return text.replace(/[\u0000-\u001f\u007f-\u009f]/g, "");
 }

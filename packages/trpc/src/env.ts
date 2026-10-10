@@ -26,6 +26,10 @@ export const env = createEnv({
 		// path is exercised against an S3-compatible emulator in tests/dev.
 		R2_ENDPOINT: z.string().url(),
 		USERCONTENT_URL: z.string().url(),
+		// The usercontent Worker's media host (`/files/<id>` with a ticket).
+		// Its own env names the same value; the two must agree or every
+		// attachment URL the API mints points somewhere the Worker won't serve.
+		MEDIA_URL: z.string().url(),
 		STATIC_URL: z.string().url(),
 		USERCONTENT_TOKEN_SECRET: z.string().min(32),
 		// Optional: page thumbnails are skipped wherever this is unset.

@@ -1,9 +1,9 @@
 import { db, dbWs } from "@superset/db/client";
 import {
-	attachments,
-	files,
 	members,
 	organizations,
+	pageComments,
+	pageCommentThreads,
 	pages,
 	pageVersions,
 	type SelectPage,
@@ -13,7 +13,6 @@ import {
 import { escapeLikePattern } from "@superset/db/utils";
 import { mintPageSlug } from "@superset/shared/page-slug";
 import {
-	fileOriginalKey,
 	pageManifestKey,
 	pageThumbnailKey,
 	pageThumbnailUrl,
@@ -36,6 +35,7 @@ import {
 } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
+import { detachAll, reapOrphanFiles } from "../../lib/files";
 import { deletePageStorage } from "../../lib/page-store";
 import { deleteObjects, objectExists, presignedGetUrl } from "../../lib/r2";
 import { protectedProcedure, publicProcedure, userError } from "../../trpc";
@@ -1001,7 +1001,19 @@ export const pageRouter = {
 						),
 					)
 					.returning({ id: pages.id });
-				if (discarded) await wipePageStorage(page.id);
+				if (discarded) {
+					try {
+						await reapOrphanFiles(
+							await detachAll({ parentKind: "page", parentIds: [page.id] }),
+						);
+					} catch (error) {
+						console.error("[pages] staged asset cleanup failed after delete", {
+							pageId: page.id,
+							error,
+						});
+					}
+					await wipePageStorage(page.id);
+				}
 				return { id: page.id, deleted: Boolean(discarded) };
 			}
 
@@ -1013,6 +1025,20 @@ export const pageRouter = {
 				})
 				.from(pageVersions)
 				.where(eq(pageVersions.pageId, page.id));
+
+			// Like the versions, comment ids have to be read before the page
+			// row goes: the cascade takes the comments, and with them the only
+			// way to name their attachments.
+			const commentIds = (
+				await db
+					.select({ id: pageComments.id })
+					.from(pageComments)
+					.innerJoin(
+						pageCommentThreads,
+						eq(pageCommentThreads.id, pageComments.threadId),
+					)
+					.where(eq(pageCommentThreads.pageId, page.id))
+			).map((row) => row.id);
 
 			// The manifest is the Worker's authorization source: removing it
 			// first makes deletion fail closed. If this throws, nothing has
@@ -1027,37 +1053,31 @@ export const pageRouter = {
 					pageId: page.id,
 					versions: rows,
 				});
+			} catch (error) {
+				console.error("[pages] version object cleanup failed after delete", {
+					pageId: page.id,
+					error,
+				});
+			}
+
+			try {
 				// `attachments.parentId` carries no foreign key (its parent kind
-				// varies), so the version cascade leaves attachment rows behind;
-				// files referenced by nothing else go with them, bytes included.
-				const versionIds = rows.map((row) => row.id);
-				if (versionIds.length > 0) {
-					const removed = await db
-						.delete(attachments)
-						.where(
-							and(
-								eq(attachments.parentKind, "page_version"),
-								inArray(attachments.parentId, versionIds),
-							),
-						)
-						.returning({ fileId: attachments.fileId });
-					const fileIds = [...new Set(removed.map((row) => row.fileId))];
-					if (fileIds.length > 0) {
-						const stillReferenced = new Set(
-							(
-								await db
-									.select({ fileId: attachments.fileId })
-									.from(attachments)
-									.where(inArray(attachments.fileId, fileIds))
-							).map((row) => row.fileId),
-						);
-						const orphans = fileIds.filter((id) => !stillReferenced.has(id));
-						if (orphans.length > 0) {
-							await deleteObjects(orphans.map(fileOriginalKey));
-							await db.delete(files).where(inArray(files.id, orphans));
-						}
-					}
-				}
+				// varies), so the cascade leaves attachment rows behind — the
+				// versions' assets, anything still staged against the page, and
+				// the comments' images; files referenced by nothing else go with
+				// them, bytes included.
+				const fileIds = [
+					...(await detachAll({
+						parentKind: "page_version",
+						parentIds: rows.map((row) => row.id),
+					})),
+					...(await detachAll({ parentKind: "page", parentIds: [page.id] })),
+					...(await detachAll({
+						parentKind: "comment",
+						parentIds: commentIds,
+					})),
+				];
+				await reapOrphanFiles([...new Set(fileIds)]);
 			} catch (error) {
 				console.error("[pages] storage cleanup failed after delete", {
 					pageId: page.id,

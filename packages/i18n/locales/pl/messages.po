@@ -2626,6 +2626,9 @@ msgstr "naraz"
 msgid "Attach files"
 msgstr "Załącz pliki"
 
+msgid "Attach image"
+msgstr "Załącz obraz"
+
 msgid "Attached"
 msgstr "Podłączona"
 
@@ -8553,6 +8556,9 @@ msgstr "Skopiowano obraz"
 msgid "Image is too large (max 10MB)"
 msgstr "Obraz jest za duży (maks. 10 MB)"
 
+msgid "Image not found — upload it first"
+msgstr "Nie znaleziono obrazu — najpierw go prześlij"
+
 #. placeholder {0}: getBaseName(filePath)
 msgid "Image preview of {0}. Zoom with plus and minus, pan with arrow keys, press 0 to reset."
 msgstr "Podgląd obrazu {0}. Powiększaj plusem i minusem, przesuwaj strzałkami, naciśnij 0, aby zresetować."
@@ -11533,6 +11539,9 @@ msgstr "Tylko właściciele hosta mogą zmienić tę lokalizację."
 msgid "Only host owners or organization owners can delete this host"
 msgstr "Tylko właściciele hosta lub właściciele organizacji mogą usunąć tego hosta"
 
+msgid "Only images can be attached to a comment"
+msgstr "Do komentarza można załączać tylko obrazy"
+
 msgid "Only organization owners can modify these settings."
 msgstr "Tylko właściciele organizacji mogą zmieniać te ustawienia."
 
@@ -13582,6 +13591,9 @@ msgstr "Usuń z paska bocznego"
 
 msgid "Remove icon"
 msgstr "Usuń ikonę"
+
+msgid "Remove image"
+msgstr "Usuń obraz"
 
 msgid "Remove linked issue"
 msgstr "Usuń powiązane zgłoszenie"
@@ -17062,6 +17074,9 @@ msgstr "Host wrócił do poprzedniej kompilacji."
 
 msgid "The human reads every line before it merges."
 msgstr "Człowiek czyta każdą linię przed scaleniem."
+
+msgid "The image upload expired — attach it again"
+msgstr "Przesyłanie obrazu wygasło — załącz go ponownie"
 
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "Zakres obowiązków się przesuwa. Inżynierowie przestają być maszynistkami z gustem, a stają się dyspozytorami z gustem: dzielą pracę, kierują ją do flot, rozstrzygają konflikty między agentami, którzy dotknęli tego samego modułu."

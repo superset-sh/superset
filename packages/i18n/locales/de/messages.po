@@ -2626,6 +2626,9 @@ msgstr "gleichzeitig"
 msgid "Attach files"
 msgstr "Dateien anhängen"
 
+msgid "Attach image"
+msgstr "Bild anhängen"
+
 msgid "Attached"
 msgstr "Verbunden"
 
@@ -8553,6 +8556,9 @@ msgstr "Bild kopiert"
 msgid "Image is too large (max 10MB)"
 msgstr "Bild ist zu groß (max. 10 MB)"
 
+msgid "Image not found — upload it first"
+msgstr "Bild nicht gefunden — erst hochladen"
+
 #. placeholder {0}: getBaseName(filePath)
 msgid "Image preview of {0}. Zoom with plus and minus, pan with arrow keys, press 0 to reset."
 msgstr "Bildvorschau von {0}. Mit Plus und Minus zoomen, mit den Pfeiltasten verschieben, 0 zum Zurücksetzen drücken."
@@ -11533,6 +11539,9 @@ msgstr "Nur Host-Eigentümer können diesen Speicherort ändern."
 msgid "Only host owners or organization owners can delete this host"
 msgstr "Nur Host-Inhaber oder Organisations-Inhaber können diesen Host löschen"
 
+msgid "Only images can be attached to a comment"
+msgstr "An einen Kommentar können nur Bilder angehängt werden"
+
 msgid "Only organization owners can modify these settings."
 msgstr "Nur Eigentümer der Organisation können diese Einstellungen ändern."
 
@@ -13582,6 +13591,9 @@ msgstr "Aus Seitenleiste entfernen"
 
 msgid "Remove icon"
 msgstr "Icon entfernen"
+
+msgid "Remove image"
+msgstr "Bild entfernen"
 
 msgid "Remove linked issue"
 msgstr "Verknüpftes Issue entfernen"
@@ -17062,6 +17074,9 @@ msgstr "Der Host ist auf seinen vorherigen Build zurückgegangen."
 
 msgid "The human reads every line before it merges."
 msgstr "Der Mensch liest jede Zeile, bevor sie gemergt wird."
+
+msgid "The image upload expired — attach it again"
+msgstr "Der Bild-Upload ist abgelaufen — erneut anhängen"
 
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "Die Stellenbeschreibung verschiebt sich. Entwickler sind nicht länger Tipper mit Geschmack, sondern Disponenten mit Geschmack: Arbeit zerlegen, an Flotten verteilen, Konflikte zwischen Agenten schlichten, die beide dasselbe Modul angefasst haben."

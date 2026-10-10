@@ -2626,6 +2626,9 @@ msgstr "tegelijk"
 msgid "Attach files"
 msgstr "Bestanden bijvoegen"
 
+msgid "Attach image"
+msgstr "Afbeelding toevoegen"
+
 msgid "Attached"
 msgstr "Gekoppeld"
 
@@ -8553,6 +8556,9 @@ msgstr "Afbeelding gekopieerd"
 msgid "Image is too large (max 10MB)"
 msgstr "Afbeelding is te groot (max. 10 MB)"
 
+msgid "Image not found — upload it first"
+msgstr "Afbeelding niet gevonden — upload deze eerst"
+
 #. placeholder {0}: getBaseName(filePath)
 msgid "Image preview of {0}. Zoom with plus and minus, pan with arrow keys, press 0 to reset."
 msgstr "Voorbeeld van afbeelding {0}. Zoom met plus en min, verschuif met de pijltoetsen, druk op 0 om te resetten."
@@ -11533,6 +11539,9 @@ msgstr "Alleen eigenaren van de host kunnen deze locatie wijzigen."
 msgid "Only host owners or organization owners can delete this host"
 msgstr "Alleen eigenaren van de host of organisatie-eigenaren kunnen deze host verwijderen"
 
+msgid "Only images can be attached to a comment"
+msgstr "Aan een reactie kunnen alleen afbeeldingen worden toegevoegd"
+
 msgid "Only organization owners can modify these settings."
 msgstr "Alleen eigenaren van de organisatie kunnen deze instellingen wijzigen."
 
@@ -13582,6 +13591,9 @@ msgstr "Uit zijbalk verwijderen"
 
 msgid "Remove icon"
 msgstr "Icoon verwijderen"
+
+msgid "Remove image"
+msgstr "Afbeelding verwijderen"
 
 msgid "Remove linked issue"
 msgstr "Gekoppelde issue verwijderen"
@@ -17062,6 +17074,9 @@ msgstr "De host is teruggegaan naar de vorige build."
 
 msgid "The human reads every line before it merges."
 msgstr "De mens leest elke regel voordat het merget."
+
+msgid "The image upload expired — attach it again"
+msgstr "De upload van de afbeelding is verlopen — voeg deze opnieuw toe"
 
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "De functieomschrijving verschuift. Engineers zijn geen typisten met smaak meer, maar dispatchers met smaak: werk opdelen, het naar vloten routeren, en conflicten beslechten tussen agents die dezelfde module aanraakten."

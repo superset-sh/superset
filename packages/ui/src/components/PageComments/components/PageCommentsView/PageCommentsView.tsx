@@ -404,12 +404,14 @@ export function PageCommentsView({
 						container={container}
 						thread={null}
 						initialValue={draft.body}
+						initialAttachments={draft.attachments}
 						onDismiss={discardDraft}
-						onSubmit={(body) =>
+						onSubmit={(body, attachments) =>
 							createThread({
 								anchor: draft.anchor,
 								anchorText: draft.anchor.text,
 								body,
+								attachments,
 							})
 						}
 						onQuick={(body, intent) => {
@@ -432,7 +434,9 @@ export function PageCommentsView({
 						container={container}
 						thread={popoverThread}
 						onDismiss={() => setActiveThreadId(null)}
-						onSubmit={(body) => addReply(popoverThread.id, body)}
+						onSubmit={(body, attachments) =>
+							addReply(popoverThread.id, body, attachments)
+						}
 						onEdit={(commentId, body) =>
 							editComment(popoverThread.id, commentId, body)
 						}

@@ -2626,6 +2626,9 @@ msgstr "одновременно"
 msgid "Attach files"
 msgstr "Прикрепить файлы"
 
+msgid "Attach image"
+msgstr "Прикрепить изображение"
+
 msgid "Attached"
 msgstr "Подключена"
 
@@ -8553,6 +8556,9 @@ msgstr "Изображение скопировано"
 msgid "Image is too large (max 10MB)"
 msgstr "Изображение слишком большое (макс. 10 МБ)"
 
+msgid "Image not found — upload it first"
+msgstr "Изображение не найдено — сначала загрузите его"
+
 #. placeholder {0}: getBaseName(filePath)
 msgid "Image preview of {0}. Zoom with plus and minus, pan with arrow keys, press 0 to reset."
 msgstr "Предпросмотр изображения {0}. Масштаб — плюс и минус, панорама — стрелками, 0 — сброс."
@@ -11533,6 +11539,9 @@ msgstr "Изменять это расположение могут только
 msgid "Only host owners or organization owners can delete this host"
 msgstr "Удалить этот хост могут только владельцы хоста или владельцы организации"
 
+msgid "Only images can be attached to a comment"
+msgstr "К комментарию можно прикреплять только изображения"
+
 msgid "Only organization owners can modify these settings."
 msgstr "Изменять эти настройки могут только владельцы организации."
 
@@ -13582,6 +13591,9 @@ msgstr "Убрать из боковой панели"
 
 msgid "Remove icon"
 msgstr "Удалить иконку"
+
+msgid "Remove image"
+msgstr "Убрать изображение"
 
 msgid "Remove linked issue"
 msgstr "Отвязать задачу"
@@ -17062,6 +17074,9 @@ msgstr "Хост вернулся к предыдущей сборке."
 
 msgid "The human reads every line before it merges."
 msgstr "Человек читает каждую строку перед слиянием."
+
+msgid "The image upload expired — attach it again"
+msgstr "Срок загрузки изображения истёк — прикрепите его снова"
 
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "Описание работы меняется. Инженеры перестают быть машинистками со вкусом и становятся диспетчерами со вкусом: декомпозируют работу, раздают её флотам, разрешают конфликты между агентами, которые оба тронули один модуль."

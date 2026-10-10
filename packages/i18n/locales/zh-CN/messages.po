@@ -2626,6 +2626,9 @@ msgstr "同时"
 msgid "Attach files"
 msgstr "附加文件"
 
+msgid "Attach image"
+msgstr "附加图片"
+
 msgid "Attached"
 msgstr "已附加"
 
@@ -8553,6 +8556,9 @@ msgstr "已复制图片"
 msgid "Image is too large (max 10MB)"
 msgstr "图片过大（最大10MB）"
 
+msgid "Image not found — upload it first"
+msgstr "未找到图片 — 请先上传"
+
 #. placeholder {0}: getBaseName(filePath)
 msgid "Image preview of {0}. Zoom with plus and minus, pan with arrow keys, press 0 to reset."
 msgstr "{0}的图片预览。用加号和减号缩放，用方向键平移，按0重置。"
@@ -11533,6 +11539,9 @@ msgstr "只有主机所有者可以更改此位置。"
 msgid "Only host owners or organization owners can delete this host"
 msgstr "只有主机所有者或组织所有者才能删除此主机"
 
+msgid "Only images can be attached to a comment"
+msgstr "评论只能附加图片"
+
 msgid "Only organization owners can modify these settings."
 msgstr "只有组织所有者可以修改这些设置。"
 
@@ -13582,6 +13591,9 @@ msgstr "从侧边栏移除"
 
 msgid "Remove icon"
 msgstr "移除图标"
+
+msgid "Remove image"
+msgstr "移除图片"
 
 msgid "Remove linked issue"
 msgstr "移除关联的议题"
@@ -17062,6 +17074,9 @@ msgstr "主机已回退到之前的版本。"
 
 msgid "The human reads every line before it merges."
 msgstr "合并前人类会逐行阅读。"
+
+msgid "The image upload expired — attach it again"
+msgstr "图片上传已过期 — 请重新附加"
 
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "岗位描述变了。工程师不再是有品味的打字员，而成了有品味的调度员：拆解工作、分派给智能体集群、在两个改了同一个模块的智能体之间做裁决。"

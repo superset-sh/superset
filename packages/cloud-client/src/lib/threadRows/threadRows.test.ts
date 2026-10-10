@@ -19,6 +19,7 @@ function comment(overrides: Partial<ServerComment> = {}): ServerComment {
 		authorName: "Sarah",
 		authorImage: null,
 		agentLabel: null,
+		attachments: [],
 		createdAt: new Date("2026-09-11T00:00:00Z"),
 		...overrides,
 	};

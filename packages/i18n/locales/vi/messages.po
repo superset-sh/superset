@@ -2626,6 +2626,9 @@ msgstr "cùng lúc"
 msgid "Attach files"
 msgstr "Đính kèm tệp"
 
+msgid "Attach image"
+msgstr "Đính kèm hình ảnh"
+
 msgid "Attached"
 msgstr "Đã gắn"
 
@@ -8553,6 +8556,9 @@ msgstr "Đã sao chép hình ảnh"
 msgid "Image is too large (max 10MB)"
 msgstr "Ảnh quá lớn (tối đa 10MB)"
 
+msgid "Image not found — upload it first"
+msgstr "Không tìm thấy hình ảnh — hãy tải lên trước"
+
 #. placeholder {0}: getBaseName(filePath)
 msgid "Image preview of {0}. Zoom with plus and minus, pan with arrow keys, press 0 to reset."
 msgstr "Xem trước ảnh của {0}. Thu phóng bằng phím cộng và trừ, di chuyển bằng phím mũi tên, nhấn 0 để đặt lại."
@@ -11533,6 +11539,9 @@ msgstr "Chỉ chủ sở hữu host mới đổi được vị trí này."
 msgid "Only host owners or organization owners can delete this host"
 msgstr "Chỉ chủ sở hữu host hoặc chủ sở hữu tổ chức mới xóa được host này"
 
+msgid "Only images can be attached to a comment"
+msgstr "Chỉ có thể đính kèm hình ảnh vào bình luận"
+
 msgid "Only organization owners can modify these settings."
 msgstr "Chỉ chủ sở hữu tổ chức mới sửa được các cài đặt này."
 
@@ -13582,6 +13591,9 @@ msgstr "Gỡ khỏi thanh bên"
 
 msgid "Remove icon"
 msgstr "Gỡ biểu tượng"
+
+msgid "Remove image"
+msgstr "Xóa hình ảnh"
 
 msgid "Remove linked issue"
 msgstr "Gỡ issue đã liên kết"
@@ -17062,6 +17074,9 @@ msgstr "Máy chủ đã quay lại bản dựng trước."
 
 msgid "The human reads every line before it merges."
 msgstr "Con người đọc từng dòng trước khi merge."
+
+msgid "The image upload expired — attach it again"
+msgstr "Lượt tải lên hình ảnh đã hết hạn — hãy đính kèm lại"
 
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "Mô tả công việc thay đổi. Kỹ sư thôi làm thợ gõ phím có gu và trở thành người điều phối có gu: chia nhỏ công việc, phân về các đội agent, phân xử xung đột giữa những agent cùng chạm vào một module."

@@ -9,6 +9,13 @@ export interface CommentAuthorRow {
 	image: string | null;
 }
 
+export interface ShapedCommentAttachment {
+	fileId: string;
+	name: string;
+	contentType: string;
+	url: string;
+}
+
 export interface ShapedComment {
 	id: string;
 	body: string;
@@ -17,6 +24,7 @@ export interface ShapedComment {
 	authorName: string;
 	authorImage: string | null;
 	agentLabel: string | null;
+	attachments: ShapedCommentAttachment[];
 	createdAt: Date;
 }
 
@@ -53,6 +61,7 @@ export interface ShapedThread {
 export function shapeComment(
 	comment: SelectPageComment,
 	author: CommentAuthorRow,
+	attachments: ShapedCommentAttachment[],
 ): ShapedComment {
 	return {
 		id: comment.id,
@@ -62,6 +71,7 @@ export function shapeComment(
 		authorName: author.name ?? "Unknown",
 		authorImage: author.image ?? null,
 		agentLabel: agentLabelFor(comment),
+		attachments,
 		createdAt: comment.createdAt,
 	};
 }
