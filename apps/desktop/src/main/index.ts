@@ -62,7 +62,8 @@ import { runQuitCleanup } from "./lib/quit-sequence";
 import { startResourceJournal } from "./lib/resource-metrics/resource-journal";
 import { initSentry } from "./lib/sentry";
 import { stopPtyDaemons } from "./lib/stop-pty-daemons";
-import { shutdownV1DaemonOnBoot } from "./lib/terminal";
+import { stopMigratedV1SessionsOnBoot } from "./lib/terminal";
+import { readMigratedV1WorkspaceIds } from "./lib/terminal/stop-v1-sessions/migrated-v1-workspaces";
 import {
 	disposeTerminalHostClient,
 	getTerminalHostClient,
@@ -535,7 +536,7 @@ if (!gotTheLock) {
 
 		await loadWebviewBrowserExtension();
 
-		await shutdownV1DaemonOnBoot();
+		await stopMigratedV1SessionsOnBoot(readMigratedV1WorkspaceIds());
 
 		// Must be listening before any host-service spawns: the child learns the
 		// bridge endpoint/secret from its env, so a late bridge means browser

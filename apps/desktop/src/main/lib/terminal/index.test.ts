@@ -20,6 +20,7 @@ let shutdownIfRunningError: Error | null = null;
 let shutdownIfRunningCalls = 0;
 let shutdownRequests: unknown[] = [];
 let ensureConnectedCalls = 0;
+let killed: string[] = [];
 let resetCalls = 0;
 
 function makeSession(
@@ -85,20 +86,29 @@ describe("terminal index", () => {
 		shutdownIfRunningCalls = 0;
 		shutdownRequests = [];
 		ensureConnectedCalls = 0;
+		killed = [];
 		resetCalls = 0;
 	});
 
-	it("stops a v1 daemon left from before boot, sessions included", async () => {
-		await shutdownV1DaemonOnBoot();
-		expect(shutdownRequests).toEqual([{ killSessions: true }]);
+	it("on boot stops only sessions of migrated workspaces", async () => {
+		listSessionsIfRunningResult = {
+			sessions: [
+				makeSession({ sessionId: "s-done", workspaceId: "w-done" }),
+				makeSession({ sessionId: "s-failed", workspaceId: "w-failed" }),
+			],
+		};
+		await stopMigratedV1SessionsOnBoot(new Set(["w-done"]));
+		expect(killed).toEqual(["s-done"]);
+		expect(shutdownRequests).toEqual([]);
 		expect(ensureConnectedCalls).toBe(0);
-		expect(resetCalls).toBe(1);
 	});
 
-	it("a failed boot shutdown is logged, not thrown", async () => {
-		shutdownIfRunningError = new Error("socket gone");
-		await expect(shutdownV1DaemonOnBoot()).resolves.toBeUndefined();
-		expect(resetCalls).toBe(1);
+	it("a failed boot stop is logged, not thrown", async () => {
+		listSessionsIfRunningError = new Error("socket gone");
+		await expect(
+			stopMigratedV1SessionsOnBoot(new Set(["w-done"])),
+		).resolves.toBeUndefined();
+		expect(killed).toEqual([]);
 	});
 
 	it("resets the daemon manager when no daemon is running", async () => {

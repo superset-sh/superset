@@ -364,8 +364,19 @@ class FakeIpc implements V1MigrationIpc {
 	async readV1Settings() {
 		return null;
 	}
+	terminalPanes: {
+		paneId: string;
+		v1WorkspaceId: string;
+		cwd: string | null;
+	}[] = [];
+	stopCalls: string[][] = [];
+	failStop = false;
 	async readV1TerminalPanes() {
-		return [];
+		return [...this.terminalPanes];
+	}
+	async stopV1Panes(paneIds: string[]) {
+		if (this.failStop) throw new Error("v1 daemon unreachable");
+		this.stopCalls.push(paneIds);
 	}
 	async readV1TerminalPresets() {
 		return [];
@@ -970,6 +981,58 @@ describe("runV1Migration scenarios", () => {
 		await run(ipc, host);
 		expect(ipc.ledger.get("workspace\0w-ext")?.status).toBe("success");
 		expect(host.workspaces.map((w) => w.branch)).toEqual(["feat"]);
+	});
+
+	test("v1 sessions are stopped before v2 takes over their panes", async () => {
+		const ipc = new FakeIpc();
+		const host = new FakeHost();
+		ipc.projects = [project("p1", "/repo/a")];
+		ipc.workspaces = [workspace("w-main", "p1", "main")];
+		ipc.terminalPanes = [
+			{ paneId: "pane-1", v1WorkspaceId: "w-main", cwd: null },
+		];
+		host.diskBranches.set("/repo/a", new Set(["main"]));
+		const queued: string[] = [];
+		const order: string[] = [];
+		ipc.stopV1Panes = async (paneIds) => {
+			order.push(`stop:${paneIds.join(",")}`);
+		};
+		await runV1Migration({
+			organizationId: "org",
+			hostClient: host.client(),
+			ipc,
+			terminalTarget: {
+				appendPending: (_w, terminals) => {
+					order.push("queue");
+					queued.push(...terminals.map((t) => t.terminalId));
+				},
+			},
+		});
+		expect(order).toEqual(["stop:pane-1", "queue"]);
+		expect(queued).toHaveLength(1);
+	});
+
+	test("a pane whose v1 session could not be stopped is not handed over", async () => {
+		const ipc = new FakeIpc();
+		const host = new FakeHost();
+		ipc.projects = [project("p1", "/repo/a")];
+		ipc.workspaces = [workspace("w-main", "p1", "main")];
+		ipc.terminalPanes = [
+			{ paneId: "pane-1", v1WorkspaceId: "w-main", cwd: null },
+		];
+		ipc.failStop = true;
+		host.diskBranches.set("/repo/a", new Set(["main"]));
+		let queued = 0;
+		await runV1Migration({
+			organizationId: "org",
+			hostClient: host.client(),
+			ipc,
+			terminalTarget: { appendPending: () => void queued++ },
+		});
+		expect(queued).toBe(0);
+		expect(ipc.ledger.get("terminal\0pane-1")).toMatchObject({
+			status: "error",
+		});
 	});
 
 	test("no v1 data: gate trivially complete, zero mutations", async () => {

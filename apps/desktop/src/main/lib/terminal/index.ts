@@ -4,6 +4,7 @@ import {
 } from "main/lib/terminal-host/client";
 import type { ListSessionsResponse } from "main/lib/terminal-host/types";
 import { DaemonTerminalManager, getDaemonTerminalManager } from "./daemon";
+import { stopV1Sessions } from "./stop-v1-sessions";
 
 export { DaemonTerminalManager, getDaemonTerminalManager };
 export type {
@@ -30,21 +31,29 @@ const defaultDeps: TerminalDaemonDeps = {
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
 
 /**
- * No UI shows v1 terminals anymore, so sessions a v1 daemon kept across the
- * restart would run unseen. Stop them; this never spawns a daemon.
+ * No UI shows v1 terminals, so a session whose workspace is now in v2 would
+ * run unseen next to its v2 resume. Sessions of unmigrated workspaces keep
+ * running. Never spawns a daemon.
  */
-export async function shutdownV1DaemonOnBoot(): Promise<void> {
+export async function stopMigratedV1SessionsOnBoot(
+	migratedV1WorkspaceIds: Set<string>,
+): Promise<void> {
 	try {
-		const { wasRunning } = await getTerminalHostClient().shutdownIfRunning({
-			killSessions: true,
-		});
-		if (wasRunning) {
-			console.log("[TerminalManager] Stopped the v1 terminal daemon on boot");
+		const { stoppedPaneIds } = await stopV1Sessions(
+			getTerminalHostClient(),
+			(session) => migratedV1WorkspaceIds.has(session.workspaceId),
+		);
+		if (stoppedPaneIds.length > 0) {
+			console.log(
+				`[TerminalManager] Stopped ${stoppedPaneIds.length} migrated v1 session(s) on boot`,
+			);
 		}
 	} catch (error) {
-		console.warn("[TerminalManager] Failed to stop the v1 daemon:", error);
+		console.warn(
+			"[TerminalManager] Failed to stop migrated v1 sessions:",
+			error,
+		);
 	}
-	getDaemonTerminalManager().reset();
 }
 
 /**

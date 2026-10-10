@@ -13,6 +13,8 @@ import type { BrowserWindow } from "electron";
 import { SUPERSET_HOME_DIR } from "main/lib/app-environment";
 import { appState } from "main/lib/app-state";
 import { localDb } from "main/lib/local-db";
+import { stopV1Sessions } from "main/lib/terminal/stop-v1-sessions";
+import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { createRunLock } from "./utils/run-lock";
@@ -117,6 +119,15 @@ export const createMigrationRouter = () => {
 						const session = sessions[paneId];
 						return session ? [[paneId, session] as const] : [];
 					}),
+				);
+			}),
+
+		stopV1Panes: publicProcedure
+			.input(z.object({ paneIds: z.array(z.string().min(1)) }))
+			.mutation(async ({ input }) => {
+				const paneIds = new Set(input.paneIds);
+				return stopV1Sessions(getTerminalHostClient(), (session) =>
+					paneIds.has(session.paneId),
 				);
 			}),
 
