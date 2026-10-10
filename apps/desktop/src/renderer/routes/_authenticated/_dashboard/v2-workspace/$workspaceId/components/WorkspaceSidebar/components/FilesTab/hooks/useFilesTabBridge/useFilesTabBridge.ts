@@ -307,8 +307,8 @@ export function useFilesTabBridge({
 			) {
 				return;
 			}
-			const expandedDirs = Array.from(knownPathsRef.current).filter(
-				(path) => asDirectoryHandle(model.getItem(path))?.isExpanded(),
+			const expandedDirs = Array.from(knownPathsRef.current).filter((path) =>
+				asDirectoryHandle(model.getItem(path))?.isExpanded(),
 			);
 			knownPathsRef.current.clear();
 			loadedDirsRef.current.clear();
