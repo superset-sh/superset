@@ -22,10 +22,6 @@ msgstr "- className=\"rounded-sm border border-border bg-background …\""
 msgid ", selected"
 msgstr ", vybráno"
 
-#. placeholder {0}: data.unbilledLogos
-msgid ". {0} not yet modeled as Stripe subscriptions"
-msgstr ". {0} zatím není vedeno jako předplatné ve Stripe"
-
 msgid ". Each card shows the canonical import path — click it to copy. Reach for these before writing anything custom."
 msgstr ". Každá karta ukazuje kanonickou cestu importu — kliknutím ji zkopírujete. Sáhněte po nich dřív, než začnete psát něco vlastního."
 
@@ -92,9 +88,6 @@ msgstr "(upraveno)"
 
 msgid "(no output)"
 msgstr "(žádný výstup)"
-
-msgid "(so far)"
-msgstr "(zatím)"
 
 #. placeholder {0}: connections.length
 msgid "{0, plural, one {# account connected} other {# accounts connected}}"
@@ -459,10 +452,6 @@ msgstr "{0} běží na host service {1} — tato aplikace potřebuje {2} nebo no
 msgid "{0} is set up on this machine, but not on your account"
 msgstr "{0} je nastaven na tomto počítači, ale ne ve vašem účtu"
 
-#. placeholder {0}: formatNumber(lastFullWeek)
-msgid "{0} last full week"
-msgstr "{0} za poslední celý týden"
-
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "Ještě {0} — upřesněte hledání"
@@ -488,23 +477,9 @@ msgstr "Běží {0} z {1} kontrol"
 msgid "{0} of {totalCount}"
 msgstr "{0} z {totalCount}"
 
-#. placeholder {0}: rate(teams, signups)
-msgid "{0} of accounts"
-msgstr "{0} účtů"
-
-#. placeholder {0}: rate(downloaders, visitors)
-#. placeholder {0}: rate(signups, visitors)
-msgid "{0} of visitors"
-msgstr "{0} návštěvníků"
-
 #. placeholder {0}: plugin.interface.displayName
 msgid "{0} options"
 msgstr "Možnosti {0}"
-
-#. placeholder {0}: formatNumber(dropped, undefined)
-#. placeholder {0}: formatNumber(step.count, undefined)
-msgid "{0} persons"
-msgstr "osob: {0}"
 
 #. placeholder {0}: i18n._(plan.name)
 msgid "{0} plan"
@@ -546,11 +521,6 @@ msgstr "{0} tokenů dne {1}"
 msgid "{0} tokens over {1} active days"
 msgstr "{0} tokenů za {1} aktivních dní"
 
-#. placeholder {0}: formatNumber(section.updatedRecently)
-#. placeholder {1}: formatNumber(data?.recentDays ?? 30)
-msgid "{0} touched in {1} days"
-msgstr "{0} upraveno za {1} dní"
-
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} uninstalled"
 msgstr "{0} odinstalováno"
@@ -567,10 +537,6 @@ msgstr "{0} proti {1}"
 #. placeholder {0}: file.path
 msgid "{0} was deleted in this change."
 msgstr "{0} byl v této změně smazán."
-
-#. placeholder {0}: formatNumber(option)
-msgid "{0} weeks"
-msgstr "{0} týdnů"
 
 #. placeholder {0}: winner?.name
 #. placeholder {1}: result.events.length
@@ -929,9 +895,6 @@ msgstr "{kind} · autor: {author}"
 msgid "{kindLabel} theme"
 msgstr "{kindLabel} motiv"
 
-msgid "{label} (partial week)"
-msgstr "{label} (neúplný týden)"
-
 msgid "{label} in cloud workspaces"
 msgstr "{label} v cloudových pracovních prostorech"
 
@@ -985,9 +948,6 @@ msgstr "{name} je vestavěný a nelze jej nahradit"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} není přidán"
-
-msgid "{nonBrandPct} of clicks"
-msgstr "{nonBrandPct} kliknutí"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {Zadejte alespoň jednu osobu, nebo zvolte {choice}.} sender {Zadejte alespoň jednoho odesílatele, nebo zvolte {choice}.} other {Zadejte alespoň jednu položku, nebo zvolte {choice}.}}"
@@ -1085,9 +1045,6 @@ msgstr "{skipped, plural, one {# přeskočeno} few {# přeskočeno} many {# pře
 msgid "{starCount} stars and counting"
 msgstr "{starCount} hvězd a přibývá"
 
-msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
-msgstr "{stars} hvězd · {perDay}/den tento týden · {peakPerDay}/den ve špičce"
-
 msgid "{started, plural, one {Started # automation} other {Started # automations}}"
 msgstr "{started, plural, one {Spuštěna # automatizace} few {Spuštěny # automatizace} many {Spuštěno # automatizace} other {Spuštěno # automatizací}}"
 
@@ -1182,12 +1139,6 @@ msgstr "#{0} {1}\n"
 
 msgid "#engineering"
 msgstr "#engineering"
-
-msgid "% of subscribed orgs at month end still subscribed one month later (count-based; $ NRR needs a Sigma query)"
-msgstr "% organizací s předplatným na konci měsíce, které mají předplatné i o měsíc později (podle počtu; $ NRR vyžaduje dotaz v Sigmě)"
-
-msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
-msgstr "% předplatných zahájených v daném měsíci, která jsou po k měsících stále aktivní (Neon, bez enterprise)"
 
 #. placeholder {0}: COMPANY.NAME
 msgid "%s | {0} Docs"
@@ -1284,22 +1235,6 @@ msgstr "✓ před 2 h"
 msgid "✓ 3d ago"
 msgstr "✓ před 3 d"
 
-#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
-#. placeholder {1}: latest.customers
-#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
-msgid "${0} from {1} customers became ${2}"
-msgstr "MRR {1} zákazníků se změnilo z ${0} na ${2}"
-
-#. placeholder {0}: formatNumber(latest.prevUsd, undefined)
-#. placeholder {1}: latest.prevDate
-msgid "${0} previous period ({1})"
-msgstr "${0} předchozí období ({1})"
-
-#. placeholder {0}: formatNumber(data.arrUsd, undefined)
-#. placeholder {1}: accounts.length
-msgid "${0}/yr across {1} logos — already inside MRR, not additive"
-msgstr "${0}/rok, počet zákazníků: {1} — už je v MRR, nepřičítá se"
-
 msgid "${balance} credits"
 msgstr "{balance} $ kreditů"
 
@@ -1335,9 +1270,6 @@ msgstr "před 1 týdnem"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ souběžných proudů práce bez ztráty přehledu"
-
-msgid "100% (retain everything)"
-msgstr "100 % (udržet vše)"
 
 msgid "10h ago"
 msgstr "před 10 h"
@@ -1618,12 +1550,6 @@ msgstr "Úspěchy"
 msgid "Acme Inc."
 msgstr "Acme Inc."
 
-msgid "Acquisition"
-msgstr "Akvizice"
-
-msgid "Acquisition, content, conversion, retention, and distribution in one place. Weekly charts cover the selected range; the current week is partial. Drag a tile by its top edge, resize from the corner."
-msgstr "Akvizice, obsah, konverze, udržení a distribuce na jednom místě. Týdenní grafy pokrývají zvolené období; aktuální týden je neúplný. Dlaždici přetáhnete za horní okraj, velikost změníte v rohu."
-
 msgid "Action"
 msgstr "Akce"
 
@@ -1633,12 +1559,6 @@ msgstr "Akce"
 #. placeholder {0}: page.title
 msgid "Actions for {0}"
 msgstr "Akce pro {0}"
-
-msgid "activation rate"
-msgstr "míra aktivace"
-
-msgid "Activation, how much people use it once they are in, and whether they come back."
-msgstr "Aktivace, kolik toho lidé používají, když už jsou uvnitř, a jestli se vracejí."
 
 msgid "Active"
 msgstr "Aktivní"
@@ -2002,15 +1922,6 @@ msgstr "AI · Konverzace"
 msgid "AI · Status"
 msgstr "AI · Stav"
 
-msgid "AI agents reading the site, last {dayCount} days"
-msgstr "AI agenti čtoucí web, posledních {dayCount} dní"
-
-msgid "AI assistant referrals"
-msgstr "Odkazy od AI asistentů"
-
-msgid "AI assistants"
-msgstr "AI asistenti"
-
 msgid "AI authentication failed. Please check your AI settings."
 msgstr "Ověření AI selhalo. Zkontrolujte prosím nastavení AI."
 
@@ -2268,9 +2179,6 @@ msgstr "Došlo k neznámé chybě"
 msgid "An update is ready to install."
 msgstr "Aktualizace je připravena k instalaci."
 
-msgid "Analytics, Ops, and more"
-msgstr "Analytika, provoz a další"
-
 msgid "Android is on the way. Be first to know when it ships."
 msgstr "Android je na cestě. Dozvíte se jako první, až vyjde."
 
@@ -2285,9 +2193,6 @@ msgstr "Animovaný WebGL gradient (stripe-gradient)"
 
 msgid "Annual billing only"
 msgstr "Jen roční fakturace"
-
-msgid "Annualized enterprise Stripe subscriptions"
-msgstr "Anualizovaná enterprise předplatná ve Stripe"
 
 msgid "Annually"
 msgstr "Ročně"
@@ -2387,9 +2292,6 @@ msgstr "Ještě něco? (nepovinné)"
 
 msgid "AP"
 msgstr "AP"
-
-msgid "Apache Superset"
-msgstr "Apache Superset"
 
 msgid "API"
 msgstr "API"
@@ -2604,9 +2506,6 @@ msgstr "Přiřazené vám"
 
 msgid "Assignee"
 msgstr "Řešitel"
-
-msgid "Assistants that opened our pages in a real browser on someone's behalf. Crawlers that only fetch HTML never run analytics and are not counted."
-msgstr "Asistenti, kteří otevřeli naše stránky ve skutečném prohlížeči jménem někoho jiného. Roboti, kteří jen stahují HTML, analytiku nikdy nespustí a nepočítají se."
 
 msgid "Assisted"
 msgstr "Asistovaný"
@@ -2824,15 +2723,6 @@ msgstr "Avatar (atom)"
 msgid "Avatar updated!"
 msgstr "Avatar aktualizován!"
 
-msgid "Average time from previous"
-msgstr "Průměrný čas od předchozího"
-
-msgid "Avg monthly outflow per counterparty, last 3 complete months"
-msgstr "Průměrný měsíční odliv na protistranu, poslední 3 celé měsíce"
-
-msgid "avg position {avgPosition}"
-msgstr "prům. pozice {avgPosition}"
-
 #. placeholder {0}: requestedReviewers.join(", ")
 msgid "Awaiting {0}"
 msgstr "Čeká na {0}"
@@ -3018,9 +2908,6 @@ msgstr "Citace"
 msgid "Blog"
 msgstr "Blog"
 
-msgid "Blog posts"
-msgstr "Příspěvky na blogu"
-
 msgid "Blue"
 msgstr "Modrá"
 
@@ -3044,9 +2931,6 @@ msgstr "Vypůjčeno z toho, jak se známkují samořídící auta, a použito na
 
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "Spodní drawer, na dotykových zařízeních ovladatelný přejetím prstem."
-
-msgid "Bounce"
-msgstr "Odchod"
 
 msgid "Box"
 msgstr "Box"
@@ -3113,9 +2997,6 @@ msgstr "Větve a pojmenování"
 
 msgid "Branches..."
 msgstr "Větve..."
-
-msgid "brand"
-msgstr "značka"
 
 msgid "Brand assets"
 msgstr "Materiály značky"
@@ -3225,9 +3106,6 @@ msgstr "Součást aplikace Superset na tomto zařízení."
 
 msgid "Bundled with the Superset app on this device. Updates with the app."
 msgstr "Součást aplikace Superset na tomto zařízení. Aktualizuje se spolu s aplikací."
-
-msgid "Burn by vendor (Mercury)"
-msgstr "Burn podle dodavatele (Mercury)"
 
 msgid "Button — sizes"
 msgstr "Tlačítko — velikosti"
@@ -3403,9 +3281,6 @@ msgstr "Kariéra"
 msgid "Carousel"
 msgstr "Karusel"
 
-msgid "Cash — total balance (Mercury)"
-msgstr "Hotovost — celkový zůstatek (Mercury)"
-
 msgid "Category"
 msgstr "Kategorie"
 
@@ -3570,9 +3445,6 @@ msgstr "Zkontrolujte schránku"
 msgid "Checkbox · Radio · Switch"
 msgstr "Zaškrtávátko · Přepínač · Vypínač"
 
-msgid "Checking + savings + Treasury over time; fundraise tranches are the steps"
-msgstr "Běžný účet + spoření + Treasury v čase; schodky jsou tranše z investic"
-
 msgid "Checking agents…"
 msgstr "Kontroluji agenty…"
 
@@ -3668,9 +3540,6 @@ msgstr "Zvolte, kdy vás Superset upozorní."
 
 msgid "Choose where agents started from comments, design mode, and Pages open."
 msgstr "Vyberte, kde se otevřou agenti spuštění z komentářů, režimu návrhu a stránek Pages."
-
-msgid "Churn"
-msgstr "Odchody"
 
 msgid "CI failed"
 msgstr "CI selhalo"
@@ -3809,15 +3678,6 @@ msgstr "Kliknutím otevřete na GitHubu"
 
 msgid "Click two commits to define the range."
 msgstr "Kliknutím na dva commity určíte rozsah."
-
-msgid "Click-through rate"
-msgstr "Míra prokliku"
-
-msgid "Clicked upgrade"
-msgstr "Kliknutí na přechod výš"
-
-msgid "Clicks"
-msgstr "Kliknutí"
 
 msgid "Clients"
 msgstr "Klienti"
@@ -4032,12 +3892,6 @@ msgstr "Blok kódu"
 msgid "Code Block"
 msgstr "Blok kódu"
 
-msgid "Cohort"
-msgstr "Kohorta"
-
-msgid "Cohort retention"
-msgstr "Retence kohort"
-
 msgid "Collapse"
 msgstr "Sbalit"
 
@@ -4196,9 +4050,6 @@ msgstr "Komunikace"
 msgid "Community"
 msgstr "Komunita"
 
-msgid "Community size from the public invite, refreshed every half hour."
-msgstr "Velikost komunity podle veřejné pozvánky, obnovuje se každou půlhodinu."
-
 msgid "Company"
 msgstr "Firma"
 
@@ -4208,14 +4059,8 @@ msgstr "Popis společnosti, novinky, materiály značky a kontakt pro média Sup
 msgid "Company email"
 msgstr "Firemní e-mail"
 
-msgid "Company Metrics"
-msgstr "Firemní metriky"
-
 msgid "Compare"
 msgstr "Srovnání"
-
-msgid "Compare pages"
-msgstr "Srovnávací stránky"
 
 msgid "Compare plans"
 msgstr "Porovnat tarify"
@@ -4244,9 +4089,6 @@ msgstr "component-showcase"
 
 msgid "Composable form layout — pairs with @superset/ui/form for react-hook-form"
 msgstr "Skládatelné rozvržení formuláře — funguje s @superset/ui/form pro react-hook-form"
-
-msgid "Computing in Stripe — up to a minute on first load"
-msgstr "Počítá se ve Stripe — při prvním načtení až minutu"
 
 msgid "Config location"
 msgstr "Umístění konfigurace"
@@ -4514,12 +4356,6 @@ msgstr "Kontaktujte nás"
 msgid "Contains this text..."
 msgstr "Obsahuje tento text..."
 
-msgid "Content"
-msgstr "Obsah"
-
-msgid "Content published or updated"
-msgstr "Publikovaný nebo aktualizovaný obsah"
-
 msgid "Context"
 msgstr "Kontext"
 
@@ -4567,9 +4403,6 @@ msgstr "Pokračování v relaci agenta vyžaduje připnutý pracovní prostor"
 msgid "continuing the last session"
 msgstr "pokračováním v poslední relaci"
 
-msgid "Contraction"
-msgstr "Pokles"
-
 msgid "Contributions"
 msgstr "Příspěvky"
 
@@ -4585,20 +4418,8 @@ msgstr "Konverzace"
 msgid "Conversation · Message"
 msgstr "Konverzace · Zpráva"
 
-msgid "Conversion"
-msgstr "Konverze"
-
-msgid "Conversion from previous"
-msgstr "Konverze z předchozího"
-
-msgid "Conversion so far"
-msgstr "Konverze zatím"
-
 msgid "Convert to draft"
 msgstr "Převést na koncept"
-
-msgid "Converted"
-msgstr "Konvertovalo"
 
 msgid "Converting to draft…"
 msgstr "Převádí se na koncept…"
@@ -5545,9 +5366,6 @@ msgstr "Přihlašovací údaje zůstávají na serveru"
 msgid "Cross-feature components living outside packages/ui — check here before building a new one"
 msgstr "Komponenty napříč funkcemi mimo packages/ui — podívejte se sem, než budete stavět novou"
 
-msgid "CTR"
-msgstr "CTR"
-
 msgid "Ctrl+click"
 msgstr "Ctrl+kliknutí"
 
@@ -6107,14 +5925,8 @@ msgstr "Velikost rozdílu"
 msgid "Digital Product Designer"
 msgstr "Designér digitálních produktů"
 
-msgid "Direct"
-msgstr "Přímé"
-
 msgid "Direct mode"
 msgstr "Přímý režim"
-
-msgid "Directories, blogs, newsletters, and communities that sent visitors. Search, social, GitHub, and assistants are excluded so listings and links stand out."
-msgstr "Katalogy, blogy, newslettery a komunity, které poslaly návštěvníky. Vyhledávání, sociální sítě, GitHub a asistenti jsou vyloučeni, aby vynikly zápisy a odkazy."
 
 msgid "Directory"
 msgstr "Adresář"
@@ -6246,9 +6058,6 @@ msgstr "Zobrazení"
 msgid "Displays the mobile sidebar."
 msgstr "Zobrazí mobilní postranní panel."
 
-msgid "Distribution and community"
-msgstr "Distribuce a komunita"
-
 msgid "Do anything"
 msgstr "Zadejte cokoli"
 
@@ -6317,9 +6126,6 @@ msgstr "Stáhnout {name}"
 msgid "Download app"
 msgstr "Stáhnout aplikaci"
 
-msgid "Download clicks"
-msgstr "Kliknutí na stažení"
-
 msgid "Download failed"
 msgstr "Stažení selhalo"
 
@@ -6385,9 +6191,6 @@ msgstr "Otevřen koncept"
 msgid "drafted 3 support replies"
 msgstr "připravil 3 odpovědi podpoře"
 
-msgid "Drag to move"
-msgstr "Přetažením přesunete"
-
 msgid "Drag to reorder"
 msgstr "Přetažením změníte pořadí"
 
@@ -6421,12 +6224,6 @@ msgstr "Přetažením připnete"
 msgid "Drop to unpin"
 msgstr "Přetažením odepnete"
 
-msgid "Drop-off from previous"
-msgstr "Odpad od předchozího"
-
-msgid "Drop-off from start"
-msgstr "Odpad od začátku"
-
 msgid "dropdown"
 msgstr "rozbalit"
 
@@ -6435,9 +6232,6 @@ msgstr "Rozbalovací nabídka"
 
 msgid "Dropdown, context, and application menus"
 msgstr "Rozbalovací, kontextové a aplikační nabídky"
-
-msgid "Dropped off"
-msgstr "Odpadlo"
 
 msgid "Duration"
 msgstr "Trvání"
@@ -6697,12 +6491,6 @@ msgstr "Zadejte URL..."
 msgid "Enterprise"
 msgstr "Enterprise"
 
-msgid "Enterprise ARR by account"
-msgstr "Enterprise ARR podle účtu"
-
-msgid "Entries by section"
-msgstr "Vstupy podle sekce"
-
 msgid "Environment"
 msgstr "Prostředí"
 
@@ -6872,9 +6660,6 @@ msgstr "Rozbalit hlas"
 
 msgid "Expand workspace"
 msgstr "Rozbalit pracovní prostor"
-
-msgid "Expansion"
-msgstr "Růst"
 
 msgid "Experimental"
 msgstr "Experimentální"
@@ -7159,9 +6944,6 @@ msgstr "Nepodařilo se načíst větve"
 msgid "Failed to load file"
 msgstr "Nepodařilo se načíst soubor"
 
-msgid "Failed to load funnel data"
-msgstr "Nepodařilo se načíst data trychtýře"
-
 msgid "Failed to load image"
 msgstr "Nepodařilo se načíst obrázek"
 
@@ -7356,10 +7138,6 @@ msgstr "Nepodařilo se nastavit barvu"
 
 msgid "Failed to set icon"
 msgstr "Nepodařilo se nastavit ikonu"
-
-#. placeholder {0}: error.message
-msgid "Failed to set password: {0}"
-msgstr "Nepodařilo se nastavit heslo: {0}"
 
 msgid "Failed to sign in. Please try again."
 msgstr "Přihlášení se nezdařilo. Zkuste to prosím znovu."
@@ -7649,12 +7427,6 @@ msgstr "Dokončeno"
 msgid "finished · worked for 7s"
 msgstr "hotovo · pracoval 7 s"
 
-msgid "First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
-msgstr "První zobrazení přihlášení → ověření → onboarding → skutečný pracovní prostor (posledních 7 d, okno 2 d)"
-
-msgid "First-ever pageview on superset.sh, daily"
-msgstr "První zobrazení stránky na superset.sh vůbec, denně"
-
 msgid "Fix all failing checks"
 msgstr "Opravit všechny selhávající kontroly"
 
@@ -7838,9 +7610,6 @@ msgstr "Forkovat relaci"
 msgid "Fork session…"
 msgstr "Forkovat relaci…"
 
-msgid "Forks"
-msgstr "Forky"
-
 msgid "Form controls and field composition"
 msgstr "Prvky formuláře a skládání polí"
 
@@ -7879,12 +7648,6 @@ msgstr "od {price}/uživatele/měs."
 
 msgid "From a hackathon project to the workspace for parallel coding agents."
 msgstr "Od projektu z hackathonu k pracovnímu prostoru pro paralelní kódovací agenty."
-
-msgid "From a visit to a download to an account to a paying organization."
-msgstr "Od návštěvy ke stažení, k účtu, k platící organizaci."
-
-msgid "From the public sitemap: compare pages, posts, and changelog entries by the week they were published or last revised."
-msgstr "Z veřejné mapy webu: srovnávací stránky, příspěvky a záznamy changelogu podle týdne, kdy byly publikovány nebo naposledy upraveny."
 
 msgid "Front matter hidden — switch to Markdown to edit it"
 msgstr "Front matter je skrytý — pro úpravy přepněte na Markdown"
@@ -8042,9 +7805,6 @@ msgstr "GitHub odmítl přihlašovací údaje tohoto počítače, takže pull re
 msgid "GitHub sign-in needed"
 msgstr "Je vyžadováno přihlášení ke GitHubu"
 
-msgid "GitHub stars"
-msgstr "Hvězdy na GitHubu"
-
 msgid "GitHub sync requires the Pro plan."
 msgstr "Synchronizace GitHubu vyžaduje tarif Pro."
 
@@ -8111,9 +7871,6 @@ msgstr "Přejít do pracovního prostoru"
 msgid "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
 msgstr "Google neudělil trvalý přístup. Odeberte Superset z přístupu třetích stran ve svém účtu Google a zkuste to znovu."
 
-msgid "Google Search Console"
-msgstr "Google Search Console"
-
 msgid "Grant the OS permissions Superset needs."
 msgstr "Udělte systémová oprávnění, která Superset potřebuje."
 
@@ -8140,9 +7897,6 @@ msgstr "Seskupit podle"
 
 msgid "Group new branches under a folder."
 msgstr "Seskupit nové větve pod složku."
-
-msgid "Growth"
-msgstr "Růst"
 
 msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "Architekt GTM a automatizace AI, Mistral AI"
@@ -8435,9 +8189,6 @@ msgstr "Kolik skrytých terminálů zůstane plně načtených ({MIN_TERMINAL_PA
 msgid "How much agent work engineers are actually running — tokens, cost, models and sessions, published by people who opted in."
 msgstr "Kolik agentní práce inženýři skutečně spouštějí — tokeny, náklady, modely a sessions, publikováno lidmi, kteří se do toho přihlásili."
 
-msgid "How people reach superset.sh and the docs, and how much of it is search and assistants rather than the brand."
-msgstr "Jak se lidé dostávají na superset.sh a do dokumentace a kolik z toho je vyhledávání a asistenti místo značky."
-
 msgid "How should the agent's actions be approved?"
 msgstr "Jak schvalovat akce agenta?"
 
@@ -8655,9 +8406,6 @@ msgstr "Importuji..."
 msgid "Importing…"
 msgstr "Importuji…"
 
-msgid "Impressions"
-msgstr "Zobrazení"
-
 msgid "Improve the agent instructions"
 msgstr "Vylepšit instrukce pro agenty"
 
@@ -8855,9 +8603,6 @@ msgstr "Nainstalováno přes"
 
 msgid "Installing..."
 msgstr "Instaluji..."
-
-msgid "Installs"
-msgstr "Instalace"
 
 msgid "Instructions"
 msgstr "Instrukce"
@@ -9715,12 +9460,6 @@ msgstr "přihlášení přeskočena (přístup ke Klíčence odepřen)"
 msgid "Logo"
 msgstr "Logo"
 
-msgid "logo retention"
-msgstr "retence zákazníků"
-
-msgid "Logo retention — monthly"
-msgstr "Retence zákazníků — měsíční"
-
 msgid "Logo updated"
 msgstr "Logo aktualizováno"
 
@@ -9939,9 +9678,6 @@ msgstr "MCP server"
 msgid "MCP Server Commands"
 msgstr "Příkazy MCP serveru"
 
-msgid "Mean"
-msgstr "Průměr"
-
 msgid "Measured over the trailing 30 days"
 msgstr "Měřeno za posledních 30 dní"
 
@@ -9957,9 +9693,6 @@ msgstr "Mediální kit"
 
 msgid "Median ticket-to-production time under one day for routine work."
 msgstr "Mediánový čas od ticketu do produkce pod jeden den u rutinní práce."
-
-msgid "Median time from previous"
-msgstr "Medián času od předchozího"
 
 msgid "Medical and dental at no cost to you, a 401(k), unlimited time off, a $5K desk stipend, and free meals in the office."
 msgstr "Zdravotní a zubní péče zdarma, 401(k), neomezené volno, příspěvek $5K na vybavení pracoviště a jídlo zdarma v kanceláři."
@@ -10109,9 +9842,6 @@ msgstr "Minimalizovat GitHub issues"
 msgid "Minimum contrast"
 msgstr "Minimální kontrast"
 
-msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
-msgstr "Zrcadlo přehledu <0>PostHog Success Metrics</0> — produkt přes uložené insighty, byznys živě ze Stripe/Neon"
-
 msgid "missed"
 msgstr "zmeškáno"
 
@@ -10200,9 +9930,6 @@ msgstr "Neproporcionální"
 msgid "Month"
 msgstr "Měsíc"
 
-msgid "Month {offset}"
-msgstr "Měsíc {offset}"
-
 msgid "monthly"
 msgstr "měsíčně"
 
@@ -10211,12 +9938,6 @@ msgstr "Měsíčně"
 
 msgid "Monthly at {time}"
 msgstr "Měsíčně v {time}"
-
-msgid "monthly NRR"
-msgstr "měsíční NRR"
-
-msgid "monthly NRR (month so far)"
-msgstr "měsíční NRR (zatím tento měsíc)"
 
 msgid "Monthly on {day}"
 msgstr "Měsíčně {day}"
@@ -10289,15 +10010,6 @@ msgstr "Přesunout doprava"
 
 msgid "Move to Tab"
 msgstr "Přesunout na kartu"
-
-msgid "MRR"
-msgstr "MRR"
-
-msgid "MRR — daily (Stripe)"
-msgstr "MRR — denně (Stripe)"
-
-msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
-msgstr "MRR zákazníků platících na konci předchozího měsíce jako podíl toho, co tehdy platili: růst a pokles po odečtení odchodů, bez nových zákazníků"
 
 msgid "Multi-select"
 msgstr "Výběr více možností"
@@ -10416,15 +10128,6 @@ msgstr "Čeká na tebe"
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
-msgid "net burn"
-msgstr "čistý burn"
-
-msgid "Net burn — monthly (Mercury)"
-msgstr "Čistý burn — měsíčně (Mercury)"
-
-msgid "Net revenue retention — monthly (Stripe)"
-msgstr "Čisté udržení tržeb — měsíčně (Stripe)"
-
 msgid "Network Changed"
 msgstr "Síť se změnila"
 
@@ -10443,9 +10146,6 @@ msgstr "Nové"
 
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Noví agenti {providerLabel} použijí {accountLabel}."
-
-msgid "New accounts"
-msgstr "Nové účty"
 
 msgid "New agent"
 msgstr "Nový agent"
@@ -10498,9 +10198,6 @@ msgstr "Nová issue"
 msgid "New page"
 msgstr "Nová stránka"
 
-msgid "New password (min 8 characters)"
-msgstr "Nové heslo (min. 8 znaků)"
-
 msgid "New project"
 msgstr "Nový projekt"
 
@@ -10531,9 +10228,6 @@ msgstr "Nová karta + panely"
 msgid "New task"
 msgstr "Nový úkol"
 
-msgid "New teams"
-msgstr "Nové týmy"
-
 msgid "New terminal"
 msgstr "Nový terminál"
 
@@ -10555,14 +10249,8 @@ msgstr "Nový pracovní prostor"
 msgid "New Workspace ({shortcutText})"
 msgstr "Nový pracovní prostor ({shortcutText})"
 
-msgid "new workspace creators"
-msgstr "noví tvůrci pracovních prostorů"
-
 msgid "New workspace in {name}"
 msgstr "Nový pracovní prostor v {name}"
-
-msgid "New-user activation"
-msgstr "Aktivace nových uživatelů"
 
 msgid "Newer than this app"
 msgstr "Novější než tato aplikace"
@@ -10637,9 +10325,6 @@ msgstr "Na tomto hostu nejsou žádná přihlášení {0} — přihlaste se a vy
 
 msgid "No access to this host"
 msgstr "K tomuto hostu nemáte přístup"
-
-msgid "No active enterprise accounts"
-msgstr "Žádné aktivní enterprise účty"
 
 msgid "No active host"
 msgstr "Žádný aktivní host"
@@ -10780,9 +10465,6 @@ msgstr "Nenalezeni žádní přispěvatelé."
 msgid "No credit card required."
 msgstr "Bez platební karty."
 
-msgid "No data"
-msgstr "Žádná data"
-
 msgid "No description"
 msgstr "Bez popisu"
 
@@ -10830,9 +10512,6 @@ msgstr "Žádné soubory neodpovídají hledání"
 
 msgid "No fonts found."
 msgstr "Nenalezeny žádné fonty."
-
-msgid "No funnel data available for this period"
-msgstr "Pro toto období nejsou k dispozici data trychtýře"
 
 msgid "No git remote detected"
 msgstr "Nenalezen žádný git remote"
@@ -11228,12 +10907,6 @@ msgstr "Nikdo z vašeho týmu zatím nesdílel automatizace."
 msgid "Nobody reviews differently because of it."
 msgstr "Nikdo kvůli tomu nereviduje jinak."
 
-msgid "non-brand"
-msgstr "mimo značku"
-
-msgid "Non-brand clicks"
-msgstr "Kliknutí mimo značku"
-
 msgid "None"
 msgstr "Žádný"
 
@@ -11273,14 +10946,8 @@ msgstr "Nepřipojeno"
 msgid "Not connected · cloud workspaces push as your organization's GitHub App"
 msgstr "Nepřipojeno · cloudové pracovní prostory pushují jako GitHub App vaší organizace"
 
-msgid "Not connected: {unavailableReason}. Add a Google service account to the Search Console property and set GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT."
-msgstr "Nepřipojeno: {unavailableReason}. Přidejte účet služby Google k službě v Search Console a nastavte GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT."
-
 msgid "Not demoed here"
 msgstr "Tady se neukazuje"
-
-msgid "Not every client emits {gaps} yet, so that stage is under-counted."
-msgstr "Ne každý klient zatím odesílá {gaps}, takže je tato fáze podhodnocená."
 
 msgid "Not found"
 msgstr "Nenalezeno"
@@ -11514,9 +11181,6 @@ msgstr "online"
 
 msgid "Online"
 msgstr "Online"
-
-msgid "Online now"
-msgstr "Nyní online"
 
 msgid "Online Now"
 msgstr "Právě online"
@@ -11797,9 +11461,6 @@ msgstr "Otevřít na nové kartě"
 
 msgid "Open in New Tab"
 msgstr "Otevřít na nové kartě"
-
-msgid "Open in PostHog"
-msgstr "Otevřít v PostHog"
 
 msgid "Open in Pull Requests"
 msgstr "Otevřít v Pull requestech"
@@ -12082,12 +11743,6 @@ msgstr "Orchestrační chat"
 msgid "Orchestration guide"
 msgstr "Průvodce orchestrací"
 
-msgid "Organic search"
-msgstr "Organické vyhledávání"
-
-msgid "Organic search by engine"
-msgstr "Organické vyhledávání podle vyhledávače"
-
 msgid "Organization"
 msgstr "Organizace"
 
@@ -12131,9 +11786,6 @@ msgstr "URL organizace změněna!"
 msgid "Organization: <0>{0}</0>"
 msgstr "Organizace: <0>{0}</0>"
 
-msgid "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
-msgstr "Organizace s druhým členem oproti účtům s jedním členem; čára ukazuje týmy na 1 000."
-
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Rozdělte práci do týmů. Úkoly a integrace se mohou synchronizovat po týmech."
 
@@ -12175,9 +11827,6 @@ msgstr "Dovnitř výsledek, ven software. Lidé zadají záměr, omezení a rozp
 
 msgid "Outdated"
 msgstr "Zastaralé"
-
-msgid "Outflows less Stripe payouts per month (treasury sweeps excluded); current month partial"
-msgstr "Odlivy mínus výplaty ze Stripe za měsíc (bez převodů do Treasury); aktuální měsíc je neúplný"
 
 msgid "Outline"
 msgstr "Outline"
@@ -12264,9 +11913,6 @@ msgstr "Omezení frekvence hlášení stránek není nastaveno"
 msgid "Page title"
 msgstr "Název stránky"
 
-msgid "Page views"
-msgstr "Zobrazení stránek"
-
 msgid "Pages"
 msgstr "Stránky"
 
@@ -12275,9 +11921,6 @@ msgstr "Stránky se nepodařilo načíst"
 
 msgid "Pages open in a grid, and floating keyboards work. Requires iPadOS 26 or later."
 msgstr "Stránky se otevírají v mřížce a plovoucí klávesnice fungují. Vyžaduje iPadOS 26 nebo novější."
-
-msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
-msgstr "Stránky, na kterých relace začaly, s podílem těch, kteří odešli bez druhé stránky. Srovnávací stránky jsou SEO plocha."
 
 msgid "Pages that save answers"
 msgstr "Stránky, které ukládají odpovědi"
@@ -12290,15 +11933,6 @@ msgstr "stránkování"
 
 msgid "Pagination"
 msgstr "Stránkování"
-
-msgid "Paid"
-msgstr "Platba"
-
-msgid "Paid churn — cohort survival"
-msgstr "Churn plateb — přežití kohort"
-
-msgid "Paid search"
-msgstr "Placené vyhledávání"
 
 msgid "Paid work trial"
 msgstr "Placená zkušební spolupráce"
@@ -12369,9 +12003,6 @@ msgstr "Heslo"
 msgid "Password for {email}"
 msgstr "Heslo pro {email}"
 
-msgid "Password set"
-msgstr "Heslo nastaveno"
-
 msgid "Past month"
 msgstr "Poslední měsíc"
 
@@ -12427,9 +12058,6 @@ msgstr "Způsob platby"
 msgid "Payment Successful"
 msgstr "Platba proběhla"
 
-msgid "Paywall → paid"
-msgstr "Paywall → platba"
-
 msgid "PDF"
 msgstr "PDF"
 
@@ -12441,9 +12069,6 @@ msgstr "Čekající pozvánky"
 
 msgid "People"
 msgstr "Lidé"
-
-msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
-msgstr "Lidé, kteří paywall poprvé viděli za posledních {PAYWALL_FUNNEL_WEEKS} týdnů, a jak daleko došli. Fáze počítá každého, kdo se do ní dostal po tomto zobrazení, takže nedávné kohorty ještě dozrávají."
 
 msgid "People with access"
 msgstr "Lidé s přístupem"
@@ -12684,9 +12309,6 @@ msgstr "Porty v nabídce horní lišty"
 
 msgid "Ports on remote hosts"
 msgstr "Porty na vzdálených hostech"
-
-msgid "Position"
-msgstr "Pozice"
 
 msgid "Possible on good days. Supervision cost still grows too fast."
 msgstr "V dobrých dnech možné. Náklady na dohled pořád rostou moc rychle."
@@ -13154,9 +12776,6 @@ msgstr "Naplánujte opakující se práci podle rozvrhu nebo události. Agenti b
 msgid "px"
 msgstr "px"
 
-msgid "Query"
-msgstr "Dotaz"
-
 msgid "Query events and feature flags"
 msgstr "Dotazy na události a feature flagy"
 
@@ -13260,9 +12879,6 @@ msgstr "Dosáhněte na tento Mac odkudkoli přes Superset relay nebo spusťte cl
 msgid "Reached"
 msgstr "Dosaženo"
 
-msgid "Reached a dashboard page"
-msgstr "Dosáhl stránky přehledu"
-
 msgid "React layer of the shared pane/workspace layout engine"
 msgstr "React vrstva sdíleného enginu rozvržení panelů/pracovních prostorů"
 
@@ -13341,9 +12957,6 @@ msgstr "Připraveno ke sloučení"
 
 msgid "Ready to try Superset?"
 msgstr "Chcete Superset vyzkoušet?"
-
-msgid "Real workspaces on 2+ distinct days within week 1 of first workspace (retention-validated definition)"
-msgstr "Skutečné pracovní prostory ve 2+ různých dnech během 1. týdne od prvního prostoru (definice ověřená retencí)"
 
 msgid "Reapply all commits"
 msgstr "Znovu aplikuje všechny commity"
@@ -13441,9 +13054,6 @@ msgstr "Odkazované, bez ukázky"
 msgid "References"
 msgstr "Reference"
 
-msgid "Referral"
-msgstr "Odkaz"
-
 msgid "Refresh"
 msgstr "Obnovit"
 
@@ -13491,9 +13101,6 @@ msgstr "Běžící agenty přepnete jejich novým spuštěním."
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "Přístup přes relay povolen, připojuji se k relay…"
-
-msgid "Release"
-msgstr "Vydání"
 
 msgid "Release control"
 msgstr "Uvolnit ovládání"
@@ -13802,9 +13409,6 @@ msgstr "Repozitáře: {label}"
 msgid "Repository"
 msgstr "Repozitář"
 
-msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
-msgstr "Dosah repozitáře a stažení desktopových vydání. Instalace jsou stažení dmg a AppImage; aktualizace jsou zip, který stahuje automatická aktualizace, takže počítají stávající uživatele."
-
 msgid "Repository URL or path"
 msgstr "URL nebo cesta repozitáře"
 
@@ -13855,9 +13459,6 @@ msgstr "Obnovit editor"
 
 msgid "Reset GitHub star nag state"
 msgstr "Obnovit stav připomínky hvězdičky na GitHubu"
-
-msgid "Reset layout"
-msgstr "Obnovit rozložení"
 
 msgid "Reset location"
 msgstr "Obnovit umístění"
@@ -14084,12 +13685,6 @@ msgstr "Obnovuji {0}…"
 msgid "Resuming the conversation…"
 msgstr "Obnovuji konverzaci…"
 
-msgid "Retained MRR"
-msgstr "Udržené MRR"
-
-msgid "Retention and revenue"
-msgstr "Udržení a tržby"
-
 msgid "Retry"
 msgstr "Zkusit znovu"
 
@@ -14134,9 +13729,6 @@ msgstr "Zobrazit v postranním panelu"
 
 msgid "Reveal my rank"
 msgstr "Odhalit mou pozici"
-
-msgid "Revenue first, then how many people are actually using it, then what it costs to run."
-msgstr "Nejdřív tržby, pak kolik lidí to opravdu používá a nakonec kolik stojí provoz."
 
 msgid "Review"
 msgstr "Revize"
@@ -14510,9 +14102,6 @@ msgstr "Ukládání…"
 msgid "Saving…"
 msgstr "Ukládám…"
 
-msgid "Saw the paywall"
-msgstr "Zobrazení paywallu"
-
 msgid "Scale to 100+ agents"
 msgstr "Škálujte na více než 100 agentů"
 
@@ -14670,9 +14259,6 @@ msgstr "Hledat GitHub issues…"
 
 msgid "Search history"
 msgstr "Prohledat historii"
-
-msgid "Search impressions and clicks for the last 28 days, with queries split into our brand, Apache Superset (not us), and everything else. Non-brand is the share SEO work exists to grow. Google delivers this data three days late."
-msgstr "Zobrazení a kliknutí ve vyhledávání za posledních 28 dní, dotazy rozdělené na naši značku, Apache Superset (to nejsme my) a vše ostatní. Mimo značku je podíl, který má SEO práce zvětšovat. Google tato data dodává se zpožděním tří dnů."
 
 msgid "Search in {frameTitle}…"
 msgstr "Hledat v {frameTitle}…"
@@ -15076,10 +14662,6 @@ msgstr "Spouštěče Sentry se přestanou spouštět, dokud se znovu nepřipojí
 msgid "Separator"
 msgstr "Oddělovač"
 
-#. placeholder {0}: i + 1
-msgid "series {0}"
-msgstr "řada {0}"
-
 msgid "Service availability is published at <0>status.superset.sh</0>, and security and compliance documentation at <1>trust.superset.sh</1>."
 msgstr "Dostupnost služby zveřejňujeme na <0>status.superset.sh</0> a dokumentaci k bezpečnosti a compliance na <1>trust.superset.sh</1>."
 
@@ -15132,12 +14714,6 @@ msgstr "Nastavit barvu skupiny"
 msgid "Set icon to {0}"
 msgstr "Nastavit ikonu na {0}"
 
-msgid "Set password"
-msgstr "Nastavit heslo"
-
-msgid "Set Password"
-msgstr "Nastavit heslo"
-
 msgid "Set project…"
 msgstr "Nastavit projekt…"
 
@@ -15168,10 +14744,6 @@ msgstr "Připravit tento projekt pro Superset"
 
 msgid "Set up your organization to get started"
 msgstr "Nastavte si organizaci a můžete začít"
-
-#. placeholder {0}: user.email
-msgid "Sets an email+password credential for <0>{0}</0> via Better Auth (hashed with scrypt). Existing sign-in methods keep working."
-msgstr "Nastaví přihlašovací údaje e-mail+heslo pro <0>{0}</0> přes Better Auth (hashováno pomocí scrypt). Stávající způsoby přihlášení fungují dál."
 
 msgid "Setting saved"
 msgstr "Nastavení uloženo"
@@ -15542,17 +15114,8 @@ msgstr "Weby, kde jste přihlášeni"
 msgid "Signing in..."
 msgstr "Přihlašuji..."
 
-msgid "signup → paid ≤30d"
-msgstr "registrace → platba ≤30 d"
-
-msgid "Signup → paid within 30d"
-msgstr "Registrace → platba do 30 d"
-
 msgid "Signup works. The welcome screen loads and the console is clean."
 msgstr "Registrace funguje. Uvítací obrazovka se načte a konzole je čistá."
-
-msgid "signups"
-msgstr "registrace"
 
 msgid "Simple pricing for every team"
 msgstr "Jednoduchý ceník pro každý tým"
@@ -15577,9 +15140,6 @@ msgstr "Jedna karta + panely"
 
 msgid "Single-select"
 msgstr "Výběr jedné možnosti"
-
-msgid "Site"
-msgstr "Web"
 
 msgid "Site-wide telemetry · {range}"
 msgstr "Telemetrie celého webu · {range}"
@@ -15676,9 +15236,6 @@ msgstr "V souladu se SOC 2 Type II. Vyžádejte si naši zprávu."
 
 msgid "SOC 2 Type II report"
 msgstr "Zpráva SOC 2 Type II"
-
-msgid "Social"
-msgstr "Sociální sítě"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "Některé soubory nemají povolený typ a nebyly přidány."
@@ -15983,10 +15540,6 @@ msgstr "Začněte zdarma. Až vám to jako týmu přestane stačit, přejděte v
 msgid "Start from a template"
 msgstr "Začít ze šablony"
 
-#. placeholder {0}: datum.customers
-msgid "Start MRR ({0} customers)"
-msgstr "Počáteční MRR ({0} zákazníků)"
-
 msgid "Start new session"
 msgstr "Spustit novou relaci"
 
@@ -16007,9 +15560,6 @@ msgstr "Začněte pracovat odkudkoli"
 
 msgid "Started"
 msgstr "Zahájeno"
-
-msgid "Started checkout"
-msgstr "Zahájení checkoutu"
 
 msgid "starting"
 msgstr "spouští se"
@@ -16079,9 +15629,6 @@ msgstr "Usměrnit"
 msgid "Step {0} of 2"
 msgstr "Krok {0} ze 2"
 
-msgid "Step {step}: {name}"
-msgstr "Krok {step}: {name}"
-
 msgid "Steps 3 and 4 repeat at every scheduled time."
 msgstr "Kroky 3 a 4 se opakují v každý naplánovaný čas."
 
@@ -16147,16 +15694,6 @@ msgstr "Přeškrtnuté"
 msgid "Strip redundant overrides at call sites"
 msgstr "Odstranit nadbytečné přepisy v místech volání"
 
-#. placeholder {0}: formatDateTime(new Date(series.dataThrough), TIMESTAMP_FORMAT)
-msgid "Stripe data through {0}"
-msgstr "Data ze Stripe do {0}"
-
-msgid "Stripe revenue"
-msgstr "tržby ze Stripe"
-
-msgid "Stripe's own Sigma MRR report, computed on demand via the Query Run API"
-msgstr "Vlastní MRR report ze Stripe Sigma, počítaný na vyžádání přes Query Run API"
-
 msgid "Structure, scrolling, and overflow handling"
 msgstr "Struktura, posuv a práce s přetečením"
 
@@ -16189,9 +15726,6 @@ msgstr "Omezení počtu odeslaných promptů není nastavené"
 
 msgid "Submitting…"
 msgstr "Odesílám…"
-
-msgid "Subs"
-msgstr "Předpl."
 
 msgid "SUBSCRIBE"
 msgstr "ODEBÍRAT"
@@ -16252,9 +15786,6 @@ msgstr "Superset"
 
 msgid "Superset (YC S26) is the open-source IDE for the AI agents era, where engineers run hundreds of coding agents like Claude Code and Codex in parallel."
 msgstr "Superset (YC S26) je open-source IDE pro éru AI agentů, ve kterém inženýři paralelně spouštějí stovky programovacích agentů, jako jsou Claude Code a Codex."
-
-msgid "Superset | Company Dashboard"
-msgstr "Superset | Firemní přehled"
 
 msgid "Superset Agent"
 msgstr "Superset Agent"
@@ -16741,17 +16272,8 @@ msgstr "Nastavení týmu"
 msgid "Teammates pin feedback to the exact part of the page they mean."
 msgstr "Kolegové připnou zpětnou vazbu přesně k té části stránky, kterou myslí."
 
-msgid "teams"
-msgstr "týmy"
-
 msgid "Teams"
 msgstr "Týmy"
-
-msgid "teams per 1,000 organizations"
-msgstr "týmy na 1 000 organizací"
-
-msgid "Teams vs individual accounts (Neon)"
-msgstr "Týmy vs. individuální účty (Neon)"
 
 msgid "Teardown"
 msgstr "Teardown"
@@ -17209,9 +16731,6 @@ msgstr "Host service Superset pro {organization} se nečekaně zastavila ({cause
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "Host service Superset se nečekaně zastavila ({cause}) a nešlo ji automaticky restartovat."
 
-msgid "The surfaces outside the site that carry the product: the repository, releases, and Discord."
-msgstr "Plochy mimo web, které nesou produkt: repozitář, vydání a Discord."
-
 msgid "the target host"
 msgstr "cílový host"
 
@@ -17655,9 +17174,6 @@ msgstr "Tarif"
 msgid "Time"
 msgstr "Čas"
 
-msgid "Time range"
-msgstr "Časové období"
-
 msgid "Times use your time zone."
 msgstr "Časy používají vaše časové pásmo."
 
@@ -17811,14 +17327,8 @@ msgstr "Tooltip na"
 msgid "tooltip-refactor.diff"
 msgstr "tooltip-refactor.diff"
 
-msgid "Top landing pages, last {dayCount} days"
-msgstr "Nejlepší vstupní stránky, posledních {dayCount} dní"
-
 msgid "Top models"
 msgstr "Nejlepší modely"
-
-msgid "Top referring sites, last {dayCount} days"
-msgstr "Nejčastější odkazující weby, posledních {dayCount} dní"
 
 msgid "Top tier. Nothing left to clear."
 msgstr "Nejvyšší úroveň. Není už co pokořit."
@@ -17834,9 +17344,6 @@ msgstr "Celkem relací agentů"
 
 msgid "Total automations"
 msgstr "Celkem automatizací"
-
-msgid "total cash"
-msgstr "hotovost celkem"
 
 msgid "Total cost"
 msgstr "Celkové náklady"
@@ -18057,12 +17564,6 @@ msgstr "Běhy bez dozoru trvající 8 hodin a víc uspějí u většiny rutinní
 msgid "Unavailable"
 msgstr "Nedostupné"
 
-msgid "Unavailable: {unavailableReason}"
-msgstr "Nedostupné: {unavailableReason}"
-
-msgid "unbilled"
-msgstr "nefakturováno"
-
 msgid "Uncached input"
 msgstr "Vstup mimo cache"
 
@@ -18104,15 +17605,6 @@ msgstr "Odinstalace selhala"
 
 msgid "Unique"
 msgstr "Unikátní"
-
-msgid "Unique users creating a real workspace per calendar week; current week dashed"
-msgstr "Unikátní uživatelé, kteří vytvoří skutečný pracovní prostor za kalendářní týden; aktuální týden čárkovaně"
-
-msgid "Unique users creating a real workspace, daily"
-msgstr "Unikátní uživatelé, kteří denně vytvoří skutečný pracovní prostor"
-
-msgid "Unique visitors starting a session on superset.sh or the docs each week, by how they arrived. AI assistants means a link inside ChatGPT, Claude, Gemini, or Perplexity."
-msgstr "Unikátní návštěvníci, kteří každý týden zahájí relaci na superset.sh nebo v dokumentaci, podle zdroje. AI asistenti znamená odkaz uvnitř ChatGPT, Claude, Gemini nebo Perplexity."
 
 msgid "unknown"
 msgstr "neznámý"
@@ -18629,18 +18121,6 @@ msgstr "Zobrazit využití"
 msgid "Violence or harassment"
 msgstr "Násilí nebo obtěžování"
 
-msgid "Visitors"
-msgstr "Návštěvníci"
-
-msgid "Visitors by channel"
-msgstr "Návštěvníci podle kanálu"
-
-msgid "Visitors to downloads to accounts"
-msgstr "Od návštěvníků ke stažením k účtům"
-
-msgid "Visitors whose session began on a link an assistant gave them. This is the number an AEO effort should move."
-msgstr "Návštěvníci, jejichž relace začala odkazem od asistenta. To je číslo, kterým má AEO úsilí pohnout."
-
 msgid "Voice"
 msgstr "Hlas"
 
@@ -18682,9 +18162,6 @@ msgstr "Čekání na první zprávu subagenta…"
 msgid "Waiting for your input"
 msgstr "Čeká na váš vstup"
 
-msgid "Waitlist signups"
-msgstr "Zápisy na čekací listinu"
-
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Chcete něco dřív? <0>Napište nám na Discordu</0>. Spousta z toho, co je tady, začala jako přání uživatele."
 
@@ -18699,9 +18176,6 @@ msgstr "Podívejte se, jak se design review dostane od komentáře k nové verzi
 
 msgid "Watch the Superset Automations video on YouTube"
 msgstr "Podívejte se na video o Automatizacích Superset na YouTube"
-
-msgid "Watchers"
-msgstr "Sledující"
 
 msgid "Wayfinding and disclosure"
 msgstr "Orientace a postupné odkrývání"
@@ -18796,13 +18270,6 @@ msgstr "Web"
 msgid "Week"
 msgstr "Týden"
 
-msgid "Week {week}"
-msgstr "Týden {week}"
-
-#. placeholder {0}: formatDay(data?.weeks[last] ?? "")
-msgid "week of {0}"
-msgstr "týden od {0}"
-
 msgid "Week of {formatted}"
 msgstr "Týden od {formatted}"
 
@@ -18833,26 +18300,8 @@ msgstr "Týdně"
 msgid "Weekly at {time}"
 msgstr "Týdně v {time}"
 
-msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
-msgstr "Týdenní kohorty podle prvního skutečného pracovního prostoru; % těch, kdo se každý týden vrátí s dalším prostorem"
-
-msgid "Weekly p50/p90 real workspaces per creator; current week dashed"
-msgstr "Týdenní p50/p90 skutečných pracovních prostorů na tvůrce; aktuální týden čárkovaně"
-
-msgid "Weekly pageview → download conversion, Mac visitors; current week dashed"
-msgstr "Týdenní konverze zobrazení → stažení, návštěvníci z Macu; aktuální týden čárkovaně"
-
 msgid "Weekly release notes"
 msgstr "Týdenní poznámky k vydání"
-
-msgid "Weekly signup cohorts (Neon); cohorts younger than 30d excluded"
-msgstr "Týdenní kohorty registrací (Neon); kohorty mladší 30 d jsou vyloučeny"
-
-msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations that gained their second member that week. Rates are for the last complete week."
-msgstr "Týdenní návštěvníci webu (relace PostHog), lidé, kteří klikli na stáhnout, vytvořené účty (Neon, bez firemních e-mailů) a týmy: organizace, které v daném týdnu získaly druhého člena. Poměry platí pro poslední celý týden."
-
-msgid "Weekly visitors arriving from a search results page. Search Console below says which queries they typed."
-msgstr "Týdenní návštěvníci ze stránky s výsledky vyhledávání. Search Console níže ukazuje, jaké dotazy zadali."
 
 msgid "Welcome back"
 msgstr "Vítejte zpět"
@@ -18877,9 +18326,6 @@ msgstr "Co chcete udělat?"
 
 msgid "What early users say"
 msgstr "Co říkají první uživatelé"
-
-msgid "What Google shows us for and how much of it is not our own name."
-msgstr "Na co nás Google zobrazuje a kolik z toho není naše vlastní jméno."
 
 msgid "What has to become true"
 msgstr "Co se musí stát pravdou"
@@ -18913,9 +18359,6 @@ msgstr "Co postavíme dál?"
 
 msgid "What Superset is, who builds it, and who it's for. A San Francisco team, led by three ex-YC CTOs, building the workspace for parallel coding agents."
 msgstr "Co je Superset, kdo ho staví a pro koho je. Sanfranciský tým vedený třemi bývalými YC CTO, který staví pracovní prostor pro paralelní kódovací agenty."
-
-msgid "What the content is doing: which pages sessions start on, and how much is being published."
-msgstr "Co obsah dělá: na kterých stránkách relace začínají a kolik se publikuje."
 
 msgid "What these were written against is no longer on the page, so they have no pin."
 msgstr "To, k čemu byly napsané, už na stránce není, takže nemají značku."
@@ -18965,9 +18408,6 @@ msgstr "Kde běží můj kód?"
 msgid "Where serious teams are"
 msgstr "Kde jsou seriózní týmy"
 
-msgid "Where sessions begin: the home page, a compare page, the docs, a post, or a changelog entry. Content that ranks shows up here before it shows up in signups."
-msgstr "Kde relace začínají: domovská stránka, srovnávací stránka, dokumentace, příspěvek nebo záznam v changelogu. Obsah, který se umisťuje, se objeví tady dřív než v registracích."
-
 msgid "Where the industry is, honestly"
 msgstr "Kde obor upřímně je"
 
@@ -18980,9 +18420,6 @@ msgstr "Kde je tento terminálový skript dostupný."
 msgid "Where to look next"
 msgstr "Kam se podívat dál"
 
-msgid "Whether the people acquired stay and what they pay."
-msgstr "Zda získaní lidé zůstávají a kolik platí."
-
 msgid "Which agents are supported?"
 msgstr "Kteří agenti jsou podporovaní?"
 
@@ -18994,9 +18431,6 @@ msgstr "Kdo může tuto stránku otevřít z odkazu"
 
 msgid "Who can open this workspace"
 msgstr "Kdo může otevřít tento pracovní prostor"
-
-msgid "Whole site"
-msgstr "Celý web"
 
 msgid "Whole Task"
 msgstr "Celý úkol"
@@ -19177,17 +18611,11 @@ msgstr "Nastavení pracovního prostoru"
 msgid "Workspace worktree not available"
 msgstr "Worktree pracovního prostoru není k dispozici"
 
-msgid "workspaces"
-msgstr "pracovní prostory"
-
 msgid "Workspaces"
 msgstr "Pracovní prostory"
 
 msgid "Workspaces are isolated task environments backed by git worktrees."
 msgstr "Pracovní prostory jsou izolovaná prostředí pro úkoly postavená na git worktree."
-
-msgid "Workspaces created per user in the last 7 days, by percentile"
-msgstr "Pracovní prostory vytvořené na uživatele za posledních 7 dní, podle percentilu"
 
 msgid "Workspaces on this device will show up here."
 msgstr "Pracovní prostory na tomto zařízení se objeví tady."

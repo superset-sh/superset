@@ -113,16 +113,8 @@
 			"default": "./src/router/automation/webhookSecret.ts"
 		},
 		"./star-history": {
-			"types": "./src/lib/growth/star-history.ts",
-			"default": "./src/lib/growth/star-history.ts"
-		},
-		"./insight-registry": {
-			"types": "./src/router/analytics/insight-registry.ts",
-			"default": "./src/router/analytics/insight-registry.ts"
-		},
-		"./business-metrics": {
-			"types": "./src/router/analytics/business.ts",
-			"default": "./src/router/analytics/business.ts"
+			"types": "./src/lib/star-history.ts",
+			"default": "./src/lib/star-history.ts"
 		},
 		"./account-purge": {
 			"types": "./src/lib/account-purge/index.ts",

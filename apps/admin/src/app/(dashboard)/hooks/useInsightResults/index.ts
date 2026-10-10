@@ -1,1 +1,0 @@
-export { useInsightResults } from "./useInsightResults";

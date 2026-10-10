@@ -3,8 +3,6 @@ import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { adminRouter } from "./router/admin";
 import { agentCredentialRouter } from "./router/agent-credential";
 import { analyticsRouter } from "./router/analytics";
-import { businessRouter } from "./router/analytics/business";
-import { growthRouter } from "./router/analytics/growth";
 import { apiKeyRouter } from "./router/api-key";
 import { attachmentRouter } from "./router/attachment";
 import { automationRouter } from "./router/automation";
@@ -41,12 +39,10 @@ export const appRouter = createTRPCRouter({
 	analytics: analyticsRouter,
 	attachment: attachmentRouter,
 	automation: automationRouter,
-	business: businessRouter,
 	billing: billingRouter,
 	chat: chatRouter,
 	cloudWorkspace: cloudWorkspaceRouter,
 	environment: environmentRouter,
-	growth: growthRouter,
 	host: { ...hostRouter, ...hostManagementRouter },
 	connectors: connectorsRouter,
 	integration: integrationRouter,

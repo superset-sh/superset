@@ -1,1 +1,0 @@
-export { PostHogUserIdentifier } from "./PostHogUserIdentifier";

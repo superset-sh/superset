@@ -1,1 +1,0 @@
-export { ContentInventoryTile } from "./ContentInventoryTile";

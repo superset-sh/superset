@@ -2,9 +2,7 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod";
 
 import { posthog } from "../../lib/analytics";
-import { fetchInsightResults } from "../../lib/posthog-client";
-import { adminProcedure, protectedProcedure } from "../../trpc";
-import { ADMIN_INSIGHT_KEYS, ADMIN_INSIGHTS } from "./insight-registry";
+import { protectedProcedure } from "../../trpc";
 
 export const analyticsRouter = {
 	captureEvent: protectedProcedure
@@ -52,8 +50,4 @@ export const analyticsRouter = {
 				return null;
 			}
 		}),
-
-	getInsightResults: adminProcedure
-		.input(z.object({ insight: z.enum(ADMIN_INSIGHT_KEYS) }))
-		.query(({ input }) => fetchInsightResults(ADMIN_INSIGHTS[input.insight])),
 } satisfies TRPCRouterRecord;

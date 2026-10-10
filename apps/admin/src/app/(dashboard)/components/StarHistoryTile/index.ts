@@ -1,1 +1,0 @@
-export { StarHistoryTile } from "./StarHistoryTile";
