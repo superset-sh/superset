@@ -115,6 +115,7 @@ import { SamplePromptCards } from "./components/SamplePromptCards";
 import { SamplePrompts } from "./components/SamplePrompts";
 import { PROMPT_PLACEHOLDERS } from "./components/SamplePrompts/constants";
 import { SupersetIcon } from "./components/SupersetIcon";
+import { useBaseBranchReset } from "./hooks/useBaseBranchReset";
 import { useProjectPreselection } from "./hooks/useProjectPreselection";
 import { useSamplePromptSelection } from "./hooks/useSamplePromptSelection";
 
@@ -412,34 +413,13 @@ export function NewWorkspaceScreen({
 		}
 	}, [isOpen, preSelectedHostId, updateDraft]);
 
-	// Reset baseBranch on project or host change, defaulting to the user's
-	// last selected branch for that project — the draft store is global, so a
-	// stale branch from another project would otherwise ride into the create.
-	const persistedBaseBranchDefault = useV2WorkspaceCreateDefaultsStore(
-		(state) =>
-			projectId ? (state.baseBranchesByProjectId[projectId] ?? null) : null,
-	);
+	useBaseBranchReset({ projectId, hostId: draft.hostId, updateDraft });
 	const setBaseBranchDefault = useV2WorkspaceCreateDefaultsStore(
 		(state) => state.setBaseBranchDefault,
 	);
 	const clearBaseBranchDefault = useV2WorkspaceCreateDefaultsStore(
 		(state) => state.clearBaseBranchDefault,
 	);
-	const previousProjectIdRef = useRef(projectId);
-	const previousHostIdRef = useRef(draft.hostId);
-	useEffect(() => {
-		if (
-			previousProjectIdRef.current !== projectId ||
-			previousHostIdRef.current !== draft.hostId
-		) {
-			previousProjectIdRef.current = projectId;
-			previousHostIdRef.current = draft.hostId;
-			updateDraft({
-				baseBranch: persistedBaseBranchDefault?.branchName ?? null,
-				baseBranchSource: persistedBaseBranchDefault?.source ?? null,
-			});
-		}
-	}, [projectId, draft.hostId, persistedBaseBranchDefault, updateDraft]);
 
 	// ── Agent / model / effort ───────────────────────────────────────
 	const launchHostUrl = useMemo(() => {
