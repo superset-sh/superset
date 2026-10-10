@@ -3,7 +3,7 @@ import { mkdirSync } from "node:fs";
 // entire repo directory, and rmSync would hold the event loop for the whole
 // walk.
 import { rm } from "node:fs/promises";
-import { join, resolve as resolvePath } from "node:path";
+import { dirname, join, resolve as resolvePath } from "node:path";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { TRPCError } from "@trpc/server";
 import type { GitCredentialProvider } from "../../../../runtime/git";
@@ -11,6 +11,8 @@ import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
 import {
 	getPathState,
 	inaccessiblePathMessage,
+	isPermissionDenied,
+	isUnreadable,
 } from "../../../../runtime/path-state";
 import {
 	findMatchingRemote,
@@ -226,19 +228,41 @@ async function ensureNotUnborn(repoPath: string): Promise<void> {
 	await commitInitialEmpty(repoPath);
 }
 
+// Git skips a `.git` it cannot read and reports "not a git repository".
+function findUnreadableRepoAbove(path: string): string | undefined {
+	for (let dir = resolvePath(path); ; dir = dirname(dir)) {
+		if (isUnreadable(join(dir, ".git"))) return dir;
+		if (dirname(dir) === dir) return undefined;
+	}
+}
+
 /**
  * Returns the canonical git root for `path`, or `null` when `path` is not
- * inside a git work tree. Non-throwing variant of `revParseGitRoot` — callers
- * that want to branch on "is this a git repo?" use this instead of catching.
+ * inside a git work tree. Callers that want to branch on "is this a git
+ * repo?" use this instead of catching. Still throws FORBIDDEN when git may not
+ * read `path` or the repo that holds it, so a blocked repo is never offered
+ * `git init`.
  */
 export async function tryRevParseGitRoot(path: string): Promise<string | null> {
+	let error: unknown;
 	try {
 		return (
 			await createUserSimpleGit(path).revparse(["--show-toplevel"])
 		).trim();
-	} catch {
-		return null;
+	} catch (err) {
+		error = err;
 	}
+	const blockedPath = isPermissionDenied(error)
+		? path
+		: findUnreadableRepoAbove(path);
+	if (blockedPath) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: inaccessiblePathMessage(blockedPath),
+			cause: error,
+		});
+	}
+	return null;
 }
 
 async function revParseGitRoot(path: string): Promise<string> {

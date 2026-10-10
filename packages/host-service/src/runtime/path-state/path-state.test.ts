@@ -9,7 +9,12 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { getPathState } from "./path-state";
+import {
+	getPathState,
+	isMissingPath,
+	isPermissionDenied,
+	permissionDeniedPath,
+} from "./path-state";
 
 let root: string;
 
@@ -53,4 +58,78 @@ describe("getPathState", () => {
 			}
 		},
 	);
+
+	test.skipIf(process.getuid?.() === 0)(
+		"reports a directory it can stat but not read as inaccessible",
+		() => {
+			const locked = join(root, "locked");
+			mkdirSync(locked);
+			chmodSync(locked, 0o000);
+			try {
+				expect(getPathState(locked)).toBe("inaccessible");
+				expect(isMissingPath(locked)).toBe(false);
+			} finally {
+				chmodSync(locked, 0o755);
+			}
+		},
+	);
+
+	test("treats a symlink loop as missing, not as a permission problem", () => {
+		const loop = join(root, "loop");
+		symlinkSync(loop, loop);
+
+		expect(getPathState(loop)).toBe("missing");
+	});
+});
+
+describe("isPermissionDenied", () => {
+	const fsError = (code: string, syscall: string, path: string) =>
+		Object.assign(new Error(`${code}: ${syscall} '${path}'`), {
+			code,
+			syscall,
+			path,
+		});
+
+	test("matches fs permission errors and names their path", () => {
+		const err = fsError("EPERM", "scandir", "/drive/repo");
+
+		expect(isPermissionDenied(err)).toBe(true);
+		expect(permissionDeniedPath(new Error("wrap", { cause: err }))).toBe(
+			"/drive/repo",
+		);
+	});
+
+	test("matches git failing to read its working directory", () => {
+		expect(
+			isPermissionDenied(
+				new Error(
+					"fatal: Unable to read current working directory: Operation not permitted",
+				),
+			),
+		).toBe(true);
+		expect(
+			isPermissionDenied(
+				new Error("fatal: cannot change to '/drive/repo': Permission denied"),
+			),
+		).toBe(true);
+	});
+
+	test("does not name the command of a spawn error as the path", () => {
+		const err = fsError("EACCES", "spawn git", "git");
+
+		expect(permissionDeniedPath(err)).toBeUndefined();
+	});
+
+	test("ignores SSH auth failures and errors without a path", () => {
+		expect(
+			isPermissionDenied(
+				new Error("git@github.com: Permission denied (publickey)."),
+			),
+		).toBe(false);
+		expect(
+			isPermissionDenied(
+				Object.assign(new Error("kill EPERM"), { code: "EPERM" }),
+			),
+		).toBe(false);
+	});
 });

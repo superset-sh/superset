@@ -27,6 +27,7 @@ import {
 	initEmptyRepo,
 	initLocalRepoInPlace,
 	resolveLocalRepo,
+	tryRevParseGitRoot,
 } from "./resolve-repo";
 
 /**
@@ -201,6 +202,43 @@ describe("resolveLocalRepo", () => {
 				);
 			} finally {
 				chmodSync(locked, 0o755);
+			}
+		},
+	);
+
+	test.skipIf(process.getuid?.() === 0)(
+		"reports a repo it can stat but not read as a permission error",
+		async () => {
+			const repo = join(workRoot, "unreadable");
+			await initRepoAt(repo);
+			chmodSync(repo, 0o000);
+			try {
+				await expect(resolveLocalRepo(repo)).rejects.toThrow(
+					/does not have permission to read/,
+				);
+				await expect(tryRevParseGitRoot(repo)).rejects.toThrow(
+					/does not have permission to read/,
+				);
+			} finally {
+				chmodSync(repo, 0o755);
+			}
+		},
+	);
+
+	test.skipIf(process.getuid?.() === 0)(
+		"reports a folder inside an unreadable repo as a permission error",
+		async () => {
+			const repo = join(workRoot, "blocked-parent");
+			await initRepoAt(repo);
+			const sub = join(repo, "src");
+			mkdirSync(sub);
+			chmodSync(join(repo, ".git"), 0o000);
+			try {
+				await expect(tryRevParseGitRoot(sub)).rejects.toThrow(
+					`does not have permission to read ${repo}`,
+				);
+			} finally {
+				chmodSync(join(repo, ".git"), 0o755);
 			}
 		},
 	);
