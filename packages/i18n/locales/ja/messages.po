@@ -932,6 +932,9 @@ msgstr "{kindLabel}テーマ"
 msgid "{label} (partial week)"
 msgstr "{label}(週の途中)"
 
+msgid "{label} color"
+msgstr "{label} の色"
+
 msgid "{label} in cloud workspaces"
 msgstr "クラウドワークスペースでの{label}"
 
@@ -4077,6 +4080,9 @@ msgstr "収集中…"
 
 msgid "Color"
 msgstr "色"
+
+msgid "Colors of the dots that show agent status on workspaces, tabs and agents."
+msgstr "ワークスペース、タブ、エージェントでエージェントのステータスを示すドットの色。"
 
 msgid "Combine all commits"
 msgstr "すべてのコミットを1つに統合"
@@ -13841,6 +13847,9 @@ msgstr "ターミナルが予約済み"
 msgid "Reset"
 msgstr "リセット"
 
+msgid "Reset {label} color"
+msgstr "{label} の色をリセット"
+
 msgid "reset agents"
 msgstr "エージェントをリセットする"
 
@@ -16065,6 +16074,9 @@ msgstr "ステータス"
 
 msgid "Status changed"
 msgstr "ステータス変更"
+
+msgid "Status colors"
+msgstr "ステータスの色"
 
 msgid "Stay connected (refresh tokens)"
 msgstr "接続の維持(リフレッシュトークン)"

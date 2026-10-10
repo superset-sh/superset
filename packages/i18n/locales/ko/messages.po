@@ -932,6 +932,9 @@ msgstr "{kindLabel} 테마"
 msgid "{label} (partial week)"
 msgstr "{label} (미완료 주)"
 
+msgid "{label} color"
+msgstr "{label} 색상"
+
 msgid "{label} in cloud workspaces"
 msgstr "클라우드 워크스페이스의 {label}"
 
@@ -4077,6 +4080,9 @@ msgstr "수집하는 중…"
 
 msgid "Color"
 msgstr "색상"
+
+msgid "Colors of the dots that show agent status on workspaces, tabs and agents."
+msgstr "워크스페이스, 탭, 에이전트에서 에이전트 상태를 나타내는 점의 색상입니다."
 
 msgid "Combine all commits"
 msgstr "모든 커밋 합치기"
@@ -13841,6 +13847,9 @@ msgstr "터미널에서 예약됨"
 msgid "Reset"
 msgstr "초기화"
 
+msgid "Reset {label} color"
+msgstr "{label} 색상 초기화"
+
 msgid "reset agents"
 msgstr "에이전트를 초기화할"
 
@@ -16065,6 +16074,9 @@ msgstr "상태"
 
 msgid "Status changed"
 msgstr "상태 변경됨"
+
+msgid "Status colors"
+msgstr "상태 색상"
 
 msgid "Stay connected (refresh tokens)"
 msgstr "연결 유지 (리프레시 토큰)"

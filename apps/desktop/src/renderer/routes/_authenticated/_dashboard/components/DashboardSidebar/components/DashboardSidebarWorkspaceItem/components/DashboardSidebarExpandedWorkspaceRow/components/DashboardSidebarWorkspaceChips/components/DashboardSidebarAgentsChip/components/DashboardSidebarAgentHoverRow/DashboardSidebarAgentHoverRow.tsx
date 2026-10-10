@@ -6,6 +6,7 @@ import {
 	navigateToV2Workspace,
 } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { getStatusTooltip } from "renderer/screens/main/components/StatusIndicator";
+import { useStatusColorsStore } from "renderer/stores/status-colors";
 import type {
 	DashboardSidebarRunningAgent,
 	DashboardSidebarRunningSubagent,
@@ -57,6 +58,10 @@ export function DashboardSidebarAgentHoverRow({
 		});
 	};
 
+	const statusColorOverride = useStatusColorsStore((state) =>
+		agent.status === "idle" ? undefined : state.overrides[agent.status],
+	);
+
 	const statusLabel =
 		agent.status === "idle"
 			? t({ message: "Idle" })
@@ -81,8 +86,11 @@ export function DashboardSidebarAgentHoverRow({
 				<span
 					className={cn(
 						"shrink-0 text-[10px]",
-						STATUS_TEXT_CLASS[agent.status],
+						!statusColorOverride && STATUS_TEXT_CLASS[agent.status],
 					)}
+					style={
+						statusColorOverride ? { color: statusColorOverride } : undefined
+					}
 				>
 					{statusLabel}
 				</span>

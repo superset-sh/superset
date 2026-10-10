@@ -932,6 +932,9 @@ msgstr "Tema {kindLabel}"
 msgid "{label} (partial week)"
 msgstr "{label} (minggu sebagian)"
 
+msgid "{label} color"
+msgstr "Warna status {label}"
+
 msgid "{label} in cloud workspaces"
 msgstr "{label} di workspace cloud"
 
@@ -4077,6 +4080,9 @@ msgstr "Mengumpulkan…"
 
 msgid "Color"
 msgstr "Warna"
+
+msgid "Colors of the dots that show agent status on workspaces, tabs and agents."
+msgstr "Warna titik yang menunjukkan status agen pada workspace, tab, dan agen."
 
 msgid "Combine all commits"
 msgstr "Gabungkan semua commit"
@@ -13841,6 +13847,9 @@ msgstr "Dipakai terminal"
 msgid "Reset"
 msgstr "Reset"
 
+msgid "Reset {label} color"
+msgstr "Atur ulang warna status {label}"
+
 msgid "reset agents"
 msgstr "mereset agen"
 
@@ -16065,6 +16074,9 @@ msgstr "Status"
 
 msgid "Status changed"
 msgstr "Status berubah"
+
+msgid "Status colors"
+msgstr "Warna status"
 
 msgid "Stay connected (refresh tokens)"
 msgstr "Tetap terhubung (refresh token)"

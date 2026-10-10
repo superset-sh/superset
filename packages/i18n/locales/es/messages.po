@@ -932,6 +932,9 @@ msgstr "Tema {kindLabel}"
 msgid "{label} (partial week)"
 msgstr "{label} (semana parcial)"
 
+msgid "{label} color"
+msgstr "Color del estado {label}"
+
 msgid "{label} in cloud workspaces"
 msgstr "{label} en espacios de trabajo en la nube"
 
@@ -4077,6 +4080,9 @@ msgstr "Recopilando…"
 
 msgid "Color"
 msgstr "Color"
+
+msgid "Colors of the dots that show agent status on workspaces, tabs and agents."
+msgstr "Colores de los puntos que muestran el estado de los agentes en espacios de trabajo, pestañas y agentes."
 
 msgid "Combine all commits"
 msgstr "Combinar todos los commits"
@@ -13841,6 +13847,9 @@ msgstr "Reservado por la terminal"
 msgid "Reset"
 msgstr "Restablecer"
 
+msgid "Reset {label} color"
+msgstr "Restablecer el color del estado {label}"
+
 msgid "reset agents"
 msgstr "restablecer los agentes"
 
@@ -16065,6 +16074,9 @@ msgstr "Estado"
 
 msgid "Status changed"
 msgstr "Estado modificado"
+
+msgid "Status colors"
+msgstr "Colores de estado"
 
 msgid "Stay connected (refresh tokens)"
 msgstr "Mantener la conexión (tokens de actualización)"

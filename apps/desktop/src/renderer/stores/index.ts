@@ -3,6 +3,7 @@ export * from "./ports";
 export * from "./ringtone";
 export * from "./settings-state";
 export * from "./sidebar-state";
+export * from "./status-colors";
 export * from "./tabs";
 export * from "./theme";
 export * from "./workspace-init";

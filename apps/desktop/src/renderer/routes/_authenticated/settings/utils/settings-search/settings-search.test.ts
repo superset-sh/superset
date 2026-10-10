@@ -151,3 +151,15 @@ describe("settings search - mobile rollout", () => {
 		).toBe(1);
 	});
 });
+
+describe("settings search - status colors", () => {
+	it.each([
+		"status colors",
+		"colorblind",
+		"needs input",
+	])('searching "%s" returns APPEARANCE_STATUS_COLORS', (query) => {
+		const ids = getIds(searchSettings(query));
+
+		expect(ids).toContain(SETTING_ITEM_ID.APPEARANCE_STATUS_COLORS);
+	});
+});

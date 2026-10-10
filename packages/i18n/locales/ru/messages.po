@@ -932,6 +932,9 @@ msgstr "{kindLabel} тема"
 msgid "{label} (partial week)"
 msgstr "{label} (неполная неделя)"
 
+msgid "{label} color"
+msgstr "Цвет: {label}"
+
 msgid "{label} in cloud workspaces"
 msgstr "{label} в облачных рабочих областях"
 
@@ -4077,6 +4080,9 @@ msgstr "Сбор данных…"
 
 msgid "Color"
 msgstr "Цвет"
+
+msgid "Colors of the dots that show agent status on workspaces, tabs and agents."
+msgstr "Цвета точек, показывающих статус агентов в рабочих областях, вкладках и списке агентов."
 
 msgid "Combine all commits"
 msgstr "Свести все коммиты в один"
@@ -13841,6 +13847,9 @@ msgstr "Занято терминалом"
 msgid "Reset"
 msgstr "Сбросить"
 
+msgid "Reset {label} color"
+msgstr "Сбросить цвет: {label}"
+
 msgid "reset agents"
 msgstr "сбросить агентов"
 
@@ -16065,6 +16074,9 @@ msgstr "Статус"
 
 msgid "Status changed"
 msgstr "Статус изменён"
+
+msgid "Status colors"
+msgstr "Цвета статусов"
 
 msgid "Stay connected (refresh tokens)"
 msgstr "оставаться подключённым (токены обновления)"
