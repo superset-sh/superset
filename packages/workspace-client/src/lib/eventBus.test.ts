@@ -181,7 +181,12 @@ describe("eventBus", () => {
 		cleanups.push(() => revived.server.stop(true));
 
 		reconnectEventBusIfDown(host.hostUrl);
-		await waitFor(() => revived.clientCount() === 1, 2_000);
+		await waitFor(
+			() =>
+				revived.clientCount() === 1 &&
+				bus.getConnectionStatus().state === "open",
+			2_000,
+		);
 		expect(bus.getConnectionStatus().state).toBe("open");
 	});
 
