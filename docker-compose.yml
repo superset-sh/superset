@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:17
+    image: docker.io/library/postgres@sha256:3725f4e2499eef5134592b3b4ab79a543ed7f8e533b05b5b637af926630f6650
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -8,7 +8,7 @@ services:
     ports:
       - "${LOCAL_PG_PORT:-5432}:5432"
     volumes:
-      - superset_db_data:/var/lib/postgresql/data
+      - superset_db18_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -53,4 +53,4 @@ services:
         condition: service_healthy
 
 volumes:
-  superset_db_data:
+  superset_db18_data:
