@@ -5,29 +5,49 @@
 	},
 	"build": {
 		"development": {
+			"bun": "1.4.2",
 			"developmentClient": true,
 			"distribution": "internal",
 			"environment": "development",
-			"channel": "development"
+			"channel": "development",
+			"env": {
+				"MOBILE_EAS_BUILD": "1"
+			}
+		},
+		"development-simulator": {
+			"extends": "development",
+			"ios": {
+				"simulator": true
+			}
 		},
 		"preview": {
+			"bun": "1.4.2",
 			"distribution": "internal",
 			"environment": "preview",
-			"channel": "preview"
+			"channel": "preview",
+			"env": {
+				"MOBILE_EAS_BUILD": "1"
+			}
 		},
 		"e2e-test": {
+			"bun": "1.4.2",
 			"withoutCredentials": true,
 			"ios": {
 				"simulator": true
 			},
 			"env": {
+				"MOBILE_EAS_BUILD": "1",
 				"EXPO_PUBLIC_E2E": "1"
 			}
 		},
 		"production": {
+			"bun": "1.4.2",
 			"autoIncrement": true,
 			"environment": "production",
-			"channel": "production"
+			"channel": "production",
+			"env": {
+				"MOBILE_EAS_BUILD": "1"
+			}
 		}
 	},
 	"submit": {
