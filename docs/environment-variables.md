@@ -91,6 +91,18 @@ or the value arrives empty.
 - [ ] `deploy-production.yml`: `env:` block **and** `--env`
 - [ ] `deploy-preview.yml`: same two
 
+## Desktop upload origins at build time
+
+`S3_PRESIGN_ENDPOINT` optionally adds the origin used by signed storage uploads
+to the desktop's `connect-src` policy. `S3_ENDPOINT` is the fallback when a
+separate upload endpoint is not configured. Both accept HTTP(S) URLs without
+credentials; only their origin is included. Leaving both unset retains the
+existing policy. Turbo hashes and forwards both values to build tasks.
+
+These are desktop build inputs, validated by the HTML transform, rather than
+API deployment secrets. Set them in the build environment or root `.env` when
+building a client for a storage endpoint outside the existing allowlist.
+
 ## Launcher-owned runtime values
 
 `SUPERSET_HOST_INSTALL_SOURCE` is set by the desktop coordinator (`desktop`) or standalone CLI spawner (`cli`) on the host child process. A checkout may set `dev`; absent/unrecognized values report `unknown`. This is install provenance, not an API deployment setting: do not put it in shared `.env` templates or deployment secrets. The host ignores login-shell values for this key. In-place updates additionally require a standalone entrypoint and a valid install layout.

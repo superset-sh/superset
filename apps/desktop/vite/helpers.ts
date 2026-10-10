@@ -109,6 +109,28 @@ export function linguiMacroPlugin(): Plugin {
  * same host, and a bare `ws:` would admit one to any host.
  */
 function connectSrcOrigins(): string {
+	const endpointVariable = process.env.S3_PRESIGN_ENDPOINT
+		? "S3_PRESIGN_ENDPOINT"
+		: "S3_ENDPOINT";
+	const endpoint = process.env[endpointVariable];
+	let storageOrigin: string | undefined;
+	if (endpoint) {
+		const errorMessage = `${endpointVariable} must be an HTTP(S) URL without credentials`;
+		let url: URL;
+		try {
+			url = new URL(endpoint);
+		} catch {
+			throw new Error(errorMessage);
+		}
+		if (
+			!["http:", "https:"].includes(url.protocol) ||
+			url.username ||
+			url.password
+		) {
+			throw new Error(errorMessage);
+		}
+		storageOrigin = url.origin;
+	}
 	const origins = [
 		process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
 		process.env.RELAY_URL || "https://relay.superset.sh",
@@ -116,6 +138,7 @@ function connectSrcOrigins(): string {
 		process.env.SANDBOX_GATE_ORIGIN ||
 			"https://*.sandbox.supersetusercontent.com",
 		process.env.R2_ENDPOINT || "https://*.r2.cloudflarestorage.com",
+		...(storageOrigin ? [storageOrigin] : []),
 	];
 	return [
 		...new Set(origins.flatMap((url) => [url, url.replace(/^http/, "ws")])),
