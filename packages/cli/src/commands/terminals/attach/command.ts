@@ -75,7 +75,10 @@ export default command({
 					"See the error printed above by the remote CLI",
 				);
 			}
-			return { data: { terminalId: options.terminal }, message: "" };
+			return {
+				data: { terminalId: options.terminal, ssh: options.ssh },
+				message: `Back from ${options.ssh}; the terminal keeps running there`,
+			};
 		}
 
 		const organizationId = ctx.config.organizationId;
