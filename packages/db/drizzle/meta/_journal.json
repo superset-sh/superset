@@ -1023,6 +1023,13 @@
       "when": 1791438525111,
       "tag": "0145_organization_plugins",
       "breakpoints": true
+    },
+    {
+      "idx": 146,
+      "version": "7",
+      "when": 1791586926413,
+      "tag": "0146_cloud_workspace_sessions",
+      "breakpoints": true
     }
   ]
 }

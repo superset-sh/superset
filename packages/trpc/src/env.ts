@@ -102,6 +102,9 @@ export const env = createEnv({
 		MICROSOFT_CLIENT_ID: z.string().min(1).optional(),
 		MICROSOFT_CLIENT_SECRET: z.string().min(1).optional(),
 		STRIPE_SECRET_KEY: z.string().optional(),
+		// Optional: cloud box sessions are still recorded wherever this is unset,
+		// but no usage is reported for billing.
+		AUTUMN_SECRET_KEY: z.string().min(1).optional(),
 		MERCURY_API_TOKEN: z.string().optional(),
 		// Optional read-only PAT (no scopes needed), shared with apps/marketing.
 		// GitHub's stargazers endpoint requires authentication even for public

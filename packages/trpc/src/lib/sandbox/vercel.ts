@@ -525,6 +525,84 @@ export async function stopSandbox(providerSandboxId: string): Promise<void> {
 	await sandbox.stop();
 }
 
+export interface SandboxSession {
+	id: string;
+	vcpus: number;
+	startedAt: number;
+	endedAt: number | null;
+}
+
+const SESSIONS_PAGE_SIZE = 50;
+const LIVE_STATUSES = new Set(["pending", "running"]);
+
+export function sessionEndedAt(session: {
+	status: string;
+	stoppedAt?: number;
+	abortedAt?: number;
+	requestedStopAt?: number;
+	updatedAt: number;
+}): number | null {
+	if (LIVE_STATUSES.has(session.status)) return null;
+	return (
+		session.stoppedAt ??
+		session.abortedAt ??
+		session.requestedStopAt ??
+		session.updatedAt
+	);
+}
+
+export async function listSandboxSessions(
+	providerSandboxId: string,
+	since: number,
+): Promise<SandboxSession[] | null> {
+	const sandbox = await getSandbox(providerSandboxId);
+	if (!sandbox) return null;
+	const sessions: SandboxSession[] = [];
+	for await (const session of await sandbox.listSessions({
+		sortOrder: "desc",
+		limit: SESSIONS_PAGE_SIZE,
+	})) {
+		if (session.startedAt === undefined) continue;
+		const endedAt = sessionEndedAt(session);
+		if (endedAt !== null && endedAt < since) break;
+		sessions.push({
+			id: session.id,
+			vcpus: session.vcpus,
+			startedAt: session.startedAt,
+			endedAt,
+		});
+	}
+	return sessions;
+}
+
+const SESSION_MAX_MS = 24 * 60 * 60 * 1000;
+const UNSETTLED_SANDBOX_STATUSES = new Set([
+	"pending",
+	"running",
+	"stopping",
+	"snapshotting",
+]);
+
+export async function listActiveWorkspaceSandboxes(
+	since: number,
+): Promise<string[]> {
+	const names: string[] = [];
+	const oldestRunning = Date.now() - SESSION_MAX_MS;
+	for await (const sandbox of await Sandbox.list({
+		...credentials(),
+		tags: { kind: "workspace" },
+		sortBy: "statusUpdatedAt",
+		sortOrder: "desc",
+	})) {
+		const updatedAt = sandbox.statusUpdatedAt ?? sandbox.updatedAt;
+		if (updatedAt < oldestRunning) break;
+		if (UNSETTLED_SANDBOX_STATUSES.has(sandbox.status) || updatedAt >= since) {
+			names.push(sandbox.name);
+		}
+	}
+	return names;
+}
+
 /** Best-effort: a sandbox already gone is the state we wanted. */
 export async function deleteSandbox(providerSandboxId: string): Promise<void> {
 	const sandbox = await getSandbox(providerSandboxId);
