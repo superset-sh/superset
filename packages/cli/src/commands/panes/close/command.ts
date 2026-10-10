@@ -1,11 +1,7 @@
 import { boolean, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
-import {
-	callPanes,
-	layoutResult,
-	resolvePanesClient,
-	workspaceOptions,
-} from "../shared";
+import { resolveHostClient } from "../../../lib/resolve-host-client";
+import { callPanes, layoutResult, workspaceOptions } from "../shared";
 
 export default command({
 	description:
@@ -18,7 +14,7 @@ export default command({
 		),
 	},
 	run: async ({ ctx, options }) => {
-		const client = await resolvePanesClient(ctx, options);
+		const client = await resolveHostClient(ctx, options);
 		const result = await callPanes(() =>
 			client.panes.close.mutate({
 				workspaceId: options.workspace,

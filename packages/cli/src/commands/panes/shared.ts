@@ -1,5 +1,4 @@
 import { CLIError, string } from "@superset/cli-framework";
-import { getHostId } from "@superset/shared/host-info";
 import type {
 	PaneLayoutNode,
 	PaneLayoutOpResult,
@@ -7,11 +6,7 @@ import type {
 	PaneLayoutTab,
 } from "@superset/shared/pane-layout-ops";
 import { PANE_SPLIT_DIRECTIONS } from "@superset/shared/pane-layout-ops";
-import type { CliContext } from "../../lib/command";
-import {
-	type HostServiceClient,
-	resolveHostTarget,
-} from "../../lib/host-target";
+import type { HostServiceClient } from "../../lib/host-target";
 
 export const workspaceOptions = {
 	workspace: string().required().desc("Workspace ID"),
@@ -22,23 +17,6 @@ export const directionOption = () =>
 	string()
 		.enum(...PANE_SPLIT_DIRECTIONS)
 		.desc("Side to place the pane on: right, left, down, or up");
-
-export async function resolvePanesClient(
-	ctx: CliContext,
-	options: { host?: string | null },
-): Promise<HostServiceClient> {
-	const organizationId = ctx.config.organizationId;
-	if (!organizationId) {
-		throw new CLIError("No active organization", "Run: superset auth login");
-	}
-	const target = await resolveHostTarget({
-		requestedHostId: options.host ?? getHostId(),
-		organizationId,
-		userJwt: ctx.bearer,
-		api: ctx.api,
-	});
-	return target.client;
-}
 
 /** Turns a host without the `panes` router into an actionable error. */
 export async function callPanes<T>(call: () => Promise<T>): Promise<T> {

@@ -1,11 +1,7 @@
 import { string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
-import {
-	callPanes,
-	layoutResult,
-	resolvePanesClient,
-	workspaceOptions,
-} from "../shared";
+import { resolveHostClient } from "../../../lib/resolve-host-client";
+import { callPanes, layoutResult, workspaceOptions } from "../shared";
 
 export default command({
 	description: "Swap the places of two panes, in the same tab or across tabs",
@@ -15,7 +11,7 @@ export default command({
 		with: string().required().desc("Second pane"),
 	},
 	run: async ({ ctx, options }) => {
-		const client = await resolvePanesClient(ctx, options);
+		const client = await resolveHostClient(ctx, options);
 		const result = await callPanes(() =>
 			client.panes.swap.mutate({
 				workspaceId: options.workspace,

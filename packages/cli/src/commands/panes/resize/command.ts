@@ -1,11 +1,7 @@
 import { number, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
-import {
-	callPanes,
-	layoutResult,
-	resolvePanesClient,
-	workspaceOptions,
-} from "../shared";
+import { resolveHostClient } from "../../../lib/resolve-host-client";
+import { callPanes, layoutResult, workspaceOptions } from "../shared";
 
 export default command({
 	description:
@@ -20,7 +16,7 @@ export default command({
 			.desc("Share of the parent split to give the pane, 0.05 to 0.95"),
 	},
 	run: async ({ ctx, options }) => {
-		const client = await resolvePanesClient(ctx, options);
+		const client = await resolveHostClient(ctx, options);
 		const result = await callPanes(() =>
 			client.panes.resize.mutate({
 				workspaceId: options.workspace,

@@ -1,10 +1,10 @@
 import { boolean, CLIError, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
+import { resolveHostClient } from "../../../lib/resolve-host-client";
 import {
 	callPanes,
 	directionOption,
 	layoutResult,
-	resolvePanesClient,
 	workspaceOptions,
 } from "../shared";
 
@@ -25,7 +25,7 @@ export default command({
 			if (options.to || options.direction) {
 				throw new CLIError("--new-tab cannot be used with --to or --direction");
 			}
-			const client = await resolvePanesClient(ctx, options);
+			const client = await resolveHostClient(ctx, options);
 			const result = await callPanes(() =>
 				client.panes.moveToNewTab.mutate({ workspaceId, paneId }),
 			);
@@ -39,7 +39,7 @@ export default command({
 				"Pass --to PANE --direction right|left|down|up, or --new-tab",
 			);
 		}
-		const client = await resolvePanesClient(ctx, options);
+		const client = await resolveHostClient(ctx, options);
 		const result = await callPanes(() =>
 			client.panes.move.mutate({
 				workspaceId,

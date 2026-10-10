@@ -1,9 +1,9 @@
 import { string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
+import { resolveHostClient } from "../../../lib/resolve-host-client";
 import {
 	directionOption,
 	layoutResult,
-	resolvePanesClient,
 	terminalOptions,
 	withPaneTerminal,
 	workspaceOptions,
@@ -19,7 +19,7 @@ export default command({
 		...terminalOptions,
 	},
 	run: async ({ ctx, options }) => {
-		const client = await resolvePanesClient(ctx, options);
+		const client = await resolveHostClient(ctx, options);
 		const result = await withPaneTerminal(
 			client,
 			options.workspace,
