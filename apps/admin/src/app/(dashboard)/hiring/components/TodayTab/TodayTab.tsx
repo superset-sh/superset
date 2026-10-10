@@ -25,7 +25,9 @@ export function TodayTab() {
 	const { formatDate } = useFormat();
 	const invalidate = useInvalidateHiring();
 	const [selectedParam, setSelected] = useSearchParamState("candidate");
-	const today = useQuery(trpc.hiring.today.queryOptions());
+	const today = useQuery(
+		trpc.hiring.today.queryOptions({ today: isoDateFromToday() }),
+	);
 	const snooze = useMutation(
 		trpc.hiring.updateApplication.mutationOptions({ onSuccess: invalidate }),
 	);
@@ -136,7 +138,9 @@ export function TodayTab() {
 				</ol>
 				{selectedId && (
 					<CandidateView
+						key={selectedId}
 						candidateId={selectedId}
+						applicationId={rows[index]?.applicationId}
 						position={{ index, total: ids.length }}
 						onPrev={prevId ? goPrev : undefined}
 						onNext={nextId ? goNext : undefined}

@@ -78,6 +78,8 @@ export const updateApplicationSchema = z.object({
 	nextFollowUpOn: isoDate.nullish(),
 });
 
+export const todaySchema = z.object({ today: isoDate }).optional();
+
 export const logTouchSchema = z.object({
 	applicationId: z.string().uuid(),
 	nextFollowUpOn: isoDate.nullish(),

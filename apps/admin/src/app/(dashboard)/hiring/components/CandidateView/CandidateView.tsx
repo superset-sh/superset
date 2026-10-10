@@ -16,6 +16,7 @@ import { useListKeys } from "./hooks/useListKeys";
 
 interface CandidateViewProps {
 	candidateId: string;
+	applicationId?: string;
 	position?: CandidatePosition | null;
 	onPrev?: () => void;
 	onNext?: () => void;
@@ -23,6 +24,7 @@ interface CandidateViewProps {
 
 export function CandidateView({
 	candidateId,
+	applicationId,
 	position,
 	onPrev,
 	onNext,
@@ -48,6 +50,7 @@ export function CandidateView({
 
 	const detail = query.data;
 	const primary =
+		detail.applications.find((app) => app.applicationId === applicationId) ??
 		detail.applications.find((app) => app.outcome === "active") ??
 		detail.applications[0];
 

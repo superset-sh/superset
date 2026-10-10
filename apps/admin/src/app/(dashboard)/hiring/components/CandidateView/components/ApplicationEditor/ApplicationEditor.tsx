@@ -154,10 +154,14 @@ export function ApplicationEditor({ application }: ApplicationEditorProps) {
 						<Input
 							id={`follow-up-${application.applicationId}`}
 							type="date"
-							value={application.nextFollowUpOn ?? ""}
-							onChange={(event) =>
-								save({ nextFollowUpOn: event.target.value || null })
-							}
+							key={application.nextFollowUpOn ?? ""}
+							defaultValue={application.nextFollowUpOn ?? ""}
+							onBlur={(event) => {
+								const value = event.target.value || null;
+								if (value !== application.nextFollowUpOn) {
+									save({ nextFollowUpOn: value });
+								}
+							}}
 						/>
 					</div>
 				</div>

@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { db } from "@superset/db/client";
+import { db, dbWs } from "@superset/db/client";
 import type {
 	HiringOutcome,
 	HiringScore,
@@ -10,9 +10,12 @@ import {
 	hiringApplications,
 	hiringCandidates,
 	hiringRoles,
+	type InsertHiringCandidate,
 	users,
 } from "@superset/db/schema";
-import { inArray, sql } from "drizzle-orm";
+import { eq, inArray, or } from "drizzle-orm";
+
+type InsertHiringApplication = typeof hiringApplications.$inferInsert;
 
 /**
  * Imports the Notion Hiring CRM into the hiring_* tables.
@@ -34,8 +37,9 @@ import { inArray, sql } from "drizzle-orm";
  *
  * The file holds candidate PII: keep it out of the repo.
  *
- * Reports what it would do unless `--apply` is passed. Safe to run again:
- * candidates upsert on notion_page_id, applications on (candidate, role).
+ * Reports what it would do unless `--apply` is passed, which writes everything
+ * in one transaction. Safe to run again: rows already imported (by
+ * notion_page_id) are left untouched, so edits made in admin survive.
  *
  * Usage: bun run packages/trpc/scripts/import-hiring-notion.ts <file.json> [--apply]
  */
@@ -164,10 +168,40 @@ async function main() {
 		: [];
 	const existingUserIds = new Set(existingUsers.map((u) => u.id));
 
+	const fileEmails = rows.flatMap((row) =>
+		row.email?.trim() ? [row.email.trim().toLowerCase()] : [],
+	);
+	const existing = await db
+		.select({
+			email: hiringCandidates.email,
+			notionPageId: hiringCandidates.notionPageId,
+		})
+		.from(hiringCandidates)
+		.where(
+			or(
+				fileEmails.length
+					? inArray(hiringCandidates.email, fileEmails)
+					: undefined,
+				inArray(
+					hiringCandidates.notionPageId,
+					rows.map((row) => notionPageId(row.url)),
+				),
+			),
+		);
+	const importedPageIds = new Set(existing.map((c) => c.notionPageId));
+	const takenEmails = new Set(existing.map((c) => c.email));
+
 	const seenEmails = new Set<string>();
 	const tally = new Map<string, number>();
 	const skipped: string[] = [];
-	const roleIds = new Map<string, string>();
+	const unmappedOwners: string[] = [];
+	const planned: {
+		row: NotionRow;
+		candidate: InsertHiringCandidate;
+		roleTitle: string;
+		application: Omit<InsertHiringApplication, "candidateId" | "roleId">;
+	}[] = [];
+	let alreadyImported = 0;
 
 	for (const row of rows) {
 		const name = row.name?.trim();
@@ -175,9 +209,14 @@ async function main() {
 			skipped.push(`${row.url}: no name`);
 			continue;
 		}
+		const pageId = notionPageId(row.url);
+		if (importedPageIds.has(pageId)) {
+			alreadyImported += 1;
+			continue;
+		}
 		const email = row.email?.trim().toLowerCase() || null;
-		if (email && seenEmails.has(email)) {
-			skipped.push(`${name}: duplicate email ${email}`);
+		if (email && (seenEmails.has(email) || takenEmails.has(email))) {
+			skipped.push(`${name}: email ${email} is already in the pipeline`);
 			continue;
 		}
 		if (email) seenEmails.add(email);
@@ -185,89 +224,85 @@ async function main() {
 		const stage = mapStage(row);
 		const outcome = mapOutcome(row);
 		const roleTitle = row.role ?? "Founding Engineer";
-		const key = `${roleTitle} · ${stage} · ${outcome}`;
-		tally.set(key, (tally.get(key) ?? 0) + 1);
-		if (!apply) continue;
-
-		let roleId = roleIds.get(roleTitle);
-		if (!roleId) {
-			await db
-				.insert(hiringRoles)
-				.values({ title: roleTitle })
-				.onConflictDoNothing();
-			const [role] = await db
-				.select({ id: hiringRoles.id })
-				.from(hiringRoles)
-				.where(sql`${hiringRoles.title} = ${roleTitle}`);
-			if (!role) throw new Error(`Role ${roleTitle} missing after insert`);
-			roleId = role.id;
-			roleIds.set(roleTitle, roleId);
-		}
+		const owner = ownerEmail(row.owner);
+		const ownerUserId = owner ? (ownerIdByEmail.get(owner) ?? null) : null;
+		if (row.owner && !ownerUserId) unmappedOwners.push(`${name}: ${row.owner}`);
 
 		const createdAt = toDate(row.created) ?? new Date();
-		const candidateFields = {
-			name,
-			email,
-			phone: row.phone,
-			currentTitle: row.title,
-			currentCompany: row.company,
-			githubUrl: row.github,
-			linkedinUrl: row.linkedin,
-			xUrl: row.x,
-			siteUrl: row.site,
-			waasUrl: row.waas,
-			supersetUserId:
-				row.userId && existingUserIds.has(row.userId) ? row.userId : null,
-			source: row.source ? (SOURCES[row.source] ?? null) : null,
-		};
-		const [candidate] = await db
-			.insert(hiringCandidates)
-			.values({
-				...candidateFields,
-				notionPageId: notionPageId(row.url),
-				createdAt,
-			})
-			.onConflictDoUpdate({
-				target: hiringCandidates.notionPageId,
-				set: candidateFields,
-			})
-			.returning({ id: hiringCandidates.id });
-		if (!candidate) throw new Error(`Candidate ${name} not written`);
-
 		const closedAt = outcome === "active" ? null : toDate(row.closedAt);
 		const lastContactedAt = toDate(row.lastContacted);
-		const owner = ownerEmail(row.owner);
-		const applicationFields = {
-			stage,
-			outcome,
-			score: row.score ? (SCORES[row.score] ?? null) : null,
-			ownerUserId: owner ? (ownerIdByEmail.get(owner) ?? null) : null,
-			nextStep: row.nextStep,
-			nextFollowUpOn: row.followUp?.slice(0, 10) ?? null,
-			lastContactedAt,
-			stageChangedAt: closedAt ?? lastContactedAt ?? createdAt,
-			closedAt,
-		};
-		await db
-			.insert(hiringApplications)
-			.values({
-				candidateId: candidate.id,
-				roleId,
+		planned.push({
+			row,
+			roleTitle,
+			candidate: {
+				name,
+				email,
+				phone: row.phone,
+				currentTitle: row.title,
+				currentCompany: row.company,
+				githubUrl: row.github,
+				linkedinUrl: row.linkedin,
+				xUrl: row.x,
+				siteUrl: row.site,
+				waasUrl: row.waas,
+				supersetUserId:
+					row.userId && existingUserIds.has(row.userId) ? row.userId : null,
+				source: row.source ? (SOURCES[row.source] ?? null) : null,
+				notionPageId: pageId,
 				createdAt,
-				...applicationFields,
-			})
-			.onConflictDoUpdate({
-				target: [hiringApplications.candidateId, hiringApplications.roleId],
-				set: applicationFields,
-			});
+			},
+			application: {
+				stage,
+				outcome,
+				score: row.score ? (SCORES[row.score] ?? null) : null,
+				ownerUserId,
+				nextStep: row.nextStep,
+				nextFollowUpOn: row.followUp?.slice(0, 10) ?? null,
+				lastContactedAt,
+				stageChangedAt: closedAt ?? lastContactedAt ?? createdAt,
+				closedAt,
+				createdAt,
+			},
+		});
+		const key = `${roleTitle} · ${stage} · ${outcome}`;
+		tally.set(key, (tally.get(key) ?? 0) + 1);
+	}
+
+	if (apply) {
+		await dbWs.transaction(async (tx) => {
+			const roleIds = new Map<string, string>();
+			for (const title of new Set(planned.map((p) => p.roleTitle))) {
+				await tx.insert(hiringRoles).values({ title }).onConflictDoNothing();
+				const [role] = await tx
+					.select({ id: hiringRoles.id })
+					.from(hiringRoles)
+					.where(eq(hiringRoles.title, title));
+				if (!role) throw new Error(`Role ${title} missing after insert`);
+				roleIds.set(title, role.id);
+			}
+			for (const item of planned) {
+				const [candidate] = await tx
+					.insert(hiringCandidates)
+					.values(item.candidate)
+					.returning({ id: hiringCandidates.id });
+				if (!candidate)
+					throw new Error(`Candidate ${item.candidate.name} not written`);
+				await tx.insert(hiringApplications).values({
+					...item.application,
+					candidateId: candidate.id,
+					roleId: roleIds.get(item.roleTitle) as string,
+				});
+			}
+		});
 	}
 
 	console.log(
-		`${apply ? "Imported" : "Would import"} ${rows.length - skipped.length} of ${rows.length} rows`,
+		`${apply ? "Imported" : "Would import"} ${planned.length} of ${rows.length} rows (${alreadyImported} already imported, left as they are)`,
 	);
 	for (const [key, count] of [...tally].sort())
 		console.log(`  ${count}\t${key}`);
 	for (const line of skipped) console.log(`  skipped: ${line}`);
+	for (const line of unmappedOwners) console.log(`  owner not found: ${line}`);
 	console.log(
 		`Owners found: ${[...ownerIdByEmail.keys()].join(", ") || "none"}`,
 	);
