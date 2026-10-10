@@ -19,6 +19,7 @@ import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { useRenderStressInstrumentation } from "renderer/lib/performance/stress-instrumentation";
 import { markTerminalForBackground } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
+import { useRunAfterMenuClose } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useRunAfterMenuClose";
 import type { TerminalLauncher } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useV2TerminalLauncher";
 import type {
 	PaneViewerData,
@@ -107,6 +108,7 @@ export function TerminalSessionDropdown({
 	onSessionRemoved,
 }: TerminalSessionDropdownProps) {
 	const { t } = useLingui();
+	const { runAfterClose, onCloseAutoFocus } = useRunAfterMenuClose();
 	const [isOpen, setIsOpen] = useState(false);
 	const collections = useCollections();
 	const { terminalId } = context.pane.data as TerminalPaneData;
@@ -398,7 +400,11 @@ export function TerminalSessionDropdown({
 						)}
 					</button>
 				</DropdownMenuTrigger>
-				<DropdownMenuContent align="start" className="w-96">
+				<DropdownMenuContent
+					align="start"
+					className="w-96"
+					onCloseAutoFocus={onCloseAutoFocus}
+				>
 					<DropdownMenuLabel className="flex items-center gap-2 text-xs">
 						<span className="min-w-0 flex-1 truncate">
 							<Trans>Terminal Sessions</Trans>
@@ -490,10 +496,16 @@ export function TerminalSessionDropdown({
 												event.preventDefault();
 												event.stopPropagation();
 												setIsOpen(false);
-												setRenameTarget({
-													terminalId: session.terminalId,
-													name: session.customTitle ?? "",
-												});
+												// The menu traps focus until its exit animation ends,
+												// so the dialog is opened after the close — otherwise
+												// the menu's focus restore takes it back from the input
+												// and the field starts unfocused (#8133).
+												runAfterClose(() =>
+													setRenameTarget({
+														terminalId: session.terminalId,
+														name: session.customTitle ?? "",
+													}),
+												);
 											}}
 										>
 											<Pencil className="size-3" />

@@ -55,6 +55,11 @@ export function TabItem<TData>({
 	const { t } = useLingui();
 	const [isEditing, setIsEditing] = useState(false);
 	const [editValue, setEditValue] = useState("");
+	// A menu keeps focus trapped until its exit animation ends, so the
+	// rename has to start after the menu has closed (see the content's
+	// onCloseAutoFocus). Mounting the input during the close leaves it
+	// unfocused: typing then goes to the pane the tab selects (#8133).
+	const pendingRename = useRef(false);
 	const title = useTabTitle(tab, tabs, registry);
 
 	const startEditing = () => {
@@ -200,8 +205,22 @@ export function TabItem<TData>({
 					)}
 				</div>
 			</ContextMenuTrigger>
-			<ContextMenuContent>
-				<ContextMenuItem onSelect={startEditing}>
+			<ContextMenuContent
+				onCloseAutoFocus={(event) => {
+					// Keep the menu from handing focus back to the tab (which selects
+					// the pane) and start the rename now that the close is over.
+					event.preventDefault();
+					if (pendingRename.current) {
+						pendingRename.current = false;
+						startEditing();
+					}
+				}}
+			>
+				<ContextMenuItem
+					onSelect={() => {
+						pendingRename.current = true;
+					}}
+				>
 					<PencilIcon className="mr-2 size-4" />
 					<Trans>Rename</Trans>
 				</ContextMenuItem>
