@@ -381,6 +381,7 @@ export class BrowserRuntimeRegistryImpl {
 		};
 
 		const handleDidNavigateInPage = (e: Electron.DidNavigateInPageEvent) => {
+			if (!e.isMainFrame) return;
 			this.setState(paneId, { currentUrl: e.url ?? "" });
 			this.refreshNavState(paneId);
 		};
@@ -405,14 +406,13 @@ export class BrowserRuntimeRegistryImpl {
 		};
 
 		const handleDidFailLoad = (e: Electron.DidFailLoadEvent) => {
-			if (e.errorCode === -3) return; // ERR_ABORTED
+			if (!e.isMainFrame || e.errorCode === -3) return; // ERR_ABORTED
 			// A failed main-frame load commits Chromium's error page without a
 			// did-navigate, so the address comes from the failure itself.
 			this.setState(paneId, {
 				isLoading: false,
-				...(e.isMainFrame
-					? { currentUrl: e.validatedURL ?? "", pageTitle: "" }
-					: {}),
+				currentUrl: e.validatedURL ?? "",
+				pageTitle: "",
 				error: {
 					code: e.errorCode ?? 0,
 					description: e.errorDescription ?? "",
