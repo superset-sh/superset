@@ -11,6 +11,7 @@ const RESTORE_SCREEN =
 	"\x1b[<u\x1b[>4;0m\x1b[?25h\x1b[0 q\x1b[?1049l";
 
 type ServerMessage =
+	| { type: "attached" }
 	| { type: "ping" }
 	| { type: "exit"; exitCode: number }
 	| { type: "error"; message: string }
@@ -57,6 +58,7 @@ export function attachTerminal({
 
 	return new Promise<AttachEnd>((resolve) => {
 		let ended = false;
+		let attached = false;
 		const send = (message: object) => {
 			if (socket.readyState === WebSocket.OPEN) {
 				socket.send(JSON.stringify(message));
@@ -71,11 +73,13 @@ export function attachTerminal({
 		const finish = (end: AttachEnd) => {
 			if (ended) return;
 			ended = true;
-			stdin.off("data", onData);
-			process.off("SIGWINCH", sendSize);
-			stdin.setRawMode(false);
-			stdin.pause();
-			stdout.write(RESTORE_SCREEN);
+			if (attached) {
+				stdin.off("data", onData);
+				process.off("SIGWINCH", sendSize);
+				stdin.setRawMode(false);
+				stdin.pause();
+				stdout.write(RESTORE_SCREEN);
+			}
 			socket.close();
 			resolve(end);
 		};
@@ -91,7 +95,8 @@ export function attachTerminal({
 			if (detach) finish({ reason: "detached" });
 		};
 
-		socket.onopen = () => {
+		const onAttached = () => {
+			attached = true;
 			stdout.write(ENTER_SCREEN);
 			stdin.setRawMode(true);
 			stdin.resume();
@@ -106,7 +111,8 @@ export function attachTerminal({
 				return;
 			}
 			const message = JSON.parse(String(event.data)) as ServerMessage;
-			if (message.type === "ping") send({ type: "pong" });
+			if (message.type === "attached" && !attached) onAttached();
+			else if (message.type === "ping") send({ type: "pong" });
 			else if (message.type === "exit" && "exitCode" in message) {
 				finish({ reason: "exited", exitCode: message.exitCode });
 			} else if (message.type === "error" && "message" in message) {

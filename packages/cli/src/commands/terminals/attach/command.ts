@@ -9,6 +9,9 @@ import {
 } from "../../../lib/terminal-attach";
 import { INTERRUPT_KEYS } from "../../../lib/terminal-keys";
 
+const SSH_CONNECTION_FAILED = 255;
+const COMMAND_NOT_FOUND = 127;
+
 function shellQuote(value: string): string {
 	return `'${value.replaceAll("'", `'\\''`)}'`;
 }
@@ -54,10 +57,22 @@ export default command({
 				stdio: ["inherit", "inherit", "inherit"],
 			});
 			const exitCode = await child.exited;
+			if (exitCode === SSH_CONNECTION_FAILED) {
+				throw new CLIError(
+					`Could not connect to ${options.ssh} over SSH`,
+					`Check access first with: ssh ${options.ssh}`,
+				);
+			}
+			if (exitCode === COMMAND_NOT_FOUND) {
+				throw new CLIError(
+					`\`superset\` is not installed on ${options.ssh}`,
+					"Install the CLI there and run `superset auth login`",
+				);
+			}
 			if (exitCode !== 0) {
 				throw new CLIError(
-					`ssh exited with code ${exitCode}`,
-					`Check that \`superset\` is installed and signed in on ${options.ssh}`,
+					`Attach on ${options.ssh} failed (exit ${exitCode})`,
+					"See the error printed above by the remote CLI",
 				);
 			}
 			return { data: { terminalId: options.terminal }, message: "" };
