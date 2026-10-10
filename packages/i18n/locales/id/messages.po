@@ -933,7 +933,7 @@ msgid "{label} (partial week)"
 msgstr "{label} (minggu sebagian)"
 
 msgid "{label} color"
-msgstr "Warna {label}"
+msgstr "Warna status {label}"
 
 msgid "{label} in cloud workspaces"
 msgstr "{label} di workspace cloud"
@@ -13848,7 +13848,7 @@ msgid "Reset"
 msgstr "Reset"
 
 msgid "Reset {label} color"
-msgstr "Atur ulang warna {label}"
+msgstr "Atur ulang warna status {label}"
 
 msgid "reset agents"
 msgstr "mereset agen"

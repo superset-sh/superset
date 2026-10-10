@@ -933,7 +933,7 @@ msgid "{label} (partial week)"
 msgstr "{label} (semana parcial)"
 
 msgid "{label} color"
-msgstr "Cor de {label}"
+msgstr "Cor do status {label}"
 
 msgid "{label} in cloud workspaces"
 msgstr "{label} em áreas de trabalho na nuvem"
@@ -13848,7 +13848,7 @@ msgid "Reset"
 msgstr "Redefinir"
 
 msgid "Reset {label} color"
-msgstr "Redefinir a cor de {label}"
+msgstr "Redefinir a cor do status {label}"
 
 msgid "reset agents"
 msgstr "redefinir os agentes"

@@ -933,7 +933,7 @@ msgid "{label} (partial week)"
 msgstr "{label} (kısmi hafta)"
 
 msgid "{label} color"
-msgstr "{label} rengi"
+msgstr "Durum rengi: {label}"
 
 msgid "{label} in cloud workspaces"
 msgstr "Bulut çalışma alanlarında {label}"
@@ -13848,7 +13848,7 @@ msgid "Reset"
 msgstr "Sıfırla"
 
 msgid "Reset {label} color"
-msgstr "{label} rengini sıfırla"
+msgstr "Durum rengini sıfırla: {label}"
 
 msgid "reset agents"
 msgstr "ajanları sıfırlama"
