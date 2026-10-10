@@ -10,7 +10,10 @@ import {
 	type ResolvedGitInfo,
 	readGitIdentity,
 } from "../../runtime/git/identity.ts";
-import { resolveRef } from "../../runtime/git/refs.ts";
+import {
+	resolveDefaultBranchName,
+	resolveRef,
+} from "../../runtime/git/refs.ts";
 import { createUserSimpleGit } from "../../runtime/git/simple-git.ts";
 import {
 	readWorkspaceRefs,
@@ -306,6 +309,78 @@ export const gitAuthorNameTask = defineWorkerTask<
 // Delete-preview + destroy-preflight state for workspace cleanup.
 // Unpushed-commit detection uses `rev-list --not --remotes` so brand-new
 // branches with no upstream still report unpushed commits correctly.
+/**
+ * The ref this branch's work would have landed in: its configured upstream
+ * when it has one, otherwise the remote's default branch. Only that ref can
+ * answer "is this work already upstream" — an unrelated branch carrying the
+ * same tree would answer yes for commits that are still local.
+ */
+async function baseRemoteRef(
+	git: ReturnType<typeof createUserSimpleGit>,
+): Promise<string | null> {
+	const candidates: string[] = [];
+	try {
+		candidates.push(
+			(await git.raw(["rev-parse", "--abbrev-ref", "@{upstream}"])).trim(),
+		);
+	} catch {
+		// A workspace branch usually has no upstream configured.
+	}
+	// With no upstream, the ref this work would have landed in is the remote's
+	// DEFAULT branch — the same one new worktrees fork from — not whichever of
+	// `main` / `master` happens to exist: a repo that kept a stale `main` next
+	// to a `master` default would otherwise be answered by a ref this work
+	// never targets (#8103 review). The conventional names follow, and
+	// `origin/HEAD` last: `git fetch` never updates that symref, so it is the
+	// one that can be pointing at a branch that was renamed away.
+	const defaultRef = `refs/remotes/origin/${await resolveDefaultBranchName(git)}`;
+	for (const ref of [
+		defaultRef,
+		"refs/remotes/origin/main",
+		"refs/remotes/origin/master",
+		"refs/remotes/origin/HEAD",
+	]) {
+		if (!candidates.includes(ref)) candidates.push(ref);
+	}
+	for (const ref of candidates) {
+		try {
+			await git.raw(["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
+			return ref;
+		} catch {
+			// Not this one — try the next candidate.
+		}
+	}
+	return null;
+}
+
+/**
+ * Whether `base` already contains this branch's work, i.e. merging HEAD into
+ * it would change nothing. That is what a squash merge leaves behind (the
+ * content is there under a new sha), and it stays false for a branch whose
+ * commits only exist locally.
+ *
+ * Equal trees short-circuit; otherwise `merge-tree --write-tree` prints the
+ * merged tree, and an exit code means conflicts (or a git too old for the
+ * flag) — neither is a signal to act on.
+ */
+async function headIsContainedIn(
+	git: ReturnType<typeof createUserSimpleGit>,
+	base: string,
+): Promise<boolean> {
+	const headTree = (await git.raw(["rev-parse", "HEAD^{tree}"])).trim();
+	const baseTree = (await git.raw(["rev-parse", `${base}^{tree}`])).trim();
+	if (headTree === baseTree) return true;
+	try {
+		const merged = (await git.raw(["merge-tree", "--write-tree", base, "HEAD"]))
+			.trim()
+			.split("\n")[0]
+			?.trim();
+		return merged === baseTree;
+	} catch {
+		return false;
+	}
+}
+
 export const gitWorktreeStateTask = defineWorkerTask<
 	{
 		worktreePath: string;
@@ -335,6 +410,27 @@ export const gitWorktreeStateTask = defineWorkerTask<
 				Number.isFinite(count) && count > (ignoreInitialCommit ? 1 : 0);
 		} catch {
 			// Leave false — `rev-list` failure isn't a signal we can act on.
+		}
+		// A squash merge flattens the branch's commits into a new sha on the
+		// remote, so `HEAD --not --remotes` still counts every one of them —
+		// and once GitHub prunes the head branch, they look unpushed. The
+		// question that settles it is whether the branch's work is already in
+		// the ref it would have landed in, and a matching tree answers it
+		// neither way: a base that advanced before the squash carries the
+		// branch's changes in a DIFFERENT tree (so a tip-tree comparison misses
+		// the ordinary case), while an unrelated remote branch can hold the same
+		// tree with the commits still local (so it would clear a real warning).
+		// Ask git instead: merging HEAD into the base changes nothing when the
+		// base already contains this work.
+		if (hasUnpushedCommits) {
+			try {
+				const base = await baseRemoteRef(git);
+				if (base && (await headIsContainedIn(git, base))) {
+					hasUnpushedCommits = false;
+				}
+			} catch {
+				// Leave it unpushed — a failing probe isn't a signal we can act on.
+			}
 		}
 		return { hasChanges: !status.isClean(), hasUnpushedCommits };
 	},
