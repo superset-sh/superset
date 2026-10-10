@@ -21,6 +21,10 @@
 			"types": "./src/page-zoom.ts",
 			"default": "./src/page-zoom.ts"
 		},
+		"./desktop-notification": {
+			"types": "./src/desktop-notification.ts",
+			"default": "./src/desktop-notification.ts"
+		},
 		"./pane-layout-ops": {
 			"types": "./src/pane-layout-ops.ts",
 			"default": "./src/pane-layout-ops.ts"
