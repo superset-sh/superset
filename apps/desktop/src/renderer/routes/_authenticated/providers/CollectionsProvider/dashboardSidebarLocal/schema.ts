@@ -315,6 +315,12 @@ export const dashboardSidebarSectionSchema = z.object({
 	// sectionId pointers at it are ignored). Default covers rows persisted
 	// before the field existed.
 	tag: z.string().nullable().default(null),
+	// True only for rows minted by "materialize-on-interaction" (collapse or
+	// reorder of a folder that existed solely because a workspace carries its
+	// tag). Such a row is a presentation cache, not a user-created folder, so
+	// it stops rendering once no workspace carries the tag. Absent on every
+	// row persisted before the field existed, which stay permanent.
+	materializedByInteraction: z.boolean().default(false),
 });
 
 const v2ExecutionModeSchema = z.enum([
