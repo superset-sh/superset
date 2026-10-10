@@ -4,6 +4,7 @@ import { i18n } from "@superset/i18n";
 import { PROTOCOL_SCHEMES } from "@superset/shared/constants";
 import { clipboard, Menu, webContents } from "electron";
 import { safeOpenExternal } from "main/lib/safe-url";
+import { AGENT_INPUT_GRACE_MS } from "shared/browser-agent-input";
 import type {
 	DesignModeRect,
 	DesignModeScreenshot,
@@ -101,11 +102,13 @@ const DEEP_LINK_SCHEMES = new Set([
  * injections into the same document) and queues a resolver per call so a
  * fresh `executeJavaScript` await always gets the *next* press, not a stale
  * one. Never calls `stopPropagation`/`preventDefault` — purely observes.
+ * Ignores untrusted (script-dispatched) events: they are not a user click.
  */
 const NEXT_MOUSEDOWN_SCRIPT = `(() => {
 	if (!window.__supersetMousedownHook) {
 		window.__supersetMousedownHook = { resolvers: [] };
-		document.addEventListener("mousedown", () => {
+		document.addEventListener("mousedown", (event) => {
+			if (!event.isTrusted) return;
 			const hook = window.__supersetMousedownHook;
 			const resolvers = hook.resolvers;
 			hook.resolvers = [];
@@ -253,6 +256,14 @@ class BrowserManager extends EventEmitter {
 	// un-throttled — see acquireAgentWake. The entry object's identity ties
 	// releases to the registration generation they were acquired under.
 	private agentWakes = new Map<string, { count: number }>();
+	// CDP `Input.*` commands in flight per pane. Their input is trusted, so the
+	// guest cannot tell it from a user click — see setupFocusForward. The
+	// renderer mirrors this through `agent-input` to undo the keyboard focus
+	// such a click takes (see browserRuntimeRegistry).
+	private agentInputs = new Map<
+		string,
+		{ inFlight: number; settledAt: number }
+	>();
 	// Canonical chords to suppress in the focused guest and forward for the
 	// renderer to replay. Kept override/layout-aware by the renderer.
 	private forwardableChords = new Set<string>();
@@ -326,6 +337,7 @@ class BrowserManager extends EventEmitter {
 		this.designMode.cancel(paneId, "destroyed");
 		this.panes.delete(paneId);
 		this.consoleLogs.delete(paneId);
+		this.agentInputs.delete(paneId);
 		// Tell subscribers when a live wake dies with the pane, so the renderer
 		// doesn't keep a stale pane id in its exemption set.
 		if (this.agentWakes.delete(paneId)) this.emitAgentActive();
@@ -372,6 +384,32 @@ class BrowserManager extends EventEmitter {
 				this.emitAgentActive();
 			}
 		};
+	}
+
+	private beginAgentInput(paneId: string): () => void {
+		let entry = this.agentInputs.get(paneId);
+		if (!entry) {
+			entry = { inFlight: 0, settledAt: 0 };
+			this.agentInputs.set(paneId, entry);
+		}
+		const held = entry;
+		held.inFlight += 1;
+		if (held.inFlight === 1) this.emit("agent-input", { paneId, active: true });
+		return () => {
+			held.inFlight -= 1;
+			held.settledAt = Date.now();
+			if (held.inFlight === 0) {
+				this.emit("agent-input", { paneId, active: false });
+			}
+		};
+	}
+
+	private isAgentInputActive(paneId: string): boolean {
+		const entry = this.agentInputs.get(paneId);
+		if (!entry) return false;
+		return (
+			entry.inFlight > 0 || Date.now() - entry.settledAt < AGENT_INPUT_GRACE_MS
+		);
 	}
 
 	private applyThrottling(paneId: string, wc: Electron.WebContents): void {
@@ -720,6 +758,9 @@ class BrowserManager extends EventEmitter {
 				// channel, so strip it before forwarding; the response still
 				// echoes the client's original sessionId above.
 				const forwardSessionId = forwardSessionFor(sessionId, flatSessionId);
+				const endAgentInput = method.startsWith("Input.")
+					? this.beginAgentInput(paneId)
+					: null;
 				wc.debugger
 					.sendCommand(method, params, forwardSessionId)
 					.then((result) => {
@@ -744,7 +785,8 @@ class BrowserManager extends EventEmitter {
 								...(sessionId ? { sessionId } : {}),
 							}),
 						);
-					});
+					})
+					.finally(() => endAgentInput?.());
 			},
 			detach,
 		};
@@ -1254,6 +1296,11 @@ class BrowserManager extends EventEmitter {
 	 * inject a script that resolves a Promise on the guest's next mousedown,
 	 * `executeJavaScript` awaits it, and re-arms immediately after. No
 	 * preload/nodeIntegration needed — the guest stays untrusted.
+	 *
+	 * An agent's CDP `Input.dispatchMouseEvent` also fires a trusted mousedown.
+	 * Activating the pane for it moves the user's focus away from the pane they
+	 * are typing in, and can switch tabs. So a mousedown that lands while an
+	 * agent input command is in flight does not activate the pane.
 	 */
 	private setupFocusForward(paneId: string, wc: Electron.WebContents): void {
 		let cancelled = false;
@@ -1276,6 +1323,7 @@ class BrowserManager extends EventEmitter {
 					continue;
 				}
 				if (cancelled || gen !== generation) return;
+				if (this.isAgentInputActive(paneId)) continue;
 				this.emit(`pane-focus:${paneId}`);
 			}
 		};

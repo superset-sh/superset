@@ -2,6 +2,10 @@ import { attachBrowserViewportZoom } from "renderer/lib/browser-viewport-zoom";
 import { pointerPassthrough } from "renderer/lib/pointer-passthrough";
 import { selectRuntimesToEvict } from "renderer/lib/terminal/terminal-runtime-eviction";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import {
+	AGENT_INPUT_GRACE_MS,
+	type AgentInputState,
+} from "shared/browser-agent-input";
 import type { BrowserLoadError } from "shared/tabs-types";
 import { sanitizeUrl } from "./sanitizeUrl";
 
@@ -100,6 +104,11 @@ export class BrowserRuntimeRegistryImpl {
 	// screenshots hang and input hit-testing goes stale — and exempt from
 	// hidden-webview eviction so the guest isn't destroyed mid-session.
 	private agentActivePaneIds = new Set<string>();
+	// When each pane's agent CDP input last settled (mirrored from main), or
+	// null while some is in flight.
+	private agentInputSettledAt = new Map<string, number | null>();
+	// Where focus goes back to when agent input pulls it into a guest.
+	private lastFocused: Element | null = null;
 
 	private getListeners(paneId: string): Set<() => void> {
 		let set = this.listenersByPaneId.get(paneId);
@@ -156,6 +165,21 @@ export class BrowserRuntimeRegistryImpl {
 			}
 		});
 
+		this.lastFocused = document.activeElement;
+		document.addEventListener(
+			"focusin",
+			(event) => {
+				if (event.target instanceof Element) this.lastFocused = event.target;
+			},
+			true,
+		);
+
+		this.ipc.browser.onAgentInput.subscribe(undefined, {
+			onData: ({ paneId, active }: AgentInputState) => {
+				this.agentInputSettledAt.set(paneId, active ? null : Date.now());
+			},
+		});
+
 		this.ipc.browser.onAgentActivePanes.subscribe(undefined, {
 			onData: ({ paneIds }: { paneIds: string[] }) => {
 				this.agentActivePaneIds = new Set(paneIds);
@@ -187,6 +211,36 @@ export class BrowserRuntimeRegistryImpl {
 			style.opacity = "";
 		}
 		entry.overlay.style.visibility = "hidden";
+	}
+
+	private isAgentInputActive(paneId: string): boolean {
+		const settledAt = this.agentInputSettledAt.get(paneId);
+		if (settledAt === undefined) return false;
+		return settledAt === null || Date.now() - settledAt < AGENT_INPUT_GRACE_MS;
+	}
+
+	/**
+	 * Chromium moves keyboard focus into a guest on every mousedown routed to
+	 * it, before dispatch and whatever its source, so an agent's CDP click
+	 * pulls the user's typing out of the terminal they are in and into the
+	 * page — even a page parked in a background tab. A guest that takes focus
+	 * while parked, or while an agent is sending it input, hands it back.
+	 */
+	private handleWebviewFocus(paneId: string, entry: RegistryEntry): void {
+		if (entry.visible && !this.isAgentInputActive(paneId)) {
+			this.lastFocused = entry.webview;
+			return;
+		}
+		const previous = this.lastFocused;
+		const previousPaneId = previous ? this.getPaneIdForWebview(previous) : null;
+		const canRestore =
+			previous instanceof HTMLElement &&
+			previous !== entry.webview &&
+			previous.isConnected &&
+			(previousPaneId === null ||
+				this.entries.get(previousPaneId)?.visible === true);
+		if (canRestore) previous.focus({ preventScroll: true });
+		else entry.webview.blur();
 	}
 
 	private applyPointerPassthrough(passthrough: boolean) {
@@ -437,7 +491,11 @@ export class BrowserRuntimeRegistryImpl {
 			onClose?.();
 		};
 
+		// Electron's own event: keyboard focus moved into the guest.
+		const handleFocus = () => this.handleWebviewFocus(paneId, entry);
+
 		webview.addEventListener("dom-ready", handleDomReady);
+		webview.addEventListener("focus", handleFocus);
 		webview.addEventListener("did-start-loading", handleDidStartLoading);
 		webview.addEventListener("did-stop-loading", handleDidStopLoading);
 		webview.addEventListener(
@@ -469,6 +527,7 @@ export class BrowserRuntimeRegistryImpl {
 		entry.detachHandlers = () => {
 			detachViewportZoom();
 			webview.removeEventListener("dom-ready", handleDomReady);
+			webview.removeEventListener("focus", handleFocus);
 			webview.removeEventListener("did-start-loading", handleDidStartLoading);
 			webview.removeEventListener("did-stop-loading", handleDidStopLoading);
 			webview.removeEventListener(
@@ -629,6 +688,7 @@ export class BrowserRuntimeRegistryImpl {
 		entry.webview.remove();
 		entry.overlay.remove();
 		this.entries.delete(paneId);
+		this.agentInputSettledAt.delete(paneId);
 		this.listenersByPaneId.delete(paneId);
 		this.foundInPageListenersByPaneId.delete(paneId);
 		this.ipc.browser.unregister.mutate({ paneId }).catch((err) => {
