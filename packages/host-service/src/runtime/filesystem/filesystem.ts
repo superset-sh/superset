@@ -2,7 +2,6 @@ import {
 	createFsHostService,
 	type FsHostService,
 	FsWatcherManager,
-	invalidateSearchIndexesForRoot,
 } from "@superset/workspace-fs/host";
 import { eq } from "drizzle-orm";
 import type { HostDb } from "../../db/index.ts";
@@ -103,11 +102,6 @@ export class WorkspaceFilesystemManager {
 		return await this.watcherManager.refreshIgnores(
 			this.resolveWorkspaceRoot(workspaceId),
 		);
-	}
-
-	forgetRoot(rootPath: string): void {
-		this.serviceCache.delete(rootPath);
-		invalidateSearchIndexesForRoot(rootPath);
 	}
 
 	private getServiceForRootPath(rootPath: string): FsHostService {

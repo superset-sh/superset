@@ -327,16 +327,6 @@ export class GitWatcher {
 		}
 	}
 
-	rerootWorkspace(workspaceId: string, worktreePath: string): void {
-		const entry = this.watched.get(workspaceId);
-		if (entry?.worktreePath === worktreePath) return;
-		if (!entry && !this.attaching.has(workspaceId)) return;
-		this.stopWatching(workspaceId);
-		if (this.interest.has(workspaceId)) {
-			void this.attachWatcher(workspaceId, worktreePath);
-		}
-	}
-
 	private notifyWatchState(workspaceId: string, watched: boolean): void {
 		try {
 			this.onWatchStateChange(workspaceId, watched);

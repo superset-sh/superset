@@ -15,12 +15,11 @@ import { cancelAndWaitWorkspaceTitleCommit } from "../../../workspaces/workspace
 import { protectedProcedure, router } from "../../index";
 import { resolveWorktreePath } from "../git/utils/resolve-worktree";
 import { destroyWorkspace } from "../workspace-cleanup";
-import { listWorktreeAliases } from "../workspace-creation/shared/worktree-paths";
 
 export const workspaceRouter = router({
 	get: protectedProcedure
 		.input(z.object({ id: z.string() }))
-		.query(async ({ ctx, input }) => {
+		.query(({ ctx, input }) => {
 			const localWorkspace = ctx.db.query.workspaces
 				.findFirst({ where: eq(workspaces.id, input.id) })
 				.sync();
@@ -35,8 +34,6 @@ export const workspaceRouter = router({
 			return {
 				...localWorkspace,
 				worktreeExists: !isMissingPath(localWorkspace.worktreePath),
-				/** Old paths of a worktree that auto-naming moved; they still resolve. */
-				worktreeAliases: await listWorktreeAliases(localWorkspace.worktreePath),
 			};
 		}),
 

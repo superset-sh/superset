@@ -1,5 +1,4 @@
 import { realpathSync } from "node:fs";
-import { readdir, readlink, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import {
 	basename,
@@ -167,45 +166,4 @@ export function safeResolveWorktreePath(
 		});
 	}
 	return worktreePath;
-}
-
-/**
- * The links a worktree move left at the worktree's old paths, including
- * links to links that a later move left behind.
- */
-export async function listWorktreeAliases(
-	worktreePath: string,
-): Promise<string[]> {
-	const parent = dirname(worktreePath);
-	const entries = await readdir(parent, { withFileTypes: true }).catch(
-		() => [],
-	);
-	const targetByLink = new Map<string, string>();
-	for (const entry of entries) {
-		if (!entry.isSymbolicLink()) continue;
-		const path = join(parent, entry.name);
-		const link = await readlink(path).catch(() => null);
-		if (link !== null) targetByLink.set(path, resolve(parent, link));
-	}
-	const aliases: string[] = [];
-	const reached = new Set([resolve(worktreePath)]);
-	let grew = true;
-	while (grew) {
-		grew = false;
-		for (const [path, target] of targetByLink) {
-			if (reached.has(path) || !reached.has(target)) continue;
-			reached.add(path);
-			aliases.push(path);
-			grew = true;
-		}
-	}
-	return aliases;
-}
-
-export async function removeWorktreeAliases(
-	worktreePath: string,
-): Promise<void> {
-	for (const alias of await listWorktreeAliases(worktreePath)) {
-		await unlink(alias);
-	}
 }

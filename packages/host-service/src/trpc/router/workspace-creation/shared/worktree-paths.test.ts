@@ -1,17 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-	existsSync,
-	lstatSync,
-	mkdirSync,
-	mkdtempSync,
-	rmSync,
-	symlinkSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
 	isInsideProjectWorktreesRoot,
-	removeWorktreeAliases,
 	resolveProjectWorktreesFolder,
 	safeResolveWorktreePath,
 } from "./worktree-paths";
@@ -172,29 +164,5 @@ describe("isInsideProjectWorktreesRoot", () => {
 		expect(
 			isInsideProjectWorktreesRoot(join(base, "proj", "feature"), proj, base),
 		).toBe(false);
-	});
-});
-
-describe("removeWorktreeAliases", () => {
-	test("unlinks only the links that point at the worktree", async () => {
-		const root = mkdtempSync(join(tmpdir(), "worktree-aliases-"));
-		try {
-			const worktree = join(root, "fix-login");
-			const other = join(root, "other");
-			mkdirSync(worktree);
-			mkdirSync(other);
-			symlinkSync("fix-login", join(root, "billowy-hyphen"));
-			symlinkSync("billowy-hyphen", join(root, "first-name"));
-			symlinkSync("other", join(root, "keep"));
-			await removeWorktreeAliases(worktree);
-			expect(existsSync(join(root, "billowy-hyphen"))).toBe(false);
-			expect(
-				lstatSync(join(root, "first-name"), { throwIfNoEntry: false }),
-			).toBeUndefined();
-			expect(lstatSync(join(root, "keep")).isSymbolicLink()).toBe(true);
-			expect(existsSync(worktree)).toBe(true);
-		} finally {
-			rmSync(root, { recursive: true, force: true });
-		}
 	});
 });

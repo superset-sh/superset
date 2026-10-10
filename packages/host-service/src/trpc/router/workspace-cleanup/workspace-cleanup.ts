@@ -28,10 +28,7 @@ import type {
 import { protectedProcedure, router } from "../../index";
 import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { isInsideSessionsRoot } from "../workspace-creation/shared/session-paths";
-import {
-	isInsideProjectWorktreesRoot,
-	removeWorktreeAliases,
-} from "../workspace-creation/shared/worktree-paths";
+import { isInsideProjectWorktreesRoot } from "../workspace-creation/shared/worktree-paths";
 import { cleanupGitOps, isIndeterminateGitTaskFailure } from "./git-ops";
 import { isLocalCheckoutWorkspace } from "./is-local-checkout-workspace";
 import { removeDirectoryTree } from "./remove-directory-tree";
@@ -669,13 +666,6 @@ async function runDestroyPhases(
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
 			warnings.push(`Failed to invalidate label cache: ${message}`);
-		}
-
-		if (worktreeRemoved) {
-			await removeWorktreeAliases(local.worktreePath).catch((err) => {
-				const message = err instanceof Error ? err.message : String(err);
-				warnings.push(`Failed to remove old worktree links: ${message}`);
-			});
 		}
 
 		// The desktop dev app profile, last: every throw above un-archives the

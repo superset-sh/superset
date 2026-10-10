@@ -30,7 +30,6 @@ import {
 	trimTitle,
 } from "./ai-workspace-names";
 import { listBranchNames } from "./list-branch-names";
-import { moveRenamedWorktree } from "./move-renamed-worktree";
 import { findGitHubReferences, resolveNamingLinks } from "./naming-links";
 import { deduplicateBranchName } from "./sanitize-branch";
 
@@ -275,17 +274,10 @@ async function renameAutomaticBranch(
 		if (!isCurrent() || !pendingNaming(ctx, workspaceId)) return;
 		await namingGitOps.renameBranch(ctx, input.worktreePath, oldBranch, target);
 		gitStatusStore.recordChange(workspaceId, undefined);
-		const worktreePath = await moveRenamedWorktree(ctx, {
-			repoPath: input.repoPath,
-			worktreePath: input.worktreePath,
-			oldBranch,
-			newBranch: target,
-		});
 		updateLocalWorkspace(ctx, workspaceId, {
 			name: input.title,
 			branch: target,
 			autoNaming: input.state,
-			...(worktreePath ? { worktreePath } : {}),
 		});
 	});
 }

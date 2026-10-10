@@ -12,7 +12,6 @@ import { runTeardown } from "../runtime/teardown";
 import { disposeSessionsByWorkspaceId } from "../terminal/terminal";
 import { cleanupGitOps } from "../trpc/router/workspace-cleanup/git-ops";
 import { isLocalCheckoutWorkspace } from "../trpc/router/workspace-cleanup/is-local-checkout-workspace";
-import { removeWorktreeAliases } from "../trpc/router/workspace-creation/shared/worktree-paths";
 import type { HostServiceContext } from "../types";
 import {
 	archiveLocalWorkspace,
@@ -243,10 +242,6 @@ async function purgeProject(
 						projectId: project.id,
 						worktreePath: row.worktreePath,
 						removeError,
-					});
-				} else {
-					await removeWorktreeAliases(row.worktreePath).catch((err) => {
-						console.warn("[project-deletion] left old worktree links", err);
 					});
 				}
 			}

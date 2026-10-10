@@ -69,7 +69,6 @@ import { useWorkspaceFileNavigation } from "./hooks/useWorkspaceFileNavigation";
 import { useWorkspaceHotkeys } from "./hooks/useWorkspaceHotkeys";
 import { useWorkspacePaneOpeners } from "./hooks/useWorkspacePaneOpeners";
 import { useWorkspaceRightSidebarOpen } from "./hooks/useWorkspaceRightSidebarOpen";
-import { useWorktreeMoveSync } from "./hooks/useWorktreeMoveSync";
 import { RightPaneLinkTargetProvider } from "./providers/RightPaneLinkTargetProvider";
 import { WorkspaceGitStatusProvider } from "./providers/WorkspaceGitStatusProvider";
 import { FileDocumentStoreProvider } from "./state/fileDocumentStore";
@@ -127,7 +126,6 @@ function V2WorkspacePage() {
 			refetchOnWindowFocus: true,
 		},
 	);
-	useWorktreeMoveSync(workspace.id);
 
 	if (workspaceStatusQuery.data?.worktreeExists === false) {
 		return (

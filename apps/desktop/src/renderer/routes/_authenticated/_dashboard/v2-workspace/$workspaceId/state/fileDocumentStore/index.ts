@@ -4,7 +4,6 @@ export {
 	decodeBase64,
 	dispatchFsEvent,
 	getDocument,
-	rebaseDocuments,
 	releaseDocument,
 } from "./fileDocumentStore";
 export type {
