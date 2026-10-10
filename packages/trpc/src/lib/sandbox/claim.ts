@@ -30,7 +30,7 @@ import {
 	toSandboxRepositories,
 	workspaceRepositories,
 } from "./repositories";
-import type { SandboxClaim, SandboxEnvironment } from "./vercel";
+import type { SandboxClaim, SandboxEnvironment } from "./types";
 
 type CloudWorkspaceRow = typeof cloudWorkspaces.$inferSelect;
 
