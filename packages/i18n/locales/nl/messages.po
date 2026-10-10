@@ -17483,6 +17483,10 @@ msgstr "Dit pad bestaat, maar is geen map."
 msgid "This path is a directory"
 msgstr "Dit pad is een map"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.organizationPluginInvalid"
+msgstr "Deze plugin kan niet aan de organisatie worden toegevoegd: {reason}"
+
 msgid "This port is still in use"
 msgstr "Deze poort is nog in gebruik"
 

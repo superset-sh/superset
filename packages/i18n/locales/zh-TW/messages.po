@@ -17483,6 +17483,10 @@ msgstr "此路徑存在，但不是目錄。"
 msgid "This path is a directory"
 msgstr "該路徑是一個目錄"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.organizationPluginInvalid"
+msgstr "無法將此外掛新增至組織：{reason}"
+
 msgid "This port is still in use"
 msgstr "此埠仍在使用中"
 

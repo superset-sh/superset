@@ -842,6 +842,12 @@ export const serverErrorMessages: Record<
 			message: "Plugin {plugin} is not installed",
 			values: params,
 		}),
+	"serverError.plugins.organizationPluginInvalid": (params) =>
+		i18n._({
+			id: "serverError.plugins.organizationPluginInvalid",
+			message: "This plugin cannot be added to the organization: {reason}",
+			values: params,
+		}),
 	"serverError.plugins.unknownPlugin": (params) =>
 		i18n._({
 			id: "serverError.plugins.unknownPlugin",

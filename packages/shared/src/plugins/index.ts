@@ -6,6 +6,17 @@ export const DEFAULT_MARKETPLACE = "superset";
 export const DEFAULT_MARKETPLACE_REPO = "superset-sh/superset";
 export const DEFAULT_MARKETPLACE_REF = "main";
 
+const ORGANIZATION_MARKETPLACE_PREFIX = "organization-";
+
+/** Every organization has its own marketplace name, so two organizations' same-named plugins never share an install key. */
+export function organizationMarketplace(organizationId: string): string {
+	return `${ORGANIZATION_MARKETPLACE_PREFIX}${organizationId}`;
+}
+
+export function isOrganizationMarketplace(marketplace: string): boolean {
+	return marketplace.startsWith(ORGANIZATION_MARKETPLACE_PREFIX);
+}
+
 export const SUPERSET_HOSTED_PLUGINS = [
 	"gmail",
 	"google-calendar",

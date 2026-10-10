@@ -17483,6 +17483,10 @@ msgstr "Tato cesta existuje, ale není to adresář."
 msgid "This path is a directory"
 msgstr "Tato cesta je adresář"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.organizationPluginInvalid"
+msgstr "Tento plugin nelze přidat do organizace: {reason}"
+
 msgid "This port is still in use"
 msgstr "Tento port se stále používá"
 

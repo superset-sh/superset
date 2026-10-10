@@ -1,10 +1,11 @@
 import { db } from "@superset/db/client";
 import { pluginInstalls } from "@superset/db/schema";
 import type { SandboxPlugin } from "@superset/shared/sandbox-contract";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull, or } from "drizzle-orm";
 
 export async function creatorPlugins(
 	userId: string | null,
+	organizationId: string,
 ): Promise<SandboxPlugin[]> {
 	if (!userId) return [];
 	return await db
@@ -15,6 +16,14 @@ export async function creatorPlugins(
 			enabled: pluginInstalls.enabled,
 		})
 		.from(pluginInstalls)
-		.where(eq(pluginInstalls.userId, userId))
+		.where(
+			and(
+				eq(pluginInstalls.userId, userId),
+				or(
+					isNull(pluginInstalls.organizationId),
+					eq(pluginInstalls.organizationId, organizationId),
+				),
+			),
+		)
 		.orderBy(asc(pluginInstalls.pluginName));
 }

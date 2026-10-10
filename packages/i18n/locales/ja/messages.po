@@ -17483,6 +17483,10 @@ msgstr "このパスは存在しますが、ディレクトリではありませ
 msgid "This path is a directory"
 msgstr "このパスはディレクトリです"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.organizationPluginInvalid"
+msgstr "このプラグインは組織に追加できません: {reason}"
+
 msgid "This port is still in use"
 msgstr "このポートはまだ使用中です"
 

@@ -17483,6 +17483,10 @@ msgstr "Этот путь существует, но это не папка."
 msgid "This path is a directory"
 msgstr "Этот путь — папка"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.organizationPluginInvalid"
+msgstr "Этот плагин нельзя добавить в организацию: {reason}"
+
 msgid "This port is still in use"
 msgstr "Этот порт ещё используется"
 

@@ -17483,6 +17483,10 @@ msgstr "Path ini ada, tapi bukan direktori."
 msgid "This path is a directory"
 msgstr "Path ini adalah direktori"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.organizationPluginInvalid"
+msgstr "Plugin ini tidak dapat ditambahkan ke organisasi: {reason}"
+
 msgid "This port is still in use"
 msgstr "Port ini masih dipakai"
 

@@ -17483,6 +17483,10 @@ msgstr "Ta ścieżka istnieje, ale nie jest katalogiem."
 msgid "This path is a directory"
 msgstr "Ta ścieżka jest katalogiem"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.organizationPluginInvalid"
+msgstr "Tego pluginu nie można dodać do organizacji: {reason}"
+
 msgid "This port is still in use"
 msgstr "Ten port jest nadal używany"
 

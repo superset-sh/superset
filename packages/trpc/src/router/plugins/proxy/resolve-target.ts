@@ -136,7 +136,9 @@ export function targetKey(target: PluginTarget): string {
 
 // A dynamic client registers against the tool server itself, so that address is
 // the one place the connector's credential was issued for.
-function connectorServer(method: ConnectorMethod | undefined): string | null {
+export function connectorServer(
+	method: ConnectorMethod | undefined,
+): string | null {
 	return method?.type === "oauth2" && method.client === "dynamic"
 		? (method.authorization_url ?? null)
 		: null;
@@ -200,6 +202,16 @@ export async function resolveTarget(
 			request.marketplace
 				? `"${request.plugin}" is not installed from ${request.marketplace}.`
 				: `"${request.plugin}" is not installed.`,
+			404,
+		);
+	}
+
+	if (
+		install.organizationId &&
+		install.organizationId !== request.organizationId
+	) {
+		throw new PluginTargetError(
+			`"${request.plugin}" belongs to another organization.`,
 			404,
 		);
 	}
