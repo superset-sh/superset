@@ -1,0 +1,65 @@
+---
+title: Gmail
+description: Read, search, send, and organize mail, drafts, labels, and filters
+---
+
+<Callout type="info">
+Plugins are coming soon. They are not yet available to everyone, so you might not see **Plugins** in the app yet.
+</Callout>
+
+Read, search, send, and organize mail, drafts, labels, and filters.
+
+## Skills
+
+This plugin adds no skills. The agent uses the tools directly.
+
+## MCP Server
+
+Superset hosts the tools for this plugin itself. Calls go from the Superset API to the Gmail API with your credentials.
+
+**Access** shows what a tool does: Read changes nothing, Write creates or changes data, and Destructive deletes, removes, or sends something.
+
+| Tool | Access | What it does |
+|:-----|:-------|:-------------|
+| `send_email` | Destructive | Sends a new email immediately |
+| `draft_email` | Write | Creates a draft email without sending it |
+| `read_email` | Read | Retrieves the full content of a specific email, including headers, body, and attachment references |
+| `read_email_thread` | Read | Retrieves every message in a thread in readable order |
+| `search_emails` | Read | Searches emails using Gmail search syntax |
+| `modify_email` | Write | Adds or removes labels on a single message, which is how mail is archived, starred, or marked read |
+| `delete_email` | Destructive | Permanently deletes a message |
+| `batch_modify_emails` | Write | Adds or removes labels on up to 1000 messages in one call |
+| `batch_delete_emails` | Destructive | Permanently deletes up to 1000 messages |
+| `get_attachment` | Read | Fetches an attachment's bytes as base64 |
+| `list_history` | Read | Lists mailbox changes since a history ID, for detecting what changed |
+| `list_drafts` | Read | Lists draft emails |
+| `get_draft` | Read | Retrieves a draft's full content |
+| `update_draft` | Write | Replaces a draft's content |
+| `delete_draft` | Destructive | Permanently deletes a draft |
+| `send_draft` | Destructive | Sends an existing draft |
+| `modify_thread` | Write | Adds or removes labels on every message in a thread |
+| `trash_thread` | Write | Moves a whole thread to Trash, which is reversible with untrash_thread |
+| `untrash_thread` | Write | Restores a thread from Trash |
+| `delete_thread` | Destructive | Permanently deletes a whole thread |
+| `mark_message_spam` | Write | Marks a message as spam and removes it from the inbox |
+| `unmark_message_spam` | Write | Removes a message from spam and returns it to the inbox |
+| `mark_thread_spam` | Write | Marks a whole thread as spam and removes it from the inbox |
+| `unmark_thread_spam` | Write | Removes a thread from spam and returns it to the inbox |
+| `list_email_labels` | Read | Lists every label in the mailbox |
+| `create_label` | Write | Creates a label, optionally with a color from Gmail's fixed palette |
+| `update_label` | Write | Renames or recolors an existing label |
+| `delete_label` | Destructive | Deletes a label and removes it from every message carrying it |
+| `get_or_create_label` | Write | Returns a label by name, creating it if it does not exist |
+| `list_filters` | Read | Lists every Gmail filter |
+| `get_filter` | Read | Retrieves one filter's criteria and actions |
+| `create_filter` | Write | Creates a filter from raw criteria and actions |
+| `create_filter_from_template` | Write | Creates a filter from a named template instead of raw criteria |
+| `delete_filter` | Destructive | Deletes a filter |
+
+## Authentication
+
+| Method | Details |
+|:-------|:--------|
+| OAuth 2.0 (Sign in with Google) | Sign in to your Google account. Superset asks for full Gmail access (read, compose, modify, labels, and filter settings) and read-only Calendar access. |
+
+Connect from the plugin's page in **Plugins**. Superset keeps the credentials. The agent and your machine never see them.

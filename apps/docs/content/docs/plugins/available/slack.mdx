@@ -1,0 +1,62 @@
+---
+title: Slack
+description: Search, read, and post in channels, DMs, and threads
+---
+
+<Callout type="info">
+Plugins are coming soon. They are not yet available to everyone, so you might not see **Plugins** in the app yet.
+</Callout>
+
+Search, read, and post in channels, DMs, and threads.
+
+This plugin gives a coding agent Slack tools. To mention `@superset` in Slack and have it file tasks or start agents, see [Use with Slack](/use-with-slack).
+
+## Skills
+
+This plugin adds no skills. The agent uses the tools directly.
+
+## MCP Server
+
+Superset hosts the tools for this plugin itself. Calls go from the Superset API to the Slack API with your credentials.
+
+**Access** shows what a tool does: Read changes nothing, Write creates or changes data, and Destructive deletes, archives, or removes something.
+
+| Tool | Access | What it does |
+|:-----|:-------|:-------------|
+| `send_message` | Write | Sends a message to a Slack channel or DM |
+| `update_message` | Write | Updates an existing message |
+| `delete_message` | Destructive | Deletes a message |
+| `get_message` | Read | Gets details of a specific message |
+| `list_messages` | Read | Lists messages from a channel or DM |
+| `search_messages` | Read | Searches for messages across workspace |
+| `get_unread` | Read | Gets unread messages from a specific channel |
+| `get_thread_replies` | Read | Gets all replies in a thread |
+| `add_reaction` | Write | Adds a reaction emoji to a message |
+| `remove_reaction` | Write | Removes a reaction from a message |
+| `get_reactions` | Read | Gets all reactions on a message |
+| `list_channels` | Read | Lists all channels in workspace |
+| `get_channel` | Read | Gets details of a specific channel |
+| `create_channel` | Write | Creates a new channel |
+| `archive_channel` | Destructive | Archives a channel |
+| `unarchive_channel` | Write | Unarchives a channel |
+| `invite_to_channel` | Write | Invites users to a channel |
+| `kick_from_channel` | Destructive | Removes a user from a channel |
+| `join_channel` | Write | Joins a channel |
+| `leave_channel` | Write | Leaves a channel |
+| `rename_channel` | Write | Renames a channel |
+| `set_channel_topic` | Write | Sets channel topic |
+| `set_channel_purpose` | Write | Sets channel purpose |
+| `list_users` | Read | Lists all users in workspace |
+| `get_user` | Read | Gets details of a specific user |
+| `get_user_by_email` | Read | Finds a user by email address |
+| `get_user_presence` | Read | Gets user presence status |
+| `set_user_presence` | Write | Sets your presence status |
+| `get_team_info` | Read | Gets workspace/team information |
+
+## Authentication
+
+| Method | Details |
+|:-------|:--------|
+| OAuth 2.0 (Add to Slack) | Install the Superset app to your workspace. It reads and writes channels, DMs, group DMs, messages, reactions, and users, and can search messages. |
+
+Connect from the plugin's page in **Plugins**. Superset keeps the credentials. The agent and your machine never see them.

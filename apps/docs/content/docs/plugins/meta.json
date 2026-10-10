@@ -1,0 +1,8 @@
+{
+	"title": "Plugins",
+	"icon": "Puzzle",
+	"pages": [
+		"overview",
+		"available"
+	]
+}

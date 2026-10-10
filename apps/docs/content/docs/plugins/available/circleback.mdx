@@ -1,0 +1,32 @@
+---
+title: Circleback
+description: Search meeting notes, action items, and transcripts from Circleback
+---
+
+<Callout type="info">
+Plugins are coming soon. They are not yet available to everyone, so you might not see **Plugins** in the app yet.
+</Callout>
+
+Search meeting notes, action items, and transcripts from Circleback.
+
+## Skills
+
+| Skill | What it does |
+|:------|:-------------|
+| `find-in-circleback` | Answers "what did we say, decide, or promise" by searching on attendee, company, tag, or date |
+| `prep-with-circleback` | Builds a brief for an upcoming meeting from past meetings with the same people and open commitments |
+| `work-circleback-action-items` | Finds the action items assigned to you, does the ones the agent can do, and updates their status |
+
+Skills are named `circleback-<skill>`. In Claude Code they appear as `superset:circleback-<skill>`.
+
+## MCP Server
+
+Tools come from Circleback's own MCP server at `https://circleback.ai/api/mcp`. Superset proxies each call and adds your credentials. Circleback decides which tools the server offers, so see Circleback's documentation for the current list.
+
+## Authentication
+
+| Method | Details |
+|:-------|:--------|
+| OAuth 2.0 | You sign in to Circleback in your browser. Superset registers itself with Circleback when you connect, so there is no app to set up first. |
+
+Connect from the plugin's page in **Plugins**. Superset keeps the credentials. The agent and your machine never see them.

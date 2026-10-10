@@ -1,0 +1,43 @@
+---
+title: YNAB
+description: Read and update accounts, categories, budgets, and transactions in YNAB
+---
+
+<Callout type="info">
+Plugins are coming soon. They are not yet available to everyone, so you might not see **Plugins** in the app yet.
+</Callout>
+
+Read and update accounts, categories, budgets, and transactions in YNAB.
+
+## Skills
+
+This plugin adds no skills. The agent uses the tools directly.
+
+## MCP Server
+
+Superset hosts the tools for this plugin itself. Calls go from the Superset API to the YNAB API with your credentials.
+
+**Access** shows what a tool does: Read changes nothing, Write creates or changes data, and Destructive deletes, removes, or sends something.
+
+| Tool | Access | What it does |
+|:-----|:-------|:-------------|
+| `list_budgets` | Read | Lists the budgets this token can reach, with currency and last-modified date |
+| `list_accounts` | Read | Lists accounts with their working, cleared, and uncleared balances |
+| `list_categories` | Read | Lists category groups with budgeted, activity, and available amounts for one month |
+| `get_month_summary` | Read | Reads one budget month: income, budgeted, activity, to-be-budgeted, age of money, and overspent categories |
+| `list_payees` | Read | Lists payees, for resolving a name to a payee id |
+| `list_transactions` | Read | Lists transactions, newest first |
+| `get_transaction` | Read | Reads one transaction, including its splits |
+| `list_scheduled_transactions` | Read | Lists scheduled transactions with their next date and frequency |
+| `create_transaction` | Write | Records a transaction in an account |
+| `update_transaction` | Write | Changes fields on one transaction |
+| `delete_transaction` | Destructive | Deletes a transaction |
+| `set_category_budget` | Write | Sets how much is budgeted to a category in one month, replacing the current amount |
+
+## Authentication
+
+| Method | Details |
+|:-------|:--------|
+| Personal access token | Paste a token from YNAB's **Account Settings → Developer Settings**. |
+
+Connect from the plugin's page in **Plugins**. Superset keeps the credentials. The agent and your machine never see them.

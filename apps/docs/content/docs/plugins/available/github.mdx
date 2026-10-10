@@ -1,0 +1,31 @@
+---
+title: GitHub
+description: Work with issues, pull requests, and CI across your repositories
+---
+
+<Callout type="info">
+Plugins are coming soon. They are not yet available to everyone, so you might not see **Plugins** in the app yet.
+</Callout>
+
+Work with issues, pull requests, and CI across your repositories.
+
+## Skills
+
+| Skill | What it does |
+|:------|:-------------|
+| `ci-triage` | Finds the first real error in a failing GitHub Actions run, tells a flake from a real failure, and finds the commit that caused it |
+| `issue-triage` | Reproduces an issue, finds duplicates, judges severity, and sets labels, milestone, and assignee |
+
+Skills are named `github-<skill>`. In Claude Code they appear as `superset:github-<skill>`.
+
+## MCP Server
+
+Tools come from GitHub's own MCP server at `https://api.githubcopilot.com/mcp/`. Superset proxies each call and adds your credentials. GitHub decides which tools the server offers, so see GitHub's documentation for the current list.
+
+## Authentication
+
+| Method | Details |
+|:-------|:--------|
+| OAuth 2.0 | Sign in to GitHub. Superset asks for the `repo`, `read:org`, and `workflow` scopes. |
+
+Connect from the plugin's page in **Plugins**. Superset keeps the credentials. The agent and your machine never see them.

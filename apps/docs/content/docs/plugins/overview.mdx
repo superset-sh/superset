@@ -1,0 +1,62 @@
+---
+title: Overview
+description: Give your coding agents new tools and skills, and which agents support them
+---
+
+<Callout type="info">
+Plugins are coming soon. They are not yet available to everyone, so you might not see **Plugins** in the app yet.
+</Callout>
+
+A plugin connects your coding agents to another service, such as an issue tracker or an error monitor. Each plugin is a bundle of two things:
+
+- **MCP tools** the agent can call, such as "create an issue" or "search errors".
+- **Skills** that teach the agent when and how to use those tools.
+
+You install a plugin from the desktop app, and Superset sets it up for the agents on that machine. When a plugin needs an account, you connect it in Superset; the agent never sees your credentials.
+
+See [Available Plugins](/plugins/available) for every plugin Superset ships.
+
+## Install a Plugin
+
+1. Open **Plugins** in the sidebar.
+2. Select a plugin and click **Install**.
+3. If the plugin needs an account, click **Connect an account** and sign in to the service.
+
+Start a new agent session to pick up the new tools and skills.
+
+## Supported Agents
+
+| Agent | MCP tools | Skills |
+|:------|:---------:|:------:|
+| Claude Code | ✅ | ✅ |
+| Codex | ✅ | ✅ |
+| Kimi, Vibe, Grok | — | ✅ |
+| Other agents | — | — |
+
+— means not supported yet.
+
+## MCP Tools
+
+When you install a plugin, Superset adds its MCP server to each supported agent's own config file. You do not edit these files yourself.
+
+| Agent | Config file | How Superset writes it |
+|:------|:------------|:-----------------------|
+| Claude Code | `~/.claude.json` (user `mcpServers`) | Adds one entry per plugin and records it in `~/.superset/plugins/mcp-ledger.json` |
+| Codex | `~/.codex/config.toml` | Adds `[mcp_servers.<name>]` tables inside a `# >>> superset managed mcp servers >>>` block |
+
+- **Your entries win.** If you already configured a server for that agent with the same name as the plugin, Superset leaves yours in place and does not add a copy. This is per agent: a server you added to Codex does not stop Superset from adding it to Claude Code.
+- **Uninstall cleans up.** Removing a plugin removes the entries Superset wrote. In Claude Code, an entry you edited is now yours and stays. In Codex, Superset owns everything inside its marked block, so put your own servers outside it.
+- **Credentials stay on Superset.** The entries point at the Superset proxy. Your OAuth tokens are never written to these files.
+
+The [Chat UI](/chat) runs the same CLI, so a plugin's tools work there too.
+
+## Skills
+
+A plugin's skills go to the same places as the built-in [Superset skills](/skills):
+
+| Location | Read by |
+|:---------|:--------|
+| `~/.claude/skills/superset/` | Claude Code, as the `superset` plugin |
+| `~/.agents/skills/` | Codex, Kimi, Vibe, Grok |
+
+Skills refresh at every app launch, and skills from an uninstalled plugin are removed.

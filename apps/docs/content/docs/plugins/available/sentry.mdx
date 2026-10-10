@@ -1,0 +1,31 @@
+---
+title: Sentry
+description: "Debug with production error context: search issues, read stack traces, and manage alerts"
+---
+
+<Callout type="info">
+Plugins are coming soon. They are not yet available to everyone, so you might not see **Plugins** in the app yet.
+</Callout>
+
+Debug with production error context: search issues, read stack traces, and manage alerts.
+
+## Skills
+
+| Skill | What it does |
+|:------|:-------------|
+| `debug-with-sentry` | Finds the root cause of a production error from the stack trace and breadcrumbs before it changes code |
+| `find-in-sentry` | Answers "what's breaking" by finding the right project and searching issues and events |
+
+Skills are named `sentry-<skill>`. In Claude Code they appear as `superset:sentry-<skill>`.
+
+## MCP Server
+
+Tools come from Sentry's own MCP server at `https://mcp.sentry.dev/mcp`. Superset proxies each call and adds your credentials. Sentry decides which tools the server offers, so see Sentry's documentation for the current list.
+
+## Authentication
+
+| Method | Details |
+|:-------|:--------|
+| OAuth 2.0 | You sign in to Sentry in your browser. Superset registers itself with Sentry when you connect, so there is no app to set up first. |
+
+Connect from the plugin's page in **Plugins**. Superset keeps the credentials. The agent and your machine never see them.
