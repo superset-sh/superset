@@ -521,6 +521,22 @@ async function runTerminalAgent(
 }
 
 /**
+ * The agent identity a terminal reports once this config launches in it.
+ *
+ * A binding recorded by the lifecycle hook carries no instance: the wrapper
+ * Superset installs for a binary exports that binary's builtin id as
+ * `SUPERSET_AGENT_ID` and the session hook never reports a definition, so a
+ * custom agent running `claude` arrives looking exactly like a preset one.
+ * That is the granularity such a binding has, which is what this returns.
+ */
+function launchIdentity(config: ResolvedHostAgentConfig): string {
+	if (isBuiltinAgentId(config.presetId)) return config.presetId;
+	const [command = ""] = config.command.trim().split(/\s+/);
+	const executable = command.split(/[\\/]/).pop() ?? "";
+	return executable.toLowerCase() || config.presetId;
+}
+
+/**
  * Whether `continueTerminalId` names a session this call may be delivered
  * into, and the label to report when it does.
  *
@@ -609,7 +625,17 @@ function bindingRunsConfig(
 		db,
 		binding.definitionId ?? binding.agentId,
 	);
-	return bound?.id === config.id;
+	if (!bound) return false;
+	if (binding.definitionId) {
+		// The binding knows which instance it runs.
+		return bound.id === config.id;
+	}
+	// The binding knows only the binary. A caller that names an instance of it
+	// - an automation pinned to a second agent of one preset, or to a custom
+	// agent that runs the same binary - is still the agent this terminal
+	// holds; the candidate is that automation's own last session, so the
+	// instance it names is the instance that is running.
+	return bound.presetId === launchIdentity(config);
 }
 
 export function chatLaunchTarget(
