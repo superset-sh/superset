@@ -94,7 +94,7 @@ jobs:
 
   deploy-api:
     name: Deploy API
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: preview
     needs: create-database
@@ -308,7 +308,7 @@ jobs:
 
   deploy-web:
     name: Deploy Web
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
       name: preview
@@ -444,7 +444,7 @@ jobs:
 
   deploy-marketing:
     name: Deploy Marketing
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: preview
     needs: create-database
@@ -587,7 +587,7 @@ jobs:
 
   deploy-admin:
     name: Deploy Admin
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: preview
     needs: create-database
@@ -716,7 +716,7 @@ jobs:
 
   deploy-docs:
     name: Deploy Docs
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: preview
     needs: create-database
