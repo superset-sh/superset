@@ -3,6 +3,10 @@ import type { RendererContext } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
+import {
+	getTerminalProportionalRtl,
+	setTerminalProportionalRtl,
+} from "renderer/lib/terminal/terminal-bidi";
 import { terminalQueryColors } from "renderer/lib/terminal/terminal-query-colors";
 import type { OpenFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import "@xterm/xterm/css/xterm.css";
@@ -516,6 +520,12 @@ export function TerminalPane({
 	useHotkey(
 		"TOGGLE_TERMINAL_RICH_INPUT",
 		() => terminalRichInputOpenStore.toggle("hotkey"),
+		{ enabled: ctx.isActive, preventDefault: true },
+	);
+
+	useHotkey(
+		"TOGGLE_TERMINAL_PROPORTIONAL_RTL",
+		() => setTerminalProportionalRtl(!getTerminalProportionalRtl()),
 		{ enabled: ctx.isActive, preventDefault: true },
 	);
 

@@ -98,6 +98,33 @@ from the SUPER-1793 report into 0.20.0-beta.297, and hunks 1–3 are candidates
 for upstreaming. If upstream ships them, delete the patch, the
 `patchedDependencies` entry, and update (not delete) the guard test.
 
+### RTL hunk (same patch)
+
+**Why:** xterm.js has no bidi support, so Hebrew and Arabic draw
+letter-reversed. `apps/desktop/src/renderer/lib/terminal/terminal-bidi.ts`
+computes a per-row visual order (implicit bidi, optional right-aligned RTL
+rows) and installs it on `globalThis.__supersetTerminalBidi`.
+
+**What it changes** (`_updateModel` in both lib bundles and
+`src/WebglRenderer.ts`): per row, ask the hook for an order; when it returns
+one, load cell `order[x]` instead of `x`, mirror flagged brackets, skip
+ligature joins for that row, and draw the cursor at `visualOf[cursorX]`; report
+the cursor row to the hook (`cursorAt`, which drives the Left/Right arrow swap in
+RTL text). In `TextureAtlas._drawToCache`, prefix the glyph font with
+`glyphFont(chars)` so RTL glyphs use the system UI font instead of whichever
+monospace fallback carries Hebrew (usually Courier New). The row hook also
+gets the renderer, the viewport row and whether the cursor is on it
+(`row(line, cols, this, y, cursorY === row)`): for a right-aligned RTL row it
+may set `hide`, and the renderer then hands each loaded cell to
+`takeCell(row, x, cell)` instead of mirroring it. `takeCell` records the glyph
+and blanks it, so only the cell background is drawn, and
+`terminal-bidi-overlay.ts` paints the row as proportional text on a canvas over
+the terminal. Rows without RTL text get `null` and render exactly as before. The buffer, input,
+selection data and copy stay logical. The DOM renderer fallback is not
+patched.
+
+**Guard test:** the "bidi patch" block in `apps/desktop/src/webgl-atlas-patch.test.ts`.
+
 ## @xterm/xterm (`@xterm%2Fxterm@<version>.patch`)
 
 **Why:** SUPER-2120 / DESKTOP-12J. `Terminal.resize()` drains the write queue

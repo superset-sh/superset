@@ -8,6 +8,11 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { Utf8Base64 } from "./clipboard-base64";
 import { FocusAwareClipboardProvider } from "./clipboard-provider";
+import {
+	installBidiArrowKeys,
+	installTerminalBidi,
+	onTerminalBidiChange,
+} from "./terminal-bidi";
 
 export interface LoadAddonsResult {
 	searchAddon: SearchAddon;
@@ -41,6 +46,13 @@ export function loadAddons(
 	const unicode11 = new Unicode11Addon();
 	terminal.loadAddon(unicode11);
 	terminal.unicode.activeVersion = "11";
+
+	// Draw RTL text (Hebrew, Arabic) in reading order; read by the WebGL renderer.
+	installTerminalBidi();
+	const offBidiChange = onTerminalBidiChange(() =>
+		terminal.refresh(0, terminal.rows - 1),
+	);
+	const offBidiArrows = installBidiArrowKeys(terminal);
 
 	terminal.loadAddon(new ImageAddon());
 
@@ -124,6 +136,8 @@ export function loadAddons(
 		dispose: () => {
 			disposed = true;
 			cancelAnimationFrame(rafId);
+			offBidiChange();
+			offBidiArrows();
 			try {
 				ligaturesAddon?.dispose();
 			} catch {}
