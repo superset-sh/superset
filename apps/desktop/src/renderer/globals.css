@@ -13,6 +13,8 @@
 @source "../../../../packages/panes/src/**/*.{ts,tsx}";
 @source "../../../../packages/ui/node_modules/streamdown/dist/*.js";
 
+@custom-variant translucent (html[data-translucent-sidebar] &);
+
 /**
  * Theme CSS Variables
  *
@@ -177,7 +179,7 @@
 	}
 
 	body {
-		@apply bg-background text-foreground;
+		@apply bg-background text-foreground translucent:bg-transparent;
 	}
 
 	html,

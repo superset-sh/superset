@@ -448,7 +448,7 @@ export function DashboardSidebar({
 								isProjectDragDisabled={isProjectDragDisabled}
 								isChildDragDisabled={isChildDragDisabled}
 							>
-								<div className="flex h-full flex-col border-r border-border bg-sidebar dark:bg-muted/35">
+								<div className="flex h-full flex-col border-r border-border bg-sidebar dark:bg-muted/35 translucent:bg-sidebar/55 dark:translucent:bg-background/45">
 									<DashboardSidebarHeader isCollapsed={isCollapsed} />
 
 									<OverflowFadeContainer

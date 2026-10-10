@@ -11,7 +11,7 @@ import { useWorkspaceNamingFailedToast } from "renderer/hooks/host-service/useWo
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { useQuickCreateWorkspace } from "renderer/hooks/useQuickCreateWorkspace";
-import { useHotkey } from "renderer/hotkeys";
+import { PLATFORM, useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { DashboardSidebar } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar";
 import { DashboardSidebarPortsProvider } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarPortsProvider";
@@ -228,6 +228,14 @@ function DashboardLayout() {
 	// height beside them; only v1 screens keep the TopBar above both.
 	const sidebarOutsideColumn =
 		!showsAppTopBar || (isV2CloudEnabled && !isWorkspaceSidebarCollapsed());
+	const translucentSidebar =
+		PLATFORM === "mac" && isV2CloudEnabled && sidebarOutsideColumn;
+	useEffect(() => {
+		if (!translucentSidebar) return;
+		document.documentElement.setAttribute("data-translucent-sidebar", "");
+		return () =>
+			document.documentElement.removeAttribute("data-translucent-sidebar");
+	}, [translucentSidebar]);
 
 	return (
 		// The single ports-data provider for both layout modes. It lives up here
@@ -252,7 +260,7 @@ function DashboardLayout() {
 				<div className="flex h-full w-full overflow-hidden">
 					<CommandPaletteHost />
 					{sidebarOutsideColumn && sidebarPanel}
-					<div className="flex flex-1 flex-col min-w-0 min-h-0">
+					<div className="flex flex-1 flex-col min-w-0 min-h-0 bg-background">
 						{showsAppTopBar && <TopBar />}
 						<div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
 							{!sidebarOutsideColumn && sidebarPanel}
@@ -277,7 +285,7 @@ function DashboardLayout() {
 					</div>
 					<div
 						id="workspace-right-sidebar-slot"
-						className="flex h-full shrink-0"
+						className="flex h-full shrink-0 bg-background"
 					/>
 					<AddRepositoryModals />
 					<SaveAsEnvironmentMount />

@@ -406,7 +406,11 @@ export async function createPlatformWindow({
 		minWidth: 400,
 		minHeight: 400,
 		show: false,
-		backgroundColor: nativeTheme.shouldUseDarkColors ? "#252525" : "#ffffff",
+		backgroundColor: PLATFORM.IS_MAC
+			? "#00000000"
+			: nativeTheme.shouldUseDarkColors
+				? "#252525"
+				: "#ffffff",
 		center: initialBounds.center,
 		movable: true,
 		resizable: true,
@@ -422,7 +426,12 @@ export async function createPlatformWindow({
 		// on every screen, sign-in included, and the renderer keeps its top
 		// strip clear of them through the titlebar-area CSS variables.
 		...(PLATFORM.IS_MAC
-			? { frame: false, trafficLightPosition: { x: 16, y: 16 } }
+			? {
+					frame: false,
+					trafficLightPosition: { x: 16, y: 16 },
+					vibrancy: "sidebar",
+					visualEffectState: "followWindow",
+				}
 			: { titleBarOverlay: titleBarOverlayColors(), icon: getIconPath() }),
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),

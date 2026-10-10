@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import { homedir } from "node:os";
 import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
-import { dialog, Menu } from "electron";
+import { dialog, Menu, nativeTheme } from "electron";
 import { menuEmitter } from "main/lib/menu-events";
 import { getOrg, setOrg } from "main/lib/window-registry/window-registry";
 import { getImageMimeType } from "shared/file-types";
@@ -34,6 +34,14 @@ export const createWindowRouter = () => {
 				const window = ctx.senderWindow;
 				if (!window || process.platform === "darwin") return { success: false };
 				window.setTitleBarOverlay(input);
+				return { success: true };
+			}),
+
+		// The macOS vibrancy material follows the native appearance, not the page.
+		setAppearance: publicProcedure
+			.input(z.enum(["system", "light", "dark"]))
+			.mutation(({ input }) => {
+				nativeTheme.themeSource = input;
 				return { success: true };
 			}),
 

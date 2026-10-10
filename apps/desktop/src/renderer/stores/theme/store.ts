@@ -489,6 +489,19 @@ export const useThemeStore = create<ThemeState>()(
 	),
 );
 
+let nativeAppearance: "system" | "light" | "dark" | null = null;
+function syncNativeAppearance({ activeThemeId, activeTheme }: ThemeState) {
+	const appearance =
+		activeThemeId === SYSTEM_THEME_ID || !activeTheme
+			? "system"
+			: activeTheme.type;
+	if (appearance === nativeAppearance) return;
+	nativeAppearance = appearance;
+	electronTrpcClient.window.setAppearance.mutate(appearance).catch(() => {});
+}
+syncNativeAppearance(useThemeStore.getState());
+useThemeStore.subscribe(syncNativeAppearance);
+
 // Convenience hooks
 export const useTheme = () => useThemeStore((state) => state.activeTheme);
 export const useResolvedTheme = () =>
