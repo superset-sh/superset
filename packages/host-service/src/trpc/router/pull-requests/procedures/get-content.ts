@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { protectedProcedure } from "../../../index";
-import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
+import { resolveGithubBaseRepo } from "../../workspace-creation/shared/project-helpers";
 import { fetchPullRequestContent } from "../shared/fetch-pull-request-content";
 
 export const getContent = protectedProcedure
@@ -8,6 +8,6 @@ export const getContent = protectedProcedure
 		z.object({ projectId: z.string(), prNumber: z.number().int().positive() }),
 	)
 	.query(async ({ ctx, input }) => {
-		const repo = await resolveGithubRepo(ctx, input.projectId);
+		const repo = await resolveGithubBaseRepo(ctx, input.projectId);
 		return fetchPullRequestContent(repo, input.prNumber);
 	});
