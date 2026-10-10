@@ -3,7 +3,7 @@ import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import SuperJSON from "superjson";
 import { isProcessAlive, readManifest } from "./host/manifest";
 
-const HOST_API_TOKEN_TIMEOUT_MS = 2_000;
+const HOST_API_TOKEN_TIMEOUT_MS = 500;
 
 /**
  * In a Superset terminal, the API token of the account that runs the

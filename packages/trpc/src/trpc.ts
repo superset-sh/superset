@@ -201,8 +201,8 @@ export const protectedProcedure = t.procedure
  * came from is what turns "not a member" into something actionable.
  *
  * A Superset terminal sets SUPERSET_ORGANIZATION_ID to its workspace's
- * organization, but the CLI keeps its own login, apart from the app's. A CLI
- * signed in to another account fails here on every call.
+ * organization. A CLI there that cannot use the app's account (an older host,
+ * or SUPERSET_API_KEY set) and holds another account's login fails here.
  */
 function notAMemberOfOrganization(
 	organizationId: string,
@@ -211,7 +211,7 @@ function notAMemberOfOrganization(
 	const account = signedInAs ? ` (signed in as ${signedInAs})` : "";
 	return new TRPCError({
 		code: "FORBIDDEN",
-		message: `Not a member of organization ${organizationId}, which was asked for in the x-superset-organization-id header${account}. In a Superset terminal, this is the workspace's organization: run \`superset auth login\` with the account you use in the Superset app.`,
+		message: `Not a member of organization ${organizationId}, which was asked for in the x-superset-organization-id header${account}. Run \`superset auth login\` with an account in that organization, or unset SUPERSET_API_KEY if it names another account.`,
 	});
 }
 

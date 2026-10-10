@@ -22,9 +22,11 @@ function clearConfig(): void {
 const originalEnvKey = process.env.SUPERSET_API_KEY;
 const originalOrganizationId = process.env.SUPERSET_ORGANIZATION_ID;
 const originalWorkspaceId = process.env.SUPERSET_WORKSPACE_ID;
+const originalSandboxWorkspaceId = process.env.SUPERSET_SANDBOX_WORKSPACE_ID;
 delete process.env.SUPERSET_API_KEY;
 delete process.env.SUPERSET_ORGANIZATION_ID;
 delete process.env.SUPERSET_WORKSPACE_ID;
+delete process.env.SUPERSET_SANDBOX_WORKSPACE_ID;
 
 afterEach(() => {
 	clearConfig();
@@ -51,6 +53,9 @@ afterAll(() => {
 		delete process.env.SUPERSET_WORKSPACE_ID;
 	} else {
 		process.env.SUPERSET_WORKSPACE_ID = originalWorkspaceId;
+	}
+	if (originalSandboxWorkspaceId !== undefined) {
+		process.env.SUPERSET_SANDBOX_WORKSPACE_ID = originalSandboxWorkspaceId;
 	}
 });
 

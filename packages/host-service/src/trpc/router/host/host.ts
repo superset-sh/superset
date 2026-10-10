@@ -5,11 +5,34 @@ import {
 	getHostInstallSource,
 	HOST_SERVICE_VERSION,
 } from "../../../install-source";
+import type { ApiAuthProvider } from "../../../providers/auth/types";
 import type { ApiClient } from "../../../types";
 import { machineOnlyProcedure, protectedProcedure, router } from "../../index";
 import { rethrowCloudUnreachable } from "./cloud-api-error";
 
 const ORGANIZATION_CACHE_TTL_MS = 60 * 60 * 1000;
+const MIN_API_TOKEN_LIFETIME_MS = 5 * 60 * 1000;
+
+async function readBearer(apiAuth: ApiAuthProvider): Promise<string | null> {
+	const authorization = (await apiAuth.getHeaders()).Authorization;
+	return authorization?.startsWith("Bearer ") ? authorization.slice(7) : null;
+}
+
+/**
+ * A host started by `superset start` hands back the stored OAuth access token
+ * as-is, expired or not; it only refreshes after a 401.
+ */
+function outlivesCommand(token: string): boolean {
+	try {
+		const payload = JSON.parse(
+			Buffer.from(token.split(".")[1] ?? "", "base64url").toString("utf8"),
+		) as { exp?: unknown };
+		if (typeof payload.exp !== "number") return true;
+		return payload.exp * 1000 - Date.now() > MIN_API_TOKEN_LIFETIME_MS;
+	} catch {
+		return true;
+	}
+}
 
 let cachedOrganization: {
 	data: { id: string; name: string; slug: string };
@@ -76,14 +99,16 @@ export const hostRouter = router({
 				message: "The API token is only given to callers on this machine.",
 			});
 		}
-		const authorization = (await ctx.apiAuth.getHeaders()).Authorization;
-		const token = authorization?.startsWith("Bearer ")
-			? authorization.slice(7)
-			: null;
-		if (!token) {
+		const apiAuth = ctx.apiAuth;
+		let token = await readBearer(apiAuth);
+		if (token && !outlivesCommand(token)) {
+			apiAuth.invalidateCache();
+			token = await readBearer(apiAuth);
+		}
+		if (!token || !outlivesCommand(token)) {
 			throw new TRPCError({
 				code: "PRECONDITION_FAILED",
-				message: "This host has no API token to give.",
+				message: "This host has no unexpired API token to give.",
 			});
 		}
 		return { token };
