@@ -7,11 +7,7 @@ import {
 	type ProjectFindByPathResult,
 } from "./projects";
 import { planHostBranchPrefix, planProjectPrefs } from "./settings";
-import {
-	planMigratedPaneResume,
-	planTerminalMigration,
-	resolveMigratedPaneResume,
-} from "./terminals";
+import { planTerminalMigration, resolveMigratedPaneResume } from "./terminals";
 import { planWorkspaceAdoptions } from "./workspaces";
 
 type Candidate = { id: string; source: string };
@@ -545,36 +541,6 @@ describe("resolveMigratedPaneResume", () => {
 
 	test("handles absent captures", () => {
 		expect(resolveMigratedPaneResume(undefined)).toBeNull();
-	});
-});
-
-describe("planMigratedPaneResume", () => {
-	const session = {
-		agentId: "claude",
-		agentSessionId: "sess-1",
-		prompted: true,
-	};
-
-	test("waits while the v1 session is still alive", () => {
-		expect(planMigratedPaneResume({ session, v1SessionAlive: true })).toEqual({
-			kind: "wait-for-v1",
-		});
-	});
-
-	test("seeds once the v1 session is gone", () => {
-		expect(planMigratedPaneResume({ session, v1SessionAlive: false })).toEqual({
-			kind: "seed",
-			resume: { agentId: "claude", agentSessionId: "sess-1" },
-		});
-	});
-
-	test("has nothing to wait for without a resumable session", () => {
-		expect(
-			planMigratedPaneResume({
-				session: { ...session, endedAt: 1 },
-				v1SessionAlive: true,
-			}),
-		).toEqual({ kind: "none" });
 	});
 });
 

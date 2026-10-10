@@ -81,22 +81,13 @@ afterEach(cleanup);
 function source({
 	paneIds = ["pane-1"],
 	sessions = {},
-	livePaneIds = [],
-	stopped = [],
 }: {
 	paneIds?: string[];
 	sessions?: Awaited<ReturnType<Source["readAgentSessions"]>>;
-	livePaneIds?: string[];
-	stopped?: string[][];
 } = {}): Source {
 	return {
 		listMigratedPaneIds: async () => paneIds,
 		readAgentSessions: async () => sessions,
-		listLiveV1PaneIds: async () => livePaneIds,
-		stopV1Sessions: async (ids) => {
-			stopped.push(ids);
-			return { failedPaneIds: [] };
-		},
 	};
 }
 
@@ -154,44 +145,6 @@ describe("V1TerminalsNotice", () => {
 		expect(text).toContain("Superset resumes the agent sessions it recorded");
 		expect(text).toContain("Claude");
 		expect(text).not.toContain("Codex");
-	});
-
-	test("offers to stop v1 terminals that still run, and stops them only on click", async () => {
-		const stopped: string[][] = [];
-		const view = await renderNotice(
-			source({ livePaneIds: ["pane-1", "pane-9"], stopped }),
-		);
-		settlePass();
-		await act(async () => {});
-		const text = view.container.textContent ?? "";
-		expect(text).toContain(
-			"2 terminals from v1 are still running in the background",
-		);
-		expect(text).not.toContain("Your terminals restarted");
-		expect(stopped).toEqual([]);
-
-		await act(async () => {
-			fireEvent.click(view.getByText("Stop them"));
-		});
-		expect(stopped).toEqual([["pane-1", "pane-9"]]);
-		expect(view.container.textContent).toContain("Your terminals restarted");
-	});
-
-	test("dismissing leaves v1 terminals running and asks again next launch", async () => {
-		const stopped: string[][] = [];
-		const view = await renderNotice(
-			source({ livePaneIds: ["pane-1"], stopped }),
-		);
-		settlePass();
-		await act(async () => {});
-		act(() => {
-			fireEvent.click(view.getByLabelText("Dismiss"));
-		});
-		expect(view.container.innerHTML).toBe("");
-		expect(stopped).toEqual([]);
-		expect(
-			localStorage.getItem(`v1-terminals-notice-${activeOrganizationId}`),
-		).toBe("pending");
 	});
 
 	test("stays hidden without migrated terminals", async () => {

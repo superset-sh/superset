@@ -13,11 +13,9 @@ import type { BrowserWindow } from "electron";
 import { SUPERSET_HOME_DIR } from "main/lib/app-environment";
 import { appState } from "main/lib/app-state";
 import { localDb } from "main/lib/local-db";
-import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { createRunLock } from "./utils/run-lock";
-import { listLiveV1Sessions, stopV1Sessions } from "./utils/v1-daemon-sessions";
 import { collectV1TerminalPanes } from "./utils/v1-terminal-panes";
 
 const ledgerEntrySchema = z.object({
@@ -121,16 +119,6 @@ export const createMigrationRouter = () => {
 					}),
 				);
 			}),
-
-		listLiveV1Sessions: publicProcedure.query(() =>
-			listLiveV1Sessions(getTerminalHostClient()),
-		),
-
-		stopV1Sessions: publicProcedure
-			.input(z.object({ paneIds: z.array(z.string().min(1)) }))
-			.mutation(({ input }) =>
-				stopV1Sessions(getTerminalHostClient(), input.paneIds),
-			),
 
 		// A hold ends when its window reloads or closes, so a renderer that dies
 		// mid-pass can't keep the lock.

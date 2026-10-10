@@ -30,20 +30,21 @@ const defaultDeps: TerminalDaemonDeps = {
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
 
 /**
- * Reconcile daemon sessions on app startup.
- * Cleans up stale sessions from previous app runs and preserves sessions
- * that can be retained.
+ * No UI shows v1 terminals anymore, so sessions a v1 daemon kept across the
+ * restart would run unseen. Stop them; this never spawns a daemon.
  */
-export async function reconcileDaemonSessions(): Promise<void> {
+export async function shutdownV1DaemonOnBoot(): Promise<void> {
 	try {
-		const manager = getDaemonTerminalManager();
-		await manager.reconcileOnStartup();
+		const { wasRunning } = await getTerminalHostClient().shutdownIfRunning({
+			killSessions: true,
+		});
+		if (wasRunning) {
+			console.log("[TerminalManager] Stopped the v1 terminal daemon on boot");
+		}
 	} catch (error) {
-		console.warn(
-			"[TerminalManager] Failed to reconcile daemon sessions:",
-			error,
-		);
+		console.warn("[TerminalManager] Failed to stop the v1 daemon:", error);
 	}
+	getDaemonTerminalManager().reset();
 }
 
 /**

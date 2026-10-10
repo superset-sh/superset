@@ -1,4 +1,4 @@
-import { msg, plural } from "@lingui/core/macro";
+import { msg } from "@lingui/core/macro";
 import { useLingui as useTranslation } from "@lingui/react";
 import { formatList } from "@superset/i18n/format";
 import {
@@ -34,8 +34,6 @@ export interface V1TerminalsNoticeSource {
 	readAgentSessions(
 		paneIds: string[],
 	): Promise<Record<string, V1PaneAgentSessionSnapshot>>;
-	listLiveV1PaneIds(): Promise<string[]>;
-	stopV1Sessions(paneIds: string[]): Promise<{ failedPaneIds: string[] }>;
 }
 
 const electronSource: V1TerminalsNoticeSource = {
@@ -47,13 +45,6 @@ const electronSource: V1TerminalsNoticeSource = {
 	},
 	readAgentSessions: (paneIds) =>
 		electronTrpcClient.migration.readV1PaneAgentSessions.query({ paneIds }),
-	listLiveV1PaneIds: async () => {
-		const sessions =
-			await electronTrpcClient.migration.listLiveV1Sessions.query();
-		return sessions.map((session) => session.paneId);
-	},
-	stopV1Sessions: (paneIds) =>
-		electronTrpcClient.migration.stopV1Sessions.mutate({ paneIds }),
 };
 
 interface BootSnapshot {
@@ -107,7 +98,6 @@ function listResumedAgentLabels(
 interface Notice {
 	organizationId: string;
 	resumedAgentLabels: string[];
-	liveV1PaneIds: string[];
 }
 
 export function V1TerminalsNotice({
@@ -125,9 +115,6 @@ export function V1TerminalsNotice({
 	} = useV1MigrationStatusStore();
 	const [notice, setNotice] = useState<Notice | null>(null);
 	const trackedRef = useRef<string | null>(null);
-	const [stopState, setStopState] = useState<"idle" | "stopping" | "failed">(
-		"idle",
-	);
 
 	const boot = organizationId ? readBootSnapshot(organizationId) : null;
 	const statusForOrg = statusOrganizationId === organizationId ? status : null;
@@ -153,15 +140,13 @@ export function V1TerminalsNotice({
 				const paneIds = await source.listMigratedPaneIds(organizationId);
 				if (cancelled || paneIds.length === 0) return;
 				writeNoticeState(organizationId, "pending");
-				const [sessions, liveV1PaneIds] = await Promise.all([
-					source.readAgentSessions(paneIds).catch(() => ({})),
-					source.listLiveV1PaneIds().catch(() => []),
-				]);
+				const sessions = await source
+					.readAgentSessions(paneIds)
+					.catch(() => ({}));
 				if (cancelled) return;
 				setNotice({
 					organizationId,
 					resumedAgentLabels: listResumedAgentLabels(sessions),
-					liveV1PaneIds,
 				});
 			} catch (err) {
 				console.warn("[v1-terminals-notice] ledger read failed", err);
@@ -193,91 +178,18 @@ export function V1TerminalsNotice({
 		trackedRef.current = notice.organizationId;
 		track("v1_terminals_notice_shown", {
 			resumed_agent_count: notice.resumedAgentLabels.length,
-			live_v1_session_count: notice.liveV1PaneIds.length,
 		});
 	}, [visible, notice]);
 
 	if (!visible || !notice) return null;
 
 	const dismiss = () => {
-		track("v1_terminals_notice_dismissed", {
-			live_v1_session_count: notice.liveV1PaneIds.length,
-		});
-		// While v1 sessions live, their agents can't resume; ask again next launch.
-		if (notice.liveV1PaneIds.length === 0) {
-			writeNoticeState(notice.organizationId, "dismissed");
-		}
+		track("v1_terminals_notice_dismissed");
+		writeNoticeState(notice.organizationId, "dismissed");
 		setNotice(null);
 	};
 
 	const agents = formatList(notice.resumedAgentLabels);
-
-	if (notice.liveV1PaneIds.length > 0) {
-		const liveCount = notice.liveV1PaneIds.length;
-		const stop = async () => {
-			if (stopState === "stopping") return;
-			setStopState("stopping");
-			track("v1_terminals_notice_stop_clicked", {
-				live_v1_session_count: liveCount,
-			});
-			try {
-				const { failedPaneIds } = await source.stopV1Sessions(
-					notice.liveV1PaneIds,
-				);
-				setNotice((current) =>
-					current ? { ...current, liveV1PaneIds: failedPaneIds } : current,
-				);
-				setStopState(failedPaneIds.length > 0 ? "failed" : "idle");
-			} catch (err) {
-				console.warn("[v1-terminals-notice] stop failed", err);
-				setStopState("failed");
-			}
-		};
-		const liveBody = [
-			translate(
-				msg({
-					message: plural(liveCount, {
-						one: "# terminal from v1 is still running in the background. The new Superset can't show it, and an agent in it can still change your files.",
-						other:
-							"# terminals from v1 are still running in the background. The new Superset can't show them, and agents in them can still change your files.",
-					}),
-				}),
-			),
-			notice.resumedAgentLabels.length > 0
-				? translate(
-						msg({
-							message: `After you stop them, Superset resumes the agent sessions it recorded (${agents}) when you open their workspace.`,
-						}),
-					)
-				: null,
-			translate(msg({ message: "They stop when you restart your computer." })),
-		]
-			.filter(Boolean)
-			.join(" ");
-
-		return (
-			<FlipNoticeCard
-				title={translate(
-					msg({ message: "Terminals from v1 are still running" }),
-				)}
-				body={liveBody}
-				warning={
-					stopState === "failed"
-						? translate(
-								msg({ message: "Some terminals did not stop. Try again." }),
-							)
-						: undefined
-				}
-				ctaLabel={
-					stopState === "stopping"
-						? translate(msg({ message: "Stopping…" }))
-						: translate(msg({ message: "Stop them" }))
-				}
-				onCta={() => void stop()}
-				onDismiss={dismiss}
-			/>
-		);
-	}
 
 	const body = [
 		translate(

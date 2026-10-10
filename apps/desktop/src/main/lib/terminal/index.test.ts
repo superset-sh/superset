@@ -18,6 +18,8 @@ let listSessionsIfRunningResult: ListSessionsResponse | null = null;
 let listSessionsIfRunningError: Error | null = null;
 let shutdownIfRunningError: Error | null = null;
 let shutdownIfRunningCalls = 0;
+let shutdownRequests: unknown[] = [];
+let ensureConnectedCalls = 0;
 let resetCalls = 0;
 
 function makeSession(
@@ -42,8 +44,9 @@ const deps: TerminalDaemonDeps = {
 			}
 			return listSessionsIfRunningResult;
 		},
-		shutdownIfRunning: async () => {
+		shutdownIfRunning: async (request: unknown) => {
 			shutdownIfRunningCalls++;
+			shutdownRequests.push(request);
 			if (shutdownIfRunningError) {
 				throw shutdownIfRunningError;
 			}
@@ -80,7 +83,22 @@ describe("terminal index", () => {
 		listSessionsIfRunningError = null;
 		shutdownIfRunningError = null;
 		shutdownIfRunningCalls = 0;
+		shutdownRequests = [];
+		ensureConnectedCalls = 0;
 		resetCalls = 0;
+	});
+
+	it("stops a v1 daemon left from before boot, sessions included", async () => {
+		await shutdownV1DaemonOnBoot();
+		expect(shutdownRequests).toEqual([{ killSessions: true }]);
+		expect(ensureConnectedCalls).toBe(0);
+		expect(resetCalls).toBe(1);
+	});
+
+	it("a failed boot shutdown is logged, not thrown", async () => {
+		shutdownIfRunningError = new Error("socket gone");
+		await expect(shutdownV1DaemonOnBoot()).resolves.toBeUndefined();
+		expect(resetCalls).toBe(1);
 	});
 
 	it("resets the daemon manager when no daemon is running", async () => {
