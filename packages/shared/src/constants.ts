@@ -26,7 +26,13 @@ export const IOS_APP = {
 // nothing changes until NEXT_PUBLIC_ROOT_DOMAIN is set (e.g. boid.so). All
 // domain-derived URLs below build off this; social handles / GitHub / Discord
 // are external identities and are updated by hand on rebrand.
-const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "superset.sh";
+// Mobile bundles inline only EXPO_PUBLIC_*. The desktop renderer has no
+// process global; its build defines NEXT_PUBLIC_ROOT_DOMAIN non-empty, so the
+// second read never runs there.
+const ROOT_DOMAIN =
+	process.env.NEXT_PUBLIC_ROOT_DOMAIN ||
+	process.env.EXPO_PUBLIC_ROOT_DOMAIN ||
+	"superset.sh";
 const MARKETING_URL =
 	process.env.NEXT_PUBLIC_MARKETING_URL || `https://${ROOT_DOMAIN}`;
 const SUPPORT_EMAIL = `support@${ROOT_DOMAIN}`;

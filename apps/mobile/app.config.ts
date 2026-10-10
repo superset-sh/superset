@@ -1,6 +1,6 @@
 import path from "node:path";
 import { SUPPORTED_LOCALES } from "@superset/i18n/locales";
-import { IOS_APP } from "@superset/shared/constants";
+import { CANONICAL_URLS, IOS_APP } from "@superset/shared/constants";
 import { config } from "dotenv";
 import type { ConfigContext } from "expo/config";
 import { withIosAccentColor } from "./config-plugins/withIosAccentColor";
@@ -13,9 +13,7 @@ config({
 	quiet: true,
 });
 
-const webUrl = new URL(
-	process.env.EXPO_PUBLIC_WEB_URL || "https://app.superset.sh",
-);
+const webUrl = new URL(process.env.EXPO_PUBLIC_WEB_URL || CANONICAL_URLS.APP);
 const associatedDomains =
 	webUrl.protocol === "https:" ? [`applinks:${webUrl.hostname}`] : undefined;
 
