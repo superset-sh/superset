@@ -37,6 +37,7 @@ import type { GitStatusSnapshotComputation } from "../../trpc/router/git/utils/g
 import { getGitStatusSnapshot } from "../../trpc/router/git/utils/git-status.ts";
 import type { GitStatusPartial } from "../../trpc/router/git/utils/git-status-partial/index.ts";
 import { getGitStatusPartial } from "../../trpc/router/git/utils/git-status-partial/index.ts";
+import { removeDirectoryTree } from "../../trpc/router/workspace-cleanup/remove-directory-tree.ts";
 import { addBranchWorktree } from "../../trpc/router/workspace-creation/shared/add-branch-worktree.ts";
 import { listWorktreeBranches } from "../../trpc/router/workspace-creation/shared/branch-search.ts";
 import { enablePushAutoSetupRemote } from "../../trpc/router/workspace-creation/shared/git-config.ts";
@@ -44,6 +45,10 @@ import {
 	normalizeWorktreePath,
 	parseWorktreeList,
 } from "../../trpc/router/workspace-creation/shared/worktree-list.ts";
+import {
+	isInsideProjectWorktreesRoot,
+	type WorktreeFolderProject,
+} from "../../trpc/router/workspace-creation/shared/worktree-paths.ts";
 import { defineWorkerTask } from "../define-worker-task.ts";
 
 // How many `git show` pairs run at once for a bulk diff request. Each pair
@@ -348,8 +353,14 @@ export const gitWorktreeRemoveTask = defineWorkerTask<
 		gitEnv: GitTaskEnv;
 		/** false lets git refuse a worktree with uncommitted changes. */
 		force?: boolean;
+		/** Guard inputs for the in-task delete: the tree is only removed by
+		 * the app when it sits inside the project's managed worktrees root,
+		 * the same check the destroy saga's own rm branches apply. Outside
+		 * that root the delete stays git's, exactly as before. */
+		project: WorktreeFolderProject;
+		worktreeBaseDir: string | null;
 	},
-	{ stillRegistered: boolean; removeError?: string }
+	{ stillRegistered: boolean; removedByApp: boolean; removeError?: string }
 >({
 	type: "git/removeWorktree",
 	// This task outlives its caller's budget in the field (HOST-SERVICE-17,
@@ -357,7 +368,7 @@ export const gitWorktreeRemoveTask = defineWorkerTask<
 	// for unrelated reasons, so each announces itself before starting and the
 	// pool names the last one in the timeout error.
 	handler: async (
-		{ repoPath, worktreePath, gitEnv, force = true },
+		{ repoPath, worktreePath, gitEnv, force = true, project, worktreeBaseDir },
 		reportPhase,
 	) => {
 		// Labelled from the first statement so every moment of the handler
@@ -369,16 +380,43 @@ export const gitWorktreeRemoveTask = defineWorkerTask<
 		// (macOS `/var` → `/private/var`) still matches its registration.
 		// `realpathSync.native` is a blocking syscall, hence its own phase.
 		const target = normalizeWorktreePath(worktreePath);
+		// The app deletes the tree, not git: git's remove_dir_recursively is
+		// single threaded and cannot finish a node_modules heavy worktree
+		// (~150k entries) inside any reasonable budget (#6887), while fs.rm
+		// fans unlinks out across the threadpool and removeDirectoryTree adds
+		// the EACCES recovery pass. Root-guarded so a corrupt stored path can
+		// never aim a recursive delete at user data; outside the managed root
+		// the delete stays git's own. Never under force: false — there git's
+		// own refusal of a dirty worktree is the point, and deleting the
+		// files first would bypass it.
+		reportPhase?.("worktree-rm");
+		let removedByApp = false;
+		let removeError: string | undefined;
+		if (
+			force &&
+			isInsideProjectWorktreesRoot(target, project, worktreeBaseDir)
+		) {
+			try {
+				await removeDirectoryTree(target);
+				removedByApp = true;
+			} catch (err: unknown) {
+				removeError = (err instanceof Error ? err.message : String(err)).trim();
+				console.warn("[git/removeWorktree] app-side tree delete failed", {
+					target,
+					error: removeError,
+				});
+			}
+		}
 		// The registry read below decides "registered or not" (the command's
 		// exit text is locale- and version-dependent), but registration is
 		// not the whole story: git can unregister the worktree and still fail
 		// partway through its recursive delete (#6730). Keep the error — it
 		// is the only record of why files were left behind — and let the
 		// caller re-check the disk. `--force --force` also unregisters a
-		// worktree whose directory is already gone, so no separate prune
-		// (which would clobber other stale worktrees' metadata) is needed.
+		// worktree whose directory is already gone (which after the rm above
+		// is the normal case), so no separate prune (which would clobber
+		// other stale worktrees' metadata) is needed.
 		reportPhase?.("worktree-remove");
-		let removeError: string | undefined;
 		await git
 			.raw(
 				force
@@ -400,6 +438,7 @@ export const gitWorktreeRemoveTask = defineWorkerTask<
 			stillRegistered: parseWorktreeList(raw).some(
 				(w) => normalizeWorktreePath(w.path) === target,
 			),
+			removedByApp,
 			removeError,
 		};
 	},

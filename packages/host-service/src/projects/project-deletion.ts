@@ -236,6 +236,8 @@ async function purgeProject(
 						worktreePath: row.worktreePath,
 						gitEnv,
 						force: false,
+						project: { id: project.id, name: project.name },
+						worktreeBaseDir: project.worktreeBaseDir ?? null,
 					});
 				if (stillRegistered) {
 					console.warn("[project-deletion] left worktree on disk", {
