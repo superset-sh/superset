@@ -15,15 +15,15 @@ import {
 	Play,
 	SlidersHorizontal,
 } from "lucide-react";
-import { useState } from "react";
 import { LuCheck, LuChevronDown } from "react-icons/lu";
 import { isUnrestrictedMode } from "../../../../utils/isUnrestrictedMode";
 import {
 	MENU_DESCRIPTION_CLASS,
-	MENU_ROW_CLASS,
+	MENU_PANEL_CLASS,
 	PILL_CHEVRON_CLASS,
 	PILL_TRIGGER_CLASS,
 } from "../../constants";
+import { useOptimisticSelections } from "../../hooks/useOptimisticSelections";
 
 export type SessionMode = { id: string; label: string };
 
@@ -36,7 +36,7 @@ type ModeCopy = {
 
 const HIDDEN_MODE_IDS = new Set(["plan", "acceptEdits", "workspace-write"]);
 const SOLID_ICONS = new Set<LucideIcon>([Pause, Play, FastForward]);
-const UNRESTRICTED_TINT = "text-amber-500 opacity-65";
+const UNRESTRICTED_TINT = "text-highlight";
 
 export function ModePicker({
 	currentModeId,
@@ -48,7 +48,8 @@ export function ModePicker({
 	onSelect: (modeId: string) => void;
 }) {
 	const { t } = useLingui();
-	const [highlightedId, setHighlightedId] = useState<string>();
+	const { shown, select } = useOptimisticSelections({ mode: currentModeId });
+	const shownModeId = shown("mode");
 	const offeredModes = modes.filter((mode) => !HIDDEN_MODE_IDS.has(mode.id));
 	if (offeredModes.length < 2) return null;
 
@@ -111,35 +112,33 @@ export function ModePicker({
 	});
 
 	const current =
-		modes.find((mode) => mode.id === currentModeId) ?? offeredModes[0];
+		modes.find((mode) => mode.id === shownModeId) ?? offeredModes[0];
 	if (!current) return null;
 	const currentCopy = copyFor(current);
 	const CurrentIcon = currentCopy.icon;
 
-	const iconProps = (copy: ModeCopy) => ({
+	const iconProps = (copy: ModeCopy, className: string) => ({
 		className: cn(
-			"size-3.5 shrink-0",
+			"shrink-0 text-current",
+			className,
 			SOLID_ICONS.has(copy.icon) && "fill-current",
-			copy.unrestricted && UNRESTRICTED_TINT,
 		),
 		strokeWidth: SOLID_ICONS.has(copy.icon) ? 1 : 2,
 	});
-	const highlighted =
-		offeredModes.find((mode) => mode.id === highlightedId) ?? current;
-	const footer = copyFor(highlighted).description;
 
 	return (
-		<DropdownMenu
-			onOpenChange={(open) => {
-				if (!open) setHighlightedId(undefined);
-			}}
-		>
+		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
 				<button
 					className={cn(PILL_TRIGGER_CLASS, "group max-w-40")}
 					type="button"
 				>
-					<CurrentIcon {...iconProps(currentCopy)} />
+					<CurrentIcon
+						{...iconProps(
+							currentCopy,
+							cn("size-3.5", currentCopy.unrestricted && UNRESTRICTED_TINT),
+						)}
+					/>
 					<span className="truncate">{currentCopy.title}</span>
 					<LuChevronDown className={PILL_CHEVRON_CLASS} />
 				</button>
@@ -149,41 +148,54 @@ export function ModePicker({
 				aria-label={t({
 					message: "How should the agent's actions be approved?",
 				})}
-				className="w-[210px] rounded-xl"
+				className={cn(MENU_PANEL_CLASS, "w-[300px] p-1.5")}
 				side="top"
 			>
 				{offeredModes.map((mode) => {
 					const copy = copyFor(mode);
 					const Icon = copy.icon;
+					const selected = mode.id === current.id;
 					return (
 						<DropdownMenuItem
-							className={MENU_ROW_CLASS}
+							aria-current={selected ? "true" : undefined}
+							className={cn(
+								"items-start gap-3 rounded-[0.625rem] px-2.5 py-2 text-[13px]",
+							)}
 							key={mode.id}
-							onFocus={() => setHighlightedId(mode.id)}
 							onSelect={() => {
-								if (mode.id !== currentModeId) onSelect(mode.id);
+								if (mode.id === shownModeId) return;
+								select("mode", mode.id, () => onSelect(mode.id));
 							}}
 						>
-							<Icon {...iconProps(copy)} />
-							<span className="min-w-0 flex-1 truncate">{copy.title}</span>
-							{mode.id === current.id ? (
-								<LuCheck className="size-3.5 shrink-0" />
-							) : null}
+							<span className="flex h-4 w-4 shrink-0 items-center justify-center">
+								<Icon
+									{...iconProps(
+										copy,
+										cn("size-4", copy.unrestricted && UNRESTRICTED_TINT),
+									)}
+								/>
+							</span>
+							<span className="flex min-w-0 flex-1 flex-col gap-0.5">
+								<span className="truncate font-medium">{copy.title}</span>
+								{copy.description ? (
+									<span
+										className={cn(
+											MENU_DESCRIPTION_CLASS,
+											"text-muted-foreground",
+										)}
+									>
+										{copy.description}
+									</span>
+								) : null}
+							</span>
+							<span className="flex h-4 w-3.5 shrink-0 items-center justify-center">
+								{selected ? (
+									<LuCheck className="size-3.5 text-current" />
+								) : null}
+							</span>
 						</DropdownMenuItem>
 					);
 				})}
-				{footer ? (
-					<div className="-mx-1 mt-1 -mb-1 border-t px-3 py-2">
-						<div
-							className={cn(
-								MENU_DESCRIPTION_CLASS,
-								"line-clamp-2 text-muted-foreground",
-							)}
-						>
-							{footer}
-						</div>
-					</div>
-				) : null}
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

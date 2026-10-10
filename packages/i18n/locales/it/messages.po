@@ -7445,6 +7445,9 @@ msgstr "Fallito"
 msgid "FAQ"
 msgstr "FAQ"
 
+msgid "Fast"
+msgstr "Veloce"
+
 msgid "Fatal"
 msgstr "Fatale"
 

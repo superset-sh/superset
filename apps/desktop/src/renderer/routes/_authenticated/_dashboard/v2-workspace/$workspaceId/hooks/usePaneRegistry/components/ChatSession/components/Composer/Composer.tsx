@@ -362,22 +362,22 @@ export const Composer = memo(function Composer({
 				status={onCancelTurn ? "streaming" : "ready"}
 				submitWhileStreaming={promptQueue !== undefined}
 				toolbar={
-					<div className="flex min-w-0 items-center gap-1">
-						{configOptions && onSetConfigOption ? (
-							<ModelPicker
-								agentSwitcher={agentSwitcher}
-								configOptions={configOptions}
-								onSelect={onSetConfigOption}
-							/>
-						) : null}
-						{modes && onSetMode ? (
-							<ModePicker
-								currentModeId={currentModeId}
-								modes={modes}
-								onSelect={onSetMode}
-							/>
-						) : null}
-					</div>
+					modes && onSetMode ? (
+						<ModePicker
+							currentModeId={currentModeId}
+							modes={modes}
+							onSelect={onSetMode}
+						/>
+					) : undefined
+				}
+				toolbarEnd={
+					configOptions && onSetConfigOption ? (
+						<ModelPicker
+							agentSwitcher={agentSwitcher}
+							configOptions={configOptions}
+							onSelect={onSetConfigOption}
+						/>
+					) : undefined
 				}
 			/>
 		</div>

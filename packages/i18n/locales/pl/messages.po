@@ -7445,6 +7445,9 @@ msgstr "Niepowodzenie"
 msgid "FAQ"
 msgstr "FAQ"
 
+msgid "Fast"
+msgstr "Szybki"
+
 msgid "Fatal"
 msgstr "Krytyczny"
 

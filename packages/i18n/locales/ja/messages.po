@@ -7445,6 +7445,9 @@ msgstr "失敗"
 msgid "FAQ"
 msgstr "FAQ"
 
+msgid "Fast"
+msgstr "高速"
+
 msgid "Fatal"
 msgstr "致命的"
 
