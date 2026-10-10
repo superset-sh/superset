@@ -14,10 +14,10 @@ import {
 } from "@superset/ui/table";
 import { cn } from "@superset/ui/utils";
 
-import { useHiringLabels } from "../../hooks/useHiringLabels";
-import { isoDateFromToday, parseIsoDate } from "../../utils/isoDate";
+import { useHiringLabels } from "../../../../hooks/useHiringLabels";
+import { isoDateFromToday, parseIsoDate } from "../../../../utils/isoDate";
 
-export type ApplicationRow = RouterOutputs["hiring"]["list"][number];
+type ApplicationRow = RouterOutputs["hiring"]["list"][number];
 
 interface ApplicationsTableProps {
 	rows: ApplicationRow[];

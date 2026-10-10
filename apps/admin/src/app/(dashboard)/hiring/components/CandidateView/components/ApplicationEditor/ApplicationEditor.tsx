@@ -7,6 +7,7 @@ import {
 	hiringScoreValues,
 	hiringStageValues,
 } from "@superset/db/enums";
+import type { RouterOutputs } from "@superset/trpc";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import {
@@ -23,12 +24,11 @@ import { useTRPC } from "@/trpc/react";
 
 import { useHiringLabels } from "../../../../hooks/useHiringLabels";
 import { useInvalidateHiring } from "../../../../hooks/useInvalidateHiring";
-import type { ApplicationRow } from "../../../ApplicationsTable";
 
 const NONE = "none";
 
 interface ApplicationEditorProps {
-	application: ApplicationRow;
+	application: RouterOutputs["hiring"]["get"]["applications"][number];
 }
 
 export function ApplicationEditor({ application }: ApplicationEditorProps) {

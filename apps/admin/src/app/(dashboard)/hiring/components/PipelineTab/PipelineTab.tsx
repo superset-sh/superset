@@ -18,7 +18,7 @@ import { useTRPC } from "@/trpc/react";
 
 import { useCandidateNav } from "../../hooks/useCandidateNav";
 import { useHiringLabels } from "../../hooks/useHiringLabels";
-import { ApplicationsTable } from "../ApplicationsTable";
+import { ApplicationsTable } from "./components/ApplicationsTable";
 
 const ALL = "all";
 type Status = "active" | "closed" | "all";

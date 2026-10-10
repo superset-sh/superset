@@ -5,8 +5,6 @@ import { Spinner } from "@superset/ui/spinner";
 import { useQuery } from "@tanstack/react-query";
 
 import { useTRPC } from "@/trpc/react";
-
-import { useListKeys } from "../../hooks/useListKeys";
 import { ApplicationEditor } from "./components/ApplicationEditor";
 import { CandidateDetails } from "./components/CandidateDetails";
 import {
@@ -14,6 +12,7 @@ import {
 	type CandidatePosition,
 } from "./components/CandidateHeader";
 import { EventTimeline } from "./components/EventTimeline";
+import { useListKeys } from "./hooks/useListKeys";
 
 interface CandidateViewProps {
 	candidateId: string;
@@ -22,7 +21,6 @@ interface CandidateViewProps {
 	onNext?: () => void;
 }
 
-/** Facts on the left, timeline on the right. Used by the candidate page and the Today inbox. */
 export function CandidateView({
 	candidateId,
 	position,

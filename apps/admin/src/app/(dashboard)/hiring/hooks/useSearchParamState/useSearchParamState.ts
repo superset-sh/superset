@@ -1,7 +1,6 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
-/** A query-string value as state, so a view can be linked from Slack or a digest. */
 export function useSearchParamState(name: string) {
 	const searchParams = useSearchParams();
 	const router = useRouter();

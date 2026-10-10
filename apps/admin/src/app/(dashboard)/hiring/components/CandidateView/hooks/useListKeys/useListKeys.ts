@@ -9,7 +9,6 @@ function isTyping(target: EventTarget | null) {
 	);
 }
 
-/** j/k and ↓/↑ step through a list unless focus is in a field or an open menu. */
 export function useListKeys(onPrev?: () => void, onNext?: () => void) {
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {

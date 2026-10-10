@@ -124,7 +124,6 @@ export const hiringRouter = {
 			return existing;
 		}),
 
-	/** People who can own a candidate: company accounts only. */
 	owners: adminProcedure.query(() =>
 		db
 			.select({ id: users.id, name: users.name, email: users.email })
@@ -164,7 +163,6 @@ export const hiringRouter = {
 				.limit(1000);
 		}),
 
-	/** Active applications whose follow-up date is today or earlier. */
 	today: adminProcedure.query(() =>
 		selectApplicationRows()
 			.where(
@@ -374,7 +372,6 @@ export const hiringRouter = {
 			});
 		}),
 
-	/** Records a touch: sets last contacted, the next follow-up, and an optional note. */
 	logTouch: adminProcedure
 		.input(logTouchSchema)
 		.mutation(async ({ ctx, input }) => {
