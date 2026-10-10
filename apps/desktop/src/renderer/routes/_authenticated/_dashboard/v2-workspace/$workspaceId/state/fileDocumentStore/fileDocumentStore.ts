@@ -35,6 +35,7 @@ const DEFAULT_MAX_BYTES = 10 * 1024 * 1024;
 const BINARY_CHECK_SIZE = 8192;
 
 const entries = new Map<string, DocumentEntry>();
+const movedKeys = new Map<string, string>();
 const documentListeners = new Set<() => void>();
 
 export function subscribeDocuments(listener: () => void): () => void {
@@ -215,8 +216,9 @@ async function fetchCurrentDiskContent(
 
 // A rename onto an open document is either the watcher's copy of a move the
 // document already followed, or a real replacement such as an atomic save.
-// Only the disk content tells them apart.
-async function reconcileRenameOnto(entry: DocumentEntry): Promise<void> {
+// An overflow says only that events were lost. Only the disk content tells
+// a real change apart.
+async function reconcileWithDisk(entry: DocumentEntry): Promise<void> {
 	const generation = entry.loadGeneration;
 	const diskContent = await fetchCurrentDiskContent(entry);
 	if (generation !== entry.loadGeneration) return;
@@ -421,7 +423,8 @@ export function releaseDocument(
 	workspaceId: string,
 	absolutePath: string,
 ): void {
-	const k = key(workspaceId, absolutePath);
+	let k = key(workspaceId, absolutePath);
+	if (!entries.has(k)) k = movedKeys.get(k) ?? k;
 	const entry = entries.get(k);
 	if (!entry) return;
 	entry.refCount -= 1;
@@ -435,6 +438,25 @@ export function releaseDocument(
 		entries.delete(k);
 		notifyDocuments();
 	}
+}
+
+export function rebaseDocuments(
+	workspaceId: string,
+	rebase: (absolutePath: string) => string,
+): void {
+	let moved = false;
+	for (const [k, entry] of [...entries]) {
+		if (entry.workspaceId !== workspaceId) continue;
+		const next = rebase(entry.absolutePath);
+		if (next === entry.absolutePath) continue;
+		entries.delete(k);
+		entry.absolutePath = next;
+		const nextKey = key(workspaceId, next);
+		entries.set(nextKey, entry);
+		movedKeys.set(k, nextKey);
+		moved = true;
+	}
+	if (moved) notifyDocuments();
 }
 
 export function getDocument(
@@ -490,7 +512,7 @@ export function dispatchFsEvent(
 		if (!affects) continue;
 		if (event.kind === "rename") {
 			if (entry.orphaned) entry.orphaned = false;
-			void reconcileRenameOnto(entry);
+			void reconcileWithDisk(entry);
 			continue;
 		}
 
@@ -508,7 +530,9 @@ export function dispatchFsEvent(
 
 		if (isContentMutation) {
 			if (entry.orphaned) entry.orphaned = false;
-			if (computeDirty(entry)) {
+			if (event.kind === "overflow" && computeDirty(entry)) {
+				void reconcileWithDisk(entry);
+			} else if (computeDirty(entry)) {
 				entry.loadGeneration += 1;
 				entry.hasExternalChange = true;
 				notify(entry);

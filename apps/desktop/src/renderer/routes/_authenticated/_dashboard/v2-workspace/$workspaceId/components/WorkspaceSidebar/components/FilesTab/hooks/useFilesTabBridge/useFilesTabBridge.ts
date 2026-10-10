@@ -307,6 +307,9 @@ export function useFilesTabBridge({
 			) {
 				return;
 			}
+			const expandedDirs = Array.from(knownPathsRef.current).filter((path) =>
+				asDirectoryHandle(model.getItem(path))?.isExpanded(),
+			);
 			knownPathsRef.current.clear();
 			loadedDirsRef.current.clear();
 			unloadedDirCandidatesRef.current.clear();
@@ -323,6 +326,10 @@ export function useFilesTabBridge({
 				}
 			}
 			model.resetPaths(Array.from(freshPaths));
+			for (const path of expandedDirs) {
+				const handle = asDirectoryHandle(model.getItem(path));
+				if (handle && !handle.isExpanded()) handle.expand();
+			}
 		} finally {
 			setIsRefreshing(false);
 		}
@@ -330,8 +337,12 @@ export function useFilesTabBridge({
 
 	// Reset + initial load on workspace switch. Bumping versionRef invalidates
 	// any in-flight fetches from the previous workspace.
+	const loadedWorkspaceRef = useRef<string | null>(null);
 	useEffect(() => {
 		if (!rootPath || !workspaceId) return;
+		// A moved worktree keeps the same relative tree, and its expansion.
+		if (loadedWorkspaceRef.current === workspaceId) return;
+		loadedWorkspaceRef.current = workspaceId;
 		versionRef.current += 1;
 		invalidateTreeListings();
 		knownPathsRef.current.clear();

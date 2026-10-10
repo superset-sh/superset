@@ -3,6 +3,7 @@ import {
 	acquireDocument,
 	dispatchFsEvent,
 	getDocument,
+	rebaseDocuments,
 	releaseDocument,
 } from "./fileDocumentStore";
 
@@ -151,9 +152,13 @@ test("watcher overflow reloads open files beneath the watched root and preserves
 	expect(f.doc.content).toMatchObject({ value: "TOKEN=generated" });
 	f.doc.setContent("EMAIL=edited");
 	f.overflow();
+	await f.resolve(2, "TOKEN=generated");
+	expect(f.doc.content).toMatchObject({ value: "EMAIL=edited" });
+	expect(f.doc.hasExternalChange).toBe(false);
+	f.overflow();
+	await f.resolve(3, "TOKEN=changed");
 	expect(f.doc.content).toMatchObject({ value: "EMAIL=edited" });
 	expect(f.doc.hasExternalChange).toBe(true);
-	expect(f.reads).toHaveLength(2);
 	await f.cleanup();
 });
 
@@ -407,4 +412,22 @@ test("a replacement arriving from the old path after a move is still detected", 
 	expect(f.doc.hasExternalChange).toBe(true);
 	expect(f.doc.content).toMatchObject({ value: "edited" });
 	await f.cleanup();
+});
+
+test("a moved worktree keeps an open dirty document under its new path", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "original");
+	f.doc.setContent("unsaved");
+	rebaseDocuments(f.workspaceId, (path) =>
+		path.replace("/workspace/", "/moved/"),
+	);
+	const moved = acquireDocument(f.workspaceId, "/moved/.env", {} as never);
+	expect(moved.id).toBe(f.doc.id);
+	expect(moved.dirty).toBe(true);
+	expect(moved.content).toMatchObject({ value: "unsaved" });
+	releaseDocument(f.workspaceId, "/workspace/.env");
+	releaseDocument(f.workspaceId, "/moved/.env");
+	expect(getDocument(f.workspaceId, "/moved/.env")?.dirty).toBe(true);
+	await moved.save();
+	expect(getDocument(f.workspaceId, "/moved/.env")).toBeNull();
 });
