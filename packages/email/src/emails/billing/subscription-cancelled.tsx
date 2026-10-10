@@ -1,4 +1,5 @@
 import { Heading, Hr, Link, Text } from "@react-email/components";
+import { COMPANY } from "@superset/shared/constants";
 import { format } from "date-fns";
 import { DetailRow, EmailLayout } from "../../components";
 
@@ -81,10 +82,7 @@ export function SubscriptionCancelledEmail({
 
 			<Text className="text-[13px] leading-5 text-muted m-0">
 				Something not working?{" "}
-				<Link
-					href="mailto:support@superset.sh"
-					className="text-muted underline"
-				>
+				<Link href={COMPANY.MAIL_TO} className="text-muted underline">
 					Tell us
 				</Link>{" "}
 				and we'll fix it.

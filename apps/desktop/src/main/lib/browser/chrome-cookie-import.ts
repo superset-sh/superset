@@ -5,6 +5,7 @@ import { rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import { COMPANY } from "@superset/shared/constants";
 import Database from "better-sqlite3";
 import type { Session } from "electron";
 import { browserLocations } from "./chromium-profiles";
@@ -318,8 +319,8 @@ function isProtectedCookieHost(host: string): boolean {
 		bare.endsWith(".localhost") ||
 		bare === "127.0.0.1" ||
 		bare === "::1" ||
-		bare === "superset.sh" ||
-		bare.endsWith(".superset.sh")
+		bare === COMPANY.DOMAIN ||
+		bare.endsWith(`.${COMPANY.DOMAIN}`)
 	);
 }
 

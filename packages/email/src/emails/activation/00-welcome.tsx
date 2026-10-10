@@ -1,11 +1,12 @@
 import { Heading, Img, Section, Text } from "@react-email/components";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import { Button, EmailLayout } from "../../components";
 import { env } from "../../lib/env";
 
 const utm = (content: string) =>
 	`?utm_source=email&utm_medium=lifecycle&utm_campaign=welcome&utm_content=${content}`;
 
-const DOWNLOAD = "https://superset.sh/download";
+const DOWNLOAD = `${CANONICAL_URLS.MARKETING}/download`;
 
 interface WelcomeEmailProps {
 	userName?: string;

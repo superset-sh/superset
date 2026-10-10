@@ -1,6 +1,6 @@
 "use client";
 
-import { COMPANY } from "@superset/shared/constants";
+import { CANONICAL_URLS, COMPANY } from "@superset/shared/constants";
 import { useEffect } from "react";
 import { MCP_SERVER_URL } from "@/lib/api-url";
 import { PRODUCT_SUMMARY } from "@/lib/product-facts";
@@ -36,7 +36,7 @@ function getModelContext(): ModelContext | undefined {
 
 const INSTALL_COMMANDS: Record<string, string> = {
 	macos: `Download the desktop app from ${COMPANY.MARKETING_URL}/download`,
-	cli: "brew install superset-sh/tap/superset (or: curl -fsSL https://superset.sh/cli/install.sh | sh)",
+	cli: `brew install superset-sh/tap/superset (or: curl -fsSL ${CANONICAL_URLS.MARKETING}/cli/install.sh | sh)`,
 	mcp: `claude mcp add --transport http superset ${MCP_SERVER_URL}`,
 };
 

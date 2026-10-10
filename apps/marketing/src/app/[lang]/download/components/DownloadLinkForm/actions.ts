@@ -2,6 +2,7 @@
 
 import { msg } from "@lingui/core/macro";
 import { DownloadLinkEmail } from "@superset/email/emails/marketing/DownloadLinkEmail";
+import { NOREPLY_FROM } from "@superset/email/sender";
 import { isSupportedLocale } from "@superset/i18n/locales";
 import { getI18nInstance, preloadServerLocale } from "@superset/i18n/server";
 import { Resend } from "resend";
@@ -77,7 +78,7 @@ export async function sendDownloadLink(
 		}
 
 		const { error } = await resend.emails.send({
-			from: "Superset <noreply@superset.sh>",
+			from: NOREPLY_FROM,
 			to: sanitizedEmail,
 			subject: "Your Superset download link",
 			react: DownloadLinkEmail({ recipientEmail: sanitizedEmail }),

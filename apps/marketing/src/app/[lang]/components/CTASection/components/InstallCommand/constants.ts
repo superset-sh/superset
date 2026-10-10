@@ -1,3 +1,4 @@
+import { CANONICAL_URLS } from "@superset/shared/constants";
 export interface InstallTab {
 	id: string;
 	label: string;
@@ -18,13 +19,13 @@ export const INSTALL_TABS: InstallTab[] = [
 	{
 		id: "curl",
 		label: "curl",
-		command: "curl -fsSL https://superset.sh/cli/install.sh | sh",
+		command: `curl -fsSL ${CANONICAL_URLS.MARKETING}/cli/install.sh | sh`,
 		shell: true,
 	},
 	{
 		id: "agent",
 		label: "agent",
-		command: "Install the Superset CLI: https://superset.sh/llms.txt",
+		command: `Install the Superset CLI: ${CANONICAL_URLS.MARKETING}/llms.txt`,
 		shell: false,
 	},
 ];

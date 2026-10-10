@@ -933,12 +933,14 @@ export const serverErrorMessages: Record<
 				message: "Failed to upload avatar",
 			}),
 		),
-	"serverError.user.theRecoveryPeriodHasEndedContact": () =>
-		i18n._(
+	"serverError.user.theRecoveryPeriodHasEndedContact": (params) => {
+		const email = params?.email;
+		return i18n._(
 			msg({
-				message: "The recovery period has ended. Contact support@superset.sh.",
+				message: `The recovery period has ended. Contact ${email}.`,
 			}),
-		),
+		);
+	},
 	"serverError.user.userNotFound": () =>
 		i18n._(
 			msg({

@@ -15727,8 +15727,8 @@ msgstr "Terjadi kesalahan."
 msgid "Something went wrong. Please try again."
 msgstr "Terjadi kesalahan. Silakan coba lagi."
 
-msgid "Something went wrong. Try again, or contact support@superset.sh."
-msgstr "Terjadi kesalahan. Coba lagi, atau hubungi support@superset.sh."
+msgid "Something went wrong. Try again, or contact {SUPPORT_EMAIL}."
+msgstr "Terjadi kesalahan. Coba lagi, atau hubungi {SUPPORT_EMAIL}."
 
 msgid "soon"
 msgstr "sebentar lagi"
@@ -17142,8 +17142,8 @@ msgstr "Penyedia menjawab {0}."
 msgid "The provider refused it."
 msgstr "Penyedia menolaknya."
 
-msgid "The recovery period has ended. Contact support@superset.sh."
-msgstr "Masa pemulihan sudah berakhir. Hubungi support@superset.sh."
+msgid "The recovery period has ended. Contact {email}."
+msgstr "Masa pemulihan sudah berakhir. Hubungi {email}."
 
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "Branch remote sudah menyimpang. Lakukan pull sebelum melanjutkan."

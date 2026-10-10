@@ -13,7 +13,8 @@
 	},
 	"exports": {
 		"./emails/marketing/DownloadLinkEmail": "./src/emails/marketing/DownloadLinkEmail/index.ts",
-		"./emails/*": "./src/emails/*.tsx"
+		"./emails/*": "./src/emails/*.tsx",
+		"./sender": "./src/lib/sender.ts"
 	},
 	"private": true,
 	"scripts": {

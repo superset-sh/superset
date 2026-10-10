@@ -15727,8 +15727,8 @@ msgstr "문제가 발생했습니다."
 msgid "Something went wrong. Please try again."
 msgstr "문제가 발생했습니다. 다시 시도해 주세요."
 
-msgid "Something went wrong. Try again, or contact support@superset.sh."
-msgstr "문제가 발생했습니다. 다시 시도하거나 support@superset.sh로 문의해 주세요."
+msgid "Something went wrong. Try again, or contact {SUPPORT_EMAIL}."
+msgstr "문제가 발생했습니다. 다시 시도하거나 {SUPPORT_EMAIL}로 문의해 주세요."
 
 msgid "soon"
 msgstr "곧"
@@ -17142,8 +17142,8 @@ msgstr "제공사가 {0}을(를) 반환했습니다."
 msgid "The provider refused it."
 msgstr "제공사가 거부했습니다."
 
-msgid "The recovery period has ended. Contact support@superset.sh."
-msgstr "복구 기간이 끝났습니다. support@superset.sh로 문의하세요."
+msgid "The recovery period has ended. Contact {email}."
+msgstr "복구 기간이 끝났습니다. {email}로 문의하세요."
 
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "원격 브랜치가 갈라졌습니다. 계속하기 전에 pull하세요."

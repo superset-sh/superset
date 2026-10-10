@@ -15727,8 +15727,8 @@ msgstr "Er is iets misgegaan."
 msgid "Something went wrong. Please try again."
 msgstr "Er is iets misgegaan. Probeer het opnieuw."
 
-msgid "Something went wrong. Try again, or contact support@superset.sh."
-msgstr "Er is iets misgegaan. Probeer het opnieuw of neem contact op via support@superset.sh."
+msgid "Something went wrong. Try again, or contact {SUPPORT_EMAIL}."
+msgstr "Er is iets misgegaan. Probeer het opnieuw of neem contact op via {SUPPORT_EMAIL}."
 
 msgid "soon"
 msgstr "binnenkort"
@@ -17142,8 +17142,8 @@ msgstr "De provider antwoordde {0}."
 msgid "The provider refused it."
 msgstr "De provider heeft het geweigerd."
 
-msgid "The recovery period has ended. Contact support@superset.sh."
-msgstr "De herstelperiode is voorbij. Neem contact op via support@superset.sh."
+msgid "The recovery period has ended. Contact {email}."
+msgstr "De herstelperiode is voorbij. Neem contact op via {email}."
 
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "De remote branch is uiteengelopen. Pull voordat je verdergaat."

@@ -15727,8 +15727,8 @@ msgstr "Algo salió mal."
 msgid "Something went wrong. Please try again."
 msgstr "Algo salió mal. Inténtalo de nuevo."
 
-msgid "Something went wrong. Try again, or contact support@superset.sh."
-msgstr "Algo salió mal. Inténtalo de nuevo o escribe a support@superset.sh."
+msgid "Something went wrong. Try again, or contact {SUPPORT_EMAIL}."
+msgstr "Algo salió mal. Inténtalo de nuevo o escribe a {SUPPORT_EMAIL}."
 
 msgid "soon"
 msgstr "pronto"
@@ -17142,8 +17142,8 @@ msgstr "El proveedor respondió {0}."
 msgid "The provider refused it."
 msgstr "El proveedor la rechazó."
 
-msgid "The recovery period has ended. Contact support@superset.sh."
-msgstr "El periodo de recuperación ha terminado. Escribe a support@superset.sh."
+msgid "The recovery period has ended. Contact {email}."
+msgstr "El periodo de recuperación ha terminado. Escribe a {email}."
 
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "La rama remota ha divergido. Haz pull antes de continuar."
