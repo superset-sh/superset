@@ -15878,8 +15878,8 @@ msgstr "出了點問題。"
 msgid "Something went wrong. Please try again."
 msgstr "出了點問題。請重試。"
 
-msgid "Something went wrong. Try again, or contact support@superset.sh."
-msgstr "出了點問題。請重試，或聯絡support@superset.sh。"
+msgid "Something went wrong. Try again, or contact {SUPPORT_EMAIL}."
+msgstr "出了點問題。請重試，或聯絡{SUPPORT_EMAIL}。"
 
 msgid "soon"
 msgstr "即將"
@@ -17312,8 +17312,8 @@ msgstr "提供商回應了{0}。"
 msgid "The provider refused it."
 msgstr "提供商拒絕了它。"
 
-msgid "The recovery period has ended. Contact support@superset.sh."
-msgstr "恢復期已結束。請聯絡support@superset.sh。"
+msgid "The recovery period has ended. Contact {email}."
+msgstr "恢復期已結束。請聯絡{email}。"
 
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "遠端分支已分叉。請先拉取再繼續。"

@@ -2,6 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { rawErrorMessage } from "@superset/i18n/errors";
 import { useFormat } from "@superset/i18n/react";
 import { isPaymentFailingStatus } from "@superset/shared/billing";
+import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Link } from "@tanstack/react-router";
@@ -188,7 +189,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 						<Trans>
 							For questions about billing,{" "}
 							<a
-								href="mailto:support@superset.sh"
+								href={COMPANY.MAIL_TO}
 								className="text-primary hover:underline"
 							>
 								contact us

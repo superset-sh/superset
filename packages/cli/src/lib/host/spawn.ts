@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { closeSync, existsSync } from "node:fs";
 import { createServer } from "node:net";
 import { dirname, join } from "node:path";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import { HOST_INSTALL_SOURCE_ENV } from "@superset/shared/host-version";
 import {
 	MAX_HOST_LOG_BYTES,
@@ -117,7 +118,7 @@ export async function spawnHostService(
 	if (!existsSync(hostBin)) {
 		if (isDesktopBundled()) {
 			throw new Error(
-				"`superset start` is not available in the CLI bundled with the Superset desktop app; the app runs the host service itself. For headless use, install the standalone CLI: curl -fsSL https://superset.sh/cli/install.sh | sh",
+				`\`superset start\` is not available in the CLI bundled with the Superset desktop app; the app runs the host service itself. For headless use, install the standalone CLI: curl -fsSL ${CANONICAL_URLS.MARKETING}/cli/install.sh | sh`,
 			);
 		}
 		throw new Error(

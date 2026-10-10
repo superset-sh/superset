@@ -1,3 +1,4 @@
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import { z } from "zod";
 
 const envSchema = z.object({
@@ -7,7 +8,8 @@ const envSchema = z.object({
 	EXPO_PUBLIC_API_URL: z.url(),
 	EXPO_PUBLIC_RELAY_URL: z.url(),
 	EXPO_PUBLIC_REALTIME_URL: z.url().default("https://realtime.superset.sh"),
-	EXPO_PUBLIC_WEB_URL: z.url().default("https://app.superset.sh"),
+	EXPO_PUBLIC_WEB_URL: z.url().default(CANONICAL_URLS.APP),
+	EXPO_PUBLIC_ROOT_DOMAIN: z.string().optional(),
 	EXPO_PUBLIC_POSTHOG_KEY: z.string(),
 	EXPO_PUBLIC_POSTHOG_HOST: z.url().default("https://us.i.posthog.com"),
 	EXPO_PUBLIC_SENTRY_DSN_MOBILE: z.url().optional(),
@@ -26,6 +28,7 @@ const rawEnv: Record<string, string | undefined> = {
 	EXPO_PUBLIC_RELAY_URL: process.env.EXPO_PUBLIC_RELAY_URL,
 	EXPO_PUBLIC_REALTIME_URL: process.env.EXPO_PUBLIC_REALTIME_URL,
 	EXPO_PUBLIC_WEB_URL: process.env.EXPO_PUBLIC_WEB_URL,
+	EXPO_PUBLIC_ROOT_DOMAIN: process.env.EXPO_PUBLIC_ROOT_DOMAIN,
 	EXPO_PUBLIC_POSTHOG_KEY: process.env.EXPO_PUBLIC_POSTHOG_KEY,
 	EXPO_PUBLIC_POSTHOG_HOST: process.env.EXPO_PUBLIC_POSTHOG_HOST,
 	EXPO_PUBLIC_SENTRY_DSN_MOBILE: process.env.EXPO_PUBLIC_SENTRY_DSN_MOBILE,

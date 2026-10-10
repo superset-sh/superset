@@ -26,9 +26,16 @@ export const IOS_APP = {
 // nothing changes until NEXT_PUBLIC_ROOT_DOMAIN is set (e.g. boid.so). All
 // domain-derived URLs below build off this; social handles / GitHub / Discord
 // are external identities and are updated by hand on rebrand.
-const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "superset.sh";
+// Mobile bundles inline only EXPO_PUBLIC_*. The desktop renderer has no
+// process global; its build defines NEXT_PUBLIC_ROOT_DOMAIN non-empty, so the
+// second read never runs there.
+const ROOT_DOMAIN =
+	process.env.NEXT_PUBLIC_ROOT_DOMAIN ||
+	process.env.EXPO_PUBLIC_ROOT_DOMAIN ||
+	"superset.sh";
 const MARKETING_URL =
 	process.env.NEXT_PUBLIC_MARKETING_URL || `https://${ROOT_DOMAIN}`;
+const SUPPORT_EMAIL = `support@${ROOT_DOMAIN}`;
 const APP_STORE_ID = "6788926383";
 
 export const COMPANY = {
@@ -44,7 +51,8 @@ export const COMPANY = {
 	X_URL: "https://x.com/superset_sh",
 	LINKEDIN_URL: "https://www.linkedin.com/company/superset-sh",
 	YOUTUBE_URL: "https://www.youtube.com/@superset-sh",
-	MAIL_TO: `mailto:support@${ROOT_DOMAIN}`,
+	SUPPORT_EMAIL,
+	MAIL_TO: `mailto:${SUPPORT_EMAIL}`,
 	TEAM_EMAIL: `team@${ROOT_DOMAIN}`,
 	TEAM_MAIL_TO: `mailto:team@${ROOT_DOMAIN}`,
 	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
@@ -56,6 +64,14 @@ export const COMPANY = {
 	JOIN_US_URL: `${MARKETING_URL}/careers`,
 	/** The formal YC listing; product surfaces link here. `JOIN_US_URL` is our own marketing page. */
 	CAREERS_URL: "https://www.ycombinator.com/companies/superset/jobs",
+} as const;
+
+// Production hosts. Unlike COMPANY.MARKETING_URL/DOCS_URL, they ignore per-deployment URL overrides.
+export const CANONICAL_URLS = {
+	MARKETING: `https://${ROOT_DOMAIN}`,
+	API: `https://api.${ROOT_DOMAIN}`,
+	APP: `https://app.${ROOT_DOMAIN}`,
+	DOCS: `https://docs.${ROOT_DOMAIN}`,
 } as const;
 
 export const OPEN_ROLES = [

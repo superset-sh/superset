@@ -1,13 +1,16 @@
 import { describe, expect, it } from "bun:test";
 import { createCipheriv, createHash } from "node:crypto";
+import { COMPANY } from "@superset/shared/constants";
 import type { Cookie, Session } from "electron";
 import {
 	decryptCookieValue,
 	deriveCookieKey,
 	type ImportedCookie,
 	importCookies,
+	isProtectedCookieHost,
 	mapCookieRow,
 	mapCookieRows,
+	PROTECTED_COOKIE_DOMAINS,
 	safeStorageServiceFor,
 } from "./chrome-cookie-import";
 
@@ -33,6 +36,30 @@ function encryptV10(
 }
 
 const KEY = deriveCookieKey("test-password");
+
+describe("isProtectedCookieHost", () => {
+	it("protects the configured and the legacy production domain by default", () => {
+		expect(PROTECTED_COOKIE_DOMAINS).toEqual([COMPANY.DOMAIN, "superset.sh"]);
+		expect(isProtectedCookieHost("superset.sh")).toBe(true);
+		expect(isProtectedCookieHost(".app.superset.sh")).toBe(true);
+	});
+
+	it("protects both the configured and the legacy domain after a change", () => {
+		const domains = ["example.org", "superset.sh"];
+		for (const host of [
+			"example.org",
+			".example.org",
+			"app.example.org",
+			"superset.sh",
+			".superset.sh",
+			"api.superset.sh",
+		]) {
+			expect(isProtectedCookieHost(host, domains)).toBe(true);
+		}
+		expect(isProtectedCookieHost("notexample.org", domains)).toBe(false);
+		expect(isProtectedCookieHost("example.com", domains)).toBe(false);
+	});
+});
 
 describe("safeStorageServiceFor", () => {
 	it("maps browser keys to their Keychain service names", () => {

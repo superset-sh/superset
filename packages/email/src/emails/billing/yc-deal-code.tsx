@@ -1,4 +1,5 @@
 import { Heading, Link, Section, Text } from "@react-email/components";
+import { CANONICAL_URLS, COMPANY } from "@superset/shared/constants";
 import { EmailLayout } from "../../components";
 
 interface YcDealCodeEmailProps {
@@ -38,8 +39,11 @@ export function YcDealCodeEmail({
 
 			<Text className="text-[15px] leading-6 text-foreground m-0 mb-6">
 				If you don't have the app yet, download it at{" "}
-				<Link href="https://superset.sh/download" className="text-foreground">
-					superset.sh/download
+				<Link
+					href={`${CANONICAL_URLS.MARKETING}/download`}
+					className="text-foreground"
+				>
+					{COMPANY.DOMAIN}/download
 				</Link>
 				. Questions? Just reply to this email.
 			</Text>

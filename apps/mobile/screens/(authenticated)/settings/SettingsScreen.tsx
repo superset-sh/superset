@@ -25,6 +25,7 @@ import { SettingsSection } from "./components/SettingsSection";
 import { UserAvatar } from "./components/UserAvatar";
 
 const WRITE_REVIEW_URL = `${COMPANY.APP_STORE_URL}?action=write-review`;
+const { SUPPORT_EMAIL } = COMPANY;
 
 function ExternalIcon({ color }: { color: string }) {
 	return <Ionicons name="open-outline" size={16} color={color} />;
@@ -112,8 +113,7 @@ export function SettingsScreen() {
 									message: "Could not delete account",
 								}),
 								t({
-									message:
-										"Something went wrong. Try again, or contact support@superset.sh.",
+									message: `Something went wrong. Try again, or contact ${SUPPORT_EMAIL}.`,
 								}),
 							);
 						});

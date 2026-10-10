@@ -1,4 +1,5 @@
 import { docs } from "fumadocs-mdx:collections/server";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import { type InferPageType, loader } from "fumadocs-core/source";
 import { lucideIconsPlugin } from "fumadocs-core/source/lucide-icons";
 
@@ -23,7 +24,7 @@ export async function getLLMText(page: InferPageType<typeof source>) {
 
 	return [
 		`# ${page.data.title}`,
-		`Source: https://docs.superset.sh${page.url}`,
+		`Source: ${CANONICAL_URLS.DOCS}${page.url}`,
 		page.data.description,
 		processed,
 	]

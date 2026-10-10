@@ -8,6 +8,7 @@ import {
 	isPaymentFailingStatus,
 	resolveCurrentPlan,
 } from "@superset/shared/billing";
+import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
@@ -374,10 +375,7 @@ export function BillingSettings({ organizationId }: BillingSettingsProps) {
 			<p className="border-t pt-6 text-sm text-muted-foreground">
 				<Trans>
 					For questions about billing,{" "}
-					<a
-						href="mailto:support@superset.sh"
-						className="text-primary hover:underline"
-					>
+					<a href={COMPANY.MAIL_TO} className="text-primary hover:underline">
 						contact us
 					</a>
 					.

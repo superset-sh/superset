@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { decrypt } from "@superset/shared/auth-token-crypto";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import { mintOneTimeToken, mintSessionForUser } from "./cloud-session";
 import { auth } from "./server";
 
@@ -12,10 +13,7 @@ const GLOBAL_TOKEN_FILE = path.join(
 	".superset",
 	"auth-token.enc",
 );
-// apps/desktop/src/renderer/env.renderer.ts's own default for
-// NEXT_PUBLIC_API_URL — the one place the production API's domain is
-// otherwise only ever supplied by Vercel, never literally written down.
-const PRODUCTION_API_URL = "https://api.superset.sh";
+const PRODUCTION_API_URL = CANONICAL_URLS.API;
 
 /**
  * The local counterpart of seed-cloud-mobile-token.ts, run by

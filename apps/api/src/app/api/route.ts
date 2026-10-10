@@ -1,3 +1,4 @@
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import { getOAuthProtectedResourceMetadataUrl } from "@/lib/oauth-metadata";
 
 function unauthorized(request: Request): Response {
@@ -7,7 +8,7 @@ function unauthorized(request: Request): Response {
 			error: {
 				code: "UNAUTHORIZED",
 				message: "Authentication required.",
-				hint: `Authenticate via OAuth 2.1 (see https://superset.sh/auth.md) or a Superset API key, then use the MCP server at ${origin}/mcp. API surface: ${origin}/openapi.json`,
+				hint: `Authenticate via OAuth 2.1 (see ${CANONICAL_URLS.MARKETING}/auth.md) or a Superset API key, then use the MCP server at ${origin}/mcp. API surface: ${origin}/openapi.json`,
 			},
 		},
 		{

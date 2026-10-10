@@ -1,4 +1,5 @@
 import { boolean, CLIError } from "@superset/cli-framework";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import { command } from "../../../../lib/command";
 import { getApiUrl } from "../../../../lib/config";
 import { canReachDesktop, openUrl } from "../../../../lib/open-url";
@@ -31,7 +32,7 @@ export default command({
 		if (!(await ctx.api.integration.syncAllowed.query({ organizationId }))) {
 			throw new CLIError(
 				"GitHub sync requires the Pro plan",
-				"Upgrade at https://superset.sh/pricing, or in the app under Settings → Billing.",
+				`Upgrade at ${CANONICAL_URLS.MARKETING}/pricing, or in the app under Settings → Billing.`,
 			);
 		}
 

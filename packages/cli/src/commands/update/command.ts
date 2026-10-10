@@ -12,6 +12,7 @@ import { dirname, join } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { boolean, CLIError, string } from "@superset/cli-framework";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import { acquireInstallUpdateLock } from "@superset/shared/install-update-lock";
 import { command } from "../../lib/command";
 import { env, isDesktopBundled } from "../../lib/env";
@@ -126,7 +127,7 @@ export default command({
 		if (isDesktopBundled()) {
 			throw new CLIError(
 				"This CLI is bundled with the Superset desktop app and updates together with the app.",
-				"For a standalone CLI that updates in place: curl -fsSL https://superset.sh/cli/install.sh | sh",
+				`For a standalone CLI that updates in place: curl -fsSL ${CANONICAL_URLS.MARKETING}/cli/install.sh | sh`,
 			);
 		}
 

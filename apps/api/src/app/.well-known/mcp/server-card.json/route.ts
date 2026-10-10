@@ -1,6 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createMcpServer } from "@superset/mcp";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import { getRequestOrigin } from "@/lib/oauth-metadata";
 
 async function listTools() {
@@ -30,18 +31,17 @@ export async function GET(request: Request): Promise<Response> {
 	const card = {
 		name: "superset",
 		title: "Superset",
-		icon: "https://superset.sh/apple-touch-icon.png",
+		icon: `${CANONICAL_URLS.MARKETING}/apple-touch-icon.png`,
 		description:
 			"Superset MCP server: create Git-worktree workspaces, launch coding-agent sessions, schedule automations, open terminals, and manage tasks on behalf of a Superset user.",
 		version: "0.1.0",
 		serverUrl: `${origin}/mcp`,
 		transport: "streamable-http",
-		documentationUrl: "https://docs.superset.sh/mcp-server",
+		documentationUrl: `${CANONICAL_URLS.DOCS}/mcp-server`,
 		authentication: {
 			type: "oauth2",
 			resourceMetadataUrl: `${origin}/.well-known/oauth-protected-resource`,
-			description:
-				"OAuth 2.1 authorization code + PKCE with RFC 7591 dynamic client registration, or a user-issued Superset API key as a Bearer token. Walkthrough: https://superset.sh/auth.md",
+			description: `OAuth 2.1 authorization code + PKCE with RFC 7591 dynamic client registration, or a user-issued Superset API key as a Bearer token. Walkthrough: ${CANONICAL_URLS.MARKETING}/auth.md`,
 		},
 		tools: await listTools(),
 	};

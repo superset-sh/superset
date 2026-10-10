@@ -1,5 +1,6 @@
 import { boolean, defineConfig, string } from "@superset/cli-framework";
 import { linguiMacroPlugin } from "@superset/i18n/bun-plugin";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import pkg from "./package.json" with { type: "json" };
 
 const VERSION = pkg.version;
@@ -14,6 +15,9 @@ export default defineConfig({
 		"process.env.SUPERSET_VERSION": JSON.stringify(VERSION),
 		"process.env.SUPERSET_CLI_CHANNEL": JSON.stringify(
 			process.env.SUPERSET_CLI_CHANNEL ?? "standalone",
+		),
+		"process.env.NEXT_PUBLIC_ROOT_DOMAIN": JSON.stringify(
+			process.env.NEXT_PUBLIC_ROOT_DOMAIN || "superset.sh",
 		),
 	},
 	globals: {
@@ -31,7 +35,7 @@ export default defineConfig({
 	sandbox: () => Boolean(process.env.SUPERSET_SANDBOX_WORKSPACE_ID),
 	help: {
 		tagline: "Command your fleet of coding agents from any shell.",
-		docsUrl: "https://docs.superset.sh/cli",
+		docsUrl: `${CANONICAL_URLS.DOCS}/cli`,
 		tip: "Agents in Superset terminals already have `superset` on PATH — tell them to use it.",
 		sections: [
 			{

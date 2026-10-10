@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro";
+import { COMPANY } from "@superset/shared/constants";
 
 export function PublishCard() {
 	return (
@@ -15,7 +16,7 @@ export function PublishCard() {
 					publish onboarding.html)
 				</p>
 				<p className="pl-3 text-emerald-500">
-					└ Published superset.sh/page/onboarding · version 1
+					└ Published {COMPANY.DOMAIN}/page/onboarding · version 1
 				</p>
 			</div>
 		</div>

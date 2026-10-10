@@ -6,7 +6,10 @@ import {
 	sessions,
 	users,
 } from "@superset/db/schema";
-import { ACCOUNT_DELETION_GRACE_DAYS } from "@superset/shared/constants";
+import {
+	ACCOUNT_DELETION_GRACE_DAYS,
+	COMPANY,
+} from "@superset/shared/constants";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -127,8 +130,9 @@ export const userRouter = {
 		if (Date.now() - user.deletionRequestedAt.getTime() > graceMs) {
 			throw userError({
 				code: "FORBIDDEN",
-				message: "The recovery period has ended. Contact support@superset.sh.",
+				message: `The recovery period has ended. Contact ${COMPANY.SUPPORT_EMAIL}.`,
 				i18nKey: "serverError.user.theRecoveryPeriodHasEndedContact",
+				params: { email: COMPANY.SUPPORT_EMAIL },
 			});
 		}
 

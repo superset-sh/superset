@@ -15878,8 +15878,8 @@ msgstr "問題が発生しました。"
 msgid "Something went wrong. Please try again."
 msgstr "問題が発生しました。もう一度お試しください。"
 
-msgid "Something went wrong. Try again, or contact support@superset.sh."
-msgstr "問題が発生しました。もう一度お試しいただくか、support@superset.shまでご連絡ください。"
+msgid "Something went wrong. Try again, or contact {SUPPORT_EMAIL}."
+msgstr "問題が発生しました。もう一度お試しいただくか、{SUPPORT_EMAIL}までご連絡ください。"
 
 msgid "soon"
 msgstr "まもなく"
@@ -17312,8 +17312,8 @@ msgstr "プロバイダーが{0}を返しました。"
 msgid "The provider refused it."
 msgstr "プロバイダーに拒否されました。"
 
-msgid "The recovery period has ended. Contact support@superset.sh."
-msgstr "復元期間は終了しました。support@superset.shまでご連絡ください。"
+msgid "The recovery period has ended. Contact {email}."
+msgstr "復元期間は終了しました。{email}までご連絡ください。"
 
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "リモートブランチが分岐しています。続ける前にpullしてください。"

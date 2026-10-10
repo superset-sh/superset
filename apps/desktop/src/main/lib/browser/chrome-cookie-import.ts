@@ -5,6 +5,7 @@ import { rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import { COMPANY } from "@superset/shared/constants";
 import Database from "better-sqlite3";
 import type { Session } from "electron";
 import { browserLocations } from "./chromium-profiles";
@@ -305,11 +306,17 @@ export interface CookieImportResult {
 	keyUnavailable: boolean;
 }
 
+// Session cookies on the old domain outlive a root-domain change.
+export const PROTECTED_COOKIE_DOMAINS = [COMPANY.DOMAIN, "superset.sh"];
+
 /**
  * Hosts we never import cookies for: importing Superset's own session cookies
  * from the system browser could clobber the app's signed-in session.
  */
-function isProtectedCookieHost(host: string): boolean {
+export function isProtectedCookieHost(
+	host: string,
+	ownDomains: readonly string[] = PROTECTED_COOKIE_DOMAINS,
+): boolean {
 	const bare = (host.startsWith(".") ? host.slice(1) : host)
 		.toLowerCase()
 		.replace(/^\[|\]$/g, ""); // strip IPv6 brackets, e.g. [::1]
@@ -318,8 +325,7 @@ function isProtectedCookieHost(host: string): boolean {
 		bare.endsWith(".localhost") ||
 		bare === "127.0.0.1" ||
 		bare === "::1" ||
-		bare === "superset.sh" ||
-		bare.endsWith(".superset.sh")
+		ownDomains.some((domain) => bare === domain || bare.endsWith(`.${domain}`))
 	);
 }
 

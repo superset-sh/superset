@@ -1,5 +1,6 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import {
 	createDocsMcpServer,
 	DOCS_BASE_URL,
@@ -33,7 +34,7 @@ export async function GET(): Promise<Response> {
 	const card = {
 		name: DOCS_MCP_NAME,
 		title: "Superset docs",
-		icon: "https://superset.sh/apple-touch-icon.png",
+		icon: `${CANONICAL_URLS.MARKETING}/apple-touch-icon.png`,
 		version: DOCS_MCP_VERSION,
 		kind: "docs",
 		description:

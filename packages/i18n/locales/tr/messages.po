@@ -15878,8 +15878,8 @@ msgstr "Bir şeyler ters gitti."
 msgid "Something went wrong. Please try again."
 msgstr "Bir şeyler ters gitti. Lütfen yeniden deneyin."
 
-msgid "Something went wrong. Try again, or contact support@superset.sh."
-msgstr "Bir şeyler ters gitti. Yeniden deneyin veya support@superset.sh adresine yazın."
+msgid "Something went wrong. Try again, or contact {SUPPORT_EMAIL}."
+msgstr "Bir şeyler ters gitti. Yeniden deneyin veya {SUPPORT_EMAIL} adresine yazın."
 
 msgid "soon"
 msgstr "yakında"
@@ -17312,8 +17312,8 @@ msgstr "Sağlayıcı {0} yanıtı verdi."
 msgid "The provider refused it."
 msgstr "Sağlayıcı kabul etmedi."
 
-msgid "The recovery period has ended. Contact support@superset.sh."
-msgstr "Kurtarma süresi sona erdi. support@superset.sh adresine yazın."
+msgid "The recovery period has ended. Contact {email}."
+msgstr "Kurtarma süresi sona erdi. {email} adresine yazın."
 
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "Uzak dal ayrıştı. Devam etmeden önce pull yapın."

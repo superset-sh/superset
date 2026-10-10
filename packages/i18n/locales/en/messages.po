@@ -15878,8 +15878,8 @@ msgstr "Something went wrong."
 msgid "Something went wrong. Please try again."
 msgstr "Something went wrong. Please try again."
 
-msgid "Something went wrong. Try again, or contact support@superset.sh."
-msgstr "Something went wrong. Try again, or contact support@superset.sh."
+msgid "Something went wrong. Try again, or contact {SUPPORT_EMAIL}."
+msgstr "Something went wrong. Try again, or contact {SUPPORT_EMAIL}."
 
 msgid "soon"
 msgstr "soon"
@@ -17312,8 +17312,8 @@ msgstr "The provider answered {0}."
 msgid "The provider refused it."
 msgstr "The provider refused it."
 
-msgid "The recovery period has ended. Contact support@superset.sh."
-msgstr "The recovery period has ended. Contact support@superset.sh."
+msgid "The recovery period has ended. Contact {email}."
+msgstr "The recovery period has ended. Contact {email}."
 
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "The remote branch has diverged. Pull before continuing."
