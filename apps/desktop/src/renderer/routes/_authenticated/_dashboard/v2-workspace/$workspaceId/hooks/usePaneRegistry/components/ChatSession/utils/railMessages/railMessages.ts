@@ -1,8 +1,8 @@
 import type { TurnGroup } from "@superset/chat/core";
+import { userMessageText } from "@superset/chat/core";
 import type { AgentMessage, UserMessage } from "@superset/chat/protocol";
 import type { ChatHistorySidebarMessage } from "@superset/ui/chat-history-sidebar";
 import { parseAttachmentTags } from "../attachmentTags";
-import { userMessageText } from "../userMessageText";
 
 const PREVIEW_CHARS = 120;
 

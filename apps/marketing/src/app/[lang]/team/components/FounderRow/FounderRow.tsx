@@ -52,7 +52,7 @@ export function FounderRow({ person }: FounderRowProps) {
 				{person.story && (
 					<TeamBio
 						bio={person.story}
-						className="text-foreground/90 leading-relaxed mt-5 [&_a]:underline [&_a]:underline-offset-2 [&_a]:hover:text-foreground"
+						className="text-foreground/90 leading-relaxed whitespace-pre-line mt-5 [&_a]:underline [&_a]:underline-offset-2 [&_a]:hover:text-foreground"
 					/>
 				)}
 				{person.bio && (

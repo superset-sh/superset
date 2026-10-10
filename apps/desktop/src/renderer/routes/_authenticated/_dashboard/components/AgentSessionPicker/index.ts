@@ -1,4 +1,5 @@
 export { AgentSessionPicker } from "./AgentSessionPicker";
+export { AgentSessionSelect } from "./components/AgentSessionSelect";
 export type {
 	AgentSessionPlacement,
 	AgentTarget,

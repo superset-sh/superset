@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { SANDBOX_CREDENTIAL_PLACEHOLDER } from "@superset/shared/constants";
+import { setTestEnv } from "../../../test/env";
 import { deriveSandboxCredentials, gitAuthorFor } from "./credentials";
+
+setTestEnv({ NEXT_PUBLIC_API_URL: undefined });
 
 type Policy = {
 	allow: Record<

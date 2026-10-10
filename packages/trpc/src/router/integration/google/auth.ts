@@ -12,7 +12,11 @@ import {
 	encryptOptional,
 	encryptSecret,
 } from "../../../lib/connectors";
-import { REFRESH_BUFFER_MS, REFRESH_TOKEN_TIMEOUT_MS } from "./constants";
+import {
+	GOOGLE_SCOPES,
+	REFRESH_BUFFER_MS,
+	REFRESH_TOKEN_TIMEOUT_MS,
+} from "./constants";
 
 export const googleTokenResponseSchema = z.object({
 	access_token: z.string(),
@@ -33,6 +37,61 @@ export function googleErrorStatus(error: unknown): number | undefined {
 
 type GetTokenResponse = { tokens: Credentials; res: GaxiosResponse | null };
 
+export type GoogleOAuthClient = { clientId: string; clientSecret: string };
+
+const LEGACY_FLOW_SCOPES = new Set<string>([
+	...GOOGLE_SCOPES,
+	"https://www.googleapis.com/auth/userinfo.email",
+	"https://www.googleapis.com/auth/userinfo.profile",
+	"profile",
+]);
+
+/**
+ * A refresh token only works with the client that issued it, and no column
+ * records which. Connector-flow rows (GOOGLE_TEMP client) carry wider scopes.
+ */
+export function refreshClientsFor(
+	scopes: string[] | null,
+	primary: GoogleOAuthClient,
+	connector: GoogleOAuthClient | null,
+): GoogleOAuthClient[] {
+	if (!connector || connector.clientId === primary.clientId) return [primary];
+	const fromConnectorFlow = (scopes ?? []).some(
+		(scope) => !LEGACY_FLOW_SCOPES.has(scope),
+	);
+	return fromConnectorFlow ? [connector, primary] : [primary, connector];
+}
+
+function configuredRefreshClients(scopes: string[] | null) {
+	return refreshClientsFor(
+		scopes,
+		{ clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET },
+		env.GOOGLE_TEMP_CLIENT_ID && env.GOOGLE_TEMP_CLIENT_SECRET
+			? {
+					clientId: env.GOOGLE_TEMP_CLIENT_ID,
+					clientSecret: env.GOOGLE_TEMP_CLIENT_SECRET,
+				}
+			: null,
+	);
+}
+
+/** `invalid_grant` wins over `unauthorized_client`, so a revoked grant still disconnects. */
+export async function refreshWithIssuingClient<T>(
+	clients: GoogleOAuthClient[],
+	refresh: (client: GoogleOAuthClient) => Promise<T>,
+): Promise<{ client: GoogleOAuthClient; result: T }> {
+	let failure: unknown;
+	for (const client of clients) {
+		try {
+			return { client, result: await refresh(client) };
+		} catch (error) {
+			if (!isWrongClient(error) && !isInvalidGrant(error)) throw error;
+			if (!isInvalidGrant(failure)) failure = error;
+		}
+	}
+	throw failure;
+}
+
 /**
  * One connection's OAuth2 client. The SDK refreshes the access token when it
  * is within the buffer of expiring (and once more after a 401); the refresh
@@ -41,10 +100,13 @@ type GetTokenResponse = { tokens: Credentials; res: GaxiosResponse | null };
  * inside that lock.
  */
 class ConnectionOAuth2Client extends OAuth2Client {
-	constructor(private readonly connectionId: string) {
+	constructor(
+		private readonly connectionId: string,
+		private refreshClients: GoogleOAuthClient[],
+	) {
 		super({
-			clientId: env.GOOGLE_CLIENT_ID,
-			clientSecret: env.GOOGLE_CLIENT_SECRET,
+			clientId: refreshClients[0]?.clientId,
+			clientSecret: refreshClients[0]?.clientSecret,
 			eagerRefreshThresholdMillis: REFRESH_BUFFER_MS,
 			forceRefreshOnFailure: true,
 			// Applies to the token endpoint; API calls carry their own timeout.
@@ -89,7 +151,17 @@ class ConnectionOAuth2Client extends OAuth2Client {
 
 			let response: GetTokenResponse;
 			try {
-				response = await super.refreshTokenNoCache(refreshToken);
+				const accepted = await refreshWithIssuingClient(
+					this.refreshClients,
+					(client) => {
+						this._clientId = client.clientId;
+						this._clientSecret = client.clientSecret;
+						return super.refreshTokenNoCache(refreshToken);
+					},
+				);
+				// Later refreshes on this instance skip the rejected client.
+				this.refreshClients = [accepted.client];
+				response = accepted.result;
 			} catch (error) {
 				// The grant was revoked (or the app's access removed in the account
 				// settings). Nothing here can recover it; the person has to reconnect.
@@ -127,10 +199,19 @@ class ConnectionOAuth2Client extends OAuth2Client {
 	}
 }
 
-function isInvalidGrant(error: unknown): boolean {
-	if (!(error instanceof GaxiosError)) return false;
+function oauthErrorCode(error: unknown): string | undefined {
+	if (!(error instanceof GaxiosError)) return undefined;
 	const data = error.response?.data as { error?: string } | undefined;
-	return data?.error === "invalid_grant" || error.message === "invalid_grant";
+	return data?.error ?? error.message;
+}
+
+function isInvalidGrant(error: unknown): boolean {
+	return oauthErrorCode(error) === "invalid_grant";
+}
+
+function isWrongClient(error: unknown): boolean {
+	const code = oauthErrorCode(error);
+	return code === "unauthorized_client" || code === "invalid_client";
 }
 
 /**
@@ -147,6 +228,7 @@ export async function googleAuthFor(
 			refreshToken: connections.refreshToken,
 			tokenExpiresAt: connections.tokenExpiresAt,
 			disconnectedAt: connections.disconnectedAt,
+			scopes: connections.scopes,
 		})
 		.from(connections)
 		.where(eq(connections.id, connectionId))
@@ -166,7 +248,10 @@ export async function googleAuthFor(
 		throw new Error(`Google connection ${connectionId} disconnected`);
 	}
 
-	const client = new ConnectionOAuth2Client(connectionId);
+	const client = new ConnectionOAuth2Client(
+		connectionId,
+		configuredRefreshClients(row.scopes),
+	);
 	client.setCredentials({
 		access_token: await decryptSecret(row.accessToken),
 		refresh_token: await decryptOptional(row.refreshToken),

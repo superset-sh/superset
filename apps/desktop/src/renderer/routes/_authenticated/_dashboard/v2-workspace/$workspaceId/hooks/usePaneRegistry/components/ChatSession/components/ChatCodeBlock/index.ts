@@ -1,1 +1,1 @@
-export { CHAT_CODE_COMPONENTS, ChatCodeBlock } from "./ChatCodeBlock";
+export { ChatCodeBlock } from "./ChatCodeBlock";

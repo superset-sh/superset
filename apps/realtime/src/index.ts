@@ -189,6 +189,60 @@ app.get("/v2/page/:pageId/storage/socket", async (c) => {
 	return stub.fetch("https://realtime/subscribe", { headers });
 });
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+app.get("/v2/page/:pageId/presence", async (c) => {
+	if (c.req.header("Upgrade")?.toLowerCase() !== "websocket") {
+		return c.json({ error: "WebSocket upgrade required" }, 426);
+	}
+	const pageId = c.req.param("pageId");
+	if (!UUID.test(pageId)) return acceptAndClose(4403, "Not found");
+
+	let claims: {
+		userId: string;
+		name: string;
+		image: string | null;
+		organizationIds: string[];
+		guest: boolean;
+	};
+	const token = extractToken(c);
+	const guestId = c.req.query("guest");
+	if (token) {
+		const auth = await verifyJWT(token, c.env.NEXT_PUBLIC_API_URL);
+		if (!auth) return acceptAndClose(4401, "Unauthorized");
+		claims = {
+			userId: auth.sub,
+			name: auth.name ?? "Someone",
+			image: auth.image ?? null,
+			organizationIds: auth.organizationIds,
+			guest: false,
+		};
+	} else if (guestId && UUID.test(guestId)) {
+		const ip = c.req.header("cf-connecting-ip") ?? "unknown";
+		const [byIp, byPage] = await Promise.all([
+			c.env.GUEST_PRESENCE_BY_IP.limit({ key: ip }),
+			c.env.GUEST_PRESENCE_BY_PAGE.limit({ key: pageId }),
+		]);
+		if (!byIp.success || !byPage.success) {
+			return acceptAndClose(4429, "Too many requests");
+		}
+		claims = {
+			userId: `guest:${guestId}`,
+			name: "",
+			image: null,
+			organizationIds: [],
+			guest: true,
+		};
+	} else {
+		return acceptAndClose(4401, "Unauthorized");
+	}
+
+	const stub = await getServerByName(c.env.PageHub, pageId);
+	const headers = new Headers({ Upgrade: "websocket" });
+	headers.set(CLAIMS_HEADER, JSON.stringify({ ...claims, presence: true }));
+	return stub.fetch("https://realtime/presence", { headers });
+});
+
 // ── Emit: the API, after a write ────────────────────────────────────
 
 app.post("/v2/nudge", async (c) => {

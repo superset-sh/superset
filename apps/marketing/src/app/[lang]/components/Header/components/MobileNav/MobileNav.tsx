@@ -1,6 +1,6 @@
 "use client";
 
-import { Trans, useLingui } from "@lingui/react/macro";
+import { useLingui } from "@lingui/react/macro";
 import { AnimatePresence, m } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
@@ -8,8 +8,8 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import {
 	type NavLink,
-	PRODUCT_LINKS,
-	RESOURCE_LINKS,
+	PRODUCT_SECTIONS,
+	RESOURCE_SECTIONS,
 	TOP_LEVEL_LINKS,
 } from "../../constants";
 
@@ -50,16 +50,14 @@ export function MobileNav({ ctaButtons, starCounter }: MobileNavProps) {
 						transition={{ duration: 0.2 }}
 					>
 						<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col gap-6">
-							<MobileSection
-								title={<Trans>Product</Trans>}
-								links={PRODUCT_LINKS}
-								onNavigate={close}
-							/>
-							<MobileSection
-								title={<Trans>Resources</Trans>}
-								links={RESOURCE_LINKS}
-								onNavigate={close}
-							/>
+							{[...PRODUCT_SECTIONS, ...RESOURCE_SECTIONS].map((section) => (
+								<MobileSection
+									key={section.id}
+									title={section.title}
+									links={section.links}
+									onNavigate={close}
+								/>
+							))}
 							<MobileSection links={TOP_LEVEL_LINKS} onNavigate={close} />
 							<div className="pt-4 border-t border-border flex flex-col gap-3">
 								{starCounter}

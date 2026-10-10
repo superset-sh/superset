@@ -1,4 +1,5 @@
 import type { UserContent } from "@superset/chat/protocol";
+import { ComposerDropZone } from "@superset/chat-ui/ComposerDropZone";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { Composer } from "../../../../../ChatSession/components/Composer";
@@ -25,7 +26,7 @@ export function DraftChat({
 	const promptQueue = useMemo(() => heldPromptQueue(queued), [queued]);
 
 	return (
-		<div className="flex h-full min-h-0 w-full min-w-0 flex-col">
+		<ComposerDropZone className="flex h-full min-h-0 w-full min-w-0 flex-col">
 			<div className="min-h-0 flex-1" />
 			<ConnectionNotice>{notice}</ConnectionNotice>
 			<Composer
@@ -36,6 +37,6 @@ export function DraftChat({
 				promptQueue={promptQueue}
 				workspaceId={workspaceId}
 			/>
-		</div>
+		</ComposerDropZone>
 	);
 }

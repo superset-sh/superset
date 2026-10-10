@@ -7,6 +7,58 @@ import { useNewWorkspaceDraftStore } from "renderer/stores/new-workspace-draft";
 import { useNewWorkspaceModalStore } from "renderer/stores/new-workspace-modal";
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 
+interface NewWorkspaceHandoff {
+	isV2CloudEnabled: boolean;
+	machineId: string | null | undefined;
+	navigate: ReturnType<typeof useNavigate>;
+}
+
+export function openNewWorkspace(
+	{ isV2CloudEnabled, machineId, navigate }: NewWorkspaceHandoff,
+	projectId?: string | null,
+	requestedHostId?: string,
+) {
+	if (!isV2CloudEnabled) {
+		useNewWorkspaceModalStore.getState().openModal(projectId ?? undefined);
+		return;
+	}
+	const hostId =
+		requestedHostId ??
+		(projectId ? resolveHandoffHostId(machineId) : undefined);
+	if (hostId) {
+		useNewWorkspaceDraftStore.getState().updateDraft({ hostId });
+	}
+	if (projectId) {
+		useNewWorkspaceDraftStore.getState().selectProject(projectId);
+	}
+	void navigate({
+		to: "/new-workspace",
+		search:
+			projectId || hostId
+				? { projectId: projectId ?? undefined, host: hostId }
+				: undefined,
+	});
+}
+
+export function openNewSession({
+	isV2CloudEnabled,
+	machineId,
+	navigate,
+}: NewWorkspaceHandoff) {
+	if (!isV2CloudEnabled) {
+		useNewWorkspaceModalStore.getState().openSessionModal();
+		return;
+	}
+	const hostId = resolveHandoffHostId(machineId);
+	const draftStore = useNewWorkspaceDraftStore.getState();
+	if (hostId) draftStore.updateDraft({ hostId });
+	draftStore.selectSession();
+	void navigate({
+		to: "/new-workspace",
+		search: { session: true, host: hostId },
+	});
+}
+
 /**
  * Opens the new-workspace surface. v2 has no modal — the create surface is
  * the `/new-workspace` route — so this navigates there. v1 installs still
@@ -18,28 +70,12 @@ export function useOpenNewWorkspace() {
 	const { machineId } = useLocalHostService();
 
 	return useCallback(
-		(projectId?: string | null, requestedHostId?: string) => {
-			if (!isV2CloudEnabled) {
-				useNewWorkspaceModalStore.getState().openModal(projectId ?? undefined);
-				return;
-			}
-			const hostId =
-				requestedHostId ??
-				(projectId ? resolveHandoffHostId(machineId) : undefined);
-			if (hostId) {
-				useNewWorkspaceDraftStore.getState().updateDraft({ hostId });
-			}
-			if (projectId) {
-				useNewWorkspaceDraftStore.getState().selectProject(projectId);
-			}
-			void navigate({
-				to: "/new-workspace",
-				search:
-					projectId || hostId
-						? { projectId: projectId ?? undefined, host: hostId }
-						: undefined,
-			});
-		},
+		(projectId?: string | null, requestedHostId?: string) =>
+			openNewWorkspace(
+				{ isV2CloudEnabled, machineId, navigate },
+				projectId,
+				requestedHostId,
+			),
 		[isV2CloudEnabled, machineId, navigate],
 	);
 }
@@ -54,12 +90,24 @@ function resolveHandoffHostId(machineId: string | null | undefined) {
 	return draftHostId ?? undefined;
 }
 
+export function openNewWorkspaceForLocalProject(
+	handoff: NewWorkspaceHandoff,
+	projectId: string,
+) {
+	openNewWorkspace(handoff, projectId, handoff.machineId ?? undefined);
+}
+
 export function useOpenNewWorkspaceForLocalProject() {
+	const navigate = useNavigate();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const { machineId } = useLocalHostService();
-	const openNewWorkspace = useOpenNewWorkspace();
 	return useCallback(
-		(projectId: string) => openNewWorkspace(projectId, machineId),
-		[machineId, openNewWorkspace],
+		(projectId: string) =>
+			openNewWorkspaceForLocalProject(
+				{ isV2CloudEnabled, machineId, navigate },
+				projectId,
+			),
+		[isV2CloudEnabled, machineId, navigate],
 	);
 }
 
@@ -69,20 +117,10 @@ export function useOpenNewSession() {
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const { machineId } = useLocalHostService();
 
-	return useCallback(() => {
-		if (!isV2CloudEnabled) {
-			useNewWorkspaceModalStore.getState().openSessionModal();
-			return;
-		}
-		const hostId = resolveHandoffHostId(machineId);
-		const draftStore = useNewWorkspaceDraftStore.getState();
-		if (hostId) draftStore.updateDraft({ hostId });
-		draftStore.selectSession();
-		void navigate({
-			to: "/new-workspace",
-			search: { session: true, host: hostId },
-		});
-	}, [isV2CloudEnabled, machineId, navigate]);
+	return useCallback(
+		() => openNewSession({ isV2CloudEnabled, machineId, navigate }),
+		[isV2CloudEnabled, machineId, navigate],
+	);
 }
 
 /**

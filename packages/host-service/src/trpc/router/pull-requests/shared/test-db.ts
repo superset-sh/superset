@@ -93,6 +93,7 @@ export function readPullRequestRow(db: HostDb, id = "pr-42") {
 	return db
 		.select({
 			state: pullRequests.state,
+			isDraft: pullRequests.isDraft,
 			mergedAt: pullRequests.mergedAt,
 			projectId: pullRequests.projectId,
 		})

@@ -1,18 +1,23 @@
+import * as Sentry from "@sentry/nextjs";
 import { db } from "@superset/db/client";
 import { connections } from "@superset/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
+import { env } from "@/env";
 import { verifyQstashRequest } from "@/lib/verifyQstash";
 import { reconcileWatches } from "../../lib/reconcileWatches";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
+/** Stays inside maxDuration so a run ends by choice rather than by kill. */
+const TIME_BUDGET_MS = 240_000;
+
 const bodySchema = z.object({ connectionId: z.string().uuid().optional() });
 
 /**
- * Daily: renew every connection's Gmail watch before it expires. Also run
- * once for a single connection right after it connects.
+ * Daily, and once per connection right after it connects. Any failure answers
+ * 500 so QStash retries and reports it; a retry only redoes what is still due.
  */
 export async function POST(request: Request) {
 	const body = await request.text();
@@ -36,8 +41,16 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Invalid payload" }, { status: 400 });
 	}
 
+	const topicName = env.GOOGLE_PUBSUB_TOPIC;
+	if (!topicName) {
+		console.error(
+			"[google/renew-watches] GOOGLE_PUBSUB_TOPIC is not set; no Gmail watch can be created",
+		);
+		return Response.json({ error: "No Pub/Sub topic" }, { status: 503 });
+	}
+
 	const rows = await db
-		.select({ id: connections.id })
+		.select({ id: connections.id, email: connections.externalAccountId })
 		.from(connections)
 		.where(
 			and(
@@ -49,24 +62,46 @@ export async function POST(request: Request) {
 			),
 		);
 
+	const deadline = Date.now() + TIME_BUDGET_MS;
 	const results = [];
+	const failed: string[] = [];
+	let deferred = 0;
 	for (const connection of rows) {
+		if (Date.now() > deadline) {
+			deferred += 1;
+			continue;
+		}
+		let errors: string[];
 		try {
-			const result = await reconcileWatches(connection.id);
-			if (result.errors.length > 0) {
-				console.error(
-					`[google/renew-watches] ${connection.id}:`,
-					result.errors.join("; "),
-				);
-			}
+			const result = await reconcileWatches(connection.id, topicName);
+			errors = result.errors;
 			results.push({ connectionId: connection.id, ...result });
 		} catch (error) {
-			console.error(`[google/renew-watches] ${connection.id} failed:`, error);
-			results.push({
-				connectionId: connection.id,
-				error: error instanceof Error ? error.message : String(error),
-			});
+			errors = [error instanceof Error ? error.message : String(error)];
+			results.push({ connectionId: connection.id, errors });
 		}
+		if (errors.length === 0) continue;
+		failed.push(connection.id);
+		console.error(
+			`[google/renew-watches] ${connection.id} (${connection.email}): ${errors.join("; ")}`,
+		);
+		Sentry.captureException(
+			new Error(`Gmail watch renewal failed: ${connection.id}`),
+			{
+				tags: { feature: "gmail-watch" },
+				extra: { connectionId: connection.id, errors },
+			},
+		);
 	}
-	return Response.json({ connections: rows.length, results });
+	if (deferred > 0) {
+		console.error(
+			`[google/renew-watches] out of time; ${deferred} connections left for the retry`,
+		);
+	}
+
+	const ok = failed.length === 0 && deferred === 0;
+	return Response.json(
+		{ connections: rows.length, failed, deferred, results },
+		{ status: ok ? 200 : 500 },
+	);
 }

@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Label } from "@superset/ui/label";
 import {
 	Select,
@@ -7,6 +8,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback } from "react";
 import {
 	actionLabel,
@@ -50,6 +52,8 @@ export function LinkTierMapper({
 	surface,
 }: LinkTierMapperProps) {
 	const searchQuery = useSettingsSearchQuery();
+	const isRightPaneAreaEnabled =
+		useFeatureFlagEnabled(FEATURE_FLAGS.RIGHT_PANE_AREA) === true;
 	const pick = useCallback(
 		(tier: LinkTier, nextSlot: SlotValue) => {
 			const nextAction = fromSlot(nextSlot);
@@ -70,6 +74,11 @@ export function LinkTierMapper({
 			<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
 				{TIERS.map((tier) => {
 					const id = `${idPrefix}-${tier}`;
+					const actions: LinkAction[] =
+						surface === "url" &&
+						(isRightPaneAreaEnabled || value[tier] === "rightPane")
+							? [...ACTIONS, "rightPane"]
+							: ACTIONS;
 					return (
 						<div
 							key={tier}
@@ -93,7 +102,7 @@ export function LinkTierMapper({
 									<SelectItem value="none">
 										<Trans>Do nothing</Trans>
 									</SelectItem>
-									{ACTIONS.map((action) => (
+									{actions.map((action) => (
 										<SelectItem key={action} value={action}>
 											{actionLabel(action, surface)}
 										</SelectItem>

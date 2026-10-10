@@ -24,10 +24,10 @@ import { verifyOrgMembership } from "./utils";
  */
 export interface ProviderAccount {
 	id: string;
-	/** What to call this account: the nickname if it has one, else the identity. */
 	label: string | null;
-	/** The provider's own label, so a renamed row can still show who it is. */
+	/** @deprecated desktop 1.36.0 reads this; use `label`. */
 	identity: string | null;
+	/** @deprecated desktop 1.36.0 reads this; use `label`. */
 	nickname: string | null;
 	needsReauth: boolean;
 }

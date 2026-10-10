@@ -1,10 +1,5 @@
-import { afterAll, afterEach, describe, expect, mock, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, describe, expect, mock, test } from "bun:test";
 
-// happy-dom over the preloaded plain-object document. Process-wide, so this
-// unregisters in afterAll to leave the other renderer suites their document.
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
@@ -13,10 +8,6 @@ const { act, cleanup, renderHook } = await import("@testing-library/react");
 const { useAutomationDraft } = await import("./useAutomationDraft");
 
 afterEach(cleanup);
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
-
 /**
  * When the editor may write, and what it says while it may not.
  *

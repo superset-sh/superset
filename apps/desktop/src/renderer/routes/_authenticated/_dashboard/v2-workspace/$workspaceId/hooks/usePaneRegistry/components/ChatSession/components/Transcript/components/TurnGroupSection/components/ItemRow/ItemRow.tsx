@@ -1,4 +1,4 @@
-import type { Decision, Item } from "@superset/chat/protocol";
+import type { AvailableCommand, Decision, Item } from "@superset/chat/protocol";
 import { isKnownItem } from "@superset/chat/protocol";
 import { memo } from "react";
 import type { ChatForkTarget } from "../../../../../../types";
@@ -14,22 +14,30 @@ import { type PendingPrompt, UserMessageRow } from "../../../UserMessageRow";
 
 export type ItemRowProps = {
 	item: Item;
+	approvalTarget?: Item | undefined;
+	afterTarget?: boolean;
 	text: string;
 	harness: string | undefined;
+	commands?: ReadonlyMap<string, AvailableCommand> | undefined;
 	pending?: PendingPrompt | undefined;
 	onRespond: (approvalId: string, decision: Decision) => void;
 	onFork?: ((target: ChatForkTarget) => void) | undefined;
 	canForkToWorktree?: boolean;
 	lastReply?: boolean;
+	pagesShownEarlier?: string | undefined;
 };
 
 export const ItemRow = memo(function ItemRow({
+	afterTarget = false,
+	approvalTarget,
 	canForkToWorktree,
+	commands,
 	lastReply = false,
 	harness,
 	item,
 	onFork,
 	onRespond,
+	pagesShownEarlier,
 	pending,
 	text,
 }: ItemRowProps) {
@@ -38,7 +46,14 @@ export const ItemRow = memo(function ItemRow({
 	}
 	switch (item.kind) {
 		case "user_message":
-			return <UserMessageRow harness={harness} item={item} pending={pending} />;
+			return (
+				<UserMessageRow
+					commands={commands}
+					harness={harness}
+					item={item}
+					pending={pending}
+				/>
+			);
 		case "agent_message":
 			return (
 				<AgentMessageRow
@@ -46,6 +61,7 @@ export const ItemRow = memo(function ItemRow({
 					lastReply={lastReply}
 					item={item}
 					onFork={onFork}
+					pagesShownEarlier={pagesShownEarlier}
 					text={text}
 				/>
 			);
@@ -56,7 +72,14 @@ export const ItemRow = memo(function ItemRow({
 		case "plan":
 			return <PlanRow item={item} />;
 		case "approval_request":
-			return <ApprovalRow item={item} onRespond={onRespond} />;
+			return (
+				<ApprovalRow
+					afterTarget={afterTarget}
+					item={item}
+					onRespond={onRespond}
+					target={approvalTarget}
+				/>
+			);
 		case "notice":
 			return <NoticeRow item={item} />;
 	}

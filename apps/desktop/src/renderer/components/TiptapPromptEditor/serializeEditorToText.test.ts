@@ -1,10 +1,6 @@
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import type { JSONContent } from "@tiptap/core";
 
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
-
-const { afterAll, describe, expect, it } = await import("bun:test");
+const { describe, expect, it } = await import("bun:test");
 const { Editor } = await import("@tiptap/core");
 const { default: Document } = await import("@tiptap/extension-document");
 const { default: Paragraph } = await import("@tiptap/extension-paragraph");
@@ -13,10 +9,6 @@ const { PluginMentionNode } = await import("renderer/components/PluginMention");
 const { FileMentionNode } = await import("./FileMentionNode");
 const { parseTextToEditorContent } = await import("./parseTextToEditorContent");
 const { serializeEditorToText } = await import("./serializeEditorToText");
-
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
 
 const linear = { name: "linear", displayName: "Linear", description: "" };
 

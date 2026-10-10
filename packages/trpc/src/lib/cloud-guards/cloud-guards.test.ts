@@ -1,4 +1,7 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { db } from "@superset/db/client";
+import { stub } from "../../../test/stub";
+import { posthog } from "../analytics";
 
 let flagResult: boolean | undefined;
 let storedEmail: string | null;
@@ -9,39 +12,24 @@ let calls: Array<{
 	options?: { personProperties?: Record<string, string> };
 }> = [];
 
-// Both stubbed so the real clients — and the validated env and database
-// connection they open at import — stay out of this test's module graph.
-// `mock.module` is process-wide, so every export the real module has must be
-// here: another file's import of `dbWs` resolves against this stub too.
-mock.module("@superset/db/client", () => ({
-	db: {
-		query: {
-			users: {
-				findFirst: () => {
-					lookups += 1;
-					return Promise.resolve(
-						storedEmail === null ? undefined : { email: storedEmail },
-					);
-				},
-			},
-		},
+stub(db.query.users, {
+	findFirst: () => {
+		lookups += 1;
+		return Promise.resolve(
+			storedEmail === null ? undefined : { email: storedEmail },
+		);
 	},
-	dbWs: {
-		transaction: () => Promise.reject(new Error("dbWs is stubbed in tests")),
+});
+stub(posthog, {
+	isFeatureEnabled: (
+		key: string,
+		distinctId: string,
+		options?: { personProperties?: Record<string, string> },
+	) => {
+		calls.push({ key, distinctId, options });
+		return Promise.resolve(flagResult);
 	},
-}));
-mock.module("../analytics", () => ({
-	posthog: {
-		isFeatureEnabled: (
-			key: string,
-			distinctId: string,
-			options?: { personProperties?: Record<string, string> },
-		) => {
-			calls.push({ key, distinctId, options });
-			return Promise.resolve(flagResult);
-		},
-	},
-}));
+});
 
 const { assertCloudAccess } = await import("./cloud-guards");
 

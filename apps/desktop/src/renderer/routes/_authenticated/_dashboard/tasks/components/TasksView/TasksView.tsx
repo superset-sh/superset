@@ -7,6 +7,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useTaskTracker } from "renderer/hooks/useTaskTracker";
 import { useDebouncedSearchNavigation } from "renderer/routes/_authenticated/_dashboard/hooks/useDebouncedSearchNavigation";
 import { useProjectQueryTargets } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
 import {
@@ -35,7 +36,6 @@ interface TasksViewProps {
 	initialSearch?: string;
 	initialType?: TypeTab;
 	initialProjects?: string[];
-	initialLinearProject?: string;
 	initialState?: "open" | "all";
 }
 
@@ -45,7 +45,6 @@ export function TasksView({
 	initialSearch,
 	initialType,
 	initialProjects,
-	initialLinearProject,
 	initialState,
 }: TasksViewProps) {
 	const navigate = useNavigate();
@@ -55,13 +54,11 @@ export function TasksView({
 		search: storedSearch,
 		typeTab: storedTypeTab,
 		projectFilters: storedProjectFilters,
-		linearProjectFilter: storedLinearProjectFilter,
 		setTab: storeSetTab,
 		setAssignee: storeSetAssignee,
 		setSearch: storeSetSearch,
 		setTypeTab: storeSetTypeTab,
 		setProjectFilters: storeSetProjectFilters,
-		setLinearProjectFilter: storeSetLinearProjectFilter,
 		linearTeamFilter,
 		setLinearTeamFilter,
 		linearAssigneeFilter,
@@ -76,8 +73,8 @@ export function TasksView({
 	const deferredSearchQuery = useDeferredValue(searchQuery);
 	const assigneeFilter = initialAssignee ?? storedAssignee;
 	const typeTab: TypeTab = initialType ?? storedTypeTab;
+	const taskTracker = useTaskTracker();
 	const projectFilters = initialProjects ?? storedProjectFilters;
-	const linearProjectFilter = initialLinearProject ?? storedLinearProjectFilter;
 	const includeClosedIssues =
 		initialState === undefined
 			? storedIncludeClosedIssues
@@ -97,7 +94,6 @@ export function TasksView({
 			search?: string;
 			type?: TypeTab;
 			projects?: string[];
-			linearProject?: string | null;
 			includeClosedIssues?: boolean;
 		}) =>
 			tasksSearchFromFilters({
@@ -112,10 +108,6 @@ export function TasksView({
 					overrides.projects !== undefined
 						? overrides.projects
 						: projectFilters,
-				linearProjectFilter:
-					overrides.linearProject !== undefined
-						? overrides.linearProject
-						: linearProjectFilter,
 				includeClosedIssues:
 					overrides.includeClosedIssues ?? includeClosedIssues,
 			}),
@@ -125,7 +117,6 @@ export function TasksView({
 			searchQuery,
 			typeTab,
 			projectFilters,
-			linearProjectFilter,
 			includeClosedIssues,
 		],
 	);
@@ -172,10 +163,6 @@ export function TasksView({
 	useEffect(() => {
 		storeSetProjectFilters(projectFilters);
 	}, [projectFilters, storeSetProjectFilters]);
-
-	useEffect(() => {
-		storeSetLinearProjectFilter(linearProjectFilter);
-	}, [linearProjectFilter, storeSetLinearProjectFilter]);
 
 	useEffect(() => {
 		storeSetIncludeClosedIssues(includeClosedIssues);
@@ -321,10 +308,18 @@ export function TasksView({
 		});
 	};
 
-	const showTasks = typeTab === "tasks";
-	const showLinear = typeTab === "linear";
 	const showIssues = typeTab === "issues";
-	const taskSource: TaskSource = typeTab;
+	const taskSource: TaskSource = showIssues
+		? "issues"
+		: taskTracker === "linear"
+			? "linear"
+			: "tasks";
+	const showTasks = taskSource === "tasks";
+	const showLinear = taskSource === "linear";
+
+	if (!showIssues && !taskTracker) {
+		return <div className="flex-1" />;
+	}
 
 	return (
 		<div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
@@ -360,7 +355,6 @@ export function TasksView({
 							filterTab={currentTab}
 							searchQuery={deferredSearchQuery}
 							assigneeFilter={assigneeFilter}
-							linearProjectFilter={linearProjectFilter}
 							onTaskClick={handleTaskClick}
 						/>
 					) : (
@@ -368,7 +362,6 @@ export function TasksView({
 							filterTab={currentTab}
 							searchQuery={deferredSearchQuery}
 							assigneeFilter={assigneeFilter}
-							linearProjectFilter={linearProjectFilter}
 							onTaskClick={handleTaskClick}
 							onSelectionChange={handleSelectionChange}
 						/>

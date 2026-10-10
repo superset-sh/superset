@@ -374,12 +374,7 @@ export function useOptimisticActions() {
 								: undefined;
 							return updateTask(
 								taskId,
-								{
-									assigneeId,
-									assigneeExternalId: null,
-									assigneeDisplayName: null,
-									assigneeAvatarUrl: null,
-								},
+								{ assigneeId },
 								{
 									assignee: member
 										? {

@@ -1,8 +1,8 @@
 import { cn } from "@superset/ui/utils";
-import type { FunctionComponent, JSX, ReactNode } from "react";
+import type { ComponentProps, FunctionComponent, JSX, ReactNode } from "react";
 import { createElement, memo, useMemo } from "react";
-import type { Components, ExtraProps } from "streamdown";
-import { Streamdown } from "streamdown";
+import type { Components, ExtraProps, StreamdownProps } from "streamdown";
+import { defaultRemarkPlugins, Streamdown } from "streamdown";
 
 /**
  * Streamdown's `Components` is an intersection — per-tag props on one side, an
@@ -30,7 +30,12 @@ function styled(
 	};
 }
 
-function Link({ node: _node, className, children, ...rest }: RendererProps) {
+function Link({
+	node: _node,
+	className,
+	children,
+	...rest
+}: RendererProps & ComponentProps<"a">) {
 	return (
 		<a
 			rel="noreferrer"
@@ -117,6 +122,8 @@ export type ChatMarkdownProps = {
 	className?: string;
 	/** Renderers a surface adds on top of the shared skin, such as its own code block. */
 	components?: Components;
+	/** Remark plugins a surface runs after Streamdown's own. */
+	remarkPlugins?: NonNullable<StreamdownProps["remarkPlugins"]>;
 };
 
 /** One block of agent markdown, rendered the way every chat surface does. */
@@ -124,6 +131,7 @@ export const ChatMarkdown = memo(function ChatMarkdown({
 	children,
 	className,
 	components,
+	remarkPlugins,
 }: ChatMarkdownProps): ReactNode {
 	const merged = useMemo(
 		() =>
@@ -131,6 +139,13 @@ export const ChatMarkdown = memo(function ChatMarkdown({
 				? { ...chatMarkdownComponents, ...components }
 				: chatMarkdownComponents,
 		[components],
+	);
+	const mergedRemarkPlugins = useMemo(
+		() =>
+			remarkPlugins
+				? [...Object.values(defaultRemarkPlugins), ...remarkPlugins]
+				: undefined,
+		[remarkPlugins],
 	);
 	return (
 		// The elements carry their own bottom margins, so Streamdown's
@@ -140,6 +155,7 @@ export const ChatMarkdown = memo(function ChatMarkdown({
 			components={merged}
 			linkSafety={{ enabled: false }}
 			mode="streaming"
+			remarkPlugins={mergedRemarkPlugins}
 		>
 			{children}
 		</Streamdown>

@@ -1,11 +1,4 @@
-import { describe, expect, mock, test } from "bun:test";
-
-mock.module("@/env", () => ({
-	env: {
-		BETTER_AUTH_SECRET: "test-secret",
-		NEXT_PUBLIC_API_URL: "https://api.test",
-	},
-}));
+import { describe, expect, test } from "bun:test";
 
 const {
 	beginOAuthFlow,

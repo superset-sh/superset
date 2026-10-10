@@ -31,6 +31,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 			priority: 0.8,
 		},
 		{
+			url: `${baseUrl}/pages`,
+			changeFrequency: "monthly",
+			priority: 0.8,
+		},
+		{
+			url: `${baseUrl}/automations`,
+			changeFrequency: "monthly",
+			priority: 0.8,
+		},
+		{
+			url: `${baseUrl}/browser`,
+			changeFrequency: "monthly",
+			priority: 0.8,
+		},
+		{
 			url: baseUrl,
 			changeFrequency: "weekly",
 			priority: 1.0,
@@ -71,7 +86,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 			priority: 0.8,
 		},
 		{
-			url: `${baseUrl}/join-us`,
+			url: `${baseUrl}/careers`,
 			changeFrequency: "monthly",
 			priority: 0.7,
 		},

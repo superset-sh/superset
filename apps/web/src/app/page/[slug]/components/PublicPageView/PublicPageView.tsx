@@ -1,14 +1,22 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
+import { pagePresenceUrl } from "@superset/shared/page-presence";
 import { Button } from "@superset/ui/button";
-import { PageFrame } from "@superset/ui/page-comments";
+import {
+	PageFrame,
+	PageViewers,
+	useJoinPagePresence,
+} from "@superset/ui/page-comments";
 import { Globe } from "lucide-react";
 import Link from "next/link";
+import { env } from "@/env";
 import { OpenInSupersetButton } from "../OpenInSupersetButton";
 import { ReportPageDialog } from "./components/ReportPageDialog";
+import { guestId } from "./utils/guestId";
 
 interface PublicPageViewProps {
+	pageId: string;
 	title: string;
 	viewUrl: string;
 	slug: string;
@@ -16,12 +24,22 @@ interface PublicPageViewProps {
 }
 
 export function PublicPageView({
+	pageId,
 	title,
 	viewUrl,
 	slug,
 	signedIn,
 }: PublicPageViewProps) {
 	const { t } = useLingui();
+	useJoinPagePresence({
+		pageId,
+		url: async () =>
+			pagePresenceUrl({
+				realtimeUrl: env.NEXT_PUBLIC_REALTIME_URL,
+				pageId,
+				guestId: guestId(),
+			}),
+	});
 
 	return (
 		<div className="flex h-dvh flex-col bg-background">
@@ -32,6 +50,7 @@ export function PublicPageView({
 				/>
 				<span className="min-w-0 truncate font-medium text-sm">{title}</span>
 				<div className="ml-auto flex shrink-0 items-center gap-1">
+					<PageViewers pageId={pageId} className="mr-1" />
 					<ReportPageDialog slug={slug} signedIn={signedIn} />
 					{signedIn ? (
 						<OpenInSupersetButton slug={slug} />

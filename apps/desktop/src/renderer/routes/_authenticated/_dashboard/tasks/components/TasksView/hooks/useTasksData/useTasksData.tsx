@@ -36,7 +36,6 @@ interface UseTasksDataParams {
 	filterTab: TabValue;
 	searchQuery: string;
 	assigneeFilter: string | null;
-	linearProjectFilter: string | null;
 }
 
 export function useTasksJoinedWithStatuses(): TasksPagination & {
@@ -93,7 +92,6 @@ export function useTasksData({
 	filterTab,
 	searchQuery,
 	assigneeFilter,
-	linearProjectFilter,
 }: UseTasksDataParams): TasksPagination & {
 	data: TaskWithStatus[];
 	allStatuses: SelectTaskStatus[];
@@ -120,12 +118,6 @@ export function useTasksData({
 	const filteredData = useMemo(() => {
 		let result = searchedData;
 
-		if (linearProjectFilter) {
-			result = result.filter(
-				(task) => task.externalProjectId === linearProjectFilter,
-			);
-		}
-
 		if (filterTab !== "all") {
 			result = result.filter((task) =>
 				matchesTaskStatusFilter(task.status.type, filterTab),
@@ -135,17 +127,14 @@ export function useTasksData({
 		if (assigneeFilter) {
 			result = result.filter((task) => {
 				if (assigneeFilter === "unassigned") {
-					return task.assigneeId === null && task.assigneeExternalId === null;
-				}
-				if (assigneeFilter.startsWith("ext:")) {
-					return task.assigneeExternalId === assigneeFilter.slice(4);
+					return task.assigneeId === null;
 				}
 				return task.assigneeId === assigneeFilter;
 			});
 		}
 
 		return result;
-	}, [searchedData, filterTab, assigneeFilter, linearProjectFilter]);
+	}, [searchedData, filterTab, assigneeFilter]);
 
 	return {
 		data: filteredData,

@@ -3,7 +3,10 @@ import type {
 	SessionClient,
 	StreamSocket,
 } from "@superset/chat/client";
-import { createSessionClient } from "@superset/chat/client";
+import {
+	chatTransportFromTrpc,
+	createSessionClient,
+} from "@superset/chat/client";
 import type { ChatRouter } from "@superset/chat-runtime";
 import { useWorkspaceClient } from "@superset/workspace-client";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
@@ -28,24 +31,7 @@ export function useChatWiring(): ChatWiring {
 				}),
 			],
 		});
-		const transport: ChatTransport = {
-			createSession: (input) => client.createSession.mutate(input),
-			prompt: (input) => client.prompt.mutate(input),
-			removeQueuedPrompt: (input) => client.removeQueuedPrompt.mutate(input),
-			steerQueuedPrompt: (input) => client.steerQueuedPrompt.mutate(input),
-			resumeQueue: (input) => client.resumeQueue.mutate(input),
-			cancelTurn: (input) => client.cancelTurn.mutate(input),
-			stopBackgroundTask: (input) => client.stopBackgroundTask.mutate(input),
-			respondToApproval: (input) => client.respondToApproval.mutate(input),
-			setMode: (input) => client.setMode.mutate(input),
-			setConfigOption: (input) => client.setConfigOption.mutate(input),
-			closeSession: (input) => client.closeSession.mutate(input),
-			forkSession: (input) => client.forkSession.mutate(input),
-			getSession: (input) => client.getSession.query(input),
-			getQueue: (input) => client.getQueue.query(input),
-			listSessions: (input) => client.listSessions.query(input),
-			getItems: (input) => client.getItems.query(input),
-		};
+		const transport = chatTransportFromTrpc(client);
 		const createSocket = (url: string): StreamSocket => {
 			const wsUrl = new URL(url);
 			wsUrl.protocol = wsUrl.protocol === "https:" ? "wss:" : "ws:";

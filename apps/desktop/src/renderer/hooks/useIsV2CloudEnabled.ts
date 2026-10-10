@@ -38,6 +38,12 @@ export function useIsV2OnlyUser(): boolean {
 	return isV2OnlyUser(session?.user?.createdAt);
 }
 
+interface V2SurfaceInput {
+	organizationId: string | null | undefined;
+	userCreatedAt: Date | string | null | undefined;
+	forcedFlipActive?: boolean;
+}
+
 /**
  * True when v2 is locked on for this machine (org migration completed, or
  * the forced-flip backstop is active). The optInV2 override has no effect in
@@ -46,21 +52,39 @@ export function useIsV2OnlyUser(): boolean {
  */
 export function useIsV1FlipLocked(): boolean {
 	const { data: session } = authClient.useSession();
-	const organizationId = session?.session?.activeOrganizationId;
+	return useIsV1FlipLockedFor({
+		organizationId: session?.session?.activeOrganizationId,
+	});
+}
+
+export function useIsV1FlipLockedFor({
+	organizationId,
+	forcedFlipActive = isV1ForcedFlipActive(),
+}: Pick<V2SurfaceInput, "organizationId" | "forcedFlipActive">): boolean {
 	const completedThisSession = useIsV1MigrationCompleteNow(organizationId);
 	return (
 		isV1MigrationCompleteAtBoot(organizationId) ||
 		completedThisSession ||
-		isV1ForcedFlipActive()
+		forcedFlipActive
 	);
 }
 
 /** Returns whether v2 is currently active for this user. */
 export function useIsV2CloudEnabled(): boolean {
-	const v2Only = useIsV2OnlyUser();
-	const optInV2 = useV2LocalOverrideStore((s) => s.optInV2);
 	const { data: session } = authClient.useSession();
-	const organizationId = session?.session?.activeOrganizationId;
+	return useIsV2CloudEnabledFor({
+		organizationId: session?.session?.activeOrganizationId,
+		userCreatedAt: session?.user?.createdAt,
+	});
+}
+
+export function useIsV2CloudEnabledFor({
+	organizationId,
+	userCreatedAt,
+	forcedFlipActive = isV1ForcedFlipActive(),
+}: V2SurfaceInput): boolean {
+	const v2Only = isV2OnlyUser(userCreatedAt);
+	const optInV2 = useV2LocalOverrideStore((s) => s.optInV2);
 	const completedThisSession = useIsV1MigrationCompleteNow(organizationId);
 	// Migrate-then-flip: once this machine's v1 data has fully migrated for
 	// the org, v2 wins — including over an explicit opt-out (D5, sunset).
@@ -71,7 +95,7 @@ export function useIsV2CloudEnabled(): boolean {
 	// Backstop: past the forced-flip version, machines whose migration never
 	// completed (persistently failing entities) flip anyway; the headless
 	// migrator keeps retrying post-flip and manual import remains available.
-	if (isV1ForcedFlipActive()) {
+	if (forcedFlipActive) {
 		return true;
 	}
 	let effectiveOptIn = optInV2;

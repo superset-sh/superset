@@ -1,6 +1,10 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { PromptInputHandle } from "@superset/chat-ui/PromptInput";
 import {
+	isDropHandled,
+	markDropHandled,
+} from "@superset/chat-ui/utils/handledDrops";
+import {
 	getAgentEffortSupport,
 	getAgentEfforts,
 	getAgentModelSupport,
@@ -26,7 +30,14 @@ import {
 	PaperclipIcon,
 	Settings2Icon,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	type DragEvent as ReactDragEvent,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { GoIssueOpened } from "react-icons/go";
 import { HiOutlineCheckCircle } from "react-icons/hi2";
 import { LuGitPullRequest } from "react-icons/lu";
@@ -45,6 +56,7 @@ import { useAgentModelPreference } from "renderer/hooks/useAgentModelPreference"
 import { useAgentModePreference } from "renderer/hooks/useAgentModePreference";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { useSelectedHostProjectIds } from "renderer/hooks/useSelectedHostProjectIds";
+import { useTaskTracker } from "renderer/hooks/useTaskTracker";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { CLOUD_AGENT_CHOICES } from "renderer/hooks/useV2AgentChoices/cloud-agent-choices";
 import { track } from "renderer/lib/analytics";
@@ -164,8 +176,6 @@ export function NewWorkspaceScreen({
 		},
 		[attachments],
 	);
-	const addAttachmentsRef = useRef(addAttachments);
-	addAttachmentsRef.current = addAttachments;
 	const hostService = useLocalHostService();
 	const { activeHostUrl, machineId } = hostService;
 	const relayUrl = useRelayUrl();
@@ -210,62 +220,70 @@ export function NewWorkspaceScreen({
 		track("new_workspace_screen_shown");
 	}, [isOpen]);
 
-	// Page-wide drop zone. dragover fires continuously while a
-	// drag is over the window, so a short timeout self-heals every missed-event
+	// Main-area drop zone. dragover fires continuously while a
+	// drag is over it, so a short timeout self-heals every missed-event
 	// case (Esc-cancelled drags, drops outside the window) that an enter/leave
 	// counter gets permanently stuck on.
 	const [isDraggingFiles, setIsDraggingFiles] = useState(false);
+	const dragEndTimerRef = useRef<number | null>(null);
+	const clearDragEndTimer = () => {
+		if (dragEndTimerRef.current !== null)
+			window.clearTimeout(dragEndTimerRef.current);
+		dragEndTimerRef.current = null;
+	};
+	const recordPaths = (files: FileList | null | undefined) => {
+		for (const file of Array.from(files ?? [])) {
+			try {
+				const path = window.webUtils.getPathForFile(file);
+				if (!path) continue;
+				// Attachment items only expose the basename, so the map is
+				// name-keyed; a second same-named file from elsewhere makes the
+				// name ambiguous — poison it so no card reveals the wrong file.
+				const existing = newWorkspaceAttachmentPaths.get(file.name);
+				newWorkspaceAttachmentPaths.set(
+					file.name,
+					existing !== undefined && existing !== path ? "" : path,
+				);
+			} catch {
+				// pasted/synthetic files have no filesystem path
+			}
+		}
+	};
+	const recordPathsRef = useRef(recordPaths);
+	recordPathsRef.current = recordPaths;
+	const handleDragOver = (e: ReactDragEvent<HTMLDivElement>) => {
+		if (!e.dataTransfer.types.includes("Files")) return;
+		e.preventDefault();
+		setIsDraggingFiles(true);
+		clearDragEndTimer();
+		dragEndTimerRef.current = window.setTimeout(
+			() => setIsDraggingFiles(false),
+			200,
+		);
+	};
+	const handleDrop = (e: ReactDragEvent<HTMLDivElement>) => {
+		recordPaths(e.dataTransfer.files);
+		clearDragEndTimer();
+		setIsDraggingFiles(false);
+		const files = e.dataTransfer.files;
+		if (isDropHandled(e.nativeEvent) || files.length === 0) return;
+		e.preventDefault();
+		markDropHandled(e.nativeEvent);
+		addAttachments(files);
+	};
 	useEffect(() => {
 		if (!isOpen) return;
-		let timer: number | null = null;
-		const recordPaths = (files: FileList | null | undefined) => {
-			for (const file of Array.from(files ?? [])) {
-				try {
-					const path = window.webUtils.getPathForFile(file);
-					if (!path) continue;
-					// Attachment items only expose the basename, so the map is
-					// name-keyed; a second same-named file from elsewhere makes the
-					// name ambiguous — poison it so no card reveals the wrong file.
-					const existing = newWorkspaceAttachmentPaths.get(file.name);
-					newWorkspaceAttachmentPaths.set(
-						file.name,
-						existing !== undefined && existing !== path ? "" : path,
-					);
-				} catch {
-					// pasted/synthetic files have no filesystem path
-				}
-			}
-		};
-		const onDragOver = (e: DragEvent) => {
-			if (!Array.from(e.dataTransfer?.types ?? []).includes("Files")) return;
-			e.preventDefault();
-			setIsDraggingFiles(true);
-			if (timer !== null) window.clearTimeout(timer);
-			timer = window.setTimeout(() => setIsDraggingFiles(false), 200);
-		};
-		const onDrop = (e: DragEvent) => {
-			recordPaths(e.dataTransfer?.files);
-			if (timer !== null) window.clearTimeout(timer);
-			timer = null;
-			setIsDraggingFiles(false);
-			const files = e.dataTransfer?.files;
-			if (e.defaultPrevented || !files || files.length === 0) return;
-			e.preventDefault();
-			addAttachmentsRef.current(files);
-		};
 		const onChange = (e: Event) => {
 			if (e.target instanceof HTMLInputElement && e.target.type === "file") {
-				recordPaths(e.target.files);
+				recordPathsRef.current(e.target.files);
 			}
 		};
-		document.addEventListener("dragover", onDragOver);
-		document.addEventListener("drop", onDrop);
 		document.addEventListener("change", onChange, true);
 		return () => {
-			document.removeEventListener("dragover", onDragOver);
-			document.removeEventListener("drop", onDrop);
 			document.removeEventListener("change", onChange, true);
-			if (timer !== null) window.clearTimeout(timer);
+			if (dragEndTimerRef.current !== null)
+				window.clearTimeout(dragEndTimerRef.current);
+			dragEndTimerRef.current = null;
 			setIsDraggingFiles(false);
 		};
 	}, [isOpen]);
@@ -366,6 +384,7 @@ export function NewWorkspaceScreen({
 		removeLinkedPR,
 	} = useLinkedContext(draft.linkedIssues, updateDraft);
 	const linkTaskLabel = t({ message: "Link task" });
+	const taskTracker = useTaskTracker();
 
 	// Restore the last-used launch host once per mount, like the modal does.
 	// A host named in the URL (the sidebar's Cloud "+") wins, and applies when
@@ -683,7 +702,12 @@ export function NewWorkspaceScreen({
 
 	// ── Render ───────────────────────────────────────────────────────
 	return (
-		<div className="absolute inset-0 z-40 flex flex-col items-center overflow-y-auto bg-background">
+		// biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop target; keyboard users attach via the composer's file picker
+		<div
+			className="absolute inset-0 z-40 flex flex-col items-center overflow-y-auto bg-background"
+			onDragOver={handleDragOver}
+			onDrop={handleDrop}
+		>
 			<AnimatePresence>
 				{isDraggingFiles && (
 					<motion.div
@@ -928,28 +952,31 @@ export function NewWorkspaceScreen({
 						}
 						toolbarEnd={
 							<div className="flex items-center gap-2">
-								<IssueLinkCommand
-									onSelect={addLinkedIssue}
-									tooltipLabel={linkTaskLabel}
-								>
-									<PromptInputButton
-										aria-label={linkTaskLabel}
-										className={`${PILL_BUTTON_CLASS} w-[22px]`}
+								{!taskTracker ? null : taskTracker === "linear" ? (
+									<LinearIssueLinkCommand
+										onSelect={addLinkedLinearIssue}
+										tooltipLabel={t({ message: "Link Linear issue" })}
 									>
-										<HiOutlineCheckCircle className="size-3.5" />
-									</PromptInputButton>
-								</IssueLinkCommand>
-								<LinearIssueLinkCommand
-									onSelect={addLinkedLinearIssue}
-									tooltipLabel={t({ message: "Link Linear issue" })}
-								>
-									<PromptInputButton
-										aria-label={t({ message: "Link Linear issue" })}
-										className={`${PILL_BUTTON_CLASS} w-[22px]`}
+										<PromptInputButton
+											aria-label={t({ message: "Link Linear issue" })}
+											className={`${PILL_BUTTON_CLASS} w-[22px]`}
+										>
+											<SiLinear className="size-3.5" />
+										</PromptInputButton>
+									</LinearIssueLinkCommand>
+								) : (
+									<IssueLinkCommand
+										onSelect={addLinkedIssue}
+										tooltipLabel={linkTaskLabel}
 									>
-										<SiLinear className="size-3.5" />
-									</PromptInputButton>
-								</LinearIssueLinkCommand>
+										<PromptInputButton
+											aria-label={linkTaskLabel}
+											className={`${PILL_BUTTON_CLASS} w-[22px]`}
+										>
+											<HiOutlineCheckCircle className="size-3.5" />
+										</PromptInputButton>
+									</IssueLinkCommand>
+								)}
 								<GitHubIssueLinkCommand
 									onSelect={(issue) =>
 										addLinkedGitHubIssue(

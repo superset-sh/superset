@@ -17,8 +17,8 @@ import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { BreadcrumbJsonLd, JsonLdScript } from "@/components/JsonLd";
 import { getAllPeople, getPersonById } from "@/lib/people";
+import { getTeamBioText } from "../../utils/teamBio";
 import { TeamBio } from "../components/TeamBio";
-import { getTeamBioText } from "../utils/teamBio";
 
 interface PageProps {
 	params: Promise<{ id: string }>;

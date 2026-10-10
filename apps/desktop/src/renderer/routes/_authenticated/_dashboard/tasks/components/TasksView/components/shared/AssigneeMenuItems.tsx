@@ -16,7 +16,6 @@ type AssigneeOption = Pick<SelectUser, "id" | "name" | "email" | "image">;
 interface AssigneeMenuItemsProps {
 	users: AssigneeOption[];
 	currentAssigneeId: string | null;
-	hasExternalAssignee?: boolean;
 	onSelect: (userId: string | null) => void;
 	MenuItem: React.ComponentType<MenuItemProps>;
 	MenuSeparator: React.ComponentType;
@@ -25,7 +24,6 @@ interface AssigneeMenuItemsProps {
 export function AssigneeMenuItems({
 	users,
 	currentAssigneeId,
-	hasExternalAssignee,
 	onSelect,
 	MenuItem,
 	MenuSeparator,
@@ -43,7 +41,7 @@ export function AssigneeMenuItems({
 					<span className="text-sm">
 						<Trans>No assignee</Trans>
 					</span>
-					{!currentAssigneeId && !hasExternalAssignee && (
+					{!currentAssigneeId && (
 						<span className="ml-auto text-xs text-muted-foreground">✓</span>
 					)}
 				</MenuItem>

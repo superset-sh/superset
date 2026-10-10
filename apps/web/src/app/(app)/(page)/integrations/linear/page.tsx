@@ -11,13 +11,18 @@ import { AlertTriangle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SiLinear } from "react-icons/si";
+import { env } from "@/env";
 import { initServerI18n } from "@/lib/i18n-server";
 import { api } from "@/trpc/server";
 import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
 import { ConnectionControls } from "./components/ConnectionControls";
 import { TeamSelector } from "./components/TeamSelector";
 
-export default async function LinearIntegrationPage() {
+export default async function LinearIntegrationPage({
+	searchParams,
+}: {
+	searchParams: Promise<{ taskTracker?: string }>;
+}) {
 	const i18n = await initServerI18n();
 	const CALLBACK_MESSAGES = {
 		oauth_denied: i18n._(
@@ -102,6 +107,13 @@ export default async function LinearIntegrationPage() {
 	});
 	const isConnected = !!connection;
 	const needsReconnect = !!connection?.needsReconnect;
+
+	const { taskTracker } = await searchParams;
+	if (taskTracker === "linear" && (!isConnected || needsReconnect)) {
+		redirect(
+			`${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/connect?organizationId=${organization.id}&taskTracker=linear`,
+		);
+	}
 
 	return (
 		<div className="space-y-8">

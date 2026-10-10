@@ -1,10 +1,5 @@
-import { afterAll, afterEach, describe, expect, mock, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, describe, expect, mock, test } from "bun:test";
 
-// happy-dom over the preloaded plain-object document. Process-wide, so this
-// unregisters in afterAll to leave the other renderer suites their document.
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
@@ -15,18 +10,10 @@ const { act, cleanup, fireEvent, render, within } = await import(
 const { TokenField, SEPARATORS_WITH_SPACE } = await import("./TokenField");
 
 afterEach(cleanup);
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
-
 /**
  * Renders the field over a live `values` array, the way its parents do — the
  * chip owns the scope and feeds it back, so a test that never re-renders would
  * pass while a second commit silently dropped the first.
- *
- * Queries go through the render's baseElement, not the global `screen`, which
- * binds document.body at import time and goes stale when another suite
- * unregisters happy-dom.
  */
 async function setup(
 	initial: string[] = [],

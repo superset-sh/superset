@@ -12,8 +12,9 @@
  *      forks start from
  *   4. a probe fork of that golden, checked as a workspace: host-service,
  *      the desktop stream, the checkout, the firewall, the gate
- *   5. the rows: the shared `Default` environment -> image + bundle, the
- *      internal organization's environment -> the new golden + bundle + the
+ *   5. the rows, in one transaction: the shared `Default` environment and
+ *      every environment that has a bundle -> the new bundle, `Default` ->
+ *      image, the internal organization's environment -> the new golden + the
  *      setup and start overrides; the previous golden deleted
  *
  *   SUPERSET_INTERNAL_ORGANIZATION_ID=… SUPERSET_INTERNAL_ENVIRONMENT_ID=… bun run release [--production] [--skip-image] [--keep-old]
@@ -439,7 +440,7 @@ log(`probe: ${probe} deleted`);
 const { db, dbWs } = await import("@superset/db/client");
 const { environments, environmentRepositories, githubRepositories } =
 	await import("@superset/db/schema");
-const { and, eq } = await import("drizzle-orm");
+const { and, eq, isNotNull, isNull, or } = await import("drizzle-orm");
 const { seedSharedEnvironments } = await import("./seed");
 
 // The golden baked the monorepo at its path; a fork asks for the same, and
@@ -455,15 +456,6 @@ if (!monorepo)
 		`rows: ${REPO_FULL_NAME} is not connected to organization ${ORGANIZATION_ID}; install the GitHub App there first; ${golden} left for inspection`,
 	);
 
-await seedSharedEnvironments(SANDBOX_IMAGE_NAME);
-await db
-	.update(environments)
-	.set({ bundleSha: bundle.sha256 })
-	.where(eq(environments.organizationId, SHARED_ENVIRONMENT_ORGANIZATION_ID));
-log(
-	`rows: ${SHARED_ENVIRONMENT_NAME} -> image ${SANDBOX_IMAGE_NAME}, bundle ${bundle.sha256.slice(0, 12)}`,
-);
-
 const previous = ENVIRONMENT_ID
 	? await db.query.environments.findFirst({
 			where: (row, { and: both, eq: equals }) =>
@@ -477,6 +469,8 @@ if (ENVIRONMENT_ID && !previous)
 	fail(
 		`rows: environment ${ENVIRONMENT_ID} is not in organization ${ORGANIZATION_ID}; ${golden} left for inspection`,
 	);
+
+await seedSharedEnvironments(SANDBOX_IMAGE_NAME);
 const fromGolden = {
 	provider: "vercel" as const,
 	sourceKind: "fork" as const,
@@ -486,7 +480,20 @@ const fromGolden = {
 	hooksRepositoryId: monorepo.id,
 	archivedAt: null,
 };
-const internal = await dbWs.transaction(async (tx) => {
+const { internal, bundled } = await dbWs.transaction(async (tx) => {
+	const bundled = await tx
+		.update(environments)
+		.set({ bundleSha: bundle.sha256 })
+		.where(
+			and(
+				isNull(environments.archivedAt),
+				or(
+					isNotNull(environments.bundleSha),
+					eq(environments.organizationId, SHARED_ENVIRONMENT_ORGANIZATION_ID),
+				),
+			),
+		)
+		.returning({ id: environments.id });
 	const [internal] = previous
 		? await tx
 				.update(environments)
@@ -510,8 +517,11 @@ const internal = await dbWs.transaction(async (tx) => {
 		environmentId: internal.id,
 		repositoryId: monorepo.id,
 	});
-	return internal;
+	return { internal, bundled };
 });
+log(
+	`rows: ${SHARED_ENVIRONMENT_NAME} -> image ${SANDBOX_IMAGE_NAME}; ${bundled.length} environments -> bundle ${bundle.sha256.slice(0, 12)}`,
+);
 log(
 	`rows: ${internal.name} (${internal.id}) -> fork of ${golden}, bundle ${bundle.sha256.slice(0, 12)}`,
 );

@@ -8,6 +8,10 @@
 			"types": "./src/index.ts",
 			"default": "./src/index.ts"
 		},
+		"./i18n-error": {
+			"types": "./src/i18n-error.ts",
+			"default": "./src/i18n-error.ts"
+		},
 		"./billing": {
 			"types": "./src/lib/billing/plan.ts",
 			"default": "./src/lib/billing/plan.ts"
@@ -136,7 +140,7 @@
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
-		"test": "bun test --isolate"
+		"test": "bun test"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "0.78.0",

@@ -1,5 +1,17 @@
-import type { OutboxEntry, TurnGroup } from "@superset/chat/core";
-import type { Item, ToolCall, UserMessage } from "@superset/chat/protocol";
+import {
+	type OutboxEntry,
+	type TurnGroup,
+	toolRunKey,
+	transcriptItemKey,
+} from "@superset/chat/core";
+import type {
+	ApprovalRequest,
+	Item,
+	ToolCall,
+	UserMessage,
+} from "@superset/chat/protocol";
+import type { PageLink, PageLinkFinder } from "../../../../utils/pageLinks";
+import { turnPageLinks } from "../turnPageLinks";
 
 export type TranscriptRow =
 	| {
@@ -8,8 +20,20 @@ export type TranscriptRow =
 			groupStart: boolean;
 			startedAtMs: number;
 			completedAtMs: number | undefined;
+			running: boolean;
 	  }
-	| { kind: "item"; key: string; groupStart: boolean; item: Item }
+	| {
+			kind: "item";
+			key: string;
+			groupStart: boolean;
+			item: Item;
+			/** Pages to show as cards under a tool call. */
+			pages?: readonly PageLink[];
+			/** Slugs an agent message leaves to the earlier message that shows them. */
+			pagesShownEarlier?: string;
+			/** An approval whose target tool call is the row right above it. */
+			afterTarget?: boolean;
+	  }
 	| { kind: "outbox"; key: string; groupStart: boolean; entry: OutboxEntry }
 	| {
 			kind: "tool_run";
@@ -17,6 +41,8 @@ export type TranscriptRow =
 			groupStart: boolean;
 			items: ToolCall[];
 			defaultCollapsed: boolean;
+			/** Pages to show as cards under the run, so a collapsed run still shows them. */
+			pages?: readonly PageLink[];
 	  }
 	| {
 			kind: "turn_status";
@@ -26,16 +52,12 @@ export type TranscriptRow =
 			message: string | undefined;
 	  };
 
-function itemKey(item: Item): string {
-	return item.kind === "user_message"
-		? ((item as UserMessage).clientId ?? item.id)
-		: item.id;
-}
-
 export function transcriptRows(
 	groups: readonly TurnGroup[],
 	outbox: readonly OutboxEntry[],
 	pendingApprovalTargets: ReadonlySet<string>,
+	findPageLinks: PageLinkFinder,
+	hiddenToolIds: ReadonlySet<string> = new Set(),
 ): TranscriptRow[] {
 	const rows: TranscriptRow[] = [];
 	const echoedClientIds = new Set<string>();
@@ -57,37 +79,57 @@ export function transcriptRows(
 				groupStart,
 				startedAtMs: turn.startedAtMs,
 				completedAtMs: turn.completedAtMs,
+				running: turn.status === "running",
 			});
 		};
 		const turnSettled = turn !== null && turn.status !== "running";
+		const links = turnPageLinks(group.entries, turnSettled, findPageLinks);
 		group.entries.forEach((entry, index) => {
 			if (entry.kind !== "item" || entry.item.kind !== "user_message") {
 				placeClock();
 			}
 			if (entry.kind === "item") {
+				if (hiddenToolIds.has(entry.item.id)) return;
 				const clientId =
 					entry.item.kind === "user_message"
 						? (entry.item as UserMessage).clientId
 						: undefined;
 				if (clientId) echoedClientIds.add(clientId);
+				const pages = links.fromTools.get(entry.item.id);
+				const pagesShownEarlier = links.shownEarlier.get(entry.item.id);
+				const targetId =
+					entry.item.kind === "approval_request"
+						? (entry.item as ApprovalRequest).targetItemId
+						: null;
+				const above = groupStart ? undefined : rows.at(-1);
+				const afterTarget =
+					targetId !== null &&
+					((above?.kind === "item" && above.item.id === targetId) ||
+						(above?.kind === "tool_run" &&
+							above.items.at(-1)?.id === targetId));
 				push({
 					kind: "item",
-					key: itemKey(entry.item),
+					key: transcriptItemKey(entry.item),
 					groupStart,
 					item: entry.item,
+					...(pages ? { pages } : {}),
+					...(pagesShownEarlier ? { pagesShownEarlier } : {}),
+					...(afterTarget ? { afterTarget } : {}),
 				});
 				return;
 			}
+			const items = entry.items.filter((tool) => !hiddenToolIds.has(tool.id));
+			if (items.length === 0) return;
+			const pages = items.flatMap((tool) => links.fromTools.get(tool.id) ?? []);
 			push({
 				kind: "tool_run",
-				key: `tools:${group.turnId}:${entry.items[0]?.id ?? index}`,
+				key: toolRunKey(group.turnId, entry.items, index),
 				groupStart,
-				items: entry.items,
-				defaultCollapsed:
-					(turnSettled ||
-						(index < group.entries.length - 1 &&
-							!entry.items.some((tool) => tool.status === "running"))) &&
-					!entry.items.some((tool) => pendingApprovalTargets.has(tool.id)),
+				items,
+				defaultCollapsed: !items.some((tool) =>
+					pendingApprovalTargets.has(tool.id),
+				),
+				...(pages.length > 0 ? { pages } : {}),
 			});
 		});
 		placeClock();

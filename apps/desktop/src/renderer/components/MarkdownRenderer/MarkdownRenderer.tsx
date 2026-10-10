@@ -1,6 +1,6 @@
 import { cn } from "@superset/ui/utils";
 import { useRef } from "react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
@@ -20,6 +20,8 @@ interface MarkdownRendererProps {
 	className?: string;
 	/** Parse raw inline HTML. Disable for remote/untrusted content (e.g. server-driven notices). */
 	allowHtml?: boolean;
+	/** Element renderers layered over the style's own. */
+	components?: Partial<Components>;
 }
 
 export function MarkdownRenderer({
@@ -27,6 +29,7 @@ export function MarkdownRenderer({
 	style: styleProp,
 	className,
 	allowHtml = true,
+	components,
 }: MarkdownRendererProps) {
 	const globalStyle = useMarkdownStyle();
 	const style = styleProp ?? globalStyle;
@@ -48,7 +51,11 @@ export function MarkdownRenderer({
 						rehypePlugins={
 							allowHtml ? [rehypeRaw, rehypeSanitize] : [rehypeSanitize]
 						}
-						components={config.components}
+						components={
+							components
+								? { ...config.components, ...components }
+								: config.components
+						}
 					>
 						{content}
 					</ReactMarkdown>

@@ -11,8 +11,10 @@ import { usePagesList } from "renderer/routes/_authenticated/_dashboard/hooks/us
 import { useStore } from "zustand";
 import { NewPageComposer } from "../../../../components/NewPageComposer";
 import type { CreateNewAgentSession } from "../../../../hooks/useAgentSessionLauncher";
+import { useRightPaneLinkTarget } from "../../../../providers/RightPaneLinkTargetProvider";
 import type { PagePaneData, PaneViewerData } from "../../../../types";
 import { openBesidePane } from "../../../../utils/openBesidePane";
+import { openPagePaneInStore } from "../../../../utils/openPagePaneInStore";
 import { PagesListCard, type PagesListItem } from "./components/PagesListCard";
 
 const WORKSPACE_PAGE_LIMIT = 200;
@@ -37,6 +39,7 @@ export function PagesListPane({
 	const paneId = context.pane.id;
 	const tabId = context.tab.id;
 	const pagePolicy = usePagePolicy("4-tier");
+	const rightPane = useRightPaneLinkTarget();
 	const [search, setSearch] = useState("");
 	const [composing, setComposing] = useState(false);
 	const debouncedSearch = useDebouncedValue(search.trim(), 200) || undefined;
@@ -79,14 +82,17 @@ export function PagesListPane({
 				});
 				return;
 			}
-			const pagePane = {
-				kind: "page",
-				data: {
-					pageId: page.id,
-					slug: page.slug,
-					title: page.title,
-				} as PagePaneData,
-			} as const;
+			const pageData: PagePaneData = {
+				pageId: page.id,
+				slug: page.slug,
+				title: page.title,
+			};
+			if (action === "rightPane" && rightPane) {
+				rightPane.reveal();
+				openPagePaneInStore(rightPane.store, pageData, "tab");
+				return;
+			}
+			const pagePane = { kind: "page", data: pageData } as const;
 			const state = store.getState();
 			if (action === "newTab") {
 				openBesidePane(store, paneId, pagePane, true);
@@ -98,7 +104,7 @@ export function PagesListPane({
 			}
 			state.replacePane({ tabId, paneId, newPane: pagePane });
 		},
-		[pagePolicy, store, tabId, paneId],
+		[pagePolicy, rightPane, store, tabId, paneId],
 	);
 
 	const cards = (pages: PagesListItem[]) => (

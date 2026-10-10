@@ -39,17 +39,9 @@ function LinearIssueDetailPage() {
 				search: search.search ?? "",
 				typeTab: "linear",
 				projectFilters: resolveProjectFilterParams(search.projects, null, []),
-				linearProjectFilter: search.linearProject ?? null,
 				includeClosedIssues: search.state === "all",
 			}),
-		[
-			search.assignee,
-			search.linearProject,
-			search.projects,
-			search.search,
-			search.state,
-			search.tab,
-		],
+		[search.assignee, search.projects, search.search, search.state, search.tab],
 	);
 
 	const { data, isLoading, error, refetch } =

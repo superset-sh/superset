@@ -105,6 +105,7 @@ export function ModelPicker({
 						<img
 							alt=""
 							className="size-3.5 shrink-0 object-contain"
+							draggable={false}
 							src={agentIcon}
 						/>
 					) : null}
@@ -191,6 +192,7 @@ export function ModelPicker({
 									<img
 										alt=""
 										className="size-3.5 shrink-0 object-contain"
+										draggable={false}
 										src={agentIcon}
 									/>
 								) : null}

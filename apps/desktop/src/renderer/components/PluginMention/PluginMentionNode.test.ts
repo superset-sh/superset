@@ -1,19 +1,10 @@
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
-
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
-
-const { afterAll, describe, expect, it } = await import("bun:test");
+const { describe, expect, it } = await import("bun:test");
 const { Editor } = await import("@tiptap/core");
 const { default: Document } = await import("@tiptap/extension-document");
 const { default: Paragraph } = await import("@tiptap/extension-paragraph");
 const { default: Text } = await import("@tiptap/extension-text");
 const { Markdown } = await import("tiptap-markdown");
 const { PluginMentionNode } = await import("./PluginMentionNode");
-
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
 
 const PLUGINS = [
 	{ name: "linear", displayName: "Linear", description: "Issues" },

@@ -26,6 +26,15 @@ describe("cloud agent launch", () => {
 		expect(readCloudAgentLaunch(env)?.attachmentFileIds).toEqual([fileId]);
 	});
 
+	it("reaches the box as a chat", () => {
+		const env = cloudAgentLaunchToEnv({
+			agent: "claude",
+			prompt: "fix the bug",
+			surface: "chat",
+		});
+		expect(readCloudAgentLaunch(env)?.surface).toBe("chat");
+	});
+
 	it("refuses an agent the sandbox does not install", () => {
 		expect(
 			cloudAgentLaunchSchema.safeParse({ agent: "nope", prompt: "" }).success,

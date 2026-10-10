@@ -33,6 +33,7 @@ import {
 } from "renderer/lib/pierreTree";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/components/DiscardConfirmDialog";
 import { PierreRowContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/PierreRowContextMenu";
+import { setFileDragData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/utils/setFileDragData";
 import {
 	type ChangesetFile,
 	getChangesetFileKey,
@@ -42,7 +43,6 @@ import {
 	toRelativeWorkspacePath,
 } from "shared/absolute-paths";
 import type { FoldSignal } from "../../ChangesFileList";
-import { setFileDragData } from "../../hooks/useFileDrag";
 import { useStagingMutations } from "../../hooks/useStagingMutations";
 import { StageToggleButton } from "../StageToggleButton";
 import { FileRowContextMenuItems } from "./components/FileRowContextMenuItems";

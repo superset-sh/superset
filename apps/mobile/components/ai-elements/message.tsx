@@ -484,7 +484,9 @@ export const MessageResponse = memo(
 			{...props}
 		/>
 	),
-	(prevProps, nextProps) => prevProps.children === nextProps.children,
+	(prevProps, nextProps) =>
+		prevProps.children === nextProps.children &&
+		prevProps.markdownStyle === nextProps.markdownStyle,
 );
 
 MessageResponse.displayName = "MessageResponse";

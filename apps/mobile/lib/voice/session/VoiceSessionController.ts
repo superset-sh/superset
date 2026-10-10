@@ -160,8 +160,9 @@ export class VoiceSessionController {
 	}
 
 	private async connect(seed = false): Promise<void> {
-		const { clientSecret } = await this.deps.mint();
-		if (this.ended) return;
+		const clientSecret = this.deps.mint().then((minted) => minted.clientSecret);
+		// Awaited inside the transport; a refusal must not also surface unhandled.
+		clientSecret.catch(() => {});
 		const transport = this.deps.createTransport();
 		const client = new RealtimeClient(transport, {
 			onStatus: (status) => {

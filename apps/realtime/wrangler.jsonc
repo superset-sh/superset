@@ -24,6 +24,18 @@
 	},
 	// Read-only: a page's hub reads its manifest to decide who may connect.
 	"r2_buckets": [{ "binding": "PRIVATE", "bucket_name": "superset-private" }],
+	"ratelimits": [
+		{
+			"name": "GUEST_PRESENCE_BY_IP",
+			"namespace_id": "4101",
+			"simple": { "limit": 60, "period": 60 }
+		},
+		{
+			"name": "GUEST_PRESENCE_BY_PAGE",
+			"namespace_id": "4102",
+			"simple": { "limit": 120, "period": 60 }
+		}
+	],
 	"migrations": [
 		{ "tag": "v1", "new_sqlite_classes": ["OrgHub"] },
 		{ "tag": "v2", "new_sqlite_classes": ["PageHub"] }

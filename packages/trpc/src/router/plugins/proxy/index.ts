@@ -5,5 +5,6 @@ export {
 	type PluginTarget,
 	PluginTargetError,
 	resolveTarget,
+	targetKey,
 } from "./resolve-target";
 export { forgetUpstreamTools } from "./upstream-catalog";

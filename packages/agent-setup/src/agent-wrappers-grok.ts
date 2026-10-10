@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import {
 	buildWrapperScript,
@@ -15,6 +14,7 @@ import {
 	type ManagedTomlBlockSpec,
 	removeManagedTomlBlock,
 } from "./managed-toml-block";
+import { resolveUserHomeDir } from "./paths";
 
 export const GROK_COMPAT_MARKER_START =
 	"# >>> superset-managed-grok-compat v1 (do not edit) >>>";
@@ -57,7 +57,7 @@ const GROK_MANAGED_HOOK_COMMAND = getManagedNotifyHookCommand("grok");
 const GROK_COMPAT_HOOK_VENDORS = ["claude", "cursor"] as const;
 
 function getGrokHomeDir(): string {
-	return path.join(os.homedir(), ".grok");
+	return path.join(resolveUserHomeDir(), ".grok");
 }
 
 export function getGrokHooksJsonPath(): string {

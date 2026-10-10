@@ -1,8 +1,8 @@
+import { userMessageText } from "@superset/chat/core";
 import type { UserMessage } from "@superset/chat/protocol";
 import { Queue } from "@superset/ui/ai-elements/queue";
 import type { KeyboardEvent, RefObject } from "react";
 import { parseAttachmentTags } from "../../../../utils/attachmentTags";
-import { userMessageText } from "../../../../utils/userMessageText";
 import { QueuedPromptRow } from "./components/QueuedPromptRow";
 import { QueuePausedBar } from "./components/QueuePausedBar";
 

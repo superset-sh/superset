@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import type { TaskTracker } from "@superset/db/enums";
 import { errorMessage } from "@superset/i18n/errors";
 import { useFormat } from "@superset/i18n/react";
 import {
@@ -22,6 +23,13 @@ import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@superset/ui/select";
 import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
 import {
@@ -39,6 +47,7 @@ import {
 	HiOutlineClipboardDocument,
 	HiOutlineClipboardDocumentCheck,
 } from "react-icons/hi2";
+import { env } from "renderer/env.renderer";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -61,6 +70,9 @@ import {
 } from "../../../utils/settings-search";
 import { OrganizationLogo } from "./components/OrganizationLogo";
 import { SlugDialog } from "./components/SlugDialog";
+
+const LINEAR_CONNECT_POLL_INTERVAL_MS = 3_000;
+const LINEAR_CONNECT_WAIT_MS = 5 * 60_000;
 
 interface OrganizationSettingsProps {
 	visibleItems?: SettingItemId[] | null;
@@ -113,9 +125,14 @@ export function OrganizationSettings({
 	const [nameValue, setNameValue] = useState("");
 	const [deleteConfirmValue, setDeleteConfirmValue] = useState("");
 	const [isDeletingOrg, setIsDeletingOrg] = useState(false);
+	const [isConnectingLinear, setIsConnectingLinear] = useState(false);
 
 	const { data: organizations, isPending } =
-		cloudTrpc.organization.list.useQuery(undefined);
+		cloudTrpc.organization.list.useQuery(undefined, {
+			refetchInterval: isConnectingLinear
+				? LINEAR_CONNECT_POLL_INTERVAL_MS
+				: false,
+		});
 
 	const organization = organizations?.find(
 		(o) => o.id === activeOrganizationId,
@@ -143,6 +160,10 @@ export function OrganizationSettings({
 		visibleItems,
 	);
 	const showId = isItemVisible(SETTING_ITEM_ID.ORGANIZATION_ID, visibleItems);
+	const showTaskTracker = isItemVisible(
+		SETTING_ITEM_ID.ORGANIZATION_TASK_TRACKER,
+		visibleItems,
+	);
 	const { copyToClipboard, copied } = useCopyToClipboard();
 	const showDelete = isItemVisible(
 		SETTING_ITEM_ID.ORGANIZATION_DELETE,
@@ -277,6 +298,54 @@ export function OrganizationSettings({
 		);
 	}
 
+	const taskTracker = organization?.taskTracker;
+	useEffect(() => {
+		if (!isConnectingLinear) return;
+		if (taskTracker === "linear") {
+			setIsConnectingLinear(false);
+			return;
+		}
+		const giveUp = setTimeout(
+			() => setIsConnectingLinear(false),
+			LINEAR_CONNECT_WAIT_MS,
+		);
+		return () => clearTimeout(giveUp);
+	}, [isConnectingLinear, taskTracker]);
+
+	async function handleTaskTrackerChange(
+		taskTracker: TaskTracker,
+	): Promise<void> {
+		if (!organization || taskTracker === organization.taskTracker) return;
+		try {
+			if (taskTracker === "linear") {
+				const connection =
+					await apiTrpcClient.integration.linear.getConnection.query({
+						organizationId: organization.id,
+					});
+				if (!connection || connection.needsReconnect) {
+					setIsConnectingLinear(true);
+					window.open(
+						`${env.NEXT_PUBLIC_WEB_URL}/integrations/linear?taskTracker=linear`,
+						"_blank",
+					);
+					return;
+				}
+			}
+			await apiTrpcClient.organization.update.mutate({
+				id: organization.id,
+				taskTracker,
+			});
+			await utils.organization.list.invalidate();
+			toast.success(t({ message: "Task tracker updated" }));
+		} catch (error) {
+			console.error(
+				"[organization-settings] Task tracker update failed:",
+				error,
+			);
+			toast.error(t({ message: "Failed to update task tracker" }));
+		}
+	}
+
 	async function handleNameBlur(): Promise<void> {
 		if (!organization || nameValue === organization.name) return;
 
@@ -346,7 +415,8 @@ export function OrganizationSettings({
 		);
 	}
 
-	const showOrgSettings = showLogo || showName || showSlug || showId;
+	const showOrgSettings =
+		showLogo || showName || showSlug || showTaskTracker || showId;
 	const showMembersSection =
 		showMembersList ||
 		isItemVisible(SETTING_ITEM_ID.ORGANIZATION_MEMBERS_INVITE, visibleItems) ||
@@ -450,6 +520,41 @@ export function OrganizationSettings({
 											}`}
 											disabled={!isOwner}
 										/>
+									</SettingsRow>
+								)}
+
+								{showTaskTracker && (
+									<SettingsRow
+										label={t({ message: "Track tasks in" })}
+										htmlFor="org-task-tracker"
+										hint={t({
+											message:
+												"Tasks, the CLI and agents follow this. Each member uses their own Linear account.",
+										})}
+									>
+										<Select
+											value={organization.taskTracker}
+											onValueChange={(value) =>
+												handleTaskTrackerChange(value as TaskTracker)
+											}
+											disabled={!isOwner}
+										>
+											<SelectTrigger
+												id="org-task-tracker"
+												size="sm"
+												className="w-72"
+											>
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="superset">
+													<Trans>Superset</Trans>
+												</SelectItem>
+												<SelectItem value="linear">
+													<Trans>Linear</Trans>
+												</SelectItem>
+											</SelectContent>
+										</Select>
 									</SettingsRow>
 								)}
 

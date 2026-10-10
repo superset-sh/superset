@@ -36,7 +36,7 @@ export function DeleteWorkspaceMount() {
 	useEffect(() => {
 		if (!cloudTarget) return;
 		close(cloudTarget.workspaceId);
-		archive({ id: cloudTarget.workspaceId, name: cloudTarget.workspaceName });
+		archive(cloudTarget.workspaceId);
 	}, [cloudTarget, close, archive]);
 
 	if (!target || cloudTarget) return null;

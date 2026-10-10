@@ -160,7 +160,7 @@ shape of the output for scripting:
 
 ```bash
 superset tasks list --status in_progress --json | jq '.[].title'
-superset workspaces list --quiet | xargs -L1 superset workspaces delete
+superset workspaces list --quiet | xargs -L1 superset workspaces archive
 ```
 
 When the CLI detects an agent or CI environment (`CLAUDE_CODE`,

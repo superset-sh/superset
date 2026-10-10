@@ -19,10 +19,7 @@ import {
 	installPlugin,
 } from "../../../lib/plugins/install";
 import { pluginConnector } from "../../../lib/plugins/marketplace";
-import {
-	refreshPluginConnectionsCache,
-	syncPluginMcpServers,
-} from "../../../lib/plugins/mcp-servers";
+import { syncPluginMcpServers } from "../../../lib/plugins/mcp-servers";
 
 export default command({
 	sandbox: false,
@@ -127,9 +124,6 @@ export default command({
 			}
 		}
 
-		// Again at the end, because this command can connect an account itself and
-		// a connector's second account is what splits one MCP entry into two.
-		await refreshPluginConnectionsCache(ctx.api);
 		const mcp = syncPluginMcpServers();
 
 		const next =

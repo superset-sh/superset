@@ -5,7 +5,6 @@ interface SearchableTask {
 	id: string;
 	title: string;
 	slug: string;
-	externalKey?: string | null;
 	description: string | null;
 	labels: string[] | null;
 }
@@ -22,7 +21,6 @@ export function useHybridSearch<T extends SearchableTask>(tasks: T[]) {
 			new Fuse(tasks, {
 				keys: [
 					{ name: "slug", weight: 2 },
-					{ name: "externalKey", weight: 2 },
 					{ name: "labels", weight: 1 },
 				],
 				threshold: 0,

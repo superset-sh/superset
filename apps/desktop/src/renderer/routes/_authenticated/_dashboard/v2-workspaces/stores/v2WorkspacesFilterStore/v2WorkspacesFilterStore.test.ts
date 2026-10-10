@@ -1,5 +1,15 @@
-import { expect, test } from "bun:test";
+import { afterAll, beforeEach, expect, test } from "bun:test";
 import { useV2WorkspacesFilterStore } from "./v2WorkspacesFilterStore";
+
+function resetStore() {
+	useV2WorkspacesFilterStore.setState(
+		useV2WorkspacesFilterStore.getInitialState(),
+		true,
+	);
+}
+
+beforeEach(resetStore);
+afterAll(resetStore);
 
 test("defaults workspaces to the board with archived workspaces hidden", () => {
 	const state = useV2WorkspacesFilterStore.getState();

@@ -22,10 +22,12 @@ export function PagesMenuRow({ page, onOpen }: PagesMenuRowProps) {
 			<FileText className="size-3.5 shrink-0 text-muted-foreground" />
 			<span className="min-w-0 flex-1 truncate font-medium">{page.title}</span>
 			{page.isNew && (
-				<span className="shrink-0 text-[10px] font-semibold text-blue-500">
-					<Trans context="badge on a page published since the menu was last opened">
-						New
-					</Trans>
+				<span className="size-1.5 shrink-0 rounded-full bg-blue-500">
+					<span className="sr-only">
+						<Trans context="badge on a page published since the menu was last opened">
+							New
+						</Trans>
+					</span>
 				</span>
 			)}
 			{page.isPrivate && (

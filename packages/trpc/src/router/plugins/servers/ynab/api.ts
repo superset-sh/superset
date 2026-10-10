@@ -62,7 +62,9 @@ export async function ynab<T = Record<string, unknown>>(
 			payload?.error?.detail ??
 			payload?.error?.name ??
 			`${response.status} ${response.statusText}`;
-		throw new Error(`YNAB API error: ${detail}`);
+		throw Object.assign(new Error(`YNAB API error: ${detail}`), {
+			code: response.status,
+		});
 	}
 	return (payload?.data ?? ({} as T)) as T;
 }

@@ -55,6 +55,19 @@ Object.defineProperty(globalThis, "window", {
 	configurable: true,
 });
 
+afterAll(() => {
+	Object.defineProperty(globalThis, "window", {
+		value: originalWindow,
+		writable: true,
+		configurable: true,
+	});
+	Object.defineProperty(globalThis, "localStorage", {
+		value: originalLocalStorage,
+		writable: true,
+		configurable: true,
+	});
+});
+
 // Now safe to import — the module-level singleton will find window/localStorage
 const { createPersistentHashHistory } = await import(
 	"./persistent-hash-history"
@@ -67,19 +80,6 @@ beforeEach(() => {
 
 afterEach(() => {
 	storage.clear();
-});
-
-afterAll(() => {
-	Object.defineProperty(globalThis, "window", {
-		value: originalWindow,
-		writable: true,
-		configurable: true,
-	});
-	Object.defineProperty(globalThis, "localStorage", {
-		value: originalLocalStorage,
-		writable: true,
-		configurable: true,
-	});
 });
 
 describe("createPersistentHashHistory", () => {

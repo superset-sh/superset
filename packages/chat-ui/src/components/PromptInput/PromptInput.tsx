@@ -15,6 +15,7 @@ import { msg } from "@lingui/core/macro";
 export type {
 	ComposerActionContext,
 	ComposerChip,
+	ComposerChipMatch,
 	ComposerMentionEntry,
 	ComposerMentionProvider,
 	ComposerMentionSource,
@@ -43,6 +44,7 @@ export function PromptInput({
 	toolbar,
 	toolbarEnd,
 	defaultValue,
+	findChips,
 	onChange,
 	onSubmit,
 	onStop,
@@ -81,6 +83,7 @@ export function PromptInput({
 					toolbar={toolbar}
 					toolbarEnd={toolbarEnd}
 					defaultValue={defaultValue}
+					findChips={findChips}
 					onChange={onChange}
 					onSubmit={onSubmit}
 					onStop={onStop}

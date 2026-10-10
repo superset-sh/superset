@@ -38,7 +38,6 @@ interface TasksFilterState {
 	viewMode: ViewMode;
 	typeTab: TypeTab;
 	projectFilters: string[];
-	linearProjectFilter: string | null;
 	linearTeamFilter: string | null;
 	linearAssigneeFilter: string | null;
 	includeClosedIssues: boolean;
@@ -48,7 +47,6 @@ interface TasksFilterState {
 	setViewMode: (viewMode: ViewMode) => void;
 	setTypeTab: (typeTab: TypeTab) => void;
 	setProjectFilters: (projectFilters: string[]) => void;
-	setLinearProjectFilter: (linearProjectFilter: string | null) => void;
 	setLinearTeamFilter: (linearTeamFilter: string | null) => void;
 	setLinearAssigneeFilter: (linearAssigneeFilter: string | null) => void;
 	setIncludeClosedIssues: (includeClosedIssues: boolean) => void;
@@ -60,7 +58,6 @@ type PersistedTasksFilterState = Pick<
 	| "viewMode"
 	| "typeTab"
 	| "projectFilters"
-	| "linearProjectFilter"
 	| "linearTeamFilter"
 	| "linearAssigneeFilter"
 	| "includeClosedIssues"
@@ -85,11 +82,6 @@ export function migrateTasksFilterState(
 			state.projectFilters ??
 				(typeof state.projectFilter === "string" ? [state.projectFilter] : []),
 		),
-		linearProjectFilter:
-			typeof state.linearProjectFilter === "string" &&
-			state.linearProjectFilter.trim().length > 0
-				? state.linearProjectFilter.trim()
-				: null,
 		linearTeamFilter:
 			typeof state.linearTeamFilter === "string"
 				? state.linearTeamFilter
@@ -110,7 +102,6 @@ export const useTasksFilterStore = create<TasksFilterState>()(
 			viewMode: "table",
 			typeTab: "tasks",
 			projectFilters: [],
-			linearProjectFilter: null,
 			linearTeamFilter: null,
 			linearAssigneeFilter: null,
 			includeClosedIssues: false,
@@ -128,8 +119,6 @@ export const useTasksFilterStore = create<TasksFilterState>()(
 						? state
 						: { projectFilters: next };
 				}),
-			setLinearProjectFilter: (linearProjectFilter) =>
-				set({ linearProjectFilter }),
 			setLinearTeamFilter: (linearTeamFilter) => set({ linearTeamFilter }),
 			setLinearAssigneeFilter: (linearAssigneeFilter) =>
 				set({ linearAssigneeFilter }),
@@ -138,11 +127,10 @@ export const useTasksFilterStore = create<TasksFilterState>()(
 		}),
 		{
 			name: "tasks-filter-state",
-			version: 5,
+			version: 6,
 			migrate: migrateTasksFilterState,
 			partialize: (state) => ({
 				projectFilters: state.projectFilters,
-				linearProjectFilter: state.linearProjectFilter,
 				linearTeamFilter: state.linearTeamFilter,
 				linearAssigneeFilter: state.linearAssigneeFilter,
 				tab: state.tab,
@@ -160,7 +148,6 @@ export interface TasksFilters {
 	search: string;
 	typeTab: TypeTab;
 	projectFilters: string[];
-	linearProjectFilter: string | null;
 	includeClosedIssues: boolean;
 }
 
@@ -174,8 +161,6 @@ export function tasksSearchFromFilters(
 	if (filters.typeTab !== "tasks") out.type = filters.typeTab;
 	const projects = serializeProjectFilters(filters.projectFilters);
 	if (projects) out.projects = projects;
-	if (filters.linearProjectFilter)
-		out.linearProject = filters.linearProjectFilter;
 	if (filters.typeTab === "issues" && filters.includeClosedIssues)
 		out.state = "all";
 	return out;

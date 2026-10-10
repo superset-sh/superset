@@ -621,7 +621,39 @@ export type RestoreWorktreeResult =
 	| { kind: "already-registered" }
 	| { kind: "registered-elsewhere"; path: string }
 	| { kind: "path-occupied" }
-	| { kind: "branch-missing" };
+	| { kind: "branch-missing" }
+	| { kind: "fetch-failed" };
+
+const RESTORE_FETCH_TIMEOUT_MS = 15_000;
+
+async function fetchRemoteBranch(args: {
+	repoPath: string;
+	remoteName: string;
+	branch: string;
+	gitEnv: GitTaskEnv;
+}): Promise<"looked" | "unreachable"> {
+	const { repoPath, remoteName, branch, gitEnv } = args;
+	const git = createUserSimpleGit(repoPath, {
+		env: gitEnv,
+		timeout: { block: RESTORE_FETCH_TIMEOUT_MS },
+	});
+	const remotes = await git.getRemotes();
+	if (!remotes.some((remote) => remote.name === remoteName)) return "looked";
+	try {
+		await git.fetch([
+			remoteName,
+			`refs/heads/${branch}:refs/remotes/${remoteName}/${branch}`,
+			"--quiet",
+			"--no-tags",
+		]);
+		return "looked";
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		if (message.includes("couldn't find remote ref")) return "looked";
+		console.warn(`[git/restoreWorktree] fetch ${branch} failed:`, err);
+		return "unreachable";
+	}
+}
 
 /** Re-create an archived workspace's worktree on its existing branch. */
 export const gitRestoreWorktreeTask = defineWorkerTask<
@@ -661,7 +693,17 @@ export const gitRestoreWorktreeTask = defineWorkerTask<
 		}
 		if (existsSync(worktreePath)) return { kind: "path-occupied" };
 
-		const ref = await resolveRef(git, branch, { remote: remoteName });
+		let ref = await resolveRef(git, branch, { remote: remoteName });
+		if (ref?.kind !== "local" && ref?.kind !== "remote-tracking") {
+			const fetched = await fetchRemoteBranch({
+				repoPath,
+				remoteName,
+				branch,
+				gitEnv,
+			});
+			if (fetched === "unreachable") return { kind: "fetch-failed" };
+			ref = await resolveRef(git, branch, { remote: remoteName });
+		}
 		if (ref?.kind !== "local" && ref?.kind !== "remote-tracking") {
 			return { kind: "branch-missing" };
 		}

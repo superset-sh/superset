@@ -3,11 +3,13 @@ import { env } from "renderer/env.renderer";
 import type { FolderLinkAction, LinkAction } from "renderer/lib/clickPolicy";
 import { parseSupersetPageUrl } from "renderer/lib/parseSupersetPageUrl";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import type { RightPaneLinkTarget } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/providers/RightPaneLinkTargetProvider";
 import type {
 	OpenFile,
 	PaneViewerData,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { openPagePaneInStore } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/openPagePaneInStore";
+import { openUrlInRightPane } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/openUrlInRightPane";
 import { openUrlInV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/openUrlInV2Workspace";
 import type { StoreApi } from "zustand/vanilla";
 
@@ -27,10 +29,11 @@ export interface TerminalLinkActionDeps {
 	revealInFinder: (path: string, options?: { isDirectory?: boolean }) => void;
 	/** Worktree root, when known. Outside it, "reveal" degrades to Finder. */
 	worktreePath: string | undefined;
+	rightPane?: RightPaneLinkTarget | null;
 }
 
 export function runUrlLinkAction(
-	deps: Pick<TerminalLinkActionDeps, "store">,
+	deps: Pick<TerminalLinkActionDeps, "store" | "rightPane">,
 	url: string,
 	action: LinkAction,
 ): void {
@@ -41,6 +44,15 @@ export function runUrlLinkAction(
 		return;
 	}
 	const pageSlug = parseSupersetPageUrl(url, env.NEXT_PUBLIC_WEB_URL);
+	if (action === "rightPane" && deps.rightPane) {
+		deps.rightPane.reveal();
+		if (pageSlug) {
+			openPagePaneInStore(deps.rightPane.store, { slug: pageSlug }, "tab");
+			return;
+		}
+		openUrlInRightPane(deps.rightPane.store, url);
+		return;
+	}
 	if (pageSlug) {
 		openPagePaneInStore(
 			deps.store,

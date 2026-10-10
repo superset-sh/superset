@@ -30,7 +30,6 @@ import { DaemonAutoUpdateFailureDialog } from "renderer/routes/_authenticated/co
 import { DiffThemeSync } from "renderer/routes/_authenticated/components/DiffThemeSync";
 import { LeaderboardAutoPublish } from "renderer/routes/_authenticated/components/LeaderboardAutoPublish";
 import { PendingDeletionScreen } from "renderer/routes/_authenticated/components/PendingDeletionScreen";
-import { PluginConnectionsSync } from "renderer/routes/_authenticated/components/PluginConnectionsSync";
 import { RealtimeNudges } from "renderer/routes/_authenticated/components/RealtimeNudges";
 import { StarNagObserver } from "renderer/routes/_authenticated/components/StarNagObserver";
 import {
@@ -317,7 +316,6 @@ function AuthenticatedLayout() {
 							>
 								<DiffThemeSync />
 								<AgentHooks />
-								<PluginConnectionsSync />
 								<FileMenuListener />
 								<V2NotificationController />
 								<DockBadgeController />

@@ -1,10 +1,5 @@
-import { afterAll, afterEach, describe, expect, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, describe, expect, test } from "bun:test";
 
-// happy-dom over the preloaded plain-object document. Process-wide, so this
-// unregisters in afterAll to leave the other renderer suites their document.
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
@@ -13,10 +8,6 @@ const { act, cleanup, render, within } = await import("@testing-library/react");
 const { RuntimeWarnings } = await import("./RuntimeWarnings");
 
 afterEach(cleanup);
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
-
 /**
  * How a standing warning presents, below the rows and the scope line:
  *

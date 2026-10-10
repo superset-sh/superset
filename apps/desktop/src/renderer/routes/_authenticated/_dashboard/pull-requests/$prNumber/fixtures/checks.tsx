@@ -3,7 +3,9 @@ import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import type { ReactNode } from "react";
 
 if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register();
-const { cleanup, fireEvent, render } = await import("@testing-library/react");
+const { cleanup, fireEvent, render, waitFor } = await import(
+	"@testing-library/react"
+);
 afterEach(cleanup);
 const root = "renderer/routes/_authenticated/_dashboard";
 let search: { repo?: string; project?: string } = { repo: "other/repo" };
@@ -36,15 +38,24 @@ mock.module(`${root}/pull-requests/hooks/usePullRequestDetail`, () => ({
 	usePullRequestDetail: read,
 }));
 mock.module(`${root}/components/PageHeader`, () => ({
-	PageHeader: ({ start }: { start: ReactNode }) => <div>{start}</div>,
+	PageHeader: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 mock.module(`${root}/pull-requests/components/PullRequestListToggle`, () => ({
 	PullRequestListToggle: () => null,
 }));
-mock.module(`${root}/pull-requests/components/PullRequestDetailHeader`, () => ({
-	PullRequestDetailHeader: ({ projectId }: { projectId: string | null }) => (
+mock.module(`${root}/pull-requests/components/PullRequestActions`, () => ({
+	PullRequestActions: ({ projectId }: { projectId: string | null }) => (
 		<div data-testid="header" data-project={projectId ?? ""} />
 	),
+}));
+mock.module(
+	`${root}/pull-requests/components/PullRequestDetailSkeleton`,
+	() => ({
+		PullRequestDetailSkeleton: () => <div data-testid="detail-skeleton" />,
+	}),
+);
+mock.module(`${root}/pull-requests/components/PullRequestTabTitle`, () => ({
+	PullRequestTabTitle: () => null,
 }));
 mock.module(
 	`${root}/pull-requests/components/PullRequestSummaryContent`,
@@ -71,7 +82,7 @@ mock.module(`${root}/pull-requests/components/PullRequestCodeTab`, () => ({
 const { Route } = await import("../page");
 const Page = Route.options.component as () => ReactNode;
 for (const project of [undefined, "unrelated", "removed"]) {
-	test(`Code loads without relying on project ${project}`, () => {
+	test(`Changes loads without relying on project ${project}`, async () => {
 		search = { repo: "other/repo", project };
 		const view = render(<Page />);
 		expect(read).toHaveBeenLastCalledWith({
@@ -80,31 +91,33 @@ for (const project of [undefined, "unrelated", "removed"]) {
 			hostUrl: "http://host.test",
 			prNumber: 12,
 		});
-		fireEvent.click(view.getByRole("button", { name: "Code" }));
-		expect(view.getByTestId("code").textContent).toBe(
+		fireEvent.click(view.getByRole("button", { name: "Changes" }));
+		expect((await view.findByTestId("code")).textContent).toBe(
 			"https://github.com/other/repo/pull/12",
 		);
 		expect(view.getByTestId("code").getAttribute("data-project")).toBe("");
 		expect(view.getByTestId("header").getAttribute("data-project")).toBe("");
 		fireEvent.click(view.getByRole("button", { name: "Summary" }));
 		expect(view.queryByTestId("code")).toBeNull();
-		fireEvent.click(view.getByRole("button", { name: "Code" }));
-		expect(view.getByTestId("code")).toBeTruthy();
+		fireEvent.click(view.getByRole("button", { name: "Changes" }));
+		expect(await view.findByTestId("code")).toBeTruthy();
 	});
 }
-test("keeps the canonical URL and Summary mounted across tab changes", () => {
+test("keeps the canonical URL and Summary mounted across tab changes", async () => {
 	detail = {
 		...detail,
 		data: { url: "https://github.com/canonical/repo/pull/12" },
 	};
 	const view = render(<Page />);
 	const summary = view.getByTestId("summary");
-	fireEvent.click(view.getByRole("button", { name: "Code" }));
-	expect(view.getByTestId("code").textContent).toBe(detail.data?.url ?? "");
+	fireEvent.click(view.getByRole("button", { name: "Changes" }));
+	expect((await view.findByTestId("code")).textContent).toBe(
+		detail.data?.url ?? "",
+	);
 	expect(view.getByTestId("summary")).toBe(summary);
 });
 
-test("Code waits for project discovery before choosing a fallback", () => {
+test("Changes waits for project discovery before choosing a fallback", async () => {
 	detail = {
 		...detail,
 		data: undefined,
@@ -114,12 +127,16 @@ test("Code waits for project discovery before choosing a fallback", () => {
 		isResolvingProject: true,
 	};
 	const view = render(<Page />);
-	fireEvent.click(view.getByRole("button", { name: "Code" }));
+	fireEvent.click(view.getByRole("button", { name: "Changes" }));
 	expect(view.queryByTestId("code")).toBeNull();
-	expect(view.getByText("Loading pull request…")).toBeTruthy();
+	expect(view.getByTestId("detail-skeleton")).toBeTruthy();
 	detail = { ...detail, projectId: "project", isResolvingProject: false };
 	view.rerender(<Page />);
-	expect(view.getByTestId("code").getAttribute("data-project")).toBe("project");
+	await waitFor(() =>
+		expect(view.getByTestId("code").getAttribute("data-project")).toBe(
+			"project",
+		),
+	);
 });
 test("legacy project-only loading and errors are not mistaken for invalid links", () => {
 	detail = {

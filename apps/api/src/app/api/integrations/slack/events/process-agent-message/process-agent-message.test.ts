@@ -1,4 +1,16 @@
 import { beforeEach, expect, mock, test } from "bun:test";
+import { db } from "@superset/db/client";
+import * as connectors from "@superset/trpc/connectors";
+import { Client } from "@upstash/qstash";
+import { posthog } from "@/lib/analytics";
+import { stub } from "../../../../../../../test/stub";
+import * as slackUserLink from "../../lib/find-slack-user-link";
+import * as agentDelivery from "../utils/agent-delivery";
+import * as connectUrl from "../utils/generate-connect-url";
+import * as agent from "../utils/run-agent";
+import * as slackClient from "../utils/slack-client";
+import * as slackImageAssets from "../utils/slack-image-assets";
+import * as threadSessions from "../utils/thread-sessions";
 
 let postCount = 0;
 const postMessage = mock(async (_args: Record<string, unknown>) => ({
@@ -28,57 +40,39 @@ const claim = mock(
 const finish = mock(async (_id: string, _succeeded: boolean) => {});
 const release = mock(async (_id: string) => {});
 const publishJSON = mock(async (_options: unknown) => ({}));
-mock.module("@upstash/qstash", () => ({
-	Client: class {
-		publishJSON = publishJSON;
-	},
-}));
+stub(Client.prototype, { publishJSON });
 const findLink = mock(
 	async (_args: unknown): Promise<{ userId: string } | undefined> => ({
 		userId: "linked-user",
 	}),
 );
-mock.module("@superset/db/client", () => ({
-	db: {
-		query: {
-			subscriptions: { findFirst: async () => ({ id: "subscription" }) },
-		},
-	},
-}));
-// `mock.module` is process-wide, so every export the real module has must be
-// here: another file's import of one of these resolves against this stub too.
-mock.module("@superset/trpc/connectors", () => ({
+stub(db.query.subscriptions, {
+	findFirst: async () => ({ id: "subscription" }),
+});
+stub(connectors, {
 	accountConnection: async () => ({ organizationId: "org" }),
 	accountConnections: async () => [{ organizationId: "org" }],
 	connectionBotToken: async () => "token",
-}));
-mock.module("@/env", () => ({
-	env: {
-		NEXT_PUBLIC_WEB_URL: "https://app.superset.sh",
-		NEXT_PUBLIC_API_URL: "https://api.test",
-		QSTASH_TOKEN: "qstash-token",
-	},
-}));
-mock.module("@/lib/analytics", () => ({ posthog: { capture: () => {} } }));
-mock.module("../../lib/find-slack-user-link", () => ({
+});
+stub(posthog, { capture: () => {} });
+stub(slackUserLink, {
 	findSlackUserLink: findLink,
-}));
-mock.module("../utils/generate-connect-url", () => ({
+});
+stub(connectUrl, {
 	generateConnectUrl: () => "https://app.superset.sh/connect",
-}));
-mock.module("../utils/run-agent", () => ({
+});
+stub(agent, {
 	runSlackAgent: runAgent,
 	resolveUserMentions: async () => (text: string) => text,
 	formatErrorForSlack: async () => "Unable to finish",
 	mentionsPlugin: (text: string, plugin: { displayName: string }) =>
 		text.toLowerCase().includes(plugin.displayName.toLowerCase()),
-	SlackAgentError: class extends Error {},
-}));
-mock.module("../utils/agent-delivery", () => ({
+});
+stub(agentDelivery, {
 	claimAgentDelivery: claim,
 	finishAgentDelivery: finish,
 	releaseAgentDelivery: release,
-}));
+});
 const session = {
 	id: "thread-session",
 	quiet: false,
@@ -109,7 +103,7 @@ const takeQueued = mock(
 );
 const completeHandoff = mock(async (_id: string, _handoff: string) => {});
 const abandonHandoff = mock(async (_id: string, _handoff: string) => {});
-mock.module("../utils/thread-sessions", () => ({
+stub(threadSessions, {
 	beginThreadRun: beginThread,
 	finishThreadRun: finishThread,
 	setThreadQuiet: setQuiet,
@@ -131,11 +125,8 @@ mock.module("../utils/thread-sessions", () => ({
 	},
 	renderThreadMemory: (entities: { label: string }[]) =>
 		entities.map((e) => e.label).join(", "),
-}));
-const { slackRateLimitRetryAfterMs } = await import(
-	"../utils/slack-client/request-bounds"
-);
-mock.module("../utils/slack-client", () => ({
+});
+stub(slackClient, {
 	createSlackClient: (_token: string, options: { deadline?: number } = {}) => {
 		const bounded =
 			<A, R>(call: (args: A) => Promise<R>) =>
@@ -156,14 +147,11 @@ mock.module("../utils/slack-client", () => ({
 		};
 	},
 	isUnpostableChannelError: () => false,
-	slackRateLimitRetryAfterMs,
-}));
-// Mock the barrel only; the image utility's own tests import its implementation.
-mock.module("../utils/slack-image-assets", () => ({
+});
+stub(slackImageAssets, {
 	extractSlackImageAssets: async () => [],
 	formatSlackImageAssetError: () => "Invalid image",
-	SlackImageAssetError: class extends Error {},
-}));
+});
 const { processAgentMessage } = await import("./process-agent-message");
 const params = {
 	teamId: "T1",

@@ -9,6 +9,8 @@ export interface ExecGhOptions {
 	timeout?: number;
 	/** Override the 10MB stdout cap for known-large payloads (PR diffs). */
 	maxBuffer?: number;
+	/** Written to stdin, for bodies too long for one argv element. */
+	input?: string;
 }
 
 /**
@@ -24,7 +26,7 @@ export type ExecGh = (
 
 export const execGh: ExecGh = async (args, options) => {
 	const env = await getToolEnvironment();
-	const { stdout } = await execFileAsync("gh", args, {
+	const child = execFileAsync("gh", args, {
 		encoding: "utf8",
 		timeout: options?.timeout ?? 10_000,
 		// Node's 1MB default dies on large REST payloads (open-PR sweeps of
@@ -33,6 +35,8 @@ export const execGh: ExecGh = async (args, options) => {
 		cwd: options?.cwd,
 		env,
 	});
+	if (options?.input !== undefined) child.child.stdin?.end(options.input);
+	const { stdout } = await child;
 	const trimmed = stdout.trim();
 	if (!trimmed) return {};
 	try {

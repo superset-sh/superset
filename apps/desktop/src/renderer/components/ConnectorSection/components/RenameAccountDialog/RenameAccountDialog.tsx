@@ -15,7 +15,7 @@ import {
 import { Input } from "@superset/ui/input";
 import { useState } from "react";
 
-const NICKNAME_MAX = 64;
+const LABEL_MAX = 64;
 
 export function RenameAccountDialog({
 	account,
@@ -28,7 +28,7 @@ export function RenameAccountDialog({
 	connectorName: string;
 	isPending?: boolean;
 	onOpenChange: (open: boolean) => void;
-	onSubmit: (nickname: string | null) => void;
+	onSubmit: (label: string) => void;
 }) {
 	return (
 		<Dialog open={Boolean(account)} onOpenChange={onOpenChange}>
@@ -58,17 +58,17 @@ function RenameForm({
 	account: AccountLabelSource & { id: string };
 	connectorName: string;
 	isPending?: boolean;
-	onSubmit: (nickname: string | null) => void;
+	onSubmit: (label: string) => void;
 	onCancel: () => void;
 }) {
 	const { t } = useLingui();
-	const [draft, setDraft] = useState(account.nickname ?? "");
+	const [draft, setDraft] = useState(account.externalUserLabel ?? "");
 
 	return (
 		<form
 			onSubmit={(event) => {
 				event.preventDefault();
-				onSubmit(draft.trim() ? draft.trim() : null);
+				if (draft.trim()) onSubmit(draft.trim());
 			}}
 		>
 			<DialogHeader>
@@ -84,9 +84,9 @@ function RenameForm({
 			<Input
 				autoFocus
 				value={draft}
-				maxLength={NICKNAME_MAX}
-				placeholder={t({ message: "Nickname" })}
-				aria-label={t({ message: "Nickname" })}
+				maxLength={LABEL_MAX}
+				placeholder={t({ message: "Account name" })}
+				aria-label={t({ message: "Account name" })}
 				onChange={(event) => setDraft(event.target.value)}
 				className="my-4"
 			/>
@@ -100,7 +100,7 @@ function RenameForm({
 				>
 					<Trans>Cancel</Trans>
 				</Button>
-				<Button type="submit" disabled={isPending}>
+				<Button type="submit" disabled={isPending || !draft.trim()}>
 					<Trans>Save</Trans>
 				</Button>
 			</DialogFooter>

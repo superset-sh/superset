@@ -209,6 +209,7 @@ export const workspaceLocalStateSchema = z.object({
 	}),
 	paneLayout: paneWorkspaceStateSchema,
 	rightPaneLayout: paneWorkspaceStateSchema.optional(),
+	rightSidebarOpen: z.boolean().optional(),
 	rightPaneAreaExpansion: z
 		.object({
 			movedTabIds: z.array(z.string()),
@@ -368,6 +369,7 @@ export type V2TerminalPresetRow = z.infer<typeof v2TerminalPresetSchema>;
  *   - "pane"      → open in current tab/pane (file viewer, in-app browser)
  *   - "newTab"    → open in a new tab/pane
  *   - "external"  → open in the external app (editor / system browser)
+ *   - "rightPane" → open URLs in the right pane area (falls back to "pane")
  *
  * Surfaces:
  *   - fileLinks / urlLinks: links embedded in terminal output and markdown.
@@ -381,7 +383,7 @@ export type V2TerminalPresetRow = z.infer<typeof v2TerminalPresetSchema>;
  *
  * Resolution and labels live in src/renderer/lib/clickPolicy.
  */
-const linkActionSchema = z.enum(["pane", "newTab", "external"]);
+const linkActionSchema = z.enum(["pane", "newTab", "external", "rightPane"]);
 
 export type LinkAction = z.infer<typeof linkActionSchema>;
 

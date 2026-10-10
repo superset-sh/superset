@@ -4,6 +4,10 @@ import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { PullRequestChecksSummary } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestChecksSummary";
 import type { PullRequestCheck } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/pull-request-checks";
 import {
+	PR_GREEN_TEXT_CLASS_NAME,
+	PR_RED_TEXT_CLASS_NAME,
+} from "renderer/routes/_authenticated/_dashboard/pull-requests/components/pull-request-colors";
+import {
 	normalizePRState,
 	PRIcon,
 } from "renderer/screens/main/components/PRIcon";
@@ -59,20 +63,20 @@ export function PullRequestRow({
 			tabIndex={0}
 			aria-current={isSelected ? "true" : undefined}
 		>
-			<PRIcon state={state} className="size-4 shrink-0" />
+			<PRIcon state={state} className="size-3.5 shrink-0" />
 			<div className="flex min-w-0 flex-1 flex-col gap-0.5">
 				<span className="truncate text-[13px] font-medium text-foreground">
 					{pr.title}
 				</span>
-				<div className="flex min-w-0 items-center gap-2 text-muted-foreground">
+				<div className="flex min-w-0 items-center gap-2 text-muted-foreground/70">
 					{pr.authorLogin && (
 						<div className="flex shrink-0 items-center gap-1">
-							<Avatar className="size-4 rounded-sm">
+							<Avatar className="size-4 rounded-full ring-1 ring-border/50">
 								<AvatarImage
 									src={`https://github.com/${pr.authorLogin}.png?size=32`}
 									alt={pr.authorLogin}
 								/>
-								<AvatarFallback className="rounded-sm text-[8px]">
+								<AvatarFallback className="text-[8px]">
 									{pr.authorLogin.slice(0, 1).toUpperCase()}
 								</AvatarFallback>
 							</Avatar>
@@ -89,7 +93,7 @@ export function PullRequestRow({
 					{pr.headRefName && (
 						<>
 							<span className="shrink-0 text-[11px]">·</span>
-							<span className="min-w-0 truncate font-mono text-[11px]">
+							<span className="min-w-0 truncate text-[11px]">
 								{pr.headRefName}
 							</span>
 						</>
@@ -105,12 +109,10 @@ export function PullRequestRow({
 				</div>
 				{hasDiffStat && (
 					<span className="flex items-center gap-1 tabular-nums">
-						<span className="text-emerald-600 [.dark_&]:text-[#34d399]">
+						<span className={PR_GREEN_TEXT_CLASS_NAME}>
 							+{pr.additions ?? 0}
 						</span>
-						<span className="text-red-600 [.dark_&]:text-[#f87171]">
-							-{pr.deletions ?? 0}
-						</span>
+						<span className={PR_RED_TEXT_CLASS_NAME}>-{pr.deletions ?? 0}</span>
 					</span>
 				)}
 			</div>

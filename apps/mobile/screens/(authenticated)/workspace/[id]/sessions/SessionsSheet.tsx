@@ -1,9 +1,12 @@
 import { useLingui } from "@lingui/react/macro";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useFeatureFlag } from "posthog-react-native";
 import { useCallback, useMemo } from "react";
 import { Alert } from "react-native";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
+import { getChatTransport } from "@/lib/chat";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
@@ -27,6 +30,7 @@ import { SessionList } from "./components/SessionList";
 export function SessionsSheet() {
 	const { t } = useLingui();
 	const params = useLocalSearchParams<{ id: string; active?: string }>();
+	const acpChat = Boolean(useFeatureFlag(FEATURE_FLAGS.ACP_CHAT));
 	const id = params.id;
 	const router = useRouter();
 	const queryClient = useQueryClient();
@@ -86,11 +90,18 @@ export function SessionsSheet() {
 						style: "destructive",
 						onPress: () => {
 							if (!workspace || !hostUrl) return;
-							void getHostServiceClientByUrl(hostUrl)
-								.terminal.killSession.mutate({
-									terminalId: row.terminalId,
-									workspaceId: workspace.id,
-								})
+							const closing =
+								row.kind === "chat"
+									? getChatTransport(hostUrl).closeSession({
+											sessionId: row.terminalId,
+										})
+									: getHostServiceClientByUrl(
+											hostUrl,
+										).terminal.killSession.mutate({
+											terminalId: row.terminalId,
+											workspaceId: workspace.id,
+										});
+							void closing
 								// `finally` alone doesn't consume the rejection: a failed kill
 								// would close the alert and leave the session running silently.
 								.catch(() =>
@@ -128,6 +139,19 @@ export function SessionsSheet() {
 					onPress={() => router.back()}
 				/>
 			</Stack.Toolbar>
+			{acpChat ? (
+				<Stack.Toolbar placement="right">
+					<Stack.Toolbar.Button
+						icon="plus"
+						accessibilityLabel={t({
+							message: "New session",
+						})}
+						onPress={() =>
+							router.replace(`/(authenticated)/workspace/${id}/new-session`)
+						}
+					/>
+				</Stack.Toolbar>
+			) : null}
 			<SessionList
 				rows={rows}
 				activeTerminalId={params.active ?? null}

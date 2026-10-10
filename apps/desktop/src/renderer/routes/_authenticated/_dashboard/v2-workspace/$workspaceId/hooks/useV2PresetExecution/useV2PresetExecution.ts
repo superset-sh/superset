@@ -1,11 +1,11 @@
 import { useLingui } from "@lingui/react/macro";
+import { acpHarnessForPreset } from "@superset/chat/core";
 import type { CreatePaneInput, Pane, WorkspaceStore } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo } from "react";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
-import { acpHarnessForPreset } from "renderer/lib/acpHarness";
 import {
 	findLinkedAgent,
 	resolvePresetLaunchCommands,
@@ -183,6 +183,7 @@ export function useV2PresetExecution({
 			) {
 				const chat = await openAgentChat({
 					configId: linkedAgent.id,
+					presetId: linkedAgent.presetId,
 					placement: plan === "active-tab-single" ? "split-pane" : "new-tab",
 				});
 				if (chat) return;

@@ -8,8 +8,7 @@
  * Skip that and the restarted shell has a session nobody is subscribed to: it
  * runs, and its output never reaches the pane.
  */
-import { afterAll, afterEach, describe, expect, it, spyOn } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
@@ -22,10 +21,6 @@ import type {
 } from "../types";
 import type { UseTerminalLifecycleOptions } from "./useTerminalLifecycle";
 
-// happy-dom over the preloaded plain-object document. Process-wide, so this
-// unregisters in afterAll to leave the other renderer suites their document.
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
@@ -48,10 +43,6 @@ afterEach(() => {
 	for (const spy of spies) spy.mockRestore();
 	spies.length = 0;
 });
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
-
 /**
  * xterm needs a canvas to open, which happy-dom has none of. The lifecycle
  * effect only calls back into it for the members below.

@@ -7,7 +7,11 @@ import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import type { GatedFeature } from "./constants";
 import { paywall } from "./Paywall";
 
-export function usePaywall() {
+export function usePaywall({
+	showPaywall = paywall,
+}: {
+	showPaywall?: typeof paywall;
+} = {}) {
 	const { t } = useLingui();
 	const { plan: userPlan, isReady, resolvePlanWhenKnown } = useCurrentPlan();
 	// Read at the top level, not inside gateFeature: hooks may not be called
@@ -59,7 +63,7 @@ export function usePaywall() {
 					}
 					return;
 				}
-				paywall(feature, {
+				showPaywall(feature, {
 					organizationId,
 					userPlan: plan,
 					...context,

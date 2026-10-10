@@ -1,0 +1,31 @@
+/* One highlight sweeps every placeholder together: the gradient is fixed to
+ * the viewport, so the page shimmers as one surface instead of each bar
+ * pulsing on its own. */
+.pr-skeleton {
+	--pr-skeleton-highlight: rgb(255 255 255 / 0.64);
+	background:
+		linear-gradient(
+			120deg,
+			transparent 40%,
+			var(--pr-skeleton-highlight),
+			transparent 60%
+		)
+		var(--muted) 0 0 / 200% 100% fixed;
+	animation: pr-skeleton 2s -1s infinite linear;
+}
+
+.dark .pr-skeleton {
+	--pr-skeleton-highlight: rgb(255 255 255 / 0.06);
+}
+
+@keyframes pr-skeleton {
+	to {
+		background-position: -200% 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.pr-skeleton {
+		animation: none;
+	}
+}

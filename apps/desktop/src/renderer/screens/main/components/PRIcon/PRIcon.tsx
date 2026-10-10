@@ -3,6 +3,7 @@ import {
 	LuCircleDot,
 	LuGitMerge,
 	LuGitPullRequestArrow,
+	LuGitPullRequestDraft,
 	LuListChecks,
 } from "react-icons/lu";
 
@@ -34,7 +35,7 @@ const stateStyles: Record<PRState, string> = {
  * - open: green pull request icon
  * - merged: purple/violet merge icon
  * - closed: red dot icon
- * - draft: muted pull request icon
+ * - draft: muted dashed pull request icon
  * - queued: amber queue icon (PR waiting in the merge queue)
  */
 export function PRIcon({ state, className }: PRIconProps) {
@@ -56,7 +57,15 @@ export function PRIcon({ state, className }: PRIconProps) {
 		);
 	}
 
-	// open or draft
+	if (state === "draft") {
+		return (
+			<LuGitPullRequestDraft
+				className={baseClass}
+				strokeWidth={ICON_STROKE_WIDTH}
+			/>
+		);
+	}
+
 	return (
 		<LuGitPullRequestArrow
 			className={baseClass}

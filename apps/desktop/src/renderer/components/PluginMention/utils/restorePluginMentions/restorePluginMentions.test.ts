@@ -1,9 +1,4 @@
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
-
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
-
-const { afterAll, describe, expect, it } = await import("bun:test");
+const { describe, expect, it } = await import("bun:test");
 const { Editor } = await import("@tiptap/core");
 const { default: Document } = await import("@tiptap/extension-document");
 const { default: Paragraph } = await import("@tiptap/extension-paragraph");
@@ -15,10 +10,6 @@ const { FileMentionNode } = await import(
 );
 const { PluginMentionNode } = await import("../../PluginMentionNode");
 const { restorePluginMentions } = await import("./restorePluginMentions");
-
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
 
 const linear = { name: "linear", displayName: "Linear", description: "" };
 const resolve = (name: string) => (name === "linear" ? linear : null);

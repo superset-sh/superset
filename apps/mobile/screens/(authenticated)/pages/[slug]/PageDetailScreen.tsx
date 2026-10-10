@@ -7,6 +7,7 @@ import {
 	type FrameRect,
 	PENDING_ANCHOR_ID,
 } from "@superset/shared/page-comments-runtime";
+import { pagePresenceUrl } from "@superset/shared/page-presence";
 import * as Haptics from "expo-haptics";
 import {
 	Stack,
@@ -21,12 +22,15 @@ import { View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
+import { env } from "@/lib/env";
 import { errorCopy } from "@/lib/errors";
+import { getHostAuthToken } from "@/lib/host/client";
 import { pageUrlForSlug } from "@/lib/web-links";
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import { usePageQuery } from "../hooks/usePages";
 import { CommentPin } from "./components/CommentPin";
 import { PageFrame, type PageFrameHandle } from "./components/PageFrame";
+import { PagePresence } from "./components/PagePresence";
 import { usePageCommentStore } from "./stores/pageCommentStore";
 import { pinPointOf, stackPins } from "./utils/pinLayout";
 
@@ -106,6 +110,17 @@ export function PageDetailScreen({
 		() => threads.filter((thread) => !thread.resolved),
 		[threads],
 	);
+
+	const presenceUrl = useCallback(async () => {
+		const token = await getHostAuthToken().catch(() => null);
+		return token && pageId
+			? pagePresenceUrl({
+					realtimeUrl: env.EXPO_PUBLIC_REALTIME_URL,
+					pageId,
+					token,
+				})
+			: null;
+	}, [pageId]);
 
 	const send = useCallback(
 		(message: Parameters<PageFrameHandle["send"]>[0]) =>
@@ -370,6 +385,8 @@ export function PageDetailScreen({
 							/>
 						) : null}
 					</View>
+
+					{pageId ? <PagePresence key={pageId} url={presenceUrl} /> : null}
 
 					{commentMode && !selection ? (
 						<View

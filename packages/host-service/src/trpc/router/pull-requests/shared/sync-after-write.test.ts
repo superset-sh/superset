@@ -88,6 +88,32 @@ describe("syncPullRequestAfterWrite", () => {
 		expect(readPullRequestRow(db)).toMatchObject({ state: "draft" });
 	});
 
+	test("ready clears the draft flag and draft sets it back", async () => {
+		const db = createTestDb();
+		seedLinkedPullRequest(db, "/tmp/repo", { isDraft: true });
+		const { ctx } = recordingContext(db);
+
+		await syncPullRequestAfterWrite(ctx, {
+			repo: REPO,
+			prNumber: PR_NUMBER,
+			action: "ready",
+		});
+		expect(readPullRequestRow(db)).toMatchObject({
+			state: "open",
+			isDraft: false,
+		});
+
+		await syncPullRequestAfterWrite(ctx, {
+			repo: REPO,
+			prNumber: PR_NUMBER,
+			action: "draft",
+		});
+		expect(readPullRequestRow(db)).toMatchObject({
+			state: "draft",
+			isDraft: true,
+		});
+	});
+
 	test("finds the row when a sibling project on the same repository owns it", async () => {
 		const db = createTestDb();
 		seedLinkedPullRequest(db, "/tmp/repo", { rowProjectId: "other-project" });

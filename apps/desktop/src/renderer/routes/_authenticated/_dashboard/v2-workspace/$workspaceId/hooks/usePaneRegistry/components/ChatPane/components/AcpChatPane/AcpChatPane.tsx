@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { acpHarnessForPreset } from "@superset/chat/core";
 import { AGENT_DEFAULT_MODE, type UserContent } from "@superset/chat/protocol";
 import { getAgentModelSupport } from "@superset/shared/agent-models";
 import { buildChatSessionHandoffPrompt } from "@superset/shared/terminal-session-handoff";
@@ -11,10 +12,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTerminalAgentBindings } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
-import { acpHarnessForPreset } from "renderer/lib/acpHarness";
 import type { OpenFile } from "../../../../../../types";
 import { SessionView } from "../../../ChatSession/components/SessionView";
 import { useSessionClient } from "../../../ChatSession/hooks/useSessionClient";
+import type {
+	OpenLink,
+	OpenPage,
+} from "../../../ChatSession/providers/ChatPaneActionsProvider";
 import type { ChatForkTarget } from "../../../ChatSession/types";
 import { isUnrestrictedMode } from "../../../ChatSession/utils/isUnrestrictedMode";
 import { useForkChat } from "../../hooks/useForkChat";
@@ -42,6 +46,8 @@ export function AcpChatPane({
 	onPendingPromptsSent,
 	onQueuePrompt,
 	onOpenFile,
+	onOpenPage,
+	onOpenLink,
 	onModeChange,
 	onSessionCreated,
 	onSwitchAgent,
@@ -66,6 +72,8 @@ export function AcpChatPane({
 	onModeChange?: (modeId: string) => void;
 	onSessionInfo: (info: { harnessSessionId?: string; title?: string }) => void;
 	onOpenFile?: OpenFile;
+	onOpenPage?: OpenPage;
+	onOpenLink?: OpenLink;
 	onSwitchAgent?: (target: {
 		presetId: string;
 		label: string;
@@ -188,7 +196,10 @@ export function AcpChatPane({
 		],
 	);
 
-	const agentSessionId = agent?.sessionId;
+	// A pane adopted in the background never saw the stream report the agent
+	// session, so recovery takes it from the host's row instead.
+	const agentSessionId =
+		agent?.sessionId ?? stored?.session?.harnessSessionId ?? undefined;
 	// Resuming when there is a session to resume, and a plain new one when the
 	// pane was opened straight onto the chat and no agent has run yet.
 	useEffect(() => {
@@ -406,9 +417,10 @@ export function AcpChatPane({
 		recover();
 	}, [recover]);
 
+	const draftKey = `chat-v3-draft:${terminalId}`;
 	const draft = (notice: ReactNode) => (
 		<DraftChat
-			draftKey={`chat-v3-draft:${terminalId}`}
+			draftKey={draftKey}
 			isActive={isActive}
 			notice={
 				unreachable ? <Trans>Connecting to the host service…</Trans> : notice
@@ -459,6 +471,7 @@ export function AcpChatPane({
 	return (
 		<SessionView
 			client={client}
+			draftKey={draftKey}
 			{...(recovering
 				? {
 						held: {
@@ -481,6 +494,8 @@ export function AcpChatPane({
 			isActive={isActive}
 			onFork={fork}
 			openFile={onOpenFile}
+			openPage={onOpenPage}
+			openLink={onOpenLink}
 			onSessionState={(state) => {
 				// A resume that found no transcript lands on a different agent
 				// session. Keep the pane pointed at the live one, or the trip back
@@ -496,7 +511,6 @@ export function AcpChatPane({
 			}}
 			pendingPrompts={pendingPrompts}
 			preferredModelLabel={modelLabel}
-			sessionId={sessionId}
 			workspaceId={workspaceId}
 		/>
 	);

@@ -47,6 +47,7 @@ interface WorkerTaskRunnerOptions {
 	debug?: boolean;
 	/** How long a worker gets to report a cancelled task before it is terminated. */
 	cancelGraceMs?: number;
+	createWorker?: (workerScriptPath: string) => Worker;
 }
 
 interface WorkerSlot {
@@ -84,6 +85,7 @@ export class WorkerTaskRunner {
 	private readonly name: string;
 	private readonly debug: boolean;
 	private readonly cancelGraceMs: number;
+	private readonly createWorker: (workerScriptPath: string) => Worker;
 	private readonly workerSlots = new Map<number, WorkerSlot>();
 	private readonly queue: string[] = [];
 	private readonly tasks = new Map<string, QueuedTask>();
@@ -98,6 +100,8 @@ export class WorkerTaskRunner {
 		this.name = options.name ?? "worker-runner";
 		this.debug = options.debug ?? false;
 		this.cancelGraceMs = options.cancelGraceMs ?? DEFAULT_CANCEL_GRACE_MS;
+		this.createWorker =
+			options.createWorker ?? ((scriptPath) => new Worker(scriptPath));
 	}
 
 	runTask<TResult>(
@@ -209,7 +213,7 @@ export class WorkerTaskRunner {
 
 	private spawnWorker(): void {
 		const slotId = ++this.workerCounter;
-		const worker = new Worker(this.workerScriptPath);
+		const worker = this.createWorker(this.workerScriptPath);
 		const slot: WorkerSlot = {
 			id: slotId,
 			worker,

@@ -11,8 +11,17 @@ import path from "node:path";
 export function resolveSupersetHomeDir(): string {
 	return (
 		process.env.SUPERSET_HOME_DIR?.trim() ||
-		path.join(os.homedir(), ".superset")
+		path.join(resolveUserHomeDir(), ".superset")
 	);
+}
+
+/**
+ * Node reads $HOME on every os.homedir() call on POSIX; bun reads it once at
+ * startup. Reading it here keeps both runtimes the same.
+ */
+export function resolveUserHomeDir(): string {
+	if (process.platform === "win32") return os.homedir();
+	return process.env.HOME || os.homedir();
 }
 
 export function getBinDir(): string {

@@ -11,6 +11,7 @@ import {
 	type ReactNode,
 	useCallback,
 	useEffect,
+	useId,
 	useMemo,
 	useState,
 	useSyncExternalStore,
@@ -32,6 +33,7 @@ import type { CreateNewAgentSession } from "../../hooks/useAgentSessionLauncher"
 import { useChatWiring } from "../../hooks/usePaneRegistry/components/ChatSession/hooks/useSessionClient";
 import { usePRFlowState } from "../../hooks/usePRFlowState";
 import { useShipActions } from "../../hooks/useShipActions";
+import { useRightPaneLinkTarget } from "../../providers/RightPaneLinkTargetProvider";
 import { useWorkspaceGitStatus } from "../../providers/WorkspaceGitStatusProvider";
 import type { PagePaneData, PaneViewerData } from "../../types";
 import {
@@ -44,6 +46,7 @@ import {
 import { changesPillStats } from "../../utils/changesPillStats";
 import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
 import { getShipMenuActions } from "../../utils/getShipMenuActions";
+import { openPagePaneInStore } from "../../utils/openPagePaneInStore";
 import { openSubagentPaneInStore } from "../../utils/openSubagentPaneInStore";
 import { ChangesStats } from "../ChangesStats";
 import { CommitForm } from "../CommitForm";
@@ -104,6 +107,7 @@ export function WorkspaceActivityMenu({
 	const { workspace: currentWorkspace } = useWorkspace();
 	const [shipView, setShipView] = useState<ShipView | null>(null);
 	const [open, setOpen] = useState(false);
+	const newPageStatusId = useId();
 	const {
 		flowState,
 		sync: branchSync,
@@ -127,6 +131,7 @@ export function WorkspaceActivityMenu({
 	});
 
 	const pagePolicy = usePagePolicy("4-tier");
+	const rightPane = useRightPaneLinkTarget();
 	const utils = cloudTrpc.useUtils();
 	const seenAt = usePagesMenuSeenAt(workspaceId);
 	const markSeen = usePagesMenuSeenStore((state) => state.markSeen);
@@ -194,6 +199,37 @@ export function WorkspaceActivityMenu({
 		() => collectBackgroundWork(bindings.values(), detachedTerminals),
 		[bindings, detachedTerminals],
 	);
+	const getSourceLabelsSnapshot = useCallback(
+		() =>
+			JSON.stringify(
+				[store, ...linkedStores]
+					.flatMap((paneStore) => paneStore.getState().tabs)
+					.flatMap((tab) =>
+						Object.values(tab.panes).flatMap((pane) => {
+							const data = pane.data as {
+								terminalId?: string;
+								chatTitle?: string;
+							};
+							const label =
+								tab.titleOverride ?? pane.titleOverride ?? data.chatTitle;
+							return data.terminalId && label ? [[data.terminalId, label]] : [];
+						}),
+					),
+			),
+		[store, linkedStores],
+	);
+	const sourceLabelsKey = useSyncExternalStore(
+		subscribeAttachedStores,
+		getSourceLabelsSnapshot,
+		getSourceLabelsSnapshot,
+	);
+	const sourceLabels = useMemo(
+		() => new Map<string, string>(JSON.parse(sourceLabelsKey)),
+		[sourceLabelsKey],
+	);
+	const workSourceCount = new Set(
+		[...processes, ...subagents].map((work) => work.terminalId),
+	).size;
 	const stoppableAgentTasks = processes.filter(
 		(work) => work.stop?.type === "chat",
 	);
@@ -286,10 +322,13 @@ export function WorkspaceActivityMenu({
 			});
 			return;
 		}
-		onOpenPage(
-			{ pageId: page.id, slug: page.slug, title: page.title },
-			action === "newTab" ? "tab" : "split",
-		);
+		const pageData = { pageId: page.id, slug: page.slug, title: page.title };
+		if (action === "rightPane" && rightPane) {
+			rightPane.reveal();
+			openPagePaneInStore(rightPane.store, pageData, "tab");
+			return;
+		}
+		onOpenPage(pageData, action === "newTab" ? "tab" : "split");
 	};
 
 	const handleOpenWork = (work: BackgroundWork) => {
@@ -360,6 +399,9 @@ export function WorkspaceActivityMenu({
 			<BackgroundWorkRow
 				key={work.key}
 				work={work}
+				source={
+					workSourceCount > 1 ? sourceLabels.get(work.terminalId) : undefined
+				}
 				now={now}
 				stopping={stopping.has(work.key)}
 				onOpen={handleOpenWork}
@@ -381,12 +423,11 @@ export function WorkspaceActivityMenu({
 						<button
 							type="button"
 							aria-label={t({ message: "Workspace activity" })}
+							aria-describedby={hasNew ? newPageStatusId : undefined}
 							className={cn(
-								"no-drag flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 px-2 text-xs font-medium text-muted-foreground/80 transition-colors",
+								"no-drag relative flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 px-2 text-xs font-medium text-muted-foreground/80 transition-colors",
 								"hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 								open && "bg-muted/60 text-foreground",
-								hasNew &&
-									"border-blue-500/40 bg-blue-500/[0.08] text-blue-500 hover:bg-blue-500/[0.12] hover:text-blue-500",
 							)}
 						>
 							<ListTree className="size-3.5 shrink-0" />
@@ -401,19 +442,25 @@ export function WorkspaceActivityMenu({
 									<span className="tabular-nums">{workspace.length}</span>
 								)
 							)}
-							{hasNew && (
-								<span className="text-[10px] font-semibold">
-									<Trans context="badge on a page published since the menu was last opened">
-										New
-									</Trans>
-								</span>
-							)}
 							{triggerChangesStats && (
 								<>
 									<span className="h-3.5 w-px shrink-0 bg-border" />
 									<GitCompareArrows className="size-3.5 shrink-0" />
 									<span className="flex items-center gap-1">
 										<ChangesStats stats={triggerChangesStats} />
+									</span>
+								</>
+							)}
+							{hasNew && (
+								<>
+									<span
+										aria-hidden="true"
+										className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-blue-500"
+									/>
+									<span id={newPageStatusId} className="sr-only">
+										<Trans context="badge on a page published since the menu was last opened">
+											New
+										</Trans>
 									</span>
 								</>
 							)}
@@ -538,7 +585,7 @@ export function WorkspaceActivityMenu({
 												onClick={stopAll}
 												className="flex size-6 items-center justify-center rounded-sm text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:bg-accent"
 											>
-												<Square className="size-3 fill-current" />
+												<Square className="size-2.5 fill-current" />
 											</button>
 										</TooltipTrigger>
 										<TooltipContent side="top">

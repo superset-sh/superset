@@ -40,7 +40,6 @@ beforeEach(() => {
 
 afterAll(() => {
 	setScreenForTesting(null);
-	mock.restore();
 });
 
 describe("isVisibleOnAnyDisplay", () => {

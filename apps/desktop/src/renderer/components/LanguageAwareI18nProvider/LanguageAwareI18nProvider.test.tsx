@@ -1,211 +1,125 @@
-import {
-	afterAll,
-	afterEach,
-	beforeEach,
-	describe,
-	expect,
-	mock,
-	test,
-} from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, describe, expect, test } from "bun:test";
+import type { TRPCLink } from "@trpc/client";
+import type { AppRouter } from "lib/trpc/routers";
 
-const realAuthClientModule = { ...(await import("renderer/lib/auth-client")) };
-const realPostHogModule = { ...(await import("renderer/lib/posthog")) };
-const registerLocale = mock();
-const people = { set: mock() };
-
-// happy-dom is process-wide; unregister in afterAll so the shared mock
-// document is restored for the other renderer suites.
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
 
-let languageQueryResult: {
-	data?: string | null;
-	isPending: boolean;
-	isError: boolean;
-} = { data: undefined, isPending: true, isError: false };
-const getLanguageUseQuery = mock(
-	(_input: unknown, _options?: unknown) => languageQueryResult,
-);
-const setLanguageData = mock();
-
-mock.module("renderer/lib/electron-trpc", () => ({
-	electronTrpc: {
-		settings: {
-			getLanguage: { useQuery: getLanguageUseQuery },
-			onLanguageChange: { useSubscription: mock() },
-		},
-		useUtils: () => ({
-			settings: { getLanguage: { setData: setLanguageData } },
-		}),
-	},
-}));
-
-// The tagger renders alongside the provider's children and pulls in auth and
-// PostHog — irrelevant to locale resolution, stubbed out here.
-mock.module("renderer/lib/auth-client", () => ({
-	...realAuthClientModule,
-	authClient: new Proxy(realAuthClientModule.authClient, {
-		get(target, property, receiver) {
-			if (property === "useSession") return () => ({ data: null });
-			return Reflect.get(target, property, receiver);
-		},
-	}),
-}));
-mock.module("renderer/lib/posthog", () => ({
-	...realPostHogModule,
-	posthog: new Proxy(realPostHogModule.posthog, {
-		get(target, property, receiver) {
-			if (property === "register") return registerLocale;
-			if (property === "people") return people;
-			return Reflect.get(target, property, receiver);
-		},
-	}),
-}));
-
-const originalNavigator = Object.getOwnPropertyDescriptor(
-	globalThis,
-	"navigator",
-);
-function setNavigatorLanguages(languages: string[]) {
-	Object.defineProperty(globalThis, "navigator", {
-		value: { ...globalThis.navigator, languages },
-		configurable: true,
-		writable: true,
-	});
-}
-
-const { act, cleanup, render, waitFor } = await import(
-	"@testing-library/react"
-);
+const { DEFAULT_LOCALE, initI18nAsync } = await import("@superset/i18n");
+const { QueryClient } = await import("@tanstack/react-query");
+const { TRPCClientError } = await import("@trpc/client");
+const { observable } = await import("@trpc/server/observable");
+const { cleanup, render, waitFor } = await import("@testing-library/react");
+const { electronTrpc } = await import("renderer/lib/electron-trpc");
 const { LanguageAwareI18nProvider } = await import(
 	"./LanguageAwareI18nProvider"
 );
 
-async function flush() {
-	// Lets the locale-activation effect's dynamic catalog import and its
-	// .finally(() => setReady(true)) settle across a couple of microtask/
-	// macrotask turns.
-	for (let i = 0; i < 5; i++) {
-		// eslint-disable-next-line no-await-in-loop
-		await act(async () => {
-			await new Promise((resolve) => setTimeout(resolve, 0));
-		});
-	}
+const originalLanguages = Object.getOwnPropertyDescriptor(
+	navigator,
+	"languages",
+);
+
+function setNavigatorLanguages(languages: string[]) {
+	Object.defineProperty(navigator, "languages", {
+		value: languages,
+		configurable: true,
+	});
 }
 
-beforeEach(() => {
-	getLanguageUseQuery.mockClear();
-	setLanguageData.mockClear();
-	languageQueryResult = { data: undefined, isPending: true, isError: false };
-});
-afterEach(() => {
-	cleanup();
-	if (originalNavigator) {
-		Object.defineProperty(globalThis, "navigator", originalNavigator);
-	}
-});
-afterAll(async () => {
-	mock.module("renderer/lib/auth-client", () => realAuthClientModule);
-	mock.module("renderer/lib/posthog", () => realPostHogModule);
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
+const NEVER = Symbol("never answers");
 
-describe("LanguageAwareI18nProvider", () => {
-	test("configures getLanguage to retry instead of failing on the first attempt (#7415)", async () => {
-		// A CMD+R reload re-establishes the electron-trpc IPC channel in a
-		// fresh JS realm, making the very first getLanguage fetch after a
-		// reload the one most likely to race it transiently. Retrying keeps
-		// React Query's `isPending` true across that race so it self-heals
-		// before ever reaching the isPending:false branches below, instead of
-		// settling into "no preference" on a single flaky attempt.
-		await act(async () => {
-			render(
-				<LanguageAwareI18nProvider>
-					<div data-testid="marker" />
-				</LanguageAwareI18nProvider>,
-			);
+function renderProvider(readLanguage: (attempt: number) => unknown) {
+	let attempts = 0;
+	const link: TRPCLink<AppRouter> = () => (call) =>
+		observable((observer) => {
+			if (call.op.path !== "settings.getLanguage") return;
+			attempts += 1;
+			try {
+				const language = readLanguage(attempts);
+				if (language === NEVER) return;
+				observer.next({ result: { data: language } });
+				observer.complete();
+			} catch (error) {
+				observer.error(TRPCClientError.from(error as Error));
+			}
 		});
+	const queryClient = new QueryClient({
+		defaultOptions: { queries: { retry: false } },
+	});
+	const view = render(
+		<electronTrpc.Provider
+			client={electronTrpc.createClient({ links: [link] })}
+			queryClient={queryClient}
+		>
+			<LanguageAwareI18nProvider languageRetryDelayMs={1}>
+				<div data-testid="marker" />
+			</LanguageAwareI18nProvider>
+		</electronTrpc.Provider>,
+	);
+	return { view, attempts: () => attempts };
+}
 
-		const options = getLanguageUseQuery.mock.calls.at(-1)?.[1] as {
-			retry: number;
-			retryDelay: (attempt: number) => number;
-		};
-		expect(options.retry).toBeGreaterThan(0);
-		expect(options.retryDelay(0)).toBeGreaterThan(0);
+function failRead(): never {
+	throw new Error("IPC channel not ready");
+}
+
+afterEach(async () => {
+	cleanup();
+	if (originalLanguages) {
+		Object.defineProperty(navigator, "languages", originalLanguages);
+	} else {
+		Reflect.deleteProperty(navigator, "languages");
+	}
+	await initI18nAsync(DEFAULT_LOCALE);
+	document.documentElement.lang = "";
+});
+describe("LanguageAwareI18nProvider", () => {
+	test("retries a failed first read instead of settling on no preference (#7415)", async () => {
+		setNavigatorLanguages(["ja-JP"]);
+		const { view, attempts } = renderProvider((attempt) =>
+			attempt === 1 ? failRead() : "en",
+		);
+
+		await view.findByTestId("marker");
+		expect(attempts()).toBe(2);
+		expect(document.documentElement.lang).toBe("en");
 	});
 
-	test("stays deferred while the query is pending, even after a prior failed attempt", async () => {
-		// Mid-retry: React Query reports isPending: true throughout, no
-		// matter how many attempts have already failed.
+	test("stays deferred while the read is pending, even after a failed attempt", async () => {
 		setNavigatorLanguages(["ja-JP"]);
-		languageQueryResult = { data: undefined, isPending: true, isError: true };
+		const { view, attempts } = renderProvider((attempt) =>
+			attempt === 1 ? failRead() : NEVER,
+		);
 
-		await act(async () => {
-			render(
-				<LanguageAwareI18nProvider>
-					<div data-testid="marker" />
-				</LanguageAwareI18nProvider>,
-			);
-		});
-		await flush();
-
+		await waitFor(() => expect(attempts()).toBe(2));
+		expect(view.queryByTestId("marker")).toBeNull();
 		expect(document.documentElement.lang).not.toBe("ja");
 	});
 
 	test("falls back to the inferred locale once retries are exhausted, instead of staying blank forever", async () => {
-		// The retry budget configured above is what makes this branch rare in
-		// practice — a transient reload-time race self-heals before ever
-		// reaching it. Only a genuinely stuck IPC channel settles here, and a
-		// stuck channel would break the rest of the app too, so falling back
-		// to the inferred locale beats leaving the window blank forever.
 		setNavigatorLanguages(["ja-JP"]);
-		languageQueryResult = { data: undefined, isPending: false, isError: true };
+		const { view, attempts } = renderProvider(failRead);
 
-		await act(async () => {
-			render(
-				<LanguageAwareI18nProvider>
-					<div data-testid="marker" />
-				</LanguageAwareI18nProvider>,
-			);
-		});
-		await flush();
-
-		await waitFor(() => expect(document.documentElement.lang).toBe("ja"));
+		await view.findByTestId("marker");
+		expect(attempts()).toBe(4);
+		expect(document.documentElement.lang).toBe("ja");
 	});
 
-	test("activates the persisted locale once the query succeeds", async () => {
+	test("activates the persisted locale once the read succeeds", async () => {
 		setNavigatorLanguages(["ja-JP"]);
-		languageQueryResult = { data: "en", isPending: false, isError: false };
+		const { view } = renderProvider(() => "en");
 
-		await act(async () => {
-			render(
-				<LanguageAwareI18nProvider>
-					<div data-testid="marker" />
-				</LanguageAwareI18nProvider>,
-			);
-		});
-		await flush();
-
-		await waitFor(() => expect(document.documentElement.lang).toBe("en"));
+		await view.findByTestId("marker");
+		expect(document.documentElement.lang).toBe("en");
 	});
 
-	test("infers the OS locale only once the query genuinely resolves to no preference", async () => {
+	test("infers the OS locale only once the read resolves to no preference", async () => {
 		setNavigatorLanguages(["ja-JP"]);
-		languageQueryResult = { data: null, isPending: false, isError: false };
+		const { view } = renderProvider(() => null);
 
-		await act(async () => {
-			render(
-				<LanguageAwareI18nProvider>
-					<div data-testid="marker" />
-				</LanguageAwareI18nProvider>,
-			);
-		});
-		await flush();
-
-		await waitFor(() => expect(document.documentElement.lang).toBe("ja"));
+		await view.findByTestId("marker");
+		expect(document.documentElement.lang).toBe("ja");
 	});
 });

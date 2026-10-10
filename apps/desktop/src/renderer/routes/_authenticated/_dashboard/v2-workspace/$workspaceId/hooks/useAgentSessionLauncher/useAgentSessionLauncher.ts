@@ -1,4 +1,5 @@
 import { useLingui } from "@lingui/react/macro";
+import { acpHarnessForPreset } from "@superset/chat/core";
 import { errorMessage } from "@superset/i18n/errors";
 import type { WorkspaceStore } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
@@ -11,7 +12,6 @@ import {
 	useV2AgentConfigs,
 	v2AgentConfigsQueryOptions,
 } from "renderer/hooks/useV2AgentConfigs";
-import { acpHarnessForPreset } from "renderer/lib/acpHarness";
 import { terminalQueryColors } from "renderer/lib/terminal/terminal-query-colors";
 import type { StoreApi } from "zustand/vanilla";
 import type {
@@ -38,6 +38,7 @@ export type CreateNewAgentSession = (
 export type OpenAgentChat = (
 	input: Omit<CreateNewAgentSessionInput, "forkSessionId" | "prompt"> & {
 		prompt?: string;
+		presetId?: string;
 	},
 ) => Promise<{ terminalId: string } | null>;
 
@@ -68,7 +69,9 @@ export function useAgentSessionLauncher({
 			const configs = await queryClient
 				.ensureQueryData(v2AgentConfigsQueryOptions(hostUrl))
 				.catch(() => agentConfigs ?? []);
-			const config = configs.find((entry) => entry.id === input.configId);
+			const config =
+				configs.find((entry) => entry.id === input.configId) ??
+				configs.find((entry) => entry.presetId === input.presetId);
 			const presetId = config?.presetId;
 			if (!presetId || !acpHarnessForPreset(presetId)) return null;
 			const state = store.getState();

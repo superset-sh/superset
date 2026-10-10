@@ -1,5 +1,7 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { EventEmitter } from "node:events";
+import type { Worker } from "node:worker_threads";
+import { WorkerTaskError, WorkerTaskRunner } from "./WorkerTaskRunner";
 
 type WorkerBehavior =
 	| "boot-fail"
@@ -117,13 +119,8 @@ class MockWorker extends EventEmitter {
 	}
 }
 
-mock.module("node:worker_threads", () => ({
-	Worker: MockWorker,
-}));
-
-const { WorkerTaskError, WorkerTaskRunner } = await import(
-	"./WorkerTaskRunner"
-);
+const createWorker = (scriptPath: string) =>
+	new MockWorker(scriptPath) as unknown as Worker;
 
 const flushMicrotasks = async (times = 5): Promise<void> => {
 	for (let i = 0; i < times; i++) {
@@ -149,6 +146,7 @@ describe("WorkerTaskRunner failure handling", () => {
 		const runner = new WorkerTaskRunner({
 			workerScriptPath: "/missing/worker-script.js",
 			concurrency: 1,
+			createWorker,
 		});
 
 		const taskPromise = runner.runTask("status", {});
@@ -164,6 +162,7 @@ describe("WorkerTaskRunner failure handling", () => {
 		const runner = new WorkerTaskRunner({
 			workerScriptPath: "/mock/worker.js",
 			concurrency: 1,
+			createWorker,
 		});
 
 		const first = runner.runTask("status", { id: "first" });
@@ -182,6 +181,7 @@ describe("WorkerTaskRunner failure handling", () => {
 		const runner = new WorkerTaskRunner({
 			workerScriptPath: "/mock/worker.js",
 			concurrency: 1,
+			createWorker,
 		});
 
 		const first = runner.runTask(
@@ -222,6 +222,7 @@ describe("WorkerTaskRunner failure handling", () => {
 		const runner = new WorkerTaskRunner({
 			workerScriptPath: "/mock/worker.js",
 			concurrency: 1,
+			createWorker,
 			cancelGraceMs: 1_000,
 		});
 
@@ -245,6 +246,7 @@ describe("WorkerTaskRunner failure handling", () => {
 		const runner = new WorkerTaskRunner({
 			workerScriptPath: "/mock/worker.js",
 			concurrency: 1,
+			createWorker,
 			cancelGraceMs: 20,
 		});
 

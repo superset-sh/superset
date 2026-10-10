@@ -12,8 +12,40 @@ import {
 } from "../../utils/resolvePullRequestTarget";
 import { fetchPullRequestDetail } from "./utils/fetchPullRequestDetail";
 
+export type PullRequestMergeability = "mergeable" | "conflicting" | "unknown";
+
+export interface PullRequestDetailActor {
+	login: string;
+	name: string | null;
+}
+
+export interface PullRequestDetailComment {
+	id: string;
+	kind: "comment" | "review";
+	author: PullRequestDetailActor | null;
+	body: string;
+	createdAt: string;
+	reviewState: string | null;
+	url?: string | null;
+}
+
+/** What a host's `gh pr view` adds over the cloud shape. Every field is
+ *  optional: the cloud route and hosts older than this read leave them out. */
+export interface PullRequestDetailExtras {
+	additions?: number;
+	deletions?: number;
+	changedFiles?: number;
+	mergeability?: PullRequestMergeability;
+	mergedAt?: string | null;
+	closedAt?: string | null;
+	reviewers?: PullRequestDetailActor[];
+	comments?: PullRequestDetailComment[];
+	labels?: { name: string; color: string | null }[];
+}
+
 export type PullRequestDetail =
-	RouterOutputs["integration"]["github"]["getPullRequest"];
+	RouterOutputs["integration"]["github"]["getPullRequest"] &
+		PullRequestDetailExtras;
 
 interface PullRequestDetailKey {
 	projectId: string | null;
@@ -64,7 +96,7 @@ export function usePullRequestDetail({
 		!availableProjects.some(
 			(project) => project.id === projectId || project.projectKey === projectId,
 		);
-	const query = useQuery({
+	const query = useQuery<PullRequestDetail>({
 		queryKey: [
 			...pullRequestDetailQueryKey({
 				projectId: target.projectId,

@@ -43,6 +43,14 @@ export const voiceRouter = {
 			}
 			// Undefined when PostHog cannot answer, which refuses: every session
 			// spends on the shared OpenAI key.
+			const organizationLookup = requireActiveOrgMembership(ctx).then(
+				(organizationId) =>
+					db.query.organizations.findFirst({
+						where: eq(organizations.id, organizationId),
+						columns: { name: true },
+					}),
+			);
+			organizationLookup.catch(() => {});
 			const enabled = await posthog.isFeatureEnabled(
 				FEATURE_FLAGS.MOBILE_VOICE_MODE,
 				ctx.session.user.id,
@@ -57,11 +65,7 @@ export const voiceRouter = {
 					message: "Voice mode is not enabled for this account.",
 				});
 			}
-			const organizationId = await requireActiveOrgMembership(ctx);
-			const organization = await db.query.organizations.findFirst({
-				where: eq(organizations.id, organizationId),
-				columns: { name: true },
-			});
+			const organization = await organizationLookup;
 			try {
 				const secret = await mintRealtimeClientSecret({
 					apiKey: env.SERVER_OPENAI_API_KEY,

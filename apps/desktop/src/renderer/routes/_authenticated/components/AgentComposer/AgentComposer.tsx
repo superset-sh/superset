@@ -12,7 +12,7 @@ const NO_PROVIDERS: ComposerMentionProvider[] = [];
 
 export type AgentComposerProps = Omit<
 	PromptInputProps,
-	"mentionProviders" | "commands"
+	"mentionProviders" | "commands" | "findChips"
 > & {
 	mentionProviders?: ComposerMentionProvider[];
 	commands?: PromptInputCommand[];
@@ -23,12 +23,17 @@ export function AgentComposer({
 	mentionProviders = NO_PROVIDERS,
 	...props
 }: AgentComposerProps) {
-	const pluginProvider = usePluginMentionProvider();
+	const { provider: pluginProvider, findChips } = usePluginMentionProvider();
 	const providers = useMemo(
 		() => [pluginProvider, ...mentionProviders],
 		[pluginProvider, mentionProviders],
 	);
 	return (
-		<PromptInput {...props} commands={commands} mentionProviders={providers} />
+		<PromptInput
+			{...props}
+			commands={commands}
+			findChips={findChips}
+			mentionProviders={providers}
+		/>
 	);
 }

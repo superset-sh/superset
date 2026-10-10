@@ -8,7 +8,11 @@ import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
 import { InstallCommand } from "./components/InstallCommand";
 
-export function CTASection() {
+interface CTASectionProps {
+	showInstallCommand?: boolean;
+}
+
+export function CTASection({ showInstallCommand = true }: CTASectionProps) {
 	const { t } = useLingui();
 	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
 
@@ -36,10 +40,16 @@ export function CTASection() {
 							<FaGithub className="size-4" />
 						</button>
 					</div>
-					<p className="mt-10 mb-4 text-sm text-muted-foreground">
-						<Trans>Or ask your coding agent to install the Superset CLI.</Trans>
-					</p>
-					<InstallCommand />
+					{showInstallCommand && (
+						<>
+							<p className="mt-10 mb-4 text-sm text-muted-foreground">
+								<Trans>
+									Or ask your coding agent to install the Superset CLI.
+								</Trans>
+							</p>
+							<InstallCommand />
+						</>
+					)}
 				</div>
 			</section>
 			<WaitlistModal
