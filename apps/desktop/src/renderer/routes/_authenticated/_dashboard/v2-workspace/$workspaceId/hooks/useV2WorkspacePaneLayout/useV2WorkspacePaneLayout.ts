@@ -4,6 +4,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo, useRef } from "react";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { registerV2PaneLayoutStore } from "renderer/stores/v2-pane-layout-stores";
 import {
 	applyRememberedV2PaneSelection,
 	rememberV2PaneSelection,
@@ -119,6 +120,11 @@ export function useV2WorkspacePaneLayout({
 				preserveLocalPaneSelection(current, persistedPaneLayout),
 			);
 	}, [persistedPaneLayout, store, isLayoutReady]);
+
+	useEffect(() => {
+		if (slot !== "paneLayout") return;
+		return registerV2PaneLayoutStore(workspaceId, store);
+	}, [store, workspaceId, slot]);
 
 	useEffect(() => {
 		const unsubscribe = store.subscribe((nextStore) => {

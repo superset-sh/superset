@@ -10,9 +10,15 @@
 
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import type { IncomingMessage, Server } from "node:http";
+import { paneLayoutRequestSchema } from "@superset/shared/pane-layout-ops";
 import log from "electron-log";
 import express, { type Request, type Response } from "express";
 import { type WebSocket, WebSocketServer } from "ws";
+import { z } from "zod";
+import {
+	PaneLayoutRequestError,
+	paneLayoutRequests,
+} from "../pane-layout/pane-layout-requests";
 import { setBrowserBridgeInfo } from "./browser-bridge-info";
 import {
 	type BrowserOpenRequest,
@@ -286,6 +292,22 @@ export async function startBrowserBridge(): Promise<void> {
 		withPane(req, res, (_wc, paneId, workspaceId) => {
 			res.json({ entries: browserManager.getConsoleLogs(paneId, workspaceId) });
 		});
+	});
+
+	app.post("/pane-layout", (req, res) => {
+		const parsed = paneLayoutRequestSchema.safeParse(req.body);
+		if (!parsed.success) {
+			res.status(400).json({ error: z.prettifyError(parsed.error) });
+			return;
+		}
+		paneLayoutRequests
+			.request(parsed.data.workspaceId, parsed.data.op)
+			.then((result) => res.json(result))
+			.catch((err) =>
+				res
+					.status(err instanceof PaneLayoutRequestError ? err.status : 500)
+					.json({ error: errorMessage(err) }),
+			);
 	});
 
 	// Chromium browsers/profiles whose history and logins can be imported.

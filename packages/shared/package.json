@@ -21,6 +21,10 @@
 			"types": "./src/page-zoom.ts",
 			"default": "./src/page-zoom.ts"
 		},
+		"./pane-layout-ops": {
+			"types": "./src/pane-layout-ops.ts",
+			"default": "./src/pane-layout-ops.ts"
+		},
 		"./usercontent": {
 			"types": "./src/usercontent/index.ts",
 			"default": "./src/usercontent/index.ts"

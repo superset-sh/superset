@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import type { BrowserBridgeConfig } from "../../types";
+import { bridgeErrorDetail, bridgeFetch } from "./bridge-fetch";
 import type { BrowserPane, ConsoleEntry } from "./types";
 
 export type { BrowserPane, ConsoleEntry } from "./types";
@@ -17,26 +18,14 @@ export class BrowserBridgeClient {
 		path: string,
 		body?: unknown,
 	): Promise<T> {
-		let res: Response;
-		try {
-			res = await fetch(`${this.config.url}${path}`, {
-				method,
-				headers: {
-					Authorization: `Bearer ${this.config.secret}`,
-					...(body ? { "Content-Type": "application/json" } : {}),
-				},
-				body: body ? JSON.stringify(body) : undefined,
-			});
-		} catch (err) {
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: `Browser bridge unreachable: ${
-					err instanceof Error ? err.message : String(err)
-				}`,
-			});
-		}
+		const res = await bridgeFetch(
+			this.config,
+			method,
+			path,
+			body,
+			"Browser bridge",
+		);
 		if (!res.ok) {
-			const detail = (await res.json().catch(() => ({}))) as { error?: string };
 			throw new TRPCError({
 				// A missing pane / not-yet-open workspace is a caller-fixable
 				// precondition, not an internal fault.
@@ -44,10 +33,11 @@ export class BrowserBridgeClient {
 					res.status === 404 || res.status === 504
 						? "NOT_FOUND"
 						: "BAD_REQUEST",
-				message: detail.error ?? `Browser bridge error (${res.status})`,
+				message:
+					bridgeErrorDetail(res.body) ?? `Browser bridge error (${res.status})`,
 			});
 		}
-		return (await res.json()) as T;
+		return res.body as T;
 	}
 
 	listPanes(workspaceId: string) {

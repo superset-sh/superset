@@ -1,0 +1,109 @@
+import { CLIError, string } from "@superset/cli-framework";
+import { getHostId } from "@superset/shared/host-info";
+import type {
+	PaneLayoutNode,
+	PaneLayoutOpResult,
+	PaneLayoutSnapshot,
+	PaneLayoutTab,
+} from "@superset/shared/pane-layout-ops";
+import { PANE_SPLIT_DIRECTIONS } from "@superset/shared/pane-layout-ops";
+import type { CliContext } from "../../lib/command";
+import {
+	type HostServiceClient,
+	resolveHostTarget,
+} from "../../lib/host-target";
+
+export const workspaceOptions = {
+	workspace: string().required().desc("Workspace ID"),
+	host: string().desc("Host the workspace lives on (default: this machine)"),
+};
+
+export const directionOption = () =>
+	string()
+		.enum(...PANE_SPLIT_DIRECTIONS)
+		.desc("Side to place the pane on: right, left, down, or up");
+
+export async function resolvePanesClient(
+	ctx: CliContext,
+	options: { host?: string | null },
+): Promise<HostServiceClient> {
+	const organizationId = ctx.config.organizationId;
+	if (!organizationId) {
+		throw new CLIError("No active organization", "Run: superset auth login");
+	}
+	const target = await resolveHostTarget({
+		requestedHostId: options.host ?? getHostId(),
+		organizationId,
+		userJwt: ctx.bearer,
+		api: ctx.api,
+	});
+	return target.client;
+}
+
+/** Turns a host without the `panes` router into an actionable error. */
+export async function callPanes<T>(call: () => Promise<T>): Promise<T> {
+	try {
+		return await call();
+	} catch (error) {
+		if (
+			error instanceof Error &&
+			/No procedure found on path "?panes\./.test(error.message)
+		) {
+			throw new CLIError(
+				"This host is too old for `superset panes`",
+				"Update the Superset desktop app on that host",
+			);
+		}
+		throw error;
+	}
+}
+
+function formatNode(
+	node: PaneLayoutNode,
+	tab: PaneLayoutTab,
+	depth: number,
+): string[] {
+	const indent = "  ".repeat(depth);
+	if (node.type === "split") {
+		const first = Math.round(node.ratio * 100);
+		return [
+			`${indent}split ${node.direction} ${first}/${100 - first}`,
+			...formatNode(node.first, tab, depth + 1),
+			...formatNode(node.second, tab, depth + 1),
+		];
+	}
+	const pane = tab.panes.find((candidate) => candidate.id === node.paneId);
+	const detail = pane?.terminalId ?? pane?.title ?? "";
+	return [
+		[
+			`${indent}${node.paneId}`,
+			pane?.kind ?? "unknown",
+			detail,
+			pane?.active ? "(active)" : "",
+		]
+			.filter(Boolean)
+			.join("\t"),
+	];
+}
+
+export function formatLayout(layout: PaneLayoutSnapshot): string {
+	if (layout.tabs.length === 0) return "No panes open in this workspace.";
+	return layout.tabs
+		.flatMap((tab) => [
+			[`tab ${tab.id}`, tab.title ?? "", tab.active ? "(active)" : ""]
+				.filter(Boolean)
+				.join("\t"),
+			...formatNode(tab.layout, tab, 1),
+		])
+		.join("\n");
+}
+
+export function layoutResult<T extends PaneLayoutOpResult>(
+	summary: string,
+	result: T,
+) {
+	return {
+		data: result,
+		message: `${summary}\n${formatLayout(result.layout)}`,
+	};
+}

@@ -13,6 +13,7 @@ import { issuesRouter } from "./issues";
 import { mobileRouter } from "./mobile";
 import { notificationsRouter } from "./notifications";
 import { pageWatchRouter } from "./page-watch";
+import { panesRouter } from "./panes";
 import { portsRouter } from "./ports";
 import { projectRouter } from "./project";
 import { pullRequestsRouter } from "./pull-requests";
@@ -46,6 +47,7 @@ export const appRouter = router({
 	project: projectRouter,
 	tagFolders: tagFoldersRouter,
 	pageWatch: pageWatchRouter,
+	panes: panesRouter,
 	ports: portsRouter,
 	sandbox: sandboxRouter,
 	settings: settingsRouter,
