@@ -1,0 +1,1 @@
+export { useHiringLabels } from "./useHiringLabels";

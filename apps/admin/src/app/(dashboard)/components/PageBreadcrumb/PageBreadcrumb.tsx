@@ -16,7 +16,9 @@ export function PageBreadcrumb() {
 	const pathname = usePathname();
 	const current = pathname.startsWith("/growth")
 		? t({ message: "Growth" })
-		: t({ message: "Home" });
+		: pathname.startsWith("/hiring")
+			? t({ message: "Hiring" })
+			: t({ message: "Home" });
 
 	return (
 		<Breadcrumb>
