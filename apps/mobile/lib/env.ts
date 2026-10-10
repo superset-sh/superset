@@ -12,6 +12,7 @@ const envSchema = z.object({
 	EXPO_PUBLIC_POSTHOG_HOST: z.url().default("https://us.i.posthog.com"),
 	EXPO_PUBLIC_SENTRY_DSN_MOBILE: z.url().optional(),
 	EXPO_PUBLIC_SENTRY_ENVIRONMENT: z.string().default("production"),
+	EXPO_PUBLIC_SAZABI_SENTRY_DSN: z.url().optional(),
 	EXPO_PUBLIC_E2E: z.string().optional(),
 	/** Set by .superset/setup.sh or setup.cloud.sh (seed-local-mobile-token.ts,
 	 * seed-cloud-mobile-token.ts): a one-time token redeemable for a real
@@ -30,6 +31,7 @@ const rawEnv: Record<string, string | undefined> = {
 	EXPO_PUBLIC_POSTHOG_HOST: process.env.EXPO_PUBLIC_POSTHOG_HOST,
 	EXPO_PUBLIC_SENTRY_DSN_MOBILE: process.env.EXPO_PUBLIC_SENTRY_DSN_MOBILE,
 	EXPO_PUBLIC_SENTRY_ENVIRONMENT: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT,
+	EXPO_PUBLIC_SAZABI_SENTRY_DSN: process.env.EXPO_PUBLIC_SAZABI_SENTRY_DSN,
 	EXPO_PUBLIC_E2E: process.env.EXPO_PUBLIC_E2E,
 	EXPO_PUBLIC_DEV_ONE_TIME_TOKEN: process.env.EXPO_PUBLIC_DEV_ONE_TIME_TOKEN,
 };

@@ -99,6 +99,7 @@ export default defineConfig({
 			"process.env.SENTRY_DSN_HOST_SERVICE": defineEnv(
 				process.env.SENTRY_DSN_HOST_SERVICE,
 			),
+			"process.env.SAZABI_SENTRY_DSN": defineEnv(process.env.SAZABI_SENTRY_DSN),
 			"process.env.RELAY_URL": defineEnv(process.env.RELAY_URL),
 			"process.env.REALTIME_URL": defineEnv(process.env.REALTIME_URL),
 			// Must match renderer for analytics in main process

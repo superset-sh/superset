@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/cloudflare";
 import { PAGE_COMMENTS_RUNTIME_SOURCE } from "@superset/shared/page-comments-runtime";
 import { PAGE_STORAGE_RUNTIME_SOURCE } from "@superset/shared/page-storage-runtime";
+import { sazabiIntegration } from "@superset/shared/sentry-sazabi";
 import {
 	FILE_CONTENT_SECURITY_POLICY,
 	fileOriginalKey,
@@ -583,8 +584,10 @@ app.notFound(() => notFound());
 const sentryOptions = (env: UsercontentEnv): Sentry.CloudflareOptions => ({
 	dsn: env.SENTRY_DSN,
 	sendDefaultPii: false,
-	integrations: (defaults) =>
-		defaults.filter((integration) => integration.name !== "Console"),
+	integrations: (defaults) => [
+		...defaults.filter((integration) => integration.name !== "Console"),
+		sazabiIntegration({ dsn: env.SAZABI_SENTRY_DSN }),
+	],
 });
 
 export default Sentry.withSentry(sentryOptions, {

@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/nextjs";
-
 import { CLOUD_WORKSPACE_PROVISION_TRANSACTION } from "@superset/shared/constants";
+import { sazabiIntegration } from "@superset/shared/sentry-sazabi";
 
 import { env } from "@/env";
 
@@ -16,5 +16,11 @@ Sentry.init({
 	tracesSampler: ({ name }) =>
 		name === CLOUD_WORKSPACE_PROVISION_TRANSACTION ? 1 : 0,
 	sendDefaultPii: true,
+	integrations: [
+		sazabiIntegration({
+			dsn: env.NEXT_PUBLIC_SAZABI_SENTRY_DSN,
+			transport: Sentry.makeNodeTransport,
+		}),
+	],
 	debug: false,
 });

@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/electron/main";
 import { IPCMode } from "@sentry/electron/main";
+import { sazabiIntegration } from "@superset/shared/sentry-sazabi";
 import { createSentryEventThrottle } from "@superset/shared/sentry-throttle";
 import { session } from "electron";
 import { env } from "../env.main";
@@ -25,6 +26,12 @@ export function initSentry(): void {
 			// One machine repeating one failure should not crowd out everyone
 			// else's rare ones, nor spend the org's quota getting there.
 			beforeSend: throttleRepeats,
+			integrations: [
+				sazabiIntegration({
+					dsn: env.SAZABI_SENTRY_DSN,
+					transport: Sentry.makeElectronTransport,
+				}),
+			],
 			ipcMode: IPCMode.Classic,
 			getSessions: () => [
 				session.defaultSession,

@@ -3,6 +3,7 @@ import {
 	buildUpstreamHeaders,
 	parseHostRoutingKey,
 } from "@superset/shared/host-routing";
+import { sazabiIntegration } from "@superset/shared/sentry-sazabi";
 import { RELAY_CLOSE } from "@superset/shared/tunnel-protocol";
 import { type AuthContext, verifyJWT } from "@superset/shared/verify-jwt";
 import type { Context, MiddlewareHandler } from "hono";
@@ -400,8 +401,10 @@ function isPeerGone(message: string): boolean {
 const sentryOptions = (env: RelayEnv): Sentry.CloudflareOptions => ({
 	dsn: env.SENTRY_DSN,
 	sendDefaultPii: false,
-	integrations: (defaults) =>
-		defaults.filter((integration) => integration.name !== "Console"),
+	integrations: (defaults) => [
+		...defaults.filter((integration) => integration.name !== "Console"),
+		sazabiIntegration({ dsn: env.SAZABI_SENTRY_DSN }),
+	],
 	beforeSend: (event) => {
 		const message = event.exception?.values?.[0]?.value;
 		return message && isPeerGone(message) ? null : event;

@@ -23,6 +23,8 @@ const envSchema = z.object({
 	USERCONTENT_TOKEN_SECRET_PREVIOUS: z.string().min(32).optional(),
 	/** Optional; Sentry capture is a no-op until the secret is set. */
 	SENTRY_DSN: z.string().url().optional(),
+	/** Optional; overrides the default Sazabi DSN Sentry events are copied to. */
+	SAZABI_SENTRY_DSN: z.string().url().optional(),
 });
 
 export type UsercontentEnv = z.infer<typeof envSchema> & {

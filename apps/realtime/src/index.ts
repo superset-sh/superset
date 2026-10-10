@@ -10,6 +10,7 @@ import {
 	isRealtimeNudgeKind,
 	isRealtimeUpdate,
 } from "@superset/shared/realtime";
+import { sazabiIntegration } from "@superset/shared/sentry-sazabi";
 import {
 	signPageConnectTicket,
 	verifyPageConnectTicket,
@@ -284,8 +285,10 @@ function isPeerGone(message: string): boolean {
 const sentryOptions = (env: RealtimeEnv): Sentry.CloudflareOptions => ({
 	dsn: env.SENTRY_DSN,
 	sendDefaultPii: false,
-	integrations: (defaults) =>
-		defaults.filter((integration) => integration.name !== "Console"),
+	integrations: (defaults) => [
+		...defaults.filter((integration) => integration.name !== "Console"),
+		sazabiIntegration({ dsn: env.SAZABI_SENTRY_DSN }),
+	],
 	beforeSend: (event) => {
 		const message = event.exception?.values?.[0]?.value;
 		return message && isPeerGone(message) ? null : event;

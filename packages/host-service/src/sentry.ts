@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/node";
+import { sazabiIntegration } from "@superset/shared/sentry-sazabi";
 import { createSentryEventThrottle } from "@superset/shared/sentry-throttle";
 
 let initialized = false;
@@ -23,6 +24,10 @@ export function initSentry(options: { organizationId?: string }): void {
 		integrations: [
 			Sentry.onUncaughtExceptionIntegration({
 				exitEvenIfOtherHandlersAreRegistered: false,
+			}),
+			sazabiIntegration({
+				dsn: process.env.HOST_SERVICE_SAZABI_SENTRY_DSN,
+				transport: Sentry.makeNodeTransport,
 			}),
 		],
 		initialScope: {

@@ -4,6 +4,7 @@ import {
 	SENTRY_DENY_URLS,
 	SENTRY_IGNORE_ERRORS,
 } from "@superset/shared/sentry";
+import { sazabiIntegration } from "@superset/shared/sentry-sazabi";
 import posthog from "posthog-js";
 
 import { env } from "@/env";
@@ -38,6 +39,10 @@ Sentry.init({
 		Sentry.thirdPartyErrorFilterIntegration({
 			filterKeys: ["superset-admin"],
 			behaviour: "drop-error-if-exclusively-contains-third-party-frames",
+		}),
+		sazabiIntegration({
+			dsn: env.NEXT_PUBLIC_SAZABI_SENTRY_DSN,
+			transport: Sentry.makeFetchTransport,
 		}),
 	],
 	ignoreErrors: SENTRY_IGNORE_ERRORS,

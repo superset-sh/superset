@@ -53,11 +53,15 @@ async function initPosthog() {
 }
 
 async function initSentry() {
-	const [Sentry, { SENTRY_DENY_URLS, SENTRY_IGNORE_ERRORS }] =
-		await Promise.all([
-			import("@sentry/nextjs"),
-			import("@superset/shared/sentry"),
-		]);
+	const [
+		Sentry,
+		{ SENTRY_DENY_URLS, SENTRY_IGNORE_ERRORS },
+		{ sazabiIntegration },
+	] = await Promise.all([
+		import("@sentry/nextjs"),
+		import("@superset/shared/sentry"),
+		import("@superset/shared/sentry-sazabi"),
+	]);
 
 	Sentry.init({
 		dsn: env.NEXT_PUBLIC_SENTRY_DSN_MARKETING,
@@ -70,6 +74,10 @@ async function initSentry() {
 			Sentry.thirdPartyErrorFilterIntegration({
 				filterKeys: ["superset-marketing"],
 				behaviour: "drop-error-if-exclusively-contains-third-party-frames",
+			}),
+			sazabiIntegration({
+				dsn: env.NEXT_PUBLIC_SAZABI_SENTRY_DSN,
+				transport: Sentry.makeFetchTransport,
 			}),
 		],
 		ignoreErrors: SENTRY_IGNORE_ERRORS,

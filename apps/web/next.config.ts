@@ -51,6 +51,7 @@ const contentSecurityPolicy = [
 		),
 		"https://*.ingest.sentry.io",
 		"https://*.sentry.io",
+		"https://*.intake.sazabi.com",
 		"https://us.i.posthog.com",
 		"https://us-assets.i.posthog.com",
 		"https://us.posthog.com",

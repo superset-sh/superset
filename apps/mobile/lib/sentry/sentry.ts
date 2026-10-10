@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/react-native";
+import { sazabiIntegration } from "@superset/shared/sentry-sazabi";
 import { env } from "../env";
 import { isTransportError } from "../errors";
 
@@ -13,6 +14,9 @@ export function initSentry() {
 		replaysOnErrorSampleRate: 0,
 		sendDefaultPii: false,
 		enableMetricKit: true,
+		integrations: [
+			sazabiIntegration({ dsn: env.EXPO_PUBLIC_SAZABI_SENTRY_DSN }),
+		],
 		// A phone losing its connection is not a bug, and the volume of it is
 		// what exhausted the quota in August. The request itself is still on the
 		// event as a breadcrumb (breadcrumbsIntegration is on by default), so

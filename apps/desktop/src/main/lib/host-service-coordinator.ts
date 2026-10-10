@@ -1113,6 +1113,9 @@ export class HostServiceCoordinator extends EventEmitter {
 						HOST_SERVICE_SENTRY_DSN: mainEnv.SENTRY_DSN_HOST_SERVICE,
 						HOST_SERVICE_SENTRY_RELEASE: app.getVersion(),
 						HOST_SERVICE_SENTRY_ENVIRONMENT: "production",
+						...(mainEnv.SAZABI_SENTRY_DSN
+							? { HOST_SERVICE_SAZABI_SENTRY_DSN: mainEnv.SAZABI_SENTRY_DSN }
+							: {}),
 					}
 				: {}),
 			// Read by the child's parent watchdog so it can self-exit if

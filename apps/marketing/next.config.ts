@@ -29,7 +29,8 @@ const apiOrigin = process.env.NEXT_PUBLIC_API_URL
 // - Work at a Startup job board (+ its hCaptcha) on /careers
 // - PostHog goes through the same-origin /ingest rewrite; ui_host is listed
 //   so the toolbar can still connect.
-// - Sentry browser SDK reports to *.ingest.sentry.io
+// - Sentry browser SDK reports to *.ingest.sentry.io, and a copy to
+//   *.intake.sazabi.com
 const googleAdsScripts = [
 	"https://www.googletagmanager.com",
 	"https://www.googleadservices.com",
@@ -46,6 +47,7 @@ const contentSecurityPolicy = [
 		apiOrigin,
 		"https://*.ingest.sentry.io",
 		"https://*.sentry.io",
+		"https://*.intake.sazabi.com",
 		"https://us.posthog.com",
 		"https://cloudflareinsights.com",
 		"https://www.google.com",
