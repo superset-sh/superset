@@ -2,6 +2,11 @@ import {
 	type AgentDefinitionId,
 	BUILTIN_AGENT_IDS,
 } from "@superset/shared/agent-catalog";
+import {
+	DEFAULT_TERMINAL_AGENT_WAIT_TIMEOUT_MS,
+	MAX_TERMINAL_AGENT_WAIT_TIMEOUT_MS,
+	TERMINAL_AGENT_WAIT_STATUSES,
+} from "@superset/shared/terminal-agent-wait";
 import { boundTranscriptText } from "@superset/shared/terminal-session-handoff";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -35,6 +40,7 @@ import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { type AgentRunResult, runAgentInWorkspace } from "../agents/agents";
 import { toTerminalSessionError } from "../terminal/errors";
+import { waitForTerminalAgentStatus } from "./wait-for-status";
 
 type GetOrCreateResult = {
 	binding: TerminalAgentBinding;
@@ -568,6 +574,41 @@ export const terminalAgentsRouter = router({
 			}
 			return { seeded: result === "seeded" };
 		}),
+
+	/**
+	 * Block until the terminal's agent reaches one of `until`, answering the
+	 * status snapshot at that moment; see {@link waitForTerminalAgentStatus}.
+	 * A mutation held open for up to `timeoutMs`: the host caps it, and the
+	 * relay cuts a remote request sooner than that cap (see
+	 * `MAX_REMOTE_TERMINAL_AGENT_WAIT_TIMEOUT_MS`). `after` is the watermark
+	 * for "settle after the prompt I just sent": the `lastEventAt` that
+	 * `terminal.send` reports.
+	 */
+	wait: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				terminalId: z.string(),
+				until: z.array(z.enum(TERMINAL_AGENT_WAIT_STATUSES)).min(1),
+				timeoutMs: z
+					.number()
+					.int()
+					.positive()
+					.max(MAX_TERMINAL_AGENT_WAIT_TIMEOUT_MS)
+					.default(DEFAULT_TERMINAL_AGENT_WAIT_TIMEOUT_MS),
+				after: z.number().int().nonnegative().optional(),
+			}),
+		)
+		.mutation(({ ctx, input, signal }) =>
+			waitForTerminalAgentStatus(
+				{
+					db: ctx.db,
+					terminalAgentStore: ctx.terminalAgentStore,
+					eventBus: ctx.eventBus,
+				},
+				{ ...input, signal },
+			),
+		),
 
 	/**
 	 * Status-clearing escape hatch: force the workspace's bindings (or just

@@ -1156,6 +1156,12 @@ interface SessionMessageInput {
 	db: HostDb;
 	eventBus?: EventBus;
 	signal?: AbortSignal;
+	/**
+	 * Runs inside the serialized write, right before Enter is pressed: the
+	 * last moment a caller can read state that is certainly "before this
+	 * prompt". Not called when the text is staged without Enter.
+	 */
+	beforeSubmit?: () => void;
 }
 
 interface AgentMessageTarget {
@@ -1226,6 +1232,7 @@ async function writeSessionMessage(
 		signal,
 		db,
 		eventBus,
+		beforeSubmit,
 	}: SessionMessageInput,
 	agent?: AgentMessageTarget,
 ): Promise<{ success: true } | TerminalSessionError> {
@@ -1299,6 +1306,7 @@ async function writeSessionMessage(
 						inputStaged,
 					};
 				}
+				beforeSubmit?.();
 				write("\r");
 				return { success: true };
 			} catch (error) {

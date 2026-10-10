@@ -1243,7 +1243,11 @@ describe("terminal.send / terminal.snapshot tRPC procedures", () => {
 			text,
 			submit: true,
 		});
-		assert.deepEqual(result, { terminalId, submitted: true });
+		assert.deepEqual(result, {
+			terminalId,
+			submitted: true,
+			lastEventAt: null,
+		});
 		await waitFor(
 			() => fs.readFileSync(captureFile, "utf8").endsWith("\r"),
 			5000,
