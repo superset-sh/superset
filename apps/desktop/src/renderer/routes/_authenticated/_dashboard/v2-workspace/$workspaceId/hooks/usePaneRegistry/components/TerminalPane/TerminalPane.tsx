@@ -59,6 +59,7 @@ import {
 import { TerminalAgentAutoResume } from "./components/TerminalAgentAutoResume";
 import { TerminalCopiedIndicator } from "./components/TerminalCopiedIndicator";
 import { TerminalNarrowedBanner } from "./components/TerminalNarrowedBanner";
+import { TerminalReadingColumn } from "./components/TerminalReadingColumn";
 import { TerminalRichInput } from "./components/TerminalRichInput";
 import { terminalContextMenuLinkStore } from "./contextMenuLinkStore";
 import { useCopyOnSelect } from "./hooks/useCopyOnSelect";
@@ -626,7 +627,7 @@ export function TerminalPane({
 				terminalId={terminalId}
 				terminalInstanceId={terminalInstanceId}
 			/>
-			<div className="relative min-h-0 flex-1 overflow-hidden">
+			<TerminalReadingColumn>
 				<TerminalSearch
 					searchAddon={searchAddon}
 					isOpen={isSearchOpen}
@@ -646,7 +647,7 @@ export function TerminalPane({
 					connectionState={connectionState}
 					ctx={ctx}
 				/>
-			</div>
+			</TerminalReadingColumn>
 			<TerminalRichInput
 				workspaceId={workspaceId}
 				terminalId={terminalId}

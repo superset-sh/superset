@@ -3412,6 +3412,9 @@ msgstr "Kategorie"
 msgid "Caution"
 msgstr "Pozor"
 
+msgid "Center terminal content in a narrower column for easier reading"
+msgstr "Vycentrovat obsah terminálu do užšího sloupce pro snazší čtení"
+
 msgid "Certificate Authority Invalid"
 msgstr "Neplatná certifikační autorita"
 
@@ -13319,6 +13322,9 @@ msgstr "Čte se stránka"
 
 msgid "Reading usage…"
 msgstr "Načítání využití…"
+
+msgid "Reading width"
+msgstr "Šířka pro čtení"
 
 msgid "Reading your local usage…"
 msgstr "Načítám vaše lokální využití…"

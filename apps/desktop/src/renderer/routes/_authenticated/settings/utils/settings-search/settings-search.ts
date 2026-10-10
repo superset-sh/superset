@@ -64,6 +64,7 @@ export const SETTING_ITEM_ID = {
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
 	TERMINAL_BACKGROUND_LIMIT: "terminal-background-limit",
 	TERMINAL_COPY_ON_SELECT: "terminal-copy-on-select",
+	TERMINAL_READING_WIDTH: "terminal-reading-width",
 
 	LINKS_FILE: "links-file",
 	LINKS_FOLDER: "links-folder",
@@ -219,6 +220,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.TERMINAL_LINK_BEHAVIOR]: "v1",
 	[SETTING_ITEM_ID.TERMINAL_BACKGROUND_LIMIT]: "v2",
 	[SETTING_ITEM_ID.TERMINAL_COPY_ON_SELECT]: "v2",
+	[SETTING_ITEM_ID.TERMINAL_READING_WIDTH]: "v2",
 
 	[SETTING_ITEM_ID.LINKS_FILE]: "v2",
 	[SETTING_ITEM_ID.LINKS_FOLDER]: "v2",
@@ -1202,6 +1204,21 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"clipboard",
 			"ghostty",
 			"iterm",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.TERMINAL_READING_WIDTH,
+		section: "terminal",
+		title: "Reading width",
+		description:
+			"Center terminal content in a narrower column for easier reading",
+		keywords: [
+			"terminal",
+			"width",
+			"reading",
+			"line length",
+			"center",
+			"narrow",
 		],
 	},
 	{

@@ -3412,6 +3412,9 @@ msgstr "Категория"
 msgid "Caution"
 msgstr "Осторожно"
 
+msgid "Center terminal content in a narrower column for easier reading"
+msgstr "Разместить содержимое терминала по центру в более узком столбце для удобства чтения"
+
 msgid "Certificate Authority Invalid"
 msgstr "Недействительный удостоверяющий центр"
 
@@ -13319,6 +13322,9 @@ msgstr "Чтение страницы"
 
 msgid "Reading usage…"
 msgstr "Чтение данных об использовании…"
+
+msgid "Reading width"
+msgstr "Ширина для чтения"
 
 msgid "Reading your local usage…"
 msgstr "Чтение локальной статистики…"

@@ -3412,6 +3412,9 @@ msgstr "Kategori"
 msgid "Caution"
 msgstr "Perhatian"
 
+msgid "Center terminal content in a narrower column for easier reading"
+msgstr "Pusatkan konten terminal dalam kolom yang lebih sempit agar lebih mudah dibaca"
+
 msgid "Certificate Authority Invalid"
 msgstr "Certificate Authority Tidak Valid"
 
@@ -13319,6 +13322,9 @@ msgstr "Membaca halaman"
 
 msgid "Reading usage…"
 msgstr "Membaca penggunaan…"
+
+msgid "Reading width"
+msgstr "Lebar baca"
 
 msgid "Reading your local usage…"
 msgstr "Membaca penggunaan lokal Anda…"

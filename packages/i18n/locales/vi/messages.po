@@ -3412,6 +3412,9 @@ msgstr "Danh mục"
 msgid "Caution"
 msgstr "Thận trọng"
 
+msgid "Center terminal content in a narrower column for easier reading"
+msgstr "Căn giữa nội dung terminal trong một cột hẹp hơn để dễ đọc"
+
 msgid "Certificate Authority Invalid"
 msgstr "Tổ chức cấp chứng chỉ không hợp lệ"
 
@@ -13319,6 +13322,9 @@ msgstr "Đang đọc trang"
 
 msgid "Reading usage…"
 msgstr "Đang đọc mức sử dụng…"
+
+msgid "Reading width"
+msgstr "Chiều rộng đọc"
 
 msgid "Reading your local usage…"
 msgstr "Đang đọc mức sử dụng cục bộ của bạn…"
