@@ -35,6 +35,7 @@ export default function CandidatePage() {
 				<Trans>Pipeline</Trans>
 			</Link>
 			<CandidateView
+				key={candidateId}
 				candidateId={candidateId}
 				position={position}
 				onPrev={prevId ? goPrev : undefined}

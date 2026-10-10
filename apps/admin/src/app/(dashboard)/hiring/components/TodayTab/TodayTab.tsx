@@ -24,20 +24,22 @@ export function TodayTab() {
 	const labels = useHiringLabels();
 	const { formatDate } = useFormat();
 	const invalidate = useInvalidateHiring();
-	const [selectedParam, setSelected] = useSearchParamState("candidate");
-	const today = useQuery(trpc.hiring.today.queryOptions());
+	const [selectedParam, setSelected] = useSearchParamState("application");
+	const today = useQuery(
+		trpc.hiring.today.queryOptions({ today: isoDateFromToday() }),
+	);
 	const snooze = useMutation(
 		trpc.hiring.updateApplication.mutationOptions({ onSuccess: invalidate }),
 	);
 
 	const rows = today.data ?? [];
-	const ids = rows.map((row) => row.candidateId);
+	const ids = rows.map((row) => row.applicationId);
 	const [cursor, setCursor] = useState(0);
 	const foundIndex = selectedParam ? ids.indexOf(selectedParam) : -1;
 	// A candidate leaves the list once touched or snoozed; keep the cursor where it was.
 	const index =
 		foundIndex !== -1 ? foundIndex : Math.min(cursor, ids.length - 1);
-	const selectedId = ids[index] ?? null;
+	const selected = rows[index];
 
 	useEffect(() => {
 		if (foundIndex !== -1) setCursor(foundIndex);
@@ -69,7 +71,7 @@ export function TodayTab() {
 			<div className="grid gap-6 @5xl:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
 				<ol className="space-y-1">
 					{rows.map((row) => {
-						const isSelected = row.candidateId === selectedId;
+						const isSelected = row.applicationId === selected?.applicationId;
 						const due = row.nextFollowUpOn;
 						return (
 							<li key={row.applicationId}>
@@ -81,7 +83,7 @@ export function TodayTab() {
 								>
 									<button
 										type="button"
-										onClick={() => setSelected(row.candidateId)}
+										onClick={() => setSelected(row.applicationId)}
 										className="min-w-0 flex-1 text-left"
 									>
 										<div className="flex items-center justify-between gap-2">
@@ -134,9 +136,11 @@ export function TodayTab() {
 						);
 					})}
 				</ol>
-				{selectedId && (
+				{selected && (
 					<CandidateView
-						candidateId={selectedId}
+						key={selected.applicationId}
+						candidateId={selected.candidateId}
+						applicationId={selected.applicationId}
 						position={{ index, total: ids.length }}
 						onPrev={prevId ? goPrev : undefined}
 						onNext={nextId ? goNext : undefined}

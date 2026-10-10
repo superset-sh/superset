@@ -54,7 +54,12 @@ export function ApplicationEditor({ application }: ApplicationEditorProps) {
 	];
 	const save = (
 		changes: Omit<Parameters<typeof update.mutate>[0], "applicationId">,
-	) => update.mutate({ applicationId: application.applicationId, ...changes });
+		onError?: () => void,
+	) =>
+		update.mutate(
+			{ applicationId: application.applicationId, ...changes },
+			{ onError },
+		);
 
 	return (
 		<section className="space-y-3 rounded-lg border p-4">
@@ -154,10 +159,19 @@ export function ApplicationEditor({ application }: ApplicationEditorProps) {
 						<Input
 							id={`follow-up-${application.applicationId}`}
 							type="date"
-							value={application.nextFollowUpOn ?? ""}
-							onChange={(event) =>
-								save({ nextFollowUpOn: event.target.value || null })
-							}
+							key={application.nextFollowUpOn ?? ""}
+							defaultValue={application.nextFollowUpOn ?? ""}
+							onBlur={(event) => {
+								const input = event.currentTarget;
+								// A half-typed date reads as "" with badInput set; saving it would clear the follow-up.
+								if (input.validity.badInput) return;
+								const value = input.value || null;
+								if (value !== application.nextFollowUpOn) {
+									save({ nextFollowUpOn: value }, () => {
+										input.value = application.nextFollowUpOn ?? "";
+									});
+								}
+							}}
 						/>
 					</div>
 				</div>

@@ -16,7 +16,6 @@ import {
 	desc,
 	eq,
 	ilike,
-	inArray,
 	isNotNull,
 	lte,
 	ne,
@@ -28,17 +27,21 @@ import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
 import { adminProcedure } from "../../trpc";
+import { isUniqueViolation } from "../utils/unique-violation";
+import { GITHUB_PROFILE_SQL_PATTERN, githubHandle } from "./github-handle";
 import {
 	addEventSchema,
 	createCandidateSchema,
 	findDuplicatesSchema,
 	listApplicationsSchema,
 	logTouchSchema,
+	todaySchema,
 	updateApplicationSchema,
 	updateCandidateSchema,
 } from "./schema";
 
 const owners = alias(users, "owner");
+const EMAIL_UNIQUE_CONSTRAINT = "hiring_candidates_email_unique";
 
 const applicationRowColumns = {
 	applicationId: hiringApplications.id,
@@ -75,19 +78,16 @@ function selectApplicationRows() {
 		.leftJoin(owners, eq(owners.id, hiringApplications.ownerUserId));
 }
 
-function todayIsoDate() {
-	return new Date().toISOString().slice(0, 10);
-}
-
 async function findDuplicateCandidates(input: {
 	email?: string | null;
 	githubUrl?: string | null;
 }) {
 	const matches: SQL[] = [];
 	if (input.email) matches.push(eq(hiringCandidates.email, input.email));
-	if (input.githubUrl) {
+	const handle = input.githubUrl ? githubHandle(input.githubUrl) : null;
+	if (handle) {
 		matches.push(
-			sql`lower(${hiringCandidates.githubUrl}) = lower(${input.githubUrl})`,
+			sql`lower(regexp_replace(trim(${hiringCandidates.githubUrl}), ${GITHUB_PROFILE_SQL_PATTERN}, ${"\\3"}, ${"i"})) = ${handle}`,
 		);
 	}
 	if (matches.length === 0) return [];
@@ -163,13 +163,17 @@ export const hiringRouter = {
 				.limit(1000);
 		}),
 
-	today: adminProcedure.query(() =>
+	// Follow-up dates are the admin's local calendar days, so "today" comes from the client.
+	today: adminProcedure.input(todaySchema).query(({ input }) =>
 		selectApplicationRows()
 			.where(
 				and(
 					eq(hiringApplications.outcome, "active"),
 					isNotNull(hiringApplications.nextFollowUpOn),
-					lte(hiringApplications.nextFollowUpOn, todayIsoDate()),
+					lte(
+						hiringApplications.nextFollowUpOn,
+						input?.today ?? new Date().toISOString().slice(0, 10),
+					),
 				),
 			)
 			.orderBy(asc(hiringApplications.nextFollowUpOn)),
@@ -243,34 +247,43 @@ export const hiringRouter = {
 			const { roleId, stage, ownerUserId, note, ...fields } = input;
 			const userId = ctx.session.user.id;
 
-			return dbWs.transaction(async (tx) => {
-				const [candidate] = await tx
-					.insert(hiringCandidates)
-					.values({ ...fields, createdByUserId: userId })
-					.returning({ id: hiringCandidates.id });
-				if (!candidate) throw new Error("Candidate insert returned no row");
+			return dbWs
+				.transaction(async (tx) => {
+					const [candidate] = await tx
+						.insert(hiringCandidates)
+						.values({ ...fields, createdByUserId: userId })
+						.returning({ id: hiringCandidates.id });
+					if (!candidate) throw new Error("Candidate insert returned no row");
 
-				const [application] = await tx
-					.insert(hiringApplications)
-					.values({
-						candidateId: candidate.id,
-						roleId,
-						stage,
-						ownerUserId: ownerUserId ?? userId,
-					})
-					.returning({ id: hiringApplications.id });
+					const [application] = await tx
+						.insert(hiringApplications)
+						.values({
+							candidateId: candidate.id,
+							roleId,
+							stage,
+							ownerUserId: ownerUserId ?? userId,
+						})
+						.returning({ id: hiringApplications.id });
 
-				if (note) {
-					await tx.insert(hiringEvents).values({
-						candidateId: candidate.id,
-						applicationId: application?.id,
-						kind: "note",
-						body: note,
-						authorUserId: userId,
-					});
-				}
-				return { candidateId: candidate.id };
-			});
+					if (note) {
+						await tx.insert(hiringEvents).values({
+							candidateId: candidate.id,
+							applicationId: application?.id,
+							kind: "note",
+							body: note,
+							authorUserId: userId,
+						});
+					}
+					return { candidateId: candidate.id };
+				})
+				.catch((error: unknown) => {
+					throw isUniqueViolation(error, EMAIL_UNIQUE_CONSTRAINT)
+						? new TRPCError({
+								code: "CONFLICT",
+								message: "This email is already in the pipeline",
+							})
+						: error;
+				});
 		}),
 
 	updateCandidate: adminProcedure
@@ -281,7 +294,15 @@ export const hiringRouter = {
 				.update(hiringCandidates)
 				.set(fields)
 				.where(eq(hiringCandidates.id, candidateId))
-				.returning({ id: hiringCandidates.id });
+				.returning({ id: hiringCandidates.id })
+				.catch((error: unknown) => {
+					throw isUniqueViolation(error, EMAIL_UNIQUE_CONSTRAINT)
+						? new TRPCError({
+								code: "CONFLICT",
+								message: "Another candidate already has this email",
+							})
+						: error;
+				});
 			if (!updated) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
@@ -289,25 +310,6 @@ export const hiringRouter = {
 				});
 			}
 			return updated;
-		}),
-
-	addApplication: adminProcedure
-		.input(
-			z.object({ candidateId: z.string().uuid(), roleId: z.string().uuid() }),
-		)
-		.mutation(async ({ ctx, input }) => {
-			const [application] = await db
-				.insert(hiringApplications)
-				.values({ ...input, ownerUserId: ctx.session.user.id })
-				.onConflictDoNothing()
-				.returning({ id: hiringApplications.id });
-			if (!application) {
-				throw new TRPCError({
-					code: "CONFLICT",
-					message: "Candidate is already in this role",
-				});
-			}
-			return application;
 		}),
 
 	/** Stage and outcome changes each write an event in the same transaction. */
@@ -409,6 +411,18 @@ export const hiringRouter = {
 	addEvent: adminProcedure
 		.input(addEventSchema)
 		.mutation(async ({ ctx, input }) => {
+			if (input.applicationId) {
+				const [application] = await db
+					.select({ candidateId: hiringApplications.candidateId })
+					.from(hiringApplications)
+					.where(eq(hiringApplications.id, input.applicationId));
+				if (application?.candidateId !== input.candidateId) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Application does not belong to this candidate",
+					});
+				}
+			}
 			const metadata: HiringEventMetadata = {};
 			if (input.interviewer) metadata.interviewer = input.interviewer;
 			if (input.round) metadata.round = input.round;
@@ -428,25 +442,5 @@ export const hiringRouter = {
 				})
 				.returning({ id: hiringEvents.id });
 			return event;
-		}),
-
-	deleteEvent: adminProcedure
-		.input(z.object({ eventId: z.string().uuid() }))
-		.mutation(async ({ ctx, input }) => {
-			await db
-				.delete(hiringEvents)
-				.where(
-					and(
-						eq(hiringEvents.id, input.eventId),
-						eq(hiringEvents.authorUserId, ctx.session.user.id),
-						inArray(hiringEvents.kind, [
-							"note",
-							"interview",
-							"reply",
-							"outreach",
-						]),
-					),
-				);
-			return { success: true };
 		}),
 } satisfies TRPCRouterRecord;
