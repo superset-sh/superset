@@ -4,6 +4,7 @@ import { i18n } from "@superset/i18n";
 import { PROTOCOL_SCHEMES } from "@superset/shared/constants";
 import { clipboard, Menu, webContents } from "electron";
 import { safeOpenExternal } from "main/lib/safe-url";
+import { AGENT_INPUT_GRACE_MS } from "shared/browser-agent-input";
 import type {
 	DesignModeRect,
 	DesignModeScreenshot,
@@ -67,10 +68,6 @@ const MAX_CONSOLE_ENTRIES = 500;
 const CAPTURE_DEADLINE_MS = 15_000;
 const CAPTURE_ATTEMPT_TIMEOUT_MS = 1_500;
 const CAPTURE_RETRY_INTERVAL_MS = 100;
-
-// The guest's mousedown and the CDP reply for the input that caused it reach
-// the main process on separate channels, in either order.
-const AGENT_INPUT_GRACE_MS = 250;
 
 function sanitizeUrl(url: string): string {
 	if (/^https?:\/\//i.test(url) || url.startsWith("about:")) {
@@ -260,7 +257,9 @@ class BrowserManager extends EventEmitter {
 	// releases to the registration generation they were acquired under.
 	private agentWakes = new Map<string, { count: number }>();
 	// CDP `Input.*` commands in flight per pane. Their input is trusted, so the
-	// guest cannot tell it from a user click — see setupFocusForward.
+	// guest cannot tell it from a user click — see setupFocusForward. The
+	// renderer mirrors this through `agent-input` to undo the keyboard focus
+	// such a click takes (see browserRuntimeRegistry).
 	private agentInputs = new Map<
 		string,
 		{ inFlight: number; settledAt: number }
@@ -395,9 +394,13 @@ class BrowserManager extends EventEmitter {
 		}
 		const held = entry;
 		held.inFlight += 1;
+		if (held.inFlight === 1) this.emit("agent-input", { paneId, active: true });
 		return () => {
 			held.inFlight -= 1;
 			held.settledAt = Date.now();
+			if (held.inFlight === 0) {
+				this.emit("agent-input", { paneId, active: false });
+			}
 		};
 	}
 

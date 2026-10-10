@@ -565,6 +565,49 @@ describe("pane focus forwarding", () => {
 		stop();
 	});
 
+	test("announces agent input when it starts and once all of it settles", async () => {
+		const wc = register("pane-agent-input");
+		const states: unknown[] = [];
+		const onAgentInput = (state: unknown) => states.push(state);
+		browserManager.on("agent-input", onAgentInput);
+		const session = browserManager.attachCdp(
+			"pane-agent-input",
+			"ws-1",
+			() => {},
+			() => {},
+		);
+		const settles: Array<() => void> = [];
+		wc.debugger.sendCommand = mock(
+			() => new Promise<void>((resolve) => settles.push(resolve)),
+		);
+		const press = (id: number, type: string) =>
+			session.send(
+				JSON.stringify({
+					id,
+					method: "Input.dispatchMouseEvent",
+					params: { type, x: 10, y: 10, button: "left" },
+				}),
+			);
+
+		press(1, "mousePressed");
+		press(2, "mouseReleased");
+		expect(states).toEqual([{ paneId: "pane-agent-input", active: true }]);
+
+		settles[0]?.();
+		await flush();
+		expect(states).toHaveLength(1);
+
+		settles[1]?.();
+		await flush();
+		expect(states).toEqual([
+			{ paneId: "pane-agent-input", active: true },
+			{ paneId: "pane-agent-input", active: false },
+		]);
+
+		browserManager.off("agent-input", onAgentInput);
+		session.detach();
+	});
+
 	test("other CDP commands do not hide a user click", async () => {
 		const wc = register("pane-agent-eval");
 		const { onFocus, stop } = watchFocus("pane-agent-eval");
