@@ -23,6 +23,7 @@ import {
 	deleteSandbox,
 	describeSandbox,
 	HOST_SERVICE_PORT,
+	isSandboxProvider,
 	listRemoteBranches,
 	loadRepositories,
 	mintSandboxGateAccess,
@@ -30,7 +31,7 @@ import {
 	SandboxNotReadyError,
 	SandboxUnavailableError,
 	sandboxExists,
-	stopAndSnapshot,
+	sleepSandbox,
 } from "../../lib/sandbox";
 import { jwtProcedure, userError } from "../../trpc";
 import { hostServiceMutation } from "../automation/relay-client";
@@ -105,7 +106,7 @@ async function addressSandbox(
 	try {
 		if (mode === "address") {
 			return {
-				...(await describeSandbox(row.providerSandboxId)),
+				...(await describeSandbox(row.providerSandboxId, row.provider)),
 				agentCredentialsChanged: false,
 			};
 		}
@@ -523,7 +524,7 @@ export const cloudWorkspaceRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const row = await loadReadyWorkspace(ctx, input.id);
 			const { running } = await addressSandbox(row, "address");
-			if (running) await stopAndSnapshot(row.providerSandboxId);
+			if (running) await sleepSandbox(row.providerSandboxId, row.provider);
 			return { stopped: running };
 		}),
 
@@ -572,7 +573,7 @@ export const cloudWorkspaceRouter = {
 			const row = await loadReadyWorkspace(ctx, input.id);
 			const target =
 				row.sandboxUrl ??
-				(await describeSandbox(row.providerSandboxId)).hostTarget;
+				(await describeSandbox(row.providerSandboxId, row.provider)).hostTarget;
 			const host = await mintSandboxGateAccess({
 				workspaceId: row.id,
 				userId: ctx.userId,
@@ -636,16 +637,17 @@ export const cloudWorkspaceRouter = {
 			});
 			if (archived) {
 				// A row from a retired provider has no sandbox left to keep.
-				if (row.provider === "vercel") {
+				if (isSandboxProvider(row.provider)) {
 					await queueReap(
 						{ cloudWorkspaceId: row.id, archivedAt: archivedAt.toISOString() },
 						row.providerSandboxId,
+						row.provider,
 					).catch(async (error) => {
 						console.error(
 							`[cloud-workspace] could not queue the reap for ${row.id}`,
 							error,
 						);
-						await deleteSandbox(row.providerSandboxId);
+						await deleteSandbox(row.providerSandboxId, row.provider);
 					});
 				}
 				await recordCloudWorkspaceActivity(
@@ -670,8 +672,17 @@ export const cloudWorkspaceRouter = {
 			const row = await loadVisibleWorkspace(ctx, input.id);
 			const resumable =
 				row.status === "deleted" &&
-				row.provider === "vercel" &&
-				(await sandboxExists(row.providerSandboxId));
+				isSandboxProvider(row.provider) &&
+				(await sandboxExists(row.providerSandboxId, row.provider));
+			const provider = resumable
+				? row.provider
+				: ((
+						await db.query.environments.findFirst({
+							where: eq(environments.id, row.environmentId),
+							columns: { provider: true },
+						})
+					)?.provider ??
+					(isSandboxProvider(row.provider) ? row.provider : "vercel"));
 			// Inside the grace period the box is still there, running for the
 			// first minute and stopped after, and wakes with its disk; after it, the row gets a fresh box from its
 			// environment and nothing on the old disk comes back.
@@ -688,7 +699,7 @@ export const cloudWorkspaceRouter = {
 							from: ["deleted"],
 							to: "provisioning",
 							set: {
-								provider: "vercel",
+								provider,
 								providerSandboxId: nextSandboxNameFor(row.id),
 								sandboxUrl: null,
 								deletedAt: null,

@@ -22,8 +22,11 @@ import {
 	SANDBOX_API_CREDENTIAL_HEADER,
 	sandboxApiCredential,
 } from "@superset/shared/sandbox-gate";
-import type { NetworkPolicy, NetworkPolicyRule } from "@vercel/sandbox";
 import { env } from "../../env";
+import type {
+	SandboxNetworkPolicy as NetworkPolicy,
+	SandboxNetworkRule as NetworkPolicyRule,
+} from "./types";
 
 export interface SandboxCredentialInputs {
 	/** Which workspace the box is, for the credential it presents to the API. */

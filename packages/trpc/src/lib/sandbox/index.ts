@@ -11,11 +11,26 @@ export {
 } from "./api-credential";
 export { buildSandboxClaim } from "./claim";
 export { deriveSandboxCredentials } from "./credentials";
+export { authorizeFreestyleIngress } from "./freestyle-auth";
 export {
 	listRemoteBranches,
 	type RemoteBranch,
 	type RemoteBranchPage,
 } from "./list-branches";
+export {
+	deleteEnvironment,
+	deleteSandbox,
+	describeSandbox,
+	isSandboxProvider,
+	promoteSandboxToEnvironment,
+	provisionSandbox,
+	restartSandbox,
+	sandboxExists,
+	sleepSandbox,
+	stopAndSnapshot,
+	stopSandbox,
+	wakeSandbox,
+} from "./provider";
 export {
 	type RefreshSandboxCredentialsOutcome,
 	refreshSandboxCredentials,
@@ -36,22 +51,15 @@ export {
 	workspaceBranchName,
 	workspaceRepositories,
 } from "./repositories";
+
+export { HOST_SERVICE_PORT, pushManagedEnv, settleSandbox } from "./runtime";
 export {
-	deleteSandbox,
-	describeSandbox,
-	HOST_SERVICE_PORT,
-	promoteSandboxToEnvironment,
-	provisionSandbox,
-	pushManagedEnv,
 	type SandboxClaim,
 	type SandboxEnvironment,
 	SandboxNotReadyError,
 	SandboxUnavailableError,
-	sandboxExists,
-	settleSandbox,
-	stopAndSnapshot,
-	stopSandbox,
+} from "./types";
+export {
 	stripWorkspaceIdentity,
 	waitForStopSnapshot,
-	wakeSandbox,
 } from "./vercel";

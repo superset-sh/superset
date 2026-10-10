@@ -4,8 +4,7 @@ import { eq } from "drizzle-orm";
 import { nudge } from "../../lib/realtime";
 import {
 	buildSandboxClaim,
-	describeSandbox,
-	stopAndSnapshot,
+	restartSandbox,
 	wakeSandbox,
 } from "../../lib/sandbox";
 import { transitionCloudWorkspace } from "./transition";
@@ -21,12 +20,15 @@ export interface WokenCloudWorkspace {
 /** Resumes or extends the sandbox and records its current address. */
 export async function wakeCloudWorkspace(
 	row: CloudWorkspaceRow,
+	restart = false,
 ): Promise<WokenCloudWorkspace> {
 	const { claim, agentCredentialDigest } = await buildSandboxClaim({ row });
-	const { hostTarget, booted } = await wakeSandbox({
-		providerSandboxId: row.providerSandboxId,
-		claim,
-	});
+	const { hostTarget, booted } = await (restart ? restartSandbox : wakeSandbox)(
+		{
+			providerSandboxId: row.providerSandboxId,
+			claim,
+		},
+	);
 	const set: Partial<CloudWorkspaceRow> = {
 		...(hostTarget !== row.sandboxUrl ? { sandboxUrl: hostTarget } : {}),
 		...(booted ? { bootAgentCredentialDigest: agentCredentialDigest } : {}),
@@ -50,9 +52,7 @@ export async function wakeCloudWorkspace(
 export async function restartCloudWorkspace(
 	row: CloudWorkspaceRow,
 ): Promise<WokenCloudWorkspace> {
-	const { running } = await describeSandbox(row.providerSandboxId);
-	if (running) await stopAndSnapshot(row.providerSandboxId);
-	return wakeCloudWorkspace(row);
+	return wakeCloudWorkspace(row, true);
 }
 
 /**

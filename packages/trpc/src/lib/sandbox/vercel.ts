@@ -1,19 +1,6 @@
-/**
- * Called directly rather than behind a provider interface: there is one
- * provider, so an interface would be a second thing to keep in sync with no
- * second implementation to justify it.
- *
- * The provider's part is compute, filesystem, the published ports and the
- * egress firewall. Ours is the box itself: identity written to a file, boot
- * started through the sandbox API with the host secret in its env, the
- * managed environment pushed into host-service once it answers, and a
- * ticket-checking gate in front of every port (`access.ts`).
- */
-
 import {
 	renderSandboxConf,
 	SANDBOX_PATHS,
-	SANDBOX_PORTS,
 	SANDBOX_PUBLISHED_PORTS,
 	type SandboxIdentity,
 } from "@superset/shared/sandbox-contract";
@@ -24,8 +11,23 @@ import {
 	type SandboxRegion,
 } from "@vercel/sandbox";
 import { env } from "../../env";
+import {
+	type SandboxClaim,
+	type SandboxEnvironment,
+	SandboxUnavailableError,
+} from "./types";
 
-export const HOST_SERVICE_PORT = SANDBOX_PORTS.hostService;
+export {
+	type SandboxClaim,
+	type SandboxEnvironment,
+	SandboxNotReadyError,
+	SandboxUnavailableError,
+} from "./types";
+
+import { HOST_SERVICE_PORT, settleSandbox } from "./runtime";
+
+export { HOST_SERVICE_PORT, pushManagedEnv, settleSandbox } from "./runtime";
+
 /**
  * A session ends after this long; the workspace's files survive and the next
  * open resumes it. A workspace someone has open is extended before it gets
@@ -59,15 +61,6 @@ function isNotFound(error: unknown): boolean {
  * row, or its snapshots expired so a stopped session has nothing to resume
  * from (the platform answers 410). The row is what the caller should fail.
  */
-export class SandboxUnavailableError extends Error {
-	constructor(
-		readonly providerSandboxId: string,
-		cause: unknown,
-	) {
-		super(`Sandbox ${providerSandboxId} is unavailable`, { cause });
-	}
-}
-
 function isUnavailable(error: unknown): boolean {
 	return (
 		error instanceof APIError &&
@@ -82,23 +75,6 @@ async function getSandbox(name: string): Promise<Sandbox | null> {
 		if (isNotFound(error)) return null;
 		throw error;
 	}
-}
-
-export interface SandboxEnvironment {
-	sourceKind: "image" | "fork";
-	sourceRef: string;
-	region: string;
-}
-
-/** Everything the box needs to become one workspace; nothing of it is a create-time env. */
-export interface SandboxClaim {
-	identity: SandboxIdentity;
-	/** What the gate presents; travels only in the boot command's env. */
-	hostSecret: string;
-	managedEnv: Record<string, string>;
-	networkPolicy: NetworkPolicy;
-	/** Ports the workspace's repository asks to publish, beside the platform's. */
-	ports?: readonly number[];
 }
 
 /** Vercel allows 5 tags per sandbox. */
@@ -214,75 +190,6 @@ export async function provisionSandbox(args: {
 		sandboxUrl: sandbox.domain(HOST_SERVICE_PORT),
 		hostTarget: sandbox.domain(HOST_SERVICE_PORT),
 	};
-}
-
-const HOST_READY_TIMEOUT_MS = 60_000;
-const HOST_READY_POLL_MS = 100;
-
-export class SandboxNotReadyError extends Error {
-	constructor(providerSandboxId: string) {
-		super(`host-service in ${providerSandboxId} did not answer in time`);
-		this.name = "SandboxNotReadyError";
-	}
-}
-
-async function waitForHostService(
-	target: string,
-	providerSandboxId: string,
-): Promise<void> {
-	const deadline = Date.now() + HOST_READY_TIMEOUT_MS;
-	while (Date.now() < deadline) {
-		const ok = await fetch(`${target}/trpc/health.check`, {
-			signal: AbortSignal.timeout(HOST_READY_POLL_MS * 6),
-		})
-			.then((response) => response.ok)
-			.catch(() => false);
-		if (ok) return;
-		await new Promise((resolve) => setTimeout(resolve, HOST_READY_POLL_MS));
-	}
-	throw new SandboxNotReadyError(providerSandboxId);
-}
-
-/**
- * The half of a wake after boot is fired: wait for host-service to answer,
- * then push the managed environment. What a create runs once its box is
- * booted, so it never re-runs the wake's own calls on a box it just made.
- */
-export async function settleSandbox(args: {
-	providerSandboxId: string;
-	hostTarget: string;
-	claim: SandboxClaim;
-}): Promise<void> {
-	await waitForHostService(args.hostTarget, args.providerSandboxId);
-	await pushManagedEnv(
-		args.hostTarget,
-		args.claim.hostSecret,
-		args.claim.managedEnv,
-	);
-}
-
-/**
- * Replaces host-service's managed environment. Direct to the box with the
- * host secret, the way the gate would; superjson is host-service's wire
- * format, so the input is wrapped the way its client would wrap it.
- */
-export async function pushManagedEnv(
-	target: string,
-	hostSecret: string,
-	variables: Record<string, string>,
-): Promise<void> {
-	const response = await fetch(`${target}/trpc/sandbox.setEnvironment`, {
-		method: "POST",
-		headers: {
-			authorization: `Bearer ${hostSecret}`,
-			"content-type": "application/json",
-		},
-		body: JSON.stringify({ json: { variables } }),
-		signal: AbortSignal.timeout(10_000),
-	});
-	if (!response.ok) {
-		throw new Error(`sandbox.setEnvironment answered ${response.status}`);
-	}
 }
 
 /**

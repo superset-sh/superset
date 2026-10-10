@@ -6,6 +6,8 @@
 	"scripts": {
 		"build": "bun run src/build.ts",
 		"image": "bun run src/image.ts",
+		"image:freestyle": "bun run src/freestyle-image.ts",
+		"auth:freestyle": "bun run src/freestyle-auth.ts",
 		"pin": "bun run src/pin.ts",
 		"assets": "bun run src/assets/produce.ts",
 		"release": "bun run src/environments/release.ts",
@@ -20,6 +22,7 @@
 		"@vercel/sandbox": "3.2.2",
 		"aws4fetch": "1.0.20",
 		"drizzle-orm": "0.45.2",
+		"freestyle": "0.2.16",
 		"zod": "4.6.5"
 	},
 	"devDependencies": {

@@ -10,6 +10,9 @@ export default command({
 	description: "Create an environment for cloud workspaces to start from",
 	options: {
 		name: string().required().desc("Environment name"),
+		provider: string()
+			.enum("vercel", "freestyle")
+			.desc("Sandbox provider (default: vercel)"),
 		repo: string()
 			.variadic()
 			.required()
@@ -31,6 +34,8 @@ export default command({
 		if (!organizationId) {
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
+		if (options.provider === "freestyle" && options.region)
+			throw new CLIError("Freestyle does not accept a region override");
 		const region = options.region as SandboxRegionId | undefined;
 		if (region && !SANDBOX_REGION_IDS.includes(region)) {
 			throw new CLIError(
@@ -63,6 +68,7 @@ export default command({
 				: repositoryIds[0],
 			scope: options.scope,
 			region,
+			...(options.provider ? { provider: options.provider } : {}),
 		});
 		const environment = await ctx.api.environment.get.query({
 			id: created.id,
