@@ -475,7 +475,7 @@ export const gitMoveWorktreeTask = defineWorkerTask<
 		if (lstatSync(to, { throwIfNoEntry: false })) {
 			throw new Error(`Worktree move target exists: ${to}`);
 		}
-		const git = createUserSimpleGit(repoPath).env(gitEnv);
+		const git = createUserSimpleGit(repoPath, { env: gitEnv });
 		mkdirSync(dirname(to), { recursive: true });
 		await git.raw(["worktree", "move", from, to]);
 		// Processes started in the old directory keep absolute paths to it.
