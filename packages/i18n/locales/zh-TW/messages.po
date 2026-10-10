@@ -382,6 +382,10 @@ msgstr "落後你 {0}"
 msgid "{0} branch"
 msgstr "{0} 分支"
 
+#. placeholder {0}: list.data.length
+msgid "{0} candidates"
+msgstr "{0} 位候選人"
+
 #. placeholder {0}: params?.agent
 msgid "{0} cannot be signed in this way yet."
 msgstr "{0}還不能用這種方式登入。"
@@ -828,6 +832,9 @@ msgstr "{count} 台主機執行的主機服務比此應用程式舊"
 
 msgid "{count}/day"
 msgstr "{count}/天"
+
+msgid "{current} of {total}"
+msgstr "第 {current} / {total} 位"
 
 msgid "{currentPage} of {totalBranches}"
 msgstr "{currentPage}/{totalBranches}"
@@ -1695,6 +1702,9 @@ msgstr "新增描述…"
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "在專案設定中新增生命週期執行指令碼，或將某個終端指令碼標記為工作區執行命令。"
 
+msgid "Add a note… (⌘↵ to save)"
+msgstr "新增備註…（⌘↵ 儲存）"
+
 msgid "Add a project to see GitHub issues."
 msgstr "新增專案以檢視GitHub議題。"
 
@@ -1736,6 +1746,9 @@ msgstr "新增附件"
 
 msgid "Add Attachment"
 msgstr "新增附件"
+
+msgid "Add candidate"
+msgstr "新增候選人"
 
 msgid "Add command"
 msgstr "新增命令"
@@ -1893,6 +1906,9 @@ msgstr "對比基準分支"
 
 msgid "Against Main"
 msgstr "對比main"
+
+msgid "agent"
+msgstr "代理程式"
 
 msgid "Agent"
 msgstr "代理程式"
@@ -2142,6 +2158,9 @@ msgstr "所有儲存庫"
 msgid "All reviews"
 msgstr "所有審查"
 
+msgid "All roles"
+msgstr "所有職缺"
+
 msgid "All runs"
 msgstr "所有執行"
 
@@ -2153,6 +2172,9 @@ msgstr "升級過程中所有會話都已保留。"
 
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "所有會話已關閉，全新的守護程式正在執行。"
+
+msgid "All sources"
+msgstr "所有來源"
 
 msgid "All tasks"
 msgstr "全部任務"
@@ -2213,6 +2235,9 @@ msgstr "已有帳戶？<0>登入</0>"
 
 msgid "Already in tasks"
 msgstr "已在任務中"
+
+msgid "Already in the pipeline: {duplicateNames}"
+msgstr "已在招募流程中：{duplicateNames}"
 
 msgid "Also available as CommandDialog for ⌘K palettes"
 msgstr "也可用作CommandDialog，用於⌘K命令面板"
@@ -3369,6 +3394,12 @@ msgstr "已取消"
 #. placeholder {0}: formatDate(cancelAt)
 msgid "Cancels {0} — downgrades to Free at the end of the billing period."
 msgstr "將於{0}取消，在計費週期結束時降級為免費版。"
+
+msgid "Candidate"
+msgstr "候選人"
+
+msgid "Candidate not found."
+msgstr "找不到候選人。"
 
 msgid "Cannot {action}: no active organization is selected. Select an organization or sign in again."
 msgstr "無法{action}：未選擇活動組織。請選擇一個組織或重新登入。"
@@ -5569,6 +5600,9 @@ msgstr "目前方案"
 msgid "Current tab"
 msgstr "目前分頁"
 
+msgid "Current title"
+msgstr "目前職稱"
+
 msgid "Cursor"
 msgstr "游標"
 
@@ -6751,6 +6785,9 @@ msgstr "每個代理都在各自的 Git worktree 和分支中執行，讓工作�
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "每個維度都在為下一等級出力。保持住，等級自然會來。"
 
+msgid "Every candidate, where they are, and who owes the next move."
+msgstr "每位候選人的進度，以及下一步該由誰跟進。"
+
 msgid "Every day at 3:00 AM"
 msgstr "每天凌晨 3:00"
 
@@ -7751,6 +7788,9 @@ msgstr "在LinkedIn上關注我們"
 msgid "Follow us on X/Twitter"
 msgstr "在X/Twitter上關注我們"
 
+msgid "Follow-up"
+msgstr "後續追蹤"
+
 msgid "Font family"
 msgstr "字型"
 
@@ -8307,6 +8347,12 @@ msgstr "高嚴重性"
 msgid "High usage"
 msgstr "用量高"
 
+msgid "Hired"
+msgstr "已錄取"
+
+msgid "Hiring"
+msgstr "招募"
+
 msgid "history"
 msgstr "歷史"
 
@@ -8719,6 +8765,9 @@ msgstr "應用程式內瀏覽器"
 msgid "In-app PR merge"
 msgstr "應用程式內合併PR"
 
+msgid "Inbound"
+msgstr "主動應徵"
+
 msgid "Inbox triage"
 msgstr "收件匣分類"
 
@@ -8885,6 +8934,9 @@ msgstr "打斷"
 
 msgid "Interrupted"
 msgstr "已中斷"
+
+msgid "Interview"
+msgstr "面試"
 
 msgid "Intro call"
 msgstr "初步通話"
@@ -9247,6 +9299,12 @@ msgstr "最近代理程式活動{0}"
 msgid "Last attached"
 msgstr "上次連線"
 
+msgid "Last contact"
+msgstr "最近聯絡"
+
+msgid "Last contact {lastContact}"
+msgstr "最近聯絡 {lastContact}"
+
 msgid "Last day of each month"
 msgstr "每月最後一天"
 
@@ -9321,6 +9379,12 @@ msgstr "排行榜設定"
 
 msgid "Leaf"
 msgstr "葉子"
+
+msgid "Lean hire"
+msgstr "傾向錄取"
+
+msgid "Lean no hire"
+msgstr "傾向不錄取"
 
 msgid "Learn"
 msgstr "學習"
@@ -9879,6 +9943,9 @@ msgstr "標為未讀"
 msgid "Mark as viewed"
 msgstr "標記為已檢視"
 
+msgid "Mark hired"
+msgstr "標記為已錄取"
+
 msgid "Mark Ready"
 msgstr "標記為待審查"
 
@@ -10278,6 +10345,9 @@ msgstr "軟體史的大部分時間"
 msgid "Move {count} to Group"
 msgstr "將{count}個移動到群組"
 
+msgid "Move to {nextStageLabel}"
+msgstr "推進到{nextStageLabel}"
+
 msgid "Move to Center"
 msgstr "移到中間"
 
@@ -10507,6 +10577,9 @@ msgstr "新建專案"
 msgid "New push to branch"
 msgstr "向分支推送了新提交"
 
+msgid "New role…"
+msgstr "新職缺…"
+
 msgid "New session"
 msgstr "新建會話"
 
@@ -10585,6 +10658,9 @@ msgstr "下一頁"
 msgid "Next branch"
 msgstr "下一個分支"
 
+msgid "Next candidate"
+msgstr "下一位候選人"
+
 msgid "Next comment"
 msgstr "下一條評論"
 
@@ -10603,6 +10679,9 @@ msgstr "3天後下次執行"
 
 msgid "Next slide"
 msgstr "下一張"
+
+msgid "Next step"
+msgstr "下一步"
 
 msgid "Next Tab"
 msgstr "下一個分頁"
@@ -10827,6 +10906,9 @@ msgstr "沒有檔案符合允許的型別。"
 
 msgid "No files match your search"
 msgstr "沒有符合搜尋的檔案"
+
+msgid "No follow-ups due. Nice."
+msgstr "沒有到期的後續追蹤。很好。"
 
 msgid "No fonts found."
 msgstr "未找到字型。"
@@ -11216,6 +11298,9 @@ msgstr "無提示詞啟動"
 msgid "No. Your agents stay independent; Superset is the orchestration layer around them. Each task gets an isolated Git worktree, persistent sessions, diff review, and scheduled runs without tying the workflow to one provider."
 msgstr "不是。你的代理程式保持獨立，Superset是圍繞它們的編排層。每個任務都有隔離的Git worktree、持久會話、差異審查和定時執行，工作流不繫結任何一家提供商。"
 
+msgid "Nobody"
+msgstr "無人"
+
 msgid "Nobody has joined the board yet."
 msgstr "還沒有人加入榜單。"
 
@@ -11294,6 +11379,9 @@ msgstr "不包含"
 msgid "Not loaded"
 msgstr "未載入"
 
+msgid "Not looking"
+msgstr "暫不考慮機會"
+
 msgid "Not now"
 msgstr "暫不"
 
@@ -11308,6 +11396,9 @@ msgstr "尚未接收到事件：Microsoft Graph拒絕了通知訂閱。請檢查
 
 msgid "Not reviewed by you"
 msgstr "你還沒有審查"
+
+msgid "Not scored"
+msgstr "未評分"
 
 msgid "Not sent"
 msgstr "未傳送"
@@ -11373,6 +11464,9 @@ msgstr "通知"
 msgid "Notion is not configured for this environment."
 msgstr "目前環境未配置Notion。"
 
+msgid "Notion page"
+msgstr "Notion 頁面"
+
 msgid "now"
 msgstr "剛剛"
 
@@ -11419,6 +11513,9 @@ msgstr "佔全部token"
 
 msgid "Off"
 msgstr "關閉"
+
+msgid "Offer"
+msgstr "Offer"
 
 #. placeholder {0}: COMPANY.NAME
 msgid "Official documentation for {0}, the app for running 100+ coding agents in parallel."
@@ -11595,6 +11692,9 @@ msgstr "僅你自己"
 
 msgid "Only you can see this page"
 msgstr "僅你可見此頁面"
+
+msgid "Onsite"
+msgstr "現場面試"
 
 msgid "open"
 msgstr "開啟"
@@ -12170,6 +12270,12 @@ msgstr "這是我們截至2026年8月的判斷，依據是我們自己的團隊�
 msgid "Out of scope"
 msgstr "超出範圍"
 
+msgid "Outbound"
+msgstr "主動接觸"
+
+msgid "Outcome change"
+msgstr "結果變更"
+
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "輸入結果，輸出軟體。人類只指定意圖、約束和預算。工廠自行排產、持續交付、監控上線內容，並自行回滾。大多數變更在無人參與的情況下合併，故障率不升。"
 
@@ -12193,6 +12299,9 @@ msgstr "輸出結構"
 
 msgid "Output truncated"
 msgstr "輸出已截斷"
+
+msgid "Outreach"
+msgstr "聯繫"
 
 msgid "Overflow Fade"
 msgstr "溢位漸隱"
@@ -12488,6 +12597,9 @@ msgstr "個人"
 msgid "Phantom Forklift"
 msgstr "幽靈堆高機"
 
+msgid "Phone"
+msgstr "電話"
+
 msgid "Phone number"
 msgstr "電話號碼"
 
@@ -12523,6 +12635,9 @@ msgstr "請選擇專案位置"
 
 msgid "Pick a reason"
 msgstr "選擇原因"
+
+msgid "Pick a role"
+msgstr "選擇職缺"
 
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "選擇一個聲音或新增自己的。自訂音訊支援.mp3、.wav和.ogg。"
@@ -12574,6 +12689,9 @@ msgstr "粉色"
 
 msgid "Pinned"
 msgstr "已置頂"
+
+msgid "Pipeline"
+msgstr "招募流程"
 
 msgid "PK"
 msgstr "PK"
@@ -12696,6 +12814,9 @@ msgstr "釋出"
 
 msgid "Post comment"
 msgstr "發表評論"
+
+msgid "Power user"
+msgstr "重度使用者"
 
 msgid "PR"
 msgstr "PR"
@@ -12822,6 +12943,9 @@ msgstr "上一頁"
 
 msgid "Previous branch"
 msgstr "上一個分支"
+
+msgid "Previous candidate"
+msgstr "上一位候選人"
 
 msgid "Previous comment"
 msgstr "上一條評論"
@@ -13263,6 +13387,9 @@ msgstr "已達到"
 msgid "Reached a dashboard page"
 msgstr "進入控制台頁面"
 
+msgid "Reached out"
+msgstr "已聯絡"
+
 msgid "React layer of the shared pane/workspace layout engine"
 msgstr "共享面板/工作區佈局引擎的React層"
 
@@ -13444,6 +13571,9 @@ msgstr "引用"
 msgid "Referral"
 msgstr "引薦"
 
+msgid "Referred by"
+msgstr "推薦人"
+
 msgid "Refresh"
 msgstr "重新整理"
 
@@ -13479,6 +13609,9 @@ msgstr "在內建代理程式之外註冊任意CLI代理程式，各自擁有名
 
 msgid "Registers lifecycle hooks in this agent's global config so Superset can show status and send notifications. Turning this off removes Superset's entries everywhere — status and notifications stop for this agent, including inside Superset."
 msgstr "在該代理程式的全域性配置中註冊生命週期鉤子，以便Superset顯示狀態併發送通知。關閉後會在所有位置移除Superset的條目，該代理程式的狀態和通知都會停止，包括在Superset內部。"
+
+msgid "Rejected"
+msgstr "未錄取"
 
 msgid "Related Posts"
 msgstr "相關文章"
@@ -14256,6 +14389,9 @@ msgstr "角色"
 msgid "Role changed to {newRoleName}"
 msgstr "角色已更改為{newRoleName}"
 
+msgid "Role title"
+msgstr "職缺名稱"
+
 msgid "Role updated"
 msgstr "角色已更新"
 
@@ -14558,9 +14694,15 @@ msgstr "SCIM帳號開通"
 msgid "Scope"
 msgstr "範圍"
 
+msgid "Score"
+msgstr "評分"
+
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "Scoring starts once the board can see {0} days of usage."
 msgstr "當看板看到 {0} 天的使用資料後，才會開始計分。"
+
+msgid "Screening call"
+msgstr "初步電話面談"
 
 msgid "Screenshot copied to clipboard"
 msgstr "截圖已複製到剪貼簿"
@@ -14688,6 +14830,9 @@ msgstr "搜尋Linear…"
 
 msgid "Search models"
 msgstr "搜尋模型"
+
+msgid "Search name, email, company, GitHub"
+msgstr "搜尋姓名、電子郵件、公司、GitHub"
 
 msgid "Search pages"
 msgstr "搜尋頁面"
@@ -15662,6 +15807,9 @@ msgstr "為此工作區的目前狀態（包括其中安裝的所有內容）建
 msgid "Snooze"
 msgstr "稍後提醒"
 
+msgid "Snooze 3 days"
+msgstr "延後 3 天"
+
 msgid "so a border on two edges of the rotated square always faces outward."
 msgstr "因此旋轉後方塊兩條邊上的邊框始終朝外。"
 
@@ -15762,6 +15910,9 @@ msgstr "原始碼可見"
 
 msgid "Source path (not an import)"
 msgstr "原始碼路徑（不是匯入路徑）"
+
+msgid "Sourced"
+msgstr "已尋才"
 
 msgid "Sources"
 msgstr "來源"
@@ -15874,8 +16025,14 @@ msgstr "堆疊"
 msgid "Staff Software Engineer, Vori"
 msgstr "Staff 軟體工程師，Vori"
 
+msgid "Stage"
+msgstr "階段"
+
 msgid "Stage all"
 msgstr "全部暫存"
+
+msgid "Stage change"
+msgstr "階段變更"
 
 msgid "Stage file"
 msgstr "暫存檔案"
@@ -16156,6 +16313,12 @@ msgstr "Stripe收入"
 
 msgid "Stripe's own Sigma MRR report, computed on demand via the Query Run API"
 msgstr "Stripe自帶的Sigma MRR報表，通過Query Run API按需計算"
+
+msgid "Strong hire"
+msgstr "強烈建議錄取"
+
+msgid "Strong no hire"
+msgstr "強烈建議不錄取"
 
 msgid "Structure, scrolling, and overflow handling"
 msgstr "結構、滾動與溢位處理"
@@ -16444,6 +16607,10 @@ msgstr "Superset 會加密儲存每個連線。工具呼叫由 Superset 發出�
 
 msgid "Superset UI"
 msgstr "Superset UI"
+
+#. placeholder {0}: supersetUser.email
+msgid "Superset user · {0}"
+msgstr "Superset 使用者 · {0}"
 
 #. placeholder {0}: formatPercent(trackedMemorySharePercent)
 msgid "Superset uses {0} of system RAM"
@@ -17847,6 +18014,9 @@ msgstr "總花費"
 msgid "Total tokens published"
 msgstr "已公開的 Token 總數"
 
+msgid "Touched"
+msgstr "已聯絡"
+
 msgid "Trace charges and subscriptions"
 msgstr "追蹤扣款和訂閱"
 
@@ -18881,6 +19051,9 @@ msgstr "早期使用者怎麼說"
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google 為哪些搜尋顯示我們，其中有多少不是我們自己的名字。"
 
+msgid "What happens next"
+msgstr "後續安排"
+
 msgid "What has to become true"
 msgstr "需要成真的條件"
 
@@ -19031,11 +19204,17 @@ msgstr "有無附件均可"
 msgid "With the Superset mobile app, I can address production issues from anywhere."
 msgstr "有了 Superset 手機應用程式，我可以隨時隨地處理正式環境問題。"
 
+msgid "Withdrew"
+msgstr "已撤回"
+
 msgid "Wordmark, black"
 msgstr "文字標誌，黑色"
 
 msgid "Wordmark, white"
 msgstr "文字標誌，白色"
+
+msgid "Work at a Startup"
+msgstr "Work at a Startup"
 
 msgid "Work email"
 msgstr "工作電子郵件"
@@ -19045,6 +19224,9 @@ msgstr "從工單開始工作"
 
 msgid "Work the action items from a call"
 msgstr "處理通話中的待辦事項"
+
+msgid "Work trial"
+msgstr "試用工作"
 
 msgid "Work with your agents across your favorite tools"
 msgstr "在你常用的工具裡與代理程式協作"

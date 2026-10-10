@@ -382,6 +382,10 @@ msgstr "{0} za tobą"
 msgid "{0} branch"
 msgstr "gałąź {0}"
 
+#. placeholder {0}: list.data.length
+msgid "{0} candidates"
+msgstr "Kandydaci: {0}"
+
 #. placeholder {0}: params?.agent
 msgid "{0} cannot be signed in this way yet."
 msgstr "{0} nie może się jeszcze zalogować w ten sposób."
@@ -828,6 +832,9 @@ msgstr "{count} hostów działa na starszej usłudze hosta niż ta aplikacja"
 
 msgid "{count}/day"
 msgstr "{count}/dzień"
+
+msgid "{current} of {total}"
+msgstr "{current} z {total}"
 
 msgid "{currentPage} of {totalBranches}"
 msgstr "{currentPage} z {totalBranches}"
@@ -1695,6 +1702,9 @@ msgstr "Dodaj opis…"
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "Dodaj skrypt uruchamiania w Ustawieniach projektu albo oznacz skrypt terminala jako uruchomienie obszaru roboczego."
 
+msgid "Add a note… (⌘↵ to save)"
+msgstr "Dodaj notatkę… (⌘↵, aby zapisać)"
+
 msgid "Add a project to see GitHub issues."
 msgstr "Dodaj projekt, aby zobaczyć zgłoszenia GitHub."
 
@@ -1736,6 +1746,9 @@ msgstr "Dodaj załącznik"
 
 msgid "Add Attachment"
 msgstr "Dodaj załącznik"
+
+msgid "Add candidate"
+msgstr "Dodaj kandydata"
 
 msgid "Add command"
 msgstr "Dodaj polecenie"
@@ -1893,6 +1906,9 @@ msgstr "Względem bazy"
 
 msgid "Against Main"
 msgstr "Względem main"
+
+msgid "agent"
+msgstr "agent"
 
 msgid "Agent"
 msgstr "Agent"
@@ -2142,6 +2158,9 @@ msgstr "Wszystkie repozytoria"
 msgid "All reviews"
 msgstr "Wszystkie przeglądy"
 
+msgid "All roles"
+msgstr "Wszystkie stanowiska"
+
 msgid "All runs"
 msgstr "Wszystkie uruchomienia"
 
@@ -2153,6 +2172,9 @@ msgstr "Wszystkie sesje zachowane mimo aktualizacji."
 
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "Wszystkie sesje zamknięto i działa świeży demon."
+
+msgid "All sources"
+msgstr "Wszystkie źródła"
 
 msgid "All tasks"
 msgstr "Wszystkie zadania"
@@ -2213,6 +2235,9 @@ msgstr "Masz już konto? <0>Zaloguj się</0>"
 
 msgid "Already in tasks"
 msgstr "Już jest w zadaniach"
+
+msgid "Already in the pipeline: {duplicateNames}"
+msgstr "Już w procesie: {duplicateNames}"
 
 msgid "Also available as CommandDialog for ⌘K palettes"
 msgstr "Dostępne też jako CommandDialog dla palet ⌘K"
@@ -3369,6 +3394,12 @@ msgstr "Anulowany"
 #. placeholder {0}: formatDate(cancelAt)
 msgid "Cancels {0} — downgrades to Free at the end of the billing period."
 msgstr "Anulowanie {0} — na koniec okresu rozliczeniowego plan zmieni się na darmowy."
+
+msgid "Candidate"
+msgstr "Kandydat"
+
+msgid "Candidate not found."
+msgstr "Nie znaleziono kandydata."
 
 msgid "Cannot {action}: no active organization is selected. Select an organization or sign in again."
 msgstr "Nie można {action}: nie wybrano aktywnej organizacji. Wybierz organizację lub zaloguj się ponownie."
@@ -5569,6 +5600,9 @@ msgstr "Bieżący plan"
 msgid "Current tab"
 msgstr "Bieżąca karta"
 
+msgid "Current title"
+msgstr "Obecne stanowisko"
+
 msgid "Cursor"
 msgstr "Kursor"
 
@@ -6751,6 +6785,9 @@ msgstr "Każdy agent działa we własnym worktree i na własnej gałęzi Git, dz
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Każda oś pracuje na następny poziom. Utrzymaj to, a poziom przyjdzie sam."
 
+msgid "Every candidate, where they are, and who owes the next move."
+msgstr "Każdy kandydat, na jakim jest etapie i kto wykonuje następny ruch."
+
 msgid "Every day at 3:00 AM"
 msgstr "Codziennie o 3:00"
 
@@ -7751,6 +7788,9 @@ msgstr "Obserwuj nas na LinkedIn"
 msgid "Follow us on X/Twitter"
 msgstr "Obserwuj nas na X/Twitterze"
 
+msgid "Follow-up"
+msgstr "Ponowny kontakt"
+
 msgid "Font family"
 msgstr "Krój czcionki"
 
@@ -8307,6 +8347,12 @@ msgstr "Wysoka waga"
 msgid "High usage"
 msgstr "Wysokie zużycie"
 
+msgid "Hired"
+msgstr "Zatrudniony"
+
+msgid "Hiring"
+msgstr "Rekrutacja"
+
 msgid "history"
 msgstr "historia"
 
@@ -8719,6 +8765,9 @@ msgstr "Wbudowana przeglądarka"
 msgid "In-app PR merge"
 msgstr "Scalanie PR w aplikacji"
 
+msgid "Inbound"
+msgstr "Przychodzące"
+
 msgid "Inbox triage"
 msgstr "Segregowanie poczty"
 
@@ -8885,6 +8934,9 @@ msgstr "Przerwij"
 
 msgid "Interrupted"
 msgstr "Przerwano"
+
+msgid "Interview"
+msgstr "Rozmowa"
 
 msgid "Intro call"
 msgstr "Rozmowa wstępna"
@@ -9247,6 +9299,12 @@ msgstr "Ostatnia aktywność agenta {0}"
 msgid "Last attached"
 msgstr "Ostatnie podłączenie"
 
+msgid "Last contact"
+msgstr "Ostatni kontakt"
+
+msgid "Last contact {lastContact}"
+msgstr "Ostatni kontakt: {lastContact}"
+
 msgid "Last day of each month"
 msgstr "Ostatni dzień każdego miesiąca"
 
@@ -9321,6 +9379,12 @@ msgstr "Ustawienia rankingu"
 
 msgid "Leaf"
 msgstr "Liść"
+
+msgid "Lean hire"
+msgstr "Raczej zatrudnić"
+
+msgid "Lean no hire"
+msgstr "Raczej nie zatrudniać"
 
 msgid "Learn"
 msgstr "Nauka"
@@ -9879,6 +9943,9 @@ msgstr "Oznacz jako nieprzeczytane"
 msgid "Mark as viewed"
 msgstr "Oznacz jako przejrzany"
 
+msgid "Mark hired"
+msgstr "Oznacz jako zatrudnionego"
+
 msgid "Mark Ready"
 msgstr "Oznacz jako gotowy"
 
@@ -10278,6 +10345,9 @@ msgstr "Większość historii oprogramowania"
 msgid "Move {count} to Group"
 msgstr "Przenieś {count} do grupy"
 
+msgid "Move to {nextStageLabel}"
+msgstr "Przenieś do etapu: {nextStageLabel}"
+
 msgid "Move to Center"
 msgstr "Przenieś na środek"
 
@@ -10507,6 +10577,9 @@ msgstr "Nowy projekt"
 msgid "New push to branch"
 msgstr "Nowy push do gałęzi"
 
+msgid "New role…"
+msgstr "Nowe stanowisko…"
+
 msgid "New session"
 msgstr "Nowa sesja"
 
@@ -10585,6 +10658,9 @@ msgstr "Dalej"
 msgid "Next branch"
 msgstr "Następna gałąź"
 
+msgid "Next candidate"
+msgstr "Następny kandydat"
+
 msgid "Next comment"
 msgstr "Następny komentarz"
 
@@ -10603,6 +10679,9 @@ msgstr "Następne uruchomienie za 3 dni"
 
 msgid "Next slide"
 msgstr "Następny slajd"
+
+msgid "Next step"
+msgstr "Następny krok"
 
 msgid "Next Tab"
 msgstr "Następna karta"
@@ -10827,6 +10906,9 @@ msgstr "Żaden plik nie pasuje do dozwolonych typów."
 
 msgid "No files match your search"
 msgstr "Żaden plik nie pasuje do wyszukiwania"
+
+msgid "No follow-ups due. Nice."
+msgstr "Brak zaległych kontaktów. Świetnie."
 
 msgid "No fonts found."
 msgstr "Nie znaleziono czcionek."
@@ -11216,6 +11298,9 @@ msgstr "Uruchomienie bez promptu"
 msgid "No. Your agents stay independent; Superset is the orchestration layer around them. Each task gets an isolated Git worktree, persistent sessions, diff review, and scheduled runs without tying the workflow to one provider."
 msgstr "Nie. Twoje agenty pozostają niezależne; Superset to warstwa orkiestracji wokół nich. Każde zadanie dostaje izolowany worktree gita, trwałe sesje, przegląd różnic i zaplanowane uruchomienia — bez przywiązywania procesu do jednego dostawcy."
 
+msgid "Nobody"
+msgstr "Nikt"
+
 msgid "Nobody has joined the board yet."
 msgstr "Nikt jeszcze nie dołączył do tablicy."
 
@@ -11294,6 +11379,9 @@ msgstr "Poza pakietem"
 msgid "Not loaded"
 msgstr "Niewczytana"
 
+msgid "Not looking"
+msgstr "Nie szuka pracy"
+
 msgid "Not now"
 msgstr "Nie teraz"
 
@@ -11308,6 +11396,9 @@ msgstr "Brak zdarzeń: Microsoft Graph odrzucił subskrypcje powiadomień. Spraw
 
 msgid "Not reviewed by you"
 msgstr "Nieprzejrzane przez Ciebie"
+
+msgid "Not scored"
+msgstr "Bez oceny"
 
 msgid "Not sent"
 msgstr "Nie wysłano"
@@ -11373,6 +11464,9 @@ msgstr "Powiadomienia"
 msgid "Notion is not configured for this environment."
 msgstr "Notion nie jest skonfigurowany w tym środowisku."
 
+msgid "Notion page"
+msgstr "Strona w Notion"
+
 msgid "now"
 msgstr "teraz"
 
@@ -11419,6 +11513,9 @@ msgstr "wszystkich tokenów"
 
 msgid "Off"
 msgstr "Wył."
+
+msgid "Offer"
+msgstr "Oferta"
 
 #. placeholder {0}: COMPANY.NAME
 msgid "Official documentation for {0}, the app for running 100+ coding agents in parallel."
@@ -11595,6 +11692,9 @@ msgstr "Tylko Ty"
 
 msgid "Only you can see this page"
 msgstr "Tylko Ty widzisz tę stronę"
+
+msgid "Onsite"
+msgstr "Na miejscu"
 
 msgid "open"
 msgstr "otwórz"
@@ -12170,6 +12270,12 @@ msgstr "Nasza ocena na sierpień 2026, na podstawie własnego zespołu i zespoł
 msgid "Out of scope"
 msgstr "Poza zakresem"
 
+msgid "Outbound"
+msgstr "Wychodzące"
+
+msgid "Outcome change"
+msgstr "Zmiana wyniku"
+
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "Na wejściu wynik, na wyjściu oprogramowanie. Ludzie określają intencję, ograniczenia i budżet. Fabryka sama się planuje, wydaje w sposób ciągły, monitoruje to, co wydała, i sama się wycofuje. Większość zmian scala się bez człowieka w pętli, a liczba incydentów nie rośnie."
 
@@ -12193,6 +12299,9 @@ msgstr "Schemat wyjścia"
 
 msgid "Output truncated"
 msgstr "Wyjście skrócone"
+
+msgid "Outreach"
+msgstr "Kontakt"
 
 msgid "Overflow Fade"
 msgstr "Overflow Fade"
@@ -12488,6 +12597,9 @@ msgstr "Osobiste"
 msgid "Phantom Forklift"
 msgstr "Widmowy Wózek Widłowy"
 
+msgid "Phone"
+msgstr "Telefon"
+
 msgid "Phone number"
 msgstr "Numer telefonu"
 
@@ -12523,6 +12635,9 @@ msgstr "Wybierz lokalizację projektu"
 
 msgid "Pick a reason"
 msgstr "Wybierz powód"
+
+msgid "Pick a role"
+msgstr "Wybierz stanowisko"
 
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Wybierz dźwięk albo dodaj własny. Obsługiwane formaty własnych plików: .mp3, .wav i .ogg."
@@ -12574,6 +12689,9 @@ msgstr "Różowy"
 
 msgid "Pinned"
 msgstr "Przypięte"
+
+msgid "Pipeline"
+msgstr "Proces"
 
 msgid "PK"
 msgstr "PK"
@@ -12696,6 +12814,9 @@ msgstr "Opublikuj"
 
 msgid "Post comment"
 msgstr "Opublikuj komentarz"
+
+msgid "Power user"
+msgstr "Zaawansowany użytkownik"
 
 msgid "PR"
 msgstr "PR"
@@ -12822,6 +12943,9 @@ msgstr "Wstecz"
 
 msgid "Previous branch"
 msgstr "Poprzednia gałąź"
+
+msgid "Previous candidate"
+msgstr "Poprzedni kandydat"
 
 msgid "Previous comment"
 msgstr "Poprzedni komentarz"
@@ -13263,6 +13387,9 @@ msgstr "Osiągnięto"
 msgid "Reached a dashboard page"
 msgstr "Dotarcie do strony panelu"
 
+msgid "Reached out"
+msgstr "Skontaktowano"
+
 msgid "React layer of the shared pane/workspace layout engine"
 msgstr "Warstwa Reacta wspólnego silnika układu paneli i obszarów roboczych"
 
@@ -13444,6 +13571,9 @@ msgstr "Odwołuje się do"
 msgid "Referral"
 msgstr "Odesłanie"
 
+msgid "Referred by"
+msgstr "Polecony przez"
+
 msgid "Refresh"
 msgstr "Odśwież"
 
@@ -13479,6 +13609,9 @@ msgstr "Zarejestruj dowolnego agenta CLI obok wbudowanych, każdego z własną n
 
 msgid "Registers lifecycle hooks in this agent's global config so Superset can show status and send notifications. Turning this off removes Superset's entries everywhere — status and notifications stop for this agent, including inside Superset."
 msgstr "Rejestruje hooki cyklu życia w globalnej konfiguracji tego agenta, aby Superset mógł pokazywać status i wysyłać powiadomienia. Wyłączenie usuwa wpisy Superset wszędzie — status i powiadomienia dla tego agenta przestają działać, także wewnątrz Superset."
+
+msgid "Rejected"
+msgstr "Odrzucony"
 
 msgid "Related Posts"
 msgstr "Powiązane wpisy"
@@ -14256,6 +14389,9 @@ msgstr "Rola"
 msgid "Role changed to {newRoleName}"
 msgstr "Rolę zmieniono na {newRoleName}"
 
+msgid "Role title"
+msgstr "Nazwa stanowiska"
+
 msgid "Role updated"
 msgstr "Zaktualizowano rolę"
 
@@ -14558,9 +14694,15 @@ msgstr "Provisioning SCIM"
 msgid "Scope"
 msgstr "Zakres"
 
+msgid "Score"
+msgstr "Ocena"
+
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "Scoring starts once the board can see {0} days of usage."
 msgstr "Punktacja rusza, gdy tablica zobaczy dni z aktywnością: {0}."
+
+msgid "Screening call"
+msgstr "Rozmowa wstępna"
 
 msgid "Screenshot copied to clipboard"
 msgstr "Zrzut ekranu skopiowany do schowka"
@@ -14688,6 +14830,9 @@ msgstr "Szukaj w Linear…"
 
 msgid "Search models"
 msgstr "Szukaj modeli"
+
+msgid "Search name, email, company, GitHub"
+msgstr "Szukaj: imię, e-mail, firma, GitHub"
 
 msgid "Search pages"
 msgstr "Szukaj stron"
@@ -15662,6 +15807,9 @@ msgstr "Tworzy migawkę tego obszaru roboczego w obecnym stanie, ze wszystkim, c
 msgid "Snooze"
 msgstr "Odłóż"
 
+msgid "Snooze 3 days"
+msgstr "Odłóż o 3 dni"
+
 msgid "so a border on two edges of the rotated square always faces outward."
 msgstr "więc obramowanie na dwóch krawędziach obróconego kwadratu zawsze jest skierowane na zewnątrz."
 
@@ -15762,6 +15910,9 @@ msgstr "Kod dostępny"
 
 msgid "Source path (not an import)"
 msgstr "Ścieżka źródłowa (nie import)"
+
+msgid "Sourced"
+msgstr "Pozyskany"
 
 msgid "Sources"
 msgstr "Źródła"
@@ -15874,8 +16025,14 @@ msgstr "Ułożone w stos"
 msgid "Staff Software Engineer, Vori"
 msgstr "Inżynier oprogramowania Staff, Vori"
 
+msgid "Stage"
+msgstr "Etap"
+
 msgid "Stage all"
 msgstr "Dodaj wszystko do indeksu"
+
+msgid "Stage change"
+msgstr "Zmiana etapu"
 
 msgid "Stage file"
 msgstr "Dodaj plik do indeksu"
@@ -16156,6 +16313,12 @@ msgstr "przychód Stripe"
 
 msgid "Stripe's own Sigma MRR report, computed on demand via the Query Run API"
 msgstr "Własny raport MRR Sigma od Stripe, obliczany na żądanie przez Query Run API"
+
+msgid "Strong hire"
+msgstr "Zdecydowanie zatrudnić"
+
+msgid "Strong no hire"
+msgstr "Zdecydowanie nie zatrudniać"
 
 msgid "Structure, scrolling, and overflow handling"
 msgstr "Struktura, przewijanie i obsługa przepełnienia"
@@ -16444,6 +16607,10 @@ msgstr "Superset przechowuje każde połączenie w postaci zaszyfrowanej. Wywoł
 
 msgid "Superset UI"
 msgstr "Superset UI"
+
+#. placeholder {0}: supersetUser.email
+msgid "Superset user · {0}"
+msgstr "Użytkownik Superset · {0}"
 
 #. placeholder {0}: formatPercent(trackedMemorySharePercent)
 msgid "Superset uses {0} of system RAM"
@@ -17847,6 +18014,9 @@ msgstr "Łączne wydatki"
 msgid "Total tokens published"
 msgstr "Łączna liczba opublikowanych tokenów"
 
+msgid "Touched"
+msgstr "Skontaktowano"
+
 msgid "Trace charges and subscriptions"
 msgstr "Śledź opłaty i subskrypcje"
 
@@ -18881,6 +19051,9 @@ msgstr "Co mówią pierwsi użytkownicy"
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Na jakie zapytania Google nas pokazuje i jaka część z nich to nie nasza własna nazwa."
 
+msgid "What happens next"
+msgstr "Co dalej"
+
 msgid "What has to become true"
 msgstr "Co musi się wydarzyć"
 
@@ -19031,11 +19204,17 @@ msgstr "z załącznikami lub bez"
 msgid "With the Superset mobile app, I can address production issues from anywhere."
 msgstr "Dzięki aplikacji mobilnej Superset mogę rozwiązywać problemy produkcyjne z dowolnego miejsca."
 
+msgid "Withdrew"
+msgstr "Wycofał się"
+
 msgid "Wordmark, black"
 msgstr "Logotyp, czarny"
 
 msgid "Wordmark, white"
 msgstr "Logotyp, biały"
+
+msgid "Work at a Startup"
+msgstr "Work at a Startup"
 
 msgid "Work email"
 msgstr "Służbowy adres e-mail"
@@ -19045,6 +19224,9 @@ msgstr "Praca z ticketów"
 
 msgid "Work the action items from a call"
 msgstr "Realizuj zadania z rozmowy"
+
+msgid "Work trial"
+msgstr "Okres próbny"
 
 msgid "Work with your agents across your favorite tools"
 msgstr "Pracuj z agentami w swoich ulubionych narzędziach"

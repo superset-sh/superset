@@ -382,6 +382,10 @@ msgstr "{0} 차이로 뒤"
 msgid "{0} branch"
 msgstr "{0} 분기"
 
+#. placeholder {0}: list.data.length
+msgid "{0} candidates"
+msgstr "후보자 {0}명"
+
 #. placeholder {0}: params?.agent
 msgid "{0} cannot be signed in this way yet."
 msgstr "{0}은(는) 아직 이 방식으로 로그인할 수 없습니다."
@@ -828,6 +832,9 @@ msgstr "{count}개의 호스트가 이 앱보다 오래된 호스트 서비스�
 
 msgid "{count}/day"
 msgstr "하루 {count}개"
+
+msgid "{current} of {total}"
+msgstr "{current} / {total}"
 
 msgid "{currentPage} of {totalBranches}"
 msgstr "{totalBranches} 중 {currentPage}"
@@ -1695,6 +1702,9 @@ msgstr "설명 추가…"
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "프로젝트 설정에서 라이프사이클 실행 스크립트를 추가하거나, 터미널 스크립트를 워크스페이스 실행으로 지정하세요."
 
+msgid "Add a note… (⌘↵ to save)"
+msgstr "메모 추가… (⌘↵로 저장)"
+
 msgid "Add a project to see GitHub issues."
 msgstr "GitHub 이슈를 보려면 프로젝트를 추가하세요."
 
@@ -1736,6 +1746,9 @@ msgstr "첨부 추가"
 
 msgid "Add Attachment"
 msgstr "첨부 파일 추가"
+
+msgid "Add candidate"
+msgstr "후보자 추가"
 
 msgid "Add command"
 msgstr "명령 추가"
@@ -1893,6 +1906,9 @@ msgstr "기준 대비"
 
 msgid "Against Main"
 msgstr "main 기준"
+
+msgid "agent"
+msgstr "에이전트"
 
 msgid "Agent"
 msgstr "에이전트"
@@ -2142,6 +2158,9 @@ msgstr "모든 리포지토리"
 msgid "All reviews"
 msgstr "모든 리뷰"
 
+msgid "All roles"
+msgstr "모든 직무"
+
 msgid "All runs"
 msgstr "모든 실행"
 
@@ -2153,6 +2172,9 @@ msgstr "업그레이드 과정에서 모든 세션이 유지되었습니다."
 
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "모든 세션이 닫히고 새 데몬이 실행 중입니다."
+
+msgid "All sources"
+msgstr "모든 경로"
 
 msgid "All tasks"
 msgstr "모든 작업"
@@ -2213,6 +2235,9 @@ msgstr "이미 계정이 있으신가요? <0>로그인</0>"
 
 msgid "Already in tasks"
 msgstr "이미 작업에 있습니다"
+
+msgid "Already in the pipeline: {duplicateNames}"
+msgstr "이미 파이프라인에 있음: {duplicateNames}"
 
 msgid "Also available as CommandDialog for ⌘K palettes"
 msgstr "⌘K 팔레트용 CommandDialog로도 제공됩니다"
@@ -3369,6 +3394,12 @@ msgstr "취소됨"
 #. placeholder {0}: formatDate(cancelAt)
 msgid "Cancels {0} — downgrades to Free at the end of the billing period."
 msgstr "{0}에 해지됩니다 — 결제 기간이 끝나면 무료 플랜으로 전환됩니다."
+
+msgid "Candidate"
+msgstr "후보자"
+
+msgid "Candidate not found."
+msgstr "후보자를 찾을 수 없습니다."
 
 msgid "Cannot {action}: no active organization is selected. Select an organization or sign in again."
 msgstr "{action} 수 없습니다: 선택된 활성 조직이 없습니다. 조직을 선택하거나 다시 로그인하세요."
@@ -5569,6 +5600,9 @@ msgstr "현재 플랜"
 msgid "Current tab"
 msgstr "현재 탭"
 
+msgid "Current title"
+msgstr "현재 직함"
+
 msgid "Cursor"
 msgstr "커서"
 
@@ -6751,6 +6785,9 @@ msgstr "각 에이전트는 자체 Git worktree와 브랜치에서 실행되어 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "모든 축이 다음 등급을 향해 제 몫을 하고 있습니다. 이대로 유지하면 등급은 따라옵니다."
 
+msgid "Every candidate, where they are, and who owes the next move."
+msgstr "모든 후보자의 현황과 다음에 움직여야 할 사람."
+
 msgid "Every day at 3:00 AM"
 msgstr "매일 오전 3:00"
 
@@ -7751,6 +7788,9 @@ msgstr "LinkedIn에서 팔로우하기"
 msgid "Follow us on X/Twitter"
 msgstr "X/Twitter에서 팔로우하기"
 
+msgid "Follow-up"
+msgstr "후속 연락"
+
 msgid "Font family"
 msgstr "글꼴"
 
@@ -8307,6 +8347,12 @@ msgstr "심각도 높음"
 msgid "High usage"
 msgstr "사용량 높음"
 
+msgid "Hired"
+msgstr "채용됨"
+
+msgid "Hiring"
+msgstr "채용"
+
 msgid "history"
 msgstr "기록"
 
@@ -8719,6 +8765,9 @@ msgstr "앱 내 브라우저"
 msgid "In-app PR merge"
 msgstr "앱 내 PR 머지"
 
+msgid "Inbound"
+msgstr "인바운드"
+
 msgid "Inbox triage"
 msgstr "받은편지함 분류"
 
@@ -8885,6 +8934,9 @@ msgstr "중단"
 
 msgid "Interrupted"
 msgstr "중단됨"
+
+msgid "Interview"
+msgstr "면접"
 
 msgid "Intro call"
 msgstr "첫 통화"
@@ -9247,6 +9299,12 @@ msgstr "마지막 에이전트 활동 {0}"
 msgid "Last attached"
 msgstr "마지막 연결"
 
+msgid "Last contact"
+msgstr "마지막 연락"
+
+msgid "Last contact {lastContact}"
+msgstr "마지막 연락 {lastContact}"
+
 msgid "Last day of each month"
 msgstr "매월 마지막 날"
 
@@ -9321,6 +9379,12 @@ msgstr "리더보드 설정"
 
 msgid "Leaf"
 msgstr "잎"
+
+msgid "Lean hire"
+msgstr "채용 쪽"
+
+msgid "Lean no hire"
+msgstr "비채용 쪽"
 
 msgid "Learn"
 msgstr "배우기"
@@ -9879,6 +9943,9 @@ msgstr "읽지 않음으로 표시"
 msgid "Mark as viewed"
 msgstr "확인함으로 표시"
 
+msgid "Mark hired"
+msgstr "채용됨으로 표시"
+
 msgid "Mark Ready"
 msgstr "준비됨으로 표시"
 
@@ -10278,6 +10345,9 @@ msgstr "소프트웨어 역사의 대부분"
 msgid "Move {count} to Group"
 msgstr "{count}개를 그룹으로 이동"
 
+msgid "Move to {nextStageLabel}"
+msgstr "{nextStageLabel}(으)로 이동"
+
 msgid "Move to Center"
 msgstr "가운데로 이동"
 
@@ -10507,6 +10577,9 @@ msgstr "새 프로젝트"
 msgid "New push to branch"
 msgstr "브랜치에 새 푸시"
 
+msgid "New role…"
+msgstr "새 직무…"
+
 msgid "New session"
 msgstr "새 세션"
 
@@ -10585,6 +10658,9 @@ msgstr "다음"
 msgid "Next branch"
 msgstr "다음 브랜치"
 
+msgid "Next candidate"
+msgstr "다음 후보자"
+
 msgid "Next comment"
 msgstr "다음 코멘트"
 
@@ -10603,6 +10679,9 @@ msgstr "다음 실행은 3일 후"
 
 msgid "Next slide"
 msgstr "다음 슬라이드"
+
+msgid "Next step"
+msgstr "다음 단계"
 
 msgid "Next Tab"
 msgstr "다음 탭"
@@ -10827,6 +10906,9 @@ msgstr "허용된 형식과 일치하는 파일이 없습니다."
 
 msgid "No files match your search"
 msgstr "검색과 일치하는 파일이 없습니다"
+
+msgid "No follow-ups due. Nice."
+msgstr "예정된 후속 연락이 없습니다. 좋아요."
 
 msgid "No fonts found."
 msgstr "글꼴을 찾을 수 없습니다."
@@ -11216,6 +11298,9 @@ msgstr "프롬프트 없는 실행"
 msgid "No. Your agents stay independent; Superset is the orchestration layer around them. Each task gets an isolated Git worktree, persistent sessions, diff review, and scheduled runs without tying the workflow to one provider."
 msgstr "아닙니다. 에이전트는 그대로 독립적이고, Superset은 그 주위를 감싸는 오케스트레이션 계층입니다. 작업마다 격리된 Git worktree, 유지되는 세션, 차이 리뷰, 예약 실행이 제공되며 워크플로가 특정 제공사에 묶이지 않습니다."
 
+msgid "Nobody"
+msgstr "없음"
+
 msgid "Nobody has joined the board yet."
 msgstr "아직 순위표에 참여한 사람이 없습니다."
 
@@ -11294,6 +11379,9 @@ msgstr "미포함"
 msgid "Not loaded"
 msgstr "로드 안 됨"
 
+msgid "Not looking"
+msgstr "구직 안 함"
+
 msgid "Not now"
 msgstr "나중에"
 
@@ -11308,6 +11396,9 @@ msgstr "아직 이벤트를 받지 못하고 있습니다. Microsoft Graph가 �
 
 msgid "Not reviewed by you"
 msgstr "내가 리뷰하지 않음"
+
+msgid "Not scored"
+msgstr "미평가"
 
 msgid "Not sent"
 msgstr "전송되지 않음"
@@ -11373,6 +11464,9 @@ msgstr "알림"
 msgid "Notion is not configured for this environment."
 msgstr "이 환경에는 Notion이 설정되어 있지 않습니다."
 
+msgid "Notion page"
+msgstr "Notion 페이지"
+
 msgid "now"
 msgstr "방금"
 
@@ -11419,6 +11513,9 @@ msgstr "전체 토큰 대비"
 
 msgid "Off"
 msgstr "끔"
+
+msgid "Offer"
+msgstr "오퍼"
 
 #. placeholder {0}: COMPANY.NAME
 msgid "Official documentation for {0}, the app for running 100+ coding agents in parallel."
@@ -11595,6 +11692,9 @@ msgstr "나만"
 
 msgid "Only you can see this page"
 msgstr "이 페이지는 나만 볼 수 있습니다"
+
+msgid "Onsite"
+msgstr "대면 면접"
 
 msgid "open"
 msgstr "열기"
@@ -12170,6 +12270,12 @@ msgstr "2026년 8월 기준, 우리 팀과 가까이 지켜보는 팀들을 바�
 msgid "Out of scope"
 msgstr "범위를 벗어남"
 
+msgid "Outbound"
+msgstr "아웃바운드"
+
+msgid "Outcome change"
+msgstr "결과 변경"
+
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "결과를 넣으면 소프트웨어가 나옵니다. 사람은 의도와 제약, 예산을 정합니다. 공장은 스스로 일정을 짜고, 계속 출시하고, 출시한 것을 관찰하고, 스스로 되돌립니다. 대부분의 변경이 사람의 개입 없이 머지되고, 장애율은 오르지 않습니다."
 
@@ -12193,6 +12299,9 @@ msgstr "출력 스키마"
 
 msgid "Output truncated"
 msgstr "출력이 잘렸습니다"
+
+msgid "Outreach"
+msgstr "연락"
 
 msgid "Overflow Fade"
 msgstr "오버플로 페이드"
@@ -12488,6 +12597,9 @@ msgstr "개인"
 msgid "Phantom Forklift"
 msgstr "유령 지게차"
 
+msgid "Phone"
+msgstr "전화"
+
 msgid "Phone number"
 msgstr "전화번호"
 
@@ -12523,6 +12635,9 @@ msgstr "프로젝트 위치를 선택하세요"
 
 msgid "Pick a reason"
 msgstr "사유를 선택하세요"
+
+msgid "Pick a role"
+msgstr "직무 선택"
 
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "소리를 고르거나 직접 추가하세요. 사용자 지정 오디오는 .mp3, .wav, .ogg를 지원합니다."
@@ -12574,6 +12689,9 @@ msgstr "분홍"
 
 msgid "Pinned"
 msgstr "고정됨"
+
+msgid "Pipeline"
+msgstr "파이프라인"
 
 msgid "PK"
 msgstr "PK"
@@ -12696,6 +12814,9 @@ msgstr "게시"
 
 msgid "Post comment"
 msgstr "댓글 게시"
+
+msgid "Power user"
+msgstr "파워 유저"
 
 msgid "PR"
 msgstr "PR"
@@ -12822,6 +12943,9 @@ msgstr "이전"
 
 msgid "Previous branch"
 msgstr "이전 브랜치"
+
+msgid "Previous candidate"
+msgstr "이전 후보자"
 
 msgid "Previous comment"
 msgstr "이전 코멘트"
@@ -13263,6 +13387,9 @@ msgstr "도달"
 msgid "Reached a dashboard page"
 msgstr "대시보드 페이지 도달"
 
+msgid "Reached out"
+msgstr "연락함"
+
 msgid "React layer of the shared pane/workspace layout engine"
 msgstr "공용 패널/워크스페이스 레이아웃 엔진의 React 계층"
 
@@ -13444,6 +13571,9 @@ msgstr "참조"
 msgid "Referral"
 msgstr "유입"
 
+msgid "Referred by"
+msgstr "추천인"
+
 msgid "Refresh"
 msgstr "새로 고침"
 
@@ -13479,6 +13609,9 @@ msgstr "기본 제공 에이전트 옆에 어떤 CLI 에이전트든 이름, 아
 
 msgid "Registers lifecycle hooks in this agent's global config so Superset can show status and send notifications. Turning this off removes Superset's entries everywhere — status and notifications stop for this agent, including inside Superset."
 msgstr "이 에이전트의 전역 구성에 라이프사이클 훅을 등록해 Superset이 상태를 표시하고 알림을 보낼 수 있게 합니다. 이 기능을 끄면 모든 곳에서 Superset의 항목이 제거되며, Superset 안에서도 이 에이전트의 상태와 알림이 중단됩니다."
+
+msgid "Rejected"
+msgstr "불합격"
 
 msgid "Related Posts"
 msgstr "관련 게시물"
@@ -14256,6 +14389,9 @@ msgstr "역할"
 msgid "Role changed to {newRoleName}"
 msgstr "역할을 {newRoleName}(으)로 변경했습니다"
 
+msgid "Role title"
+msgstr "직무명"
+
 msgid "Role updated"
 msgstr "역할을 변경했습니다"
 
@@ -14558,9 +14694,15 @@ msgstr "SCIM 프로비저닝"
 msgid "Scope"
 msgstr "범위"
 
+msgid "Score"
+msgstr "평가"
+
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "Scoring starts once the board can see {0} days of usage."
 msgstr "보드가 {0}일치 사용 기록을 확보하면 점수 산정이 시작됩니다."
+
+msgid "Screening call"
+msgstr "스크리닝 콜"
 
 msgid "Screenshot copied to clipboard"
 msgstr "스크린샷을 클립보드에 복사했습니다"
@@ -14688,6 +14830,9 @@ msgstr "Linear 검색…"
 
 msgid "Search models"
 msgstr "모델 검색"
+
+msgid "Search name, email, company, GitHub"
+msgstr "이름, 이메일, 회사, GitHub 검색"
 
 msgid "Search pages"
 msgstr "페이지 검색"
@@ -15662,6 +15807,9 @@ msgstr "이 워크스페이스를 설치된 모든 것과 함께 현재 상태�
 msgid "Snooze"
 msgstr "다시 알림"
 
+msgid "Snooze 3 days"
+msgstr "3일 미루기"
+
 msgid "so a border on two edges of the rotated square always faces outward."
 msgstr "회전된 정사각형의 두 변에 있는 테두리가 항상 바깥을 향합니다."
 
@@ -15762,6 +15910,9 @@ msgstr "소스 공개"
 
 msgid "Source path (not an import)"
 msgstr "소스 경로 (임포트 아님)"
+
+msgid "Sourced"
+msgstr "소싱됨"
 
 msgid "Sources"
 msgstr "출처"
@@ -15874,8 +16025,14 @@ msgstr "스택"
 msgid "Staff Software Engineer, Vori"
 msgstr "스태프 소프트웨어 엔지니어, Vori"
 
+msgid "Stage"
+msgstr "단계"
+
 msgid "Stage all"
 msgstr "모두 스테이징"
+
+msgid "Stage change"
+msgstr "단계 변경"
 
 msgid "Stage file"
 msgstr "파일 스테이징"
@@ -16156,6 +16313,12 @@ msgstr "Stripe 매출"
 
 msgid "Stripe's own Sigma MRR report, computed on demand via the Query Run API"
 msgstr "Stripe 자체 Sigma MRR 리포트를 Query Run API로 요청 시 계산"
+
+msgid "Strong hire"
+msgstr "적극 채용"
+
+msgid "Strong no hire"
+msgstr "절대 비채용"
 
 msgid "Structure, scrolling, and overflow handling"
 msgstr "구조, 스크롤, 오버플로 처리"
@@ -16444,6 +16607,10 @@ msgstr "Superset은 각 연결을 암호화해 저장합니다. 도구 호출은
 
 msgid "Superset UI"
 msgstr "Superset UI"
+
+#. placeholder {0}: supersetUser.email
+msgid "Superset user · {0}"
+msgstr "Superset 사용자 · {0}"
 
 #. placeholder {0}: formatPercent(trackedMemorySharePercent)
 msgid "Superset uses {0} of system RAM"
@@ -17847,6 +18014,9 @@ msgstr "총 지출"
 msgid "Total tokens published"
 msgstr "공개한 전체 토큰"
 
+msgid "Touched"
+msgstr "연락함"
+
 msgid "Trace charges and subscriptions"
 msgstr "결제와 구독 추적"
 
@@ -18881,6 +19051,9 @@ msgstr "초기 사용자들의 이야기"
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google이 어떤 검색어로 우리를 보여주는지, 그중 우리 이름이 아닌 비중은 얼마인지."
 
+msgid "What happens next"
+msgstr "다음 진행"
+
 msgid "What has to become true"
 msgstr "무엇이 참이 되어야 하는가"
 
@@ -19031,11 +19204,17 @@ msgstr "첨부 파일 유무 무관"
 msgid "With the Superset mobile app, I can address production issues from anywhere."
 msgstr "Superset 모바일 앱 덕분에 어디서든 프로덕션 문제에 대응할 수 있습니다."
 
+msgid "Withdrew"
+msgstr "지원 철회"
+
 msgid "Wordmark, black"
 msgstr "워드마크, 검정"
 
 msgid "Wordmark, white"
 msgstr "워드마크, 흰색"
+
+msgid "Work at a Startup"
+msgstr "Work at a Startup"
 
 msgid "Work email"
 msgstr "업무용 이메일"
@@ -19045,6 +19224,9 @@ msgstr "티켓에서 바로 작업"
 
 msgid "Work the action items from a call"
 msgstr "통화의 액션 아이템 처리"
+
+msgid "Work trial"
+msgstr "업무 체험"
 
 msgid "Work with your agents across your favorite tools"
 msgstr "즐겨 쓰는 도구 전반에서 에이전트와 함께 작업하세요"
