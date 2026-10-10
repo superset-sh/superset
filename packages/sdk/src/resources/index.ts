@@ -12,6 +12,8 @@ export {
 	type OrganizationRole,
 } from "./organization";
 export {
+	type TerminalAgentLifecycleEventType,
+	type TerminalAgentStatus,
 	type TerminalCloseParams,
 	type TerminalCloseResult,
 	type TerminalCreateParams,
