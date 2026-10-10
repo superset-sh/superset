@@ -8,8 +8,9 @@ import {
 	type SupersetConfig,
 	writeConfig,
 } from "./config";
+import { readHostApiToken } from "./host-api-token";
 
-export type AuthSource = "override" | "config" | "oauth" | "sandbox";
+export type AuthSource = "override" | "host" | "config" | "oauth" | "sandbox";
 
 export type ResolvedAuth = {
 	config: SupersetConfig;
@@ -20,6 +21,7 @@ export type ResolvedAuth = {
 
 export async function resolveAuth(
 	apiKeyOption: string | undefined,
+	{ useHostToken = true }: { useHostToken?: boolean } = {},
 ): Promise<ResolvedAuth> {
 	let config = readConfig();
 
@@ -29,10 +31,15 @@ export async function resolveAuth(
 		apiKeyOption?.trim() || process.env.SUPERSET_API_KEY?.trim();
 	let bearer: string | undefined;
 	let authSource: AuthSource;
+	const hostToken =
+		!overrideKey && useHostToken ? await readHostApiToken() : null;
 
 	if (overrideKey) {
 		bearer = overrideKey;
 		authSource = "override";
+	} else if (hostToken) {
+		bearer = hostToken;
+		authSource = "host";
 	} else if (config.apiKey?.trim()) {
 		bearer = config.apiKey.trim();
 		authSource = "config";

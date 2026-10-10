@@ -19,6 +19,7 @@ async function exerciseDial({
 		fetch(request) {
 			requests++;
 			expect(request.headers.get("authorization")).toBe("Bearer test-secret");
+			expect(request.headers.get("x-superset-relayed")).toBe("1");
 			return new Response("proxied successfully");
 		},
 	});
