@@ -2,6 +2,7 @@ import { parseArgs } from "node:util";
 import superjson from "superjson";
 
 import type { RouterInputs, RouterOutputs } from "../src/root";
+import { githubHandle } from "../src/router/hiring/github-handle";
 import { parseFollowUp, pickCandidate, todayLocal } from "./hiring-args";
 
 type Hiring = RouterOutputs["hiring"];
@@ -86,13 +87,24 @@ function readableError(message: string | undefined): string | undefined {
 }
 
 async function resolveCandidate(query: string): Promise<ApplicationRow> {
-	const searchable = !query.includes("@") && !query.includes("/");
-	const isId = /^[0-9a-f-]{36}$/i.test(query);
+	const trimmed = query.trim();
+	if (/^[0-9a-f-]{36}$/i.test(trimmed)) {
+		const detail = await call<Hiring["get"]>("query", "get", {
+			candidateId: trimmed,
+		});
+		return pickCandidate(trimmed, detail.applications);
+	}
+	// Narrow the search server-side so candidates beyond the list cap are found.
+	const q = trimmed.includes("@")
+		? trimmed
+		: trimmed.includes("/")
+			? (githubHandle(trimmed) ?? trimmed)
+			: trimmed;
 	const rows = await call<Hiring["list"]>("query", "list", {
 		status: "all",
-		q: searchable && !isId ? query : undefined,
+		q,
 	} satisfies RouterInputs["hiring"]["list"]);
-	return pickCandidate(query, rows);
+	return pickCandidate(trimmed, rows);
 }
 
 function compactRow(row: ApplicationRow) {

@@ -7,12 +7,9 @@ const row = (
 	name: string,
 	email: string | null,
 	githubUrl: string | null,
-) => ({
-	candidateId,
-	name,
-	email,
-	githubUrl,
-});
+	outcome = "active",
+	applicationId = `${candidateId}-app`,
+) => ({ candidateId, name, email, githubUrl, outcome, applicationId });
 
 describe("hiring script args", () => {
 	test("parseFollowUp adds local days and keeps explicit dates", () => {
@@ -42,5 +39,16 @@ describe("hiring script args", () => {
 		);
 		expect(pickCandidate("DAN@example.com", rows).candidateId).toBe("1");
 		expect(() => pickCandidate("dan", rows)).toThrow(/matches 2 candidates/);
+	});
+
+	test("pickCandidate acts on the active application and prefers an exact name", () => {
+		const rows = [
+			row("1", "Dan Smithers", null, null),
+			row("2", "Dan Smith", null, null, "rejected", "old-rejected"),
+			row("2", "Dan Smith", null, null, "active", "new-active"),
+		];
+		const picked = pickCandidate("dan smith", rows);
+		expect(picked.candidateId).toBe("2");
+		expect(picked.applicationId).toBe("new-active");
 	});
 });

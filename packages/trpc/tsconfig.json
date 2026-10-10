@@ -3,6 +3,11 @@
 	"compilerOptions": {
 		"jsx": "react-jsx"
 	},
-	"include": ["src"],
+	"include": [
+		"src",
+		"scripts/hiring.ts",
+		"scripts/hiring-args.ts",
+		"scripts/import-hiring-notion.ts"
+	],
 	"exclude": ["node_modules", "src/**/*.test.ts", "src/**/*.integration.ts"]
 }

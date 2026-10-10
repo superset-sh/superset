@@ -43,20 +43,36 @@ interface CandidateMatch {
 	githubUrl: string | null;
 }
 
-/** An id, an email or a GitHub handle picks one candidate; a name must match exactly one. */
-export function pickCandidate<T extends CandidateMatch>(
+/** The application to act on: the active one, else the first (most recently updated) row. */
+function primaryRows<T extends CandidateMatch & { outcome: string }>(
+	rows: T[],
+): T[] {
+	const byCandidate = new Map<string, T>();
+	for (const row of rows) {
+		const current = byCandidate.get(row.candidateId);
+		if (
+			!current ||
+			(current.outcome !== "active" && row.outcome === "active")
+		) {
+			byCandidate.set(row.candidateId, row);
+		}
+	}
+	return [...byCandidate.values()];
+}
+
+/** An id, an email or a GitHub handle picks one candidate; a name must match exactly, or as the only partial match. */
+export function pickCandidate<T extends CandidateMatch & { outcome: string }>(
 	query: string,
 	rows: T[],
 ): T {
 	const needle = query.trim().toLowerCase();
 	const handle = githubHandle(query);
-	const unique = [
-		...new Map(rows.map((row) => [row.candidateId, row])).values(),
-	];
+	const unique = primaryRows(rows);
 	const exact = unique.filter(
 		(row) =>
 			row.candidateId === query ||
 			row.email?.toLowerCase() === needle ||
+			row.name.toLowerCase() === needle ||
 			(handle !== null &&
 				row.githubUrl !== null &&
 				githubHandle(row.githubUrl) === handle),
