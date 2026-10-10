@@ -5,6 +5,7 @@ import {
 	describe,
 	expect,
 	mock,
+	setSystemTime,
 	test,
 } from "bun:test";
 import { webContents } from "electron";
@@ -56,6 +57,8 @@ interface FakeWebContents {
 	getTitle: () => string;
 	isLoading: () => boolean;
 	capturePage: ReturnType<typeof mock>;
+	executeJavaScript: () => Promise<void>;
+	pendingMousedowns: Array<() => void>;
 	debugger: {
 		attach: () => void;
 		detach: () => void;
@@ -94,6 +97,9 @@ function makeWc(): { wc: FakeWebContents; id: number } {
 		getTitle: () => "Example",
 		isLoading: () => false,
 		capturePage: mock(async () => PNG_IMAGE),
+		executeJavaScript: () =>
+			new Promise<void>((resolve) => wc.pendingMousedowns.push(resolve)),
+		pendingMousedowns: [],
 		debugger: {
 			attach: () => {},
 			detach: () => {},
@@ -489,6 +495,99 @@ describe("CDP session on a crashed guest renderer", () => {
 			metrics,
 			undefined,
 		);
+	});
+});
+
+describe("pane focus forwarding", () => {
+	const flush = () => new Promise((r) => setTimeout(r, 0));
+
+	async function pressMouse(wc: FakeWebContents): Promise<void> {
+		for (const resolve of wc.pendingMousedowns.splice(0)) resolve();
+		await flush();
+	}
+
+	function watchFocus(paneId: string) {
+		const onFocus = mock(() => {});
+		browserManager.on(`pane-focus:${paneId}`, onFocus);
+		return {
+			onFocus,
+			stop: () => browserManager.off(`pane-focus:${paneId}`, onFocus),
+		};
+	}
+
+	afterEach(() => {
+		setSystemTime();
+	});
+
+	test("a user click in the guest activates the pane", async () => {
+		const wc = register("pane-click");
+		const { onFocus, stop } = watchFocus("pane-click");
+
+		await pressMouse(wc);
+
+		expect(onFocus).toHaveBeenCalledTimes(1);
+		stop();
+	});
+
+	test("a click an agent dispatches over CDP does not activate the pane", async () => {
+		const wc = register("pane-agent-click");
+		const { onFocus, stop } = watchFocus("pane-agent-click");
+		const session = browserManager.attachCdp(
+			"pane-agent-click",
+			"ws-1",
+			() => {},
+			() => {},
+		);
+		let settle = () => {};
+		wc.debugger.sendCommand = mock(
+			() => new Promise<void>((resolve) => (settle = resolve)),
+		);
+
+		session.send(
+			JSON.stringify({
+				id: 1,
+				method: "Input.dispatchMouseEvent",
+				params: { type: "mousePressed", x: 10, y: 10, button: "left" },
+			}),
+		);
+		await pressMouse(wc);
+		// The guest's mousedown can arrive just after the CDP reply.
+		settle();
+		await flush();
+		await pressMouse(wc);
+		expect(onFocus).not.toHaveBeenCalled();
+
+		setSystemTime(new Date(Date.now() + 1_000));
+		await pressMouse(wc);
+		expect(onFocus).toHaveBeenCalledTimes(1);
+
+		session.detach();
+		stop();
+	});
+
+	test("other CDP commands do not hide a user click", async () => {
+		const wc = register("pane-agent-eval");
+		const { onFocus, stop } = watchFocus("pane-agent-eval");
+		const session = browserManager.attachCdp(
+			"pane-agent-eval",
+			"ws-1",
+			() => {},
+			() => {},
+		);
+		wc.debugger.sendCommand = mock(() => new Promise<void>(() => {}));
+
+		session.send(
+			JSON.stringify({
+				id: 1,
+				method: "Runtime.evaluate",
+				params: { expression: "1" },
+			}),
+		);
+		await pressMouse(wc);
+
+		expect(onFocus).toHaveBeenCalledTimes(1);
+		session.detach();
+		stop();
 	});
 });
 
