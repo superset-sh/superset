@@ -14,13 +14,13 @@ export interface JwtApiAuthProviderOptions {
 	 * Called whenever a fresh JWT needs to be minted, so token rotations
 	 * (re-login, refresh) are picked up without restarting the host-service.
 	 */
-	getSessionToken: () => Promise<string>;
+	getSessionToken: (signal?: AbortSignal) => Promise<string>;
 	onInvalidateCache?: () => void;
 	apiUrl: string;
 }
 
 export class JwtApiAuthProvider implements ApiAuthProvider {
-	private readonly getSessionToken: () => Promise<string>;
+	private readonly getSessionToken: (signal?: AbortSignal) => Promise<string>;
 	private readonly onInvalidateCache?: () => void;
 	private readonly apiUrl: string;
 	private cachedJwt: string | null = null;
@@ -32,8 +32,8 @@ export class JwtApiAuthProvider implements ApiAuthProvider {
 		this.apiUrl = options.apiUrl;
 	}
 
-	async getHeaders(): Promise<Record<string, string>> {
-		const jwt = await this.getJwt();
+	async getHeaders(signal?: AbortSignal): Promise<Record<string, string>> {
+		const jwt = await this.getJwt(signal);
 		return { Authorization: `Bearer ${jwt}` };
 	}
 
@@ -43,7 +43,8 @@ export class JwtApiAuthProvider implements ApiAuthProvider {
 		this.onInvalidateCache?.();
 	}
 
-	async getJwt(): Promise<string> {
+	async getJwt(signal?: AbortSignal): Promise<string> {
+		signal?.throwIfAborted();
 		if (
 			this.cachedJwt &&
 			Date.now() < this.cachedJwtExpiresAt - JWT_REFRESH_BUFFER_MS
@@ -51,7 +52,8 @@ export class JwtApiAuthProvider implements ApiAuthProvider {
 			return this.cachedJwt;
 		}
 
-		const sessionToken = await this.getSessionToken();
+		const sessionToken = await this.getSessionToken(signal);
+		signal?.throwIfAborted();
 
 		// CLI OAuth code+PKCE login stores the OAuth access token directly,
 		// which is already a JWT signed by the same JWKS the relay verifies
@@ -67,6 +69,7 @@ export class JwtApiAuthProvider implements ApiAuthProvider {
 		// Authorization: Bearer; mirror what the CLI's tRPC client does in
 		// packages/cli/src/lib/api-client.ts.
 		const response = await fetch(`${this.apiUrl}/api/auth/token`, {
+			signal,
 			headers: sessionToken.startsWith("sk_live_")
 				? { "x-api-key": sessionToken }
 				: { Authorization: `Bearer ${sessionToken}` },
@@ -75,6 +78,7 @@ export class JwtApiAuthProvider implements ApiAuthProvider {
 			throw new Error(`Failed to mint JWT: ${response.status}`);
 		}
 		const data = (await response.json()) as { token: string };
+		signal?.throwIfAborted();
 		this.cachedJwt = data.token;
 		this.cachedJwtExpiresAt = Date.now() + JWT_CACHE_DURATION_MS;
 		return data.token;

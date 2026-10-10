@@ -20,6 +20,44 @@ export interface ConnectRelayOptions {
 	authProvider: JwtApiAuthProvider;
 	hostServiceSecret: string;
 	signal?: AbortSignal;
+	requestTimeoutMs?: number;
+	retryBaseDelayMs?: number;
+}
+
+const REQUEST_TIMEOUT_MS = 15_000;
+
+async function requestWithTimeout<T>(
+	request: (signal: AbortSignal) => Promise<T>,
+	operation: string,
+	timeoutMs: number,
+	signal?: AbortSignal,
+): Promise<T> {
+	const controller = new AbortController();
+	const abort = () => controller.abort(signal?.reason);
+	signal?.addEventListener("abort", abort, { once: true });
+	if (signal?.aborted) abort();
+	const timer = setTimeout(() => {
+		controller.abort(new Error(`${operation} timed out after ${timeoutMs}ms`));
+	}, timeoutMs);
+	timer.unref();
+	let rejectOnAbort: (() => void) | undefined;
+	try {
+		controller.signal.throwIfAborted();
+		const aborted = new Promise<never>((_, reject) => {
+			rejectOnAbort = () => reject(controller.signal.reason);
+			controller.signal.addEventListener("abort", rejectOnAbort, {
+				once: true,
+			});
+		});
+		// tRPC cannot abort a request while its async auth headers are unresolved.
+		return await Promise.race([aborted, request(controller.signal)]);
+	} finally {
+		clearTimeout(timer);
+		signal?.removeEventListener("abort", abort);
+		if (rejectOnAbort) {
+			controller.signal.removeEventListener("abort", rejectOnAbort);
+		}
+	}
 }
 
 // The API decides which relay this host belongs on, and it is asked here —
@@ -31,11 +69,20 @@ export interface ConnectRelayOptions {
 async function resolveRelayUrl(
 	api: ApiClient,
 	fallback: string,
+	timeoutMs: number,
+	signal?: AbortSignal,
 ): Promise<string> {
 	try {
-		const endpoint = await api.host.relayEndpoint.query();
+		const endpoint = await requestWithTimeout(
+			(requestSignal) =>
+				api.host.relayEndpoint.query(undefined, { signal: requestSignal }),
+			"Relay endpoint lookup",
+			timeoutMs,
+			signal,
+		);
 		if (endpoint?.url) return endpoint.url;
 	} catch (error) {
+		if (signal?.aborted) throw error;
 		console.warn(
 			"[host-service] relay endpoint lookup failed, using fallback:",
 			error instanceof Error ? error.message : error,
@@ -50,6 +97,8 @@ const REGISTER_RETRY_MAX_MS = 5 * 60_000;
 export async function connectRelay(
 	options: ConnectRelayOptions,
 ): Promise<TunnelClient | null> {
+	const requestTimeoutMs = options.requestTimeoutMs ?? REQUEST_TIMEOUT_MS;
+	const retryBaseDelayMs = options.retryBaseDelayMs ?? REGISTER_RETRY_BASE_MS;
 	// Registration is what makes this host exist server-side (hosts list,
 	// automations, relay routing). A one-shot attempt left a transient API
 	// failure at boot permanently stranding the host as locally-healthy but
@@ -57,24 +106,35 @@ export async function connectRelay(
 	// and record the outcome where health.check can report it.
 	for (let attempt = 0; !options.signal?.aborted; attempt++) {
 		try {
-			const host = await options.api.host.ensure.mutate(
-				{
-					organizationId: options.organizationId,
-					machineId: getHostId(),
-					name: getHostName(),
-					// Registration runs once per process and a restart re-registers,
-					// so the cloud remembers the last build that reported its version.
-					version: HOST_SERVICE_VERSION,
-					platform: `${os.platform()}-${os.arch()}`,
-					installSource: getHostInstallSource(),
-				},
-				{ signal: options.signal },
+			const host = await requestWithTimeout(
+				(signal) =>
+					options.api.host.ensure.mutate(
+						{
+							organizationId: options.organizationId,
+							machineId: getHostId(),
+							name: getHostName(),
+							// Registration runs once per process and a restart re-registers,
+							// so the cloud remembers the last build that reported its version.
+							version: HOST_SERVICE_VERSION,
+							platform: `${os.platform()}-${os.arch()}`,
+							installSource: getHostInstallSource(),
+						},
+						{ signal },
+					),
+				"Host registration",
+				requestTimeoutMs,
+				options.signal,
 			);
 			if (options.signal?.aborted) return null;
 			recordRegistrationSuccess();
 			console.log(`[host-service] registered as host ${host.machineId}`);
 
-			const relayUrl = await resolveRelayUrl(options.api, options.relayUrl);
+			const relayUrl = await resolveRelayUrl(
+				options.api,
+				options.relayUrl,
+				requestTimeoutMs,
+				options.signal,
+			);
 			if (options.signal?.aborted) return null;
 			console.log(`[host-service] relay: ${relayUrl}`);
 
@@ -84,7 +144,13 @@ export async function connectRelay(
 				getAuthToken: () => options.authProvider.getJwt(),
 				localPort: options.localPort,
 				hostServiceSecret: options.hostServiceSecret,
-				resolveRelayUrl: () => resolveRelayUrl(options.api, options.relayUrl),
+				resolveRelayUrl: () =>
+					resolveRelayUrl(
+						options.api,
+						options.relayUrl,
+						requestTimeoutMs,
+						options.signal,
+					),
 			};
 
 			const tunnel = new TunnelClient(clientOptions);
@@ -94,7 +160,7 @@ export async function connectRelay(
 			if (options.signal?.aborted) return null;
 			recordRegistrationFailure(error);
 			const delay = Math.min(
-				REGISTER_RETRY_BASE_MS * 2 ** attempt,
+				retryBaseDelayMs * 2 ** attempt,
 				REGISTER_RETRY_MAX_MS,
 			);
 			console.error(
