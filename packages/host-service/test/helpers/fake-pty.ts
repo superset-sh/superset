@@ -5,10 +5,13 @@ import type { ServerOptions } from "@superset/pty-daemon";
  * In-process PTY spawner for teardown/lifecycle tests: emits the
  * shell-integration prompt marker, then executes each written command
  * synchronously via `/bin/sh -c` and exits with its status. Mimics fish's
- * `$?` rejection so shell-portability regressions stay covered.
+ * rejection of an unquoted `$?` so shell-portability regressions stay covered.
+ * `ptyProxy` exits 0 whatever the command returned, as a shell re-hosted
+ * under a PTY proxy (Kiro/Amazon Q) does.
  */
 export function createFishLikePtySpawner(
 	writes: string[],
+	{ ptyProxy = false }: { ptyProxy?: boolean } = {},
 ): NonNullable<ServerOptions["spawnPty"]> {
 	return ({ meta }) => {
 		let dataCallback: ((data: Buffer) => void) | null = null;
@@ -28,7 +31,7 @@ export function createFishLikePtySpawner(
 			write(data) {
 				const command = data.toString("utf8").trim();
 				writes.push(command);
-				if (command.includes("$?")) {
+				if (withoutSingleQuoted(command).includes("$?")) {
 					dataCallback?.(
 						Buffer.from(
 							"fish: $? is not the exit status. In fish, please use $status.\n",
@@ -43,7 +46,10 @@ export function createFishLikePtySpawner(
 				});
 				if (child.stdout.byteLength > 0) dataCallback?.(child.stdout);
 				if (child.stderr.byteLength > 0) dataCallback?.(child.stderr);
-				exitCallback?.({ code: child.status ?? 1, signal: null });
+				exitCallback?.({
+					code: ptyProxy ? 0 : (child.status ?? 1),
+					signal: null,
+				});
 			},
 			resize(cols, rows) {
 				meta.cols = cols;
@@ -63,6 +69,24 @@ export function createFishLikePtySpawner(
 			},
 		};
 	};
+}
+
+function withoutSingleQuoted(command: string): string {
+	let unquoted = "";
+	let quoted = false;
+	for (let i = 0; i < command.length; i++) {
+		const char = command[i];
+		if (quoted) {
+			if (char === "'") quoted = false;
+		} else if (char === "'") {
+			quoted = true;
+		} else if (char === "\\") {
+			i++;
+		} else {
+			unquoted += char;
+		}
+	}
+	return unquoted;
 }
 
 /** POSIX single-quote escape for paths embedded in fixture scripts. */

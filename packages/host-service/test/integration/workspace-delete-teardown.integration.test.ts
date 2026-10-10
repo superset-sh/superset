@@ -9,6 +9,8 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Server } from "@superset/pty-daemon";
+import { eq } from "drizzle-orm";
+import { workspaces } from "../../src/db/schema";
 import { disposeDaemonClient } from "../../src/terminal/daemon-client-singleton";
 import {
 	initTerminalBaseEnv,
@@ -55,7 +57,10 @@ describe("workspace delete teardown integration", () => {
 		}
 	});
 
-	async function setup(teardownScript: string): Promise<{
+	async function setup(
+		teardownScript: string,
+		ptyOptions?: { ptyProxy?: boolean },
+	): Promise<{
 		scenario: FeatureWorktreeScenario;
 		markerPath: string;
 	}> {
@@ -64,7 +69,7 @@ describe("workspace delete teardown integration", () => {
 		server = new Server({
 			socketPath,
 			daemonVersion: "0.0.0-delete-teardown-integration-test",
-			spawnPty: createFishLikePtySpawner([]),
+			spawnPty: createFishLikePtySpawner([], ptyOptions),
 		});
 		await server.listen();
 
@@ -162,6 +167,41 @@ describe("workspace delete teardown integration", () => {
 		expect(result.success).toBe(true);
 		expect(result.worktreeRemoved).toBe(true);
 		expect(existsSync(markerPath)).toBe(false);
+		expect(existsSync(scenario.worktreePath)).toBe(false);
+	});
+
+	test("workspaceCleanup.destroy blocks on a failed teardown even when a PTY proxy exits 0", async () => {
+		const { scenario, markerPath } = await setup(
+			"printf ran > {{MARKER}}\nexit 3",
+			{ ptyProxy: true },
+		);
+
+		const error = await scenario.host.trpc.workspaceCleanup.destroy
+			.mutate({ workspaceId: scenario.featureWorkspaceId })
+			.then(
+				() => null,
+				(err: unknown) => err,
+			);
+
+		expect(error).toMatchObject({
+			data: {
+				code: "PRECONDITION_FAILED",
+				teardownFailure: { kind: "TEARDOWN_FAILED", exitCode: 3 },
+			},
+		});
+		expect(existsSync(markerPath)).toBe(true);
+		expect(existsSync(scenario.worktreePath)).toBe(true);
+		const row = scenario.host.db.query.workspaces
+			.findFirst({ where: eq(workspaces.id, scenario.featureWorkspaceId) })
+			.sync();
+		expect(row?.archivedAt).toBeNull();
+
+		const retry = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
+			workspaceId: scenario.featureWorkspaceId,
+			force: true,
+			skipTeardown: true,
+		});
+		expect(retry.success).toBe(true);
 		expect(existsSync(scenario.worktreePath)).toBe(false);
 	});
 });
