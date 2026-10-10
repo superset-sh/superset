@@ -241,10 +241,11 @@ export const hiringRouter = {
 			if (duplicates.length > 0) {
 				throw new TRPCError({
 					code: "CONFLICT",
-					message: `${duplicates[0]?.name} is already in the pipeline`,
+					message: `${duplicates[0]?.name} is already in the pipeline (candidate ${duplicates[0]?.id})`,
 				});
 			}
-			const { roleId, stage, ownerUserId, note, ...fields } = input;
+			const { roleId, stage, ownerUserId, note, authorLabel, ...fields } =
+				input;
 			const userId = ctx.session.user.id;
 
 			return dbWs
@@ -272,6 +273,7 @@ export const hiringRouter = {
 							kind: "note",
 							body: note,
 							authorUserId: userId,
+							authorLabel: authorLabel ?? null,
 						});
 					}
 					return { candidateId: candidate.id };
@@ -402,6 +404,7 @@ export const hiringRouter = {
 					kind: "outreach",
 					body: input.note ?? null,
 					authorUserId: ctx.session.user.id,
+					authorLabel: input.authorLabel ?? null,
 					occurredAt: now,
 				});
 				return application;
@@ -436,7 +439,7 @@ export const hiringRouter = {
 					kind: input.kind,
 					body: input.body,
 					metadata: Object.keys(metadata).length > 0 ? metadata : null,
-					authorUserId: input.authorLabel ? null : ctx.session.user.id,
+					authorUserId: ctx.session.user.id,
 					authorLabel: input.authorLabel ?? null,
 					occurredAt: input.occurredAt ?? new Date(),
 				})

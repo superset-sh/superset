@@ -31,6 +31,7 @@ import { useTRPC } from "@/trpc/react";
 import { useHiringLabels } from "../../../../hooks/useHiringLabels";
 import { useInvalidateHiring } from "../../../../hooks/useInvalidateHiring";
 import { isoDateFromToday } from "../../../../utils/isoDate";
+import { safeHref } from "../../../../utils/safeHref";
 
 type CandidateDetail = RouterOutputs["hiring"]["get"];
 type Application = CandidateDetail["applications"][number];
@@ -80,34 +81,28 @@ export function CandidateHeader({
 	);
 
 	const { candidate, supersetUser } = detail;
+	const webLinks: [string | null, IconType, string][] = [
+		[candidate.githubUrl, LuGithub, "GitHub"],
+		[candidate.linkedinUrl, LuLinkedin, "LinkedIn"],
+		[candidate.xUrl, LuTwitter, "X"],
+		[candidate.siteUrl, LuGlobe, t({ message: "Website" })],
+		[candidate.waasUrl, LuBriefcase, "Work at a Startup"],
+	];
 	const links: { href: string; icon: IconType; label: string }[] = [
-		candidate.email && {
-			href: `mailto:${candidate.email}`,
-			icon: LuMail,
-			label: candidate.email,
-		},
-		candidate.githubUrl && {
-			href: candidate.githubUrl,
-			icon: LuGithub,
-			label: "GitHub",
-		},
-		candidate.linkedinUrl && {
-			href: candidate.linkedinUrl,
-			icon: LuLinkedin,
-			label: "LinkedIn",
-		},
-		candidate.xUrl && { href: candidate.xUrl, icon: LuTwitter, label: "X" },
-		candidate.siteUrl && {
-			href: candidate.siteUrl,
-			icon: LuGlobe,
-			label: t({ message: "Website" }),
-		},
-		candidate.waasUrl && {
-			href: candidate.waasUrl,
-			icon: LuBriefcase,
-			label: "Work at a Startup",
-		},
-	].filter((link) => !!link);
+		...(candidate.email
+			? [
+					{
+						href: `mailto:${candidate.email}`,
+						icon: LuMail,
+						label: candidate.email,
+					},
+				]
+			: []),
+		...webLinks.flatMap(([url, icon, label]) => {
+			const href = safeHref(url);
+			return href ? [{ href, icon, label }] : [];
+		}),
+	];
 
 	const isActive = application?.outcome === "active";
 	const stageIndex = application

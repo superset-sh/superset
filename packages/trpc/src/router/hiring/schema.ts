@@ -7,6 +7,8 @@ import {
 } from "@superset/db/enums";
 import { z } from "zod";
 
+import { toWebUrl } from "./web-url";
+
 const optionalText = z
 	.string()
 	.trim()
@@ -18,7 +20,15 @@ const optionalUrl = z
 	.string()
 	.trim()
 	.max(500)
-	.transform((value) => value || null)
+	.transform((value, ctx) => {
+		if (!value) return null;
+		const url = toWebUrl(value);
+		if (!url) {
+			ctx.addIssue({ code: "custom", message: "Links must be http(s) URLs" });
+			return z.NEVER;
+		}
+		return url;
+	})
 	.nullish();
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -44,7 +54,10 @@ export const candidateFieldsSchema = z.object({
 	referredBy: optionalText,
 });
 
+const authorLabel = z.string().trim().max(100).optional();
+
 export const createCandidateSchema = candidateFieldsSchema.extend({
+	authorLabel,
 	roleId: z.string().uuid(),
 	stage: hiringStageEnum.default("sourced"),
 	ownerUserId: z.string().uuid().nullish(),
@@ -81,6 +94,7 @@ export const updateApplicationSchema = z.object({
 export const todaySchema = z.object({ today: isoDate }).optional();
 
 export const logTouchSchema = z.object({
+	authorLabel,
 	applicationId: z.string().uuid(),
 	nextFollowUpOn: isoDate.nullish(),
 	note: optionalText,

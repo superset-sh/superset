@@ -121,7 +121,7 @@ export function EventTimeline({
 					<li key={event.id} className="border-l-2 pl-3">
 						<div className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
 							<Badge variant="outline">{labels.eventKind[event.kind]}</Badge>
-							<span>{event.authorName ?? event.authorLabel}</span>
+							<span>{event.authorLabel ?? event.authorName}</span>
 							{event.authorLabel && (
 								<Badge variant="secondary">
 									<Trans>agent</Trans>

@@ -6,6 +6,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import superjson from "superjson";
 import { formatError, userError } from "./i18n-error";
+import { hasAdminAccess } from "./lib/admin-access";
 import { posthog } from "./lib/analytics";
 import {
 	SANDBOX_ALLOWED_PROCEDURES,
@@ -340,10 +341,10 @@ export const jwtProcedure = t.procedure
 	});
 
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
-	if (!ctx.session.user.email.endsWith(COMPANY.EMAIL_DOMAIN)) {
+	if (!hasAdminAccess(ctx.session.user)) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: `Admin access requires ${COMPANY.EMAIL_DOMAIN} email.`,
+			message: `Admin access requires a verified ${COMPANY.EMAIL_DOMAIN} email.`,
 		});
 	}
 

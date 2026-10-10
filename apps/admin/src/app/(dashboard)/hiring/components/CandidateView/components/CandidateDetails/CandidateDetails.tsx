@@ -10,6 +10,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/react";
 
 import { useInvalidateHiring } from "../../../../hooks/useInvalidateHiring";
+import { safeHref } from "../../../../utils/safeHref";
 
 type Candidate = RouterOutputs["hiring"]["get"]["candidate"];
 type EditableField =
@@ -56,13 +57,14 @@ export function CandidateDetails({ candidate }: CandidateDetailsProps) {
 		<section className="grid gap-3">
 			{fields.map(({ key, label, isLink }) => {
 				const value = candidate[key] ?? "";
+				const href = isLink ? safeHref(value) : null;
 				const id = `candidate-${candidate.id}-${key}`;
 				return (
 					<div key={key} className="space-y-1">
 						<Label htmlFor={id} className="text-muted-foreground text-xs">
-							{isLink && value ? (
+							{href ? (
 								<a
-									href={value}
+									href={href}
 									target="_blank"
 									rel="noreferrer"
 									className="hover:text-foreground underline"
