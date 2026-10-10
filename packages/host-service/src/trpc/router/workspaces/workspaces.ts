@@ -95,6 +95,7 @@ import {
 	PrBranchConflictError,
 } from "../workspace-creation/utils/pr-branch-materialize";
 import { derivePrLocalBranchName } from "../workspace-creation/utils/pr-branch-name";
+import { promptBranchSlug } from "../workspace-creation/utils/prompt-branch-slug";
 import {
 	type BaseRefFetcher,
 	resolveNewBranchStartPoint,
@@ -112,10 +113,10 @@ const createInputSchema = z
 		// of the project, so the branch/PR/worktree inputs do not apply.
 		checkout: z.enum(["worktree", "local"]).optional(),
 		// Both `name` and `branch` are optional. A typed `name` also seeds
-		// the branch when `branch` is omitted. When both are omitted with a
-		// non-empty agent prompt, creation proceeds with a friendly-random
-		// branch and an LLM rename is applied before terminals/agents
-		// start. With no prompt, the friendly-random fallback is final.
+		// the branch when `branch` is omitted. When both are omitted, the
+		// branch and its folder start as a few words of the prompt (or a
+		// friendly-random name) plus an id suffix. Background naming may
+		// rename the branch later, never the folder.
 		name: z.string().min(1).optional(),
 		branch: z.string().min(1).optional(),
 		// Use the typed branch verbatim instead of namespacing it under the
@@ -1120,7 +1121,8 @@ export const workspacesRouter = router({
 						: "";
 					const suffix = (input.id ?? randomUUID()).slice(0, 8);
 					const candidate =
-						typedNameSlug || `${generateFriendlyBranchName()}-${suffix}`;
+						typedNameSlug ||
+						`${promptBranchSlug(composerPrompt) ?? generateFriendlyBranchName()}-${suffix}`;
 					automaticBranch = !input.name;
 					const prefixed = prefix ? `${prefix}/${candidate}` : candidate;
 					resolvedBranch = deduplicateBranchName(prefixed, existing);

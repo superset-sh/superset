@@ -60,7 +60,7 @@ async function until(check: () => boolean) {
 
 const title = {
 	title: "Resolve login failures",
-	branchName: "fix-login",
+	branchName: "repair-auth",
 };
 
 const uniqueSlug = /^[a-z]+-[a-z]+-[0-9a-f]{8}(?:-\d+)?$/;
@@ -145,6 +145,8 @@ for (const kind of ["session", "worktree"] as const) {
 			const folder = basename(initial.worktreePath);
 			expect(folder).toMatch(uniqueSlug);
 			expect(folder).not.toContain("https");
+			if (kind === "worktree")
+				expect(folder).toBe(`fix-login-${f.id.slice(0, 8)}`);
 			expect(initial.branch).toBe(kind === "session" ? "main" : folder);
 			f.deferred.resolve(title);
 			await until(() => f.row()?.name === title.title);
@@ -163,6 +165,19 @@ for (const kind of ["session", "worktree"] as const) {
 			await f.cleanup();
 		}
 	});
+
+	if (kind === "worktree")
+		test("worktree: a greeting prompt keeps a friendly folder name", async () => {
+			const f = await fixture();
+			try {
+				await f.create({ namingPrompt: "hey there" });
+				const folder = basename(f.row()?.worktreePath ?? "");
+				expect(folder).toMatch(uniqueSlug);
+				expect(folder).not.toContain("hey");
+			} finally {
+				await f.cleanup();
+			}
+		});
 
 	test(`${kind}: empty composer still creates a valid initial name without AI`, async () => {
 		const f = await fixture();
