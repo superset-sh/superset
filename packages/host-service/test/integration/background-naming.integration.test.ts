@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, spyOn, test } from "bun:test";
 import { execFileSync } from "node:child_process";
-import { rmSync } from "node:fs";
-import { basename } from "node:path";
+import { lstatSync, realpathSync, rmSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import { eq } from "drizzle-orm";
 import { projects, terminalSessions, workspaces } from "../../src/db/schema";
 import { PullRequestRuntimeManager } from "../../src/runtime/pull-requests/pull-requests";
@@ -132,7 +132,7 @@ for (const kind of ["session", "worktree"] as const) {
 		};
 	}
 
-	test(`${kind}: creation returns before naming and keeps its folder when AI names arrive`, async () => {
+	test(`${kind}: creation returns before naming and moves its folder when AI names arrive`, async () => {
 		const f = await fixture();
 		try {
 			const result = await f.create({
@@ -148,10 +148,17 @@ for (const kind of ["session", "worktree"] as const) {
 			expect(initial.branch).toBe(kind === "session" ? "main" : folder);
 			f.deferred.resolve(title);
 			await until(() => f.row()?.name === title.title);
-			expect(f.row()?.worktreePath).toBe(initial.worktreePath);
 			const expectedBranch =
 				kind === "session" ? "main" : `${title.branchName}-${f.id.slice(0, 8)}`;
 			expect(f.row()?.branch).toBe(expectedBranch);
+			if (kind === "session") {
+				expect(f.row()?.worktreePath).toBe(initial.worktreePath);
+			} else {
+				const moved = join(dirname(initial.worktreePath), expectedBranch);
+				expect(f.row()?.worktreePath).toBe(moved);
+				expect(lstatSync(initial.worktreePath).isSymbolicLink()).toBe(true);
+				expect(realpathSync(initial.worktreePath)).toBe(realpathSync(moved));
+			}
 			expect(
 				execFileSync(
 					"git",
@@ -664,7 +671,9 @@ for (const kind of ["session", "worktree"] as const) {
 					const expected = `${candidate}-${collisionCount + 1}`;
 					expect(git("branch", "--show-current")).toBe(expected);
 					expect(f.row()?.branch).toBe(expected);
-					expect(f.row()?.worktreePath).toBe(row.worktreePath);
+					expect(f.row()?.worktreePath).toBe(
+						join(dirname(row.worktreePath), expected),
+					);
 					for (const branch of occupied)
 						expect(git("rev-parse", `refs/heads/${branch}`)).toBe(
 							originalCommit,
@@ -691,6 +700,27 @@ for (const kind of ["session", "worktree"] as const) {
 				expect(f.row()?.branch).toBe(
 					`team/${title.branchName}-${f.id.slice(0, 8)}`,
 				);
+			} finally {
+				await f.cleanup();
+			}
+		});
+		test("worktree: AI rename moves the folder with the branch", async () => {
+			const f = await fixture();
+			try {
+				await f.create({ name: "Typed name" });
+				const before = f.row();
+				if (!before) throw new Error("Workspace missing");
+				await f.host.trpc.workspaces.aiRename.mutate({
+					workspaceId: f.id,
+					prompt: "Fix login",
+				});
+				f.deferred.resolve(title);
+				await until(() => f.row()?.branch !== before.branch);
+				const after = f.row();
+				expect(after?.worktreePath).toBe(
+					join(dirname(before.worktreePath), after?.branch ?? ""),
+				);
+				expect(lstatSync(before.worktreePath).isSymbolicLink()).toBe(true);
 			} finally {
 				await f.cleanup();
 			}

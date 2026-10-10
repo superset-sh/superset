@@ -8,7 +8,10 @@ import {
 import type { Hono } from "hono";
 import type { HostDb } from "../db/index.ts";
 import { portManager } from "../ports/port-manager.ts";
-import { getLabelsForWorkspace } from "../ports/static-ports.ts";
+import {
+	getLabelsForWorkspace,
+	invalidateLabelCache,
+} from "../ports/static-ports.ts";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem/index.ts";
 import type { GitWatcher } from "./git-watcher.ts";
 import type {
@@ -26,6 +29,7 @@ type WsSocket = {
 
 interface FsSubscription {
 	workspaceId: string;
+	rootPath: string;
 	dispose: () => void;
 }
 
@@ -303,6 +307,10 @@ export class EventBus {
 			"type"
 		>,
 	): void {
+		const worktreePath = message.workspace?.worktreePath;
+		if (message.eventType === "updated" && worktreePath) {
+			this.rerootWorkspace(message.workspaceId, worktreePath);
+		}
 		// A throwing listener must not fail the emitting store write or skip
 		// the client broadcast.
 		for (const listener of this.workspaceChangedListeners) {
@@ -315,6 +323,18 @@ export class EventBus {
 			}
 		}
 		this.broadcast({ type: "workspace:changed", ...message });
+	}
+
+	private rerootWorkspace(workspaceId: string, worktreePath: string): void {
+		this.gitWatcher.rerootWorkspace(workspaceId, worktreePath);
+		invalidateLabelCache(workspaceId);
+		for (const [socket, state] of this.clients) {
+			const sub = state.fsSubscriptions.get(workspaceId);
+			if (!sub || sub.rootPath === worktreePath) continue;
+			sub.dispose();
+			state.fsSubscriptions.delete(workspaceId);
+			this.startFsWatch(socket, state, workspaceId);
+		}
 	}
 
 	/**
@@ -459,7 +479,7 @@ export class EventBus {
 			iterator = null;
 		};
 
-		state.fsSubscriptions.set(workspaceId, { workspaceId, dispose });
+		state.fsSubscriptions.set(workspaceId, { workspaceId, rootPath, dispose });
 
 		// Start streaming events to this client
 		void (async () => {

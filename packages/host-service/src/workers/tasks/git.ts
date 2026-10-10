@@ -3,8 +3,8 @@
 // host-service event loop. Credential env is resolved in-process (it needs
 // the credential provider) and crosses as plain data.
 
-import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { lstatSync, mkdirSync, symlinkSync } from "node:fs";
+import { dirname, relative } from "node:path";
 import {
 	getGitAuthorName,
 	type ResolvedGitInfo,
@@ -465,6 +465,33 @@ export const gitRenameBranchTask = defineWorkerTask<
 	},
 });
 
+export const gitMoveWorktreeTask = defineWorkerTask<
+	{ repoPath: string; from: string; to: string; gitEnv: GitTaskEnv },
+	void
+>({
+	type: "git/moveWorktree",
+	handler: async ({ repoPath, from, to, gitEnv }) => {
+		// git moves into an existing directory instead of failing.
+		if (lstatSync(to, { throwIfNoEntry: false })) {
+			throw new Error(`Worktree move target exists: ${to}`);
+		}
+		const git = createUserSimpleGit(repoPath).env(gitEnv);
+		mkdirSync(dirname(to), { recursive: true });
+		await git.raw(["worktree", "move", from, to]);
+		// Processes started in the old directory keep absolute paths to it.
+		try {
+			symlinkSync(
+				process.platform === "win32" ? to : relative(dirname(from), to),
+				from,
+				"junction",
+			);
+		} catch (error) {
+			await git.raw(["worktree", "move", to, from]);
+			throw error;
+		}
+	},
+});
+
 export const gitStagePathsTask = defineWorkerTask<
 	{
 		worktreePath: string;
@@ -740,6 +767,7 @@ export const gitTasks = [
 	gitDeleteBranchTask,
 	gitAutomaticBranchRenamableTask,
 	gitRenameBranchTask,
+	gitMoveWorktreeTask,
 	gitStagePathsTask,
 	gitCommitTask,
 	gitPushTask,

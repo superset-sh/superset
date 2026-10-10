@@ -23,6 +23,7 @@ import { resolveHostAgentConfig } from "../../../../terminal-agents/agent-config
 import type { HostServiceContext } from "../../../../types";
 import { updateLocalWorkspace } from "../../../../workspaces/local-workspace-store";
 import { listBranchNames } from "./list-branch-names";
+import { moveRenamedWorktree } from "./move-renamed-worktree";
 import { deduplicateBranchName } from "./sanitize-branch";
 
 const WORKSPACE_TITLE_MAX = 150;
@@ -516,8 +517,8 @@ export async function applyAiWorkspaceRename(
  *
  * `renameTitle` / `renameBranch` let callers preserve user-typed
  * values: skip replacing whichever side the user supplied directly.
- * The worktree directory keeps its creation-time name — renaming it
- * under running terminals/agents would break their recorded paths.
+ * A renamed branch also moves its worktree directory; see
+ * `moveRenamedWorktree`.
  */
 export async function applyGeneratedWorkspaceNames(
 	args: ApplyGeneratedNamesArgs & { names: GeneratedWorkspaceNames },
@@ -568,9 +569,18 @@ export async function applyGeneratedWorkspaceNames(
 		}
 	}
 
-	const patch: { name?: string; branch?: string } = {};
+	const patch: { name?: string; branch?: string; worktreePath?: string } = {};
 	if (titleChanged) patch.name = aiNames.title;
-	if (gitRenamed) patch.branch = deduped;
+	if (gitRenamed) {
+		patch.branch = deduped;
+		const movedPath = await moveRenamedWorktree(ctx, {
+			repoPath,
+			worktreePath,
+			oldBranch: oldBranchName,
+			newBranch: deduped,
+		});
+		if (movedPath) patch.worktreePath = movedPath;
+	}
 	if (patch.name === undefined && patch.branch === undefined) return null;
 
 	const updated = updateLocalWorkspace(
