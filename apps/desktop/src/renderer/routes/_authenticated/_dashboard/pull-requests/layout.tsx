@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "renderer/routes/_authenticated/_dashboard/components/PageHeader";
-import { resolveProjectFilterParams } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
+import { resolvePullRequestListFilters } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
 import { WindowChromeScope } from "renderer/routes/_authenticated/_dashboard/components/WindowChromeScope";
 import { parsePositiveIntegerParam } from "renderer/routes/_authenticated/_dashboard/utils/parsePositiveIntegerParam";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
@@ -78,10 +78,13 @@ function PullRequestsLayout() {
 	const setIsResizingList = usePullRequestsSplitViewStore(
 		(s) => s.setIsResizing,
 	);
-	// Stable identity: effects downstream key off this array.
+	// Stable identity: effects downstream key off this array. With a PR
+	// open, `project` names the detail pane's repo, not a list filter — see
+	// resolvePullRequestListFilters.
+	const prIsOpen = selectedPrNumber !== null;
 	const initialProjects = useMemo(
-		() => resolveProjectFilterParams(projects, project, undefined),
-		[projects, project],
+		() => resolvePullRequestListFilters({ projects, project, prIsOpen }),
+		[projects, project, prIsOpen],
 	);
 
 	const rootRef = useRef<HTMLDivElement>(null);
