@@ -50,21 +50,34 @@ const repoParentSchema = z.object({
 		.optional(),
 });
 
-// A repo's fork parent never changes, so a hit is kept for the process.
-const forkParentCache = new Map<string, GithubRepoRef | null>();
+type GithubClients = { execGh: ExecGh; github: () => Promise<Octokit> };
+
+// A repo's fork parent never changes, so a lookup is kept for the process.
+// The promise is cached so concurrent callers share one request.
+const forkParentCache = new Map<string, Promise<GithubRepoRef | null>>();
 
 /**
  * The repo `repo` was forked from, or null when it isn't a fork. Tries `gh`,
  * then Octokit; throws when neither can reach GitHub, and that isn't cached.
  */
-export async function getForkParent(
+export function getForkParent(
 	repo: GithubRepoRef,
-	clients: { execGh: ExecGh; github: () => Promise<Octokit> },
+	clients: GithubClients,
 ): Promise<GithubRepoRef | null> {
 	const cacheKey = `${repo.owner}/${repo.name}`.toLowerCase();
 	const cached = forkParentCache.get(cacheKey);
-	if (cached !== undefined) return cached;
+	if (cached) return cached;
 
+	const lookup = lookupForkParent(repo, clients);
+	forkParentCache.set(cacheKey, lookup);
+	lookup.catch(() => forkParentCache.delete(cacheKey));
+	return lookup;
+}
+
+async function lookupForkParent(
+	repo: GithubRepoRef,
+	clients: GithubClients,
+): Promise<GithubRepoRef | null> {
 	let parsed: z.infer<typeof repoParentSchema>;
 	try {
 		parsed = repoParentSchema.parse(
@@ -79,11 +92,9 @@ export async function getForkParent(
 		parsed = repoParentSchema.parse(data);
 	}
 
-	const parent = parsed.parent
+	return parsed.parent
 		? { owner: parsed.parent.owner.login, name: parsed.parent.name }
 		: null;
-	forkParentCache.set(cacheKey, parent);
-	return parent;
 }
 
 export function resetForkParentCacheForTests(): void {
