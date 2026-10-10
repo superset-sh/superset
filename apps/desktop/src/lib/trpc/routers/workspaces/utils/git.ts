@@ -1742,6 +1742,8 @@ export interface PullRequestInfo {
 	number: number;
 	title: string;
 	headRefName: string;
+	/** Branch the PR merges into — the workspace's compare base. */
+	baseRefName: string;
 	/** Head commit SHA — ground truth for whether a PR checkout completed. */
 	headRefOid?: string;
 	headRepository: {
@@ -1832,7 +1834,7 @@ export async function getPrInfo({
 				"--repo",
 				`${owner}/${repo}`,
 				"--json",
-				"number,title,headRefName,headRefOid,headRepository,headRepositoryOwner,isCrossRepository",
+				"number,title,headRefName,baseRefName,headRefOid,headRepository,headRepositoryOwner,isCrossRepository",
 			],
 			{ timeout: 30_000 },
 		);
