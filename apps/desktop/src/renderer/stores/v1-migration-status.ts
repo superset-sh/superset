@@ -13,6 +13,8 @@ interface V1MigrationStatusState {
 		status: V1MigrationStatus,
 		attentionItems?: V1AttentionItem[],
 	) => void;
+	/** No host-service, so no pass can be in progress for this org. */
+	clearRunning: (organizationId: string) => void;
 }
 
 export const useV1MigrationStatusStore = create<V1MigrationStatusState>()(
@@ -23,6 +25,12 @@ export const useV1MigrationStatusStore = create<V1MigrationStatusState>()(
 			attentionItems: [],
 			setStatus: (organizationId, status, attentionItems = []) =>
 				set({ organizationId, status, attentionItems }),
+			clearRunning: (organizationId) =>
+				set((state) =>
+					state.organizationId === organizationId && state.status === "running"
+						? { status: "idle", attentionItems: [] }
+						: state,
+				),
 		}),
 		{ name: "V1MigrationStatusStore" },
 	),

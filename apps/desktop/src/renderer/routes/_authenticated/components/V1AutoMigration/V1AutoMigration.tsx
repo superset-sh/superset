@@ -85,6 +85,7 @@ export function V1AutoMigration() {
 	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 	const agentsQuery = useV2AgentConfigs(activeHostUrl);
 	const setMigrationStatus = useV1MigrationStatusStore((s) => s.setStatus);
+	const clearRunningStatus = useV1MigrationStatusStore((s) => s.clearRunning);
 	// Rollout pacing: percentage ramp + high-profile org exclusions. Only
 	// gates NEW migrations (v1 surface) — post-flip catch-up must always run.
 	// undefined (flags not loaded / offline) counts as off: stay on v1.
@@ -113,6 +114,10 @@ export function V1AutoMigration() {
 			retryTimerRef.current = null;
 		};
 	}, [organizationId]);
+
+	useEffect(() => {
+		if (organizationId && !activeHostUrl) clearRunningStatus(organizationId);
+	}, [organizationId, activeHostUrl, clearRunningStatus]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: retryTick re-runs the pass after a scheduled retry
 	useEffect(() => {
