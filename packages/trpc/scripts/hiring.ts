@@ -63,10 +63,26 @@ async function call<T>(
 	} | null;
 	if (!response.ok || !body?.result) {
 		throw new Error(
-			`hiring.${path} failed (${response.status}): ${body?.error?.json?.message ?? response.statusText}`,
+			`hiring.${path} failed (${response.status}): ${readableError(body?.error?.json?.message) ?? response.statusText}`,
 		);
 	}
 	return superjson.deserialize<T>(body.result.data);
+}
+
+/** Validation errors arrive as a JSON list of zod issues. */
+function readableError(message: string | undefined): string | undefined {
+	if (!message?.startsWith("[")) return message;
+	try {
+		const issues = JSON.parse(message) as {
+			path?: string[];
+			message?: string;
+		}[];
+		return issues
+			.map((i) => `${i.path?.join(".") ?? ""}: ${i.message}`)
+			.join("; ");
+	} catch {
+		return message;
+	}
 }
 
 async function resolveCandidate(query: string): Promise<ApplicationRow> {

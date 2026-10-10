@@ -1,5 +1,5 @@
 import { auth } from "@superset/auth/server";
-import { COMPANY } from "@superset/shared/constants";
+import { hasAdminAccess } from "@superset/trpc/lib/admin-access";
 import { Separator } from "@superset/ui/separator";
 import {
 	SidebarInset,
@@ -25,7 +25,7 @@ export default async function DashboardLayout({
 		redirect(env.NEXT_PUBLIC_WEB_URL);
 	}
 
-	if (!session.user.email?.endsWith(COMPANY.EMAIL_DOMAIN)) {
+	if (!hasAdminAccess(session.user)) {
 		redirect(env.NEXT_PUBLIC_WEB_URL);
 	}
 

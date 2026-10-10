@@ -24,6 +24,10 @@
 			"types": "./src/lib/connectors/index.ts",
 			"default": "./src/lib/connectors/index.ts"
 		},
+		"./lib/admin-access": {
+			"types": "./src/lib/admin-access/index.ts",
+			"default": "./src/lib/admin-access/index.ts"
+		},
 		"./lib/sandbox": {
 			"types": "./src/lib/sandbox/index.ts",
 			"default": "./src/lib/sandbox/index.ts"
