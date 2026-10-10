@@ -8,5 +8,9 @@ export function githubHandle(value: string): string | null {
 	return handle ? handle.toLowerCase() : null;
 }
 
-/** Postgres twin of `githubHandle`, for comparing stored URLs. */
-export const GITHUB_HANDLE_SQL_PATTERN = "github\\.com/([^/?#[:space:]]+)";
+/**
+ * Postgres twin of `githubHandle`: reduces a stored profile URL to its handle
+ * and leaves anything else (a bare handle, another site) as it is.
+ */
+export const GITHUB_PROFILE_SQL_PATTERN =
+	"^(https?://)?(www\\.)?github\\.com/([^/?#[:space:]]+).*$";

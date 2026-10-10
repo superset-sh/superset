@@ -171,12 +171,18 @@ async function main() {
 	const fileEmails = rows.flatMap((row) =>
 		row.email?.trim() ? [row.email.trim().toLowerCase()] : [],
 	);
-	const existing = await db
+	const existingRows = await db
 		.select({
+			id: hiringCandidates.id,
 			email: hiringCandidates.email,
 			notionPageId: hiringCandidates.notionPageId,
+			applicationId: hiringApplications.id,
 		})
 		.from(hiringCandidates)
+		.leftJoin(
+			hiringApplications,
+			eq(hiringApplications.candidateId, hiringCandidates.id),
+		)
 		.where(
 			or(
 				fileEmails.length
@@ -188,8 +194,32 @@ async function main() {
 				),
 			),
 		);
-	const importedPageIds = new Set(existing.map((c) => c.notionPageId));
-	const takenEmails = new Set(existing.map((c) => c.email));
+	const existing = [
+		...new Map(
+			existingRows.map((row) => [
+				row.id,
+				{
+					...row,
+					hasApplication: existingRows.some(
+						(other) => other.id === row.id && other.applicationId,
+					),
+				},
+			]),
+		).values(),
+	];
+	const importedPageIds = new Set(
+		existing.filter((c) => c.hasApplication).map((c) => c.notionPageId),
+	);
+	// Written by an earlier, non-transactional import that stopped before the application.
+	const unfinished = new Map(
+		existing
+			.filter((c) => !c.hasApplication && c.notionPageId)
+			.map((c) => [c.notionPageId, c]),
+	);
+	const takenEmails = new Set(
+		existing.filter((c) => c.hasApplication).map((c) => c.email),
+	);
+	const seenPageIds = new Set<string>();
 
 	const seenEmails = new Set<string>();
 	const tally = new Map<string, number>();
@@ -199,6 +229,7 @@ async function main() {
 		row: NotionRow;
 		candidate: InsertHiringCandidate;
 		roleTitle: string;
+		existingCandidateId: string | null;
 		application: Omit<InsertHiringApplication, "candidateId" | "roleId">;
 	}[] = [];
 	let alreadyImported = 0;
@@ -214,8 +245,18 @@ async function main() {
 			alreadyImported += 1;
 			continue;
 		}
+		if (seenPageIds.has(pageId)) {
+			skipped.push(`${name}: Notion page appears twice in the export`);
+			continue;
+		}
+		seenPageIds.add(pageId);
+		const unfinishedCandidate = unfinished.get(pageId);
 		const email = row.email?.trim().toLowerCase() || null;
-		if (email && (seenEmails.has(email) || takenEmails.has(email))) {
+		const emailTakenByOther =
+			email !== null &&
+			takenEmails.has(email) &&
+			unfinishedCandidate?.email !== email;
+		if (email && (seenEmails.has(email) || emailTakenByOther)) {
 			skipped.push(`${name}: email ${email} is already in the pipeline`);
 			continue;
 		}
@@ -234,6 +275,7 @@ async function main() {
 		planned.push({
 			row,
 			roleTitle,
+			existingCandidateId: unfinishedCandidate?.id ?? null,
 			candidate: {
 				name,
 				email,
@@ -281,15 +323,20 @@ async function main() {
 				roleIds.set(title, role.id);
 			}
 			for (const item of planned) {
-				const [candidate] = await tx
-					.insert(hiringCandidates)
-					.values(item.candidate)
-					.returning({ id: hiringCandidates.id });
-				if (!candidate)
+				const candidateId =
+					item.existingCandidateId ??
+					(
+						await tx
+							.insert(hiringCandidates)
+							.values(item.candidate)
+							.returning({ id: hiringCandidates.id })
+					)[0]?.id;
+				if (!candidateId) {
 					throw new Error(`Candidate ${item.candidate.name} not written`);
+				}
 				await tx.insert(hiringApplications).values({
 					...item.application,
-					candidateId: candidate.id,
+					candidateId,
 					roleId: roleIds.get(item.roleTitle) as string,
 				});
 			}
@@ -297,7 +344,7 @@ async function main() {
 	}
 
 	console.log(
-		`${apply ? "Imported" : "Would import"} ${planned.length} of ${rows.length} rows (${alreadyImported} already imported, left as they are)`,
+		`${apply ? "Imported" : "Would import"} ${planned.length} of ${rows.length} rows (${alreadyImported} already imported, left as they are; ${planned.filter((p) => p.existingCandidateId).length} unfinished ones completed)`,
 	);
 	for (const [key, count] of [...tally].sort())
 		console.log(`  ${count}\t${key}`);

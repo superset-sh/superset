@@ -28,7 +28,7 @@ import { z } from "zod";
 
 import { adminProcedure } from "../../trpc";
 import { isUniqueViolation } from "../utils/unique-violation";
-import { GITHUB_HANDLE_SQL_PATTERN, githubHandle } from "./github-handle";
+import { GITHUB_PROFILE_SQL_PATTERN, githubHandle } from "./github-handle";
 import {
 	addEventSchema,
 	createCandidateSchema,
@@ -87,7 +87,7 @@ async function findDuplicateCandidates(input: {
 	const handle = input.githubUrl ? githubHandle(input.githubUrl) : null;
 	if (handle) {
 		matches.push(
-			sql`substring(lower(${hiringCandidates.githubUrl}) from ${GITHUB_HANDLE_SQL_PATTERN}) = ${handle}`,
+			sql`lower(regexp_replace(trim(${hiringCandidates.githubUrl}), ${GITHUB_PROFILE_SQL_PATTERN}, ${"\\3"}, ${"i"})) = ${handle}`,
 		);
 	}
 	if (matches.length === 0) return [];
