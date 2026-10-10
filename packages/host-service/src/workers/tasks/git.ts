@@ -546,20 +546,35 @@ export const gitPushTask = defineWorkerTask<
 		const configuredRemote = (
 			await git.raw(["config", `branch.${branch}.remote`]).catch(() => "")
 		).trim();
-		const hasRemoteUpstream =
-			upstreamRef != null && !!configuredRemote && configuredRemote !== ".";
-		const upstreamBranch = !hasRemoteUpstream
-			? null
-			: upstreamRef.startsWith(`${configuredRemote}/`)
-				? upstreamRef.slice(configuredRemote.length + 1)
-				: upstreamRef.split("/").slice(1).join("/");
+		const remotes = await git.getRemotes(false).catch(() => []);
+		// `gh pr checkout` records a fork it has no remote for as a bare URL.
+		// Git keeps no remote-tracking ref for a URL, so @{upstream} fails
+		// even though `branch.<name>.merge` still names the fork's branch.
+		const tracksUrl =
+			upstreamRef == null &&
+			!!configuredRemote &&
+			configuredRemote !== "." &&
+			!remotes.some((r) => r.name === configuredRemote);
+		const mergeRef = tracksUrl
+			? (
+					await git.raw(["config", `branch.${branch}.merge`]).catch(() => "")
+				).trim()
+			: "";
+		const upstreamBranch =
+			upstreamRef != null && !!configuredRemote && configuredRemote !== "."
+				? upstreamRef.startsWith(`${configuredRemote}/`)
+					? upstreamRef.slice(configuredRemote.length + 1)
+					: upstreamRef.split("/").slice(1).join("/")
+				: mergeRef.startsWith("refs/heads/")
+					? mergeRef.slice("refs/heads/".length)
+					: null;
+		const hasRemoteUpstream = upstreamBranch != null;
 
 		if (hasRemoteUpstream && upstreamBranch === branch) {
 			await git.raw(["push"]);
 			return { ok: true };
 		}
 
-		const remotes = await git.getRemotes(false).catch(() => []);
 		const fallbackRemote =
 			remotes.find((r) => r.name === "origin")?.name ?? remotes[0]?.name;
 		const remote = hasRemoteUpstream ? configuredRemote : fallbackRemote;

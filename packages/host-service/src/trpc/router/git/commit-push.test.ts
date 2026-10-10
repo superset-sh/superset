@@ -218,6 +218,65 @@ describe("gitRouter.push", () => {
 		expect(upstream).toBe("origin/feature-x");
 	});
 
+	describe("fork tracked by URL, as `gh pr checkout` leaves it", () => {
+		let fork: string;
+		let forkUrl: string;
+
+		beforeEach(async () => {
+			fork = join(root, "fork.git");
+			forkUrl = `file://${fork}`;
+			await simpleGit(root).raw(["init", "--bare", fork]);
+			await git.push(["-u", "origin", "main"]);
+			await git.push([forkUrl, "main:refs/heads/feature-x"]);
+		});
+
+		async function checkoutTrackingFork(localBranch: string) {
+			await git.checkoutBranch(localBranch, "main");
+			await git.raw(["config", `branch.${localBranch}.remote`, forkUrl]);
+			await git.raw([
+				"config",
+				`branch.${localBranch}.merge`,
+				"refs/heads/feature-x",
+			]);
+			await writeFile(join(repo, "review.txt"), "review fix\n");
+			await git.add(["review.txt"]);
+			await git.commit("review fix");
+		}
+
+		async function expectPushedToForkOnly(localBranch: string) {
+			const forkSubject = await simpleGit(fork).raw([
+				"log",
+				"-1",
+				"--pretty=%s",
+				"feature-x",
+			]);
+			expect(forkSubject.trim()).toBe("review fix");
+			const originBranches = await simpleGit(remote).raw([
+				"for-each-ref",
+				"--format=%(refname:short)",
+				"refs/heads",
+			]);
+			expect(originBranches.trim()).toBe("main");
+			const trackedRemote = await git.raw([
+				"config",
+				`branch.${localBranch}.remote`,
+			]);
+			expect(trackedRemote.trim()).toBe(forkUrl);
+		}
+
+		test("pushes a same-name branch to the fork", async () => {
+			await checkoutTrackingFork("feature-x");
+			await createCaller(repo).push({ workspaceId: "ws" });
+			await expectPushedToForkOnly("feature-x");
+		});
+
+		test("pushes a renamed branch to the linked PR head on the fork", async () => {
+			await checkoutTrackingFork("alice/feature-x");
+			await createCaller(repo, "feature-x").push({ workspaceId: "ws" });
+			await expectPushedToForkOnly("alice/feature-x");
+		});
+	});
+
 	test("throws BAD_REQUEST on a detached HEAD", async () => {
 		const head = (await git.revparse(["HEAD"])).trim();
 		await git.raw(["checkout", "--detach", head]);
