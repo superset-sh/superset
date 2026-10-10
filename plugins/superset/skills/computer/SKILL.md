@@ -163,8 +163,9 @@ ends.
 
 When the screenshots are the point, a verification run someone else has to
 read, publish them instead of leaving a list of paths on their disk. Collect
-them in a directory beside an `index.html` that lays them out, and publish the
-directory so the images ride along at their relative paths:
+them in a directory beside an `index.html` built from the page skill's
+verification template, and publish the directory so the images ride along at
+their relative paths:
 
 ```bash
 superset pages publish ./evidence/ --workspace <id> --title "Export dialog: verified"

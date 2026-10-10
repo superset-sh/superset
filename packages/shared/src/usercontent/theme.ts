@@ -1,6 +1,8 @@
+import { PAGE_KIT_CSS } from "./kit";
+
 const LIGHT_TOKENS = `color-scheme: light;
 	--sp-bg: oklch(1 0 0);
-	--sp-surface: oklch(0.97 0 0);
+	--sp-surface: oklch(0.982 0 0);
 	--sp-text: oklch(0.145 0 0);
 	--sp-muted: oklch(0.556 0 0);
 	--sp-border: oklch(0.922 0 0);
@@ -10,11 +12,15 @@ const LIGHT_TOKENS = `color-scheme: light;
 	--sp-chart-2: oklch(0.6 0.118 184.704);
 	--sp-chart-3: oklch(0.398 0.07 227.392);
 	--sp-chart-4: oklch(0.828 0.189 84.429);
-	--sp-chart-5: oklch(0.769 0.188 70.08);`;
+	--sp-chart-5: oklch(0.769 0.188 70.08);
+	--sp-ok: oklch(0.53 0.13 152);
+	--sp-warn: oklch(0.58 0.13 68);
+	--sp-bad: oklch(0.56 0.2 27);
+	--sp-info: oklch(0.53 0.15 252);`;
 
 const DARK_TOKENS = `color-scheme: dark;
 	--sp-bg: oklch(0.178 0 0);
-	--sp-surface: oklch(0.205 0 0);
+	--sp-surface: oklch(0.21 0 0);
 	--sp-text: oklch(0.985 0 0);
 	--sp-muted: oklch(0.708 0 0);
 	--sp-border: oklch(1 0 0 / 12%);
@@ -24,13 +30,18 @@ const DARK_TOKENS = `color-scheme: dark;
 	--sp-chart-2: oklch(0.696 0.17 162.48);
 	--sp-chart-3: oklch(0.769 0.188 70.08);
 	--sp-chart-4: oklch(0.627 0.265 303.9);
-	--sp-chart-5: oklch(0.645 0.246 16.439);`;
+	--sp-chart-5: oklch(0.645 0.246 16.439);
+	--sp-ok: oklch(0.72 0.16 155);
+	--sp-warn: oklch(0.82 0.15 84);
+	--sp-bad: oklch(0.704 0.191 22.2);
+	--sp-info: oklch(0.72 0.13 245);`;
 
 export const PAGE_THEME_CSS = `:where(:root),
 :where(:root:has(> body.light)) {
 	${LIGHT_TOKENS}
 	--sp-code-bg: color-mix(in srgb, currentColor 8%, transparent);
-	--sp-radius: 0.625rem;
+	--sp-radius: 0.5rem;
+	--sp-space: 1.5rem;
 	--sp-measure: 72ch;
 	--sp-font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
 		"Helvetica Neue", Arial, sans-serif;
@@ -70,17 +81,18 @@ export const PAGE_THEME_CSS = `:where(:root),
 	margin: 2em 0 0.6em;
 	line-height: 1.25;
 	font-weight: 650;
-	letter-spacing: -0.011em;
+	letter-spacing: -0.012em;
 	text-wrap: balance;
 }
 
 :where(h1) {
 	margin-top: 0;
 	font-size: 2rem;
-	letter-spacing: -0.02em;
+	letter-spacing: -0.025em;
 }
 :where(h2) {
 	font-size: 1.5rem;
+	letter-spacing: -0.018em;
 }
 :where(h3) {
 	font-size: 1.175rem;
@@ -175,11 +187,9 @@ export const PAGE_THEME_CSS = `:where(:root),
 }
 
 :where(th) {
-	font-weight: 600;
+	font-weight: 500;
 	color: var(--sp-muted);
-	font-size: 0.85em;
-	letter-spacing: 0.02em;
-	text-transform: uppercase;
+	font-size: 0.875em;
 }
 
 :where(tbody tr:last-child td) {
@@ -225,4 +235,4 @@ export const PAGE_THEME_CSS = `:where(:root),
 :where(::selection) {
 	background: color-mix(in srgb, var(--sp-accent) 30%, transparent);
 }
-`;
+${PAGE_KIT_CSS}`;
