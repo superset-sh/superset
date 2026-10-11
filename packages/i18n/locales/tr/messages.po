@@ -7541,9 +7541,6 @@ msgstr "Yazı tipi kalınlığı"
 msgid "For a project, open the importer to link it."
 msgstr "Bir proje için bağlamak üzere içe aktarıcıyı açın."
 
-msgid "For a worktree, check out a branch in its folder and it comes over on the next launch. If you moved it, right-click its project and choose Import untracked worktrees."
-msgstr "Bir worktree için klasöründe bir branch'e geçin; bir sonraki açılışta aktarılır. Taşıdıysanız, projesine sağ tıklayıp İzlenmeyen worktree'leri içe aktar'ı seçin."
-
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "Hata bildirimleri ve özellik istekleri için en hızlı yol <0>github.com/superset-sh/superset</0> adresinde bir GitHub issue açmaktır. Topluluğumuz <1>Discord</1> üzerinde; güncellemeleri <2>X (@superset_sh)</2> ve <3>LinkedIn</3> üzerinden paylaşıyoruz."
 
@@ -8379,6 +8376,9 @@ msgstr "Dosyadan içe aktar"
 
 msgid "Import from v1"
 msgstr "v1'den içe aktar"
+
+msgid "Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change. If you moved it, right-click its project and choose Import untracked worktrees."
+msgstr "İçe aktar, worktree'yi mevcut commit'inde yeni bir dala alır, böylece taşınabilir. Dosyalarınız değişmez. Taşıdıysanız, projesine sağ tıklayıp İzlenmeyen worktree'leri içe aktar'ı seçin."
 
 msgid "Import settings from another browser"
 msgstr "Ayarları başka bir tarayıcıdan içe aktar"

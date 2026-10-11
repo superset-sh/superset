@@ -7541,9 +7541,6 @@ msgstr "Ketebalan font"
 msgid "For a project, open the importer to link it."
 msgstr "Untuk proyek, buka importer untuk menautkannya."
 
-msgid "For a worktree, check out a branch in its folder and it comes over on the next launch. If you moved it, right-click its project and choose Import untracked worktrees."
-msgstr "Untuk worktree, checkout sebuah branch di foldernya dan worktree itu akan muncul di Superset saat aplikasi dibuka berikutnya. Jika Anda memindahkannya, klik kanan proyeknya dan pilih Impor worktree yang tidak dilacak."
-
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "Untuk laporan bug dan permintaan fitur, jalur tercepat adalah issue GitHub di <0>github.com/superset-sh/superset</0>. Komunitas kami ada di <1>Discord</1>, dan kami memposting pembaruan di <2>X (@superset_sh)</2> dan <3>LinkedIn</3>."
 
@@ -8379,6 +8376,9 @@ msgstr "Impor dari file"
 
 msgid "Import from v1"
 msgstr "Impor dari v1"
+
+msgid "Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change. If you moved it, right-click its project and choose Import untracked worktrees."
+msgstr "Impor menempatkan worktree pada branch baru di commit saat ini agar dapat dipindahkan. File Anda tidak berubah. Jika Anda memindahkannya, klik kanan proyeknya dan pilih Impor worktree yang belum terlacak."
 
 msgid "Import settings from another browser"
 msgstr "Impor pengaturan dari browser lain"

@@ -19,7 +19,13 @@ const row = (over: Partial<V1LedgerRow>): V1LedgerRow => ({
 const v1 = {
 	v1Projects: [{ id: "p1", name: "alpha", mainRepoPath: "/repo/alpha" }],
 	v1Workspaces: [
-		{ id: "w1", projectId: "p1", name: "beta wip", worktreeId: "t1" },
+		{
+			id: "w1",
+			projectId: "p1",
+			name: "beta wip",
+			branch: "beta",
+			worktreeId: "t1",
+		},
 	],
 	v1Worktrees: [{ id: "t1", path: "/wt/beta" }],
 };
@@ -39,7 +45,13 @@ describe("listV1AttentionItems", () => {
 		});
 		expect(items).toEqual([
 			{ kind: "project", v1Id: "p1", name: "alpha", path: "/repo/alpha" },
-			{ kind: "worktree", v1Id: "w1", name: "beta wip", path: "/wt/beta" },
+			{
+				kind: "worktree",
+				v1Id: "w1",
+				name: "beta wip",
+				path: "/wt/beta",
+				branch: "beta",
+			},
 		]);
 	});
 
@@ -66,7 +78,13 @@ describe("listV1AttentionItems", () => {
 
 	test("signature does not depend on order", () => {
 		const a = { kind: "project", v1Id: "p1", name: "", path: "" } as const;
-		const b = { kind: "worktree", v1Id: "w1", name: "", path: "" } as const;
+		const b = {
+			kind: "worktree",
+			v1Id: "w1",
+			name: "",
+			path: "",
+			branch: "",
+		} as const;
 		expect(attentionSignature([a, b])).toBe(attentionSignature([b, a]));
 	});
 });

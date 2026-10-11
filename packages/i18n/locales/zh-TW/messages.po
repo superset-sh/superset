@@ -7541,9 +7541,6 @@ msgstr "字重"
 msgid "For a project, open the importer to link it."
 msgstr "對於專案，請開啟匯入工具進行連結。"
 
-msgid "For a worktree, check out a branch in its folder and it comes over on the next launch. If you moved it, right-click its project and choose Import untracked worktrees."
-msgstr "對於工作樹，請在其資料夾中簽出一個分支，下次啟動時會移轉過來。如果你移動過它，請在其專案上按右鍵並選擇「匯入未追蹤的工作樹」。"
-
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "報告bug和提需求，最快的方式是在<0>github.com/superset-sh/superset</0>提一個GitHub議題。我們的社群在<1>Discord</1>，更新會發布在<2>X（@superset_sh）</2>和<3>LinkedIn</3>。"
 
@@ -8379,6 +8376,9 @@ msgstr "從檔案匯入"
 
 msgid "Import from v1"
 msgstr "從v1匯入"
+
+msgid "Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change. If you moved it, right-click its project and choose Import untracked worktrees."
+msgstr "匯入會在目前的提交上為工作樹建立新分支，使其可以移轉。你的檔案不會改變。如果你移動過它，請在其專案上按右鍵並選擇「匯入未追蹤的worktree」。"
 
 msgid "Import settings from another browser"
 msgstr "從其他瀏覽器匯入設定"

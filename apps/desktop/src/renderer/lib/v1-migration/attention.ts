@@ -13,7 +13,13 @@ const ATTENTION_REASONS = new Set([
 
 export type V1AttentionItem =
 	| { kind: "project"; v1Id: string; name: string; path: string }
-	| { kind: "worktree"; v1Id: string; name: string; path: string };
+	| {
+			kind: "worktree";
+			v1Id: string;
+			name: string;
+			path: string;
+			branch: string;
+	  };
 
 export function needsAttention(row: V1LedgerRow): boolean {
 	return (
@@ -32,7 +38,12 @@ export function listV1AttentionItems({
 }: {
 	ledgerRows: V1LedgerRow[];
 	v1Projects: Array<{ id: string; name: string; mainRepoPath: string }>;
-	v1Workspaces: Array<{ id: string; name: string; worktreeId: string | null }>;
+	v1Workspaces: Array<{
+		id: string;
+		name: string;
+		branch: string;
+		worktreeId: string | null;
+	}>;
 	v1Worktrees: Array<{ id: string; path: string }>;
 }): V1AttentionItem[] {
 	const projectsById = new Map(v1Projects.map((p) => [p.id, p]));
@@ -63,6 +74,7 @@ export function listV1AttentionItems({
 				v1Id: workspace.id,
 				name: workspace.name,
 				path: worktree.path,
+				branch: workspace.branch,
 			});
 		}
 	}

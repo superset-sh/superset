@@ -115,6 +115,13 @@ export function V1AutoMigration() {
 		};
 	}, [organizationId]);
 
+	const passRequests = useV1MigrationStatusStore((s) => s.passRequests);
+	useEffect(() => {
+		if (passRequests === 0 || !organizationId) return;
+		startedOrgsRef.current.delete(organizationId);
+		setRetryTick((tick) => tick + 1);
+	}, [passRequests, organizationId]);
+
 	useEffect(() => {
 		if (organizationId && !activeHostUrl) clearRunningStatus(organizationId);
 	}, [organizationId, activeHostUrl, clearRunningStatus]);

@@ -8,6 +8,7 @@ import {
 	workspaces,
 	worktrees,
 } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
 import { SUPERSET_HOME_DIR } from "main/lib/app-environment";
@@ -17,6 +18,8 @@ import { stopV1Sessions } from "main/lib/terminal/stop-v1-sessions";
 import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
+import { branchDetachedWorktree } from "./utils/branch-detached-worktree";
 import { createRunLock } from "./utils/run-lock";
 import { collectV1TerminalPanes } from "./utils/v1-terminal-panes";
 
@@ -119,6 +122,24 @@ export const createMigrationRouter = () => {
 						const session = sessions[paneId];
 						return session ? [[paneId, session] as const] : [];
 					}),
+				);
+			}),
+
+		branchV1Worktree: publicProcedure
+			.input(z.object({ path: z.string().min(1), branch: z.string() }))
+			.mutation(async ({ input }) => {
+				let path: string;
+				try {
+					path = realpathSync.native(input.path);
+				} catch {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Folder not found: ${input.path}`,
+					});
+				}
+				return branchDetachedWorktree(
+					await getSimpleGitWithShellPath(path),
+					input.branch,
 				);
 			}),
 

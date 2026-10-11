@@ -7541,9 +7541,6 @@ msgstr "Tloušťka písma"
 msgid "For a project, open the importer to link it."
 msgstr "U projektu otevřete importér a propojte ho."
 
-msgid "For a worktree, check out a branch in its folder and it comes over on the next launch. If you moved it, right-click its project and choose Import untracked worktrees."
-msgstr "U worktree si ve složce přepněte na větev a přenese se při příštím spuštění. Pokud jste ho přesunuli, klikněte pravým tlačítkem na jeho projekt a zvolte Importovat nesledované worktree."
-
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "Pro hlášení chyb a náměty na funkce je nejrychlejší cestou GitHub issue na <0>github.com/superset-sh/superset</0>. Naše komunita žije na <1>Discordu</1> a novinky zveřejňujeme na <2>X (@superset_sh)</2> a <3>LinkedInu</3>."
 
@@ -8379,6 +8376,9 @@ msgstr "Importovat ze souboru"
 
 msgid "Import from v1"
 msgstr "Import z v1"
+
+msgid "Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change. If you moved it, right-click its project and choose Import untracked worktrees."
+msgstr "Import přepne worktree na novou větev na jeho aktuálním commitu, aby mohl být přenesen. Vaše soubory se nezmění. Pokud jste ho přesunuli, klikněte pravým tlačítkem na jeho projekt a zvolte Importovat nesledované worktree."
 
 msgid "Import settings from another browser"
 msgstr "Importovat nastavení z jiného prohlížeče"

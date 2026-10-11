@@ -7541,9 +7541,6 @@ msgstr "フォントウェイト"
 msgid "For a project, open the importer to link it."
 msgstr "プロジェクトの場合は、インポーターを開いてリンクしてください。"
 
-msgid "For a worktree, check out a branch in its folder and it comes over on the next launch. If you moved it, right-click its project and choose Import untracked worktrees."
-msgstr "ワークツリーの場合は、そのフォルダでブランチをチェックアウトすると次回の起動時に移行されます。移動した場合は、プロジェクトを右クリックして「追跡されていないワークツリーをインポート」を選んでください。"
-
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "バグ報告や機能リクエストは、<0>github.com/superset-sh/superset</0>にGitHub issueを立てるのが最短です。コミュニティは<1>Discord</1>にあり、アップデートは<2>X(@superset_sh)</2>と<3>LinkedIn</3>で発信しています。"
 
@@ -8379,6 +8376,9 @@ msgstr "ファイルからインポート"
 
 msgid "Import from v1"
 msgstr "v1からインポート"
+
+msgid "Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change. If you moved it, right-click its project and choose Import untracked worktrees."
+msgstr "インポートすると、ワークツリーを現在のコミットで新しいブランチに切り替え、移行できるようにします。ファイルは変更されません。移動した場合は、プロジェクトを右クリックして「未追跡のワークツリーをインポート」を選択してください。"
 
 msgid "Import settings from another browser"
 msgstr "別のブラウザから設定をインポート"

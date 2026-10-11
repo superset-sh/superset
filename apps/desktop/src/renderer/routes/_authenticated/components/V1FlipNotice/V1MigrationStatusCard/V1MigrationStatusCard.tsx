@@ -2,7 +2,11 @@ import { msg } from "@lingui/core/macro";
 import { useLingui as useTranslation } from "@lingui/react";
 import { useEffect } from "react";
 import { track } from "renderer/lib/analytics";
-import { attentionSignature } from "renderer/lib/v1-migration/attention";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
+import {
+	attentionSignature,
+	type V1AttentionItem,
+} from "renderer/lib/v1-migration/attention";
 import { dismissV1Attention } from "renderer/lib/v1-migration/completion";
 import { useOpenV1ImportModal } from "renderer/stores/v1-import-modal";
 import {
@@ -10,11 +14,22 @@ import {
 	useV1MigrationStatusStore,
 } from "renderer/stores/v1-migration-status";
 import { FlipNoticeCard } from "../components/FlipNoticeCard";
+import { AttentionItemRow } from "./components/AttentionItemRow";
+
+type WorktreeAttentionItem = Extract<V1AttentionItem, { kind: "worktree" }>;
+
+const branchV1Worktree = (item: WorktreeAttentionItem) =>
+	electronTrpcClient.migration.branchV1Worktree.mutate({
+		path: item.path,
+		branch: item.branch,
+	});
 
 export function V1MigrationStatusCard({
 	organizationId,
+	branchWorktree = branchV1Worktree,
 }: {
 	organizationId: string;
+	branchWorktree?: (item: WorktreeAttentionItem) => Promise<unknown>;
 }) {
 	const { _: translate } = useTranslation();
 	const status = useV1MigrationStatusStore((state) => state.status);
@@ -25,6 +40,7 @@ export function V1MigrationStatusCard({
 		isStatusCardVisible(state, organizationId),
 	);
 	const dismissCard = useV1MigrationStatusStore((state) => state.dismiss);
+	const requestPass = useV1MigrationStatusStore((state) => state.requestPass);
 	const openV1ImportModal = useOpenV1ImportModal();
 
 	useEffect(() => {
@@ -49,6 +65,15 @@ export function V1MigrationStatusCard({
 		track("v1_migration_status_importer_opened", { status });
 		dismissCard(organizationId);
 		openV1ImportModal();
+	};
+	const importItem = async (item: V1AttentionItem) => {
+		track("v1_migration_attention_import_clicked", { kind: item.kind });
+		if (item.kind === "project") {
+			openImporter();
+			return;
+		}
+		await branchWorktree(item);
+		requestPass();
 	};
 
 	if (status === "running") {
@@ -101,7 +126,7 @@ export function V1MigrationStatusCard({
 					? translate(
 							msg({
 								message:
-									"For a worktree, check out a branch in its folder and it comes over on the next launch. If you moved it, right-click its project and choose Import untracked worktrees.",
+									"Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change. If you moved it, right-click its project and choose Import untracked worktrees.",
 							}),
 						)
 					: null,
@@ -125,12 +150,11 @@ export function V1MigrationStatusCard({
 		>
 			<ul className="max-h-48 space-y-1.5 overflow-y-auto">
 				{attentionItems.map((item) => (
-					<li key={`${item.kind}:${item.v1Id}`} className="min-w-0">
-						<p className="truncate text-sm">{item.name}</p>
-						<p className="truncate font-mono text-muted-foreground text-xs">
-							{item.path}
-						</p>
-					</li>
+					<AttentionItemRow
+						key={`${item.kind}:${item.v1Id}`}
+						item={item}
+						onImport={importItem}
+					/>
 				))}
 			</ul>
 		</FlipNoticeCard>

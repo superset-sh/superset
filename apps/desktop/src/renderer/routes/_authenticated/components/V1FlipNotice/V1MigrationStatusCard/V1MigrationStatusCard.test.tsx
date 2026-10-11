@@ -14,6 +14,7 @@ beforeEach(() => {
 		status: "idle",
 		attentionItems: [],
 		dismissed: null,
+		passRequests: 0,
 	});
 });
 afterEach(cleanup);
@@ -22,15 +23,27 @@ function renderWith(
 	organizationId: string,
 	status: V1MigrationStatus,
 	attentionItems: V1AttentionItem[] = [],
+	branchWorktree: (item: V1AttentionItem) => Promise<unknown> = async () => {},
 ) {
 	useV1MigrationStatusStore
 		.getState()
 		.setStatus(organizationId, status, attentionItems);
-	return render(<V1MigrationStatusCard organizationId="org-active" />);
+	return render(
+		<V1MigrationStatusCard
+			organizationId="org-active"
+			branchWorktree={branchWorktree}
+		/>,
+	);
 }
 
 function worktree(id: string): V1AttentionItem {
-	return { kind: "worktree", v1Id: id, name: id, path: `/repos/${id}` };
+	return {
+		kind: "worktree",
+		v1Id: id,
+		name: id,
+		path: `/repos/${id}`,
+		branch: id,
+	};
 }
 
 describe("V1MigrationStatusCard", () => {
@@ -75,5 +88,33 @@ describe("V1MigrationStatusCard", () => {
 				]);
 		});
 		expect(view.container.textContent).toContain("/repos/wt-2");
+	});
+
+	test("Import branches the worktree and runs the migration again", async () => {
+		const branched: string[] = [];
+		const view = renderWith(
+			"org-active",
+			"attention",
+			[worktree("wt-1")],
+			async (item) => {
+				branched.push(item.path);
+			},
+		);
+		await act(async () => {
+			fireEvent.click(view.getByText("Import"));
+		});
+		expect(branched).toEqual(["/repos/wt-1"]);
+		expect(useV1MigrationStatusStore.getState().passRequests).toBe(1);
+	});
+
+	test("a failed import shows why and does not rerun", async () => {
+		const view = renderWith("org-active", "attention", [worktree("wt-1")], () =>
+			Promise.reject(new Error("Folder not found: /repos/wt-1")),
+		);
+		await act(async () => {
+			fireEvent.click(view.getByText("Import"));
+		});
+		expect(view.container.textContent).toContain("Folder not found");
+		expect(useV1MigrationStatusStore.getState().passRequests).toBe(0);
 	});
 });

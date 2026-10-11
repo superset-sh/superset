@@ -7541,9 +7541,6 @@ msgstr "글꼴 두께"
 msgid "For a project, open the importer to link it."
 msgstr "프로젝트는 가져오기 도구를 열어 연결하세요."
 
-msgid "For a worktree, check out a branch in its folder and it comes over on the next launch. If you moved it, right-click its project and choose Import untracked worktrees."
-msgstr "워크트리는 해당 폴더에서 브랜치를 체크아웃하면 다음 실행 때 옮겨집니다. 옮겼다면 프로젝트를 마우스 오른쪽 버튼으로 클릭하고 추적되지 않은 워크트리 가져오기를 선택하세요."
-
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "버그 신고와 기능 요청은 <0>github.com/superset-sh/superset</0>에 GitHub 이슈를 남기는 것이 가장 빠릅니다. 커뮤니티는 <1>Discord</1>에 있고, 소식은 <2>X (@superset_sh)</2>와 <3>LinkedIn</3>에 올립니다."
 
@@ -8379,6 +8376,9 @@ msgstr "파일에서 가져오기"
 
 msgid "Import from v1"
 msgstr "v1에서 가져오기"
+
+msgid "Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change. If you moved it, right-click its project and choose Import untracked worktrees."
+msgstr "가져오기는 worktree를 현재 커밋의 새 브랜치로 전환해 옮길 수 있게 합니다. 파일은 바뀌지 않습니다. 옮긴 경우 프로젝트를 마우스 오른쪽 버튼으로 클릭하고 추적되지 않은 worktree 가져오기를 선택하세요."
 
 msgid "Import settings from another browser"
 msgstr "다른 브라우저에서 설정 가져오기"

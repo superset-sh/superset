@@ -7541,9 +7541,6 @@ msgstr "Độ đậm chữ"
 msgid "For a project, open the importer to link it."
 msgstr "Với dự án, hãy mở trình nhập để liên kết."
 
-msgid "For a worktree, check out a branch in its folder and it comes over on the next launch. If you moved it, right-click its project and choose Import untracked worktrees."
-msgstr "Với worktree, hãy checkout một nhánh trong thư mục của nó và nó sẽ được chuyển ở lần mở tiếp theo. Nếu bạn đã di chuyển nó, hãy nhấp chuột phải vào dự án và chọn Nhập worktree chưa theo dõi."
-
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "Với báo lỗi và đề xuất tính năng, cách nhanh nhất là mở issue trên GitHub tại <0>github.com/superset-sh/superset</0>. Cộng đồng của chúng tôi ở <1>Discord</1>, và chúng tôi đăng cập nhật trên <2>X (@superset_sh)</2> và <3>LinkedIn</3>."
 
@@ -8379,6 +8376,9 @@ msgstr "Nhập từ tệp"
 
 msgid "Import from v1"
 msgstr "Nhập từ v1"
+
+msgid "Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change. If you moved it, right-click its project and choose Import untracked worktrees."
+msgstr "Nhập sẽ đưa worktree sang một nhánh mới tại commit hiện tại để có thể chuyển sang. Tệp của bạn không thay đổi. Nếu bạn đã di chuyển nó, hãy nhấp chuột phải vào dự án và chọn Nhập các worktree chưa theo dõi."
 
 msgid "Import settings from another browser"
 msgstr "Nhập cài đặt từ trình duyệt khác"

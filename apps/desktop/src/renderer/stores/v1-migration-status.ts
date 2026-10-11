@@ -19,6 +19,7 @@ interface V1MigrationStatusState {
 	status: V1MigrationStatus;
 	attentionItems: V1AttentionItem[];
 	dismissed: DismissedCard | null;
+	passRequests: number;
 	setStatus: (
 		organizationId: string,
 		status: V1MigrationStatus,
@@ -28,6 +29,7 @@ interface V1MigrationStatusState {
 	clearRunning: (organizationId: string) => void;
 	/** Hides the current card for this session; a new status or list shows again. */
 	dismiss: (organizationId: string) => void;
+	requestPass: () => void;
 }
 
 export const useV1MigrationStatusStore = create<V1MigrationStatusState>()(
@@ -37,6 +39,7 @@ export const useV1MigrationStatusStore = create<V1MigrationStatusState>()(
 			status: "idle",
 			attentionItems: [],
 			dismissed: null,
+			passRequests: 0,
 			setStatus: (organizationId, status, attentionItems = []) =>
 				set({ organizationId, status, attentionItems }),
 			clearRunning: (organizationId) =>
@@ -53,6 +56,8 @@ export const useV1MigrationStatusStore = create<V1MigrationStatusState>()(
 						signature: attentionSignature(state.attentionItems),
 					},
 				})),
+			requestPass: () =>
+				set((state) => ({ passRequests: state.passRequests + 1 })),
 		}),
 		{ name: "V1MigrationStatusStore" },
 	),

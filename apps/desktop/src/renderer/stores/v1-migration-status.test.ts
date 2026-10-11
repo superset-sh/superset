@@ -49,6 +49,7 @@ describe("status card visibility", () => {
 			v1Id: "w2",
 			name: "w2",
 			path: "/w2",
+			branch: "w2",
 		};
 		const state = {
 			...base,

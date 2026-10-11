@@ -7541,9 +7541,6 @@ msgstr "Graisse"
 msgid "For a project, open the importer to link it."
 msgstr "Pour un projet, ouvrez l’importateur pour le lier."
 
-msgid "For a worktree, check out a branch in its folder and it comes over on the next launch. If you moved it, right-click its project and choose Import untracked worktrees."
-msgstr "Pour un worktree, faites un checkout d’une branche dans son dossier : il sera transféré au prochain lancement. Si vous l’avez déplacé, faites un clic droit sur son projet et choisissez Importer les worktrees non suivis."
-
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "Pour les rapports de bugs et les demandes de fonctionnalités, le plus rapide est d'ouvrir une issue GitHub sur <0>github.com/superset-sh/superset</0>. Notre communauté vit sur <1>Discord</1>, et nous publions nos nouveautés sur <2>X (@superset_sh)</2> et <3>LinkedIn</3>."
 
@@ -8379,6 +8376,9 @@ msgstr "Importer depuis un fichier"
 
 msgid "Import from v1"
 msgstr "Importer depuis la v1"
+
+msgid "Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change. If you moved it, right-click its project and choose Import untracked worktrees."
+msgstr "Importer place un worktree sur une nouvelle branche à son commit actuel, pour qu'il puisse être transféré. Vos fichiers ne changent pas. Si vous l'avez déplacé, faites un clic droit sur son projet et choisissez Importer les worktrees non suivis."
 
 msgid "Import settings from another browser"
 msgstr "Importer les paramètres depuis un autre navigateur"

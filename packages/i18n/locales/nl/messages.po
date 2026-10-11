@@ -7541,9 +7541,6 @@ msgstr "Tekendikte"
 msgid "For a project, open the importer to link it."
 msgstr "Open voor een project de importer om het te koppelen."
 
-msgid "For a worktree, check out a branch in its folder and it comes over on the next launch. If you moved it, right-click its project and choose Import untracked worktrees."
-msgstr "Check voor een worktree een branch uit in de map, dan komt hij mee bij de volgende start. Heb je hem verplaatst, klik dan met rechts op het project en kies Niet-gevolgde worktrees importeren."
-
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "Voor bugmeldingen en featureverzoeken is een GitHub-issue op <0>github.com/superset-sh/superset</0> de snelste route. Onze community zit op <1>Discord</1> en we plaatsen updates op <2>X (@superset_sh)</2> en <3>LinkedIn</3>."
 
@@ -8379,6 +8376,9 @@ msgstr "Importeren uit bestand"
 
 msgid "Import from v1"
 msgstr "Importeren uit v1"
+
+msgid "Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change. If you moved it, right-click its project and choose Import untracked worktrees."
+msgstr "Importeren zet een worktree op een nieuwe branch op zijn huidige commit, zodat hij kan worden overgezet. Je bestanden veranderen niet. Als je hem hebt verplaatst, klik dan met de rechtermuisknop op het project en kies Niet-gevolgde worktrees importeren."
 
 msgid "Import settings from another browser"
 msgstr "Instellingen importeren uit een andere browser"
