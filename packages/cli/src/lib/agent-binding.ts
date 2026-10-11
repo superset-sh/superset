@@ -76,6 +76,13 @@ export async function observeAgent(
 	});
 	const binding = bindings.find((row) => row.terminalId === terminalId);
 	if (binding) return { binding, terminalAlive: true };
+	// Hosts before `terminalAgents.get` can't say; the wait then treats the
+	// shell as an agent still starting.
+	const ended = await client.terminalAgents.get
+		.query({ workspaceId, terminalId })
+		.then((row) => row?.endedAt != null)
+		.catch(() => false);
+	if (ended) return { binding: undefined, terminalAlive: false };
 	const { sessions } = await client.terminal.list.query({ workspaceId });
 	return {
 		binding: undefined,
