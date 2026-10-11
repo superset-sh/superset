@@ -58,4 +58,17 @@ describe("createRunLock", () => {
 		const reused = createRunLock({ path, pid: 100, isAlive: () => true });
 		expect(reused.acquire().acquired).toBe(true);
 	});
+
+	test("an unwritten lock is respected until it is old", () => {
+		writeFileSync(path, "");
+		const young = createRunLock({ path, pid: 100 });
+		expect(young.acquire()).toEqual({ acquired: false });
+
+		const later = createRunLock({
+			path,
+			pid: 100,
+			now: () => Date.now() + 60_000,
+		});
+		expect(later.acquire().acquired).toBe(true);
+	});
 });

@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 
 const ANCIENT_LOCK_MS = 24 * 60 * 60 * 1000;
+// The `wx` create and its write are two steps; a reader can see the gap.
+const UNWRITTEN_LOCK_GRACE_MS = 10_000;
 
 export type RunLockAcquireResult =
 	| { acquired: true; token: string }
@@ -16,8 +18,8 @@ function isProcessAlive(pid: number): boolean {
 	try {
 		process.kill(pid, 0);
 		return true;
-	} catch {
-		return false;
+	} catch (error) {
+		return (error as NodeJS.ErrnoException).code !== "ESRCH";
 	}
 }
 
@@ -46,20 +48,28 @@ export function createRunLock({
 	};
 
 	const ownerIsLive = () => {
+		let raw: string;
 		try {
-			const lock = JSON.parse(readFileSync(path, "utf8")) as {
-				pid: number;
-				at: number;
-			};
-			// Our pid without an in-memory hold is a reused pid from a dead run.
-			return (
-				lock.pid !== pid &&
-				isAlive(lock.pid) &&
-				now() - lock.at <= ANCIENT_LOCK_MS
-			);
-		} catch {
-			return false;
+			raw = readFileSync(path, "utf8");
+		} catch (error) {
+			return (error as NodeJS.ErrnoException).code !== "ENOENT";
 		}
+		let lock: { pid: number; at: number };
+		try {
+			lock = JSON.parse(raw);
+		} catch {
+			try {
+				return now() - statSync(path).mtimeMs < UNWRITTEN_LOCK_GRACE_MS;
+			} catch {
+				return false;
+			}
+		}
+		// Our pid without an in-memory hold is a reused pid from a dead run.
+		return (
+			lock.pid !== pid &&
+			isAlive(lock.pid) &&
+			now() - lock.at <= ANCIENT_LOCK_MS
+		);
 	};
 
 	return {
