@@ -162,6 +162,30 @@ export async function getDefaultBranchName(
 	}
 }
 
+// `origin/HEAD` is only set by `git clone`; a repo wired up with
+// `remote add` + `fetch` lacks it.
+const CONVENTIONAL_DEFAULT_BRANCHES = ["main", "master"];
+
+async function findConventionalOriginDefault(
+	git: SimpleGit,
+): Promise<string | null> {
+	for (const branch of CONVENTIONAL_DEFAULT_BRANCHES) {
+		const exists = await git
+			.raw([
+				"rev-parse",
+				"--verify",
+				"--quiet",
+				`refs/remotes/origin/${branch}`,
+			])
+			.then(
+				(output) => output.trim() !== "",
+				() => false,
+			);
+		if (exists) return branch;
+	}
+	return null;
+}
+
 /**
  * Resolve the base comparison for "this branch vs its upstream default"
  * views. Honors the local default branch's configured upstream
@@ -178,7 +202,10 @@ export async function resolveBaseComparison(
 	// tracks another local branch and there is nothing to fetch.
 	fetchTarget: { remote: string; branch: string } | null;
 } | null> {
-	const branchName = explicitBranch ?? (await getDefaultBranchName(git));
+	const branchName =
+		explicitBranch ??
+		(await getDefaultBranchName(git)) ??
+		(await findConventionalOriginDefault(git));
 	if (!branchName) return null;
 	const upstream = await resolveUpstream(git, branchName);
 	// Git encodes a branch tracking another local branch as

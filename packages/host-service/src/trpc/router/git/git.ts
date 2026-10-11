@@ -132,7 +132,7 @@ function invalidateStatus(workspaceId: string): void {
 
 function runStatusSnapshot(
 	ctx: Parameters<typeof resolveWorktreePath>[0] &
-		Pick<HostServiceContext, "credentials">,
+		Pick<HostServiceContext, "credentials" | "eventBus">,
 	input: {
 		workspaceId: string;
 		baseBranch?: string;
@@ -150,6 +150,7 @@ function runStatusSnapshot(
 			const workerPool = getHostWorkerPool();
 
 			const computeFull = async () => {
+				const snapshotStartedAt = Date.now();
 				const result = await workerPool.run(
 					gitStatusSnapshotTask,
 					{ worktreePath, baseBranch: input.baseBranch, gitEnv },
@@ -163,17 +164,27 @@ function runStatusSnapshot(
 					// The coordinator maps live in this process, not in individual
 					// workers, so worktrees sharing one common Git dir share one TTL
 					// and in-flight fetch. The network fetch itself remains off-loop.
-					scheduleBaseRefFetch(coordinatorGit, worktreePath, target, () =>
-						workerPool.run(
-							gitFetchBaseRefTask,
-							{ worktreePath, target, gitEnv },
-							{
-								timeoutMs: 30_000,
-								strategy: "coalesce",
-								dedupeKey: `${worktreePath}:base-ref:${target.remote}/${target.branch}`,
-							},
-						),
-					);
+					void scheduleBaseRefFetch(
+						coordinatorGit,
+						worktreePath,
+						target,
+						{ workspaceId: input.workspaceId, snapshotStartedAt },
+						() =>
+							workerPool.run(
+								gitFetchBaseRefTask,
+								{ worktreePath, target, gitEnv },
+								{
+									timeoutMs: 30_000,
+									strategy: "coalesce",
+									dedupeKey: `${worktreePath}:base-ref:${target.remote}/${target.branch}`,
+								},
+							),
+					).then((staleWorkspaceIds) => {
+						for (const workspaceId of staleWorkspaceIds) {
+							invalidateStatus(workspaceId);
+							ctx.eventBus.broadcastGitChanged(workspaceId);
+						}
+					});
 				}
 				return result.snapshot;
 			};
