@@ -26,7 +26,7 @@ function describeNode(node: LayoutNode): PaneLayoutNode {
 	if (node.type === "pane") return { type: "pane", paneId: node.paneId };
 	return {
 		type: "split",
-		direction: node.direction,
+		direction: node.direction === "horizontal" ? "row" : "column",
 		ratio: Math.min(100, Math.max(0, node.splitPercentage ?? 50)) / 100,
 		first: describeNode(node.first),
 		second: describeNode(node.second),

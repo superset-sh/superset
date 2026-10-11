@@ -1,4 +1,4 @@
-import { agentStatusFromEvent } from "@superset/shared/agent-status";
+import { type AgentRunState, agentRunState } from "@superset/shared/agent-status";
 
 export const AGENT_WAIT_TARGETS = [
 	"settled",
@@ -7,12 +7,7 @@ export const AGENT_WAIT_TARGETS = [
 	"working",
 ] as const;
 export type AgentWaitTarget = (typeof AGENT_WAIT_TARGETS)[number];
-export type AgentWaitState =
-	| "starting"
-	| "working"
-	| "blocked"
-	| "idle"
-	| "exited";
+export type AgentWaitState = AgentRunState | "exited";
 
 export interface AgentBindingSnapshot {
 	lastEventType: string;
@@ -33,15 +28,7 @@ export function agentWaitState({
 	terminalAlive,
 }: AgentObservation): AgentWaitState {
 	if (!binding) return terminalAlive ? "starting" : "exited";
-	if (binding.lastEventType === "Attached") return "starting";
-	switch (agentStatusFromEvent(binding.lastEventType)) {
-		case "working":
-			return "working";
-		case "permission":
-			return "blocked";
-		default:
-			return "idle";
-	}
+	return agentRunState(binding.lastEventType);
 }
 
 export function agentStateMatches(

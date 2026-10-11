@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { AgentRunState } from "./agent-status";
 
 export const PANE_SPLIT_DIRECTIONS = ["right", "left", "down", "up"] as const;
 export type PaneSplitDirection = (typeof PANE_SPLIT_DIRECTIONS)[number];
@@ -46,12 +47,15 @@ export const paneLayoutRequestSchema = z.object({
 
 export type PaneLayoutRequest = z.infer<typeof paneLayoutRequestSchema>;
 
-/** `ratio` is the share of the split given to `first`. */
+/**
+ * `row` puts `first` left of `second`; `column` puts it above, as in CSS
+ * flexbox. `ratio` is the share given to `first`.
+ */
 export type PaneLayoutNode =
 	| { type: "pane"; paneId: string }
 	| {
 			type: "split";
-			direction: "horizontal" | "vertical";
+			direction: "row" | "column";
 			ratio: number;
 			first: PaneLayoutNode;
 			second: PaneLayoutNode;
@@ -63,6 +67,10 @@ export interface PaneLayoutPane {
 	title: string | null;
 	terminalId: string | null;
 	active: boolean;
+	/** Filled in by the host for terminal panes: the shell's or the user's title. */
+	terminalTitle?: string | null;
+	/** Filled in by the host when an agent runs in the pane's terminal. */
+	agent?: { id: string; state: AgentRunState } | null;
 }
 
 export interface PaneLayoutTab {

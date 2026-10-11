@@ -4,10 +4,12 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { terminalSessions } from "../../../db/schema";
 import { PaneLayoutBridgeClient } from "../../../runtime/pane-layout-bridge/pane-layout-bridge-client";
+import { listTerminalSessions } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { getLocalWorkspace } from "../../../workspaces/local-workspace-store";
 import { createCallerFactory, protectedProcedure, router } from "../../index";
 import { terminalRouter } from "../terminal";
+import { addPaneDetails } from "./add-pane-details";
 
 const createTerminalCaller = createCallerFactory(terminalRouter);
 
@@ -16,7 +18,7 @@ type PaneLayoutOp = Parameters<PaneLayoutBridgeClient["apply"]>[0]["op"];
 const direction = z.enum(PANE_SPLIT_DIRECTIONS);
 const paneInput = z.object({ workspaceId: z.string(), paneId: z.string() });
 
-function applyOp(
+async function applyOp(
 	ctx: HostServiceContext,
 	workspaceId: string,
 	op: PaneLayoutOp,
@@ -31,9 +33,22 @@ function applyOp(
 	if (!getLocalWorkspace(ctx.db, workspaceId)) {
 		throw new TRPCError({ code: "NOT_FOUND", message: "Workspace not found" });
 	}
-	return new PaneLayoutBridgeClient(ctx.browserBridge).apply({
+	const result = await new PaneLayoutBridgeClient(ctx.browserBridge).apply({
 		workspaceId,
 		op,
+	});
+	return addPaneDetails(result, {
+		titles: new Map(
+			listTerminalSessions({ workspaceId }).map((session) => [
+				session.terminalId,
+				session.title,
+			]),
+		),
+		agents: new Map(
+			ctx.terminalAgentStore
+				.listByWorkspace(workspaceId)
+				.map((binding) => [binding.terminalId, binding]),
+		),
 	});
 }
 

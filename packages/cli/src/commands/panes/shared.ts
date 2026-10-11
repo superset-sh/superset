@@ -77,6 +77,21 @@ export async function withPaneTerminal<T>(
 	}
 }
 
+function describePane(pane: PaneLayoutTab["panes"][number]): string {
+	const title = pane.terminalTitle ?? pane.title;
+	const agent = pane.agent ? `${pane.agent.id} · ${pane.agent.state}` : null;
+	return [
+		pane.id,
+		pane.kind,
+		title ? `"${title}"` : null,
+		agent,
+		pane.terminalId ? `terminal ${pane.terminalId}` : null,
+		pane.active ? "(active)" : null,
+	]
+		.filter(Boolean)
+		.join("  ");
+}
+
 function formatNode(
 	node: PaneLayoutNode,
 	tab: PaneLayoutTab,
@@ -86,23 +101,13 @@ function formatNode(
 	if (node.type === "split") {
 		const first = Math.round(node.ratio * 100);
 		return [
-			`${indent}split ${node.direction} ${first}/${100 - first}`,
+			`${indent}${node.direction} ${first}/${100 - first}`,
 			...formatNode(node.first, tab, depth + 1),
 			...formatNode(node.second, tab, depth + 1),
 		];
 	}
 	const pane = tab.panes.find((candidate) => candidate.id === node.paneId);
-	const detail = pane?.terminalId ?? pane?.title ?? "";
-	return [
-		[
-			`${indent}${node.paneId}`,
-			pane?.kind ?? "unknown",
-			detail,
-			pane?.active ? "(active)" : "",
-		]
-			.filter(Boolean)
-			.join("\t"),
-	];
+	return [`${indent}${pane ? describePane(pane) : node.paneId}`];
 }
 
 export function formatLayout(layout: PaneLayoutSnapshot): string {
