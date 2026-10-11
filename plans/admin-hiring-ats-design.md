@@ -128,6 +128,9 @@ New procedures only, so the trpc-compat skill has nothing to check for released 
 - [x] P1.5: two-pane candidate page `/hiring/[candidateId]` (header: Move to ‹next stage›,
       Close ▾, Touched, ↑/↓ through the list it was opened from); Today is an inbox
       (list + the same candidate view, j/k, snooze on hover). The drawer is gone.
+- [x] Terminal/agent access: `bun hiring today|list|get|note|touch|add` (`packages/trpc/scripts/hiring.ts`)
+      over the deployed API with an @superset.sh `SUPERSET_API_KEY`. Not in the public CLI or MCP.
+      Move/close stay in the page.
 - [ ] P2: Board with drag, funnel strip, sourcing pace strip, "gone quiet" list
 - [ ] P3: automation switch-over, WaaS sync, resume uploads, Notion page bodies as notes
 
