@@ -34,7 +34,6 @@ export default defineConfig({
 				"<rootDir>/../../apps/desktop/src",
 				"<rootDir>/../../apps/web/src",
 				"<rootDir>/../../apps/marketing/src",
-				"<rootDir>/../../apps/admin/src",
 				"<rootDir>/../../apps/docs/src",
 				"<rootDir>/../../apps/mobile/app",
 				"<rootDir>/../../apps/mobile/screens",

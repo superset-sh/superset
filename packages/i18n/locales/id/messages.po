@@ -22,10 +22,6 @@ msgstr "- className=\"rounded-sm border border-border bg-background …\""
 msgid ", selected"
 msgstr ", terpilih"
 
-#. placeholder {0}: data.unbilledLogos
-msgid ". {0} not yet modeled as Stripe subscriptions"
-msgstr ". {0} belum dimodelkan sebagai langganan Stripe"
-
 msgid ". Each card shows the canonical import path — click it to copy. Reach for these before writing anything custom."
 msgstr ". Tiap kartu menampilkan path impor kanoniknya — klik untuk menyalin. Pakai ini dulu sebelum menulis sesuatu yang kustom."
 
@@ -92,9 +88,6 @@ msgstr "(diedit)"
 
 msgid "(no output)"
 msgstr "(tidak ada keluaran)"
-
-msgid "(so far)"
-msgstr "(sejauh ini)"
 
 #. placeholder {0}: connections.length
 msgid "{0, plural, one {# account connected} other {# accounts connected}}"
@@ -382,10 +375,6 @@ msgstr "{0} di belakang Anda"
 msgid "{0} branch"
 msgstr "cabang {0}"
 
-#. placeholder {0}: list.data.length
-msgid "{0} candidates"
-msgstr "{0} kandidat"
-
 #. placeholder {0}: params?.agent
 msgid "{0} cannot be signed in this way yet."
 msgstr "{0} belum bisa masuk dengan cara ini."
@@ -463,10 +452,6 @@ msgstr "{0} menjalankan layanan host {1} — aplikasi ini butuh {2} atau lebih b
 msgid "{0} is set up on this machine, but not on your account"
 msgstr "{0} sudah disiapkan di mesin ini, tetapi tidak di akun Anda"
 
-#. placeholder {0}: formatNumber(lastFullWeek)
-msgid "{0} last full week"
-msgstr "{0} minggu penuh terakhir"
-
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "{0} lagi — persempit pencarian Anda"
@@ -492,23 +477,9 @@ msgstr "{0} dari {1} check berjalan"
 msgid "{0} of {totalCount}"
 msgstr "{0} dari {totalCount}"
 
-#. placeholder {0}: rate(teams, signups)
-msgid "{0} of accounts"
-msgstr "{0} dari akun"
-
-#. placeholder {0}: rate(downloaders, visitors)
-#. placeholder {0}: rate(signups, visitors)
-msgid "{0} of visitors"
-msgstr "{0} dari pengunjung"
-
 #. placeholder {0}: plugin.interface.displayName
 msgid "{0} options"
 msgstr "Opsi {0}"
-
-#. placeholder {0}: formatNumber(dropped, undefined)
-#. placeholder {0}: formatNumber(step.count, undefined)
-msgid "{0} persons"
-msgstr "{0} orang"
 
 #. placeholder {0}: i18n._(plan.name)
 msgid "{0} plan"
@@ -550,11 +521,6 @@ msgstr "{0} token pada {1}"
 msgid "{0} tokens over {1} active days"
 msgstr "{0} token dalam {1} hari aktif"
 
-#. placeholder {0}: formatNumber(section.updatedRecently)
-#. placeholder {1}: formatNumber(data?.recentDays ?? 30)
-msgid "{0} touched in {1} days"
-msgstr "{0} diubah dalam {1} hari"
-
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} uninstalled"
 msgstr "{0} dicopot"
@@ -571,10 +537,6 @@ msgstr "{0} melawan {1}"
 #. placeholder {0}: file.path
 msgid "{0} was deleted in this change."
 msgstr "{0} dihapus dalam perubahan ini."
-
-#. placeholder {0}: formatNumber(option)
-msgid "{0} weeks"
-msgstr "{0} minggu"
 
 #. placeholder {0}: winner?.name
 #. placeholder {1}: result.events.length
@@ -833,9 +795,6 @@ msgstr "{count} host menjalankan layanan host yang lebih lama dari aplikasi ini"
 msgid "{count}/day"
 msgstr "{count}/hari"
 
-msgid "{current} of {total}"
-msgstr "{current} dari {total}"
-
 msgid "{currentPage} of {totalBranches}"
 msgstr "{currentPage} dari {totalBranches}"
 
@@ -936,9 +895,6 @@ msgstr "{kind} · oleh {author}"
 msgid "{kindLabel} theme"
 msgstr "Tema {kindLabel}"
 
-msgid "{label} (partial week)"
-msgstr "{label} (minggu sebagian)"
-
 msgid "{label} in cloud workspaces"
 msgstr "{label} di workspace cloud"
 
@@ -992,9 +948,6 @@ msgstr "{name} bawaan dan tidak dapat diganti"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} belum ditambahkan"
-
-msgid "{nonBrandPct} of clicks"
-msgstr "{nonBrandPct} dari klik"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {Tentukan minimal satu orang, atau pilih {choice}.} sender {Tentukan minimal satu pengirim, atau pilih {choice}.} other {Tentukan minimal satu entri, atau pilih {choice}.}}"
@@ -1092,9 +1045,6 @@ msgstr "{skipped, plural, one {# dilewati} other {# dilewati}}"
 msgid "{starCount} stars and counting"
 msgstr "{starCount} star dan terus bertambah"
 
-msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
-msgstr "{stars} star · {perDay}/hari minggu ini · {peakPerDay}/hari saat puncak"
-
 msgid "{started, plural, one {Started # automation} other {Started # automations}}"
 msgstr "{started, plural, one {# otomatisasi dimulai} other {# otomatisasi dimulai}}"
 
@@ -1189,12 +1139,6 @@ msgstr "#{0} {1}\n"
 
 msgid "#engineering"
 msgstr "#engineering"
-
-msgid "% of subscribed orgs at month end still subscribed one month later (count-based; $ NRR needs a Sigma query)"
-msgstr "% organisasi berlangganan di akhir bulan yang masih berlangganan sebulan kemudian (berbasis jumlah; NRR $ perlu kueri Sigma)"
-
-msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
-msgstr "% langganan yang dimulai tiap bulan dan masih aktif k bulan kemudian (Neon, enterprise dikecualikan)"
 
 #. placeholder {0}: COMPANY.NAME
 msgid "%s | {0} Docs"
@@ -1291,22 +1235,6 @@ msgstr "✓ 2j lalu"
 msgid "✓ 3d ago"
 msgstr "✓ 3h lalu"
 
-#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
-#. placeholder {1}: latest.customers
-#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
-msgid "${0} from {1} customers became ${2}"
-msgstr "MRR dari {1} pelanggan berubah dari ${0} menjadi ${2}"
-
-#. placeholder {0}: formatNumber(latest.prevUsd, undefined)
-#. placeholder {1}: latest.prevDate
-msgid "${0} previous period ({1})"
-msgstr "${0} periode sebelumnya ({1})"
-
-#. placeholder {0}: formatNumber(data.arrUsd, undefined)
-#. placeholder {1}: accounts.length
-msgid "${0}/yr across {1} logos — already inside MRR, not additive"
-msgstr "${0}/thn dari {1} logo — sudah termasuk dalam MRR, bukan tambahan"
-
 msgid "${balance} credits"
 msgstr "kredit ${balance}"
 
@@ -1342,9 +1270,6 @@ msgstr "1 minggu lalu"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ alur kerja bersamaan tanpa kehilangan konteks"
-
-msgid "100% (retain everything)"
-msgstr "100% (mempertahankan semua)"
 
 msgid "10h ago"
 msgstr "10j lalu"
@@ -1625,12 +1550,6 @@ msgstr "Pencapaian"
 msgid "Acme Inc."
 msgstr "Acme Inc."
 
-msgid "Acquisition"
-msgstr "Akuisisi"
-
-msgid "Acquisition, content, conversion, retention, and distribution in one place. Weekly charts cover the selected range; the current week is partial. Drag a tile by its top edge, resize from the corner."
-msgstr "Akuisisi, konten, konversi, retensi, dan distribusi di satu tempat. Grafik mingguan mencakup rentang yang dipilih; minggu berjalan belum lengkap. Seret ubin dari tepi atasnya, ubah ukuran dari sudut."
-
 msgid "Action"
 msgstr "Aksi"
 
@@ -1640,12 +1559,6 @@ msgstr "Aksi"
 #. placeholder {0}: page.title
 msgid "Actions for {0}"
 msgstr "Aksi untuk {0}"
-
-msgid "activation rate"
-msgstr "tingkat aktivasi"
-
-msgid "Activation, how much people use it once they are in, and whether they come back."
-msgstr "Aktivasi, seberapa banyak dipakai setelah masuk, dan apakah mereka kembali."
 
 msgid "Active"
 msgstr "Aktif"
@@ -1702,9 +1615,6 @@ msgstr "Tambahkan deskripsi…"
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "Tambahkan skrip run lifecycle di Pengaturan Proyek atau tandai sebuah skrip terminal sebagai run workspace."
 
-msgid "Add a note… (⌘↵ to save)"
-msgstr "Tambahkan catatan… (⌘↵ untuk menyimpan)"
-
 msgid "Add a project to see GitHub issues."
 msgstr "Tambahkan proyek untuk melihat issue GitHub."
 
@@ -1746,9 +1656,6 @@ msgstr "Tambah lampiran"
 
 msgid "Add Attachment"
 msgstr "Tambah Lampiran"
-
-msgid "Add candidate"
-msgstr "Tambah kandidat"
 
 msgid "Add command"
 msgstr "Tambah perintah"
@@ -1907,9 +1814,6 @@ msgstr "Terhadap base"
 msgid "Against Main"
 msgstr "Terhadap Main"
 
-msgid "agent"
-msgstr "agen"
-
 msgid "Agent"
 msgstr "Agen"
 
@@ -2017,15 +1921,6 @@ msgstr "AI · Percakapan"
 
 msgid "AI · Status"
 msgstr "AI · Status"
-
-msgid "AI agents reading the site, last {dayCount} days"
-msgstr "Agen AI yang membaca situs, {dayCount} hari terakhir"
-
-msgid "AI assistant referrals"
-msgstr "Rujukan asisten AI"
-
-msgid "AI assistants"
-msgstr "Asisten AI"
 
 msgid "AI authentication failed. Please check your AI settings."
 msgstr "Autentikasi AI gagal. Silakan periksa pengaturan AI Anda."
@@ -2158,9 +2053,6 @@ msgstr "Semua repositori"
 msgid "All reviews"
 msgstr "Semua review"
 
-msgid "All roles"
-msgstr "Semua posisi"
-
 msgid "All runs"
 msgstr "Semua run"
 
@@ -2172,9 +2064,6 @@ msgstr "Semua sesi dipertahankan sepanjang upgrade."
 
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "Semua sesi ditutup dan daemon baru sedang berjalan."
-
-msgid "All sources"
-msgstr "Semua sumber"
 
 msgid "All tasks"
 msgstr "Semua tugas"
@@ -2236,9 +2125,6 @@ msgstr "Sudah punya akun? <0>Masuk</0>"
 msgid "Already in tasks"
 msgstr "Sudah ada di tugas"
 
-msgid "Already in the pipeline: {duplicateNames}"
-msgstr "Sudah ada di pipeline: {duplicateNames}"
-
 msgid "Also available as CommandDialog for ⌘K palettes"
 msgstr "Tersedia juga sebagai CommandDialog untuk palet ⌘K"
 
@@ -2293,9 +2179,6 @@ msgstr "Terjadi kesalahan yang tidak diketahui"
 msgid "An update is ready to install."
 msgstr "Pembaruan siap dipasang."
 
-msgid "Analytics, Ops, and more"
-msgstr "Analitik, operasional, dan lainnya"
-
 msgid "Android is on the way. Be first to know when it ships."
 msgstr "Android sedang dalam perjalanan. Jadilah yang pertama tahu saat dirilis."
 
@@ -2310,9 +2193,6 @@ msgstr "Gradien WebGL beranimasi (stripe-gradient)"
 
 msgid "Annual billing only"
 msgstr "Hanya penagihan tahunan"
-
-msgid "Annualized enterprise Stripe subscriptions"
-msgstr "Langganan Stripe enterprise yang disetahunkan"
 
 msgid "Annually"
 msgstr "Tahunan"
@@ -2412,9 +2292,6 @@ msgstr "Ada lagi? (opsional)"
 
 msgid "AP"
 msgstr "AP"
-
-msgid "Apache Superset"
-msgstr "Apache Superset"
 
 msgid "API"
 msgstr "API"
@@ -2629,9 +2506,6 @@ msgstr "Ditugaskan kepada Anda"
 
 msgid "Assignee"
 msgstr "Penerima tugas"
-
-msgid "Assistants that opened our pages in a real browser on someone's behalf. Crawlers that only fetch HTML never run analytics and are not counted."
-msgstr "Asisten yang membuka halaman kami di browser sungguhan atas nama seseorang. Perayap yang hanya mengambil HTML tidak pernah menjalankan analitik dan tidak dihitung."
 
 msgid "Assisted"
 msgstr "Terbantu"
@@ -2849,15 +2723,6 @@ msgstr "Avatar (atom)"
 msgid "Avatar updated!"
 msgstr "Avatar diperbarui!"
 
-msgid "Average time from previous"
-msgstr "Waktu rata-rata dari langkah sebelumnya"
-
-msgid "Avg monthly outflow per counterparty, last 3 complete months"
-msgstr "Rata-rata arus keluar bulanan per pihak lawan, 3 bulan penuh terakhir"
-
-msgid "avg position {avgPosition}"
-msgstr "posisi rata-rata {avgPosition}"
-
 #. placeholder {0}: requestedReviewers.join(", ")
 msgid "Awaiting {0}"
 msgstr "Menunggu {0}"
@@ -3043,9 +2908,6 @@ msgstr "Kutipan blok"
 msgid "Blog"
 msgstr "Blog"
 
-msgid "Blog posts"
-msgstr "Artikel blog"
-
 msgid "Blue"
 msgstr "Biru"
 
@@ -3069,9 +2931,6 @@ msgstr "Dipinjam dari cara mobil swakemudi dinilai, diterapkan pada cara perangk
 
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "Laci bawah, ramah geser di perangkat sentuh."
-
-msgid "Bounce"
-msgstr "Pentalan"
 
 msgid "Box"
 msgstr "Box"
@@ -3138,9 +2997,6 @@ msgstr "Branch & penamaan"
 
 msgid "Branches..."
 msgstr "Branch..."
-
-msgid "brand"
-msgstr "merek"
 
 msgid "Brand assets"
 msgstr "Aset merek"
@@ -3250,9 +3106,6 @@ msgstr "Disertakan bersama aplikasi Superset di perangkat ini."
 
 msgid "Bundled with the Superset app on this device. Updates with the app."
 msgstr "Disertakan bersama aplikasi Superset di perangkat ini. Diperbarui bersama aplikasi."
-
-msgid "Burn by vendor (Mercury)"
-msgstr "Burn per vendor (Mercury)"
 
 msgid "Button — sizes"
 msgstr "Tombol — ukuran"
@@ -3395,12 +3248,6 @@ msgstr "Dibatalkan"
 msgid "Cancels {0} — downgrades to Free at the end of the billing period."
 msgstr "Berakhir {0} — turun ke Gratis di akhir periode penagihan."
 
-msgid "Candidate"
-msgstr "Kandidat"
-
-msgid "Candidate not found."
-msgstr "Kandidat tidak ditemukan."
-
 msgid "Cannot {action}: no active organization is selected. Select an organization or sign in again."
 msgstr "Tidak bisa {action}: tidak ada organisasi aktif yang dipilih. Pilih organisasi atau masuk lagi."
 
@@ -3433,9 +3280,6 @@ msgstr "Karier"
 
 msgid "Carousel"
 msgstr "Carousel"
-
-msgid "Cash — total balance (Mercury)"
-msgstr "Kas — saldo total (Mercury)"
 
 msgid "Category"
 msgstr "Kategori"
@@ -3601,9 +3445,6 @@ msgstr "Periksa kotak masuk Anda"
 msgid "Checkbox · Radio · Switch"
 msgstr "Checkbox · Radio · Switch"
 
-msgid "Checking + savings + Treasury over time; fundraise tranches are the steps"
-msgstr "Giro + tabungan + Treasury dari waktu ke waktu; tranche penggalangan dana adalah lonjakannya"
-
 msgid "Checking agents…"
 msgstr "Memeriksa agen…"
 
@@ -3699,9 +3540,6 @@ msgstr "Pilih kapan Superset memberi tahu Anda."
 
 msgid "Choose where agents started from comments, design mode, and Pages open."
 msgstr "Pilih tempat membuka agen yang dimulai dari komentar, mode desain, dan Pages."
-
-msgid "Churn"
-msgstr "Churn"
 
 msgid "CI failed"
 msgstr "CI gagal"
@@ -3840,15 +3678,6 @@ msgstr "Klik untuk membuka di GitHub"
 
 msgid "Click two commits to define the range."
 msgstr "Klik dua commit untuk menentukan rentangnya."
-
-msgid "Click-through rate"
-msgstr "Rasio klik-tayang"
-
-msgid "Clicked upgrade"
-msgstr "Mengeklik upgrade"
-
-msgid "Clicks"
-msgstr "Klik"
 
 msgid "Clients"
 msgstr "Klien"
@@ -4063,12 +3892,6 @@ msgstr "Blok kode"
 msgid "Code Block"
 msgstr "Blok Kode"
 
-msgid "Cohort"
-msgstr "Kohor"
-
-msgid "Cohort retention"
-msgstr "Retensi kohor"
-
 msgid "Collapse"
 msgstr "Ciutkan"
 
@@ -4227,9 +4050,6 @@ msgstr "Komunikasi"
 msgid "Community"
 msgstr "Komunitas"
 
-msgid "Community size from the public invite, refreshed every half hour."
-msgstr "Ukuran komunitas dari undangan publik, diperbarui setiap setengah jam."
-
 msgid "Company"
 msgstr "Perusahaan"
 
@@ -4239,14 +4059,8 @@ msgstr "Profil perusahaan, berita terbaru, aset merek, dan kontak pers Superset.
 msgid "Company email"
 msgstr "Email perusahaan"
 
-msgid "Company Metrics"
-msgstr "Metrik Perusahaan"
-
 msgid "Compare"
 msgstr "Bandingkan"
-
-msgid "Compare pages"
-msgstr "Halaman perbandingan"
 
 msgid "Compare plans"
 msgstr "Bandingkan paket"
@@ -4275,9 +4089,6 @@ msgstr "component-showcase"
 
 msgid "Composable form layout — pairs with @superset/ui/form for react-hook-form"
 msgstr "Tata letak form yang bisa dikomposisi — berpasangan dengan @superset/ui/form untuk react-hook-form"
-
-msgid "Computing in Stripe — up to a minute on first load"
-msgstr "Menghitung di Stripe — hingga satu menit saat pemuatan pertama"
 
 msgid "Config location"
 msgstr "Lokasi konfigurasi"
@@ -4545,12 +4356,6 @@ msgstr "Hubungi Kami"
 msgid "Contains this text..."
 msgstr "Mengandung teks ini..."
 
-msgid "Content"
-msgstr "Konten"
-
-msgid "Content published or updated"
-msgstr "Konten yang dipublikasikan atau diperbarui"
-
 msgid "Context"
 msgstr "Konteks"
 
@@ -4598,9 +4403,6 @@ msgstr "Melanjutkan sesi agen memerlukan ruang kerja yang disematkan"
 msgid "continuing the last session"
 msgstr "melanjutkan sesi terakhir"
 
-msgid "Contraction"
-msgstr "Kontraksi"
-
 msgid "Contributions"
 msgstr "Kontribusi"
 
@@ -4616,20 +4418,8 @@ msgstr "Percakapan"
 msgid "Conversation · Message"
 msgstr "Percakapan · Pesan"
 
-msgid "Conversion"
-msgstr "Konversi"
-
-msgid "Conversion from previous"
-msgstr "Konversi dari langkah sebelumnya"
-
-msgid "Conversion so far"
-msgstr "Konversi sejauh ini"
-
 msgid "Convert to draft"
 msgstr "Ubah menjadi draf"
-
-msgid "Converted"
-msgstr "Terkonversi"
 
 msgid "Converting to draft…"
 msgstr "Mengubah menjadi draf…"
@@ -5576,9 +5366,6 @@ msgstr "Kredensial tetap di server"
 msgid "Cross-feature components living outside packages/ui — check here before building a new one"
 msgstr "Komponen lintas fitur yang berada di luar packages/ui — cek di sini sebelum membuat yang baru"
 
-msgid "CTR"
-msgstr "CTR"
-
 msgid "Ctrl+click"
 msgstr "Ctrl+klik"
 
@@ -5599,9 +5386,6 @@ msgstr "Paket saat ini"
 
 msgid "Current tab"
 msgstr "Tab saat ini"
-
-msgid "Current title"
-msgstr "Jabatan saat ini"
 
 msgid "Cursor"
 msgstr "Kursor"
@@ -6141,14 +5925,8 @@ msgstr "Ukuran diff"
 msgid "Digital Product Designer"
 msgstr "Desainer Produk Digital"
 
-msgid "Direct"
-msgstr "Langsung"
-
 msgid "Direct mode"
 msgstr "Mode langsung"
-
-msgid "Directories, blogs, newsletters, and communities that sent visitors. Search, social, GitHub, and assistants are excluded so listings and links stand out."
-msgstr "Direktori, blog, buletin, dan komunitas yang mengirim pengunjung. Pencarian, media sosial, GitHub, dan asisten dikecualikan agar daftar dan tautan menonjol."
 
 msgid "Directory"
 msgstr "Direktori"
@@ -6280,9 +6058,6 @@ msgstr "Tampilan"
 msgid "Displays the mobile sidebar."
 msgstr "Menampilkan sidebar mobile."
 
-msgid "Distribution and community"
-msgstr "Distribusi dan komunitas"
-
 msgid "Do anything"
 msgstr "Lakukan apa saja"
 
@@ -6351,9 +6126,6 @@ msgstr "Unduh {name}"
 msgid "Download app"
 msgstr "Unduh aplikasi"
 
-msgid "Download clicks"
-msgstr "Klik unduhan"
-
 msgid "Download failed"
 msgstr "Unduhan gagal"
 
@@ -6419,9 +6191,6 @@ msgstr "Draf dibuka"
 msgid "drafted 3 support replies"
 msgstr "menyusun 3 draf balasan dukungan"
 
-msgid "Drag to move"
-msgstr "Seret untuk memindahkan"
-
 msgid "Drag to reorder"
 msgstr "Seret untuk mengurutkan ulang"
 
@@ -6455,12 +6224,6 @@ msgstr "Lepas untuk menyematkan"
 msgid "Drop to unpin"
 msgstr "Lepas untuk melepas sematan"
 
-msgid "Drop-off from previous"
-msgstr "Drop-off dari langkah sebelumnya"
-
-msgid "Drop-off from start"
-msgstr "Drop-off dari awal"
-
 msgid "dropdown"
 msgstr "dropdown"
 
@@ -6469,9 +6232,6 @@ msgstr "Menu Dropdown"
 
 msgid "Dropdown, context, and application menus"
 msgstr "Menu dropdown, konteks, dan aplikasi"
-
-msgid "Dropped off"
-msgstr "Berhenti"
 
 msgid "Duration"
 msgstr "Durasi"
@@ -6731,12 +6491,6 @@ msgstr "Masukkan URL..."
 msgid "Enterprise"
 msgstr "Enterprise"
 
-msgid "Enterprise ARR by account"
-msgstr "ARR enterprise per akun"
-
-msgid "Entries by section"
-msgstr "Masuk per bagian"
-
 msgid "Environment"
 msgstr "Lingkungan"
 
@@ -6784,9 +6538,6 @@ msgstr "Setiap agen berjalan di worktree dan cabang Git masing-masing, sehingga 
 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Setiap sumbu sudah menopang untuk tingkat berikutnya. Pertahankan, tingkatnya akan menyusul."
-
-msgid "Every candidate, where they are, and who owes the next move."
-msgstr "Semua kandidat, posisi mereka, dan siapa yang harus bergerak berikutnya."
 
 msgid "Every day at 3:00 AM"
 msgstr "Setiap hari pukul 03.00"
@@ -6909,9 +6660,6 @@ msgstr "Perluas suara"
 
 msgid "Expand workspace"
 msgstr "Bentangkan workspace"
-
-msgid "Expansion"
-msgstr "Ekspansi"
 
 msgid "Experimental"
 msgstr "Eksperimental"
@@ -7196,9 +6944,6 @@ msgstr "Gagal memuat branch"
 msgid "Failed to load file"
 msgstr "Gagal memuat file"
 
-msgid "Failed to load funnel data"
-msgstr "Gagal memuat data funnel"
-
 msgid "Failed to load image"
 msgstr "Gagal memuat gambar"
 
@@ -7393,10 +7138,6 @@ msgstr "Gagal menyetel warna"
 
 msgid "Failed to set icon"
 msgstr "Gagal menyetel ikon"
-
-#. placeholder {0}: error.message
-msgid "Failed to set password: {0}"
-msgstr "Gagal menyetel kata sandi: {0}"
 
 msgid "Failed to sign in. Please try again."
 msgstr "Gagal masuk. Silakan coba lagi."
@@ -7686,12 +7427,6 @@ msgstr "Selesai"
 msgid "finished · worked for 7s"
 msgstr "selesai · bekerja 7 dtk"
 
-msgid "First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
-msgstr "Tampilan masuk pertama → auth → onboarding → workspace nyata (7h terakhir, jendela 2h)"
-
-msgid "First-ever pageview on superset.sh, daily"
-msgstr "Tampilan halaman pertama kali di superset.sh, harian"
-
 msgid "Fix all failing checks"
 msgstr "Perbaiki semua check yang gagal"
 
@@ -7788,9 +7523,6 @@ msgstr "Ikuti kami di LinkedIn"
 msgid "Follow us on X/Twitter"
 msgstr "Ikuti kami di X/Twitter"
 
-msgid "Follow-up"
-msgstr "Tindak lanjut"
-
 msgid "Font family"
 msgstr "Keluarga font"
 
@@ -7878,9 +7610,6 @@ msgstr "Fork sesi"
 msgid "Fork session…"
 msgstr "Fork sesi…"
 
-msgid "Forks"
-msgstr "Fork"
-
 msgid "Form controls and field composition"
 msgstr "Kontrol form dan komposisi field"
 
@@ -7919,12 +7648,6 @@ msgstr "mulai {price}/pengguna/bln"
 
 msgid "From a hackathon project to the workspace for parallel coding agents."
 msgstr "Dari proyek hackathon menjadi workspace untuk agen coding paralel."
-
-msgid "From a visit to a download to an account to a paying organization."
-msgstr "Dari kunjungan ke unduhan, ke akun, ke organisasi berbayar."
-
-msgid "From the public sitemap: compare pages, posts, and changelog entries by the week they were published or last revised."
-msgstr "Dari sitemap publik: halaman perbandingan, artikel, dan entri changelog menurut minggu dipublikasikan atau terakhir direvisi."
 
 msgid "Front matter hidden — switch to Markdown to edit it"
 msgstr "Front matter disembunyikan — beralih ke Markdown untuk mengeditnya"
@@ -8082,9 +7805,6 @@ msgstr "GitHub menolak kredensial mesin ini, sehingga pull request tidak dapat d
 msgid "GitHub sign-in needed"
 msgstr "Perlu masuk ke GitHub"
 
-msgid "GitHub stars"
-msgstr "Star GitHub"
-
 msgid "GitHub sync requires the Pro plan."
 msgstr "Sinkronisasi GitHub memerlukan paket Pro."
 
@@ -8151,9 +7871,6 @@ msgstr "Ke workspace"
 msgid "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
 msgstr "Google tidak memberikan akses jangka panjang. Hapus Superset dari akses pihak ketiga di akun Google Anda lalu coba lagi."
 
-msgid "Google Search Console"
-msgstr "Google Search Console"
-
 msgid "Grant the OS permissions Superset needs."
 msgstr "Berikan izin OS yang dibutuhkan Superset."
 
@@ -8180,9 +7897,6 @@ msgstr "Kelompokkan menurut"
 
 msgid "Group new branches under a folder."
 msgstr "Kelompokkan branch baru di bawah satu folder."
-
-msgid "Growth"
-msgstr "Pertumbuhan"
 
 msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "Arsitek GTM & Otomatisasi AI, Mistral AI"
@@ -8347,12 +8061,6 @@ msgstr "Tingkat keparahan tinggi"
 msgid "High usage"
 msgstr "Penggunaan tinggi"
 
-msgid "Hired"
-msgstr "Diterima"
-
-msgid "Hiring"
-msgstr "Rekrutmen"
-
 msgid "history"
 msgstr "riwayat"
 
@@ -8480,9 +8188,6 @@ msgstr "Berapa banyak terminal tersembunyi yang tetap dimuat penuh ({MIN_TERMINA
 
 msgid "How much agent work engineers are actually running — tokens, cost, models and sessions, published by people who opted in."
 msgstr "Seberapa banyak pekerjaan agen yang benar-benar dijalankan engineer — token, biaya, model, dan sesi, dipublikasikan oleh mereka yang ikut serta."
-
-msgid "How people reach superset.sh and the docs, and how much of it is search and assistants rather than the brand."
-msgstr "Bagaimana orang mencapai superset.sh dan dokumentasi, dan seberapa banyak yang berasal dari pencarian dan asisten alih-alih merek."
 
 msgid "How should the agent's actions be approved?"
 msgstr "Bagaimana tindakan agen harus disetujui?"
@@ -8701,9 +8406,6 @@ msgstr "Mengimpor..."
 msgid "Importing…"
 msgstr "Mengimpor…"
 
-msgid "Impressions"
-msgstr "Tayangan"
-
 msgid "Improve the agent instructions"
 msgstr "Perbaiki instruksi agen"
 
@@ -8764,9 +8466,6 @@ msgstr "Browser dalam aplikasi"
 
 msgid "In-app PR merge"
 msgstr "Merge PR di dalam aplikasi"
-
-msgid "Inbound"
-msgstr "Lamaran masuk"
 
 msgid "Inbox triage"
 msgstr "Triase kotak masuk"
@@ -8905,9 +8604,6 @@ msgstr "Diinstal melalui"
 msgid "Installing..."
 msgstr "Memasang..."
 
-msgid "Installs"
-msgstr "Instalasi"
-
 msgid "Instructions"
 msgstr "Instruksi"
 
@@ -8934,9 +8630,6 @@ msgstr "Sela"
 
 msgid "Interrupted"
 msgstr "Dihentikan"
-
-msgid "Interview"
-msgstr "Wawancara"
 
 msgid "Intro call"
 msgstr "Panggilan perkenalan"
@@ -9299,12 +8992,6 @@ msgstr "Aktivitas agen terakhir {0}"
 msgid "Last attached"
 msgstr "Terakhir terhubung"
 
-msgid "Last contact"
-msgstr "Kontak terakhir"
-
-msgid "Last contact {lastContact}"
-msgstr "Kontak terakhir {lastContact}"
-
 msgid "Last day of each month"
 msgstr "Hari terakhir tiap bulan"
 
@@ -9379,12 +9066,6 @@ msgstr "Pengaturan papan peringkat"
 
 msgid "Leaf"
 msgstr "Daun"
-
-msgid "Lean hire"
-msgstr "Cenderung terima"
-
-msgid "Lean no hire"
-msgstr "Cenderung tolak"
 
 msgid "Learn"
 msgstr "Belajar"
@@ -9779,12 +9460,6 @@ msgstr "login dilewati (akses Keychain ditolak)"
 msgid "Logo"
 msgstr "Logo"
 
-msgid "logo retention"
-msgstr "retensi logo"
-
-msgid "Logo retention — monthly"
-msgstr "Retensi logo — bulanan"
-
 msgid "Logo updated"
 msgstr "Logo diperbarui"
 
@@ -9943,9 +9618,6 @@ msgstr "Tandai Belum Dibaca"
 msgid "Mark as viewed"
 msgstr "Tandai sudah dilihat"
 
-msgid "Mark hired"
-msgstr "Tandai diterima"
-
 msgid "Mark Ready"
 msgstr "Tandai Siap"
 
@@ -10006,9 +9678,6 @@ msgstr "Server MCP"
 msgid "MCP Server Commands"
 msgstr "Perintah server MCP"
 
-msgid "Mean"
-msgstr "Rata-rata"
-
 msgid "Measured over the trailing 30 days"
 msgstr "Diukur selama 30 hari terakhir"
 
@@ -10024,9 +9693,6 @@ msgstr "Media kit"
 
 msgid "Median ticket-to-production time under one day for routine work."
 msgstr "Waktu median dari tiket ke produksi di bawah satu hari untuk pekerjaan rutin."
-
-msgid "Median time from previous"
-msgstr "Waktu median dari langkah sebelumnya"
 
 msgid "Medical and dental at no cost to you, a 401(k), unlimited time off, a $5K desk stipend, and free meals in the office."
 msgstr "Asuransi kesehatan dan gigi tanpa biaya, 401(k), cuti tanpa batas, tunjangan meja kerja $5K, dan makan gratis di kantor."
@@ -10176,9 +9842,6 @@ msgstr "Perkecil issue GitHub"
 msgid "Minimum contrast"
 msgstr "Kontras minimum"
 
-msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
-msgstr "Cerminan <0>dasbor PostHog Success Metrics</0> — produk lewat insight tersimpan, bisnis langsung dari Stripe/Neon"
-
 msgid "missed"
 msgstr "terlewat"
 
@@ -10267,9 +9930,6 @@ msgstr "Monospace"
 msgid "Month"
 msgstr "Bulan"
 
-msgid "Month {offset}"
-msgstr "Bulan {offset}"
-
 msgid "monthly"
 msgstr "bulanan"
 
@@ -10278,12 +9938,6 @@ msgstr "Bulanan"
 
 msgid "Monthly at {time}"
 msgstr "Bulanan pukul {time}"
-
-msgid "monthly NRR"
-msgstr "NRR bulanan"
-
-msgid "monthly NRR (month so far)"
-msgstr "NRR bulanan (bulan ini sejauh ini)"
 
 msgid "Monthly on {day}"
 msgstr "Bulanan pada tanggal {day}"
@@ -10345,9 +9999,6 @@ msgstr "Sebagian besar sejarah perangkat lunak"
 msgid "Move {count} to Group"
 msgstr "Pindahkan {count} ke Grup"
 
-msgid "Move to {nextStageLabel}"
-msgstr "Pindahkan ke {nextStageLabel}"
-
 msgid "Move to Center"
 msgstr "Pindahkan ke tengah"
 
@@ -10359,15 +10010,6 @@ msgstr "Pindahkan ke kanan"
 
 msgid "Move to Tab"
 msgstr "Pindahkan ke Tab"
-
-msgid "MRR"
-msgstr "MRR"
-
-msgid "MRR — daily (Stripe)"
-msgstr "MRR — harian (Stripe)"
-
-msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
-msgstr "MRR dari pelanggan yang membayar pada akhir bulan sebelumnya, sebagai proporsi dari yang mereka bayar saat itu: ekspansi dan kontraksi setelah dikurangi churn, tanpa pelanggan baru"
 
 msgid "Multi-select"
 msgstr "Pilih banyak"
@@ -10486,15 +10128,6 @@ msgstr "Butuh Anda"
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
-msgid "net burn"
-msgstr "net burn"
-
-msgid "Net burn — monthly (Mercury)"
-msgstr "Net burn — bulanan (Mercury)"
-
-msgid "Net revenue retention — monthly (Stripe)"
-msgstr "Retensi pendapatan bersih — bulanan (Stripe)"
-
 msgid "Network Changed"
 msgstr "Jaringan Berubah"
 
@@ -10513,9 +10146,6 @@ msgstr "Baru"
 
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Agen {providerLabel} yang baru akan memakai {accountLabel}."
-
-msgid "New accounts"
-msgstr "Akun baru"
 
 msgid "New agent"
 msgstr "Agen baru"
@@ -10568,17 +10198,11 @@ msgstr "Issue baru"
 msgid "New page"
 msgstr "Halaman baru"
 
-msgid "New password (min 8 characters)"
-msgstr "Kata sandi baru (min. 8 karakter)"
-
 msgid "New project"
 msgstr "Proyek baru"
 
 msgid "New push to branch"
 msgstr "Push baru ke branch"
-
-msgid "New role…"
-msgstr "Posisi baru…"
 
 msgid "New session"
 msgstr "Sesi baru"
@@ -10604,9 +10228,6 @@ msgstr "Tab baru + panel"
 msgid "New task"
 msgstr "Tugas baru"
 
-msgid "New teams"
-msgstr "Tim baru"
-
 msgid "New terminal"
 msgstr "Terminal baru"
 
@@ -10628,14 +10249,8 @@ msgstr "Workspace Baru"
 msgid "New Workspace ({shortcutText})"
 msgstr "Workspace Baru ({shortcutText})"
 
-msgid "new workspace creators"
-msgstr "pembuat workspace baru"
-
 msgid "New workspace in {name}"
 msgstr "Workspace baru di {name}"
-
-msgid "New-user activation"
-msgstr "Aktivasi pengguna baru"
 
 msgid "Newer than this app"
 msgstr "Lebih baru dari aplikasi ini"
@@ -10658,9 +10273,6 @@ msgstr "Berikutnya"
 msgid "Next branch"
 msgstr "Branch berikutnya"
 
-msgid "Next candidate"
-msgstr "Kandidat berikutnya"
-
 msgid "Next comment"
 msgstr "Komentar berikutnya"
 
@@ -10679,9 +10291,6 @@ msgstr "Run berikutnya dalam 3h"
 
 msgid "Next slide"
 msgstr "Slide berikutnya"
-
-msgid "Next step"
-msgstr "Langkah berikutnya"
 
 msgid "Next Tab"
 msgstr "Tab Berikutnya"
@@ -10716,9 +10325,6 @@ msgstr "Tidak ada login {0} di host ini — masuk dan penggunaannya akan muncul 
 
 msgid "No access to this host"
 msgstr "Tidak ada akses ke host ini"
-
-msgid "No active enterprise accounts"
-msgstr "Tidak ada akun enterprise yang aktif"
 
 msgid "No active host"
 msgstr "Tidak ada host aktif"
@@ -10859,9 +10465,6 @@ msgstr "Tidak ada kontributor ditemukan."
 msgid "No credit card required."
 msgstr "Tanpa kartu kredit."
 
-msgid "No data"
-msgstr "Tidak ada data"
-
 msgid "No description"
 msgstr "Tidak ada deskripsi"
 
@@ -10907,14 +10510,8 @@ msgstr "Tidak ada file yang cocok dengan tipe yang diterima."
 msgid "No files match your search"
 msgstr "Tidak ada file yang cocok dengan pencarian Anda"
 
-msgid "No follow-ups due. Nice."
-msgstr "Tidak ada tindak lanjut yang jatuh tempo. Mantap."
-
 msgid "No fonts found."
 msgstr "Font tidak ditemukan."
-
-msgid "No funnel data available for this period"
-msgstr "Tidak ada data funnel untuk periode ini"
 
 msgid "No git remote detected"
 msgstr "Tidak ada remote git yang terdeteksi"
@@ -11298,9 +10895,6 @@ msgstr "Peluncuran Tanpa Prompt"
 msgid "No. Your agents stay independent; Superset is the orchestration layer around them. Each task gets an isolated Git worktree, persistent sessions, diff review, and scheduled runs without tying the workflow to one provider."
 msgstr "Tidak. Agen Anda tetap independen; Superset adalah lapisan orkestrasi di sekitarnya. Tiap tugas mendapat worktree Git terisolasi, sesi yang persisten, review diff, dan run terjadwal tanpa mengikat alur kerja ke satu penyedia."
 
-msgid "Nobody"
-msgstr "Tidak ada"
-
 msgid "Nobody has joined the board yet."
 msgstr "Belum ada yang bergabung ke papan ini."
 
@@ -11312,12 +10906,6 @@ msgstr "Belum ada anggota tim Anda yang membagikan otomatisasi."
 
 msgid "Nobody reviews differently because of it."
 msgstr "Tidak ada yang mereview secara berbeda karenanya."
-
-msgid "non-brand"
-msgstr "non-merek"
-
-msgid "Non-brand clicks"
-msgstr "Klik non-merek"
 
 msgid "None"
 msgstr "Tidak ada"
@@ -11358,14 +10946,8 @@ msgstr "Tidak Terhubung"
 msgid "Not connected · cloud workspaces push as your organization's GitHub App"
 msgstr "Belum terhubung · workspace cloud melakukan push sebagai GitHub App organisasi Anda"
 
-msgid "Not connected: {unavailableReason}. Add a Google service account to the Search Console property and set GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT."
-msgstr "Tidak terhubung: {unavailableReason}. Tambahkan akun layanan Google ke properti Search Console dan atur GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT."
-
 msgid "Not demoed here"
 msgstr "Tidak didemokan di sini"
-
-msgid "Not every client emits {gaps} yet, so that stage is under-counted."
-msgstr "Belum semua klien mengirim {gaps}, jadi tahap itu terhitung kurang."
 
 msgid "Not found"
 msgstr "Tidak ditemukan"
@@ -11378,9 +10960,6 @@ msgstr "Tidak termasuk"
 
 msgid "Not loaded"
 msgstr "Belum dimuat"
-
-msgid "Not looking"
-msgstr "Tidak mencari kerja"
 
 msgid "Not now"
 msgstr "Nanti saja"
@@ -11396,9 +10975,6 @@ msgstr "Belum menerima event: Microsoft Graph menolak langganan notifikasi. Peri
 
 msgid "Not reviewed by you"
 msgstr "Belum Anda review"
-
-msgid "Not scored"
-msgstr "Belum dinilai"
 
 msgid "Not sent"
 msgstr "Tidak terkirim"
@@ -11464,9 +11040,6 @@ msgstr "Notifikasi"
 msgid "Notion is not configured for this environment."
 msgstr "Notion belum dikonfigurasi untuk environment ini."
 
-msgid "Notion page"
-msgstr "Halaman Notion"
-
 msgid "now"
 msgstr "sekarang"
 
@@ -11513,9 +11086,6 @@ msgstr "dari semua token"
 
 msgid "Off"
 msgstr "Mati"
-
-msgid "Offer"
-msgstr "Penawaran"
 
 #. placeholder {0}: COMPANY.NAME
 msgid "Official documentation for {0}, the app for running 100+ coding agents in parallel."
@@ -11612,9 +11182,6 @@ msgstr "online"
 msgid "Online"
 msgstr "Online"
 
-msgid "Online now"
-msgstr "Online sekarang"
-
 msgid "Online Now"
 msgstr "Online Sekarang"
 
@@ -11692,9 +11259,6 @@ msgstr "Hanya Anda"
 
 msgid "Only you can see this page"
 msgstr "Hanya Anda yang dapat melihat halaman ini"
-
-msgid "Onsite"
-msgstr "Tatap muka"
 
 msgid "open"
 msgstr "buka"
@@ -11897,9 +11461,6 @@ msgstr "Buka di tab baru"
 
 msgid "Open in New Tab"
 msgstr "Buka di Tab Baru"
-
-msgid "Open in PostHog"
-msgstr "Buka di PostHog"
 
 msgid "Open in Pull Requests"
 msgstr "Buka di Pull request"
@@ -12182,12 +11743,6 @@ msgstr "Chat orkestrasi"
 msgid "Orchestration guide"
 msgstr "Panduan orkestrasi"
 
-msgid "Organic search"
-msgstr "Pencarian organik"
-
-msgid "Organic search by engine"
-msgstr "Pencarian organik per mesin"
-
 msgid "Organization"
 msgstr "Organisasi"
 
@@ -12231,9 +11786,6 @@ msgstr "URL organisasi diperbarui!"
 msgid "Organization: <0>{0}</0>"
 msgstr "Organisasi: <0>{0}</0>"
 
-msgid "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
-msgstr "Organisasi dengan anggota kedua dibandingkan akun beranggota tunggal; garisnya adalah tim per 1.000."
-
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Atur pekerjaan Anda ke dalam tim. Tugas dan integrasi bisa disinkronkan per tim."
 
@@ -12270,20 +11822,11 @@ msgstr "Pembacaan kami per Agustus 2026, berdasarkan tim kami sendiri dan tim ya
 msgid "Out of scope"
 msgstr "Di luar cakupan"
 
-msgid "Outbound"
-msgstr "Penjangkauan keluar"
-
-msgid "Outcome change"
-msgstr "Perubahan hasil"
-
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "Hasil masuk, perangkat lunak keluar. Manusia menetapkan maksud, batasan, dan anggaran. Pabrik menjadwalkan dirinya sendiri, merilis terus-menerus, memantau apa yang dirilisnya, dan me-rollback dirinya sendiri. Sebagian besar perubahan di-merge tanpa manusia di dalam alurnya, dan tingkat insiden tidak naik."
 
 msgid "Outdated"
 msgstr "Usang"
-
-msgid "Outflows less Stripe payouts per month (treasury sweeps excluded); current month partial"
-msgstr "Arus keluar dikurangi payout Stripe per bulan (sweep treasury dikecualikan); bulan berjalan sebagian"
 
 msgid "Outline"
 msgstr "Outline"
@@ -12299,9 +11842,6 @@ msgstr "Skema Output"
 
 msgid "Output truncated"
 msgstr "Output dipotong"
-
-msgid "Outreach"
-msgstr "Penjangkauan"
 
 msgid "Overflow Fade"
 msgstr "Overflow Fade"
@@ -12373,9 +11913,6 @@ msgstr "Batas laju pelaporan halaman belum dikonfigurasi"
 msgid "Page title"
 msgstr "Judul halaman"
 
-msgid "Page views"
-msgstr "Tampilan halaman"
-
 msgid "Pages"
 msgstr "Halaman"
 
@@ -12384,9 +11921,6 @@ msgstr "Halaman tidak dapat dimuat"
 
 msgid "Pages open in a grid, and floating keyboards work. Requires iPadOS 26 or later."
 msgstr "Halaman terbuka dalam grid, dan keyboard mengambang berfungsi. Memerlukan iPadOS 26 atau lebih baru."
-
-msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
-msgstr "Halaman tempat sesi dimulai, dengan porsi yang pergi tanpa halaman kedua. Halaman perbandingan adalah permukaan SEO."
 
 msgid "Pages that save answers"
 msgstr "Halaman yang menyimpan jawaban"
@@ -12399,15 +11933,6 @@ msgstr "paginasi"
 
 msgid "Pagination"
 msgstr "Paginasi"
-
-msgid "Paid"
-msgstr "Berbayar"
-
-msgid "Paid churn — cohort survival"
-msgstr "Churn berbayar — ketahanan kohor"
-
-msgid "Paid search"
-msgstr "Pencarian berbayar"
 
 msgid "Paid work trial"
 msgstr "Uji coba kerja berbayar"
@@ -12478,9 +12003,6 @@ msgstr "Kata sandi"
 msgid "Password for {email}"
 msgstr "Kata sandi untuk {email}"
 
-msgid "Password set"
-msgstr "Kata sandi disetel"
-
 msgid "Past month"
 msgstr "Sebulan terakhir"
 
@@ -12536,9 +12058,6 @@ msgstr "Metode pembayaran"
 msgid "Payment Successful"
 msgstr "Pembayaran Berhasil"
 
-msgid "Paywall → paid"
-msgstr "Paywall → berbayar"
-
 msgid "PDF"
 msgstr "PDF"
 
@@ -12550,9 +12069,6 @@ msgstr "Undangan Tertunda"
 
 msgid "People"
 msgstr "Orang"
-
-msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
-msgstr "Orang yang pertama kali melihat paywall dalam {PAYWALL_FUNNEL_WEEKS} minggu terakhir, dan sejauh mana mereka melangkah. Sebuah tahap menghitung siapa pun yang mencapainya setelah tampilan itu, jadi kohort terbaru masih terus bertambah."
 
 msgid "People with access"
 msgstr "Orang yang punya akses"
@@ -12597,9 +12113,6 @@ msgstr "Pribadi"
 msgid "Phantom Forklift"
 msgstr "Forklift Hantu"
 
-msgid "Phone"
-msgstr "Telepon"
-
 msgid "Phone number"
 msgstr "Nomor telepon"
 
@@ -12635,9 +12148,6 @@ msgstr "Pilih lokasi proyek"
 
 msgid "Pick a reason"
 msgstr "Pilih alasan"
-
-msgid "Pick a role"
-msgstr "Pilih posisi"
 
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Pilih suara atau tambahkan milik Anda sendiri. Audio kustom mendukung .mp3, .wav, dan .ogg."
@@ -12689,9 +12199,6 @@ msgstr "Merah muda"
 
 msgid "Pinned"
 msgstr "Tersemat"
-
-msgid "Pipeline"
-msgstr "Pipeline"
 
 msgid "PK"
 msgstr "PK"
@@ -12803,9 +12310,6 @@ msgstr "Port di dropdown bilah atas"
 msgid "Ports on remote hosts"
 msgstr "Port di host jarak jauh"
 
-msgid "Position"
-msgstr "Posisi"
-
 msgid "Possible on good days. Supervision cost still grows too fast."
 msgstr "Mungkin di hari yang bagus. Biaya pengawasan masih tumbuh terlalu cepat."
 
@@ -12814,9 +12318,6 @@ msgstr "Posting"
 
 msgid "Post comment"
 msgstr "Kirim komentar"
-
-msgid "Power user"
-msgstr "Pengguna mahir"
 
 msgid "PR"
 msgstr "PR"
@@ -12943,9 +12444,6 @@ msgstr "Sebelumnya"
 
 msgid "Previous branch"
 msgstr "Branch sebelumnya"
-
-msgid "Previous candidate"
-msgstr "Kandidat sebelumnya"
 
 msgid "Previous comment"
 msgstr "Komentar sebelumnya"
@@ -13278,9 +12776,6 @@ msgstr "Jadwalkan pekerjaan berulang berdasarkan waktu atau picu lewat event. Ag
 msgid "px"
 msgstr "px"
 
-msgid "Query"
-msgstr "Kueri"
-
 msgid "Query events and feature flags"
 msgstr "Kueri event dan feature flag"
 
@@ -13384,12 +12879,6 @@ msgstr "Jangkau Mac ini dari mana saja lewat relay Superset, atau jalankan works
 msgid "Reached"
 msgstr "Tercapai"
 
-msgid "Reached a dashboard page"
-msgstr "Mencapai halaman dasbor"
-
-msgid "Reached out"
-msgstr "Sudah dihubungi"
-
 msgid "React layer of the shared pane/workspace layout engine"
 msgstr "Lapisan React dari mesin tata letak panel/workspace bersama"
 
@@ -13468,9 +12957,6 @@ msgstr "Siap Di-merge"
 
 msgid "Ready to try Superset?"
 msgstr "Siap mencoba Superset?"
-
-msgid "Real workspaces on 2+ distinct days within week 1 of first workspace (retention-validated definition)"
-msgstr "Workspace nyata pada 2+ hari berbeda dalam minggu 1 sejak workspace pertama (definisi tervalidasi retensi)"
 
 msgid "Reapply all commits"
 msgstr "Terapkan ulang semua commit"
@@ -13568,12 +13054,6 @@ msgstr "Dirujuk, tidak didemokan"
 msgid "References"
 msgstr "Mereferensikan"
 
-msgid "Referral"
-msgstr "Rujukan"
-
-msgid "Referred by"
-msgstr "Direferensikan oleh"
-
 msgid "Refresh"
 msgstr "Segarkan"
 
@@ -13610,9 +13090,6 @@ msgstr "Daftarkan agen CLI apa pun bersama agen bawaan, masing-masing dengan nam
 msgid "Registers lifecycle hooks in this agent's global config so Superset can show status and send notifications. Turning this off removes Superset's entries everywhere — status and notifications stop for this agent, including inside Superset."
 msgstr "Mendaftarkan hook lifecycle di konfigurasi global agen ini agar Superset bisa menampilkan status dan mengirim notifikasi. Mematikannya menghapus entri Superset di mana-mana — status dan notifikasi berhenti untuk agen ini, termasuk di dalam Superset."
 
-msgid "Rejected"
-msgstr "Ditolak"
-
 msgid "Related Posts"
 msgstr "Tulisan Terkait"
 
@@ -13624,9 +13101,6 @@ msgstr "Jalankan ulang agen yang sedang berjalan untuk menggantinya."
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "Akses relay aktif, menghubungkan ke relay…"
-
-msgid "Release"
-msgstr "Rilis"
 
 msgid "Release control"
 msgstr "Lepaskan kendali"
@@ -13935,9 +13409,6 @@ msgstr "Repositori: {label}"
 msgid "Repository"
 msgstr "Repositori"
 
-msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
-msgstr "Jangkauan repositori dan unduhan rilis desktop. Instalasi adalah unduhan dmg dan AppImage; pembaruan adalah zip yang diambil pembaru otomatis, jadi menghitung pengguna yang sudah ada."
-
 msgid "Repository URL or path"
 msgstr "URL atau path repositori"
 
@@ -13988,9 +13459,6 @@ msgstr "Reset editor"
 
 msgid "Reset GitHub star nag state"
 msgstr "Atur ulang status pengingat bintang GitHub"
-
-msgid "Reset layout"
-msgstr "Atur ulang tata letak"
 
 msgid "Reset location"
 msgstr "Reset lokasi"
@@ -14217,12 +13685,6 @@ msgstr "Melanjutkan {0}…"
 msgid "Resuming the conversation…"
 msgstr "Melanjutkan percakapan…"
 
-msgid "Retained MRR"
-msgstr "MRR yang dipertahankan"
-
-msgid "Retention and revenue"
-msgstr "Retensi dan pendapatan"
-
 msgid "Retry"
 msgstr "Coba lagi"
 
@@ -14267,9 +13729,6 @@ msgstr "Tampilkan di sidebar"
 
 msgid "Reveal my rank"
 msgstr "Tampilkan peringkat saya"
-
-msgid "Revenue first, then how many people are actually using it, then what it costs to run."
-msgstr "Pendapatan dulu, lalu berapa banyak orang yang benar-benar memakainya, lalu berapa biayanya."
 
 msgid "Review"
 msgstr "Review"
@@ -14388,9 +13847,6 @@ msgstr "Peran"
 
 msgid "Role changed to {newRoleName}"
 msgstr "Peran diubah menjadi {newRoleName}"
-
-msgid "Role title"
-msgstr "Nama posisi"
 
 msgid "Role updated"
 msgstr "Peran diperbarui"
@@ -14646,9 +14102,6 @@ msgstr "Menyimpan..."
 msgid "Saving…"
 msgstr "Menyimpan…"
 
-msgid "Saw the paywall"
-msgstr "Melihat paywall"
-
 msgid "Scale to 100+ agents"
 msgstr "Tingkatkan hingga lebih dari 100 agen"
 
@@ -14694,15 +14147,9 @@ msgstr "Provisioning SCIM"
 msgid "Scope"
 msgstr "Cakupan"
 
-msgid "Score"
-msgstr "Skor"
-
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "Scoring starts once the board can see {0} days of usage."
 msgstr "Penilaian dimulai setelah papan melihat {0} hari penggunaan."
-
-msgid "Screening call"
-msgstr "Panggilan penyaringan"
 
 msgid "Screenshot copied to clipboard"
 msgstr "Tangkapan layar disalin ke clipboard"
@@ -14813,9 +14260,6 @@ msgstr "Cari issue GitHub…"
 msgid "Search history"
 msgstr "Cari riwayat"
 
-msgid "Search impressions and clicks for the last 28 days, with queries split into our brand, Apache Superset (not us), and everything else. Non-brand is the share SEO work exists to grow. Google delivers this data three days late."
-msgstr "Tayangan dan klik pencarian 28 hari terakhir, dengan kueri dibagi menjadi merek kami, Apache Superset (bukan kami), dan lainnya. Non-merek adalah bagian yang harus ditumbuhkan oleh kerja SEO. Google mengirim data ini terlambat tiga hari."
-
 msgid "Search in {frameTitle}…"
 msgstr "Cari di {frameTitle}…"
 
@@ -14830,9 +14274,6 @@ msgstr "Cari di Linear…"
 
 msgid "Search models"
 msgstr "Cari model"
-
-msgid "Search name, email, company, GitHub"
-msgstr "Cari nama, email, perusahaan, GitHub"
 
 msgid "Search pages"
 msgstr "Cari halaman"
@@ -15221,10 +14662,6 @@ msgstr "Pemicu Sentry berhenti berjalan sampai Anda menghubungkan lagi. Integras
 msgid "Separator"
 msgstr "Separator"
 
-#. placeholder {0}: i + 1
-msgid "series {0}"
-msgstr "seri {0}"
-
 msgid "Service availability is published at <0>status.superset.sh</0>, and security and compliance documentation at <1>trust.superset.sh</1>."
 msgstr "Ketersediaan layanan dipublikasikan di <0>status.superset.sh</0>, dan dokumentasi keamanan serta kepatuhan di <1>trust.superset.sh</1>."
 
@@ -15277,12 +14714,6 @@ msgstr "Setel warna grup"
 msgid "Set icon to {0}"
 msgstr "Setel ikon menjadi {0}"
 
-msgid "Set password"
-msgstr "Setel kata sandi"
-
-msgid "Set Password"
-msgstr "Setel Kata Sandi"
-
 msgid "Set project…"
 msgstr "Tetapkan proyek…"
 
@@ -15313,10 +14744,6 @@ msgstr "Siapkan proyek ini untuk Superset"
 
 msgid "Set up your organization to get started"
 msgstr "Siapkan organisasi Anda untuk memulai"
-
-#. placeholder {0}: user.email
-msgid "Sets an email+password credential for <0>{0}</0> via Better Auth (hashed with scrypt). Existing sign-in methods keep working."
-msgstr "Menyetel kredensial email+kata sandi untuk <0>{0}</0> lewat Better Auth (di-hash dengan scrypt). Metode masuk yang ada tetap berfungsi."
 
 msgid "Setting saved"
 msgstr "Pengaturan disimpan"
@@ -15687,17 +15114,8 @@ msgstr "Situs yang sedang masuk"
 msgid "Signing in..."
 msgstr "Sedang masuk..."
 
-msgid "signup → paid ≤30d"
-msgstr "daftar → berbayar ≤30h"
-
-msgid "Signup → paid within 30d"
-msgstr "Daftar → berbayar dalam 30h"
-
 msgid "Signup works. The welcome screen loads and the console is clean."
 msgstr "Pendaftaran berhasil. Layar sambutan termuat dan konsol bersih."
-
-msgid "signups"
-msgstr "pendaftaran"
 
 msgid "Simple pricing for every team"
 msgstr "Harga sederhana untuk tiap tim"
@@ -15722,9 +15140,6 @@ msgstr "Satu tab + panel"
 
 msgid "Single-select"
 msgstr "Pilih satu"
-
-msgid "Site"
-msgstr "Situs"
 
 msgid "Site-wide telemetry · {range}"
 msgstr "Telemetri seluruh situs · {range}"
@@ -15807,9 +15222,6 @@ msgstr "Membuat snapshot workspace ini seperti sekarang, beserta semua yang terp
 msgid "Snooze"
 msgstr "Tunda"
 
-msgid "Snooze 3 days"
-msgstr "Tunda 3 hari"
-
 msgid "so a border on two edges of the rotated square always faces outward."
 msgstr "jadi garis pada dua sisi persegi yang diputar selalu menghadap ke luar."
 
@@ -15824,9 +15236,6 @@ msgstr "Patuh SOC 2 Type II. Minta laporan kami."
 
 msgid "SOC 2 Type II report"
 msgstr "Laporan SOC 2 Type II"
-
-msgid "Social"
-msgstr "Media sosial"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "Sebagian file bukan tipe yang diterima dan tidak ditambahkan."
@@ -15910,9 +15319,6 @@ msgstr "Source Available"
 
 msgid "Source path (not an import)"
 msgstr "Path sumber (bukan impor)"
-
-msgid "Sourced"
-msgstr "Ditemukan"
 
 msgid "Sources"
 msgstr "Sumber"
@@ -16025,14 +15431,8 @@ msgstr "Bertumpuk"
 msgid "Staff Software Engineer, Vori"
 msgstr "Staff Software Engineer, Vori"
 
-msgid "Stage"
-msgstr "Tahap"
-
 msgid "Stage all"
 msgstr "Stage semua"
-
-msgid "Stage change"
-msgstr "Perubahan tahap"
 
 msgid "Stage file"
 msgstr "Stage file"
@@ -16140,10 +15540,6 @@ msgstr "Mulai gratis. Upgrade saat tim Anda membutuhkan lebih. Paket enterprise 
 msgid "Start from a template"
 msgstr "Mulai dari templat"
 
-#. placeholder {0}: datum.customers
-msgid "Start MRR ({0} customers)"
-msgstr "MRR awal ({0} pelanggan)"
-
 msgid "Start new session"
 msgstr "Mulai sesi baru"
 
@@ -16164,9 +15560,6 @@ msgstr "Mulai bekerja dari mana saja"
 
 msgid "Started"
 msgstr "Dimulai"
-
-msgid "Started checkout"
-msgstr "Memulai checkout"
 
 msgid "starting"
 msgstr "memulai"
@@ -16236,9 +15629,6 @@ msgstr "Arahkan"
 msgid "Step {0} of 2"
 msgstr "Langkah {0} dari 2"
 
-msgid "Step {step}: {name}"
-msgstr "Langkah {step}: {name}"
-
 msgid "Steps 3 and 4 repeat at every scheduled time."
 msgstr "Langkah 3 dan 4 berulang pada setiap waktu terjadwal."
 
@@ -16304,22 +15694,6 @@ msgstr "Coret"
 msgid "Strip redundant overrides at call sites"
 msgstr "Buang penimpaan berlebih di call site"
 
-#. placeholder {0}: formatDateTime(new Date(series.dataThrough), TIMESTAMP_FORMAT)
-msgid "Stripe data through {0}"
-msgstr "Data Stripe hingga {0}"
-
-msgid "Stripe revenue"
-msgstr "pendapatan Stripe"
-
-msgid "Stripe's own Sigma MRR report, computed on demand via the Query Run API"
-msgstr "Laporan MRR Sigma milik Stripe, dihitung sesuai permintaan lewat Query Run API"
-
-msgid "Strong hire"
-msgstr "Sangat layak diterima"
-
-msgid "Strong no hire"
-msgstr "Sangat tidak layak diterima"
-
 msgid "Structure, scrolling, and overflow handling"
 msgstr "Struktur, penggulungan, dan penanganan overflow"
 
@@ -16352,9 +15726,6 @@ msgstr "Pembatasan laju pengiriman prompt belum dikonfigurasi"
 
 msgid "Submitting…"
 msgstr "Mengirim…"
-
-msgid "Subs"
-msgstr "Langganan"
 
 msgid "SUBSCRIBE"
 msgstr "BERLANGGANAN"
@@ -16415,9 +15786,6 @@ msgstr "Superset"
 
 msgid "Superset (YC S26) is the open-source IDE for the AI agents era, where engineers run hundreds of coding agents like Claude Code and Codex in parallel."
 msgstr "Superset (YC S26) adalah IDE sumber terbuka untuk era agen AI, tempat para engineer menjalankan ratusan agen coding seperti Claude Code dan Codex secara paralel."
-
-msgid "Superset | Company Dashboard"
-msgstr "Superset | Dasbor perusahaan"
 
 msgid "Superset Agent"
 msgstr "Superset Agent"
@@ -16607,10 +15975,6 @@ msgstr "Superset menyimpan setiap koneksi dalam bentuk terenkripsi. Pemanggilan 
 
 msgid "Superset UI"
 msgstr "Superset UI"
-
-#. placeholder {0}: supersetUser.email
-msgid "Superset user · {0}"
-msgstr "Pengguna Superset · {0}"
 
 #. placeholder {0}: formatPercent(trackedMemorySharePercent)
 msgid "Superset uses {0} of system RAM"
@@ -16908,17 +16272,8 @@ msgstr "Pengaturan tim"
 msgid "Teammates pin feedback to the exact part of the page they mean."
 msgstr "Rekan tim menyematkan masukan tepat di bagian halaman yang mereka maksud."
 
-msgid "teams"
-msgstr "tim"
-
 msgid "Teams"
 msgstr "Tim"
-
-msgid "teams per 1,000 organizations"
-msgstr "tim per 1.000 organisasi"
-
-msgid "Teams vs individual accounts (Neon)"
-msgstr "Tim vs akun individu (Neon)"
 
 msgid "Teardown"
 msgstr "Teardown"
@@ -17376,9 +16731,6 @@ msgstr "Layanan host Superset untuk {organization} berhenti tak terduga ({cause}
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "Layanan host Superset berhenti tak terduga ({cause}) dan tidak bisa dimulai ulang otomatis."
 
-msgid "The surfaces outside the site that carry the product: the repository, releases, and Discord."
-msgstr "Permukaan di luar situs yang membawa produk: repositori, rilis, dan Discord."
-
 msgid "the target host"
 msgstr "host tujuan"
 
@@ -17822,9 +17174,6 @@ msgstr "Tingkat"
 msgid "Time"
 msgstr "Waktu"
 
-msgid "Time range"
-msgstr "Rentang waktu"
-
 msgid "Times use your time zone."
 msgstr "Waktu memakai zona waktu Anda."
 
@@ -17978,14 +17327,8 @@ msgstr "Tooltip aktif"
 msgid "tooltip-refactor.diff"
 msgstr "tooltip-refactor.diff"
 
-msgid "Top landing pages, last {dayCount} days"
-msgstr "Halaman landas teratas, {dayCount} hari terakhir"
-
 msgid "Top models"
 msgstr "Model teratas"
-
-msgid "Top referring sites, last {dayCount} days"
-msgstr "Situs perujuk teratas, {dayCount} hari terakhir"
 
 msgid "Top tier. Nothing left to clear."
 msgstr "Tingkat tertinggi. Tidak ada lagi yang perlu dicapai."
@@ -18002,9 +17345,6 @@ msgstr "Total sesi agen"
 msgid "Total automations"
 msgstr "Total otomatisasi"
 
-msgid "total cash"
-msgstr "total kas"
-
 msgid "Total cost"
 msgstr "Total biaya"
 
@@ -18013,9 +17353,6 @@ msgstr "Total pengeluaran"
 
 msgid "Total tokens published"
 msgstr "Total token yang dipublikasikan"
-
-msgid "Touched"
-msgstr "Sudah dihubungi"
 
 msgid "Trace charges and subscriptions"
 msgstr "Lacak tagihan dan langganan"
@@ -18227,12 +17564,6 @@ msgstr "Run tanpa pengawasan selama 8 jam atau lebih berhasil pada mayoritas tik
 msgid "Unavailable"
 msgstr "Tidak tersedia"
 
-msgid "Unavailable: {unavailableReason}"
-msgstr "Tidak tersedia: {unavailableReason}"
-
-msgid "unbilled"
-msgstr "belum ditagih"
-
 msgid "Uncached input"
 msgstr "Input tanpa cache"
 
@@ -18274,15 +17605,6 @@ msgstr "Pencopotan gagal"
 
 msgid "Unique"
 msgstr "Unik"
-
-msgid "Unique users creating a real workspace per calendar week; current week dashed"
-msgstr "Pengguna unik yang membuat workspace nyata per minggu kalender; minggu berjalan bergaris putus-putus"
-
-msgid "Unique users creating a real workspace, daily"
-msgstr "Pengguna unik yang membuat workspace nyata, harian"
-
-msgid "Unique visitors starting a session on superset.sh or the docs each week, by how they arrived. AI assistants means a link inside ChatGPT, Claude, Gemini, or Perplexity."
-msgstr "Pengunjung unik yang memulai sesi di superset.sh atau dokumentasi setiap minggu, menurut asal kedatangan. Asisten AI berarti tautan di dalam ChatGPT, Claude, Gemini, atau Perplexity."
 
 msgid "unknown"
 msgstr "tidak diketahui"
@@ -18799,18 +18121,6 @@ msgstr "Lihat penggunaan"
 msgid "Violence or harassment"
 msgstr "Kekerasan atau pelecehan"
 
-msgid "Visitors"
-msgstr "Pengunjung"
-
-msgid "Visitors by channel"
-msgstr "Pengunjung per saluran"
-
-msgid "Visitors to downloads to accounts"
-msgstr "Dari pengunjung ke unduhan ke akun"
-
-msgid "Visitors whose session began on a link an assistant gave them. This is the number an AEO effort should move."
-msgstr "Pengunjung yang sesinya dimulai dari tautan yang diberikan asisten. Ini angka yang harus digerakkan oleh upaya AEO."
-
 msgid "Voice"
 msgstr "Suara"
 
@@ -18852,9 +18162,6 @@ msgstr "Menunggu pesan pertama dari subagen…"
 msgid "Waiting for your input"
 msgstr "Menunggu masukan Anda"
 
-msgid "Waitlist signups"
-msgstr "Pendaftaran daftar tunggu"
-
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Ingin sesuatu lebih cepat? <0>Beri tahu kami di Discord</0>. Banyak yang ada di sini bermula dari permintaan pengguna."
 
@@ -18869,9 +18176,6 @@ msgstr "Lihat bagaimana tinjauan desain berubah dari komentar menjadi versi baru
 
 msgid "Watch the Superset Automations video on YouTube"
 msgstr "Tonton video Otomatisasi Superset di YouTube"
-
-msgid "Watchers"
-msgstr "Pengamat"
 
 msgid "Wayfinding and disclosure"
 msgstr "Penunjuk arah dan pengungkapan"
@@ -18966,13 +18270,6 @@ msgstr "Situs web"
 msgid "Week"
 msgstr "Minggu"
 
-msgid "Week {week}"
-msgstr "Minggu {week}"
-
-#. placeholder {0}: formatDay(data?.weeks[last] ?? "")
-msgid "week of {0}"
-msgstr "minggu {0}"
-
 msgid "Week of {formatted}"
 msgstr "Minggu {formatted}"
 
@@ -19003,26 +18300,8 @@ msgstr "Mingguan"
 msgid "Weekly at {time}"
 msgstr "Mingguan pukul {time}"
 
-msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
-msgstr "Kohor mingguan berdasarkan workspace nyata pertama; % yang kembali dengan workspace lain tiap minggu"
-
-msgid "Weekly p50/p90 real workspaces per creator; current week dashed"
-msgstr "p50/p90 mingguan workspace nyata per pembuat; minggu berjalan bergaris putus-putus"
-
-msgid "Weekly pageview → download conversion, Mac visitors; current week dashed"
-msgstr "Konversi mingguan tampilan halaman → unduhan, pengunjung Mac; minggu berjalan bergaris putus-putus"
-
 msgid "Weekly release notes"
 msgstr "Catatan rilis mingguan"
-
-msgid "Weekly signup cohorts (Neon); cohorts younger than 30d excluded"
-msgstr "Kohor pendaftaran mingguan (Neon); kohor yang lebih muda dari 30h dikecualikan"
-
-msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations that gained their second member that week. Rates are for the last complete week."
-msgstr "Pengunjung situs mingguan (sesi PostHog), orang yang mengeklik unduh, akun yang dibuat (Neon, email perusahaan dikecualikan), dan tim: organisasi yang mendapatkan anggota keduanya pada minggu itu. Rasio untuk minggu penuh terakhir."
-
-msgid "Weekly visitors arriving from a search results page. Search Console below says which queries they typed."
-msgstr "Pengunjung mingguan yang datang dari halaman hasil pencarian. Search Console di bawah menunjukkan kueri yang mereka ketik."
 
 msgid "Welcome back"
 msgstr "Selamat datang kembali"
@@ -19047,12 +18326,6 @@ msgstr "Apa yang ingin Anda lakukan?"
 
 msgid "What early users say"
 msgstr "Kata para pengguna awal"
-
-msgid "What Google shows us for and how much of it is not our own name."
-msgstr "Untuk pencarian apa Google menampilkan kami dan seberapa banyak yang bukan nama kami sendiri."
-
-msgid "What happens next"
-msgstr "Langkah selanjutnya"
 
 msgid "What has to become true"
 msgstr "Apa yang harus terjadi"
@@ -19086,9 +18359,6 @@ msgstr "Apa yang harus kita bangun berikutnya?"
 
 msgid "What Superset is, who builds it, and who it's for. A San Francisco team, led by three ex-YC CTOs, building the workspace for parallel coding agents."
 msgstr "Apa itu Superset, siapa yang membangunnya, dan untuk siapa. Tim San Francisco yang dipimpin tiga mantan CTO YC, membangun workspace untuk agen coding paralel."
-
-msgid "What the content is doing: which pages sessions start on, and how much is being published."
-msgstr "Apa yang dilakukan konten: di halaman mana sesi dimulai, dan seberapa banyak yang dipublikasikan."
 
 msgid "What these were written against is no longer on the page, so they have no pin."
 msgstr "Yang menjadi acuannya sudah tidak ada di halaman, jadi tidak punya penanda."
@@ -19138,9 +18408,6 @@ msgstr "Di mana kode saya berjalan?"
 msgid "Where serious teams are"
 msgstr "Tempat tim serius berada"
 
-msgid "Where sessions begin: the home page, a compare page, the docs, a post, or a changelog entry. Content that ranks shows up here before it shows up in signups."
-msgstr "Tempat sesi dimulai: beranda, halaman perbandingan, dokumentasi, artikel, atau entri changelog. Konten yang berperingkat muncul di sini sebelum muncul di pendaftaran."
-
 msgid "Where the industry is, honestly"
 msgstr "Posisi industri, sejujurnya"
 
@@ -19153,9 +18420,6 @@ msgstr "Di mana skrip terminal ini tersedia."
 msgid "Where to look next"
 msgstr "Ke mana mencari berikutnya"
 
-msgid "Whether the people acquired stay and what they pay."
-msgstr "Apakah orang yang diperoleh bertahan dan berapa yang mereka bayar."
-
 msgid "Which agents are supported?"
 msgstr "Agen mana saja yang didukung?"
 
@@ -19167,9 +18431,6 @@ msgstr "Siapa yang bisa membuka halaman ini dari tautannya"
 
 msgid "Who can open this workspace"
 msgstr "Siapa yang dapat membuka workspace ini"
-
-msgid "Whole site"
-msgstr "Seluruh situs"
 
 msgid "Whole Task"
 msgstr "Tugas utuh"
@@ -19204,17 +18465,11 @@ msgstr "dengan atau tanpa lampiran"
 msgid "With the Superset mobile app, I can address production issues from anywhere."
 msgstr "Dengan aplikasi seluler Superset, saya bisa menangani masalah produksi dari mana saja."
 
-msgid "Withdrew"
-msgstr "Mengundurkan diri"
-
 msgid "Wordmark, black"
 msgstr "Wordmark, hitam"
 
 msgid "Wordmark, white"
 msgstr "Wordmark, putih"
-
-msgid "Work at a Startup"
-msgstr "Work at a Startup"
 
 msgid "Work email"
 msgstr "Email kerja"
@@ -19224,9 +18479,6 @@ msgstr "Bekerja dari tiket"
 
 msgid "Work the action items from a call"
 msgstr "Kerjakan tindak lanjut dari panggilan"
-
-msgid "Work trial"
-msgstr "Uji coba kerja"
 
 msgid "Work with your agents across your favorite tools"
 msgstr "Bekerja dengan agen Anda lintas alat favorit Anda"
@@ -19359,17 +18611,11 @@ msgstr "Pengaturan workspace"
 msgid "Workspace worktree not available"
 msgstr "Worktree workspace tidak tersedia"
 
-msgid "workspaces"
-msgstr "workspace"
-
 msgid "Workspaces"
 msgstr "Workspace"
 
 msgid "Workspaces are isolated task environments backed by git worktrees."
 msgstr "Workspace adalah lingkungan tugas terisolasi yang didukung git worktree."
-
-msgid "Workspaces created per user in the last 7 days, by percentile"
-msgstr "Workspace yang dibuat per pengguna dalam 7 hari terakhir, menurut persentil"
 
 msgid "Workspaces on this device will show up here."
 msgstr "Workspace di perangkat ini akan muncul di sini."

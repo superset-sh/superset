@@ -1,1 +1,0 @@
-export { FunnelChart } from "./FunnelChart";

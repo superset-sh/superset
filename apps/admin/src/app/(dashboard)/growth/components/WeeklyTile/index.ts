@@ -1,1 +1,0 @@
-export { WeeklyTile } from "./WeeklyTile";

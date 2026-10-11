@@ -1,1 +1,0 @@
-export { LandingSectionsTile } from "./LandingSectionsTile";

@@ -22,10 +22,6 @@ msgstr "- className=\"rounded-sm border border-border bg-background …\""
 msgid ", selected"
 msgstr ", đã chọn"
 
-#. placeholder {0}: data.unbilledLogos
-msgid ". {0} not yet modeled as Stripe subscriptions"
-msgstr ". {0} chưa được mô hình hóa thành gói đăng ký Stripe"
-
 msgid ". Each card shows the canonical import path — click it to copy. Reach for these before writing anything custom."
 msgstr ". Mỗi thẻ hiện đường dẫn import chuẩn — nhấp để sao chép. Hãy dùng chúng trước khi tự viết cái gì mới."
 
@@ -92,9 +88,6 @@ msgstr "(đã sửa)"
 
 msgid "(no output)"
 msgstr "(không có đầu ra)"
-
-msgid "(so far)"
-msgstr "(đến nay)"
 
 #. placeholder {0}: connections.length
 msgid "{0, plural, one {# account connected} other {# accounts connected}}"
@@ -382,10 +375,6 @@ msgstr "{0} phía sau bạn"
 msgid "{0} branch"
 msgstr "nhánh {0}"
 
-#. placeholder {0}: list.data.length
-msgid "{0} candidates"
-msgstr "{0} ứng viên"
-
 #. placeholder {0}: params?.agent
 msgid "{0} cannot be signed in this way yet."
 msgstr "{0} chưa thể đăng nhập theo cách này."
@@ -463,10 +452,6 @@ msgstr "{0} đang chạy dịch vụ host {1} — ứng dụng này cần {2} tr
 msgid "{0} is set up on this machine, but not on your account"
 msgstr "{0} đã được thiết lập trên máy này, nhưng chưa có trên tài khoản của bạn"
 
-#. placeholder {0}: formatNumber(lastFullWeek)
-msgid "{0} last full week"
-msgstr "{0} tuần trọn vẹn gần nhất"
-
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "còn {0} nữa — hãy thu hẹp tìm kiếm"
@@ -492,23 +477,9 @@ msgstr "{0} trong {1} check đang chạy"
 msgid "{0} of {totalCount}"
 msgstr "{0} trong {totalCount}"
 
-#. placeholder {0}: rate(teams, signups)
-msgid "{0} of accounts"
-msgstr "{0} số tài khoản"
-
-#. placeholder {0}: rate(downloaders, visitors)
-#. placeholder {0}: rate(signups, visitors)
-msgid "{0} of visitors"
-msgstr "{0} số khách truy cập"
-
 #. placeholder {0}: plugin.interface.displayName
 msgid "{0} options"
 msgstr "Tùy chọn {0}"
-
-#. placeholder {0}: formatNumber(dropped, undefined)
-#. placeholder {0}: formatNumber(step.count, undefined)
-msgid "{0} persons"
-msgstr "{0} người"
 
 #. placeholder {0}: i18n._(plan.name)
 msgid "{0} plan"
@@ -550,11 +521,6 @@ msgstr "{0} token vào {1}"
 msgid "{0} tokens over {1} active days"
 msgstr "{0} token trong {1} ngày hoạt động"
 
-#. placeholder {0}: formatNumber(section.updatedRecently)
-#. placeholder {1}: formatNumber(data?.recentDays ?? 30)
-msgid "{0} touched in {1} days"
-msgstr "{0} được sửa trong {1} ngày"
-
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} uninstalled"
 msgstr "Đã gỡ {0}"
@@ -571,10 +537,6 @@ msgstr "{0} đấu {1}"
 #. placeholder {0}: file.path
 msgid "{0} was deleted in this change."
 msgstr "{0} đã bị xóa trong thay đổi này."
-
-#. placeholder {0}: formatNumber(option)
-msgid "{0} weeks"
-msgstr "{0} tuần"
 
 #. placeholder {0}: winner?.name
 #. placeholder {1}: result.events.length
@@ -833,9 +795,6 @@ msgstr "{count} máy chủ đang chạy dịch vụ máy chủ cũ hơn ứng d�
 msgid "{count}/day"
 msgstr "{count}/ngày"
 
-msgid "{current} of {total}"
-msgstr "{current} / {total}"
-
 msgid "{currentPage} of {totalBranches}"
 msgstr "{currentPage}/{totalBranches}"
 
@@ -936,9 +895,6 @@ msgstr "{kind} · bởi {author}"
 msgid "{kindLabel} theme"
 msgstr "Chủ đề {kindLabel}"
 
-msgid "{label} (partial week)"
-msgstr "{label} (tuần chưa đủ)"
-
 msgid "{label} in cloud workspaces"
 msgstr "{label} trong workspace cloud"
 
@@ -992,9 +948,6 @@ msgstr "{name} là tích hợp sẵn nên không thể thay thế"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} chưa được thêm"
-
-msgid "{nonBrandPct} of clicks"
-msgstr "{nonBrandPct} số lượt nhấp"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {Hãy chỉ định ít nhất một người, hoặc chọn {choice}.} sender {Hãy chỉ định ít nhất một người gửi, hoặc chọn {choice}.} other {Hãy chỉ định ít nhất một mục, hoặc chọn {choice}.}}"
@@ -1092,9 +1045,6 @@ msgstr "{skipped, plural, one {# bỏ qua} other {# bỏ qua}}"
 msgid "{starCount} stars and counting"
 msgstr "{starCount} star và còn tăng"
 
-msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
-msgstr "{stars} star · {perDay}/ngày tuần này · {peakPerDay}/ngày lúc cao nhất"
-
 msgid "{started, plural, one {Started # automation} other {Started # automations}}"
 msgstr "{started, plural, one {Đã khởi chạy # tự động hóa} other {Đã khởi chạy # tự động hóa}}"
 
@@ -1189,12 +1139,6 @@ msgstr "#{0} {1}\n"
 
 msgid "#engineering"
 msgstr "#engineering"
-
-msgid "% of subscribed orgs at month end still subscribed one month later (count-based; $ NRR needs a Sigma query)"
-msgstr "% tổ chức đang đăng ký vào cuối tháng vẫn còn đăng ký một tháng sau (theo số lượng; NRR theo $ cần truy vấn Sigma)"
-
-msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
-msgstr "% gói đăng ký bắt đầu mỗi tháng còn hoạt động sau k tháng (Neon, không tính enterprise)"
 
 #. placeholder {0}: COMPANY.NAME
 msgid "%s | {0} Docs"
@@ -1291,22 +1235,6 @@ msgstr "✓ 2 giờ trước"
 msgid "✓ 3d ago"
 msgstr "✓ 3 ngày trước"
 
-#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
-#. placeholder {1}: latest.customers
-#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
-msgid "${0} from {1} customers became ${2}"
-msgstr "MRR của {1} khách hàng từ ${0} thành ${2}"
-
-#. placeholder {0}: formatNumber(latest.prevUsd, undefined)
-#. placeholder {1}: latest.prevDate
-msgid "${0} previous period ({1})"
-msgstr "${0} kỳ trước ({1})"
-
-#. placeholder {0}: formatNumber(data.arrUsd, undefined)
-#. placeholder {1}: accounts.length
-msgid "${0}/yr across {1} logos — already inside MRR, not additive"
-msgstr "${0}/năm trên {1} khách hàng — đã nằm trong MRR, không cộng thêm"
-
 msgid "${balance} credits"
 msgstr "${balance} credit"
 
@@ -1342,9 +1270,6 @@ msgstr "1 tuần trước"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ luồng công việc đồng thời mà không rớt trạng thái"
-
-msgid "100% (retain everything)"
-msgstr "100% (giữ toàn bộ)"
 
 msgid "10h ago"
 msgstr "10 giờ trước"
@@ -1625,12 +1550,6 @@ msgstr "Thành tích"
 msgid "Acme Inc."
 msgstr "Acme Inc."
 
-msgid "Acquisition"
-msgstr "Thu hút"
-
-msgid "Acquisition, content, conversion, retention, and distribution in one place. Weekly charts cover the selected range; the current week is partial. Drag a tile by its top edge, resize from the corner."
-msgstr "Thu hút, nội dung, chuyển đổi, giữ chân và phân phối ở một nơi. Biểu đồ tuần bao gồm khoảng đã chọn; tuần hiện tại chưa trọn vẹn. Kéo ô theo cạnh trên để di chuyển, đổi kích thước ở góc."
-
 msgid "Action"
 msgstr "Hành động"
 
@@ -1640,12 +1559,6 @@ msgstr "Hành động"
 #. placeholder {0}: page.title
 msgid "Actions for {0}"
 msgstr "Hành động cho {0}"
-
-msgid "activation rate"
-msgstr "tỷ lệ kích hoạt"
-
-msgid "Activation, how much people use it once they are in, and whether they come back."
-msgstr "Kích hoạt, mức độ sử dụng sau khi bắt đầu dùng, và liệu họ có quay lại."
 
 msgid "Active"
 msgstr "Đang hoạt động"
@@ -1702,9 +1615,6 @@ msgstr "Thêm mô tả…"
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "Hãy thêm một script chạy vòng đời trong Cài đặt dự án hoặc đánh dấu một script terminal làm lệnh chạy của workspace."
 
-msgid "Add a note… (⌘↵ to save)"
-msgstr "Thêm ghi chú… (⌘↵ để lưu)"
-
 msgid "Add a project to see GitHub issues."
 msgstr "Thêm một dự án để xem issue GitHub."
 
@@ -1746,9 +1656,6 @@ msgstr "Thêm tệp đính kèm"
 
 msgid "Add Attachment"
 msgstr "Thêm tệp đính kèm"
-
-msgid "Add candidate"
-msgstr "Thêm ứng viên"
 
 msgid "Add command"
 msgstr "Thêm lệnh"
@@ -1907,9 +1814,6 @@ msgstr "So với nhánh gốc"
 msgid "Against Main"
 msgstr "So với main"
 
-msgid "agent"
-msgstr "agent"
-
 msgid "Agent"
 msgstr "Agent"
 
@@ -2017,15 +1921,6 @@ msgstr "AI · Hội thoại"
 
 msgid "AI · Status"
 msgstr "AI · Trạng thái"
-
-msgid "AI agents reading the site, last {dayCount} days"
-msgstr "Tác tử AI đọc trang web, {dayCount} ngày qua"
-
-msgid "AI assistant referrals"
-msgstr "Giới thiệu từ trợ lý AI"
-
-msgid "AI assistants"
-msgstr "Trợ lý AI"
 
 msgid "AI authentication failed. Please check your AI settings."
 msgstr "Xác thực AI thất bại. Vui lòng kiểm tra cài đặt AI của bạn."
@@ -2158,9 +2053,6 @@ msgstr "Tất cả repository"
 msgid "All reviews"
 msgstr "Tất cả review"
 
-msgid "All roles"
-msgstr "Tất cả vị trí"
-
 msgid "All runs"
 msgstr "Tất cả lần chạy"
 
@@ -2172,9 +2064,6 @@ msgstr "Mọi phiên đều được giữ nguyên qua lần nâng cấp."
 
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "Đã đóng mọi phiên và một daemon mới đang chạy."
-
-msgid "All sources"
-msgstr "Tất cả nguồn"
 
 msgid "All tasks"
 msgstr "Tất cả tác vụ"
@@ -2236,9 +2125,6 @@ msgstr "Đã có tài khoản? <0>Đăng nhập</0>"
 msgid "Already in tasks"
 msgstr "Đã có trong tác vụ"
 
-msgid "Already in the pipeline: {duplicateNames}"
-msgstr "Đã có trong quy trình: {duplicateNames}"
-
 msgid "Also available as CommandDialog for ⌘K palettes"
 msgstr "Cũng có dưới dạng CommandDialog cho bảng lệnh ⌘K"
 
@@ -2293,9 +2179,6 @@ msgstr "Đã xảy ra lỗi không xác định"
 msgid "An update is ready to install."
 msgstr "Đã có bản cập nhật sẵn sàng để cài đặt."
 
-msgid "Analytics, Ops, and more"
-msgstr "Phân tích, vận hành và hơn thế nữa"
-
 msgid "Android is on the way. Be first to know when it ships."
 msgstr "Bản Android đang đến. Hãy là người đầu tiên biết khi nó ra mắt."
 
@@ -2310,9 +2193,6 @@ msgstr "Gradient WebGL động (stripe-gradient)"
 
 msgid "Annual billing only"
 msgstr "Chỉ thanh toán theo năm"
-
-msgid "Annualized enterprise Stripe subscriptions"
-msgstr "Gói đăng ký Stripe enterprise quy đổi theo năm"
 
 msgid "Annually"
 msgstr "Hằng năm"
@@ -2412,9 +2292,6 @@ msgstr "Còn gì nữa không? (không bắt buộc)"
 
 msgid "AP"
 msgstr "AP"
-
-msgid "Apache Superset"
-msgstr "Apache Superset"
 
 msgid "API"
 msgstr "API"
@@ -2629,9 +2506,6 @@ msgstr "Giao cho bạn"
 
 msgid "Assignee"
 msgstr "Người phụ trách"
-
-msgid "Assistants that opened our pages in a real browser on someone's behalf. Crawlers that only fetch HTML never run analytics and are not counted."
-msgstr "Các trợ lý đã mở trang của chúng tôi trong trình duyệt thật thay cho ai đó. Trình thu thập chỉ lấy HTML không bao giờ chạy phân tích nên không được tính."
 
 msgid "Assisted"
 msgstr "Có hỗ trợ"
@@ -2849,15 +2723,6 @@ msgstr "Avatar (atom)"
 msgid "Avatar updated!"
 msgstr "Đã cập nhật ảnh đại diện!"
 
-msgid "Average time from previous"
-msgstr "Thời gian trung bình từ bước trước"
-
-msgid "Avg monthly outflow per counterparty, last 3 complete months"
-msgstr "Dòng tiền ra trung bình hàng tháng theo đối tác, 3 tháng đầy đủ gần nhất"
-
-msgid "avg position {avgPosition}"
-msgstr "vị trí trung bình {avgPosition}"
-
 #. placeholder {0}: requestedReviewers.join(", ")
 msgid "Awaiting {0}"
 msgstr "Đang chờ {0}"
@@ -3043,9 +2908,6 @@ msgstr "Trích dẫn"
 msgid "Blog"
 msgstr "Blog"
 
-msgid "Blog posts"
-msgstr "Bài viết blog"
-
 msgid "Blue"
 msgstr "Xanh dương"
 
@@ -3069,9 +2931,6 @@ msgstr "Mượn từ cách chấm mức tự lái của ô tô, áp vào cách p
 
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "Ngăn kéo dưới đáy, vuốt tiện trên thiết bị cảm ứng."
-
-msgid "Bounce"
-msgstr "Thoát"
 
 msgid "Box"
 msgstr "Box"
@@ -3138,9 +2997,6 @@ msgstr "Nhánh & đặt tên"
 
 msgid "Branches..."
 msgstr "Nhánh..."
-
-msgid "brand"
-msgstr "thương hiệu"
 
 msgid "Brand assets"
 msgstr "Tài nguyên thương hiệu"
@@ -3250,9 +3106,6 @@ msgstr "Đi kèm với ứng dụng Superset trên thiết bị này."
 
 msgid "Bundled with the Superset app on this device. Updates with the app."
 msgstr "Đi kèm với ứng dụng Superset trên thiết bị này. Cập nhật cùng với ứng dụng."
-
-msgid "Burn by vendor (Mercury)"
-msgstr "Đốt tiền theo nhà cung cấp (Mercury)"
 
 msgid "Button — sizes"
 msgstr "Nút — kích thước"
@@ -3395,12 +3248,6 @@ msgstr "Đã hủy"
 msgid "Cancels {0} — downgrades to Free at the end of the billing period."
 msgstr "Hủy vào {0} — chuyển xuống Free khi hết kỳ thanh toán."
 
-msgid "Candidate"
-msgstr "Ứng viên"
-
-msgid "Candidate not found."
-msgstr "Không tìm thấy ứng viên."
-
 msgid "Cannot {action}: no active organization is selected. Select an organization or sign in again."
 msgstr "Không thể {action}: chưa chọn tổ chức nào đang hoạt động. Hãy chọn một tổ chức hoặc đăng nhập lại."
 
@@ -3433,9 +3280,6 @@ msgstr "Tuyển dụng"
 
 msgid "Carousel"
 msgstr "Carousel"
-
-msgid "Cash — total balance (Mercury)"
-msgstr "Tiền mặt — tổng số dư (Mercury)"
 
 msgid "Category"
 msgstr "Danh mục"
@@ -3601,9 +3445,6 @@ msgstr "Kiểm tra hộp thư"
 msgid "Checkbox · Radio · Switch"
 msgstr "Checkbox · Radio · Switch"
 
-msgid "Checking + savings + Treasury over time; fundraise tranches are the steps"
-msgstr "Tài khoản thanh toán + tiết kiệm + Treasury theo thời gian; các bậc là những đợt gọi vốn"
-
 msgid "Checking agents…"
 msgstr "Đang kiểm tra agent…"
 
@@ -3699,9 +3540,6 @@ msgstr "Chọn khi nào Superset báo cho bạn."
 
 msgid "Choose where agents started from comments, design mode, and Pages open."
 msgstr "Chọn nơi mở tác nhân được khởi chạy từ bình luận, chế độ thiết kế và Pages."
-
-msgid "Churn"
-msgstr "Rời bỏ"
 
 msgid "CI failed"
 msgstr "CI thất bại"
@@ -3840,15 +3678,6 @@ msgstr "Nhấp để mở trên GitHub"
 
 msgid "Click two commits to define the range."
 msgstr "Nhấp vào hai commit để xác định khoảng."
-
-msgid "Click-through rate"
-msgstr "Tỷ lệ nhấp"
-
-msgid "Clicked upgrade"
-msgstr "Đã bấm nâng cấp"
-
-msgid "Clicks"
-msgstr "Lượt nhấp"
 
 msgid "Clients"
 msgstr "Client"
@@ -4063,12 +3892,6 @@ msgstr "Khối mã"
 msgid "Code Block"
 msgstr "Code Block"
 
-msgid "Cohort"
-msgstr "Nhóm"
-
-msgid "Cohort retention"
-msgstr "Giữ chân theo nhóm"
-
 msgid "Collapse"
 msgstr "Thu gọn"
 
@@ -4227,9 +4050,6 @@ msgstr "Giao tiếp"
 msgid "Community"
 msgstr "Cộng đồng"
 
-msgid "Community size from the public invite, refreshed every half hour."
-msgstr "Quy mô cộng đồng theo lời mời công khai, làm mới mỗi nửa giờ."
-
 msgid "Company"
 msgstr "Công ty"
 
@@ -4239,14 +4059,8 @@ msgstr "Giới thiệu công ty, tin tức mới nhất, tài nguyên thương h
 msgid "Company email"
 msgstr "Email công ty"
 
-msgid "Company Metrics"
-msgstr "Chỉ số công ty"
-
 msgid "Compare"
 msgstr "So sánh"
-
-msgid "Compare pages"
-msgstr "Trang so sánh"
 
 msgid "Compare plans"
 msgstr "So sánh gói"
@@ -4275,9 +4089,6 @@ msgstr "component-showcase"
 
 msgid "Composable form layout — pairs with @superset/ui/form for react-hook-form"
 msgstr "Bố cục form ghép được — dùng chung với @superset/ui/form cho react-hook-form"
-
-msgid "Computing in Stripe — up to a minute on first load"
-msgstr "Đang tính trong Stripe — có thể mất đến một phút ở lần tải đầu"
 
 msgid "Config location"
 msgstr "Vị trí cấu hình"
@@ -4545,12 +4356,6 @@ msgstr "Liên hệ"
 msgid "Contains this text..."
 msgstr "Chứa văn bản này..."
 
-msgid "Content"
-msgstr "Nội dung"
-
-msgid "Content published or updated"
-msgstr "Nội dung đã xuất bản hoặc cập nhật"
-
 msgid "Context"
 msgstr "Ngữ cảnh"
 
@@ -4598,9 +4403,6 @@ msgstr "Để tiếp tục phiên agent, cần ghim một workspace"
 msgid "continuing the last session"
 msgstr "tiếp tục phiên gần nhất"
 
-msgid "Contraction"
-msgstr "Thu hẹp"
-
 msgid "Contributions"
 msgstr "Đóng góp"
 
@@ -4616,20 +4418,8 @@ msgstr "Cuộc thảo luận"
 msgid "Conversation · Message"
 msgstr "Hội thoại · Tin nhắn"
 
-msgid "Conversion"
-msgstr "Chuyển đổi"
-
-msgid "Conversion from previous"
-msgstr "Chuyển đổi từ bước trước"
-
-msgid "Conversion so far"
-msgstr "Chuyển đổi đến hiện tại"
-
 msgid "Convert to draft"
 msgstr "Chuyển thành bản nháp"
-
-msgid "Converted"
-msgstr "Đã chuyển đổi"
 
 msgid "Converting to draft…"
 msgstr "Đang chuyển thành bản nháp…"
@@ -5576,9 +5366,6 @@ msgstr "Thông tin xác thực được giữ trên máy chủ"
 msgid "Cross-feature components living outside packages/ui — check here before building a new one"
 msgstr "Các component dùng chung nhiều tính năng, nằm ngoài packages/ui — hãy xem ở đây trước khi dựng cái mới"
 
-msgid "CTR"
-msgstr "CTR"
-
 msgid "Ctrl+click"
 msgstr "Ctrl+nhấp"
 
@@ -5599,9 +5386,6 @@ msgstr "Gói hiện tại"
 
 msgid "Current tab"
 msgstr "Tab hiện tại"
-
-msgid "Current title"
-msgstr "Chức danh hiện tại"
 
 msgid "Cursor"
 msgstr "Con trỏ"
@@ -6141,14 +5925,8 @@ msgstr "Kích thước diff"
 msgid "Digital Product Designer"
 msgstr "Nhà thiết kế sản phẩm số"
 
-msgid "Direct"
-msgstr "Trực tiếp"
-
 msgid "Direct mode"
 msgstr "Chế độ trực tiếp"
-
-msgid "Directories, blogs, newsletters, and communities that sent visitors. Search, social, GitHub, and assistants are excluded so listings and links stand out."
-msgstr "Danh bạ, blog, bản tin và cộng đồng đã gửi khách truy cập. Loại trừ tìm kiếm, mạng xã hội, GitHub và trợ lý để các mục liệt kê và liên kết nổi bật."
 
 msgid "Directory"
 msgstr "Thư mục"
@@ -6280,9 +6058,6 @@ msgstr "Hiển thị"
 msgid "Displays the mobile sidebar."
 msgstr "Hiển thị thanh bên trên di động."
 
-msgid "Distribution and community"
-msgstr "Phân phối và cộng đồng"
-
 msgid "Do anything"
 msgstr "Làm bất cứ điều gì"
 
@@ -6351,9 +6126,6 @@ msgstr "Tải {name}"
 msgid "Download app"
 msgstr "Tải ứng dụng"
 
-msgid "Download clicks"
-msgstr "Lượt nhấp tải xuống"
-
 msgid "Download failed"
 msgstr "Tải xuống thất bại"
 
@@ -6419,9 +6191,6 @@ msgstr "Mở bản nháp"
 msgid "drafted 3 support replies"
 msgstr "đã soạn 3 câu trả lời hỗ trợ"
 
-msgid "Drag to move"
-msgstr "Kéo để di chuyển"
-
 msgid "Drag to reorder"
 msgstr "Kéo để sắp xếp lại"
 
@@ -6455,12 +6224,6 @@ msgstr "Thả để ghim"
 msgid "Drop to unpin"
 msgstr "Thả để bỏ ghim"
 
-msgid "Drop-off from previous"
-msgstr "Rời bỏ từ bước trước"
-
-msgid "Drop-off from start"
-msgstr "Rời bỏ từ đầu"
-
 msgid "dropdown"
 msgstr "danh sách thả xuống"
 
@@ -6469,9 +6232,6 @@ msgstr "Dropdown Menu"
 
 msgid "Dropdown, context, and application menus"
 msgstr "Menu thả xuống, menu ngữ cảnh và menu ứng dụng"
-
-msgid "Dropped off"
-msgstr "Đã rời bỏ"
 
 msgid "Duration"
 msgstr "Thời lượng"
@@ -6731,12 +6491,6 @@ msgstr "Nhập URL..."
 msgid "Enterprise"
 msgstr "Enterprise"
 
-msgid "Enterprise ARR by account"
-msgstr "ARR enterprise theo tài khoản"
-
-msgid "Entries by section"
-msgstr "Lượt vào theo mục"
-
 msgid "Environment"
 msgstr "Môi trường"
 
@@ -6784,9 +6538,6 @@ msgstr "Mỗi tác tử chạy trong worktree và nhánh Git riêng, giữ các 
 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Mọi trục đều đang góp sức cho hạng tiếp theo. Giữ được như vậy thì hạng sẽ tới."
-
-msgid "Every candidate, where they are, and who owes the next move."
-msgstr "Mọi ứng viên, họ đang ở đâu và ai cần làm bước tiếp theo."
 
 msgid "Every day at 3:00 AM"
 msgstr "Mỗi ngày lúc 3:00 sáng"
@@ -6909,9 +6660,6 @@ msgstr "Mở rộng giọng nói"
 
 msgid "Expand workspace"
 msgstr "Mở rộng workspace"
-
-msgid "Expansion"
-msgstr "Mở rộng"
 
 msgid "Experimental"
 msgstr "Thử nghiệm"
@@ -7196,9 +6944,6 @@ msgstr "Không thể tải danh sách nhánh"
 msgid "Failed to load file"
 msgstr "Không thể tải tệp"
 
-msgid "Failed to load funnel data"
-msgstr "Không thể tải dữ liệu phễu"
-
 msgid "Failed to load image"
 msgstr "Không thể tải ảnh"
 
@@ -7393,10 +7138,6 @@ msgstr "Không thể đặt màu"
 
 msgid "Failed to set icon"
 msgstr "Không thể đặt biểu tượng"
-
-#. placeholder {0}: error.message
-msgid "Failed to set password: {0}"
-msgstr "Không thể đặt mật khẩu: {0}"
 
 msgid "Failed to sign in. Please try again."
 msgstr "Không thể đăng nhập. Vui lòng thử lại."
@@ -7686,12 +7427,6 @@ msgstr "Đã xong"
 msgid "finished · worked for 7s"
 msgstr "đã xong · làm trong 7s"
 
-msgid "First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
-msgstr "Lượt xem đăng nhập đầu tiên → xác thực → onboarding → workspace thực (7 ngày qua, cửa sổ 2 ngày)"
-
-msgid "First-ever pageview on superset.sh, daily"
-msgstr "Lượt xem trang đầu tiên trên superset.sh, theo ngày"
-
 msgid "Fix all failing checks"
 msgstr "Sửa mọi check đang lỗi"
 
@@ -7788,9 +7523,6 @@ msgstr "Theo dõi chúng tôi trên LinkedIn"
 msgid "Follow us on X/Twitter"
 msgstr "Theo dõi chúng tôi trên X/Twitter"
 
-msgid "Follow-up"
-msgstr "Theo dõi"
-
 msgid "Font family"
 msgstr "Họ font"
 
@@ -7878,9 +7610,6 @@ msgstr "Fork phiên"
 msgid "Fork session…"
 msgstr "Fork phiên…"
 
-msgid "Forks"
-msgstr "Fork"
-
 msgid "Form controls and field composition"
 msgstr "Các điều khiển form và cách ghép trường"
 
@@ -7919,12 +7648,6 @@ msgstr "từ {price}/người/tháng"
 
 msgid "From a hackathon project to the workspace for parallel coding agents."
 msgstr "Từ một dự án hackathon đến không gian làm việc cho các agent lập trình song song."
-
-msgid "From a visit to a download to an account to a paying organization."
-msgstr "Từ lượt truy cập đến tải xuống, đến tài khoản, đến tổ chức trả phí."
-
-msgid "From the public sitemap: compare pages, posts, and changelog entries by the week they were published or last revised."
-msgstr "Từ sitemap công khai: trang so sánh, bài viết và mục changelog theo tuần xuất bản hoặc sửa đổi gần nhất."
 
 msgid "Front matter hidden — switch to Markdown to edit it"
 msgstr "Front matter đang ẩn — chuyển sang Markdown để sửa"
@@ -8082,9 +7805,6 @@ msgstr "GitHub đã từ chối thông tin xác thực của máy này nên khô
 msgid "GitHub sign-in needed"
 msgstr "Cần đăng nhập GitHub"
 
-msgid "GitHub stars"
-msgstr "Star GitHub"
-
 msgid "GitHub sync requires the Pro plan."
 msgstr "Đồng bộ GitHub yêu cầu gói Pro."
 
@@ -8151,9 +7871,6 @@ msgstr "Đi tới workspace"
 msgid "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
 msgstr "Google không cấp quyền truy cập lâu dài. Hãy gỡ Superset khỏi phần truy cập của bên thứ ba trong tài khoản Google của bạn rồi thử lại."
 
-msgid "Google Search Console"
-msgstr "Google Search Console"
-
 msgid "Grant the OS permissions Superset needs."
 msgstr "Cấp các quyền hệ điều hành mà Superset cần."
 
@@ -8180,9 +7897,6 @@ msgstr "Nhóm theo"
 
 msgid "Group new branches under a folder."
 msgstr "Gom các nhánh mới vào một thư mục."
-
-msgid "Growth"
-msgstr "Tăng trưởng"
 
 msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "Kiến trúc sư GTM & tự động hóa AI, Mistral AI"
@@ -8347,12 +8061,6 @@ msgstr "Mức độ nghiêm trọng cao"
 msgid "High usage"
 msgstr "Mức sử dụng rất cao"
 
-msgid "Hired"
-msgstr "Đã tuyển"
-
-msgid "Hiring"
-msgstr "Tuyển dụng"
-
 msgid "history"
 msgstr "lịch sử"
 
@@ -8480,9 +8188,6 @@ msgstr "Số terminal ẩn được giữ tải đầy đủ ({MIN_TERMINAL_PARK
 
 msgid "How much agent work engineers are actually running — tokens, cost, models and sessions, published by people who opted in."
 msgstr "Khối lượng công việc agent mà các kỹ sư thực sự đang chạy — token, chi phí, mô hình và phiên, do những người chủ động chia sẻ công bố."
-
-msgid "How people reach superset.sh and the docs, and how much of it is search and assistants rather than the brand."
-msgstr "Mọi người đến superset.sh và tài liệu như thế nào, và bao nhiêu trong đó là tìm kiếm và trợ lý thay vì thương hiệu."
 
 msgid "How should the agent's actions be approved?"
 msgstr "Thao tác của tác tử nên được phê duyệt thế nào?"
@@ -8701,9 +8406,6 @@ msgstr "Đang nhập..."
 msgid "Importing…"
 msgstr "Đang nhập…"
 
-msgid "Impressions"
-msgstr "Lượt hiển thị"
-
 msgid "Improve the agent instructions"
 msgstr "Cải thiện hướng dẫn cho agent"
 
@@ -8764,9 +8466,6 @@ msgstr "Trình duyệt trong ứng dụng"
 
 msgid "In-app PR merge"
 msgstr "Merge PR ngay trong ứng dụng"
-
-msgid "Inbound"
-msgstr "Tự ứng tuyển"
 
 msgid "Inbox triage"
 msgstr "Phân loại hộp thư"
@@ -8905,9 +8604,6 @@ msgstr "Cài đặt qua"
 msgid "Installing..."
 msgstr "Đang cài đặt..."
 
-msgid "Installs"
-msgstr "Lượt cài đặt"
-
 msgid "Instructions"
 msgstr "Hướng dẫn"
 
@@ -8934,9 +8630,6 @@ msgstr "Ngắt lời"
 
 msgid "Interrupted"
 msgstr "Bị gián đoạn"
-
-msgid "Interview"
-msgstr "Phỏng vấn"
 
 msgid "Intro call"
 msgstr "Cuộc gọi giới thiệu"
@@ -9299,12 +8992,6 @@ msgstr "Agent hoạt động gần nhất {0}"
 msgid "Last attached"
 msgstr "Lần gắn cuối"
 
-msgid "Last contact"
-msgstr "Liên hệ gần nhất"
-
-msgid "Last contact {lastContact}"
-msgstr "Liên hệ gần nhất {lastContact}"
-
 msgid "Last day of each month"
 msgstr "Ngày cuối mỗi tháng"
 
@@ -9379,12 +9066,6 @@ msgstr "Cài đặt bảng xếp hạng"
 
 msgid "Leaf"
 msgstr "Chiếc lá"
-
-msgid "Lean hire"
-msgstr "Nghiêng về tuyển"
-
-msgid "Lean no hire"
-msgstr "Nghiêng về không tuyển"
 
 msgid "Learn"
 msgstr "Học"
@@ -9779,12 +9460,6 @@ msgstr "đã bỏ qua đăng nhập (bị từ chối truy cập Keychain)"
 msgid "Logo"
 msgstr "Logo"
 
-msgid "logo retention"
-msgstr "giữ chân khách hàng"
-
-msgid "Logo retention — monthly"
-msgstr "Giữ chân khách hàng — theo tháng"
-
 msgid "Logo updated"
 msgstr "Đã cập nhật logo"
 
@@ -9943,9 +9618,6 @@ msgstr "Đánh dấu chưa đọc"
 msgid "Mark as viewed"
 msgstr "Đánh dấu đã xem"
 
-msgid "Mark hired"
-msgstr "Đánh dấu đã tuyển"
-
 msgid "Mark Ready"
 msgstr "Đánh dấu sẵn sàng"
 
@@ -10006,9 +9678,6 @@ msgstr "Server MCP"
 msgid "MCP Server Commands"
 msgstr "Lệnh server MCP"
 
-msgid "Mean"
-msgstr "Trung bình"
-
 msgid "Measured over the trailing 30 days"
 msgstr "Đo trong 30 ngày gần nhất"
 
@@ -10024,9 +9693,6 @@ msgstr "Bộ tài liệu báo chí"
 
 msgid "Median ticket-to-production time under one day for routine work."
 msgstr "Thời gian trung vị từ ticket đến production dưới một ngày cho việc thường ngày."
-
-msgid "Median time from previous"
-msgstr "Thời gian trung vị từ bước trước"
 
 msgid "Medical and dental at no cost to you, a 401(k), unlimited time off, a $5K desk stipend, and free meals in the office."
 msgstr "Bảo hiểm y tế và nha khoa miễn phí cho bạn, 401(k), nghỉ phép không giới hạn, trợ cấp 5.000 USD để trang bị bàn làm việc và bữa ăn miễn phí tại văn phòng."
@@ -10176,9 +9842,6 @@ msgstr "Thu nhỏ issue GitHub"
 msgid "Minimum contrast"
 msgstr "Độ tương phản tối thiểu"
 
-msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
-msgstr "Bản sao của <0>dashboard PostHog Success Metrics</0> — sản phẩm qua saved insight, kinh doanh lấy trực tiếp từ Stripe/Neon"
-
 msgid "missed"
 msgstr "bị bỏ lỡ"
 
@@ -10267,9 +9930,6 @@ msgstr "Monospace"
 msgid "Month"
 msgstr "Tháng"
 
-msgid "Month {offset}"
-msgstr "Tháng {offset}"
-
 msgid "monthly"
 msgstr "hằng tháng"
 
@@ -10278,12 +9938,6 @@ msgstr "Hằng tháng"
 
 msgid "Monthly at {time}"
 msgstr "Hằng tháng lúc {time}"
-
-msgid "monthly NRR"
-msgstr "NRR hàng tháng"
-
-msgid "monthly NRR (month so far)"
-msgstr "NRR hàng tháng (tháng này đến nay)"
 
 msgid "Monthly on {day}"
 msgstr "Hằng tháng vào {day}"
@@ -10345,9 +9999,6 @@ msgstr "Gần như suốt lịch sử phần mềm"
 msgid "Move {count} to Group"
 msgstr "Chuyển {count} vào nhóm"
 
-msgid "Move to {nextStageLabel}"
-msgstr "Chuyển sang {nextStageLabel}"
-
 msgid "Move to Center"
 msgstr "Chuyển vào giữa"
 
@@ -10359,15 +10010,6 @@ msgstr "Chuyển sang bên phải"
 
 msgid "Move to Tab"
 msgstr "Chuyển sang tab"
-
-msgid "MRR"
-msgstr "MRR"
-
-msgid "MRR — daily (Stripe)"
-msgstr "MRR — theo ngày (Stripe)"
-
-msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
-msgstr "MRR từ các khách hàng đang trả phí vào cuối tháng trước, tính theo tỷ lệ so với số họ trả khi đó: mở rộng và thu hẹp trừ đi rời bỏ, không tính khách hàng mới"
 
 msgid "Multi-select"
 msgstr "Chọn nhiều"
@@ -10486,15 +10128,6 @@ msgstr "Cần bạn"
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
-msgid "net burn"
-msgstr "đốt tiền ròng"
-
-msgid "Net burn — monthly (Mercury)"
-msgstr "Đốt tiền ròng — theo tháng (Mercury)"
-
-msgid "Net revenue retention — monthly (Stripe)"
-msgstr "Tỷ lệ giữ chân doanh thu ròng — hàng tháng (Stripe)"
-
 msgid "Network Changed"
 msgstr "Mạng đã thay đổi"
 
@@ -10513,9 +10146,6 @@ msgstr "Mới"
 
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Các agent {providerLabel} mới sẽ dùng {accountLabel}."
-
-msgid "New accounts"
-msgstr "Tài khoản mới"
 
 msgid "New agent"
 msgstr "Agent mới"
@@ -10568,17 +10198,11 @@ msgstr "Issue mới"
 msgid "New page"
 msgstr "Trang mới"
 
-msgid "New password (min 8 characters)"
-msgstr "Mật khẩu mới (tối thiểu 8 ký tự)"
-
 msgid "New project"
 msgstr "Dự án mới"
 
 msgid "New push to branch"
 msgstr "Push mới lên nhánh"
-
-msgid "New role…"
-msgstr "Vị trí mới…"
 
 msgid "New session"
 msgstr "Phiên mới"
@@ -10604,9 +10228,6 @@ msgstr "Tab mới + khung"
 msgid "New task"
 msgstr "Tác vụ mới"
 
-msgid "New teams"
-msgstr "Nhóm mới"
-
 msgid "New terminal"
 msgstr "Terminal mới"
 
@@ -10628,14 +10249,8 @@ msgstr "Workspace mới"
 msgid "New Workspace ({shortcutText})"
 msgstr "Workspace mới ({shortcutText})"
 
-msgid "new workspace creators"
-msgstr "người tạo workspace mới"
-
 msgid "New workspace in {name}"
 msgstr "Workspace mới trong {name}"
-
-msgid "New-user activation"
-msgstr "Kích hoạt người dùng mới"
 
 msgid "Newer than this app"
 msgstr "Mới hơn ứng dụng này"
@@ -10658,9 +10273,6 @@ msgstr "Tiếp"
 msgid "Next branch"
 msgstr "Nhánh kế tiếp"
 
-msgid "Next candidate"
-msgstr "Ứng viên tiếp theo"
-
 msgid "Next comment"
 msgstr "Bình luận tiếp theo"
 
@@ -10679,9 +10291,6 @@ msgstr "Lượt chạy tiếp theo sau 3 ngày"
 
 msgid "Next slide"
 msgstr "Slide kế tiếp"
-
-msgid "Next step"
-msgstr "Bước tiếp theo"
 
 msgid "Next Tab"
 msgstr "Tab kế tiếp"
@@ -10716,9 +10325,6 @@ msgstr "Chưa có lần đăng nhập {0} nào trên host này — hãy đăng n
 
 msgid "No access to this host"
 msgstr "Không có quyền truy cập host này"
-
-msgid "No active enterprise accounts"
-msgstr "Không có tài khoản enterprise nào đang hoạt động"
 
 msgid "No active host"
 msgstr "Không có host hoạt động"
@@ -10859,9 +10465,6 @@ msgstr "Không tìm thấy người đóng góp nào."
 msgid "No credit card required."
 msgstr "Không cần thẻ tín dụng."
 
-msgid "No data"
-msgstr "Không có dữ liệu"
-
 msgid "No description"
 msgstr "Không có mô tả"
 
@@ -10907,14 +10510,8 @@ msgstr "Không có tệp nào thuộc loại được chấp nhận."
 msgid "No files match your search"
 msgstr "Không có tệp nào khớp với tìm kiếm của bạn"
 
-msgid "No follow-ups due. Nice."
-msgstr "Không có việc theo dõi nào đến hạn. Tuyệt."
-
 msgid "No fonts found."
 msgstr "Không tìm thấy font nào."
-
-msgid "No funnel data available for this period"
-msgstr "Không có dữ liệu phễu cho khoảng thời gian này"
 
 msgid "No git remote detected"
 msgstr "Không phát hiện remote git nào"
@@ -11298,9 +10895,6 @@ msgstr "Khởi chạy không prompt"
 msgid "No. Your agents stay independent; Superset is the orchestration layer around them. Each task gets an isolated Git worktree, persistent sessions, diff review, and scheduled runs without tying the workflow to one provider."
 msgstr "Không. Các agent của bạn vẫn độc lập; Superset là lớp điều phối bao quanh chúng. Mỗi tác vụ có git worktree tách biệt, phiên bền vững, review diff và các lần chạy theo lịch mà không trói quy trình vào một nhà cung cấp."
 
-msgid "Nobody"
-msgstr "Không ai"
-
 msgid "Nobody has joined the board yet."
 msgstr "Chưa ai tham gia bảng xếp hạng."
 
@@ -11312,12 +10906,6 @@ msgstr "Chưa ai trong nhóm chia sẻ tự động hóa nào."
 
 msgid "Nobody reviews differently because of it."
 msgstr "Không ai review khác đi vì điều đó."
-
-msgid "non-brand"
-msgstr "không thương hiệu"
-
-msgid "Non-brand clicks"
-msgstr "Lượt nhấp không thương hiệu"
 
 msgid "None"
 msgstr "Không có"
@@ -11358,14 +10946,8 @@ msgstr "Chưa kết nối"
 msgid "Not connected · cloud workspaces push as your organization's GitHub App"
 msgstr "Chưa kết nối · workspace cloud push dưới danh nghĩa GitHub App của tổ chức bạn"
 
-msgid "Not connected: {unavailableReason}. Add a Google service account to the Search Console property and set GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT."
-msgstr "Chưa kết nối: {unavailableReason}. Thêm tài khoản dịch vụ Google vào thuộc tính Search Console và đặt GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT."
-
 msgid "Not demoed here"
 msgstr "Không demo ở đây"
-
-msgid "Not every client emits {gaps} yet, so that stage is under-counted."
-msgstr "Chưa phải mọi client đều gửi {gaps}, nên giai đoạn đó bị đếm thiếu."
 
 msgid "Not found"
 msgstr "Không tìm thấy"
@@ -11378,9 +10960,6 @@ msgstr "Không có"
 
 msgid "Not loaded"
 msgstr "Chưa tải"
-
-msgid "Not looking"
-msgstr "Không tìm việc"
 
 msgid "Not now"
 msgstr "Để sau"
@@ -11396,9 +10975,6 @@ msgstr "Chưa nhận được sự kiện: Microsoft Graph đã từ chối các
 
 msgid "Not reviewed by you"
 msgstr "Bạn chưa review"
-
-msgid "Not scored"
-msgstr "Chưa chấm điểm"
 
 msgid "Not sent"
 msgstr "Chưa gửi"
@@ -11464,9 +11040,6 @@ msgstr "Thông báo"
 msgid "Notion is not configured for this environment."
 msgstr "Notion chưa được cấu hình cho môi trường này."
 
-msgid "Notion page"
-msgstr "Trang Notion"
-
 msgid "now"
 msgstr "vừa xong"
 
@@ -11513,9 +11086,6 @@ msgstr "trên tổng số token"
 
 msgid "Off"
 msgstr "Tắt"
-
-msgid "Offer"
-msgstr "Đề nghị"
 
 #. placeholder {0}: COMPANY.NAME
 msgid "Official documentation for {0}, the app for running 100+ coding agents in parallel."
@@ -11612,9 +11182,6 @@ msgstr "trực tuyến"
 msgid "Online"
 msgstr "Trực tuyến"
 
-msgid "Online now"
-msgstr "Đang trực tuyến"
-
 msgid "Online Now"
 msgstr "Đang trực tuyến"
 
@@ -11692,9 +11259,6 @@ msgstr "Chỉ mình bạn"
 
 msgid "Only you can see this page"
 msgstr "Chỉ bạn mới xem được trang này"
-
-msgid "Onsite"
-msgstr "Tại văn phòng"
 
 msgid "open"
 msgstr "mở"
@@ -11897,9 +11461,6 @@ msgstr "Mở ở tab mới"
 
 msgid "Open in New Tab"
 msgstr "Mở ở tab mới"
-
-msgid "Open in PostHog"
-msgstr "Mở trong PostHog"
 
 msgid "Open in Pull Requests"
 msgstr "Mở trong Pull request"
@@ -12182,12 +11743,6 @@ msgstr "Chat điều phối"
 msgid "Orchestration guide"
 msgstr "Hướng dẫn điều phối"
 
-msgid "Organic search"
-msgstr "Tìm kiếm tự nhiên"
-
-msgid "Organic search by engine"
-msgstr "Tìm kiếm tự nhiên theo công cụ"
-
 msgid "Organization"
 msgstr "Tổ chức"
 
@@ -12231,9 +11786,6 @@ msgstr "Đã cập nhật URL tổ chức!"
 msgid "Organization: <0>{0}</0>"
 msgstr "Tổ chức: <0>{0}</0>"
 
-msgid "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
-msgstr "Tổ chức có thành viên thứ hai so với tài khoản một thành viên; đường biểu thị số nhóm trên 1.000."
-
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Sắp xếp công việc theo nhóm. Tác vụ và tích hợp có thể đồng bộ riêng cho từng nhóm."
 
@@ -12270,20 +11822,11 @@ msgstr "Nhận định của chúng tôi tính đến tháng 8 năm 2026, dựa 
 msgid "Out of scope"
 msgstr "Ngoài phạm vi"
 
-msgid "Outbound"
-msgstr "Chủ động tiếp cận"
-
-msgid "Outcome change"
-msgstr "Thay đổi kết quả"
-
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "Đưa vào kết quả mong muốn, nhận về phần mềm. Con người nêu ý định, ràng buộc và ngân sách. Nhà máy tự lên lịch, ship liên tục, giám sát thứ nó đã ship và tự rollback. Phần lớn thay đổi được merge mà không có con người trong vòng lặp, và tỷ lệ sự cố không tăng."
 
 msgid "Outdated"
 msgstr "Lỗi thời"
-
-msgid "Outflows less Stripe payouts per month (treasury sweeps excluded); current month partial"
-msgstr "Dòng tiền ra trừ các khoản chi trả Stripe mỗi tháng (không tính chuyển tiền treasury); tháng hiện tại chưa đủ"
 
 msgid "Outline"
 msgstr "Outline"
@@ -12299,9 +11842,6 @@ msgstr "Schema đầu ra"
 
 msgid "Output truncated"
 msgstr "Kết quả đã bị cắt bớt"
-
-msgid "Outreach"
-msgstr "Tiếp cận"
 
 msgid "Overflow Fade"
 msgstr "Overflow Fade"
@@ -12373,9 +11913,6 @@ msgstr "Chưa cấu hình giới hạn tần suất báo cáo trang"
 msgid "Page title"
 msgstr "Tiêu đề trang"
 
-msgid "Page views"
-msgstr "Lượt xem trang"
-
 msgid "Pages"
 msgstr "Trang"
 
@@ -12384,9 +11921,6 @@ msgstr "Không thể tải các trang"
 
 msgid "Pages open in a grid, and floating keyboards work. Requires iPadOS 26 or later."
 msgstr "Trang mở dạng lưới và bàn phím nổi hoạt động bình thường. Yêu cầu iPadOS 26 trở lên."
-
-msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
-msgstr "Các trang mà phiên bắt đầu, cùng tỷ lệ rời đi mà không xem trang thứ hai. Các trang so sánh là bề mặt SEO."
 
 msgid "Pages that save answers"
 msgstr "Trang có thể lưu câu trả lời"
@@ -12399,15 +11933,6 @@ msgstr "phân trang"
 
 msgid "Pagination"
 msgstr "Pagination"
-
-msgid "Paid"
-msgstr "Đã trả tiền"
-
-msgid "Paid churn — cohort survival"
-msgstr "Churn trả phí — tỷ lệ trụ lại theo nhóm"
-
-msgid "Paid search"
-msgstr "Tìm kiếm trả phí"
 
 msgid "Paid work trial"
 msgstr "Làm thử có trả lương"
@@ -12478,9 +12003,6 @@ msgstr "Mật khẩu"
 msgid "Password for {email}"
 msgstr "Mật khẩu cho {email}"
 
-msgid "Password set"
-msgstr "Đã đặt mật khẩu"
-
 msgid "Past month"
 msgstr "Tháng qua"
 
@@ -12536,9 +12058,6 @@ msgstr "Phương thức thanh toán"
 msgid "Payment Successful"
 msgstr "Thanh toán thành công"
 
-msgid "Paywall → paid"
-msgstr "Paywall → trả tiền"
-
 msgid "PDF"
 msgstr "PDF"
 
@@ -12550,9 +12069,6 @@ msgstr "Lời mời đang chờ"
 
 msgid "People"
 msgstr "Mọi người"
-
-msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
-msgstr "Những người lần đầu thấy paywall trong {PAYWALL_FUNNEL_WEEKS} tuần gần nhất, và họ đi được đến đâu. Mỗi bước tính tất cả những ai đạt tới nó sau lần xem đó, nên các nhóm gần đây vẫn đang hoàn thiện."
 
 msgid "People with access"
 msgstr "Những người có quyền truy cập"
@@ -12597,9 +12113,6 @@ msgstr "Cá nhân"
 msgid "Phantom Forklift"
 msgstr "Xe nâng bóng ma"
 
-msgid "Phone"
-msgstr "Điện thoại"
-
 msgid "Phone number"
 msgstr "Số điện thoại"
 
@@ -12635,9 +12148,6 @@ msgstr "Hãy chọn vị trí dự án"
 
 msgid "Pick a reason"
 msgstr "Chọn lý do"
-
-msgid "Pick a role"
-msgstr "Chọn vị trí"
 
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Chọn một âm thanh hoặc thêm âm thanh riêng. Âm thanh riêng hỗ trợ .mp3, .wav và .ogg."
@@ -12689,9 +12199,6 @@ msgstr "Hồng"
 
 msgid "Pinned"
 msgstr "Đã ghim"
-
-msgid "Pipeline"
-msgstr "Quy trình"
 
 msgid "PK"
 msgstr "PK"
@@ -12803,9 +12310,6 @@ msgstr "Cổng trong menu thả xuống trên thanh trên cùng"
 msgid "Ports on remote hosts"
 msgstr "Cổng trên host từ xa"
 
-msgid "Position"
-msgstr "Vị trí"
-
 msgid "Possible on good days. Supervision cost still grows too fast."
 msgstr "Khả thi vào những ngày đẹp trời. Chi phí giám sát vẫn tăng quá nhanh."
 
@@ -12814,9 +12318,6 @@ msgstr "Đăng"
 
 msgid "Post comment"
 msgstr "Đăng bình luận"
-
-msgid "Power user"
-msgstr "Người dùng chuyên sâu"
 
 msgid "PR"
 msgstr "PR"
@@ -12943,9 +12444,6 @@ msgstr "Trước"
 
 msgid "Previous branch"
 msgstr "Nhánh trước"
-
-msgid "Previous candidate"
-msgstr "Ứng viên trước"
 
 msgid "Previous comment"
 msgstr "Bình luận trước"
@@ -13278,9 +12776,6 @@ msgstr "Đặt công việc lặp lại theo lịch hoặc sự kiện. Agent t�
 msgid "px"
 msgstr "px"
 
-msgid "Query"
-msgstr "Truy vấn"
-
 msgid "Query events and feature flags"
 msgstr "Truy vấn event và feature flag"
 
@@ -13384,12 +12879,6 @@ msgstr "Truy cập chiếc Mac này từ bất cứ đâu qua relay của Supers
 msgid "Reached"
 msgstr "Đã đạt"
 
-msgid "Reached a dashboard page"
-msgstr "Đã vào một trang dashboard"
-
-msgid "Reached out"
-msgstr "Đã liên hệ"
-
 msgid "React layer of the shared pane/workspace layout engine"
 msgstr "Lớp React của bộ máy bố cục khung/workspace dùng chung"
 
@@ -13468,9 +12957,6 @@ msgstr "Sẵn sàng merge"
 
 msgid "Ready to try Superset?"
 msgstr "Sẵn sàng thử Superset?"
-
-msgid "Real workspaces on 2+ distinct days within week 1 of first workspace (retention-validated definition)"
-msgstr "Workspace thực trong 2+ ngày khác nhau trong tuần đầu kể từ workspace đầu tiên (định nghĩa đã kiểm chứng bằng retention)"
 
 msgid "Reapply all commits"
 msgstr "Áp dụng lại toàn bộ commit"
@@ -13568,12 +13054,6 @@ msgstr "Chỉ được nhắc tới, không demo"
 msgid "References"
 msgstr "Tham chiếu"
 
-msgid "Referral"
-msgstr "Giới thiệu"
-
-msgid "Referred by"
-msgstr "Người giới thiệu"
-
 msgid "Refresh"
 msgstr "Làm mới"
 
@@ -13610,9 +13090,6 @@ msgstr "Đăng ký bất kỳ agent CLI nào bên cạnh các agent có sẵn, m
 msgid "Registers lifecycle hooks in this agent's global config so Superset can show status and send notifications. Turning this off removes Superset's entries everywhere — status and notifications stop for this agent, including inside Superset."
 msgstr "Đăng ký các hook vòng đời vào cấu hình toàn cục của agent này để Superset hiển thị trạng thái và gửi thông báo. Tắt tùy chọn này sẽ gỡ các mục của Superset ở mọi nơi — trạng thái và thông báo cho agent này sẽ dừng, kể cả bên trong Superset."
 
-msgid "Rejected"
-msgstr "Từ chối"
-
 msgid "Related Posts"
 msgstr "Bài viết liên quan"
 
@@ -13624,9 +13101,6 @@ msgstr "Hãy khởi chạy lại các agent đang chạy để đổi sang tài 
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "Đã bật truy cập relay, đang kết nối tới relay…"
-
-msgid "Release"
-msgstr "Bản phát hành"
 
 msgid "Release control"
 msgstr "Ngừng điều khiển"
@@ -13935,9 +13409,6 @@ msgstr "Repository: {label}"
 msgid "Repository"
 msgstr "Repository"
 
-msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
-msgstr "Độ phủ của kho mã và lượt tải bản phát hành desktop. Cài đặt là lượt tải dmg và AppImage; cập nhật là tệp zip mà trình tự cập nhật tải về, nên tính người dùng hiện có."
-
 msgid "Repository URL or path"
 msgstr "URL hoặc đường dẫn repository"
 
@@ -13988,9 +13459,6 @@ msgstr "Đặt lại trình soạn thảo"
 
 msgid "Reset GitHub star nag state"
 msgstr "Đặt lại trạng thái lời nhắc gắn sao GitHub"
-
-msgid "Reset layout"
-msgstr "Đặt lại bố cục"
 
 msgid "Reset location"
 msgstr "Đặt lại vị trí"
@@ -14217,12 +13685,6 @@ msgstr "Đang resume {0}…"
 msgid "Resuming the conversation…"
 msgstr "Đang tiếp tục cuộc trò chuyện…"
 
-msgid "Retained MRR"
-msgstr "MRR giữ lại"
-
-msgid "Retention and revenue"
-msgstr "Giữ chân và doanh thu"
-
 msgid "Retry"
 msgstr "Thử lại"
 
@@ -14267,9 +13729,6 @@ msgstr "Hiện trong thanh bên"
 
 msgid "Reveal my rank"
 msgstr "Hiện thứ hạng của tôi"
-
-msgid "Revenue first, then how many people are actually using it, then what it costs to run."
-msgstr "Doanh thu trước, rồi đến số người thực sự dùng, rồi chi phí vận hành."
 
 msgid "Review"
 msgstr "Review"
@@ -14388,9 +13847,6 @@ msgstr "Vai trò"
 
 msgid "Role changed to {newRoleName}"
 msgstr "Đã đổi vai trò thành {newRoleName}"
-
-msgid "Role title"
-msgstr "Tên vị trí"
 
 msgid "Role updated"
 msgstr "Đã cập nhật vai trò"
@@ -14646,9 +14102,6 @@ msgstr "Đang lưu..."
 msgid "Saving…"
 msgstr "Đang lưu…"
 
-msgid "Saw the paywall"
-msgstr "Đã thấy paywall"
-
 msgid "Scale to 100+ agents"
 msgstr "Mở rộng lên hơn 100 tác nhân"
 
@@ -14694,15 +14147,9 @@ msgstr "Cấp phát SCIM"
 msgid "Scope"
 msgstr "Phạm vi"
 
-msgid "Score"
-msgstr "Điểm"
-
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "Scoring starts once the board can see {0} days of usage."
 msgstr "Việc tính điểm bắt đầu khi bảng xếp hạng có {0} ngày sử dụng."
-
-msgid "Screening call"
-msgstr "Cuộc gọi sàng lọc"
 
 msgid "Screenshot copied to clipboard"
 msgstr "Đã sao chép ảnh chụp màn hình vào clipboard"
@@ -14813,9 +14260,6 @@ msgstr "Tìm issue GitHub…"
 msgid "Search history"
 msgstr "Tìm trong lịch sử"
 
-msgid "Search impressions and clicks for the last 28 days, with queries split into our brand, Apache Superset (not us), and everything else. Non-brand is the share SEO work exists to grow. Google delivers this data three days late."
-msgstr "Lượt hiển thị và lượt nhấp tìm kiếm trong 28 ngày qua, truy vấn được chia thành thương hiệu của chúng tôi, Apache Superset (không phải chúng tôi) và phần còn lại. Không thương hiệu là phần mà công việc SEO tồn tại để tăng. Google cung cấp dữ liệu này trễ ba ngày."
-
 msgid "Search in {frameTitle}…"
 msgstr "Tìm trong {frameTitle}…"
 
@@ -14830,9 +14274,6 @@ msgstr "Tìm trong Linear…"
 
 msgid "Search models"
 msgstr "Tìm mô hình"
-
-msgid "Search name, email, company, GitHub"
-msgstr "Tìm tên, email, công ty, GitHub"
 
 msgid "Search pages"
 msgstr "Tìm trang"
@@ -15221,10 +14662,6 @@ msgstr "Các trigger Sentry sẽ ngừng chạy cho đến khi bạn kết nối
 msgid "Separator"
 msgstr "Separator"
 
-#. placeholder {0}: i + 1
-msgid "series {0}"
-msgstr "chuỗi {0}"
-
 msgid "Service availability is published at <0>status.superset.sh</0>, and security and compliance documentation at <1>trust.superset.sh</1>."
 msgstr "Tình trạng dịch vụ được công bố tại <0>status.superset.sh</0>, còn tài liệu bảo mật và tuân thủ tại <1>trust.superset.sh</1>."
 
@@ -15277,12 +14714,6 @@ msgstr "Đặt màu nhóm"
 msgid "Set icon to {0}"
 msgstr "Đặt biểu tượng thành {0}"
 
-msgid "Set password"
-msgstr "Đặt mật khẩu"
-
-msgid "Set Password"
-msgstr "Đặt mật khẩu"
-
 msgid "Set project…"
 msgstr "Đặt dự án…"
 
@@ -15313,10 +14744,6 @@ msgstr "Thiết lập dự án này cho Superset"
 
 msgid "Set up your organization to get started"
 msgstr "Thiết lập tổ chức của bạn để bắt đầu"
-
-#. placeholder {0}: user.email
-msgid "Sets an email+password credential for <0>{0}</0> via Better Auth (hashed with scrypt). Existing sign-in methods keep working."
-msgstr "Đặt thông tin đăng nhập email+mật khẩu cho <0>{0}</0> qua Better Auth (băm bằng scrypt). Các phương thức đăng nhập hiện có vẫn hoạt động."
 
 msgid "Setting saved"
 msgstr "Đã lưu cài đặt"
@@ -15687,17 +15114,8 @@ msgstr "Trang đang đăng nhập"
 msgid "Signing in..."
 msgstr "Đang đăng nhập..."
 
-msgid "signup → paid ≤30d"
-msgstr "đăng ký → trả phí ≤30 ngày"
-
-msgid "Signup → paid within 30d"
-msgstr "Đăng ký → trả phí trong 30 ngày"
-
 msgid "Signup works. The welcome screen loads and the console is clean."
 msgstr "Đăng ký hoạt động tốt. Màn hình chào mừng tải xong và console không có lỗi."
-
-msgid "signups"
-msgstr "lượt đăng ký"
 
 msgid "Simple pricing for every team"
 msgstr "Giá đơn giản cho mọi đội ngũ"
@@ -15722,9 +15140,6 @@ msgstr "Một tab + khung"
 
 msgid "Single-select"
 msgstr "Chọn một"
-
-msgid "Site"
-msgstr "Trang"
 
 msgid "Site-wide telemetry · {range}"
 msgstr "Số liệu toàn trang · {range}"
@@ -15807,9 +15222,6 @@ msgstr "Chụp nhanh không gian làm việc này ở trạng thái hiện tại
 msgid "Snooze"
 msgstr "Tạm hoãn"
 
-msgid "Snooze 3 days"
-msgstr "Hoãn 3 ngày"
-
 msgid "so a border on two edges of the rotated square always faces outward."
 msgstr "nên viền ở hai cạnh của hình vuông đã xoay luôn hướng ra ngoài."
 
@@ -15824,9 +15236,6 @@ msgstr "Tuân thủ SOC 2 Type II. Yêu cầu báo cáo của chúng tôi."
 
 msgid "SOC 2 Type II report"
 msgstr "Báo cáo SOC 2 Type II"
-
-msgid "Social"
-msgstr "Mạng xã hội"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "Một số tệp không thuộc loại được chấp nhận nên không được thêm."
@@ -15910,9 +15319,6 @@ msgstr "Mã nguồn công khai"
 
 msgid "Source path (not an import)"
 msgstr "Đường dẫn nguồn (không phải import)"
-
-msgid "Sourced"
-msgstr "Đã tìm nguồn"
 
 msgid "Sources"
 msgstr "Nguồn"
@@ -16025,14 +15431,8 @@ msgstr "Xếp chồng"
 msgid "Staff Software Engineer, Vori"
 msgstr "Kỹ sư phần mềm cấp Staff, Vori"
 
-msgid "Stage"
-msgstr "Giai đoạn"
-
 msgid "Stage all"
 msgstr "Stage tất cả"
-
-msgid "Stage change"
-msgstr "Thay đổi giai đoạn"
 
 msgid "Stage file"
 msgstr "Stage tệp"
@@ -16140,10 +15540,6 @@ msgstr "Bắt đầu miễn phí. Nâng cấp khi đội của bạn lớn hơn.
 msgid "Start from a template"
 msgstr "Bắt đầu từ mẫu"
 
-#. placeholder {0}: datum.customers
-msgid "Start MRR ({0} customers)"
-msgstr "MRR ban đầu ({0} khách hàng)"
-
 msgid "Start new session"
 msgstr "Bắt đầu phiên mới"
 
@@ -16164,9 +15560,6 @@ msgstr "Bắt đầu công việc từ bất cứ đâu"
 
 msgid "Started"
 msgstr "Bắt đầu"
-
-msgid "Started checkout"
-msgstr "Bắt đầu thanh toán"
 
 msgid "starting"
 msgstr "đang khởi động"
@@ -16236,9 +15629,6 @@ msgstr "Dừng và gửi"
 msgid "Step {0} of 2"
 msgstr "Bước {0} / 2"
 
-msgid "Step {step}: {name}"
-msgstr "Bước {step}: {name}"
-
 msgid "Steps 3 and 4 repeat at every scheduled time."
 msgstr "Bước 3 và 4 lặp lại vào mỗi thời điểm đã lên lịch."
 
@@ -16304,22 +15694,6 @@ msgstr "Gạch ngang"
 msgid "Strip redundant overrides at call sites"
 msgstr "Bỏ các chỗ ghi đè thừa tại nơi gọi"
 
-#. placeholder {0}: formatDateTime(new Date(series.dataThrough), TIMESTAMP_FORMAT)
-msgid "Stripe data through {0}"
-msgstr "Dữ liệu Stripe đến {0}"
-
-msgid "Stripe revenue"
-msgstr "doanh thu Stripe"
-
-msgid "Stripe's own Sigma MRR report, computed on demand via the Query Run API"
-msgstr "Báo cáo MRR Sigma của chính Stripe, tính theo yêu cầu qua Query Run API"
-
-msgid "Strong hire"
-msgstr "Chắc chắn tuyển"
-
-msgid "Strong no hire"
-msgstr "Chắc chắn không tuyển"
-
 msgid "Structure, scrolling, and overflow handling"
 msgstr "Cấu trúc, cuộn và xử lý tràn nội dung"
 
@@ -16352,9 +15726,6 @@ msgstr "Chưa cấu hình giới hạn tần suất gửi prompt"
 
 msgid "Submitting…"
 msgstr "Đang gửi…"
-
-msgid "Subs"
-msgstr "Gói"
 
 msgid "SUBSCRIBE"
 msgstr "ĐĂNG KÝ"
@@ -16415,9 +15786,6 @@ msgstr "Superset"
 
 msgid "Superset (YC S26) is the open-source IDE for the AI agents era, where engineers run hundreds of coding agents like Claude Code and Codex in parallel."
 msgstr "Superset (YC S26) là IDE mã nguồn mở cho kỷ nguyên agent AI, nơi các kỹ sư chạy song song hàng trăm agent lập trình như Claude Code và Codex."
-
-msgid "Superset | Company Dashboard"
-msgstr "Superset | Bảng điều khiển công ty"
 
 msgid "Superset Agent"
 msgstr "Superset Agent"
@@ -16607,10 +15975,6 @@ msgstr "Superset lưu mỗi kết nối dưới dạng mã hóa. Các lệnh g�
 
 msgid "Superset UI"
 msgstr "Superset UI"
-
-#. placeholder {0}: supersetUser.email
-msgid "Superset user · {0}"
-msgstr "Người dùng Superset · {0}"
 
 #. placeholder {0}: formatPercent(trackedMemorySharePercent)
 msgid "Superset uses {0} of system RAM"
@@ -16908,17 +16272,8 @@ msgstr "Cài đặt nhóm"
 msgid "Teammates pin feedback to the exact part of the page they mean."
 msgstr "Đồng đội ghim phản hồi đúng vào phần trang mà họ muốn nói tới."
 
-msgid "teams"
-msgstr "nhóm"
-
 msgid "Teams"
 msgstr "Nhóm"
-
-msgid "teams per 1,000 organizations"
-msgstr "nhóm trên 1.000 tổ chức"
-
-msgid "Teams vs individual accounts (Neon)"
-msgstr "Nhóm so với tài khoản cá nhân (Neon)"
 
 msgid "Teardown"
 msgstr "Dọn dẹp"
@@ -17376,9 +16731,6 @@ msgstr "Dịch vụ host Superset cho {organization} đã dừng bất ngờ ({c
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "Dịch vụ host Superset đã dừng bất ngờ ({cause}) và không tự khởi động lại được."
 
-msgid "The surfaces outside the site that carry the product: the repository, releases, and Discord."
-msgstr "Các bề mặt ngoài trang web mang sản phẩm đi: kho mã, bản phát hành và Discord."
-
 msgid "the target host"
 msgstr "host đích"
 
@@ -17822,9 +17174,6 @@ msgstr "Hạng"
 msgid "Time"
 msgstr "Thời gian"
 
-msgid "Time range"
-msgstr "Khoảng thời gian"
-
 msgid "Times use your time zone."
 msgstr "Thời gian dùng múi giờ của bạn."
 
@@ -17978,14 +17327,8 @@ msgstr "Tooltip bật"
 msgid "tooltip-refactor.diff"
 msgstr "tooltip-refactor.diff"
 
-msgid "Top landing pages, last {dayCount} days"
-msgstr "Trang đích hàng đầu, {dayCount} ngày qua"
-
 msgid "Top models"
 msgstr "Mô hình hàng đầu"
-
-msgid "Top referring sites, last {dayCount} days"
-msgstr "Trang giới thiệu hàng đầu, {dayCount} ngày qua"
 
 msgid "Top tier. Nothing left to clear."
 msgstr "Hạng cao nhất. Không còn gì để vượt qua."
@@ -18002,9 +17345,6 @@ msgstr "Tổng số phiên agent"
 msgid "Total automations"
 msgstr "Tổng số tự động hóa"
 
-msgid "total cash"
-msgstr "tổng tiền mặt"
-
 msgid "Total cost"
 msgstr "Tổng chi phí"
 
@@ -18013,9 +17353,6 @@ msgstr "Tổng chi tiêu"
 
 msgid "Total tokens published"
 msgstr "Tổng số token đã công bố"
-
-msgid "Touched"
-msgstr "Đã liên hệ"
 
 msgid "Trace charges and subscriptions"
 msgstr "Theo dõi khoản thu và gói đăng ký"
@@ -18227,12 +17564,6 @@ msgstr "Các lần chạy không giám sát từ 8 giờ trở lên thành công
 msgid "Unavailable"
 msgstr "Không khả dụng"
 
-msgid "Unavailable: {unavailableReason}"
-msgstr "Không khả dụng: {unavailableReason}"
-
-msgid "unbilled"
-msgstr "chưa xuất hóa đơn"
-
 msgid "Uncached input"
 msgstr "Đầu vào chưa cache"
 
@@ -18274,15 +17605,6 @@ msgstr "Gỡ cài đặt thất bại"
 
 msgid "Unique"
 msgstr "Duy nhất"
-
-msgid "Unique users creating a real workspace per calendar week; current week dashed"
-msgstr "Số người dùng duy nhất tạo workspace thực mỗi tuần lịch; tuần hiện tại là nét đứt"
-
-msgid "Unique users creating a real workspace, daily"
-msgstr "Số người dùng duy nhất tạo workspace thực, theo ngày"
-
-msgid "Unique visitors starting a session on superset.sh or the docs each week, by how they arrived. AI assistants means a link inside ChatGPT, Claude, Gemini, or Perplexity."
-msgstr "Khách truy cập duy nhất bắt đầu phiên trên superset.sh hoặc tài liệu mỗi tuần, theo cách họ đến. Trợ lý AI nghĩa là một liên kết bên trong ChatGPT, Claude, Gemini hoặc Perplexity."
 
 msgid "unknown"
 msgstr "không rõ"
@@ -18799,18 +18121,6 @@ msgstr "Xem mức sử dụng"
 msgid "Violence or harassment"
 msgstr "Bạo lực hoặc quấy rối"
 
-msgid "Visitors"
-msgstr "Khách truy cập"
-
-msgid "Visitors by channel"
-msgstr "Khách truy cập theo kênh"
-
-msgid "Visitors to downloads to accounts"
-msgstr "Từ khách truy cập đến tải xuống đến tài khoản"
-
-msgid "Visitors whose session began on a link an assistant gave them. This is the number an AEO effort should move."
-msgstr "Khách truy cập có phiên bắt đầu từ liên kết do trợ lý đưa ra. Đây là con số mà nỗ lực AEO cần làm thay đổi."
-
 msgid "Voice"
 msgstr "Giọng nói"
 
@@ -18852,9 +18162,6 @@ msgstr "Đang chờ tin nhắn đầu tiên của agent con…"
 msgid "Waiting for your input"
 msgstr "Đang chờ bạn phản hồi"
 
-msgid "Waitlist signups"
-msgstr "Đăng ký danh sách chờ"
-
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "Muốn có sớm hơn? <0>Hãy nói với chúng tôi trên Discord</0>. Phần lớn những gì ở đây bắt đầu từ yêu cầu của người dùng."
 
@@ -18869,9 +18176,6 @@ msgstr "Xem một buổi duyệt thiết kế đi từ bình luận đến phiê
 
 msgid "Watch the Superset Automations video on YouTube"
 msgstr "Xem video Tự động hóa Superset trên YouTube"
-
-msgid "Watchers"
-msgstr "Người theo dõi"
 
 msgid "Wayfinding and disclosure"
 msgstr "Định hướng và mở rộng nội dung"
@@ -18966,13 +18270,6 @@ msgstr "Website"
 msgid "Week"
 msgstr "Tuần"
 
-msgid "Week {week}"
-msgstr "Tuần {week}"
-
-#. placeholder {0}: formatDay(data?.weeks[last] ?? "")
-msgid "week of {0}"
-msgstr "tuần {0}"
-
 msgid "Week of {formatted}"
 msgstr "Tuần {formatted}"
 
@@ -19003,26 +18300,8 @@ msgstr "Hằng tuần"
 msgid "Weekly at {time}"
 msgstr "Hằng tuần lúc {time}"
 
-msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
-msgstr "Nhóm theo tuần dựa trên workspace thực đầu tiên; % quay lại tạo workspace khác mỗi tuần"
-
-msgid "Weekly p50/p90 real workspaces per creator; current week dashed"
-msgstr "p50/p90 workspace thực trên mỗi người tạo theo tuần; tuần hiện tại là nét đứt"
-
-msgid "Weekly pageview → download conversion, Mac visitors; current week dashed"
-msgstr "Chuyển đổi lượt xem trang → tải xuống theo tuần, khách truy cập Mac; tuần hiện tại là nét đứt"
-
 msgid "Weekly release notes"
 msgstr "Ghi chú phát hành hằng tuần"
-
-msgid "Weekly signup cohorts (Neon); cohorts younger than 30d excluded"
-msgstr "Nhóm đăng ký theo tuần (Neon); không tính nhóm dưới 30 ngày"
-
-msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations that gained their second member that week. Rates are for the last complete week."
-msgstr "Khách truy cập trang hằng tuần (phiên PostHog), người nhấp tải xuống, tài khoản được tạo (Neon, loại trừ email công ty) và nhóm: các tổ chức có thêm thành viên thứ hai trong tuần đó. Tỷ lệ tính cho tuần trọn vẹn gần nhất."
-
-msgid "Weekly visitors arriving from a search results page. Search Console below says which queries they typed."
-msgstr "Khách truy cập hằng tuần đến từ trang kết quả tìm kiếm. Search Console bên dưới cho biết họ đã gõ truy vấn nào."
 
 msgid "Welcome back"
 msgstr "Chào mừng trở lại"
@@ -19047,12 +18326,6 @@ msgstr "Bạn muốn làm gì?"
 
 msgid "What early users say"
 msgstr "Người dùng đầu tiên nói gì"
-
-msgid "What Google shows us for and how much of it is not our own name."
-msgstr "Google hiển thị chúng tôi cho những tìm kiếm nào và bao nhiêu trong đó không phải tên của chúng tôi."
-
-msgid "What happens next"
-msgstr "Bước tiếp theo"
 
 msgid "What has to become true"
 msgstr "Điều gì phải trở thành sự thật"
@@ -19086,9 +18359,6 @@ msgstr "Chúng ta xây dựng gì tiếp theo?"
 
 msgid "What Superset is, who builds it, and who it's for. A San Francisco team, led by three ex-YC CTOs, building the workspace for parallel coding agents."
 msgstr "Superset là gì, ai xây dựng nó và dành cho ai. Một đội ngũ tại San Francisco do ba cựu CTO YC dẫn dắt, xây dựng workspace cho các agent lập trình song song."
-
-msgid "What the content is doing: which pages sessions start on, and how much is being published."
-msgstr "Nội dung đang làm gì: phiên bắt đầu ở trang nào và có bao nhiêu được xuất bản."
 
 msgid "What these were written against is no longer on the page, so they have no pin."
 msgstr "Nội dung mà chúng được viết cho đã không còn trên trang, nên chúng không có ghim."
@@ -19138,9 +18408,6 @@ msgstr "Code của tôi chạy ở đâu?"
 msgid "Where serious teams are"
 msgstr "Nơi các đội nghiêm túc đang đứng"
 
-msgid "Where sessions begin: the home page, a compare page, the docs, a post, or a changelog entry. Content that ranks shows up here before it shows up in signups."
-msgstr "Nơi phiên bắt đầu: trang chủ, trang so sánh, tài liệu, bài viết hoặc mục changelog. Nội dung có thứ hạng xuất hiện ở đây trước khi xuất hiện trong đăng ký."
-
 msgid "Where the industry is, honestly"
 msgstr "Ngành đang ở đâu, nói thật"
 
@@ -19153,9 +18420,6 @@ msgstr "Nơi script terminal này khả dụng."
 msgid "Where to look next"
 msgstr "Xem tiếp ở đâu"
 
-msgid "Whether the people acquired stay and what they pay."
-msgstr "Liệu những người thu hút được có ở lại và họ trả bao nhiêu."
-
 msgid "Which agents are supported?"
 msgstr "Những agent nào được hỗ trợ?"
 
@@ -19167,9 +18431,6 @@ msgstr "Ai có thể mở trang này từ liên kết của nó"
 
 msgid "Who can open this workspace"
 msgstr "Ai có thể mở workspace này"
-
-msgid "Whole site"
-msgstr "Toàn bộ trang"
 
 msgid "Whole Task"
 msgstr "Trọn tác vụ"
@@ -19204,17 +18465,11 @@ msgstr "có hoặc không có tệp đính kèm"
 msgid "With the Superset mobile app, I can address production issues from anywhere."
 msgstr "Với ứng dụng di động Superset, tôi có thể xử lý sự cố trên môi trường production từ bất cứ đâu."
 
-msgid "Withdrew"
-msgstr "Đã rút lui"
-
 msgid "Wordmark, black"
 msgstr "Wordmark, đen"
 
 msgid "Wordmark, white"
 msgstr "Wordmark, trắng"
-
-msgid "Work at a Startup"
-msgstr "Work at a Startup"
 
 msgid "Work email"
 msgstr "Email công việc"
@@ -19224,9 +18479,6 @@ msgstr "Làm việc từ ticket"
 
 msgid "Work the action items from a call"
 msgstr "Xử lý các việc cần làm từ cuộc gọi"
-
-msgid "Work trial"
-msgstr "Làm việc thử"
 
 msgid "Work with your agents across your favorite tools"
 msgstr "Làm việc với agent của bạn trên các công cụ ưa thích"
@@ -19359,17 +18611,11 @@ msgstr "Cài đặt workspace"
 msgid "Workspace worktree not available"
 msgstr "Worktree của workspace không khả dụng"
 
-msgid "workspaces"
-msgstr "workspace"
-
 msgid "Workspaces"
 msgstr "Workspace"
 
 msgid "Workspaces are isolated task environments backed by git worktrees."
 msgstr "Workspace là môi trường tác vụ tách biệt, dựa trên git worktree."
-
-msgid "Workspaces created per user in the last 7 days, by percentile"
-msgstr "Số workspace được tạo trên mỗi người dùng trong 7 ngày qua, theo phân vị"
 
 msgid "Workspaces on this device will show up here."
 msgstr "Workspace trên thiết bị này sẽ xuất hiện ở đây."

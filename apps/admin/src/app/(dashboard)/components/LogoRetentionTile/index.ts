@@ -1,1 +1,0 @@
-export { LogoRetentionTile } from "./LogoRetentionTile";

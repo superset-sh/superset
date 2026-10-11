@@ -1,1 +1,0 @@
-export { DiscordTile } from "./DiscordTile";

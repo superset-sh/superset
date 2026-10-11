@@ -29,11 +29,6 @@
 <td>$MARKETING_LINK</td>
 </tr>
 <tr>
-<td><img src="https://vercel.com/favicon.ico" width="20" height="20" alt="Vercel"> <strong>Admin (Vercel)</strong></td>
-<td align="center">$ADMIN_STATUS</td>
-<td>$ADMIN_LINK</td>
-</tr>
-<tr>
 <td><img src="https://vercel.com/favicon.ico" width="20" height="20" alt="Vercel"> <strong>Docs (Vercel)</strong></td>
 <td align="center">$DOCS_STATUS</td>
 <td>$DOCS_LINK</td>

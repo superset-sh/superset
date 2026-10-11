@@ -1,5 +1,5 @@
 import { env } from "../env";
-import { fetchWithTimeout } from "./growth/fetch";
+import { fetchWithTimeout } from "./fetch-with-timeout";
 
 // PostHog answers 202 with `persons_found: 0` for a distinct id that has no
 // person, so deleting an already-deleted person succeeds. The person goes

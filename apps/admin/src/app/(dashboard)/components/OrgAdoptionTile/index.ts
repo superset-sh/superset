@@ -1,1 +1,0 @@
-export { OrgAdoptionTile } from "./OrgAdoptionTile";

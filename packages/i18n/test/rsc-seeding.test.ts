@@ -29,7 +29,7 @@ const CLIENT_COMPONENT = /^\s*["']use client["']/m;
 // Every Next.js app in the repo. Apps with no server-rendered translation are
 // still listed: the check arms itself the moment one is added, which is the
 // point — marketing had no guard until it had already broken in production.
-const NEXT_APPS = ["marketing", "web", "admin", "docs"] as const;
+const NEXT_APPS = ["marketing", "web", "docs"] as const;
 
 async function scan(app: string) {
 	const srcDir = join(REPO_ROOT, "apps", app, "src");

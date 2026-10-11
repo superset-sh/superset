@@ -22,10 +22,6 @@ msgstr "- className=\"rounded-sm border border-border bg-background …\""
 msgid ", selected"
 msgstr "，已選中"
 
-#. placeholder {0}: data.unbilledLogos
-msgid ". {0} not yet modeled as Stripe subscriptions"
-msgstr "。{0}尚未建模為Stripe訂閱"
-
 msgid ". Each card shows the canonical import path — click it to copy. Reach for these before writing anything custom."
 msgstr "匯出的每一個元件。每張卡片都會顯示規範的匯入路徑——點選即可複製。在自己動手寫元件之前，先看看這裡。"
 
@@ -92,9 +88,6 @@ msgstr "（已編輯）"
 
 msgid "(no output)"
 msgstr "（無輸出）"
-
-msgid "(so far)"
-msgstr "（截至目前）"
 
 #. placeholder {0}: connections.length
 msgid "{0, plural, one {# account connected} other {# accounts connected}}"
@@ -382,10 +375,6 @@ msgstr "落後你 {0}"
 msgid "{0} branch"
 msgstr "{0} 分支"
 
-#. placeholder {0}: list.data.length
-msgid "{0} candidates"
-msgstr "{0} 位候選人"
-
 #. placeholder {0}: params?.agent
 msgid "{0} cannot be signed in this way yet."
 msgstr "{0}還不能用這種方式登入。"
@@ -463,10 +452,6 @@ msgstr "{0}執行的主機服務是{1} — 此應用需要{2}或更新版本。�
 msgid "{0} is set up on this machine, but not on your account"
 msgstr "{0} 已在本機設定，但未在你的帳戶中設定"
 
-#. placeholder {0}: formatNumber(lastFullWeek)
-msgid "{0} last full week"
-msgstr "最近完整週 {0}"
-
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "還有{0}個——請細化搜尋"
@@ -492,23 +477,9 @@ msgstr "{1}項檢查中有{0}項在執行"
 msgid "{0} of {totalCount}"
 msgstr "{0}/{totalCount}"
 
-#. placeholder {0}: rate(teams, signups)
-msgid "{0} of accounts"
-msgstr "佔帳號的 {0}"
-
-#. placeholder {0}: rate(downloaders, visitors)
-#. placeholder {0}: rate(signups, visitors)
-msgid "{0} of visitors"
-msgstr "佔訪客的 {0}"
-
 #. placeholder {0}: plugin.interface.displayName
 msgid "{0} options"
 msgstr "{0}選項"
-
-#. placeholder {0}: formatNumber(dropped, undefined)
-#. placeholder {0}: formatNumber(step.count, undefined)
-msgid "{0} persons"
-msgstr "{0}人"
 
 #. placeholder {0}: i18n._(plan.name)
 msgid "{0} plan"
@@ -550,11 +521,6 @@ msgstr "{1} 的 {0} 個 token"
 msgid "{0} tokens over {1} active days"
 msgstr "{1} 個活躍日內共 {0} 個 Token"
 
-#. placeholder {0}: formatNumber(section.updatedRecently)
-#. placeholder {1}: formatNumber(data?.recentDays ?? 30)
-msgid "{0} touched in {1} days"
-msgstr "{1} 天內更新 {0} 篇"
-
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} uninstalled"
 msgstr "{0}已解除安裝"
@@ -571,10 +537,6 @@ msgstr "{0} 對戰 {1}"
 #. placeholder {0}: file.path
 msgid "{0} was deleted in this change."
 msgstr "{0}已在此更改中被刪除。"
-
-#. placeholder {0}: formatNumber(option)
-msgid "{0} weeks"
-msgstr "{0} 週"
 
 #. placeholder {0}: winner?.name
 #. placeholder {1}: result.events.length
@@ -833,9 +795,6 @@ msgstr "{count} 台主機執行的主機服務比此應用程式舊"
 msgid "{count}/day"
 msgstr "{count}/天"
 
-msgid "{current} of {total}"
-msgstr "第 {current} / {total} 位"
-
 msgid "{currentPage} of {totalBranches}"
 msgstr "{currentPage}/{totalBranches}"
 
@@ -936,9 +895,6 @@ msgstr "{kind} · 作者{author}"
 msgid "{kindLabel} theme"
 msgstr "{kindLabel}主題"
 
-msgid "{label} (partial week)"
-msgstr "{label}（不完整週）"
-
 msgid "{label} in cloud workspaces"
 msgstr "雲端工作區中的{label}"
 
@@ -992,9 +948,6 @@ msgstr "{name} 是內建的，無法取代"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} 尚未新增"
-
-msgid "{nonBrandPct} of clicks"
-msgstr "佔點擊的 {nonBrandPct}"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {請至少指定一個人員，或選擇{choice}。} sender {請至少指定一個寄件者，或選擇{choice}。} other {請至少指定一個項目，或選擇{choice}。}}"
@@ -1092,9 +1045,6 @@ msgstr "{skipped, plural, one {#項已跳過} other {#項已跳過}}"
 msgid "{starCount} stars and counting"
 msgstr "{starCount}個星標，還在成長"
 
-msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
-msgstr "{stars}個星標 · 本週{perDay}/天 · 尖峰{peakPerDay}/天"
-
 msgid "{started, plural, one {Started # automation} other {Started # automations}}"
 msgstr "{started, plural, one {已啟動 # 個自動化} other {已啟動 # 個自動化}}"
 
@@ -1189,12 +1139,6 @@ msgstr "#{0} {1}\n"
 
 msgid "#engineering"
 msgstr "#engineering"
-
-msgid "% of subscribed orgs at month end still subscribed one month later (count-based; $ NRR needs a Sigma query)"
-msgstr "月末訂閱組織中一個月後仍在訂閱的比例（按數量計；金額NRR需要Sigma查詢）"
-
-msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
-msgstr "每月新增訂閱在k個月後仍然有效的比例（Neon，不含企業版）"
 
 #. placeholder {0}: COMPANY.NAME
 msgid "%s | {0} Docs"
@@ -1291,22 +1235,6 @@ msgstr "✓ 2小時前"
 msgid "✓ 3d ago"
 msgstr "✓ 3天前"
 
-#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
-#. placeholder {1}: latest.customers
-#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
-msgid "${0} from {1} customers became ${2}"
-msgstr "{1} 位客戶的 MRR 從 ${0} 變為 ${2}"
-
-#. placeholder {0}: formatNumber(latest.prevUsd, undefined)
-#. placeholder {1}: latest.prevDate
-msgid "${0} previous period ({1})"
-msgstr "上一週期${0}（{1}）"
-
-#. placeholder {0}: formatNumber(data.arrUsd, undefined)
-#. placeholder {1}: accounts.length
-msgid "${0}/yr across {1} logos — already inside MRR, not additive"
-msgstr "{1}家客戶合計${0}/年 — 已計入MRR，不額外累加"
-
 msgid "${balance} credits"
 msgstr "${balance}額度"
 
@@ -1342,9 +1270,6 @@ msgstr "1週前"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10條以上並行工作流且不丟狀態"
-
-msgid "100% (retain everything)"
-msgstr "100%（全部留存）"
 
 msgid "10h ago"
 msgstr "10小時前"
@@ -1625,12 +1550,6 @@ msgstr "成就"
 msgid "Acme Inc."
 msgstr "Acme Inc."
 
-msgid "Acquisition"
-msgstr "獲客"
-
-msgid "Acquisition, content, conversion, retention, and distribution in one place. Weekly charts cover the selected range; the current week is partial. Drag a tile by its top edge, resize from the corner."
-msgstr "獲客、內容、轉換、留存與發佈集中在一處。週圖表涵蓋所選範圍，本週尚未結束。拖曳卡片上緣可移動，從角落可調整大小。"
-
 msgid "Action"
 msgstr "操作"
 
@@ -1640,12 +1559,6 @@ msgstr "操作"
 #. placeholder {0}: page.title
 msgid "Actions for {0}"
 msgstr "{0}的操作"
-
-msgid "activation rate"
-msgstr "啟用率"
-
-msgid "Activation, how much people use it once they are in, and whether they come back."
-msgstr "啟用情況、進來之後的使用量，以及他們是否會回來。"
 
 msgid "Active"
 msgstr "啟用中"
@@ -1702,9 +1615,6 @@ msgstr "新增描述…"
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "在專案設定中新增生命週期執行指令碼，或將某個終端指令碼標記為工作區執行命令。"
 
-msgid "Add a note… (⌘↵ to save)"
-msgstr "新增備註…（⌘↵ 儲存）"
-
 msgid "Add a project to see GitHub issues."
 msgstr "新增專案以檢視GitHub議題。"
 
@@ -1746,9 +1656,6 @@ msgstr "新增附件"
 
 msgid "Add Attachment"
 msgstr "新增附件"
-
-msgid "Add candidate"
-msgstr "新增候選人"
 
 msgid "Add command"
 msgstr "新增命令"
@@ -1907,9 +1814,6 @@ msgstr "對比基準分支"
 msgid "Against Main"
 msgstr "對比main"
 
-msgid "agent"
-msgstr "代理程式"
-
 msgid "Agent"
 msgstr "代理程式"
 
@@ -2017,15 +1921,6 @@ msgstr "AI · 對話"
 
 msgid "AI · Status"
 msgstr "AI · 狀態"
-
-msgid "AI agents reading the site, last {dayCount} days"
-msgstr "讀取網站的 AI 代理，最近 {dayCount} 天"
-
-msgid "AI assistant referrals"
-msgstr "AI 助理引薦"
-
-msgid "AI assistants"
-msgstr "AI 助理"
 
 msgid "AI authentication failed. Please check your AI settings."
 msgstr "AI認證失敗。請檢查你的AI設定。"
@@ -2158,9 +2053,6 @@ msgstr "所有儲存庫"
 msgid "All reviews"
 msgstr "所有審查"
 
-msgid "All roles"
-msgstr "所有職缺"
-
 msgid "All runs"
 msgstr "所有執行"
 
@@ -2172,9 +2064,6 @@ msgstr "升級過程中所有會話都已保留。"
 
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "所有會話已關閉，全新的守護程式正在執行。"
-
-msgid "All sources"
-msgstr "所有來源"
 
 msgid "All tasks"
 msgstr "全部任務"
@@ -2236,9 +2125,6 @@ msgstr "已有帳戶？<0>登入</0>"
 msgid "Already in tasks"
 msgstr "已在任務中"
 
-msgid "Already in the pipeline: {duplicateNames}"
-msgstr "已在招募流程中：{duplicateNames}"
-
 msgid "Also available as CommandDialog for ⌘K palettes"
 msgstr "也可用作CommandDialog，用於⌘K命令面板"
 
@@ -2293,9 +2179,6 @@ msgstr "發生未知錯誤"
 msgid "An update is ready to install."
 msgstr "更新已準備好安裝。"
 
-msgid "Analytics, Ops, and more"
-msgstr "分析、營運及更多功能"
-
 msgid "Android is on the way. Be first to know when it ships."
 msgstr "Android 版即將推出。發布時第一時間通知你。"
 
@@ -2310,9 +2193,6 @@ msgstr "動態WebGL漸變（stripe-gradient）"
 
 msgid "Annual billing only"
 msgstr "僅支援按年計費"
-
-msgid "Annualized enterprise Stripe subscriptions"
-msgstr "企業版Stripe訂閱的年化金額"
 
 msgid "Annually"
 msgstr "每年"
@@ -2412,9 +2292,6 @@ msgstr "還有其他嗎？（選填）"
 
 msgid "AP"
 msgstr "AP"
-
-msgid "Apache Superset"
-msgstr "Apache Superset"
 
 msgid "API"
 msgstr "API"
@@ -2629,9 +2506,6 @@ msgstr "指派給你"
 
 msgid "Assignee"
 msgstr "負責人"
-
-msgid "Assistants that opened our pages in a real browser on someone's behalf. Crawlers that only fetch HTML never run analytics and are not counted."
-msgstr "代表使用者在真實瀏覽器中開啟我們頁面的助理。只抓取 HTML 的爬蟲不會執行分析程式，因此不計入。"
 
 msgid "Assisted"
 msgstr "輔助"
@@ -2849,15 +2723,6 @@ msgstr "頭像（原子元件）"
 msgid "Avatar updated!"
 msgstr "頭像已更新！"
 
-msgid "Average time from previous"
-msgstr "距上一步平均耗時"
-
-msgid "Avg monthly outflow per counterparty, last 3 complete months"
-msgstr "按交易對手統計的月均支出，最近3個完整月"
-
-msgid "avg position {avgPosition}"
-msgstr "平均排名 {avgPosition}"
-
 #. placeholder {0}: requestedReviewers.join(", ")
 msgid "Awaiting {0}"
 msgstr "等待{0}"
@@ -3043,9 +2908,6 @@ msgstr "引用塊"
 msgid "Blog"
 msgstr "部落格"
 
-msgid "Blog posts"
-msgstr "部落格文章"
-
 msgid "Blue"
 msgstr "藍色"
 
@@ -3069,9 +2931,6 @@ msgstr "借用自動駕駛汽車的分級方式，用來衡量軟體的構建方
 
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "底部抽屜，在觸控螢幕裝置上便於滑動操作。"
-
-msgid "Bounce"
-msgstr "跳出"
 
 msgid "Box"
 msgstr "Box"
@@ -3138,9 +2997,6 @@ msgstr "分支與命名"
 
 msgid "Branches..."
 msgstr "分支..."
-
-msgid "brand"
-msgstr "品牌"
 
 msgid "Brand assets"
 msgstr "品牌素材"
@@ -3250,9 +3106,6 @@ msgstr "隨此裝置上的 Superset 應用程式一起提供。"
 
 msgid "Bundled with the Superset app on this device. Updates with the app."
 msgstr "隨此裝置上的 Superset 應用程式一起提供，並隨應用程式一起更新。"
-
-msgid "Burn by vendor (Mercury)"
-msgstr "按供應商統計的支出（Mercury）"
 
 msgid "Button — sizes"
 msgstr "Button — 尺寸"
@@ -3395,12 +3248,6 @@ msgstr "已取消"
 msgid "Cancels {0} — downgrades to Free at the end of the billing period."
 msgstr "將於{0}取消，在計費週期結束時降級為免費版。"
 
-msgid "Candidate"
-msgstr "候選人"
-
-msgid "Candidate not found."
-msgstr "找不到候選人。"
-
 msgid "Cannot {action}: no active organization is selected. Select an organization or sign in again."
 msgstr "無法{action}：未選擇活動組織。請選擇一個組織或重新登入。"
 
@@ -3433,9 +3280,6 @@ msgstr "招聘"
 
 msgid "Carousel"
 msgstr "輪播"
-
-msgid "Cash — total balance (Mercury)"
-msgstr "現金 — 總餘額（Mercury）"
 
 msgid "Category"
 msgstr "分類"
@@ -3601,9 +3445,6 @@ msgstr "查收你的信箱"
 msgid "Checkbox · Radio · Switch"
 msgstr "核取方塊 · 單選框 · 開關"
 
-msgid "Checking + savings + Treasury over time; fundraise tranches are the steps"
-msgstr "活期+儲蓄+國庫帳戶隨時間變化；臺階處為融資到帳"
-
 msgid "Checking agents…"
 msgstr "正在檢查代理程式…"
 
@@ -3699,9 +3540,6 @@ msgstr "選擇Superset在什麼時候通知你。"
 
 msgid "Choose where agents started from comments, design mode, and Pages open."
 msgstr "選擇從留言、設計模式和 Pages 啟動的代理程式的開啟位置。"
-
-msgid "Churn"
-msgstr "流失"
 
 msgid "CI failed"
 msgstr "CI失敗"
@@ -3840,15 +3678,6 @@ msgstr "點選在GitHub上開啟"
 
 msgid "Click two commits to define the range."
 msgstr "點選兩個提交以確定範圍。"
-
-msgid "Click-through rate"
-msgstr "點閱率"
-
-msgid "Clicked upgrade"
-msgstr "點擊升級"
-
-msgid "Clicks"
-msgstr "點擊"
 
 msgid "Clients"
 msgstr "客戶端"
@@ -4063,12 +3892,6 @@ msgstr "程式碼塊"
 msgid "Code Block"
 msgstr "程式碼塊"
 
-msgid "Cohort"
-msgstr "同期群"
-
-msgid "Cohort retention"
-msgstr "同期群留存"
-
 msgid "Collapse"
 msgstr "摺疊"
 
@@ -4227,9 +4050,6 @@ msgstr "溝通"
 msgid "Community"
 msgstr "社群"
 
-msgid "Community size from the public invite, refreshed every half hour."
-msgstr "來自公開邀請連結的社群規模，每半小時更新。"
-
 msgid "Company"
 msgstr "公司"
 
@@ -4239,14 +4059,8 @@ msgstr "Superset 的公司簡介、最新消息、品牌素材與媒體聯絡方
 msgid "Company email"
 msgstr "公司電子郵件"
 
-msgid "Company Metrics"
-msgstr "公司指標"
-
 msgid "Compare"
 msgstr "對比"
-
-msgid "Compare pages"
-msgstr "比較頁面"
 
 msgid "Compare plans"
 msgstr "方案對比"
@@ -4275,9 +4089,6 @@ msgstr "component-showcase"
 
 msgid "Composable form layout — pairs with @superset/ui/form for react-hook-form"
 msgstr "可組合的表單佈局——搭配@superset/ui/form用於react-hook-form"
-
-msgid "Computing in Stripe — up to a minute on first load"
-msgstr "正在Stripe中計算 — 首次載入最多需要一分鐘"
 
 msgid "Config location"
 msgstr "設定位置"
@@ -4545,12 +4356,6 @@ msgstr "聯絡我們"
 msgid "Contains this text..."
 msgstr "包含此文字..."
 
-msgid "Content"
-msgstr "內容"
-
-msgid "Content published or updated"
-msgstr "已發佈或更新的內容"
-
 msgid "Context"
 msgstr "上下文"
 
@@ -4598,9 +4403,6 @@ msgstr "繼續代理程式工作階段需要已釘選的工作區"
 msgid "continuing the last session"
 msgstr "繼續上一個工作階段"
 
-msgid "Contraction"
-msgstr "縮減"
-
 msgid "Contributions"
 msgstr "貢獻"
 
@@ -4616,20 +4418,8 @@ msgstr "對話"
 msgid "Conversation · Message"
 msgstr "對話 · 訊息"
 
-msgid "Conversion"
-msgstr "轉換"
-
-msgid "Conversion from previous"
-msgstr "較上一步轉換率"
-
-msgid "Conversion so far"
-msgstr "累計轉換率"
-
 msgid "Convert to draft"
 msgstr "轉為草稿"
-
-msgid "Converted"
-msgstr "已轉換"
 
 msgid "Converting to draft…"
 msgstr "正在轉為草稿…"
@@ -5576,9 +5366,6 @@ msgstr "憑證保留在伺服器上"
 msgid "Cross-feature components living outside packages/ui — check here before building a new one"
 msgstr "位於packages/ui之外的跨功能元件——新建元件之前先來這裡看看"
 
-msgid "CTR"
-msgstr "點閱率"
-
 msgid "Ctrl+click"
 msgstr "Ctrl+點選"
 
@@ -5599,9 +5386,6 @@ msgstr "目前方案"
 
 msgid "Current tab"
 msgstr "目前分頁"
-
-msgid "Current title"
-msgstr "目前職稱"
 
 msgid "Cursor"
 msgstr "游標"
@@ -6141,14 +5925,8 @@ msgstr "差異大小"
 msgid "Digital Product Designer"
 msgstr "數位產品設計師"
 
-msgid "Direct"
-msgstr "直接造訪"
-
 msgid "Direct mode"
 msgstr "直接模式"
-
-msgid "Directories, blogs, newsletters, and communities that sent visitors. Search, social, GitHub, and assistants are excluded so listings and links stand out."
-msgstr "帶來訪客的目錄站、部落格、電子報與社群。排除搜尋、社群媒體、GitHub 與助理，以突顯收錄與連結。"
 
 msgid "Directory"
 msgstr "目錄"
@@ -6280,9 +6058,6 @@ msgstr "顯示"
 msgid "Displays the mobile sidebar."
 msgstr "顯示行動版側邊欄。"
 
-msgid "Distribution and community"
-msgstr "發佈與社群"
-
 msgid "Do anything"
 msgstr "做任何事"
 
@@ -6351,9 +6126,6 @@ msgstr "下載{name}"
 msgid "Download app"
 msgstr "下載應用"
 
-msgid "Download clicks"
-msgstr "下載點擊"
-
 msgid "Download failed"
 msgstr "下載失敗"
 
@@ -6419,9 +6191,6 @@ msgstr "建立了草稿"
 msgid "drafted 3 support replies"
 msgstr "起草了3條支援回覆"
 
-msgid "Drag to move"
-msgstr "拖曳以移動"
-
 msgid "Drag to reorder"
 msgstr "拖曳以重新排序"
 
@@ -6455,12 +6224,6 @@ msgstr "拖放以固定"
 msgid "Drop to unpin"
 msgstr "拖放以取消固定"
 
-msgid "Drop-off from previous"
-msgstr "較上一步流失"
-
-msgid "Drop-off from start"
-msgstr "較起點流失"
-
 msgid "dropdown"
 msgstr "下拉選單"
 
@@ -6469,9 +6232,6 @@ msgstr "下拉選單"
 
 msgid "Dropdown, context, and application menus"
 msgstr "下拉選單、右鍵選單和應用程式選單"
-
-msgid "Dropped off"
-msgstr "已流失"
 
 msgid "Duration"
 msgstr "耗時"
@@ -6731,12 +6491,6 @@ msgstr "輸入URL..."
 msgid "Enterprise"
 msgstr "企業版"
 
-msgid "Enterprise ARR by account"
-msgstr "按客戶劃分的企業版ARR"
-
-msgid "Entries by section"
-msgstr "依區塊的進入量"
-
 msgid "Environment"
 msgstr "環境"
 
@@ -6784,9 +6538,6 @@ msgstr "每個代理都在各自的 Git worktree 和分支中執行，讓工作�
 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "每個維度都在為下一等級出力。保持住，等級自然會來。"
-
-msgid "Every candidate, where they are, and who owes the next move."
-msgstr "每位候選人的進度，以及下一步該由誰跟進。"
 
 msgid "Every day at 3:00 AM"
 msgstr "每天凌晨 3:00"
@@ -6909,9 +6660,6 @@ msgstr "展開語音"
 
 msgid "Expand workspace"
 msgstr "展開工作區"
-
-msgid "Expansion"
-msgstr "擴張"
 
 msgid "Experimental"
 msgstr "實驗功能"
@@ -7196,9 +6944,6 @@ msgstr "載入分支失敗"
 msgid "Failed to load file"
 msgstr "載入檔案失敗"
 
-msgid "Failed to load funnel data"
-msgstr "載入漏斗資料失敗"
-
 msgid "Failed to load image"
 msgstr "載入圖片失敗"
 
@@ -7393,10 +7138,6 @@ msgstr "設定顏色失敗"
 
 msgid "Failed to set icon"
 msgstr "設定圖示失敗"
-
-#. placeholder {0}: error.message
-msgid "Failed to set password: {0}"
-msgstr "設定密碼失敗：{0}"
 
 msgid "Failed to sign in. Please try again."
 msgstr "登入失敗。請重試。"
@@ -7686,12 +7427,6 @@ msgstr "已完成"
 msgid "finished · worked for 7s"
 msgstr "已完成 · 用時7秒"
 
-msgid "First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
-msgstr "首次登入頁 → 認證 → 引導 → 真實工作區（最近7天，2天視窗）"
-
-msgid "First-ever pageview on superset.sh, daily"
-msgstr "每日首次存取superset.sh的頁面瀏覽數"
-
 msgid "Fix all failing checks"
 msgstr "修復所有失敗的檢查"
 
@@ -7788,9 +7523,6 @@ msgstr "在LinkedIn上關注我們"
 msgid "Follow us on X/Twitter"
 msgstr "在X/Twitter上關注我們"
 
-msgid "Follow-up"
-msgstr "後續追蹤"
-
 msgid "Font family"
 msgstr "字型"
 
@@ -7878,9 +7610,6 @@ msgstr "分支會話"
 msgid "Fork session…"
 msgstr "分支會話…"
 
-msgid "Forks"
-msgstr "Fork"
-
 msgid "Form controls and field composition"
 msgstr "表單控制項與欄位組合"
 
@@ -7919,12 +7648,6 @@ msgstr "{price}/使用者/月起"
 
 msgid "From a hackathon project to the workspace for parallel coding agents."
 msgstr "從一個黑客松專案，到平行程式設計代理的工作空間。"
-
-msgid "From a visit to a download to an account to a paying organization."
-msgstr "從造訪到下載、到帳號、到付費組織。"
-
-msgid "From the public sitemap: compare pages, posts, and changelog entries by the week they were published or last revised."
-msgstr "來自公開 sitemap：比較頁、文章與更新日誌依發佈或最後修訂的週統計。"
 
 msgid "Front matter hidden — switch to Markdown to edit it"
 msgstr "已隱藏front matter，切換到Markdown可編輯"
@@ -8082,9 +7805,6 @@ msgstr "GitHub 拒絕了此電腦的憑證，因此無法偵測提取請求。�
 msgid "GitHub sign-in needed"
 msgstr "需要登入 GitHub"
 
-msgid "GitHub stars"
-msgstr "GitHub 星標"
-
 msgid "GitHub sync requires the Pro plan."
 msgstr "GitHub同步需要Pro方案。"
 
@@ -8151,9 +7871,6 @@ msgstr "前往工作區"
 msgid "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
 msgstr "Google沒有授予持久存取權限。請在你的Google帳戶的第三方存取中移除Superset，然後重試。"
 
-msgid "Google Search Console"
-msgstr "Google Search Console"
-
 msgid "Grant the OS permissions Superset needs."
 msgstr "授予Superset所需的系統權限。"
 
@@ -8180,9 +7897,6 @@ msgstr "分組方式"
 
 msgid "Group new branches under a folder."
 msgstr "將新分支歸入一個資料夾。"
-
-msgid "Growth"
-msgstr "成長"
 
 msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "GTM 與 AI 自動化架構師，Mistral AI"
@@ -8347,12 +8061,6 @@ msgstr "高嚴重性"
 msgid "High usage"
 msgstr "用量高"
 
-msgid "Hired"
-msgstr "已錄取"
-
-msgid "Hiring"
-msgstr "招募"
-
 msgid "history"
 msgstr "歷史"
 
@@ -8480,9 +8188,6 @@ msgstr "有多少個隱藏終端保持完整載入（{MIN_TERMINAL_PARKED_RUNTIM
 
 msgid "How much agent work engineers are actually running — tokens, cost, models and sessions, published by people who opted in."
 msgstr "工程師實際執行的代理工作量 — tokens、成本、模型與工作階段，由選擇公開的使用者提供。"
-
-msgid "How people reach superset.sh and the docs, and how much of it is search and assistants rather than the brand."
-msgstr "人們如何到達 superset.sh 與文件站，其中有多少來自搜尋與助理而非品牌。"
 
 msgid "How should the agent's actions be approved?"
 msgstr "代理的操作應如何批准？"
@@ -8701,9 +8406,6 @@ msgstr "正在匯入..."
 msgid "Importing…"
 msgstr "正在匯入…"
 
-msgid "Impressions"
-msgstr "曝光"
-
 msgid "Improve the agent instructions"
 msgstr "改進代理程式說明"
 
@@ -8764,9 +8466,6 @@ msgstr "應用程式內瀏覽器"
 
 msgid "In-app PR merge"
 msgstr "應用程式內合併PR"
-
-msgid "Inbound"
-msgstr "主動應徵"
 
 msgid "Inbox triage"
 msgstr "收件匣分類"
@@ -8905,9 +8604,6 @@ msgstr "安裝方式"
 msgid "Installing..."
 msgstr "正在安裝..."
 
-msgid "Installs"
-msgstr "安裝"
-
 msgid "Instructions"
 msgstr "說明"
 
@@ -8934,9 +8630,6 @@ msgstr "打斷"
 
 msgid "Interrupted"
 msgstr "已中斷"
-
-msgid "Interview"
-msgstr "面試"
 
 msgid "Intro call"
 msgstr "初步通話"
@@ -9299,12 +8992,6 @@ msgstr "最近代理程式活動{0}"
 msgid "Last attached"
 msgstr "上次連線"
 
-msgid "Last contact"
-msgstr "最近聯絡"
-
-msgid "Last contact {lastContact}"
-msgstr "最近聯絡 {lastContact}"
-
 msgid "Last day of each month"
 msgstr "每月最後一天"
 
@@ -9379,12 +9066,6 @@ msgstr "排行榜設定"
 
 msgid "Leaf"
 msgstr "葉子"
-
-msgid "Lean hire"
-msgstr "傾向錄取"
-
-msgid "Lean no hire"
-msgstr "傾向不錄取"
 
 msgid "Learn"
 msgstr "學習"
@@ -9779,12 +9460,6 @@ msgstr "已跳過登入資訊（鑰匙圈存取被拒絕）"
 msgid "Logo"
 msgstr "Logo"
 
-msgid "logo retention"
-msgstr "客戶留存"
-
-msgid "Logo retention — monthly"
-msgstr "客戶留存 — 按月"
-
 msgid "Logo updated"
 msgstr "Logo已更新"
 
@@ -9943,9 +9618,6 @@ msgstr "標為未讀"
 msgid "Mark as viewed"
 msgstr "標記為已檢視"
 
-msgid "Mark hired"
-msgstr "標記為已錄取"
-
 msgid "Mark Ready"
 msgstr "標記為待審查"
 
@@ -10006,9 +9678,6 @@ msgstr "MCP伺服器"
 msgid "MCP Server Commands"
 msgstr "MCP伺服器命令"
 
-msgid "Mean"
-msgstr "平均"
-
 msgid "Measured over the trailing 30 days"
 msgstr "以最近 30 天計算"
 
@@ -10024,9 +9693,6 @@ msgstr "媒體資料包"
 
 msgid "Median ticket-to-production time under one day for routine work."
 msgstr "常規工作從工單到上線的中位耗時不足一天。"
-
-msgid "Median time from previous"
-msgstr "距上一步中位耗時"
 
 msgid "Medical and dental at no cost to you, a 401(k), unlimited time off, a $5K desk stipend, and free meals in the office."
 msgstr "免費的醫療與牙科保險、401(k)、無限休假、$5K 辦公設備補助，以及辦公室免費餐點。"
@@ -10176,9 +9842,6 @@ msgstr "最小化GitHub議題"
 msgid "Minimum contrast"
 msgstr "最小對比度"
 
-msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
-msgstr "<0>PostHog成功指標儀表板</0>的映象 — 產品資料來自已儲存的洞察，業務資料即時取自Stripe/Neon"
-
 msgid "missed"
 msgstr "已錯過"
 
@@ -10267,9 +9930,6 @@ msgstr "等寬字型"
 msgid "Month"
 msgstr "月"
 
-msgid "Month {offset}"
-msgstr "第{offset}月"
-
 msgid "monthly"
 msgstr "每月"
 
@@ -10278,12 +9938,6 @@ msgstr "按月"
 
 msgid "Monthly at {time}"
 msgstr "每月{time}"
-
-msgid "monthly NRR"
-msgstr "月度 NRR"
-
-msgid "monthly NRR (month so far)"
-msgstr "月度 NRR（本月至今）"
 
 msgid "Monthly on {day}"
 msgstr "每月{day}"
@@ -10345,9 +9999,6 @@ msgstr "軟體史的大部分時間"
 msgid "Move {count} to Group"
 msgstr "將{count}個移動到群組"
 
-msgid "Move to {nextStageLabel}"
-msgstr "推進到{nextStageLabel}"
-
 msgid "Move to Center"
 msgstr "移到中間"
 
@@ -10359,15 +10010,6 @@ msgstr "移到右側"
 
 msgid "Move to Tab"
 msgstr "移動到分頁"
-
-msgid "MRR"
-msgstr "MRR"
-
-msgid "MRR — daily (Stripe)"
-msgstr "MRR — 按日（Stripe）"
-
-msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
-msgstr "上月底付費客戶的 MRR 佔其當時付費額的比例：擴張與縮減扣除流失後的淨值，不含新客戶"
 
 msgid "Multi-select"
 msgstr "多選"
@@ -10486,15 +10128,6 @@ msgstr "需要你"
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
-msgid "net burn"
-msgstr "淨支出"
-
-msgid "Net burn — monthly (Mercury)"
-msgstr "淨支出 — 按月（Mercury）"
-
-msgid "Net revenue retention — monthly (Stripe)"
-msgstr "淨收入留存率 — 每月（Stripe）"
-
 msgid "Network Changed"
 msgstr "網路已變更"
 
@@ -10513,9 +10146,6 @@ msgstr "新"
 
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "新的{providerLabel}代理程式將使用{accountLabel}。"
-
-msgid "New accounts"
-msgstr "新帳號"
 
 msgid "New agent"
 msgstr "新建代理程式"
@@ -10568,17 +10198,11 @@ msgstr "新建議題"
 msgid "New page"
 msgstr "新增頁面"
 
-msgid "New password (min 8 characters)"
-msgstr "新密碼（至少8個字元）"
-
 msgid "New project"
 msgstr "新建專案"
 
 msgid "New push to branch"
 msgstr "向分支推送了新提交"
-
-msgid "New role…"
-msgstr "新職缺…"
 
 msgid "New session"
 msgstr "新建會話"
@@ -10604,9 +10228,6 @@ msgstr "新分頁+窗格"
 msgid "New task"
 msgstr "新建任務"
 
-msgid "New teams"
-msgstr "新團隊"
-
 msgid "New terminal"
 msgstr "新建終端"
 
@@ -10628,14 +10249,8 @@ msgstr "新建工作區"
 msgid "New Workspace ({shortcutText})"
 msgstr "新建工作區（{shortcutText}）"
 
-msgid "new workspace creators"
-msgstr "新增工作區建立者"
-
 msgid "New workspace in {name}"
 msgstr "在 {name} 中新建工作區"
-
-msgid "New-user activation"
-msgstr "新使用者啟用"
 
 msgid "Newer than this app"
 msgstr "比此應用程式新"
@@ -10658,9 +10273,6 @@ msgstr "下一頁"
 msgid "Next branch"
 msgstr "下一個分支"
 
-msgid "Next candidate"
-msgstr "下一位候選人"
-
 msgid "Next comment"
 msgstr "下一條評論"
 
@@ -10679,9 +10291,6 @@ msgstr "3天後下次執行"
 
 msgid "Next slide"
 msgstr "下一張"
-
-msgid "Next step"
-msgstr "下一步"
 
 msgid "Next Tab"
 msgstr "下一個分頁"
@@ -10716,9 +10325,6 @@ msgstr "此主機上沒有{0}登入——登入後用量會顯示在這裡。"
 
 msgid "No access to this host"
 msgstr "沒有此主機的存取權限"
-
-msgid "No active enterprise accounts"
-msgstr "沒有活躍的企業客戶"
 
 msgid "No active host"
 msgstr "沒有活動主機"
@@ -10859,9 +10465,6 @@ msgstr "未找到貢獻者。"
 msgid "No credit card required."
 msgstr "無需信用卡。"
 
-msgid "No data"
-msgstr "無資料"
-
 msgid "No description"
 msgstr "無描述"
 
@@ -10907,14 +10510,8 @@ msgstr "沒有檔案符合允許的型別。"
 msgid "No files match your search"
 msgstr "沒有符合搜尋的檔案"
 
-msgid "No follow-ups due. Nice."
-msgstr "沒有到期的後續追蹤。很好。"
-
 msgid "No fonts found."
 msgstr "未找到字型。"
-
-msgid "No funnel data available for this period"
-msgstr "此時間段沒有漏斗資料"
 
 msgid "No git remote detected"
 msgstr "未檢測到git遠端儲存庫"
@@ -11298,9 +10895,6 @@ msgstr "無提示詞啟動"
 msgid "No. Your agents stay independent; Superset is the orchestration layer around them. Each task gets an isolated Git worktree, persistent sessions, diff review, and scheduled runs without tying the workflow to one provider."
 msgstr "不是。你的代理程式保持獨立，Superset是圍繞它們的編排層。每個任務都有隔離的Git worktree、持久會話、差異審查和定時執行，工作流不繫結任何一家提供商。"
 
-msgid "Nobody"
-msgstr "無人"
-
 msgid "Nobody has joined the board yet."
 msgstr "還沒有人加入榜單。"
 
@@ -11312,12 +10906,6 @@ msgstr "團隊裡還沒有人共享自動化。"
 
 msgid "Nobody reviews differently because of it."
 msgstr "沒有人因此改變審查方式。"
-
-msgid "non-brand"
-msgstr "非品牌"
-
-msgid "Non-brand clicks"
-msgstr "非品牌點擊"
 
 msgid "None"
 msgstr "無"
@@ -11358,14 +10946,8 @@ msgstr "未連線"
 msgid "Not connected · cloud workspaces push as your organization's GitHub App"
 msgstr "未連結 · 雲端工作區以組織的 GitHub App 身分推送"
 
-msgid "Not connected: {unavailableReason}. Add a Google service account to the Search Console property and set GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT."
-msgstr "未連線：{unavailableReason}。請將 Google 服務帳號加入 Search Console 資源，並設定 GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT。"
-
 msgid "Not demoed here"
 msgstr "此處未做演示"
-
-msgid "Not every client emits {gaps} yet, so that stage is under-counted."
-msgstr "並非所有用戶端都已傳送 {gaps}，因此該階段的計數偏低。"
 
 msgid "Not found"
 msgstr "未找到"
@@ -11378,9 +10960,6 @@ msgstr "不包含"
 
 msgid "Not loaded"
 msgstr "未載入"
-
-msgid "Not looking"
-msgstr "暫不考慮機會"
 
 msgid "Not now"
 msgstr "暫不"
@@ -11396,9 +10975,6 @@ msgstr "尚未接收到事件：Microsoft Graph拒絕了通知訂閱。請檢查
 
 msgid "Not reviewed by you"
 msgstr "你還沒有審查"
-
-msgid "Not scored"
-msgstr "未評分"
 
 msgid "Not sent"
 msgstr "未傳送"
@@ -11464,9 +11040,6 @@ msgstr "通知"
 msgid "Notion is not configured for this environment."
 msgstr "目前環境未配置Notion。"
 
-msgid "Notion page"
-msgstr "Notion 頁面"
-
 msgid "now"
 msgstr "剛剛"
 
@@ -11513,9 +11086,6 @@ msgstr "佔全部token"
 
 msgid "Off"
 msgstr "關閉"
-
-msgid "Offer"
-msgstr "Offer"
 
 #. placeholder {0}: COMPANY.NAME
 msgid "Official documentation for {0}, the app for running 100+ coding agents in parallel."
@@ -11612,9 +11182,6 @@ msgstr "線上"
 msgid "Online"
 msgstr "線上"
 
-msgid "Online now"
-msgstr "目前線上"
-
 msgid "Online Now"
 msgstr "目前線上"
 
@@ -11692,9 +11259,6 @@ msgstr "僅你自己"
 
 msgid "Only you can see this page"
 msgstr "僅你可見此頁面"
-
-msgid "Onsite"
-msgstr "現場面試"
 
 msgid "open"
 msgstr "開啟"
@@ -11897,9 +11461,6 @@ msgstr "在新分頁開啟"
 
 msgid "Open in New Tab"
 msgstr "在新分頁中開啟"
-
-msgid "Open in PostHog"
-msgstr "在PostHog中開啟"
 
 msgid "Open in Pull Requests"
 msgstr "在拉取請求中開啟"
@@ -12182,12 +11743,6 @@ msgstr "編排聊天"
 msgid "Orchestration guide"
 msgstr "編排指南"
 
-msgid "Organic search"
-msgstr "自然搜尋"
-
-msgid "Organic search by engine"
-msgstr "依搜尋引擎的自然搜尋"
-
 msgid "Organization"
 msgstr "組織"
 
@@ -12231,9 +11786,6 @@ msgstr "組織URL已更新！"
 msgid "Organization: <0>{0}</0>"
 msgstr "組織：<0>{0}</0>"
 
-msgid "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
-msgstr "擁有第二名成員的組織與單一成員帳戶的對比；折線為每 1,000 個組織的團隊數。"
-
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "把工作組織到團隊中。任務和整合可以按團隊同步。"
 
@@ -12270,20 +11822,11 @@ msgstr "這是我們截至2026年8月的判斷，依據是我們自己的團隊�
 msgid "Out of scope"
 msgstr "超出範圍"
 
-msgid "Outbound"
-msgstr "主動接觸"
-
-msgid "Outcome change"
-msgstr "結果變更"
-
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "輸入結果，輸出軟體。人類只指定意圖、約束和預算。工廠自行排產、持續交付、監控上線內容，並自行回滾。大多數變更在無人參與的情況下合併，故障率不升。"
 
 msgid "Outdated"
 msgstr "已過時"
-
-msgid "Outflows less Stripe payouts per month (treasury sweeps excluded); current month partial"
-msgstr "每月支出減去Stripe收款（不含國庫帳戶劃轉）；當月資料不完整"
 
 msgid "Outline"
 msgstr "描邊"
@@ -12299,9 +11842,6 @@ msgstr "輸出結構"
 
 msgid "Output truncated"
 msgstr "輸出已截斷"
-
-msgid "Outreach"
-msgstr "聯繫"
 
 msgid "Overflow Fade"
 msgstr "溢位漸隱"
@@ -12373,9 +11913,6 @@ msgstr "未設定頁面檢舉的速率限制"
 msgid "Page title"
 msgstr "頁面標題"
 
-msgid "Page views"
-msgstr "頁面瀏覽"
-
 msgid "Pages"
 msgstr "頁面"
 
@@ -12384,9 +11921,6 @@ msgstr "無法載入頁面"
 
 msgid "Pages open in a grid, and floating keyboards work. Requires iPadOS 26 or later."
 msgstr "頁面以網格顯示，並支援浮動鍵盤。需要 iPadOS 26 或以上版本。"
-
-msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
-msgstr "工作階段開始的頁面，以及未看第二頁就離開的比例。比較頁是 SEO 的主戰場。"
 
 msgid "Pages that save answers"
 msgstr "能保存答案的頁面"
@@ -12399,15 +11933,6 @@ msgstr "分頁"
 
 msgid "Pagination"
 msgstr "分頁"
-
-msgid "Paid"
-msgstr "已付費"
-
-msgid "Paid churn — cohort survival"
-msgstr "付費流失 — 同期群留存"
-
-msgid "Paid search"
-msgstr "付費搜尋"
 
 msgid "Paid work trial"
 msgstr "有薪工作試用"
@@ -12478,9 +12003,6 @@ msgstr "密碼"
 msgid "Password for {email}"
 msgstr "{email}的密碼"
 
-msgid "Password set"
-msgstr "密碼已設定"
-
 msgid "Past month"
 msgstr "過去一個月"
 
@@ -12536,9 +12058,6 @@ msgstr "支付方式"
 msgid "Payment Successful"
 msgstr "支付成功"
 
-msgid "Paywall → paid"
-msgstr "付費牆 → 付費"
-
 msgid "PDF"
 msgstr "PDF"
 
@@ -12550,9 +12069,6 @@ msgstr "待處理邀請"
 
 msgid "People"
 msgstr "人員"
-
-msgid "People whose first paywall view was in the last {PAYWALL_FUNNEL_WEEKS} weeks, and how far they got. A stage counts anyone who reached it after that view, so recent cohorts are still maturing."
-msgstr "首次看到付費牆在最近 {PAYWALL_FUNNEL_WEEKS} 週內的使用者，以及他們走到哪一步。每個階段統計在該次瀏覽之後到達的人，因此近期同期群仍在累積。"
 
 msgid "People with access"
 msgstr "有存取權限的人"
@@ -12597,9 +12113,6 @@ msgstr "個人"
 msgid "Phantom Forklift"
 msgstr "幽靈堆高機"
 
-msgid "Phone"
-msgstr "電話"
-
 msgid "Phone number"
 msgstr "電話號碼"
 
@@ -12635,9 +12148,6 @@ msgstr "請選擇專案位置"
 
 msgid "Pick a reason"
 msgstr "選擇原因"
-
-msgid "Pick a role"
-msgstr "選擇職缺"
 
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "選擇一個聲音或新增自己的。自訂音訊支援.mp3、.wav和.ogg。"
@@ -12689,9 +12199,6 @@ msgstr "粉色"
 
 msgid "Pinned"
 msgstr "已置頂"
-
-msgid "Pipeline"
-msgstr "招募流程"
 
 msgid "PK"
 msgstr "PK"
@@ -12803,9 +12310,6 @@ msgstr "頂欄下拉選單中的埠"
 msgid "Ports on remote hosts"
 msgstr "遠端主機上的連接埠"
 
-msgid "Position"
-msgstr "排名"
-
 msgid "Possible on good days. Supervision cost still grows too fast."
 msgstr "狀態好的時候能做到。監督成本成長仍然太快。"
 
@@ -12814,9 +12318,6 @@ msgstr "釋出"
 
 msgid "Post comment"
 msgstr "發表評論"
-
-msgid "Power user"
-msgstr "重度使用者"
 
 msgid "PR"
 msgstr "PR"
@@ -12943,9 +12444,6 @@ msgstr "上一頁"
 
 msgid "Previous branch"
 msgstr "上一個分支"
-
-msgid "Previous candidate"
-msgstr "上一位候選人"
 
 msgid "Previous comment"
 msgstr "上一條評論"
@@ -13278,9 +12776,6 @@ msgstr "將重複性工作排入排程，或設定為由事件觸發。代理程
 msgid "px"
 msgstr "px"
 
-msgid "Query"
-msgstr "查詢字詞"
-
 msgid "Query events and feature flags"
 msgstr "查詢事件和功能開關"
 
@@ -13384,12 +12879,6 @@ msgstr "通過Superset中繼從任何地方連上這臺Mac，或啟動雲端工�
 msgid "Reached"
 msgstr "已達到"
 
-msgid "Reached a dashboard page"
-msgstr "進入控制台頁面"
-
-msgid "Reached out"
-msgstr "已聯絡"
-
 msgid "React layer of the shared pane/workspace layout engine"
 msgstr "共享面板/工作區佈局引擎的React層"
 
@@ -13468,9 +12957,6 @@ msgstr "可以合併"
 
 msgid "Ready to try Superset?"
 msgstr "準備好試試Superset了嗎？"
-
-msgid "Real workspaces on 2+ distinct days within week 1 of first workspace (retention-validated definition)"
-msgstr "首個工作區之後一週內，在2天或以上建立過真實工作區（經留存驗證的定義）"
 
 msgid "Reapply all commits"
 msgstr "重新套用所有提交"
@@ -13568,12 +13054,6 @@ msgstr "僅作引用，未做演示"
 msgid "References"
 msgstr "引用"
 
-msgid "Referral"
-msgstr "引薦"
-
-msgid "Referred by"
-msgstr "推薦人"
-
 msgid "Refresh"
 msgstr "重新整理"
 
@@ -13610,9 +13090,6 @@ msgstr "在內建代理程式之外註冊任意CLI代理程式，各自擁有名
 msgid "Registers lifecycle hooks in this agent's global config so Superset can show status and send notifications. Turning this off removes Superset's entries everywhere — status and notifications stop for this agent, including inside Superset."
 msgstr "在該代理程式的全域性配置中註冊生命週期鉤子，以便Superset顯示狀態併發送通知。關閉後會在所有位置移除Superset的條目，該代理程式的狀態和通知都會停止，包括在Superset內部。"
 
-msgid "Rejected"
-msgstr "未錄取"
-
 msgid "Related Posts"
 msgstr "相關文章"
 
@@ -13624,9 +13101,6 @@ msgstr "重新啟動執行中的代理程式才能切換。"
 
 msgid "Relay access enabled, connecting to the relay…"
 msgstr "已啟用中繼存取，正在連線中繼…"
-
-msgid "Release"
-msgstr "版本"
 
 msgid "Release control"
 msgstr "釋放控制"
@@ -13935,9 +13409,6 @@ msgstr "儲存庫：{label}"
 msgid "Repository"
 msgstr "儲存庫"
 
-msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
-msgstr "儲存庫影響力與桌面版下載。安裝為 dmg 與 AppImage 下載；更新為自動更新程式拉取的 zip，代表現有使用者。"
-
 msgid "Repository URL or path"
 msgstr "儲存庫URL或路徑"
 
@@ -13988,9 +13459,6 @@ msgstr "重置編輯器"
 
 msgid "Reset GitHub star nag state"
 msgstr "重設 GitHub 星標提醒狀態"
-
-msgid "Reset layout"
-msgstr "重設版面"
 
 msgid "Reset location"
 msgstr "重置位置"
@@ -14217,12 +13685,6 @@ msgstr "正在恢復{0}…"
 msgid "Resuming the conversation…"
 msgstr "正在繼續對話…"
 
-msgid "Retained MRR"
-msgstr "留存 MRR"
-
-msgid "Retention and revenue"
-msgstr "留存與營收"
-
 msgid "Retry"
 msgstr "重試"
 
@@ -14267,9 +13729,6 @@ msgstr "在側邊欄中顯示"
 
 msgid "Reveal my rank"
 msgstr "顯示我的排名"
-
-msgid "Revenue first, then how many people are actually using it, then what it costs to run."
-msgstr "先看營收，再看實際使用人數，最後看營運成本。"
 
 msgid "Review"
 msgstr "審查"
@@ -14388,9 +13847,6 @@ msgstr "角色"
 
 msgid "Role changed to {newRoleName}"
 msgstr "角色已更改為{newRoleName}"
-
-msgid "Role title"
-msgstr "職缺名稱"
 
 msgid "Role updated"
 msgstr "角色已更新"
@@ -14646,9 +14102,6 @@ msgstr "正在儲存..."
 msgid "Saving…"
 msgstr "正在儲存…"
 
-msgid "Saw the paywall"
-msgstr "看到付費牆"
-
 msgid "Scale to 100+ agents"
 msgstr "擴展至 100 多個代理"
 
@@ -14694,15 +14147,9 @@ msgstr "SCIM帳號開通"
 msgid "Scope"
 msgstr "範圍"
 
-msgid "Score"
-msgstr "評分"
-
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "Scoring starts once the board can see {0} days of usage."
 msgstr "當看板看到 {0} 天的使用資料後，才會開始計分。"
-
-msgid "Screening call"
-msgstr "初步電話面談"
 
 msgid "Screenshot copied to clipboard"
 msgstr "截圖已複製到剪貼簿"
@@ -14813,9 +14260,6 @@ msgstr "搜尋GitHub議題…"
 msgid "Search history"
 msgstr "搜尋歷史"
 
-msgid "Search impressions and clicks for the last 28 days, with queries split into our brand, Apache Superset (not us), and everything else. Non-brand is the share SEO work exists to grow. Google delivers this data three days late."
-msgstr "最近 28 天的搜尋曝光與點擊，查詢字詞分為我們的品牌、Apache Superset（非我們）與其他。非品牌是 SEO 工作要擴大的部分。Google 資料延遲三天。"
-
 msgid "Search in {frameTitle}…"
 msgstr "在{frameTitle}中搜尋…"
 
@@ -14830,9 +14274,6 @@ msgstr "搜尋Linear…"
 
 msgid "Search models"
 msgstr "搜尋模型"
-
-msgid "Search name, email, company, GitHub"
-msgstr "搜尋姓名、電子郵件、公司、GitHub"
 
 msgid "Search pages"
 msgstr "搜尋頁面"
@@ -15221,10 +14662,6 @@ msgstr "在你重新連線之前，Sentry觸發器會停止觸發。該整合仍
 msgid "Separator"
 msgstr "分隔線"
 
-#. placeholder {0}: i + 1
-msgid "series {0}"
-msgstr "系列{0}"
-
 msgid "Service availability is published at <0>status.superset.sh</0>, and security and compliance documentation at <1>trust.superset.sh</1>."
 msgstr "服務可用性發布在<0>status.superset.sh</0>，安全與合規文件在<1>trust.superset.sh</1>。"
 
@@ -15277,12 +14714,6 @@ msgstr "設定群組顏色"
 msgid "Set icon to {0}"
 msgstr "將圖示設為{0}"
 
-msgid "Set password"
-msgstr "設定密碼"
-
-msgid "Set Password"
-msgstr "設定密碼"
-
 msgid "Set project…"
 msgstr "設定專案…"
 
@@ -15313,10 +14744,6 @@ msgstr "為Superset配置這個專案"
 
 msgid "Set up your organization to get started"
 msgstr "設定你的組織即可開始"
-
-#. placeholder {0}: user.email
-msgid "Sets an email+password credential for <0>{0}</0> via Better Auth (hashed with scrypt). Existing sign-in methods keep working."
-msgstr "通過Better Auth為<0>{0}</0>設定電子郵件+密碼憑證（使用scrypt雜湊）。現有登入方式仍然可用。"
 
 msgid "Setting saved"
 msgstr "設定已儲存"
@@ -15687,17 +15114,8 @@ msgstr "已登入的站點"
 msgid "Signing in..."
 msgstr "正在登入..."
 
-msgid "signup → paid ≤30d"
-msgstr "註冊 → 30天內付費"
-
-msgid "Signup → paid within 30d"
-msgstr "註冊 → 30天內付費"
-
 msgid "Signup works. The welcome screen loads and the console is clean."
 msgstr "註冊正常。歡迎畫面已載入，主控台沒有錯誤。"
-
-msgid "signups"
-msgstr "註冊數"
 
 msgid "Simple pricing for every team"
 msgstr "適合每支團隊的簡單定價"
@@ -15722,9 +15140,6 @@ msgstr "單分頁+窗格"
 
 msgid "Single-select"
 msgstr "單選"
-
-msgid "Site"
-msgstr "網站"
 
 msgid "Site-wide telemetry · {range}"
 msgstr "全站遙測 · {range}"
@@ -15807,9 +15222,6 @@ msgstr "為此工作區的目前狀態（包括其中安裝的所有內容）建
 msgid "Snooze"
 msgstr "稍後提醒"
 
-msgid "Snooze 3 days"
-msgstr "延後 3 天"
-
 msgid "so a border on two edges of the rotated square always faces outward."
 msgstr "因此旋轉後方塊兩條邊上的邊框始終朝外。"
 
@@ -15824,9 +15236,6 @@ msgstr "已通過SOC 2 Type II合規。可索取報告。"
 
 msgid "SOC 2 Type II report"
 msgstr "SOC 2 Type II報告"
-
-msgid "Social"
-msgstr "社群媒體"
 
 msgid "Some files are not an accepted type and were not added."
 msgstr "部分檔案的型別不被允許，未新增。"
@@ -15910,9 +15319,6 @@ msgstr "原始碼可見"
 
 msgid "Source path (not an import)"
 msgstr "原始碼路徑（不是匯入路徑）"
-
-msgid "Sourced"
-msgstr "已尋才"
 
 msgid "Sources"
 msgstr "來源"
@@ -16025,14 +15431,8 @@ msgstr "堆疊"
 msgid "Staff Software Engineer, Vori"
 msgstr "Staff 軟體工程師，Vori"
 
-msgid "Stage"
-msgstr "階段"
-
 msgid "Stage all"
 msgstr "全部暫存"
-
-msgid "Stage change"
-msgstr "階段變更"
 
 msgid "Stage file"
 msgstr "暫存檔案"
@@ -16140,10 +15540,6 @@ msgstr "免費開始。團隊用不夠時再升級。企業方案面向有進階
 msgid "Start from a template"
 msgstr "從模板開始"
 
-#. placeholder {0}: datum.customers
-msgid "Start MRR ({0} customers)"
-msgstr "起始 MRR（{0} 位客戶）"
-
 msgid "Start new session"
 msgstr "開始新會話"
 
@@ -16164,9 +15560,6 @@ msgstr "隨時隨地開始工作"
 
 msgid "Started"
 msgstr "開始時間"
-
-msgid "Started checkout"
-msgstr "開始結帳"
 
 msgid "starting"
 msgstr "啟動中"
@@ -16236,9 +15629,6 @@ msgstr "引導"
 msgid "Step {0} of 2"
 msgstr "第{0}步，共2步"
 
-msgid "Step {step}: {name}"
-msgstr "第{step}步：{name}"
-
 msgid "Steps 3 and 4 repeat at every scheduled time."
 msgstr "第 3 步和第 4 步會在每個計劃時間重複。"
 
@@ -16304,22 +15694,6 @@ msgstr "刪除線"
 msgid "Strip redundant overrides at call sites"
 msgstr "移除呼叫處多餘的樣式覆蓋"
 
-#. placeholder {0}: formatDateTime(new Date(series.dataThrough), TIMESTAMP_FORMAT)
-msgid "Stripe data through {0}"
-msgstr "Stripe資料截至{0}"
-
-msgid "Stripe revenue"
-msgstr "Stripe收入"
-
-msgid "Stripe's own Sigma MRR report, computed on demand via the Query Run API"
-msgstr "Stripe自帶的Sigma MRR報表，通過Query Run API按需計算"
-
-msgid "Strong hire"
-msgstr "強烈建議錄取"
-
-msgid "Strong no hire"
-msgstr "強烈建議不錄取"
-
 msgid "Structure, scrolling, and overflow handling"
 msgstr "結構、滾動與溢位處理"
 
@@ -16352,9 +15726,6 @@ msgstr "未配置提示詞提交速率限制"
 
 msgid "Submitting…"
 msgstr "正在提交…"
-
-msgid "Subs"
-msgstr "訂閱數"
 
 msgid "SUBSCRIBE"
 msgstr "訂閱"
@@ -16415,9 +15786,6 @@ msgstr "Superset"
 
 msgid "Superset (YC S26) is the open-source IDE for the AI agents era, where engineers run hundreds of coding agents like Claude Code and Codex in parallel."
 msgstr "Superset（YC S26）是為 AI agent 時代打造的開源 IDE，工程師可以在其中平行執行數百個 Claude Code、Codex 等程式設計 agent。"
-
-msgid "Superset | Company Dashboard"
-msgstr "Superset | 公司儀表板"
 
 msgid "Superset Agent"
 msgstr "Superset代理程式"
@@ -16607,10 +15975,6 @@ msgstr "Superset 會加密儲存每個連線。工具呼叫由 Superset 發出�
 
 msgid "Superset UI"
 msgstr "Superset UI"
-
-#. placeholder {0}: supersetUser.email
-msgid "Superset user · {0}"
-msgstr "Superset 使用者 · {0}"
 
 #. placeholder {0}: formatPercent(trackedMemorySharePercent)
 msgid "Superset uses {0} of system RAM"
@@ -16908,17 +16272,8 @@ msgstr "團隊設定"
 msgid "Teammates pin feedback to the exact part of the page they mean."
 msgstr "團隊成員把回饋釘在頁面上他們所指的確切位置。"
 
-msgid "teams"
-msgstr "團隊"
-
 msgid "Teams"
 msgstr "團隊"
-
-msgid "teams per 1,000 organizations"
-msgstr "每 1,000 個組織中的團隊數"
-
-msgid "Teams vs individual accounts (Neon)"
-msgstr "團隊與個人帳戶（Neon）"
 
 msgid "Teardown"
 msgstr "清理"
@@ -17376,9 +16731,6 @@ msgstr "{organization}的Superset主機服務意外停止（{cause}），且無�
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "Superset主機服務意外停止（{cause}），且無法自動重啟。"
 
-msgid "The surfaces outside the site that carry the product: the repository, releases, and Discord."
-msgstr "站外承載產品的管道：儲存庫、發行版本與 Discord。"
-
 msgid "the target host"
 msgstr "目標主機"
 
@@ -17822,9 +17174,6 @@ msgstr "等級"
 msgid "Time"
 msgstr "時間"
 
-msgid "Time range"
-msgstr "時間範圍"
-
 msgid "Times use your time zone."
 msgstr "時間依你的時區顯示。"
 
@@ -17978,14 +17327,8 @@ msgstr "Tooltip顯示於"
 msgid "tooltip-refactor.diff"
 msgstr "tooltip-refactor.diff"
 
-msgid "Top landing pages, last {dayCount} days"
-msgstr "熱門到達頁，最近 {dayCount} 天"
-
 msgid "Top models"
 msgstr "模型排行"
-
-msgid "Top referring sites, last {dayCount} days"
-msgstr "熱門引薦網站，最近 {dayCount} 天"
 
 msgid "Top tier. Nothing left to clear."
 msgstr "最高等級。沒有更多可以達成的了。"
@@ -18002,9 +17345,6 @@ msgstr "代理程式會話總數"
 msgid "Total automations"
 msgstr "自動化總數"
 
-msgid "total cash"
-msgstr "現金總額"
-
 msgid "Total cost"
 msgstr "總費用"
 
@@ -18013,9 +17353,6 @@ msgstr "總花費"
 
 msgid "Total tokens published"
 msgstr "已公開的 Token 總數"
-
-msgid "Touched"
-msgstr "已聯絡"
 
 msgid "Trace charges and subscriptions"
 msgstr "追蹤扣款和訂閱"
@@ -18227,12 +17564,6 @@ msgstr "無人值守執行8小時以上，在多數常規工單上無需人工�
 msgid "Unavailable"
 msgstr "不可用"
 
-msgid "Unavailable: {unavailableReason}"
-msgstr "不可用：{unavailableReason}"
-
-msgid "unbilled"
-msgstr "未開票"
-
 msgid "Uncached input"
 msgstr "未快取輸入"
 
@@ -18274,15 +17605,6 @@ msgstr "解除安裝失敗"
 
 msgid "Unique"
 msgstr "唯一"
-
-msgid "Unique users creating a real workspace per calendar week; current week dashed"
-msgstr "每個自然週建立真實工作區的獨立使用者數；本週為虛線"
-
-msgid "Unique users creating a real workspace, daily"
-msgstr "每日建立真實工作區的獨立使用者數"
-
-msgid "Unique visitors starting a session on superset.sh or the docs each week, by how they arrived. AI assistants means a link inside ChatGPT, Claude, Gemini, or Perplexity."
-msgstr "每週在 superset.sh 或文件站開始工作階段的不重複訪客，依來源劃分。AI 助理指來自 ChatGPT、Claude、Gemini 或 Perplexity 內的連結。"
 
 msgid "unknown"
 msgstr "未知"
@@ -18799,18 +18121,6 @@ msgstr "檢視用量"
 msgid "Violence or harassment"
 msgstr "暴力或騷擾"
 
-msgid "Visitors"
-msgstr "訪客"
-
-msgid "Visitors by channel"
-msgstr "依管道的訪客"
-
-msgid "Visitors to downloads to accounts"
-msgstr "從訪客到下載到帳號"
-
-msgid "Visitors whose session began on a link an assistant gave them. This is the number an AEO effort should move."
-msgstr "從助理提供的連結開始工作階段的訪客。這是 AEO 工作應該推動的數字。"
-
 msgid "Voice"
 msgstr "語音"
 
@@ -18852,9 +18162,6 @@ msgstr "正在等待子代理程式的第一則訊息…"
 msgid "Waiting for your input"
 msgstr "等待你的輸入"
 
-msgid "Waitlist signups"
-msgstr "候補名單註冊"
-
 msgid "Want something sooner? <0>Tell us in Discord</0>. Much of what's here started as a user request."
 msgstr "想讓某件事早點做？<0>在Discord上告訴我們</0>。這裡的很多條目最初都來自使用者的請求。"
 
@@ -18869,9 +18176,6 @@ msgstr "看一次設計審查如何從留言變成新版本。"
 
 msgid "Watch the Superset Automations video on YouTube"
 msgstr "在 YouTube 上觀看 Superset 自動化影片"
-
-msgid "Watchers"
-msgstr "關注者"
 
 msgid "Wayfinding and disclosure"
 msgstr "導航定位與內容展開"
@@ -18966,13 +18270,6 @@ msgstr "官網"
 msgid "Week"
 msgstr "按週"
 
-msgid "Week {week}"
-msgstr "第{week}週"
-
-#. placeholder {0}: formatDay(data?.weeks[last] ?? "")
-msgid "week of {0}"
-msgstr "{0} 當週"
-
 msgid "Week of {formatted}"
 msgstr "{formatted}當週"
 
@@ -19003,26 +18300,8 @@ msgstr "每週"
 msgid "Weekly at {time}"
 msgstr "每週{time}"
 
-msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
-msgstr "按首個真實工作區劃分的週同期群；每週再次建立工作區的回訪比例"
-
-msgid "Weekly p50/p90 real workspaces per creator; current week dashed"
-msgstr "每週每位建立者的真實工作區數p50/p90；本週為虛線"
-
-msgid "Weekly pageview → download conversion, Mac visitors; current week dashed"
-msgstr "每週頁面瀏覽 → 下載轉換率，Mac訪客；本週為虛線"
-
 msgid "Weekly release notes"
 msgstr "每週釋出說明"
-
-msgid "Weekly signup cohorts (Neon); cohorts younger than 30d excluded"
-msgstr "按週劃分的註冊同期群（Neon）；不足30天的同期群已排除"
-
-msgid "Weekly site visitors (PostHog sessions), people who clicked download, accounts created (Neon, company emails excluded), and teams: organizations that gained their second member that week. Rates are for the last complete week."
-msgstr "每週網站訪客（PostHog 工作階段）、點擊下載的人、建立的帳號（Neon，排除公司信箱）以及團隊：當週迎來第二位成員的組織。比率取最近一個完整週。"
-
-msgid "Weekly visitors arriving from a search results page. Search Console below says which queries they typed."
-msgstr "每週從搜尋結果頁到達的訪客。他們輸入的查詢字詞見下方 Search Console。"
 
 msgid "Welcome back"
 msgstr "歡迎回來"
@@ -19047,12 +18326,6 @@ msgstr "你想做什麼？"
 
 msgid "What early users say"
 msgstr "早期使用者怎麼說"
-
-msgid "What Google shows us for and how much of it is not our own name."
-msgstr "Google 為哪些搜尋顯示我們，其中有多少不是我們自己的名字。"
-
-msgid "What happens next"
-msgstr "後續安排"
 
 msgid "What has to become true"
 msgstr "需要成真的條件"
@@ -19086,9 +18359,6 @@ msgstr "接下來做點什麼？"
 
 msgid "What Superset is, who builds it, and who it's for. A San Francisco team, led by three ex-YC CTOs, building the workspace for parallel coding agents."
 msgstr "Superset 是什麼、由誰打造、為誰而做。一支由三位前 YC CTO 帶領的舊金山團隊，正在打造平行編碼代理的工作區。"
-
-msgid "What the content is doing: which pages sessions start on, and how much is being published."
-msgstr "內容的表現：工作階段從哪些頁面開始，以及發佈了多少。"
 
 msgid "What these were written against is no longer on the page, so they have no pin."
 msgstr "這些評論所針對的內容已不在頁面上，因此沒有標記。"
@@ -19138,9 +18408,6 @@ msgstr "我的程式碼在哪裡執行？"
 msgid "Where serious teams are"
 msgstr "認真的團隊都在這裡"
 
-msgid "Where sessions begin: the home page, a compare page, the docs, a post, or a changelog entry. Content that ranks shows up here before it shows up in signups."
-msgstr "工作階段的起點：首頁、比較頁、文件、文章或更新日誌。有排名的內容會先出現在這裡，然後才反映在註冊上。"
-
 msgid "Where the industry is, honestly"
 msgstr "行業實際走到了哪裡"
 
@@ -19153,9 +18420,6 @@ msgstr "此終端指令碼在哪些地方可用。"
 msgid "Where to look next"
 msgstr "接下來可以看這些"
 
-msgid "Whether the people acquired stay and what they pay."
-msgstr "獲得的使用者是否留下，以及付了多少。"
-
 msgid "Which agents are supported?"
 msgstr "支援哪些代理程式？"
 
@@ -19167,9 +18431,6 @@ msgstr "誰可以通過連結開啟這個頁面"
 
 msgid "Who can open this workspace"
 msgstr "誰可以開啟此工作區"
-
-msgid "Whole site"
-msgstr "整站"
 
 msgid "Whole Task"
 msgstr "整任務"
@@ -19204,17 +18465,11 @@ msgstr "有無附件均可"
 msgid "With the Superset mobile app, I can address production issues from anywhere."
 msgstr "有了 Superset 手機應用程式，我可以隨時隨地處理正式環境問題。"
 
-msgid "Withdrew"
-msgstr "已撤回"
-
 msgid "Wordmark, black"
 msgstr "文字標誌，黑色"
 
 msgid "Wordmark, white"
 msgstr "文字標誌，白色"
-
-msgid "Work at a Startup"
-msgstr "Work at a Startup"
 
 msgid "Work email"
 msgstr "工作電子郵件"
@@ -19224,9 +18479,6 @@ msgstr "從工單開始工作"
 
 msgid "Work the action items from a call"
 msgstr "處理通話中的待辦事項"
-
-msgid "Work trial"
-msgstr "試用工作"
 
 msgid "Work with your agents across your favorite tools"
 msgstr "在你常用的工具裡與代理程式協作"
@@ -19359,17 +18611,11 @@ msgstr "工作區設定"
 msgid "Workspace worktree not available"
 msgstr "工作區worktree不可用"
 
-msgid "workspaces"
-msgstr "工作區"
-
 msgid "Workspaces"
 msgstr "工作區"
 
 msgid "Workspaces are isolated task environments backed by git worktrees."
 msgstr "工作區是由git worktree支撐的隔離任務環境。"
-
-msgid "Workspaces created per user in the last 7 days, by percentile"
-msgstr "最近7天每位使用者建立的工作區數，按分位數"
 
 msgid "Workspaces on this device will show up here."
 msgstr "此裝置上的工作區會顯示在這裡。"

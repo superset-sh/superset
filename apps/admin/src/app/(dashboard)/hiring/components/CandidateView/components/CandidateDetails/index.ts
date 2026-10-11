@@ -1,1 +1,0 @@
-export { CandidateDetails } from "./CandidateDetails";

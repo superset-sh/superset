@@ -1,1 +1,0 @@
-export { hiringRouter } from "./hiring";
