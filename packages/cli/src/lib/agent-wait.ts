@@ -1,4 +1,7 @@
-import { type AgentRunState, agentRunState } from "@superset/shared/agent-status";
+import {
+	type AgentRunState,
+	agentRunState,
+} from "@superset/shared/agent-status";
 
 export const AGENT_WAIT_TARGETS = [
 	"settled",
