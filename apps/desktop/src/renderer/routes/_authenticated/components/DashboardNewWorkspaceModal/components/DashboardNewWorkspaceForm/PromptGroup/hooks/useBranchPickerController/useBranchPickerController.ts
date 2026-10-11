@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import type { BaseBranchSource } from "../../../../../DashboardNewWorkspaceDraftContext";
+import { useWorkspaceHostOptions } from "../../../components/DevicePicker/hooks/useWorkspaceHostOptions";
 import {
 	type BranchFilter,
 	type CloudRepository,
@@ -48,6 +49,10 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 	const navigate = useNavigate();
 	const { machineId } = useLocalHostService();
 	const { submit } = useWorkspaceCreates();
+	const { otherHosts } = useWorkspaceHostOptions();
+	const isHostOffline = otherHosts.some(
+		(host) => host.id === hostId && !host.isOnline,
+	);
 
 	// `null` hostId means "local active machine"; pin to the device's machineId
 	// so workspace lookups (keyed by hostId) hit the right host.
@@ -61,6 +66,8 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 		defaultBranch,
 		isLoading: isBranchesLoading,
 		isError: isBranchesError,
+		error: branchesError,
+		refetch: refetchBranches,
 		isFetchingNextPage,
 		hasNextPage,
 		fetchNextPage,
@@ -70,6 +77,7 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 		branchSearch,
 		branchFilter,
 		cloudRepository,
+		!isHostOffline,
 	);
 
 	const effectiveCompareBaseBranch = baseBranch || defaultBranch || null;
@@ -152,11 +160,18 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 		void fetchNextPage();
 	}, [fetchNextPage]);
 
+	const onRetryBranches = useCallback(() => {
+		void refetchBranches();
+	}, [refetchBranches]);
+
 	const pickerProps: PickerProps = {
 		effectiveCompareBaseBranch,
 		defaultBranch,
 		isBranchesLoading,
 		isBranchesError,
+		branchesError,
+		onRetryBranches,
+		isHostOffline,
 		branches,
 		branchSearch,
 		onBranchSearchChange: setBranchSearch,

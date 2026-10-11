@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	Command,
 	CommandEmpty,
@@ -28,6 +29,9 @@ interface CompareBaseBranchPickerProps {
 	defaultBranch: string | null | undefined;
 	isBranchesLoading: boolean;
 	isBranchesError: boolean;
+	branchesError: unknown;
+	onRetryBranches: () => void;
+	isHostOffline: boolean;
 	branches: BranchRow[];
 	branchSearch: string;
 	onBranchSearchChange: (value: string) => void;
@@ -51,6 +55,9 @@ export function CompareBaseBranchPicker({
 	defaultBranch,
 	isBranchesLoading,
 	isBranchesError,
+	branchesError,
+	onRetryBranches,
+	isHostOffline,
 	branches,
 	branchSearch,
 	onBranchSearchChange,
@@ -96,10 +103,30 @@ export function CompareBaseBranchPicker({
 		return () => observer.disconnect();
 	}, [open, hasNextPage, isFetchingNextPage, onLoadMore]);
 
+	if (isHostOffline) {
+		return (
+			<span className="truncate text-[11px] text-muted-foreground">
+				<Trans>Host is offline</Trans>
+			</span>
+		);
+	}
+
 	if (isBranchesError) {
 		return (
-			<span className="text-xs text-destructive">
-				<Trans>Failed to load branches</Trans>
+			<span className="flex min-w-0 items-center gap-1.5 text-[11px]">
+				<span
+					className="min-w-0 cursor-help truncate text-destructive"
+					title={errorMessage(branchesError)}
+				>
+					<Trans>Failed to load branches</Trans>
+				</span>
+				<button
+					type="button"
+					onClick={onRetryBranches}
+					className="shrink-0 text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+				>
+					<Trans>Retry</Trans>
+				</button>
 			</span>
 		);
 	}
