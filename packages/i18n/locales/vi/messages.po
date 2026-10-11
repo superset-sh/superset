@@ -2119,6 +2119,12 @@ msgstr "Đã cho phép"
 msgid "Allowed for session"
 msgstr "Đã cho phép trong phiên này"
 
+msgid "Already brought over to another organization. Switch to it to see this project."
+msgstr "Đã được chuyển sang một tổ chức khác. Hãy chuyển sang tổ chức đó để xem dự án này."
+
+msgid "Already brought over to another organization. Switch to it to see this workspace."
+msgstr "Đã được chuyển sang một tổ chức khác. Hãy chuyển sang tổ chức đó để xem không gian làm việc này."
+
 msgid "Already have an account? <0>Sign in</0>"
 msgstr "Đã có tài khoản? <0>Đăng nhập</0>"
 
@@ -2711,9 +2717,6 @@ msgstr "Quy trình tự động từ ticket tới PR"
 msgid "Available"
 msgstr "Còn trống"
 
-msgid "Available when v2 is enabled."
-msgstr "Khả dụng khi bật v2."
-
 msgid "Avatar"
 msgstr "Ảnh đại diện"
 
@@ -3030,6 +3033,9 @@ msgstr "Đưa dự án, workspace và script terminal từ v1 sang v2. Mỗi m�
 
 msgid "Bring your agents together."
 msgstr "Quy tụ các agent của bạn."
+
+msgid "Bringing over your v1 projects"
+msgstr "Đang chuyển các dự án v1 của bạn"
 
 msgid "Browse and install skills, MCP servers, and agent configs shared by the community."
 msgstr "Duyệt và cài skill, server MCP và cấu hình agent do cộng đồng chia sẻ."
@@ -7532,6 +7538,12 @@ msgstr "Cỡ chữ"
 msgid "Font weight"
 msgstr "Độ đậm chữ"
 
+msgid "For a project, open the importer to link it."
+msgstr "Với dự án, hãy mở trình nhập để liên kết."
+
+msgid "For a worktree, check out a branch in its folder and it comes over on the next launch. If you moved it, right-click its project and choose Import untracked worktrees."
+msgstr "Với worktree, hãy checkout một nhánh trong thư mục của nó và nó sẽ được chuyển ở lần mở tiếp theo. Nếu bạn đã di chuyển nó, hãy nhấp chuột phải vào dự án và chọn Nhập worktree chưa theo dõi."
+
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "Với báo lỗi và đề xuất tính năng, cách nhanh nhất là mở issue trên GitHub tại <0>github.com/superset-sh/superset</0>. Cộng đồng của chúng tôi ở <1>Discord</1>, và chúng tôi đăng cập nhật trên <2>X (@superset_sh)</2> và <3>LinkedIn</3>."
 
@@ -7870,6 +7882,9 @@ msgstr "Đi tới workspace"
 
 msgid "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
 msgstr "Google không cấp quyền truy cập lâu dài. Hãy gỡ Superset khỏi phần truy cập của bên thứ ba trong tài khoản Google của bạn rồi thử lại."
+
+msgid "Got it"
+msgstr "Đã hiểu"
 
 msgid "Grant the OS permissions Superset needs."
 msgstr "Cấp các quyền hệ điều hành mà Superset cần."
@@ -14005,6 +14020,9 @@ msgstr "Đang chạy trên thiết bị này"
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Các tiến trình terminal đang chạy vẫn tiếp tục, nhưng kết quả cũ có thể không còn sau khi khởi động lại ứng dụng."
 
+msgid "Running terminals from v1 did not carry over. Each v1 workspace now has new terminals that open in the same folders."
+msgstr "Các terminal đang chạy từ v1 không được chuyển sang. Mỗi workspace v1 giờ có terminal mới mở trong cùng các thư mục."
+
 msgid "Runs a local command on your machine"
 msgstr "Chạy một lệnh cục bộ trên máy bạn"
 
@@ -15259,6 +15277,12 @@ msgstr "Một số theme đã bị bỏ qua"
 msgid "Some triggers need additional configuration"
 msgstr "Một số trigger cần cấu hình thêm"
 
+msgid "Some v1 items did not come over"
+msgstr "Một số mục v1 chưa được chuyển"
+
+msgid "Some v1 work needs your attention"
+msgstr "Một số công việc v1 cần bạn chú ý"
+
 msgid "Someone"
 msgstr "Ai đó"
 
@@ -15814,6 +15838,9 @@ msgstr "Các thành phần Superset"
 msgid "Superset Components"
 msgstr "Component của Superset"
 
+msgid "Superset could not bring over some of your v1 projects or workspaces. Open the importer to see why and retry each one."
+msgstr "Superset không thể chuyển một số dự án hoặc workspace v1 của bạn. Mở trình nhập để xem lý do và thử lại từng mục."
+
 msgid "Superset could not complete sign-in. Please try again."
 msgstr "Superset không hoàn tất được việc đăng nhập. Vui lòng thử lại."
 
@@ -15963,6 +15990,9 @@ msgstr "Superset đặt skill và công cụ của plugin ở nơi các agent n�
 
 msgid "Superset raised an $11.5M seed round led by Union Square Ventures, with Y Combinator and Paul Graham. TechCrunch named it one of the standout startups from YC Demo Day."
 msgstr "Superset đã gọi được vòng hạt giống 11,5 triệu USD do Union Square Ventures dẫn dắt, cùng Y Combinator và Paul Graham. TechCrunch đã chọn Superset là một trong những startup nổi bật tại YC Demo Day."
+
+msgid "Superset resumes the agent sessions it recorded ({agents}) when you open their workspace."
+msgstr "Superset sẽ tiếp tục các phiên agent đã ghi lại ({agents}) khi bạn mở workspace của chúng."
 
 msgid "Superset runs locally on your developers' machines. We don't store your code or AI conversations, and Superset has completed a SOC 2 Type II audit with an independent auditor. Request the report and review our security documentation at trust.superset.sh."
 msgstr "Superset chạy cục bộ trên máy của lập trình viên. Chúng tôi không lưu code hay hội thoại AI của bạn, và Superset đã hoàn tất kiểm toán SOC 2 Type II với một đơn vị kiểm toán độc lập. Hãy yêu cầu báo cáo và xem tài liệu bảo mật tại trust.superset.sh."
@@ -16785,6 +16815,9 @@ msgstr "Giao diện và agent"
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "Các lệnh này chạy tự động khi một workspace được tạo. <0>Đọc tài liệu<1/></0>"
 
+msgid "These folders still have your files, but they did not come over to the new Superset on their own."
+msgstr "Các thư mục này vẫn còn tệp của bạn, nhưng chưa tự chuyển sang Superset mới."
+
 msgid "These ports are still in use"
 msgstr "Các cổng này vẫn đang được dùng"
 
@@ -17186,6 +17219,12 @@ msgstr "Tiêu đề"
 msgid "To"
 msgstr "Đến"
 
+msgid "To get back a different agent conversation, run this in a terminal in its folder:"
+msgstr "Để lấy lại một cuộc trò chuyện agent khác, hãy chạy lệnh này trong terminal ở thư mục của nó:"
+
+msgid "To get back an agent conversation, run this in a terminal in its folder:"
+msgstr "Để lấy lại cuộc trò chuyện agent, hãy chạy lệnh này trong terminal ở thư mục của nó:"
+
 msgid "Toast (Sonner)"
 msgstr "Toast (Sonner)"
 
@@ -17440,9 +17479,6 @@ msgstr "Thử ngay"
 
 msgid "Try now"
 msgstr "Dùng thử"
-
-msgid "Try Superset v2"
-msgstr "Dùng thử Superset v2"
 
 msgid "Tufte"
 msgstr "Tufte"
@@ -17919,9 +17955,6 @@ msgstr "Dùng Superset trên điện thoại với Pro."
 
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Dùng ứng dụng máy tính để chạy song song nhiều agent lập trình."
-
-msgid "Use the new workspace experience."
-msgstr "Dùng trải nghiệm workspace mới."
 
 msgid "Use the Superset tray menu > Host Service > Restart, then retry."
 msgstr "Dùng menu khay Superset > Host Service > Restart, rồi thử lại."
@@ -18949,12 +18982,18 @@ msgstr "Đồng đội có thể trao đổi trực tiếp với agent của b�
 msgid "Your terminal sessions won't be interrupted."
 msgstr "Các phiên terminal của bạn sẽ không bị gián đoạn."
 
+msgid "Your terminals restarted"
+msgstr "Terminal của bạn đã khởi động lại"
+
 #. placeholder {0}: String(gaps.length)
 msgid "Your tier is a weighted score across the {0} axes measured for you, so a strong axis offsets a weak one. The axes below are the ones lagging."
 msgstr "Hạng của bạn là điểm số có trọng số trên {0} trục đo được cho bạn, nên trục mạnh bù cho trục yếu. Các trục dưới đây đang tụt lại."
 
 msgid "Your tokens"
 msgstr "Token của bạn"
+
+msgid "Your v1 projects and workspaces are moving to the new Superset. They appear in the sidebar as each one is ready."
+msgstr "Các dự án và workspace v1 của bạn đang được chuyển sang Superset mới. Chúng sẽ xuất hiện trong thanh bên khi từng mục sẵn sàng."
 
 msgid "Your version: {currentVersion}"
 msgstr "Phiên bản của bạn: {currentVersion}"

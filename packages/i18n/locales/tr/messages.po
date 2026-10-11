@@ -2119,6 +2119,12 @@ msgstr "İzin verildi"
 msgid "Allowed for session"
 msgstr "Oturum boyunca izin verildi"
 
+msgid "Already brought over to another organization. Switch to it to see this project."
+msgstr "Zaten başka bir kuruluşa taşındı. Bu projeyi görmek için o kuruluşa geçin."
+
+msgid "Already brought over to another organization. Switch to it to see this workspace."
+msgstr "Zaten başka bir kuruluşa taşındı. Bu çalışma alanını görmek için o kuruluşa geçin."
+
 msgid "Already have an account? <0>Sign in</0>"
 msgstr "Zaten hesabınız var mı? <0>Oturum açın</0>"
 
@@ -2711,9 +2717,6 @@ msgstr "Otonom biletten PR'a boru hattı"
 msgid "Available"
 msgstr "Uygun"
 
-msgid "Available when v2 is enabled."
-msgstr "v2 etkinleştirildiğinde kullanılabilir."
-
 msgid "Avatar"
 msgstr "Avatar"
 
@@ -3030,6 +3033,9 @@ msgstr "v1 projelerini, çalışma alanlarını ve terminal betiklerini v2'ye ta
 
 msgid "Bring your agents together."
 msgstr "Ajanlarınızı bir araya getirin."
+
+msgid "Bringing over your v1 projects"
+msgstr "v1 projeleriniz aktarılıyor"
 
 msgid "Browse and install skills, MCP servers, and agent configs shared by the community."
 msgstr "Toplulukça paylaşılan becerilere, MCP sunucularına ve ajan yapılandırmalarına göz atın ve kurun."
@@ -7532,6 +7538,12 @@ msgstr "Yazı tipi boyutu"
 msgid "Font weight"
 msgstr "Yazı tipi kalınlığı"
 
+msgid "For a project, open the importer to link it."
+msgstr "Bir proje için bağlamak üzere içe aktarıcıyı açın."
+
+msgid "For a worktree, check out a branch in its folder and it comes over on the next launch. If you moved it, right-click its project and choose Import untracked worktrees."
+msgstr "Bir worktree için klasöründe bir branch'e geçin; bir sonraki açılışta aktarılır. Taşıdıysanız, projesine sağ tıklayıp İzlenmeyen worktree'leri içe aktar'ı seçin."
+
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "Hata bildirimleri ve özellik istekleri için en hızlı yol <0>github.com/superset-sh/superset</0> adresinde bir GitHub issue açmaktır. Topluluğumuz <1>Discord</1> üzerinde; güncellemeleri <2>X (@superset_sh)</2> ve <3>LinkedIn</3> üzerinden paylaşıyoruz."
 
@@ -7870,6 +7882,9 @@ msgstr "Çalışma alanına git"
 
 msgid "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
 msgstr "Google kalıcı erişim vermedi. Superset'i Google hesabınızın üçüncü taraf erişiminden kaldırıp yeniden deneyin."
+
+msgid "Got it"
+msgstr "Anladım"
 
 msgid "Grant the OS permissions Superset needs."
 msgstr "Superset'in ihtiyaç duyduğu işletim sistemi izinlerini verin."
@@ -14005,6 +14020,9 @@ msgstr "Bu cihazda çalışıyor"
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Çalışan terminal süreçleri devam eder, ancak uygulama yeniden başlatıldıktan sonra eski çıktı artık kullanılamayabilir."
 
+msgid "Running terminals from v1 did not carry over. Each v1 workspace now has new terminals that open in the same folders."
+msgstr "v1'de çalışan terminaller aktarılmadı. Her v1 çalışma alanında artık aynı klasörlerde açılan yeni terminaller var."
+
 msgid "Runs a local command on your machine"
 msgstr "Makinenizde yerel bir komut çalıştırır"
 
@@ -15259,6 +15277,12 @@ msgstr "Bazı temalar atlandı"
 msgid "Some triggers need additional configuration"
 msgstr "Bazı tetikleyiciler ek yapılandırma gerektiriyor"
 
+msgid "Some v1 items did not come over"
+msgstr "Bazı v1 öğeleri aktarılamadı"
+
+msgid "Some v1 work needs your attention"
+msgstr "v1 çalışmalarınızın bir kısmı ilgi bekliyor"
+
 msgid "Someone"
 msgstr "Biri"
 
@@ -15814,6 +15838,9 @@ msgstr "Superset bileşenleri"
 msgid "Superset Components"
 msgstr "Superset Bileşenleri"
 
+msgid "Superset could not bring over some of your v1 projects or workspaces. Open the importer to see why and retry each one."
+msgstr "Superset bazı v1 projelerinizi veya çalışma alanlarınızı aktaramadı. Nedenini görmek ve her birini yeniden denemek için içe aktarıcıyı açın."
+
 msgid "Superset could not complete sign-in. Please try again."
 msgstr "Superset oturum açmayı tamamlayamadı. Lütfen yeniden deneyin."
 
@@ -15963,6 +15990,9 @@ msgstr "Superset, eklenti becerilerini ve araçlarını bu ajanların aradığı
 
 msgid "Superset raised an $11.5M seed round led by Union Square Ventures, with Y Combinator and Paul Graham. TechCrunch named it one of the standout startups from YC Demo Day."
 msgstr "Superset, Union Square Ventures liderliğinde, Y Combinator ve Paul Graham'ın katılımıyla 11,5 milyon dolarlık tohum yatırımı aldı. TechCrunch, Superset'i YC Demo Day'in öne çıkan girişimlerinden biri olarak gösterdi."
+
+msgid "Superset resumes the agent sessions it recorded ({agents}) when you open their workspace."
+msgstr "Superset, kaydettiği ajan oturumlarını ({agents}) çalışma alanlarını açtığınızda sürdürür."
 
 msgid "Superset runs locally on your developers' machines. We don't store your code or AI conversations, and Superset has completed a SOC 2 Type II audit with an independent auditor. Request the report and review our security documentation at trust.superset.sh."
 msgstr "Superset, geliştiricilerinizin makinelerinde yerel olarak çalışır. Kodunuzu veya AI konuşmalarınızı saklamayız ve Superset, bağımsız bir denetçiyle SOC 2 Type II denetimini tamamlamıştır. Raporu talep edin ve güvenlik belgelerimizi trust.superset.sh adresinde inceleyin."
@@ -16785,6 +16815,9 @@ msgstr "Temalar ve ajanlar"
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "Bu komutlar bir çalışma alanı oluşturulduğunda otomatik olarak çalışır. <0>Belgelerimizi okuyun<1/></0>"
 
+msgid "These folders still have your files, but they did not come over to the new Superset on their own."
+msgstr "Bu klasörlerde hâlâ dosyalarınız var, ancak yeni Superset'e kendiliğinden aktarılmadılar."
+
 msgid "These ports are still in use"
 msgstr "Bu portlar hâlâ kullanımda"
 
@@ -17186,6 +17219,12 @@ msgstr "Başlık"
 msgid "To"
 msgstr "Hedef"
 
+msgid "To get back a different agent conversation, run this in a terminal in its folder:"
+msgstr "Başka bir ajan konuşmasını geri almak için, klasöründeki bir terminalde şunu çalıştırın:"
+
+msgid "To get back an agent conversation, run this in a terminal in its folder:"
+msgstr "Bir ajan konuşmasını geri almak için, klasöründeki bir terminalde şunu çalıştırın:"
+
 msgid "Toast (Sonner)"
 msgstr "Bildirim (Sonner)"
 
@@ -17440,9 +17479,6 @@ msgstr "Deneyin"
 
 msgid "Try now"
 msgstr "Şimdi dene"
-
-msgid "Try Superset v2"
-msgstr "Superset v2'yi deneyin"
 
 msgid "Tufte"
 msgstr "Tufte"
@@ -17919,9 +17955,6 @@ msgstr "Pro ile Superset’i telefonunuzda kullanın."
 
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Paralel kodlama ajanları çalıştırmaya başlamak için masaüstü uygulamasını kullanın."
-
-msgid "Use the new workspace experience."
-msgstr "Yeni çalışma alanı deneyimini kullanın."
 
 msgid "Use the Superset tray menu > Host Service > Restart, then retry."
 msgstr "Superset tepsi menüsünde Host hizmeti > Yeniden başlat yolunu kullanın, sonra yeniden deneyin."
@@ -18949,12 +18982,18 @@ msgstr "Ekip arkadaşlarınız ajanınızla doğrudan konuşabilir."
 msgid "Your terminal sessions won't be interrupted."
 msgstr "Terminal oturumlarınız kesintiye uğramaz."
 
+msgid "Your terminals restarted"
+msgstr "Terminalleriniz yeniden başlatıldı"
+
 #. placeholder {0}: String(gaps.length)
 msgid "Your tier is a weighted score across the {0} axes measured for you, so a strong axis offsets a weak one. The axes below are the ones lagging."
 msgstr "Seviyen, senin için ölçülen {0} eksenin ağırlıklı puanıdır; güçlü bir eksen zayıf olanı dengeler. Aşağıdakiler geride kalan eksenler."
 
 msgid "Your tokens"
 msgstr "Token'larınız"
+
+msgid "Your v1 projects and workspaces are moving to the new Superset. They appear in the sidebar as each one is ready."
+msgstr "v1 projeleriniz ve çalışma alanlarınız yeni Superset'e aktarılıyor. Her biri hazır olduğunda kenar çubuğunda görünür."
 
 msgid "Your version: {currentVersion}"
 msgstr "Sürümünüz: {currentVersion}"
