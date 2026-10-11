@@ -26,5 +26,8 @@ describe("parseTerminalKeys", () => {
 		expect(() => parseTerminalKeys("esc,hyper+x")).toThrow(
 			"Unknown key: hyper+x",
 		);
+		expect(() => parseTerminalKeys("enter,constructor")).toThrow(
+			"Unknown key: constructor",
+		);
 	});
 });

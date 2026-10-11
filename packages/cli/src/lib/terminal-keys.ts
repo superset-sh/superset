@@ -49,7 +49,7 @@ export function parseTerminalKeys(spec: string): string[] {
 function keyBytes(key: string): string {
 	if ([...key].length === 1) return key;
 	const name = key.toLowerCase().replace(/^c-/, "ctrl+").replace(/^m-/, "alt+");
-	const named = NAMED_KEYS[name];
+	const named = Object.hasOwn(NAMED_KEYS, name) ? NAMED_KEYS[name] : undefined;
 	if (named) return named;
 	const ctrl = /^ctrl\+([a-z])$/.exec(name);
 	if (ctrl?.[1]) return String.fromCharCode(ctrl[1].charCodeAt(0) - 96);
