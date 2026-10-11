@@ -1,9 +1,10 @@
 import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
-import { app, BrowserWindow, Menu, shell } from "electron";
+import { BrowserWindow, Menu, shell } from "electron";
 import { env } from "main/env.main";
 import { resetTerminalStateDev } from "main/lib/terminal/dev-reset";
+import { getAppDisplayName } from "./app-display-name";
 import {
 	checkForUpdatesInteractive,
 	simulateDownloading,
@@ -282,10 +283,11 @@ export function createApplicationMenu() {
 	}
 
 	if (process.platform === "darwin") {
+		const displayName = getAppDisplayName();
 		template.unshift({
-			label: app.name,
+			label: displayName,
 			submenu: [
-				{ role: "about" },
+				{ role: "about", label: `About ${displayName}` },
 				{ type: "separator" },
 				{
 					label: i18n._(
@@ -311,11 +313,11 @@ export function createApplicationMenu() {
 				{ type: "separator" },
 				{ role: "services" },
 				{ type: "separator" },
-				{ role: "hide" },
+				{ role: "hide", label: `Hide ${displayName}` },
 				{ role: "hideOthers" },
 				{ role: "unhide" },
 				{ type: "separator" },
-				{ role: "quit" },
+				{ role: "quit", label: `Quit ${displayName}` },
 				{
 					label: i18n._(
 						msg({
