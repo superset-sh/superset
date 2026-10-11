@@ -74,6 +74,19 @@ export function agentReactedSince(
 	return !binding ? !observation.terminalAlive : binding.lastEventAt > after;
 }
 
+/**
+ * Once a wait has seen an agent, its binding going away means the agent
+ * exited, even when the shell it ran in is still alive.
+ */
+export function withAgentExit(
+	sawAgent: boolean,
+	observation: AgentObservation,
+): AgentObservation {
+	return sawAgent && !observation.binding
+		? { binding: undefined, terminalAlive: false }
+		: observation;
+}
+
 export interface PollOptions<T> {
 	read: () => Promise<T>;
 	done: (value: T) => boolean;

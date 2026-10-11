@@ -5,6 +5,7 @@ import {
 	agentWaitSatisfied,
 	agentWaitState,
 	pollUntil,
+	withAgentExit,
 } from "./agent-wait";
 import type { HostServiceClient } from "./host-target";
 import { INTERRUPT_KEYS } from "./terminal-keys";
@@ -37,9 +38,16 @@ export async function waitForAgent({
 	stalled?: boolean;
 }> {
 	const start = Date.now();
+	let sawAgent = after !== undefined;
+	const read = async () => {
+		const observation = await observeAgent(client, ref);
+		const tracked = withAgentExit(sawAgent, observation);
+		if (observation.binding) sawAgent = true;
+		return tracked;
+	};
 	if (after !== undefined && timeoutMs > PROMPT_STALL_MS) {
 		const reaction = await pollUntil({
-			read: () => observeAgent(client, ref),
+			read,
 			done: (observation) => agentReactedSince(observation, after),
 			timeoutMs: PROMPT_STALL_MS,
 			intervalMs: POLL_INTERVAL_MS,
@@ -49,8 +57,10 @@ export async function waitForAgent({
 		}
 	}
 	const { value, timedOut } = await pollUntil({
-		read: () => observeAgent(client, ref),
-		done: (observation) => agentWaitSatisfied(observation, until, after),
+		read,
+		done: (observation) =>
+			agentWaitSatisfied(observation, until, after) ||
+			agentWaitState(observation) === "exited",
 		timeoutMs: Math.max(0, timeoutMs - (Date.now() - start)),
 		intervalMs: POLL_INTERVAL_MS,
 	});

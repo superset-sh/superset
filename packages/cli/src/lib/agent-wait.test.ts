@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { agentReactedSince, agentWaitSatisfied, pollUntil } from "./agent-wait";
+import {
+	agentReactedSince,
+	agentWaitSatisfied,
+	agentWaitState,
+	pollUntil,
+	withAgentExit,
+} from "./agent-wait";
 
 describe("agentWaitSatisfied", () => {
 	const at = (lastEventType: string, lastEventAt = 1) => ({
@@ -47,6 +53,14 @@ describe("agentReactedSince", () => {
 		expect(
 			agentReactedSince({ binding: undefined, terminalAlive: false }, 100),
 		).toBe(true);
+	});
+});
+
+describe("withAgentExit", () => {
+	test("an agent that was seen and then lost its binding has exited, though its shell lives on", () => {
+		const shellOnly = { binding: undefined, terminalAlive: true };
+		expect(agentWaitState(withAgentExit(false, shellOnly))).toBe("starting");
+		expect(agentWaitState(withAgentExit(true, shellOnly))).toBe("exited");
 	});
 });
 

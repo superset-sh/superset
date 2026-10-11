@@ -7,7 +7,10 @@ import {
 import { AGENT_WAIT_TARGETS, agentWaitState } from "../../../lib/agent-wait";
 import { command } from "../../../lib/command";
 import { resolveWorkspaceTarget } from "../../../lib/host-workspaces";
-import { parseTerminalKeys } from "../../../lib/terminal-keys";
+import {
+	INTERRUPT_KEYS,
+	parseTerminalKeys,
+} from "../../../lib/terminal-keys";
 
 export default command({
 	description:
@@ -73,8 +76,10 @@ export default command({
 		}
 
 		let sent: { terminalId: string; submitted?: boolean; keys?: number };
+		let interrupted = false;
 		if (options.keys !== undefined) {
 			const keys = parseTerminalKeys(options.keys);
+			interrupted = keys.some((bytes) => INTERRUPT_KEYS.has(bytes));
 			for (const data of keys) {
 				await client.terminal.writeInput.mutate({ ...ref, data });
 			}
@@ -96,7 +101,9 @@ export default command({
 			ref,
 			until: options.until,
 			timeoutMs: options.timeout * 1000,
-			after: before.lastEventAt,
+			// The interrupt clears the status without a new hook event, so the
+			// state it leaves is the answer.
+			after: interrupted ? undefined : before.lastEventAt,
 		});
 		const state = agentWaitState(observation);
 		if (stalled) {
