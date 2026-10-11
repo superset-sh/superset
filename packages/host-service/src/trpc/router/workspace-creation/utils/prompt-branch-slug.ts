@@ -72,23 +72,53 @@ const FILLER_WORDS = new Set([
 
 // Pasted things that would leak into a path, matched on whole
 // whitespace-separated tokens: links, domains and file names, emails and
-// @mentions, paths, and KEY=value assignments.
+// @mentions, paths (not a lone `login/logout`), and KEY=value assignments.
 const NOT_WORDS = [
 	/:\/\//,
 	/^www\./i,
 	/@/,
-	/[\\/~]/,
+	/\\/,
+	/^[~.]*\//,
+	/\/.*\//,
+	/\/.*\.[a-z]+$/i,
 	/[a-z0-9]\.[a-z]/i,
 	/\d\.\d+\.\d/,
 	/=/,
+	/^\d+[.)]$/,
 ];
 // The token after one of these is the secret itself, however short.
-const SECRET_LABEL = /^(api-?key|passw(or)?d|pwd|secret|token)s?:?$/i;
+const SECRET_LABEL =
+	/^(?:(?:api[-_]?key|passw(?:or)?d|pwd|secret|token)s?:?|pass:)$/i;
+const LINKING_WORD = /^(?:is|was|=|:)$/i;
+const TRANSLITERATIONS: Record<string, string> = {
+	ß: "ss",
+	æ: "ae",
+	ø: "o",
+	œ: "oe",
+	đ: "d",
+	ł: "l",
+	þ: "th",
+};
+
+function isWorkItemLabel(token: string, next = ""): boolean {
+	return /^(?:issue|pr|mr)$/i.test(token) && /^[#!]\d/.test(next);
+}
+
+function followsSecretLabel(tokens: string[], index: number): boolean {
+	const previous = tokens[index - 1] ?? "";
+	const label = LINKING_WORD.test(previous)
+		? (tokens[index - 2] ?? "")
+		: previous;
+	if (!SECRET_LABEL.test(label)) return false;
+	// "token refresh" names a task; "token Abc123" or "token: x" is a value.
+	return label.endsWith(":") || /[^a-z]/.test(tokens[index] ?? "");
+}
 
 function looksLikeIdOrSecret(token: string): boolean {
 	const bare = token.replace(/[^a-z0-9]/gi, "");
 	return (
-		bare.length >= 16 ||
+		(bare.length >= 16 && /\d/.test(bare)) ||
+		bare.length >= 32 ||
 		(/^[0-9a-f]{7,}$/i.test(bare) && /\d/.test(bare)) ||
 		/^\d{6,}$/.test(bare)
 	);
@@ -107,18 +137,21 @@ export function promptBranchSlug(prompt: string): string | null {
 			.find((line) => line.trim()) ?? "";
 	const words = firstLine
 		.replace(/\]\([^)]*\)/g, "]")
+		.replace(/(\p{L})['’](\p{L})/gu, "$1$2")
 		.split(/\s+/)
 		.filter(
 			(token, index, tokens) =>
-				!SECRET_LABEL.test(tokens[index - 1] ?? "") &&
+				!isWorkItemLabel(token, tokens[index + 1]) &&
+				!followsSecretLabel(tokens, index) &&
 				!NOT_WORDS.some((pattern) => pattern.test(token)) &&
 				!looksLikeIdOrSecret(token),
 		)
 		.join(" ")
-		.replace(/#\d+/g, " ")
+		.replace(/[#!]\d+/g, " ")
+		.toLowerCase()
+		.replace(/[ßæøœđłþ]/g, (letter) => TRANSLITERATIONS[letter] ?? letter)
 		.normalize("NFKD")
 		.replace(/[\u0300-\u036f]/g, "")
-		.toLowerCase()
 		.split(/[^a-z0-9]+/)
 		.filter((word) => word && !FILLER_WORDS.has(word));
 	const picked: string[] = [];
