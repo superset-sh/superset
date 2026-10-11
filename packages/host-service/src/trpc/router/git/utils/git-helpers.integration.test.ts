@@ -182,6 +182,15 @@ describe("resolveBaseComparison (integration)", () => {
 		});
 	});
 
+	test("prefers origin/main over origin/master when origin/HEAD is unset", async () => {
+		await git.raw(["update-ref", "refs/remotes/origin/master", "HEAD"]);
+		await git.raw(["symbolic-ref", "--delete", "refs/remotes/origin/HEAD"]);
+		expect((await resolveBaseComparison(git))?.baseRef).toBe("origin/main");
+
+		await git.raw(["update-ref", "-d", "refs/remotes/origin/main"]);
+		expect((await resolveBaseComparison(git))?.baseRef).toBe("origin/master");
+	});
+
 	test("returns null when no default branch can be resolved", async () => {
 		const emptyRepo = mkTmp();
 		try {
