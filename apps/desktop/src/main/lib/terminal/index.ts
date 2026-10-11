@@ -4,7 +4,7 @@ import {
 } from "main/lib/terminal-host/client";
 import type { ListSessionsResponse } from "main/lib/terminal-host/types";
 import { DaemonTerminalManager, getDaemonTerminalManager } from "./daemon";
-import { stopV1Sessions } from "./stop-v1-sessions";
+import { stopV1Sessions, type V1DaemonClient } from "./stop-v1-sessions";
 
 export { DaemonTerminalManager, getDaemonTerminalManager };
 export type {
@@ -37,11 +37,13 @@ const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
  */
 export async function stopMigratedV1SessionsOnBoot(
 	migratedV1WorkspaceIds: Set<string>,
+	client: V1DaemonClient = getTerminalHostClient(),
 ): Promise<void> {
 	try {
 		const { stoppedPaneIds } = await stopV1Sessions(
-			getTerminalHostClient(),
+			client,
 			(session) => migratedV1WorkspaceIds.has(session.workspaceId),
+			{ shutdownWhenEmpty: true },
 		);
 		if (stoppedPaneIds.length > 0) {
 			console.log(

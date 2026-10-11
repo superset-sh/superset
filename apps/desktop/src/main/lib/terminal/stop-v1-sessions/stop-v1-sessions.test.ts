@@ -47,13 +47,22 @@ describe("stopV1Sessions", () => {
 		expect(fake.shutdowns()).toBe(0);
 	});
 
-	test("shuts the daemon down once nothing is left running", async () => {
+	test("at boot, shuts the daemon down once nothing is left running", async () => {
 		const fake = fakeClient([
 			session("migrated", "w-done"),
 			session("exited", "w-blocked", false),
 		]);
-		await stopV1Sessions(fake.client, (s) => s.workspaceId === "w-done");
+		await stopV1Sessions(fake.client, (s) => s.workspaceId === "w-done", {
+			shutdownWhenEmpty: true,
+		});
 		expect(fake.shutdowns()).toBe(1);
+	});
+
+	test("mid-session, never shuts the daemon down: a v1 session may be starting", async () => {
+		const fake = fakeClient([session("migrated", "w-done")]);
+		await stopV1Sessions(fake.client, (s) => s.workspaceId === "w-done");
+		expect(fake.killed).toEqual(["s-migrated"]);
+		expect(fake.shutdowns()).toBe(0);
 	});
 
 	test("does nothing when no daemon runs", async () => {

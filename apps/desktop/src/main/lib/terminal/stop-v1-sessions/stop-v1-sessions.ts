@@ -14,12 +14,14 @@ export interface V1DaemonClient {
 }
 
 /**
- * Stops the live v1 sessions `shouldStop` picks. The daemon shuts down only
- * once no live session is left, so unmigrated work keeps running.
+ * Stops the live v1 sessions `shouldStop` picks. With `shutdownWhenEmpty`,
+ * the daemon also shuts down once no live session is left; only safe at boot,
+ * before anything else can start a v1 session.
  */
 export async function stopV1Sessions(
 	client: V1DaemonClient,
 	shouldStop: (session: V1Session) => boolean,
+	{ shutdownWhenEmpty = false }: { shutdownWhenEmpty?: boolean } = {},
 ): Promise<{ stoppedPaneIds: string[] }> {
 	const stoppedPaneIds: string[] = [];
 	const response = await client.listSessionsIfRunning();
@@ -34,7 +36,7 @@ export async function stopV1Sessions(
 		}
 		stoppedPaneIds.push(session.paneId);
 	}
-	if (kept.length === 0) {
+	if (shutdownWhenEmpty && kept.length === 0) {
 		await client.shutdownIfRunning({ killSessions: true });
 	}
 	return { stoppedPaneIds };

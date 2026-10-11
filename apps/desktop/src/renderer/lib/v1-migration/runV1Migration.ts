@@ -721,7 +721,7 @@ async function migrateTerminals(
 				throw new Error("workspace missing from host list");
 			}
 			// A v1 session left running would race its v2 resume.
-			await deps.ipc.stopV1Panes?.(paneIds);
+			await deps.ipc.stopV1Panes(paneIds);
 			target.appendPending({ id: v2WorkspaceId, projectId }, terminals);
 			for (const paneId of paneIds) {
 				summary.migrated++;

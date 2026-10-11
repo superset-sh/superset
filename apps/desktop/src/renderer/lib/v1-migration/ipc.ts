@@ -71,7 +71,7 @@ export interface V1MigrationIpc {
 	readV1Worktrees(): Promise<V1WorktreeRow[]>;
 	resolvePaths(paths: string[]): Promise<(string | null)[]>;
 	/** Stops these panes' live v1 sessions before v2 takes them over. */
-	stopV1Panes?(paneIds: string[]): Promise<unknown>;
+	stopV1Panes(paneIds: string[]): Promise<unknown>;
 	readV1Settings(): Promise<V1SettingsRow | null>;
 	readV1TerminalPanes(): Promise<V1TerminalPaneRow[]>;
 	readV1TerminalPresets(): Promise<TerminalPreset[]>;

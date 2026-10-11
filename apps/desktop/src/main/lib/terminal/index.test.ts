@@ -10,6 +10,7 @@ import {
 import type { ListSessionsResponse } from "main/lib/terminal-host/types";
 import {
 	restartDaemon as restartDaemonWith,
+	stopMigratedV1SessionsOnBoot,
 	type TerminalDaemonDeps,
 	tryListExistingDaemonSessions as tryListExistingDaemonSessionsWith,
 } from "./index";
@@ -19,8 +20,6 @@ let listSessionsIfRunningError: Error | null = null;
 let shutdownIfRunningError: Error | null = null;
 let shutdownIfRunningCalls = 0;
 let shutdownRequests: unknown[] = [];
-let ensureConnectedCalls = 0;
-let killed: string[] = [];
 let resetCalls = 0;
 
 function makeSession(
@@ -85,30 +84,41 @@ describe("terminal index", () => {
 		shutdownIfRunningError = null;
 		shutdownIfRunningCalls = 0;
 		shutdownRequests = [];
-		ensureConnectedCalls = 0;
-		killed = [];
 		resetCalls = 0;
 	});
 
 	it("on boot stops only sessions of migrated workspaces", async () => {
-		listSessionsIfRunningResult = {
-			sessions: [
-				makeSession({ sessionId: "s-done", workspaceId: "w-done" }),
-				makeSession({ sessionId: "s-failed", workspaceId: "w-failed" }),
-			],
-		};
-		await stopMigratedV1SessionsOnBoot(new Set(["w-done"]));
+		const killed: string[] = [];
+		await stopMigratedV1SessionsOnBoot(new Set(["w-done"]), {
+			listSessionsIfRunning: async () => ({
+				sessions: [
+					makeSession({ sessionId: "s-done", workspaceId: "w-done" }),
+					makeSession({ sessionId: "s-failed", workspaceId: "w-failed" }),
+				],
+			}),
+			killIfRunning: async ({ sessionId }) => {
+				killed.push(sessionId);
+				return true;
+			},
+			shutdownIfRunning: async (request) => {
+				shutdownRequests.push(request);
+				return { wasRunning: true };
+			},
+		});
 		expect(killed).toEqual(["s-done"]);
 		expect(shutdownRequests).toEqual([]);
-		expect(ensureConnectedCalls).toBe(0);
 	});
 
 	it("a failed boot stop is logged, not thrown", async () => {
-		listSessionsIfRunningError = new Error("socket gone");
 		await expect(
-			stopMigratedV1SessionsOnBoot(new Set(["w-done"])),
+			stopMigratedV1SessionsOnBoot(new Set(["w-done"]), {
+				listSessionsIfRunning: async () => {
+					throw new Error("socket gone");
+				},
+				killIfRunning: async () => true,
+				shutdownIfRunning: async () => ({ wasRunning: false }),
+			}),
 		).resolves.toBeUndefined();
-		expect(killed).toEqual([]);
 	});
 
 	it("resets the daemon manager when no daemon is running", async () => {

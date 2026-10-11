@@ -44,6 +44,7 @@ function makeIpc(owners: V1LedgerOwner[]) {
 			{ paneId: "pane2", v1WorkspaceId: "w2", cwd: null },
 		],
 		resolvePaths: async (paths) => paths,
+		stopV1Panes: async () => undefined,
 		readV1Settings: async () => null,
 		readV1TerminalPresets: async () => [],
 		ledgerList: async (organizationId) => ledger.get(organizationId) ?? [],
