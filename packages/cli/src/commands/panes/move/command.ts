@@ -8,6 +8,13 @@ import {
 	workspaceOptions,
 } from "../shared";
 
+const PLACEMENT = {
+	right: "right of",
+	left: "left of",
+	down: "below",
+	up: "above",
+} as const;
+
 export default command({
 	description:
 		"Move a pane next to another pane (--to and --direction) or into a new tab (--new-tab)",
@@ -48,6 +55,9 @@ export default command({
 				direction,
 			}),
 		);
-		return layoutResult(`Moved ${paneId} ${direction} of ${to}`, result);
+		return layoutResult(
+			`Moved ${paneId} ${PLACEMENT[direction]} ${to}`,
+			result,
+		);
 	},
 });
