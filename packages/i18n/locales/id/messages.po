@@ -120,6 +120,10 @@ msgstr "{0, plural, one {# otomatisasi tidak dapat dimulai} other {# otomatisasi
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# file berubah} other {# file berubah}}"
 
+#. placeholder {0}: titles.length
+msgid "{0, plural, one {# chat closed} other {# chats closed}}"
+msgstr "{0, plural, other {# chat ditutup}}"
+
 #. placeholder {0}: comments.length
 msgid "{0, plural, one {# comment attached} other {# comments attached}}"
 msgstr "{0, plural, one {# komentar dilampirkan} other {# komentar dilampirkan}}"
@@ -3512,6 +3516,9 @@ msgstr "Channel dibuat"
 
 msgid "Chat"
 msgstr "Chat"
+
+msgid "Chat closed"
+msgstr "Chat ditutup"
 
 msgid "Chat is being reworked"
 msgstr "Chat sedang dirombak"
@@ -13727,6 +13734,9 @@ msgstr "Buka Lagi Tab yang Ditutup"
 msgid "Reopen PR"
 msgstr "Buka Lagi PR"
 
+msgid "Reopen the chats you just closed"
+msgstr "Buka kembali chat yang baru saja Anda tutup"
+
 msgid "Reopen thread"
 msgstr "Buka lagi thread"
 
@@ -14137,6 +14147,12 @@ msgstr "Tampilkan peringkat saya"
 
 msgid "Revenue first, then how many people are actually using it, then what it costs to run."
 msgstr "Pendapatan dulu, lalu berapa banyak orang yang benar-benar memakainya, lalu berapa biayanya."
+
+msgid "Revert"
+msgstr "Kembalikan"
+
+msgid "Revert Closed Chats"
+msgstr "Kembalikan chat yang ditutup"
 
 msgid "Review"
 msgstr "Review"

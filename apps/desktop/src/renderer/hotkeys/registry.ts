@@ -559,6 +559,18 @@ export const HOTKEYS_REGISTRY = {
 		label: msg({ message: "Reopen Closed Tab" }),
 		category: "Layout",
 	},
+	REOPEN_CLOSED_CHATS: {
+		key: {
+			mac: L("meta+z"),
+			windows: L("ctrl+z"),
+			linux: L("ctrl+z"),
+		},
+		label: msg({ message: "Revert Closed Chats" }),
+		category: "Layout",
+		description: msg({
+			message: "Reopen the chats you just closed",
+		}),
+	},
 	NEW_BROWSER: {
 		key: {
 			mac: L("meta+shift+b"),

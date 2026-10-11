@@ -120,6 +120,10 @@ msgstr "{0, plural, one {# automatizaci se nepodařilo spustit} few {# automatiz
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# změněný soubor} few {# změněné soubory} many {# změněného souboru} other {# změněných souborů}}"
 
+#. placeholder {0}: titles.length
+msgid "{0, plural, one {# chat closed} other {# chats closed}}"
+msgstr "{0, plural, one {# chat zavřen} few {# chaty zavřeny} many {# chatů zavřeno} other {# chatů zavřeno}}"
+
 #. placeholder {0}: comments.length
 msgid "{0, plural, one {# comment attached} other {# comments attached}}"
 msgstr "{0, plural, one {# připojený komentář} few {# připojené komentáře} many {# připojeného komentáře} other {# připojených komentářů}}"
@@ -3512,6 +3516,9 @@ msgstr "Kanál vytvořen"
 
 msgid "Chat"
 msgstr "Chat"
+
+msgid "Chat closed"
+msgstr "Chat zavřen"
 
 msgid "Chat is being reworked"
 msgstr "Chat se předělává"
@@ -13727,6 +13734,9 @@ msgstr "Znovu otevřít zavřenou kartu"
 msgid "Reopen PR"
 msgstr "Znovu otevřít PR"
 
+msgid "Reopen the chats you just closed"
+msgstr "Znovu otevřít právě zavřené chaty"
+
 msgid "Reopen thread"
 msgstr "Znovu otevřít vlákno"
 
@@ -14137,6 +14147,12 @@ msgstr "Odhalit mou pozici"
 
 msgid "Revenue first, then how many people are actually using it, then what it costs to run."
 msgstr "Nejdřív tržby, pak kolik lidí to opravdu používá a nakonec kolik stojí provoz."
+
+msgid "Revert"
+msgstr "Vrátit"
+
+msgid "Revert Closed Chats"
+msgstr "Vrátit zavřené chaty"
 
 msgid "Review"
 msgstr "Revize"

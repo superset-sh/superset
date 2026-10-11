@@ -120,6 +120,10 @@ msgstr "{0, plural, one {無法啟動 # 個自動化} other {無法啟動 # 個�
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {#個已更改檔案} other {#個已更改檔案}}"
 
+#. placeholder {0}: titles.length
+msgid "{0, plural, one {# chat closed} other {# chats closed}}"
+msgstr "{0, plural, other {已關閉 # 個聊天}}"
+
 #. placeholder {0}: comments.length
 msgid "{0, plural, one {# comment attached} other {# comments attached}}"
 msgstr "{0, plural, one {已附上#條評論} other {已附上#條評論}}"
@@ -3512,6 +3516,9 @@ msgstr "頻道已建立"
 
 msgid "Chat"
 msgstr "聊天"
+
+msgid "Chat closed"
+msgstr "聊天已關閉"
 
 msgid "Chat is being reworked"
 msgstr "聊天功能正在重做"
@@ -13727,6 +13734,9 @@ msgstr "重新開啟已關閉的分頁"
 msgid "Reopen PR"
 msgstr "重新開啟PR"
 
+msgid "Reopen the chats you just closed"
+msgstr "重新開啟剛剛關閉的聊天"
+
 msgid "Reopen thread"
 msgstr "重新開啟討論串"
 
@@ -14137,6 +14147,12 @@ msgstr "顯示我的排名"
 
 msgid "Revenue first, then how many people are actually using it, then what it costs to run."
 msgstr "先看營收，再看實際使用人數，最後看營運成本。"
+
+msgid "Revert"
+msgstr "復原"
+
+msgid "Revert Closed Chats"
+msgstr "復原已關閉的聊天"
 
 msgid "Review"
 msgstr "審查"

@@ -120,6 +120,10 @@ msgstr "{0, plural, one {Nie udało się uruchomić # automatyzacji} few {Nie ud
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# zmieniony plik} few {# zmienione pliki} many {# zmienionych plików} other {# zmienionego pliku}}"
 
+#. placeholder {0}: titles.length
+msgid "{0, plural, one {# chat closed} other {# chats closed}}"
+msgstr "{0, plural, one {# czat zamknięty} few {# czaty zamknięte} many {# czatów zamkniętych} other {# czatu zamkniętego}}"
+
 #. placeholder {0}: comments.length
 msgid "{0, plural, one {# comment attached} other {# comments attached}}"
 msgstr "{0, plural, one {Dołączono # komentarz} few {Dołączono # komentarze} many {Dołączono # komentarzy} other {Dołączono # komentarza}}"
@@ -3512,6 +3516,9 @@ msgstr "Kanał utworzony"
 
 msgid "Chat"
 msgstr "Czat"
+
+msgid "Chat closed"
+msgstr "Czat zamknięty"
 
 msgid "Chat is being reworked"
 msgstr "Czat jest przebudowywany"
@@ -13727,6 +13734,9 @@ msgstr "Otwórz ponownie zamkniętą kartę"
 msgid "Reopen PR"
 msgstr "Otwórz PR ponownie"
 
+msgid "Reopen the chats you just closed"
+msgstr "Otwórz ponownie właśnie zamknięte czaty"
+
 msgid "Reopen thread"
 msgstr "Otwórz wątek ponownie"
 
@@ -14137,6 +14147,12 @@ msgstr "Pokaż moją pozycję"
 
 msgid "Revenue first, then how many people are actually using it, then what it costs to run."
 msgstr "Najpierw przychód, potem ilu ludzi naprawdę tego używa, a na końcu ile kosztuje utrzymanie."
+
+msgid "Revert"
+msgstr "Przywróć"
+
+msgid "Revert Closed Chats"
+msgstr "Przywróć zamknięte czaty"
 
 msgid "Review"
 msgstr "Przegląd"

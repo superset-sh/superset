@@ -120,6 +120,10 @@ msgstr "{0, plural, one {# otomasyon başlatılamadı} other {# otomasyon başla
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# değişen dosya} other {# değişen dosya}}"
 
+#. placeholder {0}: titles.length
+msgid "{0, plural, one {# chat closed} other {# chats closed}}"
+msgstr "{0, plural, other {# sohbet kapatıldı}}"
+
 #. placeholder {0}: comments.length
 msgid "{0, plural, one {# comment attached} other {# comments attached}}"
 msgstr "{0, plural, one {# yorum eklendi} other {# yorum eklendi}}"
@@ -3512,6 +3516,9 @@ msgstr "Kanal oluşturuldu"
 
 msgid "Chat"
 msgstr "Sohbet"
+
+msgid "Chat closed"
+msgstr "Sohbet kapatıldı"
 
 msgid "Chat is being reworked"
 msgstr "Sohbet yeniden düzenleniyor"
@@ -13727,6 +13734,9 @@ msgstr "Kapatılan sekmeyi yeniden aç"
 msgid "Reopen PR"
 msgstr "PR'ı yeniden aç"
 
+msgid "Reopen the chats you just closed"
+msgstr "Az önce kapattığınız sohbetleri yeniden açın"
+
 msgid "Reopen thread"
 msgstr "Konuyu yeniden aç"
 
@@ -14137,6 +14147,12 @@ msgstr "Sıralamamı göster"
 
 msgid "Revenue first, then how many people are actually using it, then what it costs to run."
 msgstr "Önce gelir, sonra gerçekte kaç kişinin kullandığı, sonra da işletme maliyeti."
+
+msgid "Revert"
+msgstr "Geri al"
+
+msgid "Revert Closed Chats"
+msgstr "Kapatılan sohbetleri geri al"
 
 msgid "Review"
 msgstr "İnceleme"

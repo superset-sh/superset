@@ -120,6 +120,10 @@ msgstr "{0, plural, one {Impossibile avviare # automazione} other {Impossibile a
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# file modificato} other {# file modificati}}"
 
+#. placeholder {0}: titles.length
+msgid "{0, plural, one {# chat closed} other {# chats closed}}"
+msgstr "{0, plural, one {# chat chiusa} other {# chat chiuse}}"
+
 #. placeholder {0}: comments.length
 msgid "{0, plural, one {# comment attached} other {# comments attached}}"
 msgstr "{0, plural, one {# commento allegato} other {# commenti allegati}}"
@@ -3512,6 +3516,9 @@ msgstr "Canale creato"
 
 msgid "Chat"
 msgstr "Chat"
+
+msgid "Chat closed"
+msgstr "Chat chiusa"
 
 msgid "Chat is being reworked"
 msgstr "La chat è in fase di rifacimento"
@@ -13727,6 +13734,9 @@ msgstr "Riapri la scheda chiusa"
 msgid "Reopen PR"
 msgstr "Riapri la PR"
 
+msgid "Reopen the chats you just closed"
+msgstr "Riapri le chat appena chiuse"
+
 msgid "Reopen thread"
 msgstr "Riapri il thread"
 
@@ -14137,6 +14147,12 @@ msgstr "Mostra la mia posizione"
 
 msgid "Revenue first, then how many people are actually using it, then what it costs to run."
 msgstr "Prima i ricavi, poi quante persone lo usano davvero, poi quanto costa mandarlo avanti."
+
+msgid "Revert"
+msgstr "Ripristina"
+
+msgid "Revert Closed Chats"
+msgstr "Ripristina chat chiuse"
 
 msgid "Review"
 msgstr "Revisione"

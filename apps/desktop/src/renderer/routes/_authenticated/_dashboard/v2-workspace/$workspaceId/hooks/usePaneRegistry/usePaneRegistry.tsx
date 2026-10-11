@@ -108,6 +108,7 @@ import { TerminalPaneHeaderExtras } from "./components/TerminalPane/components/T
 import { TerminalPaneIcon } from "./components/TerminalPane/components/TerminalPaneIcon";
 import { TerminalSessionDropdown } from "./components/TerminalPane/components/TerminalSessionDropdown";
 import { terminalContextMenuLinkStore } from "./components/TerminalPane/contextMenuLinkStore";
+import { useUndoableChatClose } from "./hooks/useUndoableChatClose";
 import { openInActions } from "./utils/openInActions";
 import { pagePaneLabel } from "./utils/pagePaneLabel";
 import { replaceEndedTerminal } from "./utils/replaceEndedTerminal";
@@ -180,6 +181,10 @@ export function usePaneRegistry({
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
 	const agentSurface = useAgentSurfaceSwitch(workspaceId);
+	const closeChatWithUndo = useUndoableChatClose({
+		store,
+		stopChat: agentSurface.stopChat,
+	});
 	const host = useWorkspaceHostTarget(workspaceId);
 	const desktopUrl =
 		host.status === "ready" && host.kind === "sandbox" ? host.desktopUrl : null;
@@ -805,10 +810,7 @@ export function usePaneRegistry({
 						getSnapshot: () => chatTitle,
 					};
 				},
-				onAfterClose: (pane) => {
-					const { sessionId } = pane.data as ChatPaneData;
-					if (sessionId) void agentSurface.stopChat(sessionId);
-				},
+				onAfterClose: closeChatWithUndo,
 				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => {
 					const data = ctx.pane.data as ChatPaneData;
 					return (
@@ -1001,6 +1003,7 @@ export function usePaneRegistry({
 			linkedStores,
 			workspaceId,
 			agentSurface,
+			closeChatWithUndo,
 			clearWorkspaceRunTerminal,
 			clearShortcut,
 			scrollToBottomShortcut,

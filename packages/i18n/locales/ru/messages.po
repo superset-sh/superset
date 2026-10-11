@@ -120,6 +120,10 @@ msgstr "{0, plural, one {Не удалось запустить # автомат
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# изменённый файл} few {# изменённых файла} many {# изменённых файлов} other {# изменённых файла}}"
 
+#. placeholder {0}: titles.length
+msgid "{0, plural, one {# chat closed} other {# chats closed}}"
+msgstr "{0, plural, one {# чат закрыт} few {# чата закрыто} many {# чатов закрыто} other {# чата закрыто}}"
+
 #. placeholder {0}: comments.length
 msgid "{0, plural, one {# comment attached} other {# comments attached}}"
 msgstr "{0, plural, one {# комментарий приложен} few {# комментария приложено} many {# комментариев приложено} other {# комментария приложено}}"
@@ -3512,6 +3516,9 @@ msgstr "Канал создан"
 
 msgid "Chat"
 msgstr "Чат"
+
+msgid "Chat closed"
+msgstr "Чат закрыт"
 
 msgid "Chat is being reworked"
 msgstr "Чат перерабатывается"
@@ -13727,6 +13734,9 @@ msgstr "Открыть заново закрытую вкладку"
 msgid "Reopen PR"
 msgstr "Открыть PR заново"
 
+msgid "Reopen the chats you just closed"
+msgstr "Снова открыть только что закрытые чаты"
+
 msgid "Reopen thread"
 msgstr "Снова открыть ветку"
 
@@ -14137,6 +14147,12 @@ msgstr "Показать моё место"
 
 msgid "Revenue first, then how many people are actually using it, then what it costs to run."
 msgstr "Сначала выручка, затем сколько людей действительно им пользуются, затем во что обходится работа."
+
+msgid "Revert"
+msgstr "Вернуть"
+
+msgid "Revert Closed Chats"
+msgstr "Вернуть закрытые чаты"
 
 msgid "Review"
 msgstr "Ревью"

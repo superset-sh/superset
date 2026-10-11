@@ -120,6 +120,10 @@ msgstr "{0, plural, one {无法启动 # 个自动化} other {无法启动 # 个�
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {#个已更改文件} other {#个已更改文件}}"
 
+#. placeholder {0}: titles.length
+msgid "{0, plural, one {# chat closed} other {# chats closed}}"
+msgstr "{0, plural, other {已关闭 # 个聊天}}"
+
 #. placeholder {0}: comments.length
 msgid "{0, plural, one {# comment attached} other {# comments attached}}"
 msgstr "{0, plural, one {已附上#条评论} other {已附上#条评论}}"
@@ -3512,6 +3516,9 @@ msgstr "频道已创建"
 
 msgid "Chat"
 msgstr "聊天"
+
+msgid "Chat closed"
+msgstr "聊天已关闭"
 
 msgid "Chat is being reworked"
 msgstr "聊天功能正在重做"
@@ -13727,6 +13734,9 @@ msgstr "重新打开已关闭的标签页"
 msgid "Reopen PR"
 msgstr "重新打开PR"
 
+msgid "Reopen the chats you just closed"
+msgstr "重新打开刚刚关闭的聊天"
+
 msgid "Reopen thread"
 msgstr "重新打开讨论串"
 
@@ -14137,6 +14147,12 @@ msgstr "显示我的排名"
 
 msgid "Revenue first, then how many people are actually using it, then what it costs to run."
 msgstr "先看收入，再看实际使用人数，最后看运营成本。"
+
+msgid "Revert"
+msgstr "撤销"
+
+msgid "Revert Closed Chats"
+msgstr "撤销关闭的聊天"
 
 msgid "Review"
 msgstr "审查"

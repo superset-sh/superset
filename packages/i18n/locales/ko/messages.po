@@ -120,6 +120,10 @@ msgstr "{0, plural, one {자동화 #개를 시작하지 못했습니다} other {
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {변경된 파일 #개} other {변경된 파일 #개}}"
 
+#. placeholder {0}: titles.length
+msgid "{0, plural, one {# chat closed} other {# chats closed}}"
+msgstr "{0, plural, other {채팅 #개를 닫았습니다}}"
+
 #. placeholder {0}: comments.length
 msgid "{0, plural, one {# comment attached} other {# comments attached}}"
 msgstr "{0, plural, one {코멘트 #개 첨부됨} other {코멘트 #개 첨부됨}}"
@@ -3512,6 +3516,9 @@ msgstr "채널 생성됨"
 
 msgid "Chat"
 msgstr "채팅"
+
+msgid "Chat closed"
+msgstr "채팅을 닫았습니다"
 
 msgid "Chat is being reworked"
 msgstr "채팅을 개편하는 중입니다"
@@ -13727,6 +13734,9 @@ msgstr "닫은 탭 다시 열기"
 msgid "Reopen PR"
 msgstr "PR 다시 열기"
 
+msgid "Reopen the chats you just closed"
+msgstr "방금 닫은 채팅을 다시 엽니다"
+
 msgid "Reopen thread"
 msgstr "스레드 다시 열기"
 
@@ -14137,6 +14147,12 @@ msgstr "내 순위 공개"
 
 msgid "Revenue first, then how many people are actually using it, then what it costs to run."
 msgstr "매출을 먼저, 그다음 실제 사용자 수, 마지막으로 운영 비용."
+
+msgid "Revert"
+msgstr "되돌리기"
+
+msgid "Revert Closed Chats"
+msgstr "닫은 채팅 되돌리기"
 
 msgid "Review"
 msgstr "리뷰"

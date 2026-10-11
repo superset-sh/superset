@@ -120,6 +120,10 @@ msgstr "{0, plural, one {Không thể khởi chạy # tự động hóa} other {
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# tệp thay đổi} other {# tệp thay đổi}}"
 
+#. placeholder {0}: titles.length
+msgid "{0, plural, one {# chat closed} other {# chats closed}}"
+msgstr "{0, plural, other {Đã đóng # cuộc trò chuyện}}"
+
 #. placeholder {0}: comments.length
 msgid "{0, plural, one {# comment attached} other {# comments attached}}"
 msgstr "{0, plural, one {Đã đính kèm # bình luận} other {Đã đính kèm # bình luận}}"
@@ -3512,6 +3516,9 @@ msgstr "Kênh được tạo"
 
 msgid "Chat"
 msgstr "Chat"
+
+msgid "Chat closed"
+msgstr "Đã đóng cuộc trò chuyện"
 
 msgid "Chat is being reworked"
 msgstr "Chat đang được làm lại"
@@ -13727,6 +13734,9 @@ msgstr "Mở lại tab vừa đóng"
 msgid "Reopen PR"
 msgstr "Mở lại PR"
 
+msgid "Reopen the chats you just closed"
+msgstr "Mở lại các cuộc trò chuyện bạn vừa đóng"
+
 msgid "Reopen thread"
 msgstr "Mở lại luồng"
 
@@ -14137,6 +14147,12 @@ msgstr "Hiện thứ hạng của tôi"
 
 msgid "Revenue first, then how many people are actually using it, then what it costs to run."
 msgstr "Doanh thu trước, rồi đến số người thực sự dùng, rồi chi phí vận hành."
+
+msgid "Revert"
+msgstr "Hoàn tác"
+
+msgid "Revert Closed Chats"
+msgstr "Hoàn tác các cuộc trò chuyện đã đóng"
 
 msgid "Review"
 msgstr "Review"

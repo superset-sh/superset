@@ -120,6 +120,10 @@ msgstr "{0, plural, one {#件のオートメーションを開始できません
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {#件の変更ファイル} other {#件の変更ファイル}}"
 
+#. placeholder {0}: titles.length
+msgid "{0, plural, one {# chat closed} other {# chats closed}}"
+msgstr "{0, plural, other {# 件のチャットを閉じました}}"
+
 #. placeholder {0}: comments.length
 msgid "{0, plural, one {# comment attached} other {# comments attached}}"
 msgstr "{0, plural, one {#件のコメントを添付} other {#件のコメントを添付}}"
@@ -3512,6 +3516,9 @@ msgstr "チャンネル作成"
 
 msgid "Chat"
 msgstr "チャット"
+
+msgid "Chat closed"
+msgstr "チャットを閉じました"
 
 msgid "Chat is being reworked"
 msgstr "チャットは再構築中です"
@@ -13727,6 +13734,9 @@ msgstr "閉じたタブを再度開く"
 msgid "Reopen PR"
 msgstr "PRを再オープン"
 
+msgid "Reopen the chats you just closed"
+msgstr "閉じたばかりのチャットを再度開きます"
+
 msgid "Reopen thread"
 msgstr "スレッドを再開"
 
@@ -14137,6 +14147,12 @@ msgstr "自分のランクを表示"
 
 msgid "Revenue first, then how many people are actually using it, then what it costs to run."
 msgstr "まず売上、次に実際に使っている人数、そして運営にかかるコスト。"
+
+msgid "Revert"
+msgstr "元に戻す"
+
+msgid "Revert Closed Chats"
+msgstr "閉じたチャットを元に戻す"
 
 msgid "Review"
 msgstr "レビュー"
