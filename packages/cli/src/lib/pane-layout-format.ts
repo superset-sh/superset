@@ -4,9 +4,15 @@ import type {
 	PaneLayoutTab,
 } from "@superset/shared/pane-layout-ops";
 
+export function formatAgent(
+	agent: { id: string; state: string } | null | undefined,
+): string | null {
+	return agent ? `${agent.id} · ${agent.state}` : null;
+}
+
 function describePane(pane: PaneLayoutTab["panes"][number]): string {
 	const title = pane.terminalTitle ?? pane.title;
-	const agent = pane.agent ? `${pane.agent.id} · ${pane.agent.state}` : null;
+	const agent = formatAgent(pane.agent);
 	return [
 		pane.id,
 		pane.kind,

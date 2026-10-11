@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildSnapshot } from "./host-snapshot";
+import { buildSnapshot, formatSnapshot } from "./host-snapshot";
 
 describe("buildSnapshot", () => {
 	test("groups each workspace's terminals with their agent state and layout", () => {
@@ -26,7 +26,7 @@ describe("buildSnapshot", () => {
 					lastEventType: "PermissionRequest",
 				},
 			],
-			layouts: new Map([["ws-web", layout]]),
+			layouts: new Map([["ws-web", { layout }]]),
 		});
 		expect(web?.terminals).toEqual([
 			{
@@ -43,5 +43,24 @@ describe("buildSnapshot", () => {
 			layout: null,
 		});
 		expect(api?.terminals.map((terminal) => terminal.id)).toEqual(["t3"]);
+	});
+
+	test("prints each terminal's agent and says when a layout could not be read", () => {
+		const text = formatSnapshot(
+			buildSnapshot({
+				workspaces: [
+					{ id: "ws-web", name: "health-check", projectName: "acme-web" },
+				],
+				terminals: [
+					{ terminalId: "t1", workspaceId: "ws-web", title: "Fix login" },
+				],
+				agents: [
+					{ terminalId: "t1", agentId: "claude", lastEventType: "Start" },
+				],
+				layouts: new Map([["ws-web", { error: "Desktop app timed out" }]]),
+			}),
+		);
+		expect(text).toContain('terminal t1  "Fix login"  claude · working');
+		expect(text).toContain("layout unavailable: Desktop app timed out");
 	});
 });

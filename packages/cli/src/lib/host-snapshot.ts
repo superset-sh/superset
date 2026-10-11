@@ -3,7 +3,7 @@ import {
 	agentRunState,
 } from "@superset/shared/agent-status";
 import type { PaneLayoutSnapshot } from "@superset/shared/pane-layout-ops";
-import { formatLayout } from "./pane-layout-format";
+import { formatAgent, formatLayout } from "./pane-layout-format";
 
 interface WorkspaceRow {
 	id: string;
@@ -36,7 +36,13 @@ export interface SnapshotWorkspace {
 	}[];
 	/** Null when no desktop app is attached to the host, or it is too old. */
 	layout: PaneLayoutSnapshot | null;
+	/** Set when a desktop app is attached but the layout could not be read. */
+	layoutError: string | null;
 }
+
+export type LayoutRead =
+	| { layout: PaneLayoutSnapshot | null }
+	| { error: string };
 
 export function buildSnapshot({
 	workspaces,
@@ -47,7 +53,7 @@ export function buildSnapshot({
 	workspaces: WorkspaceRow[];
 	terminals: TerminalRow[];
 	agents: AgentRow[];
-	layouts: ReadonlyMap<string, PaneLayoutSnapshot | null>;
+	layouts: ReadonlyMap<string, LayoutRead>;
 }): SnapshotWorkspace[] {
 	const agentByTerminal = new Map(agents.map((row) => [row.terminalId, row]));
 	return workspaces.map((workspace) => ({
@@ -67,8 +73,15 @@ export function buildSnapshot({
 						: null,
 				};
 			}),
-		layout: layouts.get(workspace.id) ?? null,
+		...layoutFields(layouts.get(workspace.id)),
 	}));
+}
+
+function layoutFields(read: LayoutRead | undefined) {
+	if (!read) return { layout: null, layoutError: null };
+	return "error" in read
+		? { layout: null, layoutError: read.error }
+		: { layout: read.layout, layoutError: null };
 }
 
 export function formatSnapshot(workspaces: SnapshotWorkspace[]): string {
@@ -87,19 +100,19 @@ export function formatSnapshot(workspaces: SnapshotWorkspace[]): string {
 						[
 							`  terminal ${terminal.id}`,
 							terminal.title ? `"${terminal.title}"` : null,
-							terminal.agent
-								? `${terminal.agent.id} · ${terminal.agent.state}`
-								: null,
+							formatAgent(terminal.agent),
 						]
 							.filter(Boolean)
 							.join("  "),
 					)
 				: ["  no live terminals"];
-			const layout = workspace.layout
-				? formatLayout(workspace.layout)
-						.split("\n")
-						.map((line) => `  ${line}`)
-				: [];
+			const layout = workspace.layoutError
+				? [`  layout unavailable: ${workspace.layoutError}`]
+				: workspace.layout
+					? formatLayout(workspace.layout)
+							.split("\n")
+							.map((line) => `  ${line}`)
+					: [];
 			return [heading, ...terminals, ...layout].join("\n");
 		})
 		.join("\n\n");

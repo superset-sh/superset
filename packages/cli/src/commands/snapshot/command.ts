@@ -1,6 +1,11 @@
-import { string } from "@superset/cli-framework";
+import { CLIError, string } from "@superset/cli-framework";
 import { command } from "../../lib/command";
-import { buildSnapshot, formatSnapshot } from "../../lib/host-snapshot";
+import {
+	buildSnapshot,
+	formatSnapshot,
+	type LayoutRead,
+} from "../../lib/host-snapshot";
+import type { HostServiceClient } from "../../lib/host-target";
 import { resolveHostClient } from "../../lib/resolve-host-client";
 
 export default command({
@@ -22,19 +27,17 @@ export default command({
 		const workspaces = options.workspace
 			? allWorkspaces.filter((workspace) => workspace.id === options.workspace)
 			: allWorkspaces;
-		// The layout lives in the desktop app; without one attached, or on a host
-		// that predates `panes`, a workspace just has no layout here.
+		if (options.workspace && workspaces.length === 0) {
+			throw new CLIError(
+				`Workspace ${options.workspace} is not on this host`,
+				"List them with `superset workspaces list`, or pass --host",
+			);
+		}
 		const layouts = new Map(
 			await Promise.all(
 				workspaces.map(
 					async (workspace) =>
-						[
-							workspace.id,
-							await client.panes.list
-								.query({ workspaceId: workspace.id })
-								.then((result) => result.layout)
-								.catch(() => null),
-						] as const,
+						[workspace.id, await readLayout(client, workspace.id)] as const,
 				),
 			),
 		);
@@ -50,3 +53,26 @@ export default command({
 		};
 	},
 });
+
+/**
+ * No desktop app attached, or a host that predates `panes`, means there is no
+ * layout to show. Any other failure is reported, not hidden as "no desktop".
+ */
+async function readLayout(
+	client: HostServiceClient,
+	workspaceId: string,
+): Promise<LayoutRead> {
+	try {
+		return { layout: (await client.panes.list.query({ workspaceId })).layout };
+	} catch (error) {
+		const code = (error as { data?: { code?: string } } | null)?.data?.code;
+		const message = error instanceof Error ? error.message : String(error);
+		if (
+			code === "PRECONDITION_FAILED" ||
+			/No procedure found on path "?panes\./.test(message)
+		) {
+			return { layout: null };
+		}
+		return { error: message };
+	}
+}
