@@ -68,6 +68,14 @@ export async function withPaneTerminal<T>(
 	try {
 		return { ...(await callPanes(() => place(terminalId))), terminalId };
 	} catch (error) {
+		// A timeout is not a rejection: the desktop may still place the pane, so
+		// killing the terminal would leave that pane on a dead session.
+		if (isTimeout(error)) {
+			throw new CLIError(
+				`The desktop app did not confirm in time; terminal ${terminalId} is kept`,
+				"Check with `superset panes list`; close it with `superset terminals close` if no pane shows it",
+			);
+		}
 		if (!options.terminal) {
 			await client.terminal.killSession
 				.mutate({ workspaceId, terminalId })
@@ -75,6 +83,12 @@ export async function withPaneTerminal<T>(
 		}
 		throw error;
 	}
+}
+
+function isTimeout(error: unknown): boolean {
+	return (
+		(error as { data?: { code?: string } } | null)?.data?.code === "TIMEOUT"
+	);
 }
 
 function describePane(pane: PaneLayoutTab["panes"][number]): string {
