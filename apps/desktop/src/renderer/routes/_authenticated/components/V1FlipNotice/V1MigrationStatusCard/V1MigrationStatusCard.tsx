@@ -1,6 +1,7 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui as useTranslation } from "@lingui/react";
-import { useEffect } from "react";
+import { errorMessage } from "@superset/i18n/errors";
+import { useEffect, useState } from "react";
 import { track } from "renderer/lib/analytics";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
@@ -42,6 +43,8 @@ export function V1MigrationStatusCard({
 	const dismissCard = useV1MigrationStatusStore((state) => state.dismiss);
 	const requestPass = useV1MigrationStatusStore((state) => state.requestPass);
 	const openV1ImportModal = useOpenV1ImportModal();
+	const [importing, setImporting] = useState<ReadonlySet<string>>(new Set());
+	const [errors, setErrors] = useState<ReadonlyMap<string, string>>(new Map());
 
 	useEffect(() => {
 		if (visible) {
@@ -66,16 +69,49 @@ export function V1MigrationStatusCard({
 		dismissCard(organizationId);
 		openV1ImportModal();
 	};
+	const branchOne = async (item: WorktreeAttentionItem): Promise<boolean> => {
+		setImporting((prev) => new Set(prev).add(item.v1Id));
+		setErrors((prev) => {
+			const next = new Map(prev);
+			next.delete(item.v1Id);
+			return next;
+		});
+		try {
+			await branchWorktree(item);
+			return true;
+		} catch (err) {
+			setErrors((prev) => new Map(prev).set(item.v1Id, errorMessage(err)));
+			return false;
+		} finally {
+			setImporting((prev) => {
+				const next = new Set(prev);
+				next.delete(item.v1Id);
+				return next;
+			});
+		}
+	};
 	const importItem = async (item: V1AttentionItem) => {
 		track("v1_migration_attention_import_clicked", { kind: item.kind });
 		if (item.kind === "project") {
 			openImporter();
 			return;
 		}
-		await branchWorktree(item);
-		requestPass();
+		if (await branchOne(item)) requestPass();
 	};
-
+	const worktreeItems = attentionItems.filter(
+		(item): item is WorktreeAttentionItem => item.kind === "worktree",
+	);
+	const importAll = async () => {
+		if (importing.size > 0) return;
+		track("v1_migration_attention_import_all_clicked", {
+			item_count: worktreeItems.length,
+		});
+		let imported = 0;
+		for (const item of worktreeItems) {
+			if (await branchOne(item)) imported++;
+		}
+		if (imported > 0) requestPass();
+	};
 	if (status === "running") {
 		return (
 			<FlipNoticeCard
@@ -110,7 +146,8 @@ export function V1MigrationStatusCard({
 	}
 
 	const hasProjects = attentionItems.some((item) => item.kind === "project");
-	const hasWorktrees = attentionItems.some((item) => item.kind === "worktree");
+	const hasWorktrees = worktreeItems.length > 0;
+	const canImportAll = worktreeItems.length > 1;
 
 	return (
 		<FlipNoticeCard
@@ -126,7 +163,7 @@ export function V1MigrationStatusCard({
 					? translate(
 							msg({
 								message:
-									"Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change. If you moved it, right-click its project and choose Import untracked worktrees.",
+									"Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change.",
 							}),
 						)
 					: null,
@@ -141,11 +178,21 @@ export function V1MigrationStatusCard({
 				.filter(Boolean)
 				.join(" ")}
 			ctaLabel={
-				hasProjects
-					? translate(msg({ message: "Open importer" }))
-					: translate(msg({ message: "Got it" }))
+				canImportAll
+					? translate(msg({ message: "Import all" }))
+					: hasProjects
+						? translate(msg({ message: "Open importer" }))
+						: translate(msg({ message: "Got it" }))
 			}
-			onCta={hasProjects ? openImporter : undefined}
+			onCta={
+				canImportAll
+					? () => {
+							void importAll();
+						}
+					: hasProjects
+						? openImporter
+						: undefined
+			}
 			onDismiss={dismiss}
 		>
 			<ul className="max-h-48 space-y-1.5 overflow-y-auto">
@@ -153,7 +200,11 @@ export function V1MigrationStatusCard({
 					<AttentionItemRow
 						key={`${item.kind}:${item.v1Id}`}
 						item={item}
-						onImport={importItem}
+						importing={importing.has(item.v1Id)}
+						error={errors.get(item.v1Id) ?? null}
+						onImport={() => {
+							void importItem(item);
+						}}
 					/>
 				))}
 			</ul>

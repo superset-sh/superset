@@ -143,7 +143,6 @@ describe("planWorkspaceAdoptions", () => {
 		branch,
 		path: `/git/${branch}`,
 		isMainWorktree,
-		hasWorkspace: false,
 	});
 	const ws = (
 		over: Partial<
@@ -344,13 +343,13 @@ describe("planWorkspaceAdoptions", () => {
 		});
 	});
 
-	test("a gone folder is missing when every on-disk worktree is accounted for", () => {
+	test("a gone folder is skipped quietly even when the repo has untracked worktrees", () => {
 		const plan = planWorkspaceAdoptions({
 			...base,
 			v1Workspaces: [ws({ branch: "gone" })],
 			onDiskWorktreeByRealPath: new Map([
 				["/real/repo", onDisk("main", true)],
-				["/real/tracked", { ...onDisk("done"), hasWorkspace: true }],
+				["/real/untracked", onDisk("someone-else")],
 			]),
 			v1WorktreeRealPathById: new Map([["wt-1", null]]),
 		});

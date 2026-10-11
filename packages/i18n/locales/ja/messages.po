@@ -8377,8 +8377,8 @@ msgstr "ファイルからインポート"
 msgid "Import from v1"
 msgstr "v1からインポート"
 
-msgid "Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change. If you moved it, right-click its project and choose Import untracked worktrees."
-msgstr "インポートすると、ワークツリーを現在のコミットで新しいブランチに切り替え、移行できるようにします。ファイルは変更されません。移動した場合は、プロジェクトを右クリックして「未追跡のワークツリーをインポート」を選択してください。"
+msgid "Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change."
+msgstr "インポートすると、ワークツリーを現在のコミットで新しいブランチに切り替え、移行できるようにします。ファイルは変更されません。"
 
 msgid "Import settings from another browser"
 msgstr "別のブラウザから設定をインポート"

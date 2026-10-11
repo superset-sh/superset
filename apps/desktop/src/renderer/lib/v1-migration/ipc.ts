@@ -69,7 +69,11 @@ export interface V1MigrationIpc {
 	readV1Projects(): Promise<V1ProjectRow[]>;
 	readV1Workspaces(): Promise<V1WorkspaceRow[]>;
 	readV1Worktrees(): Promise<V1WorktreeRow[]>;
-	resolvePaths(paths: string[]): Promise<(string | null)[]>;
+	/** `requireCheckout` also nulls a folder with no `.git`: nothing git can adopt. */
+	resolvePaths(
+		paths: string[],
+		options?: { requireCheckout?: boolean },
+	): Promise<(string | null)[]>;
 	/** Stops these panes' live v1 sessions before v2 takes them over. */
 	stopV1Panes(paneIds: string[]): Promise<unknown>;
 	readV1Settings(): Promise<V1SettingsRow | null>;
@@ -88,8 +92,8 @@ export const electronV1MigrationIpc: V1MigrationIpc = {
 	readV1Projects: () => electronTrpcClient.migration.readV1Projects.query(),
 	readV1Workspaces: () => electronTrpcClient.migration.readV1Workspaces.query(),
 	readV1Worktrees: () => electronTrpcClient.migration.readV1Worktrees.query(),
-	resolvePaths: (paths) =>
-		electronTrpcClient.migration.resolvePaths.query({ paths }),
+	resolvePaths: (paths, options) =>
+		electronTrpcClient.migration.resolvePaths.query({ paths, ...options }),
 	stopV1Panes: (paneIds) =>
 		electronTrpcClient.migration.stopV1Panes.mutate({ paneIds }),
 	readV1Settings: () => electronTrpcClient.migration.readV1Settings.query(),

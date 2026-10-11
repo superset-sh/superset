@@ -60,7 +60,7 @@ export async function planV1AutoPass({
 		v1Projects,
 		v1Workspaces,
 		v1Worktrees,
-		resolvePaths: (paths) => ipc.resolvePaths(paths),
+		resolvePaths: (paths, options) => ipc.resolvePaths(paths, options),
 	});
 	const hasV1Data = v1Projects.length + v1Workspaces.length > 0;
 	return {

@@ -103,7 +103,10 @@ export async function owesFullPass({
 		worktreeId: string | null;
 	}>;
 	v1Worktrees: Array<{ id: string; path: string }>;
-	resolvePaths: (paths: string[]) => Promise<(string | null)[]>;
+	resolvePaths: (
+		paths: string[],
+		options?: { requireCheckout?: boolean },
+	) => Promise<(string | null)[]>;
 }): Promise<boolean> {
 	const failed = (row: V1LedgerRow) =>
 		row.status === "error" &&
@@ -132,5 +135,7 @@ export async function owesFullPass({
 		return worktree ? [worktree.path] : [];
 	});
 	if (paths.length === 0) return false;
-	return (await resolvePaths(paths)).some((path) => path !== null);
+	return (await resolvePaths(paths, { requireCheckout: true })).some(
+		(path) => path !== null,
+	);
 }

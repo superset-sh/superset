@@ -8377,8 +8377,8 @@ msgstr "从文件导入"
 msgid "Import from v1"
 msgstr "从v1导入"
 
-msgid "Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change. If you moved it, right-click its project and choose Import untracked worktrees."
-msgstr "导入会在当前提交上为工作树创建一个新分支，使其可以迁移。你的文件不会改变。如果你移动过它，请右键点击其项目并选择“导入未跟踪的worktree”。"
+msgid "Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change."
+msgstr "导入会在当前提交上为工作树创建一个新分支，使其可以迁移。你的文件不会改变。"
 
 msgid "Import settings from another browser"
 msgstr "从其他浏览器导入设置"

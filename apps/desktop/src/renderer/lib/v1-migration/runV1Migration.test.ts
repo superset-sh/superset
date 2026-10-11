@@ -340,6 +340,7 @@ class FakeIpc implements V1MigrationIpc {
 	failNextLedgerRecords = 0;
 	/** Folders that exist on disk without being an adoptable worktree. */
 	existingPaths = new Set<string>();
+	foldersWithoutGit = new Set<string>();
 	aliases: Aliases = new Map();
 
 	async readV1Groups() {
@@ -354,8 +355,10 @@ class FakeIpc implements V1MigrationIpc {
 	async readV1Worktrees() {
 		return [...this.worktrees];
 	}
-	async resolvePaths(paths: string[]) {
+	async resolvePaths(paths: string[], options?: { requireCheckout?: boolean }) {
 		return paths.map((p) => {
+			if (options?.requireCheckout && this.foldersWithoutGit.has(p))
+				return null;
 			const alias = this.aliases.get(p);
 			if (alias) return alias;
 			return p.startsWith("/disk/") || this.existingPaths.has(p) ? p : null;
@@ -840,6 +843,23 @@ describe("runV1Migration scenarios", () => {
 		});
 	});
 
+	test("a leftover folder with no .git is skipped quietly, not shown for attention", async () => {
+		const ipc = new FakeIpc();
+		const host = new FakeHost();
+		ipc.projects = [project("p1", "/repo/a")];
+		ipc.worktrees = [{ id: "wt1", path: "/trees/husk", baseBranch: "main" }];
+		ipc.workspaces = [workspace("w-husk", "p1", "husk", "wt1")];
+		ipc.existingPaths.add("/trees/husk");
+		ipc.foldersWithoutGit.add("/trees/husk");
+		host.diskBranches.set("/repo/a", new Set(["main"]));
+
+		await run(ipc, host);
+		expect(ipc.ledger.get("workspace\0w-husk")).toMatchObject({
+			status: "skipped",
+			reason: "no-worktree-on-disk",
+		});
+	});
+
 	test("a symlinked, differently cased folder adopts under git's spelling of its path", async () => {
 		const ipc = new FakeIpc();
 		const host = new FakeHost();
@@ -881,7 +901,7 @@ describe("runV1Migration scenarios", () => {
 		]);
 	});
 
-	test("a worktree moved and renamed after v1 stays visible and is never adopted as another", async () => {
+	test("a worktree whose folder is gone is skipped quietly and never adopted as another", async () => {
 		const ipc = new FakeIpc();
 		const host = new FakeHost();
 		ipc.projects = [project("p1", "/repo/a")];
@@ -900,7 +920,7 @@ describe("runV1Migration scenarios", () => {
 		expect(ipc.ledger.get("workspace\0w-moved")?.status).toBe("success");
 		expect(ipc.ledger.get("workspace\0w-renamed")).toMatchObject({
 			status: "skipped",
-			reason: "worktree-needs-attention",
+			reason: "no-worktree-on-disk",
 		});
 		expect(host.workspaces.map((w) => w.branch)).toEqual(["feat"]);
 	});

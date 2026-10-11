@@ -117,4 +117,23 @@ describe("V1MigrationStatusCard", () => {
 		expect(view.container.textContent).toContain("Folder not found");
 		expect(useV1MigrationStatusStore.getState().passRequests).toBe(0);
 	});
+
+	test("Import all branches every worktree, shows failures, and reruns once", async () => {
+		const branched: string[] = [];
+		const view = renderWith(
+			"org-active",
+			"attention",
+			[worktree("wt-1"), worktree("wt-2"), worktree("wt-3")],
+			async (item) => {
+				if (item.v1Id === "wt-2") throw new Error("not a git repository");
+				branched.push(item.v1Id);
+			},
+		);
+		await act(async () => {
+			fireEvent.click(view.getByText("Import all"));
+		});
+		expect(branched).toEqual(["wt-1", "wt-3"]);
+		expect(view.container.textContent).toContain("not a git repository");
+		expect(useV1MigrationStatusStore.getState().passRequests).toBe(1);
+	});
 });

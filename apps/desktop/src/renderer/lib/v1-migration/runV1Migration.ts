@@ -352,7 +352,6 @@ async function migrateWorkspaces(
 						branch: w.branch,
 						path: w.path,
 						isMainWorktree: !!w.isMainWorktree,
-						hasWorkspace: w.hasWorkspace !== false,
 					});
 				}
 				const main = result.worktrees.find((w) => w.isMainWorktree);
@@ -371,19 +370,19 @@ async function migrateWorkspaces(
 		const worktree = w.worktreeId ? v1WorktreesById.get(w.worktreeId) : null;
 		return worktree ? [worktree] : [];
 	});
-	const realPaths = await deps.ipc.resolvePaths([
-		...onDiskWorktrees.map((w) => w.path),
-		...pendingWorktrees.map((w) => w.path),
+	const [onDiskRealPaths, v1RealPaths] = await Promise.all([
+		deps.ipc.resolvePaths(onDiskWorktrees.map((w) => w.path)),
+		deps.ipc.resolvePaths(
+			pendingWorktrees.map((w) => w.path),
+			{ requireCheckout: true },
+		),
 	]);
 	const onDiskWorktreeByRealPath = new Map<string, OnDiskWorktree>();
 	onDiskWorktrees.forEach((w, i) => {
-		onDiskWorktreeByRealPath.set(realPaths[i] ?? w.path, w);
+		onDiskWorktreeByRealPath.set(onDiskRealPaths[i] ?? w.path, w);
 	});
 	const v1WorktreeRealPathById = new Map<string, string | null>(
-		pendingWorktrees.map((w, i) => [
-			w.id,
-			realPaths[onDiskWorktrees.length + i] ?? null,
-		]),
+		pendingWorktrees.map((w, i) => [w.id, v1RealPaths[i] ?? null]),
 	);
 	const plan = planWorkspaceAdoptions({
 		v1Workspaces: pendingWorkspaces,

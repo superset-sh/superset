@@ -8377,8 +8377,8 @@ msgstr "Nhập từ tệp"
 msgid "Import from v1"
 msgstr "Nhập từ v1"
 
-msgid "Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change. If you moved it, right-click its project and choose Import untracked worktrees."
-msgstr "Nhập sẽ đưa worktree sang một nhánh mới tại commit hiện tại để có thể chuyển sang. Tệp của bạn không thay đổi. Nếu bạn đã di chuyển nó, hãy nhấp chuột phải vào dự án và chọn Nhập các worktree chưa theo dõi."
+msgid "Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change."
+msgstr "Nhập sẽ đưa worktree sang một nhánh mới tại commit hiện tại để có thể chuyển sang. Tệp của bạn không thay đổi."
 
 msgid "Import settings from another browser"
 msgstr "Nhập cài đặt từ trình duyệt khác"
