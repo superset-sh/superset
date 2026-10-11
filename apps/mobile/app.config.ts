@@ -63,6 +63,8 @@ export default ({ config }: ConfigContext) => ({
 		...(associatedDomains && { associatedDomains }),
 		usesAppleSignIn: true,
 		infoPlist: {
+			// `name` above also names the generated Xcode project and scheme.
+			CFBundleDisplayName: "Superset",
 			"UISupportedInterfaceOrientations~ipad": [
 				"UIInterfaceOrientationPortrait",
 				"UIInterfaceOrientationPortraitUpsideDown",

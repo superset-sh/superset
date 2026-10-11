@@ -39,6 +39,7 @@ import {
 	PROTOCOL_SCHEME,
 } from "shared/constants";
 import { sweepDevAppProfiles } from "./dev-app-profile-sweep";
+import { getAppDisplayName } from "./lib/app-display-name";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
@@ -202,7 +203,7 @@ function registerWithMacOSNotificationCenter() {
 	if (!PLATFORM.IS_MAC || !Notification.isSupported()) return;
 
 	const registrationNotification = new Notification({
-		title: app.name,
+		title: getAppDisplayName(),
 		body: " ",
 		silent: true,
 	});
@@ -479,6 +480,7 @@ if (!gotTheLock) {
 		// (plans/20260826-i18n-strategy.md). Menus are built later in
 		// initAppServices/initTray, so a plain activate is enough here.
 		await initI18nAsync(resolveAppLocale(getLanguageSetting()));
+		app.setAboutPanelOptions({ applicationName: getAppDisplayName() });
 		registerWithMacOSNotificationCenter();
 		requestAppleEventsAccess();
 		requestLocalNetworkAccess();

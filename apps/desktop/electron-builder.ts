@@ -15,6 +15,9 @@ import {
 const currentYear = new Date().getFullYear();
 const author = pkg.author?.name ?? pkg.author;
 const productName = pkg.productName;
+// productName names the bundle, userData, logs and keychain entry, so it never
+// changes; launchers and the menu bar show displayName.
+const displayName = "Superset";
 const macIconPath = join(pkg.resources, "build/icons/icon.icns");
 const linuxIconPath = join(pkg.resources, "build/icons");
 const winIconPath = join(pkg.resources, "build/icons/icon.ico");
@@ -125,8 +128,8 @@ const config: Configuration = {
 			"build/entitlements.mac.inherit.plist",
 		),
 		extendInfo: {
-			CFBundleName: productName,
-			CFBundleDisplayName: productName,
+			CFBundleName: displayName,
+			CFBundleDisplayName: displayName,
 			// Required for macOS microphone permission prompt
 			NSMicrophoneUsageDescription:
 				"Superset needs microphone access so voice-enabled tools like Codex transcription can capture audio input.",
@@ -176,6 +179,7 @@ const config: Configuration = {
 			// the Actions= key that exposes them, so declare it explicitly —
 			// launchers ignore action groups not listed under Actions.
 			entry: {
+				Name: displayName,
 				Actions: "new-window;",
 				// Electron sets the window class from the executable name, so the
 				// default (the product name) never matches and the dock shows a
