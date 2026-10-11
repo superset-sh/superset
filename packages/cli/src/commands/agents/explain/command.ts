@@ -1,7 +1,7 @@
 import { boolean, CLIError, string } from "@superset/cli-framework";
-import { explainAgent } from "../../../lib/agent-explain";
 import { command } from "../../../lib/command";
 import { resolveWorkspaceTarget } from "../../../lib/host-workspaces";
+import { explainAgent } from "./explain-agent";
 
 export default command({
 	description:
@@ -39,25 +39,35 @@ export default command({
 			terminalId: options.terminal,
 		};
 
-		const [binding, { sessions }, process] = await Promise.all([
-			// Hosts before `terminalAgents.get` only list live agents.
-			client.terminalAgents.get.query(ref).catch(async () => {
-				const live = await client.terminalAgents.listByWorkspace.query({
-					workspaceId: options.workspace,
-				});
-				return live.find((row) => row.terminalId === options.terminal) ?? null;
+		const [live, { sessions }, processRunning] = await Promise.all([
+			client.terminalAgents.listByWorkspace.query({
+				workspaceId: options.workspace,
 			}),
 			client.terminal.list.query({ workspaceId: options.workspace }),
-			client.terminal.hasRunningProcess.query(ref).catch(() => ({
-				running: false,
-			})),
+			client.terminal.hasRunningProcess
+				.query(ref)
+				.then((result) => result.running)
+				.catch(() => null),
 		]);
+		// The live row carries subagents and queued prompts; the saved row from
+		// `terminalAgents.get` is only needed for a session that has ended.
+		const binding =
+			live.find((row) => row.terminalId === options.terminal) ??
+			(await client.terminalAgents.get.query(ref).catch((error: unknown) => {
+				if (
+					error instanceof Error &&
+					/No procedure found on path "?terminalAgents\.get/.test(error.message)
+				) {
+					return null;
+				}
+				throw error;
+			}));
 		const explanation = explainAgent({
 			binding,
 			terminalAlive: sessions.some(
 				(session) => session.terminalId === options.terminal,
 			),
-			processRunning: process.running,
+			processRunning,
 			now: Date.now(),
 		});
 		return {
@@ -68,9 +78,7 @@ export default command({
 				lastEventAt: binding?.lastEventAt ?? null,
 			},
 			message: [
-				explanation.state === "none"
-					? `No agent in terminal ${options.terminal}.`
-					: `${binding?.agentId ?? "The agent"} is ${explanation.state}.`,
+				explanation.headline,
 				`Why: ${explanation.because}.`,
 				...explanation.details,
 			].join("\n"),
