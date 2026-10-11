@@ -1,4 +1,5 @@
 import type { AgentIdentity } from "@superset/shared/agent-identity";
+import { desktopNotificationSchema } from "@superset/shared/desktop-notification";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { terminalSessions } from "../../../db/schema";
@@ -6,9 +7,10 @@ import { mapEventType } from "../../../events";
 import { verifyAttributionToken } from "../../../terminal-agents/attribution-token";
 import { recordTerminalAgentTranscriptPath } from "../../../terminal-agents/persistence";
 import { isTrustedTranscriptPath } from "../../../terminal-agents/transcript-path";
-import { publicProcedure, router } from "../../index";
+import { protectedProcedure, publicProcedure, router } from "../../index";
 import { captureSessionAccount } from "../usage/session-account/session-account";
 import { fanOutAgentLifecycle } from "./fan-out-agent-lifecycle";
+import { showDesktopNotification } from "./show-desktop-notification";
 
 // Hook scripts emit "" for unset env vars; we coerce to undefined so the
 // AgentIdentity broadcast carries only meaningful fields.
@@ -71,6 +73,11 @@ function normalizeAgentIdentity(
 }
 
 export const notificationsRouter = router({
+	/** A notification sent with `superset notifications show`, shown by the attached desktop app. */
+	show: protectedProcedure
+		.input(desktopNotificationSchema)
+		.mutation(({ ctx, input }) => showDesktopNotification(ctx, input)),
+
 	/**
 	 * Agent lifecycle hook. The shell hook POSTs here; we normalize, resolve
 	 * the terminal's workspace, and fan out over the WS event bus.

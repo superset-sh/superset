@@ -36,6 +36,22 @@ export function agentStatusFromEvent(
 	}
 }
 
+/** An agent's turn state as scripts see it; there is no unseen "review" here. */
+export type AgentRunState = "starting" | "working" | "blocked" | "idle";
+
+/** `Attached` is the launch event, before the agent has started a turn. */
+export function agentRunState(lastEventType: string): AgentRunState {
+	if (lastEventType === "Attached") return "starting";
+	switch (agentStatusFromEvent(lastEventType)) {
+		case "working":
+			return "working";
+		case "permission":
+			return "blocked";
+		default:
+			return "idle";
+	}
+}
+
 export function highestAgentStatus(
 	statuses: Iterable<ActiveAgentStatus | null | undefined>,
 ): ActiveAgentStatus | null {

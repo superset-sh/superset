@@ -1,0 +1,63 @@
+import { boolean, CLIError, string } from "@superset/cli-framework";
+import { command } from "../../../lib/command";
+import { resolveHostClient } from "../../../lib/resolve-host-client";
+import {
+	callPanes,
+	directionOption,
+	layoutResult,
+	workspaceOptions,
+} from "../shared";
+
+const PLACEMENT = {
+	right: "right of",
+	left: "left of",
+	down: "below",
+	up: "above",
+} as const;
+
+export default command({
+	description:
+		"Move a pane next to another pane (--to and --direction) or into a new tab (--new-tab)",
+	options: {
+		...workspaceOptions,
+		pane: string().required().desc("Pane to move"),
+		to: string().desc("Pane to place it next to"),
+		direction: directionOption(),
+		newTab: boolean().desc("Move the pane into a new tab of its own"),
+	},
+	run: async ({ ctx, options }) => {
+		const workspaceId = options.workspace;
+		const paneId = options.pane;
+		if (options.newTab) {
+			if (options.to || options.direction) {
+				throw new CLIError("--new-tab cannot be used with --to or --direction");
+			}
+			const client = await resolveHostClient(ctx, options);
+			const result = await callPanes(() =>
+				client.panes.moveToNewTab.mutate({ workspaceId, paneId }),
+			);
+			return layoutResult(`Moved ${paneId} to new tab ${result.tabId}`, result);
+		}
+
+		const { to, direction } = options;
+		if (!to || !direction) {
+			throw new CLIError(
+				"Say where to move the pane",
+				"Pass --to PANE --direction right|left|down|up, or --new-tab",
+			);
+		}
+		const client = await resolveHostClient(ctx, options);
+		const result = await callPanes(() =>
+			client.panes.move.mutate({
+				workspaceId,
+				paneId,
+				targetPaneId: to,
+				direction,
+			}),
+		);
+		return layoutResult(
+			`Moved ${paneId} ${PLACEMENT[direction]} ${to}`,
+			result,
+		);
+	},
+});
