@@ -1,0 +1,76 @@
+{
+  "old": "Superset",
+  "new": "Paradev",
+  "old_upper": "SUPERSET",
+  "new_upper": "PARADEV",
+
+  "exclude_files": [
+    { "rule": "internal-docs", "globs": ["plans/*", "*/plans/*", "docs/*", "apps/desktop/docs/*", ".agents/*", "AGENTS.md", "*/AGENTS.md", "CLAUDE.md", "*/CLAUDE.md", "HOOKS_INVESTIGATION.md", "design/*", "apps/mobile/TODO.md", "apps/mobile/RELEASE.md"] },
+    { "rule": "legal", "globs": ["LICENSE*", "*/LICENSE*", "apps/marketing/content/legal/*"] },
+    { "rule": "generated-or-vendored", "globs": ["packages/shared/src/plugins/manifests.generated.ts", "patches/*", "*.patch", "bun.lock", "*.lock", "*/vale-styles/*", "apps/marketing/vale.ini"] },
+    { "rule": "plugins-republish", "globs": ["plugins/*", ".agent-marketplace.json", ".claude-plugin/*"], "unless_flag": "plugins" },
+    { "rule": "sdk-identifier", "globs": ["packages/sdk/src/*"] },
+    { "rule": "db-schema", "globs": ["packages/db/*", "packages/local-db/src/schema/*"] },
+    { "rule": "sandbox-image-and-seed", "globs": ["packages/sandbox/*"] },
+    { "rule": "desktop-productName-and-legal-author", "globs": ["apps/desktop/package.json"] },
+    { "rule": "fixture-paired-with-case-variant", "globs": ["packages/shared/src/terminal-title-scanner.test.ts", "packages/host-service/src/trpc/router/workspace-creation/shared/worktree-paths.test.ts", "apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/utils/filterDashboardSidebarProjects/filterDashboardSidebarProjects.test.ts"] },
+    { "rule": "dev-profile-storage-identity", "globs": ["packages/shared/src/dev-app-profile.ts", "packages/shared/src/dev-app-profile.test.ts", "packages/host-service/src/runtime/teardown/*", "apps/desktop/src/main/dev-app-profile-sweep.ts", "apps/desktop/scripts/patch-dev-protocol.ts", "apps/desktop/scripts/clean-launch-services.ts"] }
+  ],
+
+  "protect_patterns": [
+    { "rule": "legal-entity", "regex": "Superset,?\\s+Inc\\b\\.?" },
+    { "rule": "path-segment", "regex": "(?<=[/\\\\])Superset" },
+    { "rule": "path-segment", "regex": "Superset(?=[/\\\\](?![A-Z]))" },
+    { "rule": "file-ext-domain-or-member", "regex": "Superset(?=\\.[A-Za-z])" },
+    { "rule": "release-artifact-name", "regex": "Superset(?=-(?:\\d+\\.\\d|\\$|Canary\\b|x64\\b|arm64\\b|x86_64\\b))" },
+    { "rule": "http-header-name", "regex": "Superset(?=-Storage-Key)|(?<=[Xx]-)Superset" },
+    { "rule": "github-org-case-variant", "regex": "Superset(?=-(?:SH|Sh|sh)\\b)" },
+    { "rule": "code-identifier", "regex": "(?<![\\w-])new Superset(?=\\s*\\()|(?<![\\w-])import Superset(?=[\\s,]+(?:from\\b|\\{))|(?<![\\w-])class Superset(?=\\s*(?:<|\\{|extends\\b))|(?<![\\w-])namespace Superset(?=\\s*\\{)|(?<![\\w-])typeof Superset\\b" },
+    { "rule": "on-disk-marker", "regex": "(?<=# )Superset(?= (?:agent notification hook|agent-wrapper|wrapper for|copilot hook|cursor hook|gemini hook|artifact guard hook|bundled CLI shim|zsh (?:env|profile|rc|login) wrapper|bash rcfile wrapper)\\b)|(?<=// )Superset(?= (?:Amp lifecycle plugin|opencode plugin|Oh My Pi extension|pi extension)\\b)" },
+    { "rule": "on-disk-marker", "regex": "Managed by Superset|Superset agent notification hook|Superset registers its own Grok hooks" },
+    { "rule": "on-disk-folder", "regex": "Superset Screenshots|Superset Dev Workspace" },
+    { "rule": "data-name", "regex": "Satya's Superset" }
+  ],
+
+  "protect_lines": [
+    { "rule": "wire-case-variant-test", "glob": "*desktopProtocol.test.ts", "regex": "isDesktopProtocol\\(\"Superset\"\\)" },
+    { "rule": "wire-case-variant-test", "glob": "*desktopCallbackTarget.test.ts", "regex": "isDesktopProtocol\\(\"Superset\"\\)" },
+    { "rule": "wire-case-variant-test", "glob": "packages/trpc/src/router/plugins/trust.test.ts", "regex": "\\[\"Superset\"\\]" },
+    { "rule": "electron-log-path", "glob": "packages/cli/src/commands/feedback/submit/command.ts", "regex": "^\\s*\"Superset\",\\s*$|join\\(home, \"Library\", \"Logs\"" },
+    { "rule": "mobile-native-project-name", "glob": "apps/mobile/app.config.ts", "regex": "^\\s*name: \"Superset\",\\s*$" },
+    { "rule": "mobile-native-project-name", "glob": "apps/mobile/config-plugins/withIosAccentColor.js", "regex": "projectName" },
+    { "rule": "homebrew-formula-class", "glob": ".github/workflows/bump-homebrew.yml", "regex": "class Superset" },
+    { "rule": "desktop-productName", "glob": "apps/desktop/electron-builder.canary.ts", "regex": "const productName = \"Superset Canary\"" }
+  ],
+
+  "flag_lines": [
+    { "note": "email/commit sender display name (changes what recipients and git history show)", "regex": "from: \"Superset <|user\\.name \"Superset\"|GIT_AUTHOR = \\{ name: \"Superset\"" },
+    { "note": "OAuth client_name sent to third-party consent screens; existing registrations keep the old name until re-registered", "regex": "client_name: \"Superset\"" },
+    { "note": "string equality on the brand; check the initial/fallback still reads right", "regex": "=== \"Superset\"" },
+    { "note": "Slack app display name; must also be changed in the Slack app dashboard", "glob": "apps/api/src/app/api/integrations/slack/*", "regex": "Superset" },
+    { "note": "desktop window/bundle display name (see README productName decision)", "glob": "apps/desktop/electron-builder*", "regex": "Superset" },
+    { "note": "Apple-review / store listing copy; also update App Store Connect", "glob": "apps/mobile/store.config.js", "regex": "Superset" }
+  ],
+
+  "upper_display_lines": [
+    { "glob": "apps/marketing/src/app/[[]lang]/download/components/MobileMock/MobileMock.tsx", "regex": "^\\s*SUPERSET\\s*$" }
+  ],
+
+  "inflection_suffixes": ["u", "em"],
+
+  "postfix": [
+    { "lang": "ko", "regex": "Paradev은(?![가-힣])", "to": "Paradev는" },
+    { "lang": "ko", "regex": "Paradev을(?![가-힣])", "to": "Paradev를" },
+    { "lang": "ko", "regex": "Paradev이(?![가-힣])", "to": "Paradev가" },
+    { "lang": "ko", "regex": "Paradev과(?![가-힣])", "to": "Paradev와" },
+    { "lang": "ko", "regex": "Paradev으로", "to": "Paradev로" },
+    { "lang": "tr", "regex": "Paradev(['’])t(e|en|eki|ir|ır)\\b", "to": "Paradev\\1d\\2" }
+  ],
+
+  "prework_markers": [
+    { "file": "apps/desktop/electron-builder.ts", "contains": "CFBundleDisplayName: displayName" },
+    { "file": "apps/desktop/electron-builder.canary.ts", "contains": "CFBundleDisplayName: displayName" },
+    { "file": "apps/desktop/src/main/lib/menu.ts", "contains": "getAppDisplayName" },
+    { "file": "apps/mobile/app.config.ts", "contains": "CFBundleDisplayName" }
+  ]
+}
