@@ -20,7 +20,7 @@ export default command({
 		maxLines: number().int().desc("Only search this many rows from the bottom"),
 		timeout: number().min(1).default(600).desc("Seconds before giving up"),
 	},
-	run: async ({ ctx, options }) => {
+	run: async ({ ctx, options, signal }) => {
 		const organizationId = ctx.config.organizationId;
 		if (!organizationId) {
 			throw new CLIError("No active organization", "Run: superset auth login");
@@ -46,29 +46,58 @@ export default command({
 			options.workspace,
 		);
 
-		const { value: text, timedOut } = await pollUntil({
-			read: async () =>
-				(
-					await target.client.terminal.snapshot.query({
-						terminalId: options.terminal,
-						workspaceId: options.workspace,
+		const client = target.client;
+		const ref = {
+			terminalId: options.terminal,
+			workspaceId: options.workspace,
+		};
+		const { value } = await pollUntil({
+			read: async () => {
+				const [{ text }, { sessions }] = await Promise.all([
+					client.terminal.snapshot.query({
+						...ref,
 						maxLines: options.maxLines ?? undefined,
-					})
-				).text,
-			done: (screen) => pattern.test(screen),
+					}),
+					client.terminal.list.query({ workspaceId: options.workspace }),
+				]);
+				return {
+					match: pattern.exec(text)?.[0],
+					alive: sessions.some(
+						(session) => session.terminalId === options.terminal,
+					),
+				};
+			},
+			done: ({ match, alive }) => match !== undefined || !alive,
 			timeoutMs: options.timeout * 1000,
 			intervalMs: POLL_INTERVAL_MS,
+			signal,
 		});
-		if (timedOut) {
+		// The exit can be seen after the screen was read, so read it once more
+		// for output printed just before the terminal ended.
+		const finalScreen = value.alive
+			? null
+			: await client.terminal.snapshot
+					.query({ ...ref, maxLines: options.maxLines ?? undefined })
+					.then((snapshot) => snapshot.text)
+					.catch(() => null);
+		const match =
+			value.match ??
+			(finalScreen === null ? undefined : pattern.exec(finalScreen)?.[0]);
+		if (match !== undefined) {
+			return {
+				data: { terminalId: options.terminal, matched: match },
+				message: match,
+			};
+		}
+		if (!value.alive) {
 			throw new CLIError(
-				`Timed out after ${options.timeout}s without a match for ${options.match}`,
-				"Check the screen with `superset terminals read`",
+				`Terminal ${options.terminal} exited without a match for ${options.match}`,
+				"Read its last screen with `superset terminals read`",
 			);
 		}
-		const line = text.split("\n").find((row) => pattern.test(row)) ?? "";
-		return {
-			data: { terminalId: options.terminal, matched: line },
-			message: line,
-		};
+		throw new CLIError(
+			`Timed out after ${options.timeout}s without a match for ${options.match}`,
+			"Check the screen with `superset terminals read`",
+		);
 	},
 });

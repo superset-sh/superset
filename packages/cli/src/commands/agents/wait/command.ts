@@ -24,7 +24,7 @@ export default command({
 			.desc("State to wait for"),
 		timeout: number().min(1).default(600).desc("Seconds before giving up"),
 	},
-	run: async ({ ctx, options }) => {
+	run: async ({ ctx, options, signal }) => {
 		const organizationId = ctx.config.organizationId;
 		if (!organizationId) {
 			throw new CLIError("No active organization", "Run: superset auth login");
@@ -42,6 +42,7 @@ export default command({
 		);
 
 		const { observation, timedOut } = await waitForAgent({
+			signal,
 			client: target.client,
 			ref: { workspaceId: options.workspace, terminalId: options.terminal },
 			until: options.until,

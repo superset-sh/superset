@@ -7,7 +7,7 @@ import {
 import { AGENT_WAIT_TARGETS, agentWaitState } from "../../../lib/agent-wait";
 import { command } from "../../../lib/command";
 import { resolveWorkspaceTarget } from "../../../lib/host-workspaces";
-import { parseTerminalKeys } from "../../../lib/terminal-keys";
+import { INTERRUPT_KEYS, parseTerminalKeys } from "../../../lib/terminal-keys";
 
 export default command({
 	description:
@@ -37,7 +37,7 @@ export default command({
 			),
 		timeout: number().min(1).default(600).desc("With --wait: seconds"),
 	},
-	run: async ({ ctx, options }) => {
+	run: async ({ ctx, options, signal }) => {
 		const organizationId = ctx.config.organizationId;
 		if (!organizationId) {
 			throw new CLIError("No active organization", "Run: superset auth login");
@@ -73,8 +73,10 @@ export default command({
 		}
 
 		let sent: { terminalId: string; submitted?: boolean; keys?: number };
+		let interrupted = false;
 		if (options.keys !== undefined) {
 			const keys = parseTerminalKeys(options.keys);
+			interrupted = keys.some((bytes) => INTERRUPT_KEYS.has(bytes));
 			for (const data of keys) {
 				await client.terminal.writeInput.mutate({ ...ref, data });
 			}
@@ -92,11 +94,14 @@ export default command({
 			return { data: sent, message: `Sent to terminal ${options.terminal}` };
 		}
 		const { observation, timedOut, stalled } = await waitForAgent({
+			signal,
 			client,
 			ref,
 			until: options.until,
 			timeoutMs: options.timeout * 1000,
-			after: before.lastEventAt,
+			// The interrupt clears the status without a new hook event, so the
+			// state it leaves is the answer.
+			after: interrupted ? undefined : before.lastEventAt,
 		});
 		const state = agentWaitState(observation);
 		if (stalled) {

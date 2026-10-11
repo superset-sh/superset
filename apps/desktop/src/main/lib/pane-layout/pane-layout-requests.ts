@@ -5,6 +5,7 @@ import type {
 	PaneLayoutOp,
 	PaneLayoutOpResult,
 } from "@superset/shared/pane-layout-ops";
+import { webContents } from "electron";
 import { getFocusedOrLastWindow } from "../window-registry/window-registry";
 
 const REPLY_TIMEOUT_MS = 10_000;
@@ -66,16 +67,29 @@ class PaneLayoutRequests extends EventEmitter {
 		else this.subscribers.delete(webContentsId);
 	}
 
-	private pickTarget(): number | null {
+	/**
+	 * A window showing the workspace applies the op to its live layout, and
+	 * only it can move focus there; otherwise any signed-in window updates the
+	 * saved layout.
+	 */
+	private pickTarget(workspaceId: string): number | null {
 		const focused = getFocusedOrLastWindow();
 		const focusedId =
 			focused && !focused.isDestroyed() ? focused.webContents.id : null;
+		const showing = [...this.subscribers.keys()].filter((id) =>
+			webContents.fromId(id)?.getURL().includes(`/v2-workspace/${workspaceId}`),
+		);
+		if (showing.length > 0) {
+			return focusedId !== null && showing.includes(focusedId)
+				? focusedId
+				: (showing[0] ?? null);
+		}
 		if (focusedId !== null && this.subscribers.has(focusedId)) return focusedId;
 		return this.subscribers.keys().next().value ?? null;
 	}
 
 	request(workspaceId: string, op: PaneLayoutOp): Promise<PaneLayoutOpResult> {
-		const targetWebContentsId = this.pickTarget();
+		const targetWebContentsId = this.pickTarget(workspaceId);
 		if (targetWebContentsId === null) {
 			return Promise.reject(
 				new PaneLayoutRequestError(

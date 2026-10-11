@@ -5,6 +5,7 @@ import {
 	agentWaitSatisfied,
 	agentWaitState,
 	pollUntil,
+	withAgentExit,
 } from "./agent-wait";
 import type { HostServiceClient } from "./host-target";
 import { INTERRUPT_KEYS } from "./terminal-keys";
@@ -25,34 +26,47 @@ export async function waitForAgent({
 	until,
 	timeoutMs,
 	after,
+	signal,
 }: {
 	client: HostServiceClient;
 	ref: TerminalRef;
 	until: AgentWaitTarget;
 	timeoutMs: number;
 	after?: number;
+	signal?: AbortSignal;
 }): Promise<{
 	observation: AgentObservation;
 	timedOut: boolean;
 	stalled?: boolean;
 }> {
 	const start = Date.now();
+	let sawAgent = after !== undefined;
+	const read = async () => {
+		const observation = await observeAgent(client, ref);
+		const tracked = withAgentExit(sawAgent, observation);
+		if (observation.binding) sawAgent = true;
+		return tracked;
+	};
 	if (after !== undefined && timeoutMs > PROMPT_STALL_MS) {
 		const reaction = await pollUntil({
-			read: () => observeAgent(client, ref),
+			read,
 			done: (observation) => agentReactedSince(observation, after),
 			timeoutMs: PROMPT_STALL_MS,
 			intervalMs: POLL_INTERVAL_MS,
+			signal,
 		});
 		if (reaction.timedOut) {
 			return { observation: reaction.value, timedOut: false, stalled: true };
 		}
 	}
 	const { value, timedOut } = await pollUntil({
-		read: () => observeAgent(client, ref),
-		done: (observation) => agentWaitSatisfied(observation, until, after),
+		read,
+		done: (observation) =>
+			agentWaitSatisfied(observation, until, after) ||
+			agentWaitState(observation) === "exited",
 		timeoutMs: Math.max(0, timeoutMs - (Date.now() - start)),
 		intervalMs: POLL_INTERVAL_MS,
+		signal,
 	});
 	return { observation: value, timedOut };
 }
@@ -66,6 +80,20 @@ export async function observeAgent(
 	});
 	const binding = bindings.find((row) => row.terminalId === terminalId);
 	if (binding) return { binding, terminalAlive: true };
+	// An ended binding stays until the next agent's first hook, so it only
+	// means "exited" while nothing runs in the shell. Hosts before
+	// `terminalAgents.get` can't say; the wait then treats the shell as an
+	// agent still starting.
+	const ended =
+		(await client.terminalAgents.get
+			.query({ workspaceId, terminalId })
+			.then((row) => row?.endedAt != null)
+			.catch(() => false)) &&
+		!(await client.terminal.hasRunningProcess
+			.query({ workspaceId, terminalId })
+			.then((result) => result.running)
+			.catch(() => false));
+	if (ended) return { binding: undefined, terminalAlive: false };
 	const { sessions } = await client.terminal.list.query({ workspaceId });
 	return {
 		binding: undefined,

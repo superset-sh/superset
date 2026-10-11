@@ -1,3 +1,4 @@
+import { CLIError } from "@superset/cli-framework";
 import {
 	type AgentRunState,
 	agentRunState,
@@ -74,6 +75,19 @@ export function agentReactedSince(
 	return !binding ? !observation.terminalAlive : binding.lastEventAt > after;
 }
 
+/**
+ * Once a wait has seen an agent, its binding going away means the agent
+ * exited, even when the shell it ran in is still alive.
+ */
+export function withAgentExit(
+	sawAgent: boolean,
+	observation: AgentObservation,
+): AgentObservation {
+	return sawAgent && !observation.binding
+		? { binding: undefined, terminalAlive: false }
+		: observation;
+}
+
 export interface PollOptions<T> {
 	read: () => Promise<T>;
 	done: (value: T) => boolean;
@@ -81,6 +95,22 @@ export interface PollOptions<T> {
 	intervalMs: number;
 	sleep?: (ms: number) => Promise<unknown>;
 	now?: () => number;
+	/** Ctrl+C / SIGTERM: the CLI turns them into this abort, not an exit. */
+	signal?: AbortSignal;
+}
+
+function sleepUnlessAborted(ms: number, signal?: AbortSignal): Promise<void> {
+	return new Promise((resolve) => {
+		const timer = setTimeout(resolve, ms);
+		signal?.addEventListener(
+			"abort",
+			() => {
+				clearTimeout(timer);
+				resolve();
+			},
+			{ once: true },
+		);
+	});
 }
 
 export async function pollUntil<T>({
@@ -88,11 +118,13 @@ export async function pollUntil<T>({
 	done,
 	timeoutMs,
 	intervalMs,
-	sleep = Bun.sleep,
+	signal,
+	sleep = (ms) => sleepUnlessAborted(ms, signal),
 	now = Date.now,
 }: PollOptions<T>): Promise<{ value: T; timedOut: boolean }> {
 	const deadline = now() + timeoutMs;
 	for (;;) {
+		if (signal?.aborted) throw new CLIError("Stopped waiting");
 		const value = await read();
 		if (done(value)) return { value, timedOut: false };
 		if (now() >= deadline) return { value, timedOut: true };

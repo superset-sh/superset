@@ -491,6 +491,17 @@ export const terminalAgentsRouter = router({
 				: null;
 		}),
 
+	/**
+	 * The terminal's agent binding, ended ones included, so a caller can tell
+	 * an agent that exited from one that has not started yet.
+	 */
+	get: protectedProcedure
+		.input(z.object({ workspaceId: z.string(), terminalId: z.string() }))
+		.query(({ ctx, input }) => {
+			const binding = getTerminalAgentBinding(ctx.db, input.terminalId);
+			return binding?.workspaceId === input.workspaceId ? binding : null;
+		}),
+
 	/** See {@link findResumedSuccessor}. */
 	resumedSuccessor: protectedProcedure
 		.input(z.object({ workspaceId: z.string(), terminalId: z.string() }))
