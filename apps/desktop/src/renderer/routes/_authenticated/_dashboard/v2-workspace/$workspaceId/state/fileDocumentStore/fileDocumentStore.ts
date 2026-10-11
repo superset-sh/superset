@@ -215,8 +215,9 @@ async function fetchCurrentDiskContent(
 
 // A rename onto an open document is either the watcher's copy of a move the
 // document already followed, or a real replacement such as an atomic save.
-// Only the disk content tells them apart.
-async function reconcileRenameOnto(entry: DocumentEntry): Promise<void> {
+// An overflow says only that events were lost. Only the disk content tells
+// a real change apart.
+async function reconcileWithDisk(entry: DocumentEntry): Promise<void> {
 	const generation = entry.loadGeneration;
 	const diskContent = await fetchCurrentDiskContent(entry);
 	if (generation !== entry.loadGeneration) return;
@@ -490,7 +491,7 @@ export function dispatchFsEvent(
 		if (!affects) continue;
 		if (event.kind === "rename") {
 			if (entry.orphaned) entry.orphaned = false;
-			void reconcileRenameOnto(entry);
+			void reconcileWithDisk(entry);
 			continue;
 		}
 
@@ -508,7 +509,9 @@ export function dispatchFsEvent(
 
 		if (isContentMutation) {
 			if (entry.orphaned) entry.orphaned = false;
-			if (computeDirty(entry)) {
+			if (event.kind === "overflow" && computeDirty(entry)) {
+				void reconcileWithDisk(entry);
+			} else if (computeDirty(entry)) {
 				entry.loadGeneration += 1;
 				entry.hasExternalChange = true;
 				notify(entry);

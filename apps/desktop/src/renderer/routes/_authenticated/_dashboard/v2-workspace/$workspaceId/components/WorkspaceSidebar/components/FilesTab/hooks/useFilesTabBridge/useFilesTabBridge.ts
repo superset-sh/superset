@@ -307,6 +307,9 @@ export function useFilesTabBridge({
 			) {
 				return;
 			}
+			const expandedDirs = Array.from(knownPathsRef.current).filter((path) =>
+				asDirectoryHandle(model.getItem(path))?.isExpanded(),
+			);
 			knownPathsRef.current.clear();
 			loadedDirsRef.current.clear();
 			unloadedDirCandidatesRef.current.clear();
@@ -323,6 +326,10 @@ export function useFilesTabBridge({
 				}
 			}
 			model.resetPaths(Array.from(freshPaths));
+			for (const path of expandedDirs) {
+				const handle = asDirectoryHandle(model.getItem(path));
+				if (handle && !handle.isExpanded()) handle.expand();
+			}
 		} finally {
 			setIsRefreshing(false);
 		}
