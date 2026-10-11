@@ -1,6 +1,7 @@
 import { command } from "../../../lib/command";
+import { formatLayout } from "../../../lib/pane-layout-format";
 import { resolveHostClient } from "../../../lib/resolve-host-client";
-import { callPanes, formatLayout, workspaceOptions } from "../shared";
+import { callPanes, workspaceOptions } from "../shared";
 
 export default command({
 	description:
