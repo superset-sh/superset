@@ -4,6 +4,19 @@ import { Button } from "@superset/ui/button";
 import { TriangleAlert, X } from "lucide-react";
 import { lazy, type ReactNode, Suspense } from "react";
 
+// Paper Shaders throws without WebGL (GPU acceleration off), taking the card down.
+let webGlAvailable: boolean | null = null;
+function canRenderShader(): boolean {
+	if (webGlAvailable === null) {
+		try {
+			webGlAvailable = !!document.createElement("canvas").getContext("webgl2");
+		} catch {
+			webGlAvailable = false;
+		}
+	}
+	return webGlAvailable;
+}
+
 const Dithering = lazy(() =>
 	import("@paper-design/shaders-react").then((mod) => ({
 		default: mod.Dithering,
@@ -45,17 +58,19 @@ export function FlipNoticeCard({
 		<div className="fixed right-4 bottom-4 z-50 w-[380px] select-text overflow-hidden rounded-none border bg-background shadow-2xl">
 			<div className="relative h-20 bg-[#080a12]">
 				<div className="pointer-events-none absolute inset-0 opacity-40 mix-blend-screen">
-					<Suspense fallback={null}>
-						<Dithering
-							colorBack="#00000000"
-							colorFront={COVER_FRONT}
-							shape="warp"
-							type="4x4"
-							speed={0.15}
-							className="size-full"
-							minPixelRatio={1}
-						/>
-					</Suspense>
+					{canRenderShader() ? (
+						<Suspense fallback={null}>
+							<Dithering
+								colorBack="#00000000"
+								colorFront={COVER_FRONT}
+								shape="warp"
+								type="4x4"
+								speed={0.15}
+								className="size-full"
+								minPixelRatio={1}
+							/>
+						</Suspense>
+					) : null}
 				</div>
 				<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.14),transparent_34%),linear-gradient(to_bottom,rgba(0,0,0,0.04),rgba(0,0,0,0.5))]" />
 				<div className="absolute inset-0 flex items-center px-4">

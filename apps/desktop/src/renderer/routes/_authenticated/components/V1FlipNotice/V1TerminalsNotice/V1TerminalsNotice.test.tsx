@@ -1,69 +1,11 @@
-import {
-	afterAll,
-	afterEach,
-	beforeEach,
-	describe,
-	expect,
-	mock,
-	test,
-} from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
+import { useV1MigrationStatusStore } from "renderer/stores/v1-migration-status";
+import { V1TerminalsNotice } from "./V1TerminalsNotice";
+
+type Source = NonNullable<Parameters<typeof V1TerminalsNotice>[0]["source"]>;
 
 let activeOrganizationId = "org-a";
-const realAuthClient = await import("renderer/lib/auth-client");
-mock.module("renderer/lib/auth-client", () => ({
-	...realAuthClient,
-	authClient: {
-		...realAuthClient.authClient,
-		useSession: () => ({
-			data: { session: { activeOrganizationId } },
-		}),
-	},
-}));
-mock.module("renderer/lib/analytics", () => ({
-	track: () => {},
-}));
-
-// mock.module is process-wide, so a sibling file's auth mock can win; patch
-// whichever client the component will import.
-const { authClient } = await import("renderer/lib/auth-client");
-authClient.useSession = (() => ({
-	data: { session: { activeOrganizationId } },
-})) as unknown as typeof authClient.useSession;
-
-const alreadyRegistered = GlobalRegistrator.isRegistered;
-if (!alreadyRegistered) GlobalRegistrator.register();
-const { act, cleanup, fireEvent, render } = await import(
-	"@testing-library/react"
-);
-
-// happy-dom has no WebGL, and the card's cover shader throws without it.
-// Another test file may load the real shader first, so mock.module is too late.
-function fakeWebGl(): unknown {
-	const stub: object = new Proxy(() => stub, {
-		get: (_target, key) =>
-			key === Symbol.toPrimitive ? () => 0 : key === "then" ? undefined : stub,
-	});
-	return stub;
-}
-const realGetContext = HTMLCanvasElement.prototype.getContext;
-HTMLCanvasElement.prototype.getContext = fakeWebGl as never;
-const hadVisualViewport = "visualViewport" in globalThis;
-if (!hadVisualViewport)
-	Object.assign(globalThis, { visualViewport: undefined });
-afterAll(() => {
-	HTMLCanvasElement.prototype.getContext = realGetContext;
-	if (!hadVisualViewport) Reflect.deleteProperty(globalThis, "visualViewport");
-});
-afterAll(async () => {
-	if (!alreadyRegistered) await GlobalRegistrator.unregister();
-});
-
-const { useV1MigrationStatusStore } = await import(
-	"renderer/stores/v1-migration-status"
-);
-const { V1TerminalsNotice } = await import("./V1TerminalsNotice");
-type Source = NonNullable<Parameters<typeof V1TerminalsNotice>[0]["source"]>;
 
 let organizationCounter = 0;
 beforeEach(() => {
@@ -74,6 +16,7 @@ beforeEach(() => {
 		organizationId: null,
 		status: "idle",
 		attentionItems: [],
+		dismissed: null,
 	});
 });
 afterEach(cleanup);
@@ -92,7 +35,9 @@ function source({
 }
 
 async function renderNotice(input: Source) {
-	const view = render(<V1TerminalsNotice source={input} />);
+	const view = render(
+		<V1TerminalsNotice organizationId={activeOrganizationId} source={input} />,
+	);
 	await act(async () => {});
 	return view;
 }

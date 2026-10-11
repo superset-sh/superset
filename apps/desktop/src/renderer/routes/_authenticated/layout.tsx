@@ -332,9 +332,11 @@ function AuthenticatedLayout() {
 								{isV2CloudEnabled ? (
 									<>
 										<V1MigrationContinuity />
-										<V2FlipWelcome />
-										<V1MigrationStatusCard />
-										<V1TerminalsNotice />
+										<V2FlipWelcome organizationId={activeOrganizationId} />
+										<V1MigrationStatusCard
+											organizationId={activeOrganizationId}
+										/>
+										<V1TerminalsNotice organizationId={activeOrganizationId} />
 									</>
 								) : (
 									<V1FlipNotice />

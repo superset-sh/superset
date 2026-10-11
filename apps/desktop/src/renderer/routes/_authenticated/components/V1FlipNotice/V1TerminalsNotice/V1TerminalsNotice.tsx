@@ -7,11 +7,8 @@ import {
 } from "@superset/shared/agent-catalog";
 import { useEffect, useRef, useState } from "react";
 import { track } from "renderer/lib/analytics";
-import { authClient } from "renderer/lib/auth-client";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import { attentionSignature } from "renderer/lib/v1-migration/attention";
 import {
-	isV1AttentionDismissed,
 	isV1MigrationComplete,
 	isV1WelcomePending,
 } from "renderer/lib/v1-migration/completion";
@@ -20,7 +17,10 @@ import {
 	resolveMigratedPaneResume,
 	type V1PaneAgentSessionSnapshot,
 } from "renderer/lib/v1-migration/terminals";
-import { useV1MigrationStatusStore } from "renderer/stores/v1-migration-status";
+import {
+	isStatusCardVisible,
+	useV1MigrationStatusStore,
+} from "renderer/stores/v1-migration-status";
 import { FlipNoticeCard } from "../components/FlipNoticeCard";
 
 const NOTICE_PREFIX = "v1-terminals-notice-";
@@ -101,30 +101,31 @@ interface Notice {
 }
 
 export function V1TerminalsNotice({
+	organizationId,
 	source = electronSource,
 }: {
+	organizationId: string;
 	source?: V1TerminalsNoticeSource;
 }) {
 	const { _: translate } = useTranslation();
-	const { data: session } = authClient.useSession();
-	const organizationId = session?.session?.activeOrganizationId ?? null;
-	const {
-		organizationId: statusOrganizationId,
-		status,
-		attentionItems,
-	} = useV1MigrationStatusStore();
+	const statusOrganizationId = useV1MigrationStatusStore(
+		(state) => state.organizationId,
+	);
+	const status = useV1MigrationStatusStore((state) => state.status);
+	const statusCardShowing = useV1MigrationStatusStore((state) =>
+		isStatusCardVisible(state, organizationId),
+	);
 	const [notice, setNotice] = useState<Notice | null>(null);
 	const trackedRef = useRef<string | null>(null);
 
-	const boot = organizationId ? readBootSnapshot(organizationId) : null;
+	const boot = readBootSnapshot(organizationId);
 	const statusForOrg = statusOrganizationId === organizationId ? status : null;
 	const waitsForPass =
-		!!boot &&
 		!boot.migrationCompleteAtBoot &&
 		(statusForOrg === null || statusForOrg === "running");
 
 	useEffect(() => {
-		if (!organizationId || waitsForPass) return;
+		if (waitsForPass) return;
 		const stored = readNoticeState(organizationId);
 		if (stored === "dismissed") return;
 		const snapshot = readBootSnapshot(organizationId);
@@ -157,19 +158,11 @@ export function V1TerminalsNotice({
 		};
 	}, [organizationId, waitsForPass, source]);
 
-	const statusCardShowing =
-		!!organizationId &&
-		statusForOrg !== null &&
-		statusForOrg !== "idle" &&
-		!(
-			statusForOrg === "attention" &&
-			isV1AttentionDismissed(organizationId, attentionSignature(attentionItems))
-		);
 	const visible =
 		!!notice &&
 		notice.organizationId === organizationId &&
 		!statusCardShowing &&
-		!boot?.welcomePendingAtBoot;
+		!boot.welcomePendingAtBoot;
 
 	useEffect(() => {
 		if (!visible || !notice || trackedRef.current === notice.organizationId) {
