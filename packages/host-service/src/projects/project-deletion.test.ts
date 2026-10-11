@@ -1,6 +1,12 @@
 import { Database } from "bun:sqlite";
 import { afterAll, afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { eq } from "drizzle-orm";
@@ -216,26 +222,36 @@ describe("listing", () => {
 		expect(await projectsApi.get({ projectId: PROJECT_ID })).toBeNull();
 		expect(await workspacesApi.list({ includeArchived: true })).toEqual([]);
 	});
+});
 
-	test("the interrupted-delete reconciler never deletes uncommitted files", async () => {
+describe("interrupted-delete reconciler", () => {
+	function strand(
+		addWorkspace: ReturnType<typeof setup>["addWorkspace"],
+		id: string,
+		{ headBranch = id, archivedAt = Date.now() + 1_000 } = {},
+	) {
+		const path = addWorkspace(id, { archivedAt, archiveReason: "deleted" });
+		mkdirSync(join(path, ".git"));
+		writeFileSync(
+			join(path, ".git", "HEAD"),
+			`ref: refs/heads/${headBranch}\n`,
+		);
+		return path;
+	}
+
+	test("never deletes uncommitted files", async () => {
 		const { ctx, addWorkspace, workspace } = setup();
-		const reused = addWorkspace("reused", {
-			archivedAt: 1,
-			archiveReason: "deleted",
-		});
+		const dirty = strand(addWorkspace, "dirty");
 		cleanupGitOps.readWorktreeState = async () =>
 			({ hasChanges: true }) as never;
 		await runArchivedWorkspaceReconcile(ctx);
-		expect(existsSync(reused)).toBe(true);
-		expect(workspace("reused")?.archivedAt).toBeNull();
+		expect(existsSync(dirty)).toBe(true);
+		expect(workspace("dirty")?.archivedAt).toBeNull();
 	});
 
-	test("the interrupted-delete reconciler finishes a clean interrupted delete", async () => {
+	test("finishes a clean interrupted delete", async () => {
 		const { ctx, addWorkspace, workspace } = setup();
-		const stranded = addWorkspace("stranded", {
-			archivedAt: 1,
-			archiveReason: "deleted",
-		});
+		const stranded = strand(addWorkspace, "stranded");
 		cleanupGitOps.readWorktreeState = async () =>
 			({ hasChanges: false }) as never;
 		await runArchivedWorkspaceReconcile(ctx);
@@ -243,7 +259,31 @@ describe("listing", () => {
 		expect(workspace("stranded")?.archivedAt).not.toBeNull();
 	});
 
-	test("the interrupted-delete reconciler leaves a deleted project's worktrees alone", async () => {
+	test("leaves a folder reused by another branch, made later, or unreadable alone", async () => {
+		const { ctx, addWorkspace, workspace, gitCalls } = setup();
+		const otherBranch = strand(addWorkspace, "reused", {
+			headBranch: "someone-else",
+		});
+		const madeLater = strand(addWorkspace, "later", { archivedAt: 1 });
+		const unreadable = addWorkspace("unreadable", {
+			archivedAt: Date.now() + 1_000,
+			archiveReason: "deleted",
+		});
+		cleanupGitOps.readWorktreeState = async () =>
+			({ hasChanges: false }) as never;
+		await runArchivedWorkspaceReconcile(ctx);
+		expect(gitCalls).toEqual([]);
+		for (const [id, path] of [
+			["reused", otherBranch],
+			["later", madeLater],
+			["unreadable", unreadable],
+		] as const) {
+			expect(existsSync(path)).toBe(true);
+			expect(workspace(id)?.archivedAt).not.toBeNull();
+		}
+	});
+
+	test("leaves a deleted project's worktrees alone", async () => {
 		const { ctx, addWorkspace, workspace } = setup();
 		const live = addWorkspace("live");
 		await softDeleteProject(ctx, PROJECT_ID);
