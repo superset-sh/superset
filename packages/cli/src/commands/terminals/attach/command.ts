@@ -30,7 +30,10 @@ export default command({
 		),
 	},
 	run: async ({ ctx, options, signal }) => {
-		if (process.env.CI || !process.stdin.isTTY || !process.stdout.isTTY) {
+		const inCi = !["", "0", "false"].includes(
+			(process.env.CI ?? "").toLowerCase(),
+		);
+		if (inCi || !process.stdin.isTTY || !process.stdout.isTTY) {
 			throw new CLIError(
 				"attach needs an interactive terminal",
 				"Scripts can use `superset terminals read` and `terminals send` instead",

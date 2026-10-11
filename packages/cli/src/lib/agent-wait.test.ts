@@ -97,4 +97,20 @@ describe("pollUntil", () => {
 		expect(result).toEqual({ value: "Start", timedOut: true });
 		expect(clock).toBe(1_200);
 	});
+
+	test("Ctrl+C during a wait stops it instead of sleeping until the timeout", async () => {
+		const stop = new AbortController();
+		setTimeout(() => stop.abort(), 20);
+		const started = Date.now();
+		await expect(
+			pollUntil({
+				read: async () => "working",
+				done: () => false,
+				timeoutMs: 60_000,
+				intervalMs: 30_000,
+				signal: stop.signal,
+			}),
+		).rejects.toThrow("Stopped waiting");
+		expect(Date.now() - started).toBeLessThan(1_000);
+	});
 });

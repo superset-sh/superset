@@ -20,7 +20,7 @@ export default command({
 		maxLines: number().int().desc("Only search this many rows from the bottom"),
 		timeout: number().min(1).default(600).desc("Seconds before giving up"),
 	},
-	run: async ({ ctx, options }) => {
+	run: async ({ ctx, options, signal }) => {
 		const organizationId = ctx.config.organizationId;
 		if (!organizationId) {
 			throw new CLIError("No active organization", "Run: superset auth login");
@@ -70,6 +70,7 @@ export default command({
 			done: ({ match, alive }) => match !== undefined || !alive,
 			timeoutMs: options.timeout * 1000,
 			intervalMs: POLL_INTERVAL_MS,
+			signal,
 		});
 		// The exit can be seen after the screen was read, so read it once more
 		// for output printed just before the terminal ended.
