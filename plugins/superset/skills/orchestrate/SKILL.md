@@ -129,21 +129,7 @@ superset terminals send \
   --json
 ```
 
-Wait for a worker instead of polling its screen:
-
-```bash
-superset agents wait \
-  --workspace <workspace-id> \
-  --host <host-id> \
-  --terminal <terminal-id> \
-  --until settled \
-  --timeout 120 \
-  --json
-```
-
-`settled` returns once the agent finishes its turn or needs input; the JSON `state` says which (`idle` or `blocked`). It exits 1 on timeout and at once if the agent exits. Keep timeouts short and wait on each running worker in turn, so progress and user updates stay visible between waits. Then read the screen for the envelope as above. To send a follow-up and wait for the turn it starts, add `--wait` to `terminals send`.
-
-If `superset agents wait` is not available (an older CLI), poll `terminals read` at a measured cadence instead.
+Poll at a measured cadence and read all running workers in each pass. Prefer several short monitoring passes over one long blocking shell loop so progress and user updates remain visible.
 
 ## Advance the workflow
 
