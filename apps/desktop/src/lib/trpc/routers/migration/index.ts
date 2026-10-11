@@ -1,4 +1,4 @@
-import { realpathSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 import {
 	projects,
@@ -18,8 +18,7 @@ import { stopV1Sessions } from "main/lib/terminal/stop-v1-sessions";
 import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
-import { branchDetachedWorktree } from "./utils/branch-detached-worktree";
+import { runGitTask } from "../changes/workers/git-task-runner";
 import { createRunLock } from "./utils/run-lock";
 import { collectV1TerminalPanes } from "./utils/v1-terminal-panes";
 
@@ -83,11 +82,20 @@ export const createMigrationRouter = () => {
 		}),
 
 		resolvePaths: publicProcedure
-			.input(z.object({ paths: z.array(z.string()) }))
+			.input(
+				z.object({
+					paths: z.array(z.string()),
+					requireCheckout: z.boolean().optional(),
+				}),
+			)
 			.query(({ input }) =>
 				input.paths.map((path) => {
 					try {
-						return realpathSync.native(path);
+						const realPath = realpathSync.native(path);
+						if (input.requireCheckout && !existsSync(join(realPath, ".git"))) {
+							return null;
+						}
+						return realPath;
 					} catch {
 						return null;
 					}
@@ -137,10 +145,10 @@ export const createMigrationRouter = () => {
 						message: `Folder not found: ${input.path}`,
 					});
 				}
-				return branchDetachedWorktree(
-					await getSimpleGitWithShellPath(path),
-					input.branch,
-				);
+				return runGitTask("branchDetachedWorktree", {
+					worktreePath: path,
+					preferredBranch: input.branch,
+				});
 			}),
 
 		stopV1Panes: publicProcedure

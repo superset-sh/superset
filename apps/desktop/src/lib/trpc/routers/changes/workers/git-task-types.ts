@@ -49,6 +49,10 @@ export interface GitTaskPayloadMap {
 		defaultBranch: string;
 	};
 	getFileContents: GitFileContentsPayload;
+	branchDetachedWorktree: {
+		worktreePath: string;
+		preferredBranch: string;
+	};
 }
 
 export interface GitTaskResultMap {
@@ -57,6 +61,7 @@ export interface GitTaskResultMap {
 	getBranches: GitBranchesResult;
 	getAheadBehind: { ahead: number; behind: number };
 	getFileContents: GitFileVersions;
+	branchDetachedWorktree: { branch: string; created: boolean };
 }
 
 export type GitTaskType = keyof GitTaskPayloadMap;
