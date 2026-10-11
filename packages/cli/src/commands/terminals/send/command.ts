@@ -7,10 +7,7 @@ import {
 import { AGENT_WAIT_TARGETS, agentWaitState } from "../../../lib/agent-wait";
 import { command } from "../../../lib/command";
 import { resolveWorkspaceTarget } from "../../../lib/host-workspaces";
-import {
-	INTERRUPT_KEYS,
-	parseTerminalKeys,
-} from "../../../lib/terminal-keys";
+import { INTERRUPT_KEYS, parseTerminalKeys } from "../../../lib/terminal-keys";
 
 export default command({
 	description:
