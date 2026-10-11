@@ -11,9 +11,14 @@ import {
 	adoptV1Workspace,
 	recordV1MigrationOutcome,
 } from "renderer/lib/v1-migration";
+import { electronV1MigrationIpc } from "renderer/lib/v1-migration/ipc";
+import { isForeignV1Workspace } from "renderer/lib/v1-migration/ownership";
+import { withV1MigrationRunLock } from "renderer/lib/v1-migration/run-lock";
+import { findGitWorktreeAtFolder } from "renderer/lib/v1-migration/workspaces";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { ImportPageShell } from "../components/ImportPageShell";
 import { ImportRow, type RowAction } from "../components/ImportRow";
+import { useForeignV1Claims } from "../hooks/useForeignV1Claims";
 
 interface ImportWorkspacesPageProps {
 	organizationId: string;
@@ -43,6 +48,7 @@ export function ImportWorkspacesPage({
 	const projectsQuery = electronTrpc.migration.readV1Projects.useQuery();
 	const workspacesQuery = electronTrpc.migration.readV1Workspaces.useQuery();
 	const worktreesQuery = electronTrpc.migration.readV1Worktrees.useQuery();
+	const foreignClaims = useForeignV1Claims(organizationId);
 
 	const hostProjectListQuery = useQuery({
 		queryKey: [...HOST_PROJECT_LIST_KEY_PREFIX, activeHostUrl],
@@ -114,6 +120,7 @@ export function ImportWorkspacesPage({
 	});
 
 	const isLoading =
+		foreignClaims === null ||
 		projectsQuery.isPending ||
 		workspacesQuery.isPending ||
 		worktreesQuery.isPending ||
@@ -152,6 +159,7 @@ export function ImportWorkspacesPage({
 		workspace: (typeof allWorkspaces)[number];
 		v2ProjectId: string;
 		alreadyImported: boolean;
+		ownedElsewhere: boolean;
 		worktreePath: string | undefined;
 		baseBranch: string | null;
 	};
@@ -176,6 +184,8 @@ export function ImportWorkspacesPage({
 			workspace,
 			v2ProjectId,
 			alreadyImported,
+			ownedElsewhere:
+				!!foreignClaims && isForeignV1Workspace(workspace, foreignClaims),
 			worktreePath: worktree?.path,
 			baseBranch: worktree?.baseBranch ?? null,
 		});
@@ -208,21 +218,44 @@ export function ImportWorkspacesPage({
 			updateAdoptStatus(workspace.id, { kind: "running" });
 			try {
 				const client = getHostServiceClientByUrl(activeHostUrl);
-				const result = await adoptV1Workspace(client, {
-					v2ProjectId,
-					name: workspace.name,
-					branch: workspace.branch,
-					worktreePath,
-					baseBranch,
+				const v2WorkspaceId = await withV1MigrationRunLock(async () => {
+					// The automatic pass may have adopted it while this waited.
+					const ledger =
+						await electronV1MigrationIpc.ledgerList(organizationId);
+					const migrated = ledger.find(
+						(row) =>
+							row.kind === "workspace" &&
+							row.v1Id === workspace.id &&
+							(row.status === "success" || row.status === "linked") &&
+							row.v2Id,
+					);
+					if (migrated?.v2Id) return migrated.v2Id;
+
+					const gitWorktree = worktreePath
+						? await findGitWorktreeAtFolder(
+								client,
+								electronV1MigrationIpc.resolvePaths,
+								v2ProjectId,
+								worktreePath,
+							)
+						: null;
+					const adopted = await adoptV1Workspace(client, {
+						v2ProjectId,
+						name: workspace.name,
+						branch: gitWorktree?.branch ?? workspace.branch,
+						worktreePath: gitWorktree?.path ?? worktreePath,
+						baseBranch,
+					});
+					await recordV1MigrationOutcome(organizationId, {
+						v1Id: workspace.id,
+						kind: "workspace",
+						status: "success",
+						v2Id: adopted.workspace.id,
+					});
+					return adopted.workspace.id;
 				});
 
-				ensureWorkspaceInSidebar(result.workspace.id, v2ProjectId);
-				recordV1MigrationOutcome(organizationId, {
-					v1Id: workspace.id,
-					kind: "workspace",
-					status: "success",
-					v2Id: result.workspace.id,
-				});
+				ensureWorkspaceInSidebar(v2WorkspaceId, v2ProjectId);
 				updateAdoptStatus(workspace.id, { kind: "imported" });
 				await queryClient.invalidateQueries({
 					queryKey: WORKSPACE_LIST_KEY,
@@ -254,7 +287,7 @@ export function ImportWorkspacesPage({
 	} | null>(null);
 
 	const pendingEntries = visibleWorkspaces.filter((entry) => {
-		if (entry.alreadyImported) return false;
+		if (entry.alreadyImported || entry.ownedElsewhere) return false;
 		const status = adoptStates.get(entry.workspace.id) ?? IDLE;
 		return status.kind === "idle" || status.kind === "error";
 	});
@@ -264,7 +297,7 @@ export function ImportWorkspacesPage({
 
 	const adoptAll = useCallback(async () => {
 		const queue = visibleWorkspacesRef.current.filter((entry) => {
-			if (entry.alreadyImported) return false;
+			if (entry.alreadyImported || entry.ownedElsewhere) return false;
 			const status = adoptStatesRef.current.get(entry.workspace.id) ?? IDLE;
 			return status.kind === "idle" || status.kind === "error";
 		});
@@ -372,6 +405,7 @@ interface WorkspaceRowProps {
 	entry: {
 		workspace: { id: string; name: string; branch: string };
 		alreadyImported: boolean;
+		ownedElsewhere: boolean;
 	};
 	status: AdoptStatus;
 	disabled: boolean;
@@ -379,9 +413,21 @@ interface WorkspaceRowProps {
 }
 
 function WorkspaceRow({ entry, status, disabled, onAdopt }: WorkspaceRowProps) {
-	const { workspace, alreadyImported } = entry;
+	const { _: translate } = useTranslation();
+	const { workspace, alreadyImported, ownedElsewhere } = entry;
 
 	const action: RowAction = (() => {
+		if (ownedElsewhere && !alreadyImported && status.kind === "idle") {
+			return {
+				kind: "blocked",
+				reason: translate(
+					msg({
+						message:
+							"Already brought over to another organization. Switch to it to see this workspace.",
+					}),
+				),
+			};
+		}
 		if (status.kind === "running") {
 			return { kind: "running", label: "Adopting…" };
 		}

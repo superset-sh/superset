@@ -6,6 +6,7 @@ import {
 } from "@superset/shared/media-files";
 import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
 import type { SimpleGit, StatusResult } from "simple-git";
+import { branchDetachedWorktree } from "../../migration/utils/branch-detached-worktree";
 import { getBranchBaseConfig } from "../../workspaces/utils/base-branch-config";
 import {
 	getAheadBehindCount,
@@ -530,6 +531,14 @@ export async function executeGitTask<TTask extends GitTaskType>(
 			return computeFileContents(
 				payload as GitTaskPayloadMap["getFileContents"],
 			) as Promise<GitTaskResultMap[TTask]>;
+		case "branchDetachedWorktree": {
+			const { worktreePath, preferredBranch } =
+				payload as GitTaskPayloadMap["branchDetachedWorktree"];
+			return branchDetachedWorktree(
+				await getSimpleGitWithShellPath(worktreePath),
+				preferredBranch,
+			) as Promise<GitTaskResultMap[TTask]>;
+		}
 		default: {
 			const exhaustive: never = taskType;
 			throw new Error(`Unknown git task: ${exhaustive}`);

@@ -2119,6 +2119,12 @@ msgstr "Consentito"
 msgid "Allowed for session"
 msgstr "Consentito per la sessione"
 
+msgid "Already brought over to another organization. Switch to it to see this project."
+msgstr "Già trasferito in un'altra organizzazione. Passa a quella organizzazione per vedere questo progetto."
+
+msgid "Already brought over to another organization. Switch to it to see this workspace."
+msgstr "Già trasferito in un'altra organizzazione. Passa a quella organizzazione per vedere questo workspace."
+
 msgid "Already have an account? <0>Sign in</0>"
 msgstr "Hai già un account? <0>Accedi</0>"
 
@@ -2711,9 +2717,6 @@ msgstr "Pipeline autonoma dal ticket alla PR"
 msgid "Available"
 msgstr "Disponibile"
 
-msgid "Available when v2 is enabled."
-msgstr "Disponibile quando v2 è attivo."
-
 msgid "Avatar"
 msgstr "Avatar"
 
@@ -3030,6 +3033,9 @@ msgstr "Porta progetti, workspace e script del terminale da v1 a v2. Ogni elemen
 
 msgid "Bring your agents together."
 msgstr "Riunisci i tuoi agenti."
+
+msgid "Bringing over your v1 projects"
+msgstr "Trasferimento dei tuoi progetti v1"
 
 msgid "Browse and install skills, MCP servers, and agent configs shared by the community."
 msgstr "Sfoglia e installa skill, server MCP e configurazioni di agenti condivisi dalla community."
@@ -7532,6 +7538,9 @@ msgstr "Dimensione del font"
 msgid "Font weight"
 msgstr "Spessore del font"
 
+msgid "For a project, open the importer to link it."
+msgstr "Per un progetto, apri l’importatore per collegarlo."
+
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "Per segnalazioni di bug e richieste di funzioni, la via più rapida è una issue su GitHub all'indirizzo <0>github.com/superset-sh/superset</0>. La nostra community vive su <1>Discord</1> e pubblichiamo aggiornamenti su <2>X (@superset_sh)</2> e <3>LinkedIn</3>."
 
@@ -7870,6 +7879,9 @@ msgstr "Vai al workspace"
 
 msgid "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
 msgstr "Google non ha concesso un accesso duraturo. Rimuovi Superset dagli accessi di terze parti del tuo account Google e riprova."
+
+msgid "Got it"
+msgstr "Ho capito"
 
 msgid "Grant the OS permissions Superset needs."
 msgstr "Concedi le autorizzazioni di sistema di cui Superset ha bisogno."
@@ -8364,6 +8376,9 @@ msgstr "Importa da file"
 
 msgid "Import from v1"
 msgstr "Importa da v1"
+
+msgid "Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change."
+msgstr "Importa mette un worktree su un nuovo branch al suo commit attuale, così può essere trasferito. I tuoi file non cambiano."
 
 msgid "Import settings from another browser"
 msgstr "Importa le impostazioni da un altro browser"
@@ -14005,6 +14020,9 @@ msgstr "In esecuzione su questo dispositivo"
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "I processi del terminale in esecuzione continuano, ma l'output più vecchio potrebbe non essere più disponibile dopo il riavvio dell'app."
 
+msgid "Running terminals from v1 did not carry over. Each v1 workspace now has new terminals that open in the same folders."
+msgstr "I terminali in esecuzione di v1 non sono stati trasferiti. Ogni workspace v1 ora ha nuovi terminali che si aprono nelle stesse cartelle."
+
 msgid "Runs a local command on your machine"
 msgstr "Esegue un comando locale sulla tua macchina"
 
@@ -15259,6 +15277,12 @@ msgstr "Alcuni temi sono stati saltati"
 msgid "Some triggers need additional configuration"
 msgstr "Alcuni trigger richiedono una configurazione aggiuntiva"
 
+msgid "Some v1 items did not come over"
+msgstr "Alcuni elementi v1 non sono stati trasferiti"
+
+msgid "Some v1 work needs your attention"
+msgstr "Parte del tuo lavoro v1 richiede attenzione"
+
 msgid "Someone"
 msgstr "Qualcuno"
 
@@ -15814,6 +15838,9 @@ msgstr "Componenti Superset"
 msgid "Superset Components"
 msgstr "Superset Components"
 
+msgid "Superset could not bring over some of your v1 projects or workspaces. Open the importer to see why and retry each one."
+msgstr "Superset non è riuscito a trasferire alcuni dei tuoi progetti o workspace v1. Apri l’importatore per vedere il motivo e riprovare ciascuno."
+
 msgid "Superset could not complete sign-in. Please try again."
 msgstr "Superset non è riuscito a completare l'accesso. Riprova."
 
@@ -15963,6 +15990,9 @@ msgstr "Superset mette le skill e gli strumenti dei plugin dove questi agenti li
 
 msgid "Superset raised an $11.5M seed round led by Union Square Ventures, with Y Combinator and Paul Graham. TechCrunch named it one of the standout startups from YC Demo Day."
 msgstr "Superset ha raccolto un round seed da 11,5 milioni di dollari guidato da Union Square Ventures, con Y Combinator e Paul Graham. TechCrunch l’ha indicata tra le startup più promettenti del YC Demo Day."
+
+msgid "Superset resumes the agent sessions it recorded ({agents}) when you open their workspace."
+msgstr "Superset riprende le sessioni degli agenti registrate ({agents}) quando apri il loro workspace."
 
 msgid "Superset runs locally on your developers' machines. We don't store your code or AI conversations, and Superset has completed a SOC 2 Type II audit with an independent auditor. Request the report and review our security documentation at trust.superset.sh."
 msgstr "Superset gira localmente sulle macchine dei tuoi sviluppatori. Non conserviamo il tuo codice né le conversazioni con l'AI, e Superset ha completato un audit SOC 2 Type II con un revisore indipendente. Richiedi il report e consulta la nostra documentazione sulla sicurezza su trust.superset.sh."
@@ -16785,6 +16815,9 @@ msgstr "Temi e agenti"
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "Questi comandi vengono eseguiti automaticamente quando viene creato un workspace. <0>Leggi la documentazione<1/></0>"
 
+msgid "These folders still have your files, but they did not come over to the new Superset on their own."
+msgstr "Queste cartelle contengono ancora i tuoi file, ma non sono state trasferite da sole nel nuovo Superset."
+
 msgid "These ports are still in use"
 msgstr "Queste porte sono ancora in uso"
 
@@ -17186,6 +17219,12 @@ msgstr "Titolo"
 msgid "To"
 msgstr "A"
 
+msgid "To get back a different agent conversation, run this in a terminal in its folder:"
+msgstr "Per recuperare un’altra conversazione con un agente, esegui questo in un terminale nella sua cartella:"
+
+msgid "To get back an agent conversation, run this in a terminal in its folder:"
+msgstr "Per recuperare una conversazione con un agente, esegui questo in un terminale nella sua cartella:"
+
 msgid "Toast (Sonner)"
 msgstr "Toast (Sonner)"
 
@@ -17440,9 +17479,6 @@ msgstr "Provalo"
 
 msgid "Try now"
 msgstr "Prova ora"
-
-msgid "Try Superset v2"
-msgstr "Prova Superset v2"
 
 msgid "Tufte"
 msgstr "Tufte"
@@ -17919,9 +17955,6 @@ msgstr "Usa Superset sul telefono con Pro."
 
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Usa l'app desktop per iniziare a eseguire agenti di programmazione in parallelo."
-
-msgid "Use the new workspace experience."
-msgstr "Usa la nuova esperienza dei workspace."
 
 msgid "Use the Superset tray menu > Host Service > Restart, then retry."
 msgstr "Usa il menu della barra di stato di Superset > Servizio host > Riavvia, poi riprova."
@@ -18949,12 +18982,18 @@ msgstr "Il tuo team può parlare direttamente con il tuo agente."
 msgid "Your terminal sessions won't be interrupted."
 msgstr "Le tue sessioni del terminale non verranno interrotte."
 
+msgid "Your terminals restarted"
+msgstr "I tuoi terminali sono stati riavviati"
+
 #. placeholder {0}: String(gaps.length)
 msgid "Your tier is a weighted score across the {0} axes measured for you, so a strong axis offsets a weak one. The axes below are the ones lagging."
 msgstr "Il tuo livello è un punteggio ponderato sugli {0} assi misurati per te, quindi un asse forte compensa uno debole. Gli assi qui sotto sono quelli in ritardo."
 
 msgid "Your tokens"
 msgstr "I tuoi token"
+
+msgid "Your v1 projects and workspaces are moving to the new Superset. They appear in the sidebar as each one is ready."
+msgstr "I tuoi progetti e workspace v1 vengono trasferiti nel nuovo Superset. Compaiono nella barra laterale man mano che sono pronti."
 
 msgid "Your version: {currentVersion}"
 msgstr "La tua versione: {currentVersion}"

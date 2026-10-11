@@ -31,12 +31,8 @@ const ACCOUNT_WIDE_READERS: Record<string, string> = {
 		"v1 migration is per account, not per window",
 	"routes/_authenticated/components/V1FlipNotice/V1FlipNotice.tsx":
 		"v1 flip notice is per account, not per window",
-	"routes/_authenticated/components/V1FlipNotice/V2FlipWelcome.tsx":
-		"v1 flip welcome is per account, not per window",
 	"routes/_authenticated/components/V1ImportModal/V1ImportModal.tsx":
 		"v1 import is per account, not per window",
-	"hooks/useIsV2CloudEnabled.ts":
-		"reads the migration-complete flag, which is per account",
 
 	// The gate that decides whether the user has any organization at all, and
 	// the screen that creates the first one. Both run before — or outside — the

@@ -8,7 +8,7 @@ import {
 } from "./projects";
 import { planHostBranchPrefix, planProjectPrefs } from "./settings";
 import { planTerminalMigration, resolveMigratedPaneResume } from "./terminals";
-import { planWorkspaceAdoptions } from "./workspaces";
+import { findGitWorktreeAtFolder, planWorkspaceAdoptions } from "./workspaces";
 
 type Candidate = { id: string; source: string };
 const findByPath = (candidates: Candidate[], cloudErrors: unknown[] = []) =>
@@ -138,6 +138,12 @@ describe("planWorkspaceAdoptions", () => {
 			["v2-proj", new Set(["feat", "done"])],
 		]),
 	};
+	const onDisk = (branch: string, isMainWorktree = false) => ({
+		v2ProjectId: "v2-proj",
+		branch,
+		path: `/git/${branch}`,
+		isMainWorktree,
+	});
 	const ws = (
 		over: Partial<
 			Parameters<typeof planWorkspaceAdoptions>[0]["v1Workspaces"][0]
@@ -149,6 +155,64 @@ describe("planWorkspaceAdoptions", () => {
 		name: "Feat",
 		branch: "feat",
 		...over,
+	});
+
+	test("a branch switched inside the worktree still adopts by folder", () => {
+		const plan = planWorkspaceAdoptions({
+			...base,
+			v1Workspaces: [ws({ branch: "renamed-away" })],
+			onDiskWorktreeByRealPath: new Map([
+				["/real/tree/feat", onDisk("feat-v2")],
+			]),
+			v1WorktreeRealPathById: new Map([["wt-1", "/real/tree/feat"]]),
+		});
+		expect(plan.missingWorktree).toEqual([]);
+		expect(plan.toAdopt).toMatchObject([
+			{ branch: "feat-v2", worktreePath: "/git/feat-v2" },
+		]);
+	});
+
+	test("a switched branch already on the host links instead of re-adopting", () => {
+		const plan = planWorkspaceAdoptions({
+			...base,
+			v1Workspaces: [ws({ branch: "renamed-away" })],
+			onDiskWorktreeByRealPath: new Map([["/real/tree/feat", onDisk("done")]]),
+			v1WorktreeRealPathById: new Map([["wt-1", "/real/tree/feat"]]),
+		});
+		expect(plan.toAdopt).toEqual([]);
+		expect(plan.alreadyAdopted).toMatchObject([{ v2WorkspaceId: "v2-ws" }]);
+	});
+
+	test("a folder that exists but is not an adoptable worktree needs attention", () => {
+		const plan = planWorkspaceAdoptions({
+			...base,
+			v1Workspaces: [ws({ branch: "detached" })],
+			v1WorktreeRealPathById: new Map([["wt-1", "/real/tree/feat"]]),
+		});
+		expect(plan.missingWorktree).toEqual([]);
+		expect(plan.needsAttention).toMatchObject([{ v1WorkspaceId: "v1-ws" }]);
+	});
+
+	test("a detached folder never links to another folder now on its branch", () => {
+		const plan = planWorkspaceAdoptions({
+			...base,
+			v1Workspaces: [ws({ branch: "done" })],
+			onDiskWorktreeByRealPath: new Map([["/real/tree/other", onDisk("done")]]),
+			v1WorktreeRealPathById: new Map([["wt-1", "/real/tree/feat"]]),
+		});
+		expect(plan.alreadyAdopted).toEqual([]);
+		expect(plan.toAdopt).toEqual([]);
+		expect(plan.needsAttention).toMatchObject([{ v1WorkspaceId: "v1-ws" }]);
+	});
+
+	test("a folder that is gone is skipped as missing", () => {
+		const plan = planWorkspaceAdoptions({
+			...base,
+			v1Workspaces: [ws({ branch: "gone" })],
+			v1WorktreeRealPathById: new Map([["wt-1", null]]),
+		});
+		expect(plan.needsAttention).toEqual([]);
+		expect(plan.missingWorktree).toMatchObject([{ v1WorkspaceId: "v1-ws" }]);
 	});
 
 	test("adoptable workspace carries worktree path and base branch", () => {
@@ -188,7 +252,9 @@ describe("planWorkspaceAdoptions", () => {
 		const plan = planWorkspaceAdoptions({
 			...base,
 			mainBranchByV2ProjectId: new Map([["v2-proj", "main"]]),
-			v1Workspaces: [ws({ id: "v1-main", name: "Main", branch: "main" })],
+			v1Workspaces: [
+				ws({ id: "v1-main", name: "Main", branch: "main", worktreeId: null }),
+			],
 		});
 		expect(plan.toAdopt).toHaveLength(0);
 		expect(plan.toCreateLocal).toEqual([
@@ -201,6 +267,28 @@ describe("planWorkspaceAdoptions", () => {
 		]);
 	});
 
+	test("v1's main-repo workspace maps to the checkout even with an outdated branch", () => {
+		const plan = planWorkspaceAdoptions({
+			...base,
+			hostWorkspaces: [
+				...base.hostWorkspaces,
+				{
+					id: "v2-wt-old",
+					projectId: "v2-proj",
+					branch: "old",
+					type: "worktree",
+				},
+			],
+			mainBranchByV2ProjectId: new Map([["v2-proj", "main"]]),
+			v1Workspaces: [
+				ws({ id: "v1-main", type: "branch", branch: "old", worktreeId: null }),
+			],
+		});
+		expect(plan.missingWorktree).toEqual([]);
+		expect(plan.alreadyAdopted).toEqual([]);
+		expect(plan.toCreateLocal).toMatchObject([{ v1WorkspaceId: "v1-main" }]);
+	});
+
 	test("links to an existing local workspace instead of creating a second", () => {
 		const plan = planWorkspaceAdoptions({
 			...base,
@@ -209,12 +297,64 @@ describe("planWorkspaceAdoptions", () => {
 				{ id: "v2-local", projectId: "v2-proj", branch: "main", type: "local" },
 			],
 			mainBranchByV2ProjectId: new Map([["v2-proj", "main"]]),
-			v1Workspaces: [ws({ id: "v1-main", branch: "main" })],
+			v1Workspaces: [ws({ id: "v1-main", branch: "main", worktreeId: null })],
 		});
 		expect(plan.toCreateLocal).toHaveLength(0);
 		expect(plan.alreadyAdopted.map((e) => e.v2WorkspaceId)).toEqual([
 			"v2-local",
 		]);
+	});
+
+	describe("a worktree on the checkout's branch never merges into the checkout", () => {
+		const onMain = {
+			...base,
+			mainBranchByV2ProjectId: new Map([["v2-proj", "main"]]),
+			v1Workspaces: [ws({ branch: "main" })],
+		};
+
+		test("folder still there but not adoptable: needs attention", () => {
+			const plan = planWorkspaceAdoptions({
+				...onMain,
+				v1WorktreeRealPathById: new Map([["wt-1", "/real/tree/feat"]]),
+			});
+			expect(plan.toCreateLocal).toEqual([]);
+			expect(plan.needsAttention).toMatchObject([{ v1WorkspaceId: "v1-ws" }]);
+		});
+
+		test("folder unreadable: skipped as missing, so it is retried", () => {
+			const plan = planWorkspaceAdoptions({
+				...onMain,
+				v1WorktreeRealPathById: new Map([["wt-1", null]]),
+			});
+			expect(plan.toCreateLocal).toEqual([]);
+			expect(plan.missingWorktree).toMatchObject([{ v1WorkspaceId: "v1-ws" }]);
+		});
+
+		test("unless the folder is the checkout itself", () => {
+			const plan = planWorkspaceAdoptions({
+				...onMain,
+				onDiskWorktreeByRealPath: new Map([
+					["/real/repo", onDisk("main", true)],
+				]),
+				v1WorktreeRealPathById: new Map([["wt-1", "/real/repo"]]),
+			});
+			expect(plan.toAdopt).toEqual([]);
+			expect(plan.toCreateLocal).toMatchObject([{ v1WorkspaceId: "v1-ws" }]);
+		});
+	});
+
+	test("a gone folder is skipped quietly even when the repo has untracked worktrees", () => {
+		const plan = planWorkspaceAdoptions({
+			...base,
+			v1Workspaces: [ws({ branch: "gone" })],
+			onDiskWorktreeByRealPath: new Map([
+				["/real/repo", onDisk("main", true)],
+				["/real/untracked", onDisk("someone-else")],
+			]),
+			v1WorktreeRealPathById: new Map([["wt-1", null]]),
+		});
+		expect(plan.needsAttention).toEqual([]);
+		expect(plan.missingWorktree).toMatchObject([{ v1WorkspaceId: "v1-ws" }]);
 	});
 
 	test("unknown on-disk state stays adoptable (adopt decides)", () => {
@@ -420,7 +560,6 @@ describe("resolveMigratedPaneResume", () => {
 import {
 	consumeV1ContinuityPending,
 	consumeV1WelcomePending,
-	isForcedFlipVersion,
 	isV1FollowUpPending,
 	isV1WelcomePending,
 	markV1MigrationComplete,
@@ -470,23 +609,6 @@ describe("computeGateComplete", () => {
 				summary({ migrated: 5, linked: 3 }),
 			),
 		).toBe(true);
-	});
-});
-
-describe("isForcedFlipVersion", () => {
-	test("disabled while unset", () => {
-		expect(isForcedFlipVersion("1.19.0", null)).toBe(false);
-	});
-
-	test("flips at or past the forced version", () => {
-		expect(isForcedFlipVersion("1.19.0", "1.19.0")).toBe(true);
-		expect(isForcedFlipVersion("1.20.1", "1.19.0")).toBe(true);
-		expect(isForcedFlipVersion("1.18.2", "1.19.0")).toBe(false);
-	});
-
-	test("tolerates missing or invalid versions", () => {
-		expect(isForcedFlipVersion(undefined, "1.19.0")).toBe(false);
-		expect(isForcedFlipVersion("not-a-version", "1.19.0")).toBe(false);
 	});
 });
 
@@ -582,5 +704,41 @@ describe("v1MigrationEventProps", () => {
 		expect(props.terminals_migrated).toBe(1);
 		// 5 kinds x 5 counters + gate_complete
 		expect(Object.keys(props)).toHaveLength(26);
+	});
+});
+
+describe("findGitWorktreeAtFolder", () => {
+	test("returns git's spelling for a v1 folder spelled differently", async () => {
+		const hostClient = {
+			workspaceCreation: {
+				listProjectWorktrees: {
+					query: async () => ({
+						worktrees: [
+							{ path: "/repo", branch: "main", isMainWorktree: true },
+							{ path: "/trees/feat", branch: "feat" },
+						],
+					}),
+				},
+			},
+		} as unknown as HostServiceClient;
+		const resolvePaths = async (paths: string[]) =>
+			paths.map((path) => path.replace(/\/$/, ""));
+
+		expect(
+			await findGitWorktreeAtFolder(
+				hostClient,
+				resolvePaths,
+				"p",
+				"/trees/feat/",
+			),
+		).toEqual({ path: "/trees/feat", branch: "feat" });
+		expect(
+			await findGitWorktreeAtFolder(
+				hostClient,
+				resolvePaths,
+				"p",
+				"/trees/gone",
+			),
+		).toBeNull();
 	});
 });

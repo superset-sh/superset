@@ -110,7 +110,7 @@ function PresetRow({
 				{ v2Name, linkedAgentId },
 			);
 			collections.v2TerminalPresets.insert(row);
-			recordV1MigrationOutcome(organizationId, {
+			void recordV1MigrationOutcome(organizationId, {
 				v1Id: preset.id,
 				kind: "preset",
 				status: "success",

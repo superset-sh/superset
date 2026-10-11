@@ -38,6 +38,8 @@ import {
 } from "renderer/routes/_authenticated/components/V1AutoMigration";
 import {
 	V1FlipNotice,
+	V1MigrationStatusCard,
+	V1TerminalsNotice,
 	V2FlipWelcome,
 } from "renderer/routes/_authenticated/components/V1FlipNotice";
 import { V1ImportModal } from "renderer/routes/_authenticated/components/V1ImportModal";
@@ -330,7 +332,11 @@ function AuthenticatedLayout() {
 								{isV2CloudEnabled ? (
 									<>
 										<V1MigrationContinuity />
-										<V2FlipWelcome />
+										<V2FlipWelcome organizationId={activeOrganizationId} />
+										<V1MigrationStatusCard
+											organizationId={activeOrganizationId}
+										/>
+										<V1TerminalsNotice organizationId={activeOrganizationId} />
 									</>
 								) : (
 									<V1FlipNotice />

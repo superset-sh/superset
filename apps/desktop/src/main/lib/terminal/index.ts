@@ -4,7 +4,7 @@ import {
 } from "main/lib/terminal-host/client";
 import type { ListSessionsResponse } from "main/lib/terminal-host/types";
 import { DaemonTerminalManager, getDaemonTerminalManager } from "./daemon";
-import { prewarmTerminalEnv } from "./env";
+import { stopV1Sessions, type V1DaemonClient } from "./stop-v1-sessions";
 
 export { DaemonTerminalManager, getDaemonTerminalManager };
 export type {
@@ -29,20 +29,30 @@ const defaultDeps: TerminalDaemonDeps = {
 };
 
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
-let prewarmInFlight: Promise<void> | null = null;
 
 /**
- * Reconcile daemon sessions on app startup.
- * Cleans up stale sessions from previous app runs and preserves sessions
- * that can be retained.
+ * No UI shows v1 terminals, so a session whose workspace is now in v2 would
+ * run unseen next to its v2 resume. Sessions of unmigrated workspaces keep
+ * running. Never spawns a daemon.
  */
-export async function reconcileDaemonSessions(): Promise<void> {
+export async function stopMigratedV1SessionsOnBoot(
+	migratedV1WorkspaceIds: Set<string>,
+	client: V1DaemonClient = getTerminalHostClient(),
+): Promise<void> {
 	try {
-		const manager = getDaemonTerminalManager();
-		await manager.reconcileOnStartup();
+		const { stoppedPaneIds } = await stopV1Sessions(
+			client,
+			(session) => migratedV1WorkspaceIds.has(session.workspaceId),
+			{ shutdownWhenEmpty: true },
+		);
+		if (stoppedPaneIds.length > 0) {
+			console.log(
+				`[TerminalManager] Stopped ${stoppedPaneIds.length} migrated v1 session(s) on boot`,
+			);
+		}
 	} catch (error) {
 		console.warn(
-			"[TerminalManager] Failed to reconcile daemon sessions:",
+			"[TerminalManager] Failed to stop migrated v1 sessions:",
 			error,
 		);
 	}
@@ -111,40 +121,4 @@ export async function tryListExistingDaemonSessions(
 		}
 		return { sessions: [] };
 	}
-}
-
-/**
- * Best-effort terminal runtime warmup.
- * Runs in the background to reduce latency for the first user-opened terminal:
- * - precomputes locale/env fallback
- * - ensures daemon control/stream channels are established
- */
-export function prewarmTerminalRuntime(): void {
-	if (prewarmInFlight) return;
-
-	prewarmInFlight = (async () => {
-		try {
-			prewarmTerminalEnv();
-		} catch (error) {
-			if (DEBUG_TERMINAL) {
-				console.warn(
-					"[TerminalManager] Failed to prewarm terminal env:",
-					error,
-				);
-			}
-		}
-
-		try {
-			await getTerminalHostClient().ensureConnected();
-		} catch (error) {
-			if (DEBUG_TERMINAL) {
-				console.warn(
-					"[TerminalManager] Failed to prewarm terminal daemon connection:",
-					error,
-				);
-			}
-		}
-	})().finally(() => {
-		prewarmInFlight = null;
-	});
 }

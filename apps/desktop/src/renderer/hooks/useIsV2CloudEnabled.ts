@@ -1,110 +1,11 @@
 import { isV2OnlyUser } from "@superset/shared/v2-only-user";
-import { useSyncExternalStore } from "react";
-import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
-import {
-	isV1ForcedFlipActive,
-	isV1MigrationComplete,
-	isV1MigrationCompleteAtBoot,
-	V1_MIGRATION_COMPLETED_EVENT,
-} from "renderer/lib/v1-migration/completion";
-import { useV2LocalOverrideStore } from "renderer/stores/v2-local-override";
 
-function subscribeToMigrationCompletion(onChange: () => void): () => void {
-	window.addEventListener(V1_MIGRATION_COMPLETED_EVENT, onChange);
-	return () =>
-		window.removeEventListener(V1_MIGRATION_COMPLETED_EVENT, onChange);
-}
-
-// optInV2 as it stood when completion was first observed this session, per
-// org. The surface holds there until relaunch: no mid-session flip forward,
-// and no snap back to v1 through a late opt-out.
-const optInV2AtCompletion = new Map<string, boolean | null>();
-
-/** Live marker read: re-renders the moment a pass completes this session. */
-function useIsV1MigrationCompleteNow(
-	organizationId: string | null | undefined,
-): boolean {
-	const read = () => isV1MigrationComplete(organizationId ?? null);
-	return useSyncExternalStore(subscribeToMigrationCompletion, read, read);
-}
-
-/**
- * True for accounts created on/after V2_ONLY_USER_CUTOFF — these users
- * default to v2.
- */
 export function useIsV2OnlyUser(): boolean {
 	const { data: session } = authClient.useSession();
 	return isV2OnlyUser(session?.user?.createdAt);
 }
 
-interface V2SurfaceInput {
-	organizationId: string | null | undefined;
-	userCreatedAt: Date | string | null | undefined;
-	forcedFlipActive?: boolean;
-}
-
-/**
- * True when v2 is locked on for this machine (org migration completed, or
- * the forced-flip backstop is active). The optInV2 override has no effect in
- * either state, so surfaces offering the v1/v2 switch must hide it instead
- * of rendering a control that silently snaps back.
- */
-export function useIsV1FlipLocked(): boolean {
-	const { data: session } = authClient.useSession();
-	return useIsV1FlipLockedFor({
-		organizationId: session?.session?.activeOrganizationId,
-	});
-}
-
-export function useIsV1FlipLockedFor({
-	organizationId,
-	forcedFlipActive = isV1ForcedFlipActive(),
-}: Pick<V2SurfaceInput, "organizationId" | "forcedFlipActive">): boolean {
-	const completedThisSession = useIsV1MigrationCompleteNow(organizationId);
-	return (
-		isV1MigrationCompleteAtBoot(organizationId) ||
-		completedThisSession ||
-		forcedFlipActive
-	);
-}
-
-/** Returns whether v2 is currently active for this user. */
 export function useIsV2CloudEnabled(): boolean {
-	const { data: session } = authClient.useSession();
-	return useIsV2CloudEnabledFor({
-		organizationId: session?.session?.activeOrganizationId,
-		userCreatedAt: session?.user?.createdAt,
-	});
-}
-
-export function useIsV2CloudEnabledFor({
-	organizationId,
-	userCreatedAt,
-	forcedFlipActive = isV1ForcedFlipActive(),
-}: V2SurfaceInput): boolean {
-	const v2Only = isV2OnlyUser(userCreatedAt);
-	const optInV2 = useV2LocalOverrideStore((s) => s.optInV2);
-	const completedThisSession = useIsV1MigrationCompleteNow(organizationId);
-	// Migrate-then-flip: once this machine's v1 data has fully migrated for
-	// the org, v2 wins — including over an explicit opt-out (D5, sunset).
-	// Read is boot-stable, so completion mid-session flips the NEXT launch.
-	if (isV1MigrationCompleteAtBoot(organizationId)) {
-		return true;
-	}
-	// Backstop: past the forced-flip version, machines whose migration never
-	// completed (persistently failing entities) flip anyway; the headless
-	// migrator keeps retrying post-flip and manual import remains available.
-	if (forcedFlipActive) {
-		return true;
-	}
-	let effectiveOptIn = optInV2;
-	if (completedThisSession && organizationId) {
-		if (!optInV2AtCompletion.has(organizationId)) {
-			optInV2AtCompletion.set(organizationId, optInV2);
-		}
-		effectiveOptIn = optInV2AtCompletion.get(organizationId) ?? null;
-	}
-	// Dev builds default to v2; an explicit opt-out (optInV2 === false) still wins.
-	return effectiveOptIn ?? (v2Only || env.NODE_ENV === "development");
+	return true;
 }

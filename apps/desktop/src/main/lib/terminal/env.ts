@@ -113,24 +113,6 @@ export function getLocale(baseEnv: Record<string, string>): string {
 	return cachedUtf8Locale;
 }
 
-/**
- * Precompute expensive locale fallback resolution early in app startup so
- * the first terminal create/attach path does not pay a synchronous probe.
- */
-export function prewarmTerminalEnv(): void {
-	const rawBaseEnv = sanitizeEnv(process.env) || {};
-	const directLocale = rawBaseEnv.LANG?.includes("UTF-8")
-		? rawBaseEnv.LANG
-		: rawBaseEnv.LC_ALL?.includes("UTF-8")
-			? rawBaseEnv.LC_ALL
-			: null;
-	if (directLocale) {
-		cachedUtf8Locale = directLocale;
-		return;
-	}
-	startLocaleProbe();
-}
-
 export function sanitizeEnv(
 	env: NodeJS.ProcessEnv,
 ): Record<string, string> | undefined {

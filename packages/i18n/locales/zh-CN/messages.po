@@ -2119,6 +2119,12 @@ msgstr "已允许"
 msgid "Allowed for session"
 msgstr "本次会话内已允许"
 
+msgid "Already brought over to another organization. Switch to it to see this project."
+msgstr "已迁移到另一个组织。切换到该组织即可查看此项目。"
+
+msgid "Already brought over to another organization. Switch to it to see this workspace."
+msgstr "已迁移到另一个组织。切换到该组织即可查看此工作区。"
+
 msgid "Already have an account? <0>Sign in</0>"
 msgstr "已有账户？<0>登录</0>"
 
@@ -2711,9 +2717,6 @@ msgstr "工单到PR的自主流水线"
 msgid "Available"
 msgstr "可用"
 
-msgid "Available when v2 is enabled."
-msgstr "启用v2后可用。"
-
 msgid "Avatar"
 msgstr "头像"
 
@@ -3030,6 +3033,9 @@ msgstr "将v1的项目、工作区和终端脚本迁移到v2。每一项单独�
 
 msgid "Bring your agents together."
 msgstr "把你的智能体聚到一起。"
+
+msgid "Bringing over your v1 projects"
+msgstr "正在迁移你的 v1 项目"
 
 msgid "Browse and install skills, MCP servers, and agent configs shared by the community."
 msgstr "浏览并安装社区共享的技能、MCP服务器和智能体配置。"
@@ -7532,6 +7538,9 @@ msgstr "字号"
 msgid "Font weight"
 msgstr "字重"
 
+msgid "For a project, open the importer to link it."
+msgstr "对于项目，请打开导入器进行关联。"
+
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "报告bug和提需求，最快的方式是在<0>github.com/superset-sh/superset</0>提一个GitHub议题。我们的社区在<1>Discord</1>，更新会发布在<2>X（@superset_sh）</2>和<3>LinkedIn</3>。"
 
@@ -7870,6 +7879,9 @@ msgstr "前往工作区"
 
 msgid "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
 msgstr "Google没有授予持久访问权限。请在你的Google账户的第三方访问中移除Superset，然后重试。"
+
+msgid "Got it"
+msgstr "知道了"
 
 msgid "Grant the OS permissions Superset needs."
 msgstr "授予Superset所需的系统权限。"
@@ -8364,6 +8376,9 @@ msgstr "从文件导入"
 
 msgid "Import from v1"
 msgstr "从v1导入"
+
+msgid "Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change."
+msgstr "导入会在当前提交上为工作树创建一个新分支，使其可以迁移。你的文件不会改变。"
 
 msgid "Import settings from another browser"
 msgstr "从其他浏览器导入设置"
@@ -14005,6 +14020,9 @@ msgstr "在此设备上运行"
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "运行中的终端进程会继续，但重启应用后可能无法再看到较早的输出。"
 
+msgid "Running terminals from v1 did not carry over. Each v1 workspace now has new terminals that open in the same folders."
+msgstr "v1 中正在运行的终端没有迁移过来。每个 v1 工作区现在都有在相同文件夹中打开的新终端。"
+
 msgid "Runs a local command on your machine"
 msgstr "在你的机器上运行本地命令"
 
@@ -15259,6 +15277,12 @@ msgstr "部分主题已被跳过"
 msgid "Some triggers need additional configuration"
 msgstr "部分触发器需要额外配置"
 
+msgid "Some v1 items did not come over"
+msgstr "部分 v1 条目未能迁移"
+
+msgid "Some v1 work needs your attention"
+msgstr "部分 v1 工作需要你处理"
+
 msgid "Someone"
 msgstr "某人"
 
@@ -15814,6 +15838,9 @@ msgstr "Superset 组件"
 msgid "Superset Components"
 msgstr "Superset组件"
 
+msgid "Superset could not bring over some of your v1 projects or workspaces. Open the importer to see why and retry each one."
+msgstr "Superset 无法迁移你的部分 v1 项目或工作区。打开导入器查看原因并逐个重试。"
+
 msgid "Superset could not complete sign-in. Please try again."
 msgstr "Superset无法完成登录。请重试。"
 
@@ -15963,6 +15990,9 @@ msgstr "Superset 会把插件的技能和工具放到这些智能体会查找的
 
 msgid "Superset raised an $11.5M seed round led by Union Square Ventures, with Y Combinator and Paul Graham. TechCrunch named it one of the standout startups from YC Demo Day."
 msgstr "Superset 完成了 1150 万美元的种子轮融资，由 Union Square Ventures 领投，Y Combinator 和 Paul Graham 参投。TechCrunch 将其评为 YC Demo Day 的杰出初创公司之一。"
+
+msgid "Superset resumes the agent sessions it recorded ({agents}) when you open their workspace."
+msgstr "Superset 会在你打开对应工作区时恢复它记录的智能体会话（{agents}）。"
 
 msgid "Superset runs locally on your developers' machines. We don't store your code or AI conversations, and Superset has completed a SOC 2 Type II audit with an independent auditor. Request the report and review our security documentation at trust.superset.sh."
 msgstr "Superset在你的开发者机器上本地运行。我们不存储你的代码或AI对话，并且Superset已通过独立审计机构的SOC 2 Type II审计。可在trust.superset.sh索取报告并查阅我们的安全文档。"
@@ -16785,6 +16815,9 @@ msgstr "主题与智能体"
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "创建工作区时会自动运行这些命令。<0>阅读文档<1/></0>"
 
+msgid "These folders still have your files, but they did not come over to the new Superset on their own."
+msgstr "这些文件夹中仍有你的文件，但没有自动迁移到新版 Superset。"
+
 msgid "These ports are still in use"
 msgstr "这些端口仍在使用中"
 
@@ -17186,6 +17219,12 @@ msgstr "标题"
 msgid "To"
 msgstr "到"
 
+msgid "To get back a different agent conversation, run this in a terminal in its folder:"
+msgstr "要找回另一个智能体对话，请在其文件夹的终端中运行："
+
+msgid "To get back an agent conversation, run this in a terminal in its folder:"
+msgstr "要找回智能体对话，请在其文件夹的终端中运行："
+
 msgid "Toast (Sonner)"
 msgstr "Toast（Sonner）"
 
@@ -17440,9 +17479,6 @@ msgstr "试试看"
 
 msgid "Try now"
 msgstr "立即试用"
-
-msgid "Try Superset v2"
-msgstr "试用Superset v2"
 
 msgid "Tufte"
 msgstr "Tufte"
@@ -17919,9 +17955,6 @@ msgstr "通过 Pro 在手机上使用 Superset。"
 
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "使用桌面应用开始并行运行编码智能体。"
-
-msgid "Use the new workspace experience."
-msgstr "使用全新的工作区体验。"
 
 msgid "Use the Superset tray menu > Host Service > Restart, then retry."
 msgstr "请使用Superset托盘菜单 > 主机服务 > 重启，然后重试。"
@@ -18949,12 +18982,18 @@ msgstr "你的队友可以直接与你的智能体对话。"
 msgid "Your terminal sessions won't be interrupted."
 msgstr "你的终端会话不会被中断。"
 
+msgid "Your terminals restarted"
+msgstr "你的终端已重新启动"
+
 #. placeholder {0}: String(gaps.length)
 msgid "Your tier is a weighted score across the {0} axes measured for you, so a strong axis offsets a weak one. The axes below are the ones lagging."
 msgstr "你的等级是为你测得的 {0} 个维度的加权得分，强项可以弥补弱项。下面是落后的维度。"
 
 msgid "Your tokens"
 msgstr "你的token数"
+
+msgid "Your v1 projects and workspaces are moving to the new Superset. They appear in the sidebar as each one is ready."
+msgstr "你的 v1 项目和工作区正在迁移到新版 Superset。每一项准备好后就会出现在侧边栏中。"
 
 msgid "Your version: {currentVersion}"
 msgstr "你的版本：{currentVersion}"

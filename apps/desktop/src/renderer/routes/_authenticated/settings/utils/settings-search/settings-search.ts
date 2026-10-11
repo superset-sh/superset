@@ -72,7 +72,6 @@ export const SETTING_ITEM_ID = {
 	LINKS_PORT: "links-port",
 	LINKS_PAGE: "links-page",
 
-	EXPERIMENTAL_SUPERSET_V2: "experimental-superset-v2",
 	EXPERIMENTAL_V1_MIGRATION: "experimental-v1-migration",
 	EXPERIMENTAL_INLINE_WORKSPACE_PORTS: "experimental-inline-workspace-ports",
 	EXPERIMENTAL_WORKSPACE_AGENTS: "experimental-workspace-agents",
@@ -227,7 +226,6 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.LINKS_PORT]: "v2",
 	[SETTING_ITEM_ID.LINKS_PAGE]: "v2",
 
-	[SETTING_ITEM_ID.EXPERIMENTAL_SUPERSET_V2]: "shared",
 	[SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION]: "v2",
 	[SETTING_ITEM_ID.EXPERIMENTAL_INLINE_WORKSPACE_PORTS]: "v2",
 	[SETTING_ITEM_ID.EXPERIMENTAL_WORKSPACE_AGENTS]: "v2",
@@ -1374,26 +1372,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"terminal",
 			"chat",
 			"behavior",
-		],
-	},
-	{
-		id: SETTING_ITEM_ID.EXPERIMENTAL_SUPERSET_V2,
-		section: "experimental",
-		title: "Try Superset Version 2 (Early Access)",
-		description: "Switch between Superset V1 and the new V2 experience",
-		keywords: [
-			"experimental",
-			"experiments",
-			"v2",
-			"v1",
-			"version",
-			"early access",
-			"beta",
-			"preview",
-			"workspace",
-			"workspaces",
-			"toggle",
-			"switch",
 		],
 	},
 	{

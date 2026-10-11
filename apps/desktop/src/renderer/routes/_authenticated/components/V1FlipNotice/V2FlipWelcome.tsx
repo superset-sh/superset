@@ -2,11 +2,14 @@ import { msg } from "@lingui/core/macro";
 import { useLingui as useTranslation } from "@lingui/react";
 import { useEffect, useRef, useState } from "react";
 import { track } from "renderer/lib/analytics";
-import { authClient } from "renderer/lib/auth-client";
 import {
 	consumeV1WelcomePending,
 	isV1WelcomePending,
 } from "renderer/lib/v1-migration/completion";
+import {
+	isStatusCardVisible,
+	useV1MigrationStatusStore,
+} from "renderer/stores/v1-migration-status";
 import { FlipNoticeCard } from "./components/FlipNoticeCard";
 
 /**
@@ -15,17 +18,18 @@ import { FlipNoticeCard } from "./components/FlipNoticeCard";
  * so it survives reloads until acknowledged. Never shows for v2-native
  * users or forced-flip machines (no completion → no flag).
  */
-export function V2FlipWelcome() {
+export function V2FlipWelcome({ organizationId }: { organizationId: string }) {
 	const { _: translate } = useTranslation();
-
-	const { data: session } = authClient.useSession();
-	const organizationId = session?.session?.activeOrganizationId ?? null;
-	const [visible, setVisible] = useState(false);
+	const [pending, setPending] = useState(false);
+	const statusCardShowing = useV1MigrationStatusStore((state) =>
+		isStatusCardVisible(state, organizationId),
+	);
+	const visible = pending && !statusCardShowing;
 	const trackedRef = useRef(false);
 
 	useEffect(() => {
 		trackedRef.current = false;
-		setVisible(!!organizationId && isV1WelcomePending(organizationId));
+		setPending(isV1WelcomePending(organizationId));
 	}, [organizationId]);
 
 	useEffect(() => {
@@ -34,12 +38,12 @@ export function V2FlipWelcome() {
 		track("v2_flip_welcome_shown");
 	}, [visible]);
 
-	if (!visible || !organizationId) return null;
+	if (!visible) return null;
 
 	const dismiss = () => {
 		track("v2_flip_welcome_dismissed");
 		consumeV1WelcomePending(organizationId);
-		setVisible(false);
+		setPending(false);
 	};
 
 	return (

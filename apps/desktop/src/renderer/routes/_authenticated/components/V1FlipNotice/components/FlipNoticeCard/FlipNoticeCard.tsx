@@ -2,7 +2,20 @@ import { msg } from "@lingui/core/macro";
 import { useLingui as useTranslation } from "@lingui/react";
 import { Button } from "@superset/ui/button";
 import { TriangleAlert, X } from "lucide-react";
-import { lazy, Suspense } from "react";
+import { lazy, type ReactNode, Suspense } from "react";
+
+// Paper Shaders throws without WebGL (GPU acceleration off), taking the card down.
+let webGlAvailable: boolean | null = null;
+function canRenderShader(): boolean {
+	if (webGlAvailable === null) {
+		try {
+			webGlAvailable = !!document.createElement("canvas").getContext("webgl2");
+		} catch {
+			webGlAvailable = false;
+		}
+	}
+	return webGlAvailable;
+}
 
 const Dithering = lazy(() =>
 	import("@paper-design/shaders-react").then((mod) => ({
@@ -18,7 +31,9 @@ interface FlipNoticeCardProps {
 	body: string;
 	/** Rendered as an amber callout row (WorkspaceHoverCard idiom). */
 	warning?: string;
+	children?: ReactNode;
 	ctaLabel: string;
+	onCta?: () => void;
 	onDismiss: () => void;
 }
 
@@ -32,7 +47,9 @@ export function FlipNoticeCard({
 	title,
 	body,
 	warning,
+	children,
 	ctaLabel,
+	onCta,
 	onDismiss,
 }: FlipNoticeCardProps) {
 	const { _: translate } = useTranslation();
@@ -41,17 +58,19 @@ export function FlipNoticeCard({
 		<div className="fixed right-4 bottom-4 z-50 w-[380px] select-text overflow-hidden rounded-none border bg-background shadow-2xl">
 			<div className="relative h-20 bg-[#080a12]">
 				<div className="pointer-events-none absolute inset-0 opacity-40 mix-blend-screen">
-					<Suspense fallback={null}>
-						<Dithering
-							colorBack="#00000000"
-							colorFront={COVER_FRONT}
-							shape="warp"
-							type="4x4"
-							speed={0.15}
-							className="size-full"
-							minPixelRatio={1}
-						/>
-					</Suspense>
+					{canRenderShader() ? (
+						<Suspense fallback={null}>
+							<Dithering
+								colorBack="#00000000"
+								colorFront={COVER_FRONT}
+								shape="warp"
+								type="4x4"
+								speed={0.15}
+								className="size-full"
+								minPixelRatio={1}
+							/>
+						</Suspense>
+					) : null}
 				</div>
 				<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.14),transparent_34%),linear-gradient(to_bottom,rgba(0,0,0,0.04),rgba(0,0,0,0.5))]" />
 				<div className="absolute inset-0 flex items-center px-4">
@@ -68,13 +87,14 @@ export function FlipNoticeCard({
 			</div>
 			<div className="space-y-3 p-4 pt-3">
 				<p className="text-muted-foreground text-sm">{body}</p>
+				{children}
 				{warning ? (
 					<div className="flex items-start gap-2 bg-amber-500/10 px-2.5 py-2 text-amber-500">
 						<TriangleAlert className="mt-0.5 size-4 shrink-0" />
 						<p className="text-sm">{warning}</p>
 					</div>
 				) : null}
-				<Button size="sm" onClick={onDismiss}>
+				<Button size="sm" onClick={onCta ?? onDismiss}>
 					{ctaLabel}
 				</Button>
 			</div>

@@ -2,6 +2,7 @@ import type { TerminalPreset } from "@superset/local-db";
 import type { BranchPrefixMode } from "@superset/shared/workspace-launch";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { V1LedgerOutcome, V1LedgerRow } from "./ledger";
+import type { V1LedgerOwner } from "./ownership";
 
 // Minimal row shapes the migrator actually reads — the electron queries
 // return supersets. Keeping the interface narrow is what lets the whole
@@ -36,6 +37,7 @@ export interface V1WorkspaceRow {
 	id: string;
 	projectId: string;
 	worktreeId: string | null;
+	type?: string;
 	name: string;
 	branch: string;
 }
@@ -67,6 +69,13 @@ export interface V1MigrationIpc {
 	readV1Projects(): Promise<V1ProjectRow[]>;
 	readV1Workspaces(): Promise<V1WorkspaceRow[]>;
 	readV1Worktrees(): Promise<V1WorktreeRow[]>;
+	/** `requireCheckout` also nulls a folder with no `.git`: nothing git can adopt. */
+	resolvePaths(
+		paths: string[],
+		options?: { requireCheckout?: boolean },
+	): Promise<(string | null)[]>;
+	/** Stops these panes' live v1 sessions before v2 takes them over. */
+	stopV1Panes(paneIds: string[]): Promise<unknown>;
 	readV1Settings(): Promise<V1SettingsRow | null>;
 	readV1TerminalPanes(): Promise<V1TerminalPaneRow[]>;
 	readV1TerminalPresets(): Promise<TerminalPreset[]>;
@@ -75,6 +84,7 @@ export interface V1MigrationIpc {
 		organizationId: string,
 		entries: V1LedgerOutcome[],
 	): Promise<void>;
+	ledgerOwners?(): Promise<V1LedgerOwner[]>;
 }
 
 export const electronV1MigrationIpc: V1MigrationIpc = {
@@ -82,6 +92,10 @@ export const electronV1MigrationIpc: V1MigrationIpc = {
 	readV1Projects: () => electronTrpcClient.migration.readV1Projects.query(),
 	readV1Workspaces: () => electronTrpcClient.migration.readV1Workspaces.query(),
 	readV1Worktrees: () => electronTrpcClient.migration.readV1Worktrees.query(),
+	resolvePaths: (paths, options) =>
+		electronTrpcClient.migration.resolvePaths.query({ paths, ...options }),
+	stopV1Panes: (paneIds) =>
+		electronTrpcClient.migration.stopV1Panes.mutate({ paneIds }),
 	readV1Settings: () => electronTrpcClient.migration.readV1Settings.query(),
 	readV1TerminalPanes: () =>
 		electronTrpcClient.migration.readV1TerminalPanes.query(),
@@ -95,14 +109,14 @@ export const electronV1MigrationIpc: V1MigrationIpc = {
 			entries,
 		});
 	},
+	ledgerOwners: () => electronTrpcClient.migration.ledgerOwners.query(),
 };
 
-/** Fire-and-forget variant for UI call sites — the ledger is advisory there. */
 export function recordV1MigrationOutcome(
 	organizationId: string,
 	entry: V1LedgerOutcome,
-): void {
-	void electronV1MigrationIpc
+): Promise<void> {
+	return electronV1MigrationIpc
 		.ledgerRecord(organizationId, [entry])
 		.catch((err) => {
 			console.error("[v1-migration] ledger record failed", { entry, err });

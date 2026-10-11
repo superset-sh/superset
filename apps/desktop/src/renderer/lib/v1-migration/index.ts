@@ -1,7 +1,6 @@
 export {
 	consumeV1ContinuityPending,
 	isV1MigrationComplete,
-	isV1MigrationCompleteAtBoot,
 	markV1MigrationComplete,
 } from "./completion";
 export {

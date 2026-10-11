@@ -2119,6 +2119,12 @@ msgstr "허용됨"
 msgid "Allowed for session"
 msgstr "세션 동안 허용됨"
 
+msgid "Already brought over to another organization. Switch to it to see this project."
+msgstr "이미 다른 조직으로 옮겨졌습니다. 이 프로젝트를 보려면 해당 조직으로 전환하세요."
+
+msgid "Already brought over to another organization. Switch to it to see this workspace."
+msgstr "이미 다른 조직으로 옮겨졌습니다. 이 워크스페이스를 보려면 해당 조직으로 전환하세요."
+
 msgid "Already have an account? <0>Sign in</0>"
 msgstr "이미 계정이 있으신가요? <0>로그인</0>"
 
@@ -2711,9 +2717,6 @@ msgstr "자율 티켓-투-PR 파이프라인"
 msgid "Available"
 msgstr "사용 가능"
 
-msgid "Available when v2 is enabled."
-msgstr "v2를 켜면 사용할 수 있습니다."
-
 msgid "Avatar"
 msgstr "아바타"
 
@@ -3030,6 +3033,9 @@ msgstr "v1의 프로젝트, 워크스페이스, 터미널 스크립트를 v2로 
 
 msgid "Bring your agents together."
 msgstr "에이전트를 한곳에 모으세요."
+
+msgid "Bringing over your v1 projects"
+msgstr "v1 프로젝트를 옮기는 중"
 
 msgid "Browse and install skills, MCP servers, and agent configs shared by the community."
 msgstr "커뮤니티가 공유한 스킬, MCP 서버, 에이전트 설정을 둘러보고 설치하세요."
@@ -7532,6 +7538,9 @@ msgstr "글꼴 크기"
 msgid "Font weight"
 msgstr "글꼴 두께"
 
+msgid "For a project, open the importer to link it."
+msgstr "프로젝트는 가져오기 도구를 열어 연결하세요."
+
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "버그 신고와 기능 요청은 <0>github.com/superset-sh/superset</0>에 GitHub 이슈를 남기는 것이 가장 빠릅니다. 커뮤니티는 <1>Discord</1>에 있고, 소식은 <2>X (@superset_sh)</2>와 <3>LinkedIn</3>에 올립니다."
 
@@ -7870,6 +7879,9 @@ msgstr "워크스페이스로 이동"
 
 msgid "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
 msgstr "Google이 지속적인 접근 권한을 부여하지 않았습니다. Google 계정의 서드파티 접근에서 Superset을 제거한 뒤 다시 시도해 주세요."
+
+msgid "Got it"
+msgstr "확인"
 
 msgid "Grant the OS permissions Superset needs."
 msgstr "Superset에 필요한 OS 권한을 허용합니다."
@@ -8364,6 +8376,9 @@ msgstr "파일에서 가져오기"
 
 msgid "Import from v1"
 msgstr "v1에서 가져오기"
+
+msgid "Import puts a worktree on a new branch at its current commit, so it can come over. Your files do not change."
+msgstr "가져오기는 worktree를 현재 커밋의 새 브랜치로 전환해 옮길 수 있게 합니다. 파일은 바뀌지 않습니다."
 
 msgid "Import settings from another browser"
 msgstr "다른 브라우저에서 설정 가져오기"
@@ -14005,6 +14020,9 @@ msgstr "이 기기에서 실행 중"
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "실행 중인 터미널 프로세스는 계속되지만, 앱을 다시 시작한 뒤에는 이전 출력을 볼 수 없을 수 있습니다."
 
+msgid "Running terminals from v1 did not carry over. Each v1 workspace now has new terminals that open in the same folders."
+msgstr "v1에서 실행 중이던 터미널은 옮겨지지 않았습니다. 각 v1 워크스페이스에는 이제 같은 폴더에서 열리는 새 터미널이 있습니다."
+
 msgid "Runs a local command on your machine"
 msgstr "내 컴퓨터에서 로컬 명령을 실행합니다"
 
@@ -15259,6 +15277,12 @@ msgstr "일부 테마를 건너뛰었습니다"
 msgid "Some triggers need additional configuration"
 msgstr "일부 트리거에는 추가 설정이 필요합니다"
 
+msgid "Some v1 items did not come over"
+msgstr "일부 v1 항목을 옮기지 못했습니다"
+
+msgid "Some v1 work needs your attention"
+msgstr "일부 v1 작업에 확인이 필요합니다"
+
 msgid "Someone"
 msgstr "누군가"
 
@@ -15814,6 +15838,9 @@ msgstr "Superset 컴포넌트"
 msgid "Superset Components"
 msgstr "Superset 컴포넌트"
 
+msgid "Superset could not bring over some of your v1 projects or workspaces. Open the importer to see why and retry each one."
+msgstr "Superset이 일부 v1 프로젝트 또는 워크스페이스를 옮기지 못했습니다. 가져오기 도구를 열어 이유를 확인하고 항목별로 다시 시도하세요."
+
 msgid "Superset could not complete sign-in. Please try again."
 msgstr "Superset이 로그인을 완료하지 못했습니다. 다시 시도해 주세요."
 
@@ -15963,6 +15990,9 @@ msgstr "Superset은 이 에이전트들이 찾는 위치에 플러그인의 스�
 
 msgid "Superset raised an $11.5M seed round led by Union Square Ventures, with Y Combinator and Paul Graham. TechCrunch named it one of the standout startups from YC Demo Day."
 msgstr "Superset은 Union Square Ventures가 리드하고 Y Combinator와 Paul Graham이 참여한 1,150만 달러 규모의 시드 라운드를 유치했습니다. TechCrunch는 Superset을 YC Demo Day의 주목할 만한 스타트업 중 하나로 선정했습니다."
+
+msgid "Superset resumes the agent sessions it recorded ({agents}) when you open their workspace."
+msgstr "Superset이 기록된 에이전트 세션({agents})을 해당 워크스페이스를 열 때 이어서 실행합니다."
 
 msgid "Superset runs locally on your developers' machines. We don't store your code or AI conversations, and Superset has completed a SOC 2 Type II audit with an independent auditor. Request the report and review our security documentation at trust.superset.sh."
 msgstr "Superset은 개발자의 로컬 머신에서 실행됩니다. 코드나 AI 대화를 저장하지 않으며, 독립 감사인과 함께 SOC 2 Type II 감사를 완료했습니다. trust.superset.sh에서 보고서를 요청하고 보안 문서를 확인하세요."
@@ -16785,6 +16815,9 @@ msgstr "테마와 에이전트"
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "워크스페이스를 만들 때 이 명령이 자동으로 실행됩니다. <0>문서 보기<1/></0>"
 
+msgid "These folders still have your files, but they did not come over to the new Superset on their own."
+msgstr "이 폴더들에는 아직 파일이 있지만 새 Superset으로 자동으로 옮겨지지 않았습니다."
+
 msgid "These ports are still in use"
 msgstr "이 포트들은 아직 사용 중입니다"
 
@@ -17186,6 +17219,12 @@ msgstr "제목"
 msgid "To"
 msgstr "새 위치"
 
+msgid "To get back a different agent conversation, run this in a terminal in its folder:"
+msgstr "다른 에이전트 대화를 되찾으려면 해당 폴더의 터미널에서 다음을 실행하세요:"
+
+msgid "To get back an agent conversation, run this in a terminal in its folder:"
+msgstr "에이전트 대화를 되찾으려면 해당 폴더의 터미널에서 다음을 실행하세요:"
+
 msgid "Toast (Sonner)"
 msgstr "토스트 (Sonner)"
 
@@ -17440,9 +17479,6 @@ msgstr "사용해 보기"
 
 msgid "Try now"
 msgstr "사용해 보기"
-
-msgid "Try Superset v2"
-msgstr "Superset v2 사용해 보기"
 
 msgid "Tufte"
 msgstr "Tufte"
@@ -17919,9 +17955,6 @@ msgstr "Pro로 휴대폰에서 Superset을 사용하세요."
 
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "데스크톱 앱에서 병렬 코딩 에이전트를 실행하세요."
-
-msgid "Use the new workspace experience."
-msgstr "새로운 워크스페이스 환경을 사용합니다."
 
 msgid "Use the Superset tray menu > Host Service > Restart, then retry."
 msgstr "Superset 트레이 메뉴 > Host Service > Restart를 사용한 뒤 다시 시도하세요."
@@ -18949,12 +18982,18 @@ msgstr "팀원이 에이전트와 직접 대화할 수 있습니다."
 msgid "Your terminal sessions won't be interrupted."
 msgstr "터미널 세션은 중단되지 않습니다."
 
+msgid "Your terminals restarted"
+msgstr "터미널이 다시 시작되었습니다"
+
 #. placeholder {0}: String(gaps.length)
 msgid "Your tier is a weighted score across the {0} axes measured for you, so a strong axis offsets a weak one. The axes below are the ones lagging."
 msgstr "티어는 측정된 {0}개 축의 가중 점수라서 강한 축이 약한 축을 보완합니다. 아래는 뒤처진 축입니다."
 
 msgid "Your tokens"
 msgstr "내 토큰"
+
+msgid "Your v1 projects and workspaces are moving to the new Superset. They appear in the sidebar as each one is ready."
+msgstr "v1 프로젝트와 워크스페이스를 새 Superset으로 옮기는 중입니다. 각 항목이 준비되는 대로 사이드바에 표시됩니다."
 
 msgid "Your version: {currentVersion}"
 msgstr "현재 버전: {currentVersion}"
