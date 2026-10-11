@@ -1117,8 +1117,8 @@ unexpected.
 
 ```text
 claude is idle.
-Why: its last hook event was Stop (1 second ago), which means it finished its turn.
-Started 2 seconds ago.
+Why: its recorded event is Stop, which means its turn ended: it finished, or it was interrupted.
+The last hook arrived 1 second ago; the session started 2 seconds ago.
 ```
 </Command>
 
@@ -1312,12 +1312,14 @@ Close (dispose) a terminal running in a workspace. This ends the session.
     id: string; name: string; project: string | null; branch: string | null;
     terminals: Array<{ id: string; title: string | null; agent: { id: string; state: "starting" | "working" | "blocked" | "idle" } | null }>;
     layout: PaneLayout | null; // as in \`panes list\`; null without a desktop app
+    layoutError: string | null; // set when a desktop app is attached but the layout could not be read
   }>;
 }`}
 >
 One read of a host: every workspace, its live terminals, the agent in each with
 its state, and the pane layout when the desktop app is attached. Use it instead
-of listing terminals and panes workspace by workspace.
+of listing terminals and panes workspace by workspace. An unknown `--workspace`
+is an error.
 
 ```text
 acme-web / health-check  [health-check]  ws_…
