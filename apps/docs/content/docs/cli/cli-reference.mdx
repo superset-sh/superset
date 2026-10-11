@@ -1093,6 +1093,35 @@ superset agents wait --workspace ws_… --terminal "$T"
 ```
 </Command>
 
+<Command
+	name="superset agents explain"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--terminal <id>", required: true, description: "Terminal the agent runs in." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: the cloud if your account has cloud workspaces, else this machine)." },
+		{ flag: "--local", description: "The workspace is on this machine." },
+	]}
+	output={`{
+  terminalId: string;
+  state: "starting" | "working" | "blocked" | "idle" | "exited" | "none";
+  because: string;
+  details: string[];
+  lastEventType: string | null;
+  lastEventAt: number | null;
+}`}
+>
+Explain why an agent shows its state: its last hook event and when it arrived,
+how an ended session ended, or that no hook has arrived (an agent Superset
+can't see). Useful when `agents wait` or `panes list` shows something
+unexpected.
+
+```text
+claude is idle.
+Why: its last hook event was Stop (1 second ago), which means it finished its turn.
+Started 2 seconds ago.
+```
+</Command>
+
 #### Agent models
 
 Model is an explicit override for one launch. If you omit `--model`, Superset
@@ -1230,7 +1259,8 @@ superset terminals send --workspace ws_… --terminal term_… --keys esc
 }`}
 >
 Block until a terminal's screen matches a pattern, e.g. a dev server's
-"listening on". Exits 1 on timeout, or at once if the terminal exits first.
+"listening on". `matched` is the text the pattern matched, which can span
+lines. Exits 1 on timeout, or at once if the terminal exits first.
 
 ```bash
 superset terminals wait --workspace ws_… --terminal term_… --match "listening on :\d+"
@@ -1268,6 +1298,33 @@ Close (dispose) a terminal running in a workspace. This ends the session.
 </Command>
 
 ---
+
+### snapshot
+
+<Command
+	name="superset snapshot"
+	options={[
+		{ flag: "--host <id>", description: "Host to read (default: this machine)." },
+		{ flag: "--workspace <id>", description: "Only this workspace." },
+	]}
+	output={`{
+  workspaces: Array<{
+    id: string; name: string; project: string | null; branch: string | null;
+    terminals: Array<{ id: string; title: string | null; agent: { id: string; state: "starting" | "working" | "blocked" | "idle" } | null }>;
+    layout: PaneLayout | null; // as in \`panes list\`; null without a desktop app
+  }>;
+}`}
+>
+One read of a host: every workspace, its live terminals, the agent in each with
+its state, and the pane layout when the desktop app is attached. Use it instead
+of listing terminals and panes workspace by workspace.
+
+```text
+acme-web / health-check  [health-check]  ws_…
+  terminal ebed…  "/health route README section"  claude · working
+  terminal 63c9…
+```
+</Command>
 
 ### panes
 

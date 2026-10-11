@@ -145,6 +145,8 @@ superset agents wait \
 
 If `superset agents wait` is not available (an older CLI), poll `terminals read` at a measured cadence instead.
 
+To see every worker at once (each terminal, its agent and state), read the host in one call with `superset snapshot --host <host-id> --json`. `superset agents explain` says why a worker shows the state it does.
+
 ## Advance the workflow
 
 1. Mark a task `completed` only after reading a `SUPERSET_WORKER_DONE` envelope and checking its evidence.
