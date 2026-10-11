@@ -1074,7 +1074,8 @@ The transcript object in JSON mode, or its text in human-readable mode.
 		{ flag: "--terminal <id>", required: true, description: "Terminal the agent runs in (the `sessionId` from `agents create`)." },
 		{ flag: "--until <state>", description: "`settled` (default: finished its turn or needs input), `idle`, `blocked`, or `working`." },
 		{ flag: "--timeout <seconds>", description: "Give up after this long. Default 600." },
-		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: the cloud if your account has cloud workspaces, else this machine)." },
+		{ flag: "--local", description: "The workspace is on this machine." },
 	]}
 	output={`{
   terminalId: string;
@@ -1198,7 +1199,8 @@ superset terminals read --workspace ws_… --terminal term_… --max-lines 240
 		{ flag: "--wait", description: "Block until the agent reacts to this send and reaches `--until`. Fails after 10s with no activity (a prompt left in the input box)." },
 		{ flag: "--until <state>", description: "With `--wait`: `settled` (default), `idle`, `blocked`, or `working`." },
 		{ flag: "--timeout <seconds>", description: "With `--wait`: give up after this long. Default 600." },
-		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: the cloud if your account has cloud workspaces, else this machine)." },
+		{ flag: "--local", description: "The workspace is on this machine." },
 	]}
 >
 Send a follow-up message or key presses to a terminal already running in a
@@ -1219,7 +1221,8 @@ superset terminals send --workspace ws_… --terminal term_… --keys esc
 		{ flag: "--match <regex>", required: true, description: "Regular expression to look for on the screen. Text already on screen counts." },
 		{ flag: "--max-lines <n>", description: "Only search this many rows from the bottom." },
 		{ flag: "--timeout <seconds>", description: "Give up after this long. Default 600." },
-		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: the cloud if your account has cloud workspaces, else this machine)." },
+		{ flag: "--local", description: "The workspace is on this machine." },
 	]}
 	output={`{
   terminalId: string;
@@ -1239,7 +1242,8 @@ superset terminals wait --workspace ws_… --terminal term_… --match "listenin
 	options={[
 		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
 		{ flag: "--terminal <id>", required: true, description: "Terminal session ID." },
-		{ flag: "--host <id>", description: "Host the workspace lives on; remote hosts go through the relay." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: the cloud if your account has cloud workspaces, else this machine). Remote hosts go through the relay." },
+		{ flag: "--local", description: "The workspace is on this machine." },
 		{ flag: "--ssh <user@machine>", description: "Run the attach on that machine over `ssh -t`. Needs `superset` installed and signed in there." },
 	]}
 >

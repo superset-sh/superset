@@ -71,10 +71,21 @@ export default command({
 			timeoutMs: options.timeout * 1000,
 			intervalMs: POLL_INTERVAL_MS,
 		});
-		if (value.match !== undefined) {
+		// The exit can be seen after the screen was read, so read it once more
+		// for output printed just before the terminal ended.
+		const finalScreen = value.alive
+			? null
+			: await client.terminal.snapshot
+					.query({ ...ref, maxLines: options.maxLines ?? undefined })
+					.then((snapshot) => snapshot.text)
+					.catch(() => null);
+		const match =
+			value.match ??
+			(finalScreen === null ? undefined : pattern.exec(finalScreen)?.[0]);
+		if (match !== undefined) {
 			return {
-				data: { terminalId: options.terminal, matched: value.match },
-				message: value.match,
+				data: { terminalId: options.terminal, matched: match },
+				message: match,
 			};
 		}
 		if (!value.alive) {

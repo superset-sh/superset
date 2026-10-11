@@ -61,6 +61,8 @@ export function attachTerminal({
 	onInput?: (chunk: string) => void;
 	signal?: AbortSignal;
 }): Promise<AttachEnd> {
+	// An abort that landed before this call never fires the listener below.
+	if (signal?.aborted) return Promise.resolve({ reason: "detached" });
 	const stdin = process.stdin;
 	const stdout = process.stdout;
 	const socket = new WebSocket(url);
