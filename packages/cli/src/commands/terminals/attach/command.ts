@@ -5,9 +5,9 @@ import { resolveWorkspaceTarget } from "../../../lib/host-workspaces";
 import {
 	attachTerminal,
 	DETACH_KEY_LABEL,
+	interruptIn,
 	terminalAttachUrl,
 } from "../../../lib/terminal-attach";
-import { INTERRUPT_KEYS } from "../../../lib/terminal-keys";
 
 const SSH_CONNECTION_FAILED = 255;
 const COMMAND_NOT_FOUND = 127;
@@ -29,8 +29,8 @@ export default command({
 			"Attach through SSH on this target (user@machine); runs `superset terminals attach --local` there",
 		),
 	},
-	run: async ({ ctx, options }) => {
-		if (!process.stdin.isTTY || !process.stdout.isTTY) {
+	run: async ({ ctx, options, signal }) => {
+		if (process.env.CI || !process.stdin.isTTY || !process.stdout.isTTY) {
 			throw new CLIError(
 				"attach needs an interactive terminal",
 				"Scripts can use `superset terminals read` and `terminals send` instead",
@@ -106,11 +106,13 @@ export default command({
 		const end = await attachTerminal({
 			url: terminalAttachUrl(target.ws, options.workspace, options.terminal),
 			onInput: (chunk) => {
-				if (!INTERRUPT_KEYS.has(chunk)) return;
-				clearAgentStatusAfterInterrupt(target.client, ref, [chunk]).catch(
+				const interrupt = interruptIn(chunk);
+				if (!interrupt) return;
+				clearAgentStatusAfterInterrupt(target.client, ref, [interrupt]).catch(
 					() => {},
 				);
 			},
+			signal,
 		});
 
 		switch (end.reason) {
@@ -124,13 +126,15 @@ export default command({
 					data: { terminalId: options.terminal, ...end },
 					message: `Terminal ${options.terminal} exited with code ${end.exitCode}`,
 				};
-			default:
+			case "closed":
+				throw new CLIError(
+					`Connection to terminal ${options.terminal} closed unexpectedly`,
+					"The terminal keeps running; attach again",
+				);
+			case "detached":
 				return {
 					data: { terminalId: options.terminal, ...end },
-					message:
-						end.reason === "detached"
-							? `Detached from terminal ${options.terminal}`
-							: `Connection to terminal ${options.terminal} closed`,
+					message: `Detached from terminal ${options.terminal}`,
 				};
 		}
 	},

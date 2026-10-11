@@ -43,12 +43,23 @@ export function terminalAttachUrl(
 	return `${ws.baseWsUrl}/terminal/${encodeURIComponent(terminalId)}?${params}`;
 }
 
+/**
+ * The interrupt typed in a stdin chunk, if any. Ctrl+C counts anywhere in the
+ * chunk; Esc only on its own, since arrow keys start with it.
+ */
+export function interruptIn(chunk: string): string | null {
+	if (chunk.includes("\x03")) return "\x03";
+	return chunk === "\x1b" ? "\x1b" : null;
+}
+
 export function attachTerminal({
 	url,
 	onInput,
+	signal,
 }: {
 	url: string;
 	onInput?: (chunk: string) => void;
+	signal?: AbortSignal;
 }): Promise<AttachEnd> {
 	const stdin = process.stdin;
 	const stdout = process.stdout;
@@ -70,9 +81,11 @@ export function attachTerminal({
 			}
 		};
 
+		const onAbort = () => finish({ reason: "detached" });
 		const finish = (end: AttachEnd) => {
 			if (ended) return;
 			ended = true;
+			signal?.removeEventListener("abort", onAbort);
 			if (attached) {
 				stdin.off("data", onData);
 				process.off("SIGWINCH", sendSize);
@@ -119,6 +132,7 @@ export function attachTerminal({
 				finish({ reason: "error", message: message.message });
 			}
 		};
+		signal?.addEventListener("abort", onAbort, { once: true });
 		socket.onerror = () =>
 			finish({ reason: "error", message: "Connection to the host failed" });
 		socket.onclose = () => finish({ reason: "closed" });
