@@ -88,7 +88,7 @@ const NOT_WORDS = [
 ];
 // The token after one of these is the secret itself, however short.
 const SECRET_LABEL =
-	/^(?:(?:api[-_]?key|passw(?:or)?d|pwd|secret|token)s?:?|pass:)$/i;
+	/^(?:(?:api[-_]?key|credential|key|passw(?:or)?d|pwd|secret|token)s?:?|pass:)$/i;
 const LINKING_WORD = /^(?:is|was|=|:)$/i;
 const TRANSLITERATIONS: Record<string, string> = {
 	ß: "ss",
@@ -111,7 +111,33 @@ function followsSecretLabel(tokens: string[], index: number): boolean {
 		: previous;
 	if (!SECRET_LABEL.test(label)) return false;
 	// "token refresh" names a task; "token Abc123" or "token: x" is a value.
-	return label.endsWith(":") || /[^a-z]/.test(tokens[index] ?? "");
+	return (
+		label.endsWith(":") ||
+		previous === "=" ||
+		previous === ":" ||
+		/[^a-z]/.test(tokens[index] ?? "")
+	);
+}
+
+/** The first non-empty line outside fenced code (CommonMark fence rules). */
+function firstProseLine(prompt: string): string {
+	let fence = "";
+	for (const line of prompt.split(/\r?\n/)) {
+		const [, run = "", rest = ""] =
+			/^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line) ?? [];
+		if (fence) {
+			const closes =
+				run[0] === fence[0] && run.length >= fence.length && !rest.trim();
+			if (closes) fence = "";
+			continue;
+		}
+		if (run) {
+			fence = run;
+			continue;
+		}
+		if (line.trim()) return line;
+	}
+	return "";
 }
 
 function looksLikeIdOrSecret(token: string): boolean {
@@ -130,12 +156,7 @@ function looksLikeIdOrSecret(token: string): boolean {
  * is left to name it by: a greeting, only links, or a non-Latin script.
  */
 export function promptBranchSlug(prompt: string): string | null {
-	const firstLine =
-		prompt
-			.replace(/```[\s\S]*?(?:```|$)/g, " ")
-			.split(/\r?\n/)
-			.find((line) => line.trim()) ?? "";
-	const words = firstLine
+	const words = firstProseLine(prompt)
 		.replace(/\]\([^)]*\)/g, "]")
 		.replace(/(\p{L})['’](\p{L})/gu, "$1$2")
 		.split(/\s+/)
