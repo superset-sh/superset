@@ -76,6 +76,13 @@ export function ImportProjectsPage({
 			),
 		[projectsQuery.data, foreignClaims],
 	);
+	const projectsOwnedElsewhere = useMemo(
+		() =>
+			(projectsQuery.data ?? []).filter((p) =>
+				foreignClaims?.projectIds.has(p.id),
+			),
+		[projectsQuery.data, foreignClaims],
+	);
 
 	const [importStates, setImportStates] = useState<
 		Map<string, ProjectImportStatus>
@@ -258,7 +265,7 @@ export function ImportProjectsPage({
 				}),
 			)}
 			isLoading={isLoading}
-			itemCount={projects.length}
+			itemCount={projects.length + projectsOwnedElsewhere.length}
 			emptyMessage={translate(
 				msg({ message: "No v1 projects found on this device." }),
 			)}
@@ -275,6 +282,23 @@ export function ImportProjectsPage({
 					status={importStates.get(project.id) ?? IDLE}
 					onStatusChange={(status) => updateImportStatus(project.id, status)}
 					disabled={isImportingAll}
+				/>
+			))}
+			{projectsOwnedElsewhere.map((project) => (
+				<ImportRow
+					key={project.id}
+					icon={<LuFolder className="size-3.5" strokeWidth={2} />}
+					primary={project.name}
+					secondary={project.mainRepoPath}
+					action={{
+						kind: "blocked",
+						reason: translate(
+							msg({
+								message:
+									"Already brought over to another organization. Switch to it to see this project.",
+							}),
+						),
+					}}
 				/>
 			))}
 		</ImportPageShell>

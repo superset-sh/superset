@@ -8,7 +8,7 @@ import {
 } from "./projects";
 import { planHostBranchPrefix, planProjectPrefs } from "./settings";
 import { planTerminalMigration, resolveMigratedPaneResume } from "./terminals";
-import { planWorkspaceAdoptions } from "./workspaces";
+import { findGitWorktreeAtFolder, planWorkspaceAdoptions } from "./workspaces";
 
 type Candidate = { id: string; source: string };
 const findByPath = (candidates: Candidate[], cloudErrors: unknown[] = []) =>
@@ -191,6 +191,18 @@ describe("planWorkspaceAdoptions", () => {
 			v1WorktreeRealPathById: new Map([["wt-1", "/real/tree/feat"]]),
 		});
 		expect(plan.missingWorktree).toEqual([]);
+		expect(plan.needsAttention).toMatchObject([{ v1WorkspaceId: "v1-ws" }]);
+	});
+
+	test("a detached folder never links to another folder now on its branch", () => {
+		const plan = planWorkspaceAdoptions({
+			...base,
+			v1Workspaces: [ws({ branch: "done" })],
+			onDiskWorktreeByRealPath: new Map([["/real/tree/other", onDisk("done")]]),
+			v1WorktreeRealPathById: new Map([["wt-1", "/real/tree/feat"]]),
+		});
+		expect(plan.alreadyAdopted).toEqual([]);
+		expect(plan.toAdopt).toEqual([]);
 		expect(plan.needsAttention).toMatchObject([{ v1WorkspaceId: "v1-ws" }]);
 	});
 
@@ -693,5 +705,41 @@ describe("v1MigrationEventProps", () => {
 		expect(props.terminals_migrated).toBe(1);
 		// 5 kinds x 5 counters + gate_complete
 		expect(Object.keys(props)).toHaveLength(26);
+	});
+});
+
+describe("findGitWorktreeAtFolder", () => {
+	test("returns git's spelling for a v1 folder spelled differently", async () => {
+		const hostClient = {
+			workspaceCreation: {
+				listProjectWorktrees: {
+					query: async () => ({
+						worktrees: [
+							{ path: "/repo", branch: "main", isMainWorktree: true },
+							{ path: "/trees/feat", branch: "feat" },
+						],
+					}),
+				},
+			},
+		} as unknown as HostServiceClient;
+		const resolvePaths = async (paths: string[]) =>
+			paths.map((path) => path.replace(/\/$/, ""));
+
+		expect(
+			await findGitWorktreeAtFolder(
+				hostClient,
+				resolvePaths,
+				"p",
+				"/trees/feat/",
+			),
+		).toEqual({ path: "/trees/feat", branch: "feat" });
+		expect(
+			await findGitWorktreeAtFolder(
+				hostClient,
+				resolvePaths,
+				"p",
+				"/trees/gone",
+			),
+		).toBeNull();
 	});
 });

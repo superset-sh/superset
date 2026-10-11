@@ -129,6 +129,9 @@ export function planWorkspaceAdoptions({
 		needsAttention: [],
 		unmappedProject: [],
 	};
+	const projectsListingPaths = new Set(
+		Array.from(onDiskWorktreeByRealPath.values(), (w) => w.v2ProjectId),
+	);
 	const claimedRealPaths = new Set<string>();
 	const claimedKeys = new Set<string>();
 	const folderGone: WorkspacePlan["missingWorktree"] = [];
@@ -153,6 +156,17 @@ export function planWorkspaceAdoptions({
 		const branch = atPath?.branch ?? workspace.branch;
 		const isV1MainRepoWorkspace =
 			workspace.type === "branch" && !workspace.worktreeId;
+
+		// Git lists no branch here (detached, or not a worktree of this repo),
+		// so the saved branch may now belong to another folder.
+		if (realPath && !atPath && projectsListingPaths.has(v2ProjectId)) {
+			plan.needsAttention.push({
+				v1WorkspaceId: workspace.id,
+				v2ProjectId,
+				branch: workspace.branch,
+			});
+			continue;
+		}
 
 		const v2WorkspaceId = isV1MainRepoWorkspace
 			? undefined
@@ -251,6 +265,28 @@ function trpcCode(err: unknown): string | null {
 	if (typeof data !== "object" || data === null) return null;
 	const code = (data as { code?: unknown }).code;
 	return typeof code === "string" ? code : null;
+}
+
+/** Host rows store git's path spelling, so adopt must pass that, not v1's. */
+export async function findGitWorktreeAtFolder(
+	hostClient: HostServiceClient,
+	resolvePaths: (paths: string[]) => Promise<(string | null)[]>,
+	v2ProjectId: string,
+	folder: string,
+): Promise<{ path: string; branch: string } | null> {
+	const { worktrees } =
+		await hostClient.workspaceCreation.listProjectWorktrees.query({
+			projectId: v2ProjectId,
+		});
+	const listed = worktrees.flatMap((w) =>
+		typeof w.path === "string" ? [{ path: w.path, branch: w.branch }] : [],
+	);
+	const [target, ...realPaths] = await resolvePaths([
+		folder,
+		...listed.map((w) => w.path),
+	]);
+	if (!target) return null;
+	return listed[realPaths.indexOf(target)] ?? null;
 }
 
 /**
