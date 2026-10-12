@@ -121,3 +121,26 @@ describe("bundled plugin skills", () => {
 		});
 	}
 });
+
+describe("page skill templates", () => {
+	const pageDir = path.join(SKILLS_DIR, "page");
+	const scriptOf = (content: string) =>
+		(/<script>([\s\S]*?)<\/script>/.exec(content)?.[1] ?? "").replace(
+			/\s+/g,
+			"",
+		);
+	const reference = scriptOf(
+		readFileSync(path.join(pageDir, "references", "storage.md"), "utf-8"),
+	);
+
+	for (const template of ["decision.html", "findings.html", "incident.html"]) {
+		it(`${template} carries the vote script from references/storage.md`, () => {
+			expect(reference.length).toBeGreaterThan(0);
+			const content = readFileSync(
+				path.join(pageDir, "templates", template),
+				"utf-8",
+			);
+			expect(scriptOf(content)).toBe(reference);
+		});
+	}
+});
