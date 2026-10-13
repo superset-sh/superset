@@ -1,0 +1,32 @@
+---
+title: Stripe
+description: Trace charges and subscriptions, read billing data, and search Stripe's docs
+---
+
+<Callout type="info">
+Plugins are coming soon. They are not yet available to everyone, so you might not see **Plugins** in the app yet.
+</Callout>
+
+Trace charges and subscriptions, read billing data, and search Stripe's docs.
+
+## Skills
+
+| Skill | What it does |
+|:------|:-------------|
+| `trace-a-payment` | Answers questions about money that already moved: why a charge failed, what a customer paid, where a payout is |
+| `refund-and-dispute` | Refunds a customer or responds to a dispute, with checks before each write that cannot be undone |
+| `build-a-stripe-integration` | Writes Stripe code against the current API, checking every parameter in Stripe's docs |
+
+Skills are named `stripe-<skill>`. In Claude Code they appear as `superset:stripe-<skill>`.
+
+## MCP Server
+
+Tools come from Stripe's own MCP server at `https://mcp.stripe.com`. Superset proxies each call and adds your credentials. Stripe decides which tools the server offers, so see Stripe's documentation for the current list.
+
+## Authentication
+
+| Method | Details |
+|:-------|:--------|
+| OAuth 2.0 | You sign in to Stripe in your browser. Superset registers itself with Stripe when you connect, so there is no app to set up first. |
+
+Connect from the plugin's page in **Plugins**. Superset keeps the credentials. The agent and your machine never see them.

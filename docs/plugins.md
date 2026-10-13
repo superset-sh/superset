@@ -34,10 +34,22 @@ and installs the working tree, which is what makes local authoring work.
 
 ```bash
 superset plugins publish <name> --bump patch   # rewrites the marketplace entry and the bundle
-git commit -am "publish <name>@<version>"
-git tag <name>@<version> && git push --tags    # the tag is the release
+git add .agent-marketplace.json plugins/<name> packages/shared/src/plugins/manifests.generated.ts
+git commit -m "publish <name>@<version>"
+git tag <name>@<version>
+git push origin <branch> <name>@<version>      # push the branch too: install reads the version from it
 bun run check:plugins                          # what CI runs; catches a change that skipped publish
 ```
+
+`superset plugins validate` takes a path (`plugins/<name>`), not a name. To test a plugin locally,
+`superset plugins marketplace add <path>` then `superset plugins install <name>`. Install copies the
+plugin into a cache, so after an edit run `superset plugins install <name> --update`; `plugins sync`
+reads the cached copy and does not see the working tree.
+
+A third-party marketplace needs `.agent-marketplace.json` at its root (`$schema`, `name`,
+`description`, `owner`, `plugins: []`); `plugins create` refuses to run without it. Its plugins get
+skills only: `desiredPluginMcpServers` emits MCP entries for `PLUGIN_CATALOG` plugins alone, and
+`connector.slug` must already exist in `connectors.json`.
 
 `check:plugins` fails on a marketplace entry whose version disagrees with `plugin.json`, a `server/`
 build that is stale against `src/`, a `manifests.generated.ts` that a publish would rewrite, and a

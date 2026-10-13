@@ -1,0 +1,31 @@
+---
+title: Notion
+description: Search, read, and write pages, databases, and comments
+---
+
+<Callout type="info">
+Plugins are coming soon. They are not yet available to everyone, so you might not see **Plugins** in the app yet.
+</Callout>
+
+Search, read, and write pages, databases, and comments.
+
+## Skills
+
+| Skill | What it does |
+|:------|:-------------|
+| `find-in-notion` | Searches Notion before the agent answers or writes, finds the current page, and cites it |
+| `write-to-notion` | Writes a page under the right parent, checks for an existing page first, and structures it so people can find it |
+
+Skills are named `notion-<skill>`. In Claude Code they appear as `superset:notion-<skill>`.
+
+## MCP Server
+
+Tools come from Notion's own MCP server at `https://mcp.notion.com/mcp`. Superset proxies each call and adds your credentials. Notion decides which tools the server offers, so see Notion's documentation for the current list.
+
+## Authentication
+
+| Method | Details |
+|:-------|:--------|
+| OAuth 2.0 | You sign in to Notion in your browser. Superset registers itself with Notion when you connect, so there is no app to set up first. |
+
+Connect from the plugin's page in **Plugins**. Superset keeps the credentials. The agent and your machine never see them.

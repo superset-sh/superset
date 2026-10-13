@@ -1,0 +1,35 @@
+---
+title: Linear
+description: Create, search, and update Linear issues
+---
+
+<Callout type="info">
+Plugins are coming soon. They are not yet available to everyone, so you might not see **Plugins** in the app yet.
+</Callout>
+
+Create, search, and update Linear issues.
+
+This plugin gives a coding agent Linear tools. To open a Linear issue as a Superset workspace, see [Use with Linear](/use-with-linear).
+
+## Skills
+
+| Skill | What it does |
+|:------|:-------------|
+| `file-issue` | Turns a rough report into an issue: reproduces it, checks for duplicates, and sets team, priority, and labels |
+| `duplicate-sweep` | Groups issues about the same bug, picks one to keep, and moves the evidence to it |
+| `project-status` | Drafts a project status update from what actually moved: progress, risks, and the decision that is needed |
+
+Skills are named `linear-<skill>`. In Claude Code they appear as `superset:linear-<skill>`.
+
+## MCP Server
+
+Tools come from Linear's own MCP server at `https://mcp.linear.app/mcp`. Superset proxies each call and adds your credentials. Linear decides which tools the server offers, so see Linear's documentation for the current list.
+
+## Authentication
+
+| Method | Details |
+|:-------|:--------|
+| OAuth 2.0 | You sign in to Linear in your browser. Superset registers itself with Linear when you connect, so there is no app to set up first. Superset asks for `read` and `write`. |
+| Personal API key | Paste a key from Linear's **Settings → Security & access**. |
+
+Connect from the plugin's page in **Plugins**. Superset keeps the credentials. The agent and your machine never see them.
