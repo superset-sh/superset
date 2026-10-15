@@ -64,6 +64,10 @@ export interface FsService {
 		includeHidden?: boolean;
 		includePattern?: string;
 		excludePattern?: string;
+		isCaseSensitive?: boolean;
+		isWordMatch?: boolean;
+		isRegExp?: boolean;
+		maxCountPerFile?: number;
 		limit?: number;
 	}): Promise<{ matches: FsContentMatch[] }>;
 
@@ -138,6 +142,10 @@ export interface FsRequestMap {
 			includeHidden?: boolean;
 			includePattern?: string;
 			excludePattern?: string;
+			isCaseSensitive?: boolean;
+			isWordMatch?: boolean;
+			isRegExp?: boolean;
+			maxCountPerFile?: number;
 			limit?: number;
 		};
 		output: { matches: FsContentMatch[] };
