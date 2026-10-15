@@ -84,6 +84,7 @@ export type PromptInputAttachment = {
 };
 
 export type PromptInputSubmitPayload = {
+	isDraftUnchanged?: () => boolean;
 	text: string;
 	files: File[];
 	mentions: ComposerChip[];
@@ -137,10 +138,11 @@ export type PromptInputProps = {
 	// Spans of a stored draft that were chips before it was serialized, so
 	// they come back as chips. Runs on the draft as read, never on typing.
 	findChips?: (text: string) => ComposerChipMatch[];
-	/** Returning `false` keeps the draft in the editor. */
+	/** Clears only after acceptance. Returning `false` or rejecting keeps the draft. */
 	onSubmit?: (
 		payload: PromptInputSubmitPayload,
-	) => false | void | Promise<void>;
+		// biome-ignore lint/suspicious/noConfusingVoidType: existing async handlers resolve void; false explicitly declines submission.
+	) => false | void | Promise<false | void>;
 	onStop?: () => void;
 	header?: ReactNode;
 	onAddFiles?: (files: File[]) => void;

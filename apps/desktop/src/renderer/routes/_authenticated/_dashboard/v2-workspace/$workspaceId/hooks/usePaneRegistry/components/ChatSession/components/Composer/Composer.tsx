@@ -6,7 +6,6 @@ import type {
 	UserMessage,
 } from "@superset/chat/protocol";
 import type {
-	ComposerChip,
 	ComposerMentionEntry,
 	ComposerMentionProvider,
 	PromptInputCommand,
@@ -34,7 +33,6 @@ import { pagesListInput } from "renderer/routes/_authenticated/_dashboard/utils/
 import { AgentComposer } from "renderer/routes/_authenticated/components/AgentComposer";
 import { CHAT_COLUMN_CLASSNAME, CHAT_GUTTER_CLASSNAME } from "../../constants";
 import { commandChip, LEADING_COMMAND } from "../../utils/commandChip";
-import { elementsForChips } from "../../utils/messageElements";
 import { type AgentSwitcher, ModelPicker } from "./components/ModelPicker";
 import { ModePicker, type SessionMode } from "./components/ModePicker";
 import { QueuedPrompts } from "./components/QueuedPrompts";
@@ -45,6 +43,7 @@ import {
 } from "./hooks/useComposerDraft";
 import { useQueueActions } from "./hooks/useQueueActions";
 import { useUploadAttachments } from "./hooks/useUploadAttachments";
+import { submitMessage } from "./utils/submitMessage";
 
 export type ComposerProps = {
 	workspaceId: string;
@@ -121,7 +120,7 @@ export const Composer = memo(function Composer({
 	const cloudUtils = cloudTrpc.useUtils();
 	const uploadAttachments = useUploadAttachments(workspaceId);
 	const attachmentPreview = useAttachmentPreview();
-	const { storedDraft, onChange, clearDraft } = useComposerDraft(draftKey);
+	const { storedDraft, onChange, beginSubmission } = useComposerDraft(draftKey);
 	const promptInputRef = useRef<PromptInputHandle>(null);
 	const queueActions = useQueueActions(promptQueue, promptInputRef);
 	useImperativeHandle(
@@ -264,37 +263,15 @@ export const Composer = memo(function Composer({
 		[availableCommands, t],
 	);
 
-	const send = useCallback(
-		async (
-			text: string,
-			files: File[],
-			mentions: ComposerChip[],
-			steer: boolean,
-		) => {
-			const tags = await uploadAttachments(files);
-			if (!tags) {
-				promptInputRef.current?.appendText(text);
-				return;
-			}
-			const elements = elementsForChips(text.trim(), mentions);
-			onSend(
-				[
-					{
-						type: "text",
-						text: [text.trim(), ...tags].filter(Boolean).join("\n"),
-						...(elements.length > 0 ? { elements } : {}),
-					},
-				],
-				{ steer },
-			);
-			clearDraft();
-		},
-		[onSend, uploadAttachments, clearDraft],
-	);
-
 	const handleSubmit = useCallback(
-		({ text, files, mentions, steer }: PromptInputSubmitPayload) => {
-			if (disabled || (text.trim() === "" && files.length === 0)) return;
+		async ({
+			text,
+			files,
+			mentions,
+			steer,
+			isDraftUnchanged,
+		}: PromptInputSubmitPayload) => {
+			if (disabled || (text.trim() === "" && files.length === 0)) return false;
 			const name = LEADING_COMMAND.exec(text.trim())?.[1];
 			if (
 				name &&
@@ -304,9 +281,28 @@ export const Composer = memo(function Composer({
 				toast.error(t({ message: `Unknown command /${name}` }));
 				return false;
 			}
-			return send(text, files, mentions, steer);
+			const finishSubmission = beginSubmission(text, isDraftUnchanged);
+			if (!finishSubmission) return false;
+			try {
+				const result = await submitMessage(
+					{ text, files, mentions, steer },
+					{ uploadAttachments, onSend },
+				);
+				finishSubmission(result !== false);
+				return result;
+			} catch (error) {
+				finishSubmission(false);
+				throw error;
+			}
 		},
-		[availableCommands, disabled, send, t],
+		[
+			availableCommands,
+			disabled,
+			onSend,
+			uploadAttachments,
+			t,
+			beginSubmission,
+		],
 	);
 
 	const queueListRef = useRef<HTMLUListElement>(null);

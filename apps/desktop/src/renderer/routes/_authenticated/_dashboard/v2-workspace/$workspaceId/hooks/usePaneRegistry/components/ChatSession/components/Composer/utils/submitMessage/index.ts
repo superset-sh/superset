@@ -1,0 +1,1 @@
+export { submitMessage } from "./submitMessage";

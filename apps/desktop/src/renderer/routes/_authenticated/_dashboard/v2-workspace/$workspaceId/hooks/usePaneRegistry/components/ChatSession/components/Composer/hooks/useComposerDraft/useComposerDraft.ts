@@ -4,6 +4,9 @@ const DRAFT_DEBOUNCE_MS = 300;
 
 const unsavedDrafts = new Map<string, string>();
 const recoveredAfterRead = new Map<string, string[]>();
+const pendingSubmissions = new Map<string, { text: string }>();
+const inFlightSubmissions = new Map<string, { text: string }>();
+const clearedDraftListeners = new Map<string, Set<() => void>>();
 
 function persistDraft(draftKey: string, text: string): boolean {
 	try {
@@ -16,17 +19,24 @@ function persistDraft(draftKey: string, text: string): boolean {
 	}
 }
 
-function readDraft(draftKey: string): string | undefined {
+function clearStoredDraft(draftKey: string) {
+	unsavedDrafts.set(draftKey, "");
+	if (persistDraft(draftKey, "")) unsavedDrafts.delete(draftKey);
+	for (const notify of clearedDraftListeners.get(draftKey) ?? []) notify();
+}
+
+function readDraft(draftKey: string, fallback?: string): string | undefined {
 	const unsaved = unsavedDrafts.get(draftKey);
 	if (unsaved !== undefined) return unsaved;
 	try {
 		return window.localStorage.getItem(draftKey) ?? undefined;
 	} catch {
-		return undefined;
+		return fallback;
 	}
 }
 
 export function prependToDraft(draftKey: string, text: string) {
+	pendingSubmissions.delete(draftKey);
 	const current = readDraft(draftKey);
 	const merged = current ? `${text}\n\n${current}` : text;
 	unsavedDrafts.set(draftKey, merged);
@@ -59,6 +69,9 @@ export function useComposerDraft(draftKey: string) {
 	}, []);
 	const onChange = useCallback(
 		(text: string) => {
+			const submission = pendingSubmissions.get(draftKey);
+			if (submission && submission.text !== text)
+				pendingSubmissions.delete(draftKey);
 			if (draftTimer.current) clearTimeout(draftTimer.current);
 			unsavedDrafts.set(draftKey, text);
 			pendingDraftKey.current = draftKey;
@@ -73,17 +86,62 @@ export function useComposerDraft(draftKey: string) {
 		return { draftKey, text: readDraft(draftKey) };
 	});
 
+	useEffect(() => {
+		setSeed((current) => {
+			const text = readDraft(
+				draftKey,
+				current.draftKey === draftKey ? current.text : undefined,
+			);
+			return current.draftKey === draftKey && current.text === text
+				? current
+				: { draftKey, text };
+		});
+		const listeners =
+			clearedDraftListeners.get(draftKey) ?? new Set<() => void>();
+		const clearSeed = () => setSeed({ draftKey, text: undefined });
+		listeners.add(clearSeed);
+		clearedDraftListeners.set(draftKey, listeners);
+		return () => {
+			listeners.delete(clearSeed);
+			if (listeners.size === 0) clearedDraftListeners.delete(draftKey);
+		};
+	}, [draftKey]);
+
+	const beginSubmission = useCallback(
+		(text: string, isDraftUnchanged?: () => boolean) => {
+			if (inFlightSubmissions.has(draftKey)) return null;
+			pendingSubmissions.delete(draftKey);
+			const submitted = { text: readDraft(draftKey) ?? "" };
+			inFlightSubmissions.set(draftKey, submitted);
+			if (submitted.text.trim() === text.trim())
+				pendingSubmissions.set(draftKey, submitted);
+			return (accepted: boolean) => {
+				if (inFlightSubmissions.get(draftKey) !== submitted) return;
+				inFlightSubmissions.delete(draftKey);
+				if (pendingSubmissions.get(draftKey) !== submitted) return;
+				pendingSubmissions.delete(draftKey);
+				if (
+					!accepted ||
+					isDraftUnchanged?.() === false ||
+					(readDraft(draftKey) ?? "") !== submitted.text
+				)
+					return;
+				clearStoredDraft(draftKey);
+			};
+		},
+		[draftKey],
+	);
+
 	const clearDraft = useCallback(() => {
+		pendingSubmissions.delete(draftKey);
 		if (draftTimer.current) clearTimeout(draftTimer.current);
 		draftTimer.current = null;
 		pendingDraftKey.current = null;
-		unsavedDrafts.delete(draftKey);
-		persistDraft(draftKey, "");
-		setSeed({ draftKey, text: undefined });
+		clearStoredDraft(draftKey);
 	}, [draftKey]);
 
 	const storedDraft =
 		seed.draftKey === draftKey ? seed.text : readDraft(draftKey);
 
-	return { storedDraft, onChange, clearDraft };
+	return { storedDraft, onChange, clearDraft, beginSubmission };
 }
