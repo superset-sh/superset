@@ -617,6 +617,7 @@ export function TerminalPane({
 		<div
 			role="application"
 			className="relative flex h-full w-full flex-col p-2"
+			style={{ backgroundColor: appearance.background }}
 			onDragEnter={handleDragEnter}
 			onDragOver={handleDragOver}
 			onDragLeave={handleDragLeave}

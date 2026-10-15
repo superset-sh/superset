@@ -1,0 +1,1 @@
+export { ProjectAccentSection } from "./ProjectAccentSection";

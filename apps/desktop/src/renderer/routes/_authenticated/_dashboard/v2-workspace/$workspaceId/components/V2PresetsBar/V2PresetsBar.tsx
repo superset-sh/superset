@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro";
+import { PANES_ACCENT_VARS } from "@superset/panes";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -231,7 +232,10 @@ export function V2PresetsBar({
 	return (
 		<div
 			className="flex h-10 min-w-0 shrink-0 items-center gap-1.5 overflow-x-auto overflow-y-hidden bg-background px-2"
-			style={{ scrollbarWidth: "none" }}
+			style={{
+				scrollbarWidth: "none",
+				backgroundImage: `var(${PANES_ACCENT_VARS.surfaceTint}, none)`,
+			}}
 		>
 			<DropdownMenu>
 				<Tooltip delayDuration={1000} disableHoverableContent>

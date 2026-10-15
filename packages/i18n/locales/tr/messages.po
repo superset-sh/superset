@@ -2945,6 +2945,9 @@ msgstr "İkili dosya gizlendi"
 msgid "Bio"
 msgstr "Hakkında"
 
+msgid "Blend the color into the workspace and terminal background"
+msgstr "Rengi çalışma alanı ve terminal arka planına karıştır"
+
 msgid "Block"
 msgstr "Blok"
 
@@ -5491,6 +5494,9 @@ msgstr "Özel"
 msgid "Custom agent…"
 msgstr "Özel ajan…"
 
+msgid "Custom color"
+msgstr "Özel renk"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "shadcn setinin ötesindeki özel bileşenler"
 
@@ -5517,6 +5523,9 @@ msgstr "Özel terminal ajanları"
 
 msgid "Custom themes"
 msgstr "Özel temalar"
+
+msgid "Custom…"
+msgstr "Özel…"
 
 msgid "Customize commands"
 msgstr "Komutları özelleştir"
@@ -8306,6 +8315,9 @@ msgstr "Mühendislerin gerçekte ne kadar ajan işi çalıştırdığı — kat�
 msgid "How should the agent's actions be approved?"
 msgstr "Ajanın işlemleri nasıl onaylansın?"
 
+msgid "How strongly the color tints each surface"
+msgstr "Rengin her yüzeyi ne kadar güçlü renklendireceği"
+
 msgid "How the command opens."
 msgstr "Komutun nasıl açılacağı."
 
@@ -8732,6 +8744,9 @@ msgstr "Yönergeler"
 
 msgid "Integrations"
 msgstr "Entegrasyonlar"
+
+msgid "Intensity"
+msgstr "Yoğunluk"
 
 msgid "Interactive agent terminal."
 msgstr "Etkileşimli ajan terminali."
@@ -12094,6 +12109,9 @@ msgstr "Ücretli deneme çalışması"
 msgid "Palette"
 msgstr "Palet"
 
+msgid "Pane headers"
+msgstr "Bölme başlıkları"
+
 msgid "Pane in current tab"
 msgstr "Geçerli sekmede bölme"
 
@@ -12726,6 +12744,9 @@ msgstr "İlerleme · Spinner"
 msgid "Project"
 msgstr "Proje"
 
+msgid "Project colors in workspaces"
+msgstr "Çalışma alanlarında proje renkleri"
+
 msgid "Project created."
 msgstr "Proje oluşturuldu."
 
@@ -12783,6 +12804,9 @@ msgstr "Proje geneli arama"
 #. placeholder {0}: workspace.projectName ?? t({ message: "none (session)", })
 msgid "Project: {0}"
 msgstr "Proje: {0}"
+
+msgid "Project's host is unreachable — cannot change color right now"
+msgstr "Projenin host'una erişilemiyor — şu anda renk değiştirilemez"
 
 msgid "Project's host is unreachable — cannot import worktrees right now"
 msgstr "Projenin host'una erişilemiyor — worktree'ler şu anda içe aktarılamaz"
@@ -16345,6 +16369,9 @@ msgstr "Sistem RAM'i: Superset {0}, diğer uygulamalar {1}, boş {2}"
 msgid "Tab"
 msgstr "Sekme"
 
+msgid "Tab bar"
+msgstr "Sekme çubuğu"
+
 msgid "Tab per command"
 msgstr "Komut başına sekme"
 
@@ -17400,6 +17427,21 @@ msgstr "Zaman"
 
 msgid "Times use your time zone."
 msgstr "Saatler saat diliminizi kullanır."
+
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "Kenar çubuğunda her projeyi ve projenin kendi çalışma alanlarını renklendir"
+
+msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
+msgstr "Her çalışma alanını projesinin rengiyle renklendirir. Kenar çubuğunda bir projeye sağ tıklayarak renk seçin."
+
+msgid "Tint the header above each pane"
+msgstr "Her bölmenin üstündeki başlığı renklendir"
+
+msgid "Tint the tab strip and mark the active tab"
+msgstr "Sekme çubuğunu renklendir ve etkin sekmeyi işaretle"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "Projeyi kenar çubuğunda ve çalışma alanlarında renklendirir."
 
 msgid "Tip"
 msgstr "İpucu"

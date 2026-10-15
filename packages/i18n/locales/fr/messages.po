@@ -2945,6 +2945,9 @@ msgstr "Fichier binaire masqué"
 msgid "Bio"
 msgstr "Bio"
 
+msgid "Blend the color into the workspace and terminal background"
+msgstr "Mélanger la couleur au fond de l'espace de travail et du terminal"
+
 msgid "Block"
 msgstr "Bloc"
 
@@ -5491,6 +5494,9 @@ msgstr "Personnalisé"
 msgid "Custom agent…"
 msgstr "Agent personnalisé…"
 
+msgid "Custom color"
+msgstr "Couleur personnalisée"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "Composants personnalisés au-delà de l'ensemble shadcn"
 
@@ -5517,6 +5523,9 @@ msgstr "Agents de terminal personnalisés"
 
 msgid "Custom themes"
 msgstr "Thèmes personnalisés"
+
+msgid "Custom…"
+msgstr "Personnalisée…"
 
 msgid "Customize commands"
 msgstr "Personnaliser les commandes"
@@ -8306,6 +8315,9 @@ msgstr "Le volume réel de travail agent exécuté par les ingénieurs — token
 msgid "How should the agent's actions be approved?"
 msgstr "Comment approuver les actions de l'agent ?"
 
+msgid "How strongly the color tints each surface"
+msgstr "Intensité de la teinte appliquée à chaque surface"
+
 msgid "How the command opens."
 msgstr "Comment la commande s'ouvre."
 
@@ -8732,6 +8744,9 @@ msgstr "Instructions"
 
 msgid "Integrations"
 msgstr "Intégrations"
+
+msgid "Intensity"
+msgstr "Intensité"
 
 msgid "Interactive agent terminal."
 msgstr "Terminal d'agent interactif."
@@ -12094,6 +12109,9 @@ msgstr "Mission d’essai rémunérée"
 msgid "Palette"
 msgstr "Palette"
 
+msgid "Pane headers"
+msgstr "En-têtes des volets"
+
 msgid "Pane in current tab"
 msgstr "Volet dans l'onglet actuel"
 
@@ -12726,6 +12744,9 @@ msgstr "Progression · Spinner"
 msgid "Project"
 msgstr "Projet"
 
+msgid "Project colors in workspaces"
+msgstr "Couleurs de projet dans les espaces de travail"
+
 msgid "Project created."
 msgstr "Projet créé."
 
@@ -12783,6 +12804,9 @@ msgstr "Recherche à l'échelle du projet"
 #. placeholder {0}: workspace.projectName ?? t({ message: "none (session)", })
 msgid "Project: {0}"
 msgstr "Projet : {0}"
+
+msgid "Project's host is unreachable — cannot change color right now"
+msgstr "L'hôte du projet est injoignable — impossible de changer la couleur pour le moment"
 
 msgid "Project's host is unreachable — cannot import worktrees right now"
 msgstr "L'hôte du projet est injoignable — impossible d'importer des worktrees pour le moment"
@@ -16345,6 +16369,9 @@ msgstr "RAM système : Superset {0}, autres applications {1}, libre {2}"
 msgid "Tab"
 msgstr "Onglet"
 
+msgid "Tab bar"
+msgstr "Barre d'onglets"
+
 msgid "Tab per command"
 msgstr "Un onglet par commande"
 
@@ -17400,6 +17427,21 @@ msgstr "Date"
 
 msgid "Times use your time zone."
 msgstr "Les heures utilisent votre fuseau horaire."
+
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "Teinter chaque projet et ses espaces de travail dans la barre latérale"
+
+msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
+msgstr "Teinte chaque espace de travail avec la couleur de son projet. Choisissez une couleur par un clic droit sur un projet dans la barre latérale."
+
+msgid "Tint the header above each pane"
+msgstr "Teinter l'en-tête de chaque volet"
+
+msgid "Tint the tab strip and mark the active tab"
+msgstr "Teinter la barre d'onglets et marquer l'onglet actif"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "Teinte le projet dans la barre latérale et dans ses espaces de travail."
 
 msgid "Tip"
 msgstr "Astuce"

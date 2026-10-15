@@ -4,6 +4,7 @@ import { useDragLayer } from "react-dnd";
 import { useStore } from "zustand";
 import { isPaneInLinkedStore } from "../../../core/transfer";
 import type { Pane } from "../../../types";
+import { PANES_ACCENT_VARS } from "../../accent";
 import type { WorkspaceProps } from "../../types";
 import { Tab } from "./components/Tab";
 import { TabBar } from "./components/TabBar";
@@ -105,6 +106,9 @@ export function Workspace<TData>({
 				"flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden bg-background text-foreground",
 				className,
 			)}
+			style={{
+				backgroundImage: `var(${PANES_ACCENT_VARS.surfaceTint}, none)`,
+			}}
 		>
 			<TabBar
 				store={store}

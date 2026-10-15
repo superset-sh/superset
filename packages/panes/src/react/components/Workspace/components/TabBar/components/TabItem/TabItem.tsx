@@ -14,6 +14,7 @@ import { PencilIcon, XIcon } from "lucide-react";
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import type { Tab } from "../../../../../../../types";
+import { PANES_ACCENT_VARS } from "../../../../../../accent";
 import type { PaneRegistry } from "../../../../../../types";
 import { useTabTitle } from "../../../../utils/useTabTitle";
 import { PANE_DRAG_TYPE } from "../../../Tab/components/Pane/components/PaneHeader";
@@ -127,6 +128,14 @@ export function TabItem<TData>({
 						isPaneOver && "bg-primary/5",
 						isDragging && "opacity-30",
 					)}
+					style={
+						isActive
+							? {
+									boxShadow: `inset 0 2px 0 var(${PANES_ACCENT_VARS.activeTabAccent}, transparent)`,
+									backgroundImage: `var(${PANES_ACCENT_VARS.surfaceTint}, none)`,
+								}
+							: undefined
+					}
 					// Select on click, not mousedown: the browser suppresses click after a
 					// drag, so starting a drag (reorder, or merging a tab into a pane) no
 					// longer switches the active tab mid-gesture.

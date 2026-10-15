@@ -18,6 +18,7 @@ import { BranchPrefixSection } from "../BranchPrefixSection";
 import { IconUploadField } from "../IconUploadField";
 import { NameSection } from "../NameSection";
 import { NamingInstructionsSection } from "../NamingInstructionsSection";
+import { ProjectColorField } from "../ProjectColorField";
 import { RepositorySection } from "../RepositorySection";
 import { SparseCheckoutSection } from "../SparseCheckoutSection";
 import { WorktreeLocationSection } from "../WorktreeLocationSection";
@@ -137,6 +138,20 @@ export function V2ProjectSettingsBody({
 							)}
 							isIconRemoved={projectIcon === PROJECT_ICON_NONE}
 							color={projectColor}
+						/>
+					</SettingsRow>
+					<SettingsRow
+						label={t({ message: "Color" })}
+						hint={t({
+							message:
+								"Tints the project in the sidebar and in its workspaces.",
+						})}
+					>
+						<ProjectColorField
+							projectId={projectId}
+							hostUrl={targetHostUrl}
+							color={projectColor}
+							onChanged={() => onHostProjectChanged()}
 						/>
 					</SettingsRow>
 				</SettingsSection>

@@ -2,8 +2,11 @@ import type {
 	DraggableAttributes,
 	DraggableSyntheticListeners,
 } from "@dnd-kit/core";
+import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import { useMemo } from "react";
+import { type CSSProperties, useMemo } from "react";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
+import { resolveSidebarProjectTint } from "renderer/lib/project-accent";
 import { DeleteProjectDialog } from "renderer/routes/_authenticated/components/DeleteProjectDialog";
 import type { DashboardSidebarProject } from "../../types";
 import { getProjectChildrenWorkspaces } from "../../utils/projectChildren";
@@ -62,6 +65,7 @@ export function DashboardSidebarProjectSection({
 		renameSection,
 		renameValue,
 		setImportableWorktrees,
+		setProjectColor,
 		setRenameValue,
 		startRename,
 		submitRename,
@@ -71,6 +75,15 @@ export function DashboardSidebarProjectSection({
 	});
 
 	const totalWorkspaceCount = flattenedCollapsedWorkspaces.length;
+
+	const { preferences } = useV2UserPreferences();
+	const sidebarTint = resolveSidebarProjectTint(
+		project.color,
+		preferences.projectAccent,
+	);
+	const groupStyle: CSSProperties | undefined = sidebarTint
+		? { backgroundColor: sidebarTint }
+		: undefined;
 
 	const deleteProjectDialog = canDeleteProject && (
 		<DeleteProjectDialog
@@ -101,6 +114,8 @@ export function DashboardSidebarProjectSection({
 		return (
 			<DashboardSidebarProjectContextMenu
 				projectId={project.id}
+				projectColor={project.color}
+				onSetColor={setProjectColor}
 				onCreateSection={handleNewSection}
 				onImportWorktrees={handleImportWorktrees}
 				onOpenInFinder={handleOpenInFinder}
@@ -109,7 +124,13 @@ export function DashboardSidebarProjectSection({
 				onDelete={canDeleteProject ? openDeleteDialog : null}
 				onRename={startRename}
 			>
-				<div className="mt-1 first:mt-0">
+				<div
+					className={cn(
+						"mt-1 first:mt-0",
+						sidebarTint && "mx-1 my-1.5 rounded-md py-0.5",
+					)}
+					style={groupStyle}
+				>
 					<DashboardSidebarCollapsedProjectContent
 						projectId={project.id}
 						projectName={project.name}
@@ -129,9 +150,17 @@ export function DashboardSidebarProjectSection({
 	}
 
 	return (
-		<div className="mt-1 first:mt-0">
+		<div
+			className={cn(
+				"mt-1 first:mt-0",
+				sidebarTint && "mx-1 my-1.5 rounded-md py-0.5",
+			)}
+			style={groupStyle}
+		>
 			<DashboardSidebarProjectContextMenu
 				projectId={project.id}
+				projectColor={project.color}
+				onSetColor={setProjectColor}
 				onCreateSection={handleNewSection}
 				onImportWorktrees={handleImportWorktrees}
 				onOpenInFinder={handleOpenInFinder}

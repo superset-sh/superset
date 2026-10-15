@@ -120,6 +120,23 @@ export function useDashboardSidebarProjectSectionActions({
 			});
 	};
 
+	const setProjectColor = (color: string | null) => {
+		if (!servingHostUrl) {
+			toast.error(
+				t({
+					message:
+						"Project's host is unreachable — cannot change color right now",
+				}),
+			);
+			return;
+		}
+		void getHostServiceClientByUrl(servingHostUrl)
+			.project.setColor.mutate({ projectId: project.id, color })
+			.catch((err) => {
+				toast.error(errorMessage(err, t({ message: "Failed to set color" })));
+			});
+	};
+
 	const handleOpenInFinder = async () => {
 		const hostProject = hostProjects.find(
 			(item) => item.projectKey === project.id,
@@ -315,6 +332,7 @@ export function useDashboardSidebarProjectSectionActions({
 		renameSection,
 		renameValue,
 		setImportableWorktrees,
+		setProjectColor,
 		setRenameValue,
 		startRename,
 		submitRename,

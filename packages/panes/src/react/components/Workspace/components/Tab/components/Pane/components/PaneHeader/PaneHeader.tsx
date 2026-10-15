@@ -1,6 +1,7 @@
 import { cn } from "@superset/ui/utils";
 import { type ReactNode, useCallback, useRef } from "react";
 import { useDrag } from "react-dnd";
+import { PANES_ACCENT_VARS } from "../../../../../../../../accent";
 import { DefaultHeaderContent } from "./components/DefaultHeaderContent";
 
 interface PaneHeaderProps {
@@ -63,12 +64,15 @@ export function PaneHeader({
 				// this a stacking context, trapping the URL-bar suggestions
 				// (an absolute z-50 box inside the header) under later siblings
 				// like the import banner. The pane root carries the container.
-				"flex h-7 shrink-0 cursor-grab items-center border-b border-border/20 bg-muted/30 transition-opacity duration-150",
+				"flex h-7 shrink-0 cursor-grab items-center border-b border-border/20 bg-[color-mix(in_oklab,var(--muted)_30%,var(--background))] transition-opacity duration-150",
 				!isActive &&
 					!isDragging &&
 					"opacity-60 hover:opacity-100 focus-within:opacity-100",
 				isDragging && "opacity-30",
 			)}
+			style={{
+				backgroundImage: `var(${PANES_ACCENT_VARS.paneHeaderTint}, none)`,
+			}}
 			onClick={onClick}
 			onAuxClick={(e) => {
 				if (e.button === 1 && onMiddleClick) {

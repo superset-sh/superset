@@ -2945,6 +2945,9 @@ msgstr "二進位檔案已隱藏"
 msgid "Bio"
 msgstr "簡介"
 
+msgid "Blend the color into the workspace and terminal background"
+msgstr "將顏色混入工作區和終端背景"
+
 msgid "Block"
 msgstr "方塊"
 
@@ -5491,6 +5494,9 @@ msgstr "自訂"
 msgid "Custom agent…"
 msgstr "自訂代理程式…"
 
+msgid "Custom color"
+msgstr "自訂顏色"
+
 msgid "Custom components beyond the shadcn set"
 msgstr "shadcn元件集之外的自訂元件"
 
@@ -5517,6 +5523,9 @@ msgstr "自訂終端代理程式"
 
 msgid "Custom themes"
 msgstr "自訂主題"
+
+msgid "Custom…"
+msgstr "自訂…"
 
 msgid "Customize commands"
 msgstr "自訂命令"
@@ -8306,6 +8315,9 @@ msgstr "工程師實際執行的代理工作量 — tokens、成本、模型與�
 msgid "How should the agent's actions be approved?"
 msgstr "代理的操作應如何批准？"
 
+msgid "How strongly the color tints each surface"
+msgstr "顏色為各區域著色的強度"
+
 msgid "How the command opens."
 msgstr "命令的開啟方式。"
 
@@ -8732,6 +8744,9 @@ msgstr "說明"
 
 msgid "Integrations"
 msgstr "整合"
+
+msgid "Intensity"
+msgstr "強度"
 
 msgid "Interactive agent terminal."
 msgstr "可互動的代理程式終端。"
@@ -12094,6 +12109,9 @@ msgstr "有薪工作試用"
 msgid "Palette"
 msgstr "調色盤"
 
+msgid "Pane headers"
+msgstr "窗格標題列"
+
 msgid "Pane in current tab"
 msgstr "目前分頁中的窗格"
 
@@ -12726,6 +12744,9 @@ msgstr "進度條 · 載入指示器"
 msgid "Project"
 msgstr "專案"
 
+msgid "Project colors in workspaces"
+msgstr "工作區中的專案顏色"
+
 msgid "Project created."
 msgstr "專案已建立。"
 
@@ -12783,6 +12804,9 @@ msgstr "全專案搜尋"
 #. placeholder {0}: workspace.projectName ?? t({ message: "none (session)", })
 msgid "Project: {0}"
 msgstr "專案：{0}"
+
+msgid "Project's host is unreachable — cannot change color right now"
+msgstr "專案所在主機不可達，暫時無法更改顏色"
 
 msgid "Project's host is unreachable — cannot import worktrees right now"
 msgstr "專案所在主機不可達，暫時無法匯入worktree"
@@ -16345,6 +16369,9 @@ msgstr "系統RAM：Superset {0}，其他應用程式{1}，空閒{2}"
 msgid "Tab"
 msgstr "分頁"
 
+msgid "Tab bar"
+msgstr "分頁列"
+
 msgid "Tab per command"
 msgstr "每條命令一個分頁"
 
@@ -17400,6 +17427,21 @@ msgstr "時間"
 
 msgid "Times use your time zone."
 msgstr "時間依你的時區顯示。"
+
+msgid "Tint each project and its workspaces in the sidebar"
+msgstr "在側邊欄中為每個專案及其工作區著色"
+
+msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
+msgstr "以專案的顏色為每個工作區著色。在側邊欄中以右鍵點選專案即可選擇顏色。"
+
+msgid "Tint the header above each pane"
+msgstr "為每個窗格上方的標題列著色"
+
+msgid "Tint the tab strip and mark the active tab"
+msgstr "為分頁列著色並標示目前的分頁"
+
+msgid "Tints the project in the sidebar and in its workspaces."
+msgstr "在側邊欄及其工作區中為專案著色。"
 
 msgid "Tip"
 msgstr "提示"
