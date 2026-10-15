@@ -14,6 +14,8 @@ import {
 
 export interface PullRequestRowData {
 	projectId: string;
+	repoProvider?: "github" | "gitlab";
+	authorAvatarUrl?: string | null;
 	prNumber: number;
 	title: string;
 	state: "open" | "closed" | "merged";
@@ -73,7 +75,12 @@ export function PullRequestRow({
 						<div className="flex shrink-0 items-center gap-1">
 							<Avatar className="size-4 rounded-full ring-1 ring-border/50">
 								<AvatarImage
-									src={`https://github.com/${pr.authorLogin}.png?size=32`}
+									src={
+										pr.authorAvatarUrl ??
+										(pr.repoProvider === "gitlab"
+											? undefined
+											: `https://github.com/${pr.authorLogin}.png?size=32`)
+									}
 									alt={pr.authorLogin}
 								/>
 								<AvatarFallback className="text-[8px]">

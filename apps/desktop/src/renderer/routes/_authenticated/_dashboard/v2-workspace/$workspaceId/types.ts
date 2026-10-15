@@ -67,6 +67,7 @@ export interface CommentPaneData {
 }
 
 export interface PullRequestPaneData {
+	host?: string;
 	repoFullName: string;
 	number: number;
 }

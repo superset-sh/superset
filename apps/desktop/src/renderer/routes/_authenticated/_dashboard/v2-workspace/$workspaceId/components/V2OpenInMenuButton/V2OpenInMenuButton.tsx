@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import type { ExternalApp } from "@superset/local-db";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -6,12 +7,19 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { OverflowFadeText } from "@superset/ui/overflow-fade-text";
+import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { useCallback, useMemo } from "react";
 import { VscChevronDown } from "react-icons/vsc";
-import { OpenInExternalDropdownItems } from "renderer/components/OpenInExternalDropdown";
-import { HotkeyLabel } from "renderer/hotkeys";
-import { useWorkspaceOpenIn } from "../../hooks/useWorkspaceOpenIn";
+import {
+	getAppOption,
+	OpenInExternalDropdownItems,
+} from "renderer/components/OpenInExternalDropdown";
+import { HotkeyLabel, useHotkey, useHotkeyDisplay } from "renderer/hotkeys";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useV2ProjectDefaultApp } from "renderer/routes/_authenticated/hooks/useV2ProjectDefaultApp";
+import { useThemeStore } from "renderer/stores";
 
 interface V2OpenInMenuButtonProps {
 	worktreePath: string;
@@ -26,17 +34,69 @@ export function V2OpenInMenuButton({
 	projectId,
 }: V2OpenInMenuButtonProps) {
 	const { t } = useLingui();
-	const {
-		resolvedApp,
-		currentApp,
-		isDark,
-		isLoading,
-		openInShortcut,
-		copyPathShortcut,
-		openInDefaultApp,
-		openInOtherApp,
-		copyWorktreePath,
-	} = useWorkspaceOpenIn({ worktreePath, projectId });
+	const activeTheme = useThemeStore((state) => state.activeTheme);
+
+	const { app: persistedApp, setApp: persistDefaultApp } =
+		useV2ProjectDefaultApp(projectId ?? undefined);
+	const resolvedApp: ExternalApp = persistedApp ?? "finder";
+
+	const openInApp = electronTrpc.external.openInApp.useMutation({
+		onSuccess: (_data, variables) => {
+			persistDefaultApp(variables.app);
+		},
+		onError: (error) =>
+			toast.error(
+				t({
+					message: `Failed to open: ${error.message}`,
+				}),
+			),
+	});
+	const copyPath = electronTrpc.external.copyPath.useMutation({
+		onSuccess: () =>
+			toast.success(
+				t({
+					message: "Path copied to clipboard",
+				}),
+			),
+		onError: (error) =>
+			toast.error(
+				t({
+					message: `Failed to copy path: ${error.message}`,
+				}),
+			),
+	});
+
+	const currentApp = useMemo(
+		() => getAppOption(resolvedApp) ?? null,
+		[resolvedApp],
+	);
+	const openInDisplay = useHotkeyDisplay("OPEN_IN_APP");
+	const copyPathDisplay = useHotkeyDisplay("COPY_PATH");
+	const showOpenInShortcut = openInDisplay.text !== "Unassigned";
+	const showCopyPathShortcut = copyPathDisplay.text !== "Unassigned";
+	const isLoading = openInApp.isPending || copyPath.isPending;
+	const isDark = activeTheme?.type === "dark";
+	const abbreviatedBranch = abbreviateBranch(branch);
+
+	const handleOpenInEditor = useCallback(() => {
+		if (openInApp.isPending || copyPath.isPending) return;
+		openInApp.mutate({ path: worktreePath, app: resolvedApp });
+	}, [worktreePath, resolvedApp, openInApp, copyPath.isPending]);
+
+	const handleOpenInOtherApp = useCallback(
+		(appId: ExternalApp) => {
+			if (openInApp.isPending || copyPath.isPending) return;
+			openInApp.mutate({ path: worktreePath, app: appId });
+		},
+		[worktreePath, openInApp, copyPath.isPending],
+	);
+
+	const handleCopyPath = useCallback(() => {
+		if (openInApp.isPending || copyPath.isPending) return;
+		copyPath.mutate(worktreePath);
+	}, [worktreePath, copyPath, openInApp.isPending]);
+
+	useHotkey("OPEN_IN_APP", handleOpenInEditor);
 
 	return (
 		<div className="flex items-center no-drag">
@@ -44,7 +104,7 @@ export function V2OpenInMenuButton({
 				<TooltipTrigger asChild>
 					<button
 						type="button"
-						onClick={openInDefaultApp}
+						onClick={handleOpenInEditor}
 						disabled={isLoading || !currentApp}
 						aria-label={
 							currentApp
@@ -56,12 +116,8 @@ export function V2OpenInMenuButton({
 									})
 						}
 						className={cn(
-							// Icon-only when the nearest @container is narrow; the branch
-							// label comes back once there's room (right sidebar is resizable,
-							// so viewport breakpoints don't apply here). The threshold is
-							// higher than the PR badge's so the badge (with its merge
-							// chevron) keeps space priority and never clips in the 240-320px
-							// dead zone (#6385).
+							// The resizable sidebar shows a branch suffix before falling back
+							// to the app icon, keeping the merge-request controls readable.
 							"group flex h-6 items-center justify-center gap-1.5 rounded-l border border-r-0 border-border/60 bg-secondary/50 px-1.5 text-xs font-medium @[320px]:pr-2",
 							"transition-all duration-150 ease-out",
 							"hover:bg-secondary hover:border-border",
@@ -78,12 +134,20 @@ export function V2OpenInMenuButton({
 							/>
 						)}
 						{branch && (
-							<OverflowFadeText
-								className="hidden max-w-[140px] text-muted-foreground tabular-nums @[320px]:inline-block"
-								title={branch}
-							>
-								/{branch}
-							</OverflowFadeText>
+							<>
+								<OverflowFadeText
+									className="hidden max-w-[90px] text-muted-foreground tabular-nums @[240px]:inline-block @[320px]:hidden"
+									title={branch}
+								>
+									{abbreviatedBranch}
+								</OverflowFadeText>
+								<OverflowFadeText
+									className="hidden max-w-[140px] text-muted-foreground tabular-nums @[320px]:inline-block"
+									title={branch}
+								>
+									/{branch}
+								</OverflowFadeText>
+							</>
 						)}
 					</button>
 				</TooltipTrigger>
@@ -123,23 +187,27 @@ export function V2OpenInMenuButton({
 					<OpenInExternalDropdownItems
 						isDark={isDark}
 						activeApp={resolvedApp}
-						onOpenIn={openInOtherApp}
-						onCopyPath={copyWorktreePath}
+						onOpenIn={handleOpenInOtherApp}
+						onCopyPath={handleCopyPath}
 						renderAppTrailing={(appId, group) => {
 							if (
 								appId !== resolvedApp ||
-								!openInShortcut ||
+								!showOpenInShortcut ||
 								group === "jetbrains"
 							) {
 								return null;
 							}
 							return (
-								<DropdownMenuShortcut>{openInShortcut}</DropdownMenuShortcut>
+								<DropdownMenuShortcut>
+									{openInDisplay.text}
+								</DropdownMenuShortcut>
 							);
 						}}
 						copyPathTrailing={
-							copyPathShortcut ? (
-								<DropdownMenuShortcut>{copyPathShortcut}</DropdownMenuShortcut>
+							showCopyPathShortcut ? (
+								<DropdownMenuShortcut>
+									{copyPathDisplay.text}
+								</DropdownMenuShortcut>
 							) : null
 						}
 						subContentClassName="w-40"
@@ -154,4 +222,11 @@ export function V2OpenInMenuButton({
 			</DropdownMenu>
 		</div>
 	);
+}
+
+function abbreviateBranch(branch: string): string {
+	const suffixLength = 12;
+	return branch.length > suffixLength
+		? `...${branch.slice(-suffixLength)}`
+		: `/${branch}`;
 }
