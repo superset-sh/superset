@@ -1444,6 +1444,9 @@ msgstr "File bernama '{firstName}' sudah ada di {where}. Ingin menggantinya?"
 msgid "A focused burn-down of crashes, hangs, and reconnect failures across the app."
 msgstr "Pembersihan terfokus atas crash, hang, dan kegagalan sambung ulang di seluruh aplikasi."
 
+msgid "A friend or colleague"
+msgstr "Teman atau rekan kerja"
+
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Perombakan gaya menyeluruh: baris lebih padat, chip port dan agen di bawah tiap workspace, hentikan semuanya dengan satu klik."
 
@@ -1470,6 +1473,9 @@ msgstr "Versi baru Superset diperlukan untuk melanjutkan. Silakan perbarui ke ve
 
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "Ruang kerja baru dari cabang ini, dengan percakapan diserahkan ke agen baru"
+
+msgid "A newsletter, blog or podcast"
+msgstr "Newsletter, blog, atau podcast"
 
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "Halaman bisa menyimpan jawaban setiap pembaca, jadi polling berjalan tanpa backend."
@@ -3464,6 +3470,9 @@ msgstr "Sesi chat tidak ditemukan"
 msgid "Chat surfaces: messages, reasoning, suggestions"
 msgstr "Permukaan chat: pesan, penalaran, saran"
 
+msgid "ChatGPT, Claude or another AI assistant"
+msgstr "ChatGPT, Claude, atau asisten AI lainnya"
+
 msgid "Check again"
 msgstr "Periksa lagi"
 
@@ -3598,6 +3607,9 @@ msgstr "Pilih cara membuka tampilan perubahan dari bilah atas"
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "Pilih cara membuka path file saat Cmd+klik di terminal"
+
+msgid "Choose one"
+msgstr "Pilih salah satu"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "Pilih apa yang ingin dibersihkan dari browser dalam aplikasi."
@@ -7982,6 +7994,9 @@ msgstr "Ke workspace"
 msgid "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
 msgstr "Google tidak memberikan akses jangka panjang. Hapus Superset dari akses pihak ketiga di akun Google Anda lalu coba lagi."
 
+msgid "Google or another search engine"
+msgstr "Google atau mesin pencari lainnya"
+
 msgid "Got it"
 msgstr "Mengerti"
 
@@ -8275,6 +8290,9 @@ msgstr "Bagaimana branch dan nama workspace dibuat untuk proyek ini."
 
 msgid "How can we help?"
 msgstr "Ada yang bisa kami bantu?"
+
+msgid "How did you hear about Superset?"
+msgstr "Dari mana Anda mengetahui Superset?"
 
 msgid "How do I get started?"
 msgstr "Bagaimana cara memulai?"
@@ -11872,6 +11890,9 @@ msgstr "Konteks opsional yang ditampilkan di daftar skrip terminal."
 
 msgid "Optional flags appended after the prompt payload"
 msgstr "Flag opsional yang ditambahkan setelah muatan prompt"
+
+msgid "Optional. Helps us learn what works."
+msgstr "Opsional. Membantu kami mengetahui apa yang berhasil."
 
 msgid "Options"
 msgstr "Opsi"
@@ -18648,6 +18669,9 @@ msgstr "Saat nonaktif, tidak ada yang bisa mengakses file dan alat di perangkat 
 msgid "Where detected-port badges in the sidebar open when clicked."
 msgstr "Ke mana badge port yang terdeteksi di sidebar terbuka saat diklik."
 
+msgid "Where did you hear about Superset?"
+msgstr "Di mana Anda mendengar tentang Superset?"
+
 msgid "Where do you rank?"
 msgstr "Di peringkat berapa Anda?"
 
@@ -18668,6 +18692,9 @@ msgstr "Di mana skrip terminal ini tersedia."
 
 msgid "Where to look next"
 msgstr "Ke mana mencari berikutnya"
+
+msgid "Where? (optional)"
+msgstr "Di mana? (opsional)"
 
 msgid "Which agents are supported?"
 msgstr "Agen mana saja yang didukung?"

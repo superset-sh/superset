@@ -1444,6 +1444,9 @@ msgstr "V {where} už existuje soubor s názvem „{firstName}“. Chcete ho nah
 msgid "A focused burn-down of crashes, hangs, and reconnect failures across the app."
 msgstr "Soustředěné likvidování pádů, zaseknutí a selhání při opětovném připojení napříč aplikací."
 
+msgid "A friend or colleague"
+msgstr "Přítel nebo kolega"
+
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Kompletní přestylování: hustší řádky, čipy portů a agentů pod každým pracovním prostorem, zastavení všeho jedním kliknutím."
 
@@ -1470,6 +1473,9 @@ msgstr "Pro pokračování je potřeba novější verze Superset. Aktualizujte p
 
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "Nový pracovní prostor z této větve; konverzace se předá novému agentovi"
+
+msgid "A newsletter, blog or podcast"
+msgstr "Newsletter, blog nebo podcast"
 
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "Stránka umí uložit odpověď každého čtenáře, takže anketa funguje bez backendu."
@@ -3464,6 +3470,9 @@ msgstr "Relace chatu nenalezena"
 msgid "Chat surfaces: messages, reasoning, suggestions"
 msgstr "Plochy chatu: zprávy, uvažování, návrhy"
 
+msgid "ChatGPT, Claude or another AI assistant"
+msgstr "ChatGPT, Claude nebo jiný AI asistent"
+
 msgid "Check again"
 msgstr "Zkontrolovat znovu"
 
@@ -3598,6 +3607,9 @@ msgstr "Zvolte, jak se zobrazení změn otevírá z horní lišty"
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "Zvolte, jak se otevírají cesty k souborům při Cmd+kliknutí v terminálu"
+
+msgid "Choose one"
+msgstr "Vyberte jednu možnost"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "Vyberte, co se má z vestavěného prohlížeče vymazat."
@@ -7982,6 +7994,9 @@ msgstr "Přejít do pracovního prostoru"
 msgid "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
 msgstr "Google neudělil trvalý přístup. Odeberte Superset z přístupu třetích stran ve svém účtu Google a zkuste to znovu."
 
+msgid "Google or another search engine"
+msgstr "Google nebo jiný vyhledávač"
+
 msgid "Got it"
 msgstr "Rozumím"
 
@@ -8275,6 +8290,9 @@ msgstr "Jak se u tohoto projektu vytvářejí větve a názvy pracovních prosto
 
 msgid "How can we help?"
 msgstr "S čím vám můžeme pomoct?"
+
+msgid "How did you hear about Superset?"
+msgstr "Jak jste se dozvěděli o aplikaci Superset?"
 
 msgid "How do I get started?"
 msgstr "Jak začít?"
@@ -11872,6 +11890,9 @@ msgstr "Volitelný popis zobrazený v seznamu terminálových skriptů."
 
 msgid "Optional flags appended after the prompt payload"
 msgstr "Volitelné přepínače připojené za obsah promptu"
+
+msgid "Optional. Helps us learn what works."
+msgstr "Nepovinné. Pomůže nám zjistit, co funguje."
 
 msgid "Options"
 msgstr "Možnosti"
@@ -18648,6 +18669,9 @@ msgstr "Když je vypnuto, nic jiného se nedostane k souborům a nástrojům na 
 msgid "Where detected-port badges in the sidebar open when clicked."
 msgstr "Kam vedou odznaky rozpoznaných portů v postranním panelu po kliknutí."
 
+msgid "Where did you hear about Superset?"
+msgstr "Kde jste se dozvěděli o aplikaci Superset?"
+
 msgid "Where do you rank?"
 msgstr "Jak si stojíte?"
 
@@ -18668,6 +18692,9 @@ msgstr "Kde je tento terminálový skript dostupný."
 
 msgid "Where to look next"
 msgstr "Kam se podívat dál"
+
+msgid "Where? (optional)"
+msgstr "Kde? (nepovinné)"
 
 msgid "Which agents are supported?"
 msgstr "Kteří agenti jsou podporovaní?"

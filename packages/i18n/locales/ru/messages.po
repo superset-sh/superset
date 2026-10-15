@@ -1444,6 +1444,9 @@ msgstr "В {where} уже есть файл с именем «{firstName}». З�
 msgid "A focused burn-down of crashes, hangs, and reconnect failures across the app."
 msgstr "Прицельная зачистка падений, зависаний и сбоев переподключения по всему приложению."
 
+msgid "A friend or colleague"
+msgstr "Друг или коллега"
+
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Полная перестилизация: плотнее строки, чипы портов и агентов под каждой рабочей областью, остановка всего одним кликом."
 
@@ -1470,6 +1473,9 @@ msgstr "Чтобы продолжить, нужна новая версия Supe
 
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "Новое рабочее пространство от этой ветки, разговор передаётся новому агенту"
+
+msgid "A newsletter, blog or podcast"
+msgstr "Рассылка, блог или подкаст"
 
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "Страница может сохранять ответ каждого читателя, поэтому опрос работает без бэкенда."
@@ -3464,6 +3470,9 @@ msgstr "Сессия чата не найдена"
 msgid "Chat surfaces: messages, reasoning, suggestions"
 msgstr "Поверхности чата: сообщения, рассуждения, подсказки"
 
+msgid "ChatGPT, Claude or another AI assistant"
+msgstr "ChatGPT, Claude или другой ИИ-ассистент"
+
 msgid "Check again"
 msgstr "Проверить снова"
 
@@ -3598,6 +3607,9 @@ msgstr "Выберите, как открывается представлени
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "Выберите, как открывать пути файлов при Cmd+клике в терминале"
+
+msgid "Choose one"
+msgstr "Выберите вариант"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "Выберите, что очистить во встроенном браузере."
@@ -7982,6 +7994,9 @@ msgstr "Перейти в рабочую область"
 msgid "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
 msgstr "Google не выдал длительный доступ. Удалите Superset из стороннего доступа в аккаунте Google и повторите."
 
+msgid "Google or another search engine"
+msgstr "Google или другая поисковая система"
+
 msgid "Got it"
 msgstr "Понятно"
 
@@ -8275,6 +8290,9 @@ msgstr "Как создаются ветки и имена рабочих обл
 
 msgid "How can we help?"
 msgstr "Чем можем помочь?"
+
+msgid "How did you hear about Superset?"
+msgstr "Как вы узнали о Superset?"
 
 msgid "How do I get started?"
 msgstr "Как начать?"
@@ -11872,6 +11890,9 @@ msgstr "Необязательное пояснение, показываемо�
 
 msgid "Optional flags appended after the prompt payload"
 msgstr "Необязательные флаги, добавляемые после промпта"
+
+msgid "Optional. Helps us learn what works."
+msgstr "Необязательно. Помогает нам понять, что работает."
 
 msgid "Options"
 msgstr "Параметры"
@@ -18648,6 +18669,9 @@ msgstr "Если выключено, ничто извне не может по�
 msgid "Where detected-port badges in the sidebar open when clicked."
 msgstr "Куда ведут значки обнаруженных портов в боковой панели при клике."
 
+msgid "Where did you hear about Superset?"
+msgstr "Где вы узнали о Superset?"
+
 msgid "Where do you rank?"
 msgstr "Какое у вас место?"
 
@@ -18668,6 +18692,9 @@ msgstr "Где доступен этот скрипт терминала."
 
 msgid "Where to look next"
 msgstr "Куда посмотреть дальше"
+
+msgid "Where? (optional)"
+msgstr "Где? (необязательно)"
 
 msgid "Which agents are supported?"
 msgstr "Какие агенты поддерживаются?"

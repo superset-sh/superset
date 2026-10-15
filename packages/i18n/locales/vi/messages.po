@@ -1444,6 +1444,9 @@ msgstr "Đã có tệp tên '{firstName}' trong {where}. Bạn có muốn thay t
 msgid "A focused burn-down of crashes, hangs, and reconnect failures across the app."
 msgstr "Đợt tập trung xử lý crash, treo và lỗi kết nối lại trên toàn ứng dụng."
 
+msgid "A friend or colleague"
+msgstr "Bạn bè hoặc đồng nghiệp"
+
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Thiết kế lại toàn bộ: hàng dày hơn, chip cổng và agent dưới mỗi workspace, dừng mọi thứ chỉ với một cú nhấp."
 
@@ -1470,6 +1473,9 @@ msgstr "Cần phiên bản Superset mới để tiếp tục. Vui lòng cập nh
 
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "Một workspace mới từ nhánh này, hội thoại được bàn giao cho tác nhân mới"
+
+msgid "A newsletter, blog or podcast"
+msgstr "Bản tin, blog hoặc podcast"
 
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "Một trang có thể lưu câu trả lời của từng người đọc, nên cuộc khảo sát chạy được mà không cần backend."
@@ -3464,6 +3470,9 @@ msgstr "Không tìm thấy phiên chat"
 msgid "Chat surfaces: messages, reasoning, suggestions"
 msgstr "Các bề mặt chat: tin nhắn, suy luận, gợi ý"
 
+msgid "ChatGPT, Claude or another AI assistant"
+msgstr "ChatGPT, Claude hoặc trợ lý AI khác"
+
 msgid "Check again"
 msgstr "Kiểm tra lại"
 
@@ -3598,6 +3607,9 @@ msgstr "Chọn cách chế độ xem thay đổi mở từ thanh trên cùng"
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "Chọn cách mở đường dẫn tệp khi Cmd+nhấp trong terminal"
+
+msgid "Choose one"
+msgstr "Chọn một mục"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "Chọn thứ cần xóa khỏi trình duyệt trong ứng dụng."
@@ -7982,6 +7994,9 @@ msgstr "Đi tới workspace"
 msgid "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
 msgstr "Google không cấp quyền truy cập lâu dài. Hãy gỡ Superset khỏi phần truy cập của bên thứ ba trong tài khoản Google của bạn rồi thử lại."
 
+msgid "Google or another search engine"
+msgstr "Google hoặc công cụ tìm kiếm khác"
+
 msgid "Got it"
 msgstr "Đã hiểu"
 
@@ -8275,6 +8290,9 @@ msgstr "Cách tạo nhánh và tên workspace cho dự án này."
 
 msgid "How can we help?"
 msgstr "Chúng tôi có thể giúp gì?"
+
+msgid "How did you hear about Superset?"
+msgstr "Bạn biết đến Superset từ đâu?"
 
 msgid "How do I get started?"
 msgstr "Tôi bắt đầu thế nào?"
@@ -11872,6 +11890,9 @@ msgstr "Ghi chú tùy chọn hiện trong danh sách script terminal."
 
 msgid "Optional flags appended after the prompt payload"
 msgstr "Cờ tùy chọn thêm vào sau phần prompt"
+
+msgid "Optional. Helps us learn what works."
+msgstr "Không bắt buộc. Giúp chúng tôi biết kênh nào hiệu quả."
 
 msgid "Options"
 msgstr "Tùy chọn"
@@ -18648,6 +18669,9 @@ msgstr "Khi tắt, không gì khác có thể truy cập tệp và công cụ tr
 msgid "Where detected-port badges in the sidebar open when clicked."
 msgstr "Nơi mở khi nhấp vào huy hiệu cổng phát hiện được ở thanh bên."
 
+msgid "Where did you hear about Superset?"
+msgstr "Bạn nghe về Superset ở đâu?"
+
 msgid "Where do you rank?"
 msgstr "Bạn xếp hạng bao nhiêu?"
 
@@ -18668,6 +18692,9 @@ msgstr "Nơi script terminal này khả dụng."
 
 msgid "Where to look next"
 msgstr "Xem tiếp ở đâu"
+
+msgid "Where? (optional)"
+msgstr "Ở đâu? (không bắt buộc)"
 
 msgid "Which agents are supported?"
 msgstr "Những agent nào được hỗ trợ?"

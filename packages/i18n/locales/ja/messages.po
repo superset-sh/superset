@@ -1444,6 +1444,9 @@ msgstr "{where}には「{firstName}」という名前のファイルがすでに
 msgid "A focused burn-down of crashes, hangs, and reconnect failures across the app."
 msgstr "アプリ全体のクラッシュ、ハング、再接続の失敗を集中的につぶします。"
 
+msgid "A friend or colleague"
+msgstr "友人や同僚"
+
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "全面的なデザイン刷新。行はより高密度に、各ワークスペースの下にポートとエージェントのチップを表示し、すべてをワンクリックで停止できます。"
 
@@ -1470,6 +1473,9 @@ msgstr "続行するには新しいバージョンのSupersetが必要です。�
 
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "このブランチから新しいワークスペースを作り、会話を新しいエージェントに引き継ぎます"
+
+msgid "A newsletter, blog or podcast"
+msgstr "ニュースレター、ブログ、ポッドキャスト"
 
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "ページは読み手ごとの回答を保存できるので、バックエンドなしでアンケートが作れます。"
@@ -3464,6 +3470,9 @@ msgstr "チャットセッションが見つかりません"
 msgid "Chat surfaces: messages, reasoning, suggestions"
 msgstr "チャットの構成要素: メッセージ、推論、提案"
 
+msgid "ChatGPT, Claude or another AI assistant"
+msgstr "ChatGPT、Claude などの AI アシスタント"
+
 msgid "Check again"
 msgstr "再確認"
 
@@ -3598,6 +3607,9 @@ msgstr "トップバーから変更ビューをどのように開くかを選択
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "ターミナルでCmd+クリックしたときのファイルパスの開き方"
+
+msgid "Choose one"
+msgstr "1つ選択"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "アプリ内ブラウザから消去する項目を選択してください。"
@@ -7982,6 +7994,9 @@ msgstr "ワークスペースへ移動"
 msgid "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
 msgstr "Googleが継続的なアクセスを許可しませんでした。GoogleアカウントのサードパーティアクセスからSupersetを削除して、もう一度お試しください。"
 
+msgid "Google or another search engine"
+msgstr "Google などの検索エンジン"
+
 msgid "Got it"
 msgstr "了解"
 
@@ -8275,6 +8290,9 @@ msgstr "このプロジェクトのブランチ名とワークスペース名の
 
 msgid "How can we help?"
 msgstr "どのようなご用件ですか?"
+
+msgid "How did you hear about Superset?"
+msgstr "Superset をどこで知りましたか?"
 
 msgid "How do I get started?"
 msgstr "どう始めればいいですか?"
@@ -11872,6 +11890,9 @@ msgstr "ターミナルスクリプト一覧に表示される任意の説明。
 
 msgid "Optional flags appended after the prompt payload"
 msgstr "プロンプトの後に付加する任意のフラグ"
+
+msgid "Optional. Helps us learn what works."
+msgstr "任意です。今後の参考にします。"
 
 msgid "Options"
 msgstr "オプション"
@@ -18648,6 +18669,9 @@ msgstr "オフにすると、このデバイスのファイルやツールに外
 msgid "Where detected-port badges in the sidebar open when clicked."
 msgstr "サイドバーの検出ポートバッジをクリックしたときの開き方。"
 
+msgid "Where did you hear about Superset?"
+msgstr "Superset をどこで知りましたか?"
+
 msgid "Where do you rank?"
 msgstr "あなたの順位は?"
 
@@ -18668,6 +18692,9 @@ msgstr "このターミナルスクリプトを利用できる範囲。"
 
 msgid "Where to look next"
 msgstr "次に見る場所"
+
+msgid "Where? (optional)"
+msgstr "どこで?(任意)"
 
 msgid "Which agents are supported?"
 msgstr "どのエージェントに対応していますか?"

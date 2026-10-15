@@ -8,6 +8,7 @@ import { Redirect } from "renderer/components/Redirect";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { OnboardingNavigation } from "./components/OnboardingNavigation";
+import { useAcquisitionSourceStore } from "./stores/acquisitionSourceStore";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
 	component: OnboardingFlowLayout,
@@ -57,7 +58,10 @@ function OnboardingFlowLayout() {
 	// Step 1 advances to the project step; the project step finishes onboarding
 	// itself the moment a project is added, so it has no footer Continue.
 	const handleContinue = isFirstStep
-		? () => navigate({ to: "/onboarding/project" })
+		? () => {
+				useAcquisitionSourceStore.getState().submit();
+				navigate({ to: "/onboarding/project" });
+			}
 		: null;
 
 	return (

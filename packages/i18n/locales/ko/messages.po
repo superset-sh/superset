@@ -1444,6 +1444,9 @@ msgstr "{where}에 '{firstName}'(이)라는 파일이 이미 있습니다. 바�
 msgid "A focused burn-down of crashes, hangs, and reconnect failures across the app."
 msgstr "앱 전반의 크래시, 멈춤, 재연결 실패를 집중적으로 줄입니다."
 
+msgid "A friend or colleague"
+msgstr "친구 또는 동료"
+
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "전면 재단장입니다. 더 촘촘한 행, 워크스페이스마다 표시되는 포트와 에이전트 칩, 클릭 한 번으로 전부 중지."
 
@@ -1470,6 +1473,9 @@ msgstr "계속하려면 새 버전의 Superset이 필요합니다. 최신 버전
 
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "이 브랜치에서 새 워크스페이스를 만들고 대화를 새 에이전트에 넘깁니다"
+
+msgid "A newsletter, blog or podcast"
+msgstr "뉴스레터, 블로그 또는 팟캐스트"
 
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "페이지가 독자별 답변을 저장하므로 백엔드 없이 투표를 만들 수 있습니다."
@@ -3464,6 +3470,9 @@ msgstr "채팅 세션을 찾을 수 없습니다"
 msgid "Chat surfaces: messages, reasoning, suggestions"
 msgstr "채팅 화면: 메시지, 추론, 제안"
 
+msgid "ChatGPT, Claude or another AI assistant"
+msgstr "ChatGPT, Claude 또는 다른 AI 어시스턴트"
+
 msgid "Check again"
 msgstr "다시 확인"
 
@@ -3598,6 +3607,9 @@ msgstr "상단 바에서 변경 사항 보기를 여는 방식을 선택합니�
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "터미널에서 Cmd+클릭할 때 파일 경로를 여는 방식을 선택하세요"
+
+msgid "Choose one"
+msgstr "하나 선택"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "인앱 브라우저에서 삭제할 항목을 선택하세요."
@@ -7982,6 +7994,9 @@ msgstr "워크스페이스로 이동"
 msgid "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
 msgstr "Google이 지속적인 접근 권한을 부여하지 않았습니다. Google 계정의 서드파티 접근에서 Superset을 제거한 뒤 다시 시도해 주세요."
 
+msgid "Google or another search engine"
+msgstr "Google 또는 다른 검색 엔진"
+
 msgid "Got it"
 msgstr "확인"
 
@@ -8275,6 +8290,9 @@ msgstr "이 프로젝트에서 브랜치와 워크스페이스 이름이 만들�
 
 msgid "How can we help?"
 msgstr "무엇을 도와드릴까요?"
+
+msgid "How did you hear about Superset?"
+msgstr "Superset을 어떻게 알게 되셨나요?"
 
 msgid "How do I get started?"
 msgstr "어떻게 시작하나요?"
@@ -11872,6 +11890,9 @@ msgstr "터미널 스크립트 목록에 표시되는 선택 설명입니다."
 
 msgid "Optional flags appended after the prompt payload"
 msgstr "프롬프트 페이로드 뒤에 붙일 선택 플래그"
+
+msgid "Optional. Helps us learn what works."
+msgstr "선택 사항입니다. 어떤 채널이 효과적인지 파악하는 데 도움이 됩니다."
 
 msgid "Options"
 msgstr "옵션"
@@ -18648,6 +18669,9 @@ msgstr "끄면 이 기기의 파일과 도구에 아무것도 접근할 수 없�
 msgid "Where detected-port badges in the sidebar open when clicked."
 msgstr "사이드바의 감지된 포트 배지를 클릭했을 때 열리는 위치입니다."
 
+msgid "Where did you hear about Superset?"
+msgstr "Superset을 어디에서 알게 되셨나요?"
+
 msgid "Where do you rank?"
 msgstr "내 순위는 몇 위일까요?"
 
@@ -18668,6 +18692,9 @@ msgstr "이 터미널 스크립트를 사용할 수 있는 범위입니다."
 
 msgid "Where to look next"
 msgstr "다음으로 찾아볼 곳"
+
+msgid "Where? (optional)"
+msgstr "어디에서? (선택 사항)"
 
 msgid "Which agents are supported?"
 msgstr "어떤 에이전트를 지원하나요?"

@@ -1444,6 +1444,9 @@ msgstr "{where}中已存在名為「{firstName}」的檔案。是否要替換它
 msgid "A focused burn-down of crashes, hangs, and reconnect failures across the app."
 msgstr "集中清理全應用的崩潰、卡死和重連失敗。"
 
+msgid "A friend or colleague"
+msgstr "朋友或同事"
+
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "整體重做樣式：更緊湊的行、每個工作區下方的埠和代理程式標籤、一鍵全部停止。"
 
@@ -1470,6 +1473,9 @@ msgstr "需要新版本的Superset才能繼續。請更新到最新版本。"
 
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "以該分支建立新工作區，並將對話交給新的代理"
+
+msgid "A newsletter, blog or podcast"
+msgstr "電子報、部落格或 Podcast"
 
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "頁面可以保存每位讀者的答案，所以不需要後端就能做投票。"
@@ -3464,6 +3470,9 @@ msgstr "未找到聊天會話"
 msgid "Chat surfaces: messages, reasoning, suggestions"
 msgstr "聊天介面：訊息、推理、建議"
 
+msgid "ChatGPT, Claude or another AI assistant"
+msgstr "ChatGPT、Claude 或其他 AI 助理"
+
 msgid "Check again"
 msgstr "重新檢查"
 
@@ -3598,6 +3607,9 @@ msgstr "選擇從頂欄開啟變更檢視的方式"
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "選擇在終端中Cmd+點選檔案路徑時的開啟方式"
+
+msgid "Choose one"
+msgstr "選擇一項"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "選擇要從應用程式內瀏覽器清除的內容。"
@@ -7982,6 +7994,9 @@ msgstr "前往工作區"
 msgid "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
 msgstr "Google沒有授予持久存取權限。請在你的Google帳戶的第三方存取中移除Superset，然後重試。"
 
+msgid "Google or another search engine"
+msgstr "Google 或其他搜尋引擎"
+
 msgid "Got it"
 msgstr "知道了"
 
@@ -8275,6 +8290,9 @@ msgstr "此專案如何建立分支和工作區名稱。"
 
 msgid "How can we help?"
 msgstr "我們能幫你什麼？"
+
+msgid "How did you hear about Superset?"
+msgstr "你是從哪裡得知 Superset 的？"
 
 msgid "How do I get started?"
 msgstr "如何開始？"
@@ -11872,6 +11890,9 @@ msgstr "可選說明，顯示在終端指令碼列表中。"
 
 msgid "Optional flags appended after the prompt payload"
 msgstr "追加在提示詞內容之後的可選標誌"
+
+msgid "Optional. Helps us learn what works."
+msgstr "選填。幫助我們了解哪些管道有效。"
 
 msgid "Options"
 msgstr "選項"
@@ -18648,6 +18669,9 @@ msgstr "關閉後，任何其他來源都無法存取此裝置上的檔案和工
 msgid "Where detected-port badges in the sidebar open when clicked."
 msgstr "點選側邊欄中檢測到的埠標記時開啟的位置。"
 
+msgid "Where did you hear about Superset?"
+msgstr "你是在哪裡得知 Superset 的？"
+
 msgid "Where do you rank?"
 msgstr "你排第幾？"
 
@@ -18668,6 +18692,9 @@ msgstr "此終端指令碼在哪些地方可用。"
 
 msgid "Where to look next"
 msgstr "接下來可以看這些"
+
+msgid "Where? (optional)"
+msgstr "在哪裡？（選填）"
 
 msgid "Which agents are supported?"
 msgstr "支援哪些代理程式？"

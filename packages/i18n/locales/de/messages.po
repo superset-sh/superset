@@ -1444,6 +1444,9 @@ msgstr "Eine Datei namens '{firstName}' existiert bereits in {where}. Willst du 
 msgid "A focused burn-down of crashes, hangs, and reconnect failures across the app."
 msgstr "Ein gezieltes Abarbeiten von Abstürzen, Hängern und Reconnect-Fehlern in der ganzen App."
 
+msgid "A friend or colleague"
+msgstr "Ein Freund oder Kollege"
+
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Ein kompletter Neuanstrich: dichtere Zeilen, Port- und Agenten-Chips unter jedem Arbeitsbereich, alles mit einem Klick stoppen."
 
@@ -1470,6 +1473,9 @@ msgstr "Zum Fortfahren ist eine neue Version von Superset nötig. Bitte aktualis
 
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "Ein neuer Workspace von diesem Branch, die Unterhaltung wird an einen neuen Agenten übergeben"
+
+msgid "A newsletter, blog or podcast"
+msgstr "Ein Newsletter, Blog oder Podcast"
 
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "Eine Seite kann die Antwort jedes Lesers speichern, also funktioniert eine Umfrage ohne Backend."
@@ -3464,6 +3470,9 @@ msgstr "Chat-Sitzung nicht gefunden"
 msgid "Chat surfaces: messages, reasoning, suggestions"
 msgstr "Chat-Oberflächen: Nachrichten, Reasoning, Vorschläge"
 
+msgid "ChatGPT, Claude or another AI assistant"
+msgstr "ChatGPT, Claude oder ein anderer KI-Assistent"
+
 msgid "Check again"
 msgstr "Erneut prüfen"
 
@@ -3598,6 +3607,9 @@ msgstr "Wähle, wie sich die Änderungsansicht aus der Titelleiste öffnet"
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "Lege fest, wie Dateipfade beim Cmd+Klick im Terminal geöffnet werden"
+
+msgid "Choose one"
+msgstr "Eine Option wählen"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "Wähle, was aus dem In-App-Browser gelöscht werden soll."
@@ -7982,6 +7994,9 @@ msgstr "Zum Arbeitsbereich"
 msgid "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
 msgstr "Google hat keinen dauerhaften Zugriff gewährt. Entferne Superset aus dem Drittanbieter-Zugriff deines Google-Kontos und versuche es erneut."
 
+msgid "Google or another search engine"
+msgstr "Google oder eine andere Suchmaschine"
+
 msgid "Got it"
 msgstr "Verstanden"
 
@@ -8275,6 +8290,9 @@ msgstr "Wie Branches und Namen von Arbeitsbereichen für dieses Projekt entstehe
 
 msgid "How can we help?"
 msgstr "Wie können wir helfen?"
+
+msgid "How did you hear about Superset?"
+msgstr "Wie hast du von Superset erfahren?"
 
 msgid "How do I get started?"
 msgstr "Wie fange ich an?"
@@ -11872,6 +11890,9 @@ msgstr "Optionaler Kontext, der in der Liste der Terminal-Skripte angezeigt wird
 
 msgid "Optional flags appended after the prompt payload"
 msgstr "Optionale Flags, die nach dem Prompt angehängt werden"
+
+msgid "Optional. Helps us learn what works."
+msgstr "Optional. Hilft uns zu verstehen, was funktioniert."
 
 msgid "Options"
 msgstr "Optionen"
@@ -18648,6 +18669,9 @@ msgstr "Wenn deaktiviert, kann nichts anderes auf die Dateien und Tools dieses G
 msgid "Where detected-port badges in the sidebar open when clicked."
 msgstr "Wo Port-Badges in der Seitenleiste beim Klick geöffnet werden."
 
+msgid "Where did you hear about Superset?"
+msgstr "Wo hast du von Superset erfahren?"
+
 msgid "Where do you rank?"
 msgstr "Auf welchem Platz stehst du?"
 
@@ -18668,6 +18692,9 @@ msgstr "Wo dieses Terminal-Skript verfügbar ist."
 
 msgid "Where to look next"
 msgstr "Wo du als Nächstes suchst"
+
+msgid "Where? (optional)"
+msgstr "Wo? (optional)"
 
 msgid "Which agents are supported?"
 msgstr "Welche Agenten werden unterstützt?"

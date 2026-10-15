@@ -1444,6 +1444,9 @@ msgstr "{where} konumunda '{firstName}' adlı bir dosya zaten var. Değiştirmek
 msgid "A focused burn-down of crashes, hangs, and reconnect failures across the app."
 msgstr "Uygulama genelinde çökmelerin, donmaların ve yeniden bağlanma hatalarının odaklı biçimde azaltılması."
 
+msgid "A friend or colleague"
+msgstr "Bir arkadaş veya iş arkadaşı"
+
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Baştan sona yeni bir stil: daha yoğun satırlar, her çalışma alanının altında port ve ajan çipleri, her şey için tek tıkla durdurma."
 
@@ -1470,6 +1473,9 @@ msgstr "Devam etmek için Superset'in yeni bir sürümü gerekiyor. Lütfen en s
 
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "Bu daldan yeni bir çalışma alanı; konuşma yeni bir aracıya devredilir"
+
+msgid "A newsletter, blog or podcast"
+msgstr "Bir bülten, blog veya podcast"
 
 msgid "A page can save each reader's answer, so a poll works with no backend."
 msgstr "Bir sayfa her okuyucunun yanıtını kaydedebilir, böylece anket arka uç olmadan çalışır."
@@ -3464,6 +3470,9 @@ msgstr "Sohbet oturumu bulunamadı"
 msgid "Chat surfaces: messages, reasoning, suggestions"
 msgstr "Sohbet yüzeyleri: mesajlar, akıl yürütme, öneriler"
 
+msgid "ChatGPT, Claude or another AI assistant"
+msgstr "ChatGPT, Claude veya başka bir yapay zekâ asistanı"
+
 msgid "Check again"
 msgstr "Yeniden denetle"
 
@@ -3598,6 +3607,9 @@ msgstr "Değişiklikler görünümünün üst çubuktan nasıl açılacağını 
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "Terminalde Cmd+tıkladığınızda dosya yollarının nasıl açılacağını seçin"
+
+msgid "Choose one"
+msgstr "Birini seçin"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "Uygulama içi tarayıcıdan neyin temizleneceğini seçin."
@@ -7982,6 +7994,9 @@ msgstr "Çalışma alanına git"
 msgid "Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again."
 msgstr "Google kalıcı erişim vermedi. Superset'i Google hesabınızın üçüncü taraf erişiminden kaldırıp yeniden deneyin."
 
+msgid "Google or another search engine"
+msgstr "Google veya başka bir arama motoru"
+
 msgid "Got it"
 msgstr "Anladım"
 
@@ -8275,6 +8290,9 @@ msgstr "Bu proje için dalların ve çalışma alanı adlarının nasıl oluştu
 
 msgid "How can we help?"
 msgstr "Nasıl yardımcı olabiliriz?"
+
+msgid "How did you hear about Superset?"
+msgstr "Superset'i nereden duydunuz?"
 
 msgid "How do I get started?"
 msgstr "Nasıl başlarım?"
@@ -11872,6 +11890,9 @@ msgstr "Terminal betikleri listesinde gösterilen isteğe bağlı açıklama."
 
 msgid "Optional flags appended after the prompt payload"
 msgstr "İstem yükünden sonra eklenen isteğe bağlı bayraklar"
+
+msgid "Optional. Helps us learn what works."
+msgstr "İsteğe bağlı. Neyin işe yaradığını anlamamıza yardımcı olur."
 
 msgid "Options"
 msgstr "Seçenekler"
@@ -18648,6 +18669,9 @@ msgstr "Kapalıyken başka hiçbir şey bu cihazdaki dosya ve araçlara erişeme
 msgid "Where detected-port badges in the sidebar open when clicked."
 msgstr "Kenar çubuğundaki algılanan port rozetlerine tıklandığında nerede açılacağı."
 
+msgid "Where did you hear about Superset?"
+msgstr "Superset'i nerede duydunuz?"
+
 msgid "Where do you rank?"
 msgstr "Kaçıncı sıradasınız?"
 
@@ -18668,6 +18692,9 @@ msgstr "Bu terminal betiğinin nerede kullanılabilir olduğu."
 
 msgid "Where to look next"
 msgstr "Sırada nereye bakmalı"
+
+msgid "Where? (optional)"
+msgstr "Nerede? (isteğe bağlı)"
 
 msgid "Which agents are supported?"
 msgstr "Hangi ajanlar destekleniyor?"
