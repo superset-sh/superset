@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { protectedProcedure } from "../../../index";
+import { fetchPullRequestDiscussionsFromGlab } from "../../git/utils/gitlab-discussions";
 import {
 	type GraphQLThreadsResult,
 	parseGraphQLThreads,
 	REVIEW_THREADS_QUERY,
 } from "../../git/utils/graphql";
-import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
+import { resolvePullRequestRepository } from "../resolve-repository";
 
 const getThreadsInputSchema = z.object({
 	projectId: z.string(),
@@ -19,10 +20,20 @@ const getThreadsInputSchema = z.object({
 export const getThreads = protectedProcedure
 	.input(getThreadsInputSchema)
 	.query(async ({ ctx, input }) => {
-		const repo = await resolveGithubRepo(ctx, input.projectId);
-		const octokit = await ctx.github();
+		const repo = await resolvePullRequestRepository(ctx, input.projectId);
 
 		try {
+			if (repo.provider === "gitlab") {
+				const { reviewThreads } = await fetchPullRequestDiscussionsFromGlab(
+					ctx.execGlab,
+					repo,
+					input.prNumber,
+					`${repo.url}/-/merge_requests/${input.prNumber}`,
+					repo.repoPath,
+				);
+				return { reviewThreads, fetchFailed: false };
+			}
+			const octokit = await ctx.github();
 			const result: GraphQLThreadsResult = await octokit.graphql(
 				REVIEW_THREADS_QUERY,
 				{ owner: repo.owner, name: repo.name, prNumber: input.prNumber },

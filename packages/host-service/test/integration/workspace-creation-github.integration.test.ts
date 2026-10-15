@@ -304,7 +304,7 @@ describe("workspaceCreation github procedures with mocked Octokit", () => {
 				projectId,
 				author: "alice,octo--cat",
 			}),
-		).rejects.toThrow("Author must be a valid GitHub username");
+		).rejects.toThrow("Author must be a valid username");
 		expect(calls).toHaveLength(0);
 	});
 

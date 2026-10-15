@@ -7,6 +7,8 @@ import {
 describe("normalizeAuthorFilter", () => {
 	test("normalizes GitHub usernames and bot logins", () => {
 		expect(normalizeAuthorFilter(" @octo-cat ")).toBe("octo-cat");
+		expect(normalizeAuthorFilter(" @alex.clay ")).toBe("alex.clay");
+		expect(normalizeAuthorFilter("alex_clay")).toBe("alex_clay");
 		expect(normalizeAuthorFilter("dependabot[bot]")).toBe("dependabot[bot]");
 	});
 

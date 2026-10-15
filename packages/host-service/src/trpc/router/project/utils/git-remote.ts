@@ -1,10 +1,13 @@
 import {
 	type ParsedGitHubRemote,
+	type ParsedRepositoryRemote,
 	parseGitHubRemote,
+	parseGitLabRemoteCandidate,
+	parseRepositoryRemote,
 } from "@superset/shared/github-remote";
 import type { SimpleGit } from "simple-git";
 
-export type { ParsedGitHubRemote };
+export type { ParsedGitHubRemote, ParsedRepositoryRemote };
 
 /**
  * Map of remote name → URL, read from git config.
@@ -57,12 +60,39 @@ export async function getGitHubRemotes(
 	return parsed;
 }
 
+export async function getSupportedRemotes(
+	git: SimpleGit,
+	isConfiguredGitLabHost: (host: string) => Promise<boolean> = async () =>
+		false,
+): Promise<Map<string, ParsedRepositoryRemote>> {
+	const rawRemotes = await getAllRemoteUrls(git);
+	const parsed = new Map<string, ParsedRepositoryRemote>();
+
+	for (const [name, url] of rawRemotes) {
+		const result = parseRepositoryRemote(url);
+		if (result) {
+			parsed.set(name, result);
+			continue;
+		}
+
+		const gitLabCandidate = parseGitLabRemoteCandidate(url);
+		if (
+			gitLabCandidate &&
+			(await isConfiguredGitLabHost(gitLabCandidate.host))
+		) {
+			parsed.set(name, gitLabCandidate);
+		}
+	}
+
+	return parsed;
+}
+
 /**
  * Check if any remote matches the expected GitHub owner/repo slug.
  * Returns the name of the matching remote, or null if none match.
  */
 export function findMatchingRemote(
-	remotes: Map<string, ParsedGitHubRemote>,
+	remotes: ReadonlyMap<string, ParsedRepositoryRemote>,
 	expectedSlug: string,
 ): string | null {
 	const normalized = expectedSlug.toLowerCase();

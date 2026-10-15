@@ -7,6 +7,7 @@ interface Project {
 	projectKey: string;
 	repoOwner: string | null;
 	repoName: string | null;
+	repoUrl?: string | null;
 }
 
 /**
@@ -20,11 +21,14 @@ export function getPullRequestTarget(
 ): { ref: PullRequestRef; projectId: string | null } | null {
 	const ref = pullRequestRefFromUrl(url);
 	if (!ref) return null;
-	const [owner, name] = ref.repoFullName.split("/");
 	const project = projects.find(
 		(candidate) =>
-			candidate.repoOwner?.toLowerCase() === owner?.toLowerCase() &&
-			candidate.repoName?.toLowerCase() === name?.toLowerCase(),
+			`${candidate.repoOwner}/${candidate.repoName}`.toLowerCase() ===
+				ref.repoFullName.toLowerCase() &&
+			(candidate.repoUrl && URL.canParse(candidate.repoUrl)
+				? new URL(candidate.repoUrl).host
+				: "github.com") === (ref.host ?? "github.com"),
 	);
+	if (ref.host && !project) return null;
 	return { ref, projectId: project?.projectKey ?? null };
 }
