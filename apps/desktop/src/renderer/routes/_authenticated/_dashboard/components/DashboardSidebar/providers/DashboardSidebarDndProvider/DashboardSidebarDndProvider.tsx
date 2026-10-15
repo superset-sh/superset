@@ -17,6 +17,10 @@ import type {
 	DashboardSidebarProject,
 	DashboardSidebarProjectChild,
 } from "../../types";
+import type {
+	ProjectSidebarLaneItem,
+	StoredLaneEntry,
+} from "../../utils/projectSidebarLane";
 import { useDashboardSidebarHoverActions } from "../DashboardSidebarHoverProvider";
 
 interface DashboardSidebarDndProviderProps {
@@ -26,7 +30,9 @@ interface DashboardSidebarDndProviderProps {
 	sessionChildren: DashboardSidebarProjectChild[];
 	isSidebarCollapsed: boolean;
 	workspaceShortcutLabels: Map<string, string>;
-	onReorderProjects: (projectIds: string[]) => void;
+	/** The Projects list: section headers and projects in display order. */
+	projectLane: ProjectSidebarLaneItem[];
+	onCommitProjectLane: (lane: StoredLaneEntry[]) => void;
 	/**
 	 * True while `projects` is a filtered view rather than the manual order —
 	 * see useSidebarDnd's `projectDragDisabled` option.
@@ -52,7 +58,8 @@ export function DashboardSidebarDndProvider({
 	sessionChildren,
 	isSidebarCollapsed,
 	workspaceShortcutLabels,
-	onReorderProjects,
+	projectLane,
+	onCommitProjectLane,
 	isProjectDragDisabled = false,
 	isChildDragDisabled = false,
 	children,
@@ -69,7 +76,8 @@ export function DashboardSidebarDndProvider({
 		projects,
 		pinnedWorkspaces,
 		sessionChildren,
-		onReorderProjects,
+		projectLane,
+		onCommitProjectLane,
 		projectDragDisabled: isProjectDragDisabled,
 		childDragDisabled: isChildDragDisabled,
 	});

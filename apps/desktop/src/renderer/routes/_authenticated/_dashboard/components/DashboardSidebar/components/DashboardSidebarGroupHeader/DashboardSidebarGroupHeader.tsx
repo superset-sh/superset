@@ -14,6 +14,8 @@ interface DashboardSidebarGroupHeaderProps
 	onToggleCollapse: () => void;
 	actions?: ReactNode;
 	isEditing?: boolean;
+	/** Shows the chevron dimmed and ignores toggles. */
+	isToggleDisabled?: boolean;
 	isDraggable?: boolean;
 	/**
 	 * Column the header's chevron sits in: the same one the lane's ungrouped
@@ -34,6 +36,7 @@ export const DashboardSidebarGroupHeader = forwardRef<
 			onToggleCollapse,
 			actions,
 			isEditing = false,
+			isToggleDisabled = false,
 			isDraggable = false,
 			indentation = "workspace",
 			className,
@@ -46,9 +49,10 @@ export const DashboardSidebarGroupHeader = forwardRef<
 			ref={ref}
 			role={isEditing ? undefined : "button"}
 			tabIndex={isEditing ? undefined : 0}
-			onClick={isEditing ? undefined : onToggleCollapse}
+			aria-disabled={isToggleDisabled || undefined}
+			onClick={isEditing || isToggleDisabled ? undefined : onToggleCollapse}
 			onKeyDown={
-				isEditing
+				isEditing || isToggleDisabled
 					? undefined
 					: (event) => {
 							if (event.key === "Enter" || event.key === " ") {
@@ -77,6 +81,7 @@ export const DashboardSidebarGroupHeader = forwardRef<
 					className={cn(
 						"size-3 text-muted-foreground transition-transform duration-150",
 						!isCollapsed && "rotate-90",
+						isToggleDisabled && "opacity-40",
 					)}
 				/>
 			</div>

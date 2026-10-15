@@ -9,6 +9,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
+import { LuFolderPlus } from "react-icons/lu";
 import {
 	VscFolderOpened,
 	VscGithubAlt,
@@ -24,7 +25,9 @@ import {
 	useOpenTemplateGalleryModal,
 } from "renderer/stores/add-repository-modal";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
+import { useProjectSidebarSections } from "../../hooks/useProjectSidebarSections";
 import { DashboardSidebarSectionHeader } from "../DashboardSidebarSectionHeader";
+import { useDashboardSidebarSectionRename } from "../DashboardSidebarSectionRenameContext";
 import { DashboardSidebarProjectsFilterInput } from "./components/DashboardSidebarProjectsFilterInput";
 import { DashboardSidebarProjectsSortMenu } from "./components/DashboardSidebarProjectsSortMenu";
 import { useProjectFilterExpanded } from "./hooks/useProjectFilterExpanded";
@@ -71,6 +74,15 @@ export function DashboardSidebarWorkspacesHeader({
 		}
 		wasSectionCollapsedRef.current = isSectionCollapsed;
 	}, [isSectionCollapsed, onFilterQueryChange, setIsFilterExpanded]);
+	const { createProjectSection } = useProjectSidebarSections();
+	const { requestSectionRename } = useDashboardSidebarSectionRename();
+	const handleNewSection = () => {
+		if (isSectionCollapsed) toggleSectionCollapsed("workspaces");
+		// A filtered list hides empty sections, so the new one could not show.
+		onFilterQueryChange("");
+		setIsFilterExpanded(false);
+		requestSectionRename(createProjectSection());
+	};
 	const openEmptyProject = useOpenEmptyProjectModal();
 	const openNewWorkspace = useOpenNewWorkspaceForLocalProject();
 	const openNewProject = useOpenNewProjectModal();
@@ -134,6 +146,27 @@ export function DashboardSidebarWorkspacesHeader({
 				sortMode={sortMode}
 				onSortModeChange={onSortModeChange}
 			/>
+			<Tooltip delayDuration={700}>
+				<TooltipTrigger asChild>
+					<button
+						type="button"
+						aria-label={t({
+							message: "New section",
+						})}
+						onClick={(event) => {
+							event.stopPropagation();
+							handleNewSection();
+						}}
+						onKeyDown={(event) => event.stopPropagation()}
+						className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
+					>
+						<LuFolderPlus className="size-3.5" />
+					</button>
+				</TooltipTrigger>
+				<TooltipContent side="bottom">
+					<Trans>New section</Trans>
+				</TooltipContent>
+			</Tooltip>
 			<DropdownMenu>
 				<Tooltip delayDuration={700}>
 					<TooltipTrigger asChild>

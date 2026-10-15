@@ -5743,6 +5743,9 @@ msgstr "Smazat projekt…"
 msgid "Delete script"
 msgstr "Smazat skript"
 
+msgid "Delete section"
+msgstr "Smazat sekci"
+
 msgid "Delete selected workspaces"
 msgstr "Smazat vybrané pracovní prostory"
 
@@ -10149,6 +10152,9 @@ msgstr "Přesunout do skupiny"
 msgid "Move to Right Side"
 msgstr "Přesunout doprava"
 
+msgid "Move to section"
+msgstr "Přesunout do sekce"
+
 msgid "Move to Tab"
 msgstr "Přesunout na kartu"
 
@@ -10344,6 +10350,9 @@ msgstr "Nový projekt"
 
 msgid "New push to branch"
 msgstr "Nový push do větve"
+
+msgid "New section"
+msgstr "Nová sekce"
 
 msgid "New session"
 msgstr "Nová relace"
@@ -13360,6 +13369,9 @@ msgstr "Odebrat z oblíbených"
 msgid "Remove from Queue"
 msgstr "Odebrat z fronty"
 
+msgid "Remove from section"
+msgstr "Odebrat ze sekce"
+
 msgid "Remove from sidebar"
 msgstr "Odebrat z postranního panelu"
 
@@ -13462,6 +13474,9 @@ msgstr "Přejmenovat hosta"
 
 msgid "Rename page"
 msgstr "Přejmenovat stránku"
+
+msgid "Rename section"
+msgstr "Přejmenovat sekci"
 
 msgid "Rename session"
 msgstr "Přejmenovat relaci"
@@ -14550,6 +14565,9 @@ msgstr "Secondary"
 msgid "Secret Shift Lead"
 msgstr "Tajný vedoucí směny"
 
+msgid "Section actions"
+msgstr "Akce sekce"
+
 msgid "Sections"
 msgstr "Sekce"
 
@@ -14898,6 +14916,9 @@ msgstr "Nastavit projekt…"
 
 msgid "Set Run"
 msgstr "Nastavit spuštění"
+
+msgid "Set section color"
+msgstr "Nastavit barvu sekce"
 
 msgid "Set this project"
 msgstr "Nastavit tento projekt"

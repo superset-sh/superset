@@ -46,6 +46,11 @@ import type {
 	DashboardSidebarSection,
 	DashboardSidebarWorkspace,
 } from "../../types";
+import type {
+	ProjectSidebarLaneItem,
+	ProjectSidebarSection,
+	StoredLaneEntry,
+} from "../../utils/projectSidebarLane";
 import { DRAG_ACTIVATION_DISTANCE_PX } from "./constants";
 import {
 	buildTopLevelUnits,
@@ -58,11 +63,16 @@ import {
 
 const WS = "ws::";
 const SEC = "sec::";
+const PROJECT_SEC = "psec::";
 const DROP_ZONE = "dropzone::";
 
 export const wsId = (id: string) => `${WS}${id}`;
 export const secId = (id: string) => `${SEC}${id}`;
 export const isSec = (id: UniqueIdentifier) => String(id).startsWith(SEC);
+/** Sortable id of a Projects-list section header (projects use their own id). */
+export const projectSecId = (id: string) => `${PROJECT_SEC}${id}`;
+export const isProjectSec = (id: UniqueIdentifier) =>
+	String(id).startsWith(PROJECT_SEC);
 
 export const parseId = (id: UniqueIdentifier) => {
 	const s = String(id);
@@ -261,6 +271,118 @@ function membershipFromNeighbors(
 	return membership[String(above)] ?? null;
 }
 
+// ── Projects lane ────────────────────────────────────────────────────
+//
+// The Projects list is one flat sortable list of section headers and project
+// ids, with explicit membership (project id → section header id), the same
+// shape a project's workspace lane uses.
+
+interface ProjectLaneModel {
+	ids: UniqueIdentifier[];
+	membership: Record<string, string>;
+	collapsedSectionIds: ReadonlySet<string>;
+}
+
+function buildProjectLaneModel(
+	lane: readonly ProjectSidebarLaneItem[],
+): ProjectLaneModel {
+	const ids: UniqueIdentifier[] = [];
+	const membership: Record<string, string> = {};
+	const collapsedSectionIds = new Set<string>();
+	for (const item of lane) {
+		if (item.type === "section") {
+			ids.push(projectSecId(item.section.id));
+			if (item.section.isCollapsed) {
+				collapsedSectionIds.add(projectSecId(item.section.id));
+			}
+			continue;
+		}
+		ids.push(item.project.id);
+		if (item.section)
+			membership[item.project.id] = projectSecId(item.section.id);
+	}
+	return { ids, membership, collapsedSectionIds };
+}
+
+/**
+ * A project dropped onto another project takes its place and its section:
+ * below it when moving down, above it when moving up. A collapsed section
+ * never takes in a new project, so the dropped project stays visible; its
+ * own members (draggable in the icon rail) stay in it. Null when the drop
+ * changes nothing.
+ */
+export function dropProjectOnProject(
+	lane: Pick<ProjectLaneModel, "ids" | "membership" | "collapsedSectionIds">,
+	projectId: UniqueIdentifier,
+	overId: UniqueIdentifier,
+): Pick<ProjectLaneModel, "ids" | "membership"> | null {
+	const oldIndex = lane.ids.indexOf(projectId);
+	const newIndex = lane.ids.indexOf(overId);
+	if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return null;
+	const overSection = lane.membership[String(overId)];
+	const membership = { ...lane.membership };
+	const canJoin =
+		overSection !== undefined &&
+		(!lane.collapsedSectionIds.has(overSection) ||
+			lane.membership[String(projectId)] === overSection);
+	if (canJoin) {
+		membership[String(projectId)] = overSection;
+	} else {
+		delete membership[String(projectId)];
+	}
+	return { ids: arrayMove([...lane.ids], oldIndex, newIndex), membership };
+}
+
+/**
+ * A project dropped onto a section header goes inside that section: first
+ * in an open section, last in a collapsed one (it stays hidden with the
+ * rest). Unlike a drop on a project, this never depends on which way the
+ * pointer came from.
+ */
+export function dropProjectOnSection(
+	lane: Pick<ProjectLaneModel, "ids" | "membership" | "collapsedSectionIds">,
+	projectId: UniqueIdentifier,
+	sectionFlatId: string,
+): Pick<ProjectLaneModel, "ids" | "membership"> {
+	const ids = lane.ids.filter((id) => id !== projectId);
+	const headerIndex = ids.indexOf(sectionFlatId);
+	if (headerIndex === -1) {
+		return { ids: lane.ids, membership: lane.membership };
+	}
+	let insertAt = headerIndex + 1;
+	if (lane.collapsedSectionIds.has(sectionFlatId)) {
+		while (
+			insertAt < ids.length &&
+			lane.membership[String(ids[insertAt])] === sectionFlatId
+		) {
+			insertAt += 1;
+		}
+	}
+	return {
+		ids: [...ids.slice(0, insertAt), projectId, ...ids.slice(insertAt)],
+		membership: { ...lane.membership, [String(projectId)]: sectionFlatId },
+	};
+}
+
+/** The lane as rows to persist, with section ids unwrapped. */
+export function toStoredProjectLane(
+	ids: readonly UniqueIdentifier[],
+	membership: Record<string, string>,
+): StoredLaneEntry[] {
+	return ids.map((id): StoredLaneEntry => {
+		const key = String(id);
+		if (isProjectSec(id)) {
+			return { type: "section", id: key.slice(PROJECT_SEC.length) };
+		}
+		const sectionFlatId = membership[key];
+		return {
+			type: "project",
+			id: key,
+			sectionId: sectionFlatId ? sectionFlatId.slice(PROJECT_SEC.length) : null,
+		};
+	});
+}
+
 // ── Parse flat list into top-level order + section membership ─────────
 
 interface ParsedFlatItems {
@@ -302,6 +424,7 @@ function parseFlatItems(
 
 export type SidebarDndActiveItem =
 	| { type: "project"; project: DashboardSidebarProject }
+	| { type: "projectSection"; section: ProjectSidebarSection }
 	| { type: "workspace"; workspace: DashboardSidebarWorkspace }
 	| { type: "section"; section: DashboardSidebarSection };
 
@@ -319,8 +442,12 @@ export interface DashboardSidebarDndValue {
 	projectItems: Record<string, UniqueIdentifier[]>;
 	/** Sorting strategy for a container's SortableContext (see the hook). */
 	getContainerSortingStrategy: (containerId: string) => SortingStrategy;
+	/** Projects-list sortable ids (section headers + projects), drag order. */
+	projectLaneIds: UniqueIdentifier[];
+	/** Sorting strategy for the Projects list's SortableContext. */
+	projectLaneSortingStrategy: SortingStrategy;
 	activeId: UniqueIdentifier | null;
-	activeType: "project" | "workspace" | "section" | null;
+	activeType: SidebarDndActiveType | null;
 	/** Container currently holding the active workspace/section, if any. */
 	activeContainer: string | null;
 	/** Real id of the section being dragged, if the active item is a section. */
@@ -338,6 +465,12 @@ export interface DashboardSidebarDndValue {
 	/** Rows and folders are a sorted view: their sortables are inert. */
 	isChildDragDisabled: boolean;
 }
+
+type SidebarDndActiveType =
+	| "project"
+	| "projectSection"
+	| "workspace"
+	| "section";
 
 const DashboardSidebarDndContext =
 	createContext<DashboardSidebarDndValue | null>(null);
@@ -392,7 +525,10 @@ interface UseSidebarDndOptions {
 	pinnedWorkspaces: DashboardSidebarPinnedWorkspace[];
 	/** The Sessions lane, shaped like a project's children (rows + folders). */
 	sessionChildren: DashboardSidebarProjectChild[];
-	onReorderProjects: (projectIds: string[]) => void;
+	/** The Projects list: section headers and projects in display order. */
+	projectLane: ProjectSidebarLaneItem[];
+	/** Persists a Projects-list drop (order and section membership). */
+	onCommitProjectLane: (lane: StoredLaneEntry[]) => void;
 	/**
 	 * True while a filter hides projects: the rendered project list is a
 	 * subset of the manual order, so committing a drop would rewrite tabOrder
@@ -415,7 +551,8 @@ export function useSidebarDnd({
 	projects,
 	pinnedWorkspaces,
 	sessionChildren,
-	onReorderProjects,
+	projectLane,
+	onCommitProjectLane,
 	projectDragDisabled = false,
 	childDragDisabled = false,
 }: UseSidebarDndOptions) {
@@ -498,14 +635,47 @@ export function useSidebarDnd({
 	);
 
 	const typeOf = useCallback(
-		(id: UniqueIdentifier): "project" | "workspace" | "section" | null => {
+		(id: UniqueIdentifier): SidebarDndActiveType | null => {
 			const s = String(id);
 			if (s.startsWith(WS)) return "workspace";
 			if (s.startsWith(SEC)) return "section";
+			if (s.startsWith(PROJECT_SEC)) return "projectSection";
 			if (projectIds.has(s)) return "project";
 			return null;
 		},
 		[projectIds],
+	);
+
+	const computedProjectLane = useMemo(
+		() => buildProjectLaneModel(projectLane),
+		[projectLane],
+	);
+	// A drop writes the order to the collection, which re-renders on a later
+	// task; until then show the dropped order so rows don't snap back for a
+	// frame. It only applies to the props it was dropped on.
+	const [projectLaneOverride, setProjectLaneOverride] = useState<{
+		base: ProjectLaneModel;
+		model: ProjectLaneModel;
+	} | null>(null);
+	const projectLaneModel =
+		projectLaneOverride?.base === computedProjectLane
+			? projectLaneOverride.model
+			: computedProjectLane;
+	// Read by drag handlers; the model never changes mid-drag.
+	const projectLaneModelRef = useRef(projectLaneModel);
+	useEffect(() => {
+		projectLaneModelRef.current = projectLaneModel;
+	}, [projectLaneModel]);
+	const projectSectionsById = useMemo(
+		() =>
+			new Map(
+				projectLane.flatMap((item) =>
+					item.type === "section"
+						? [[projectSecId(item.section.id), item.section] as const]
+						: [],
+				),
+			),
+		[projectLane],
 	);
 
 	const activeType = activeId ? typeOf(activeId) : null;
@@ -660,6 +830,10 @@ export function useSidebarDnd({
 			const project = projectsById.get(String(activeId));
 			return project ? { type: "project", project } : null;
 		}
+		if (activeType === "projectSection") {
+			const section = projectSectionsById.get(String(activeId));
+			return section ? { type: "projectSection", section } : null;
+		}
 		const parsed = parseId(activeId);
 		if (!parsed) return null;
 		if (parsed.type === "workspace") {
@@ -668,7 +842,14 @@ export function useSidebarDnd({
 		}
 		const sec = sectionsById.get(parsed.realId);
 		return sec ? { type: "section", section: sec } : null;
-	}, [activeId, activeType, projectsById, workspacesById, sectionsById]);
+	}, [
+		activeId,
+		activeType,
+		projectsById,
+		projectSectionsById,
+		workspacesById,
+		sectionsById,
+	]);
 
 	// Color the active workspace's ghost should show based on where it would
 	// land. Only meaningful while it hovers inside a project list. Mirrors the
@@ -714,6 +895,24 @@ export function useSidebarDnd({
 		[items, activeType, activeContainer],
 	);
 
+	const projectLaneSortingStrategy = useMemo((): SortingStrategy => {
+		if (activeType === "projectSection") {
+			return createSectionUnitSortingStrategy(
+				projectLaneModel.ids,
+				projectLaneModel.membership,
+				isProjectSec,
+			);
+		}
+		// Hovering a section header means "drop inside": the header lights up
+		// and nothing shifts, since the drop doesn't take the header's slot.
+		return (args) => {
+			const overId = projectLaneModel.ids[args.overIndex];
+			return overId !== undefined && isProjectSec(overId)
+				? null
+				: verticalListSortingStrategy(args);
+		};
+	}, [activeType, projectLaneModel]);
+
 	// ── Collision detection ──────────────────────────────────────────
 	//
 	// One DndContext holds project headers, section headers, and every
@@ -752,12 +951,28 @@ export function useSidebarDnd({
 			const type = typeOf(args.active.id);
 
 			if (type === "project") {
-				return closestCenter({
+				// The pointer picks the target, not the ghost's center: an
+				// expanded project's ghost is tall, so its center sits far from
+				// the pointer and would make a section header hard to hit.
+				const projectArgs = {
 					...args,
-					droppableContainers: args.droppableContainers.filter((container) =>
-						projectIds.has(String(container.id)),
+					droppableContainers: args.droppableContainers.filter(
+						(container) =>
+							projectIds.has(String(container.id)) ||
+							isProjectSec(container.id),
 					),
-				});
+				};
+				const pointerCollisions = pointerWithin(projectArgs);
+				return pointerCollisions.length > 0
+					? pointerCollisions
+					: closestCenter(projectArgs);
+			}
+
+			if (type === "projectSection") {
+				const lane = projectLaneModelRef.current;
+				return closestUnitCenter(
+					buildTopLevelUnits(lane.ids, lane.membership, isProjectSec),
+				)(args);
 			}
 
 			if (type === "section") {
@@ -973,15 +1188,37 @@ export function useSidebarDnd({
 				return;
 			}
 
-			if (type === "project") {
-				if (active.id !== over.id && projectIds.has(String(over.id))) {
-					const order = projects.map((project) => project.id);
-					const oldIndex = order.indexOf(String(active.id));
-					const newIndex = order.indexOf(String(over.id));
-					if (oldIndex !== -1 && newIndex !== -1) {
-						onReorderProjects(arrayMove(order, oldIndex, newIndex));
+			if (type === "project" || type === "projectSection") {
+				const lane = projectLaneModelRef.current;
+				let ids = lane.ids;
+				let membership = lane.membership;
+				if (type === "project") {
+					const dropped = isProjectSec(over.id)
+						? dropProjectOnSection(lane, active.id, String(over.id))
+						: dropProjectOnProject(lane, active.id, over.id);
+					if (!dropped) return;
+					ids = dropped.ids;
+					membership = dropped.membership;
+				} else {
+					const units = buildTopLevelUnits(ids, membership, isProjectSec);
+					const oldIndex = findUnitIndex(units, active.id);
+					const newIndex = findUnitIndex(units, over.id);
+					if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
+						return;
 					}
+					ids = arrayMove(units, oldIndex, newIndex).flatMap(
+						(unit) => unit.ids,
+					);
 				}
+				const unchanged =
+					ids.every((id, index) => id === lane.ids[index]) &&
+					lane.membership[String(active.id)] === membership[String(active.id)];
+				if (unchanged) return;
+				setProjectLaneOverride({
+					base: computedProjectLane,
+					model: { ...lane, ids, membership },
+				});
+				onCommitProjectLane(toStoredProjectLane(ids, membership));
 				return;
 			}
 
@@ -1109,9 +1346,8 @@ export function useSidebarDnd({
 		},
 		[
 			typeOf,
-			projects,
-			projectIds,
-			onReorderProjects,
+			computedProjectLane,
+			onCommitProjectLane,
 			commitContainerToDb,
 			persistWorkspaceDrop,
 			commitDragItems,
@@ -1154,6 +1390,8 @@ export function useSidebarDnd({
 			pinnedItems: items.pinned,
 			sessionItems: items.sessions,
 			projectItems: items.byProject,
+			projectLaneIds: projectLaneModel.ids,
+			projectLaneSortingStrategy,
 			getContainerSortingStrategy,
 			activeId,
 			activeType,
@@ -1169,6 +1407,8 @@ export function useSidebarDnd({
 		}),
 		[
 			items,
+			projectLaneModel,
+			projectLaneSortingStrategy,
 			getContainerSortingStrategy,
 			activeId,
 			activeType,

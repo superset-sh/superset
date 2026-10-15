@@ -18,7 +18,7 @@ import { DashboardSidebarGroupHeader } from "../DashboardSidebarGroupHeader";
 import {
 	DashboardSidebarSectionActionsDropdown,
 	DashboardSidebarSectionContextMenu,
-} from "../DashboardSidebarSection/components/DashboardSidebarSectionContextMenu";
+} from "../DashboardSidebarSectionContextMenu";
 
 interface SortableSectionHeaderProps {
 	sortableId: string;

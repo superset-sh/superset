@@ -10,6 +10,7 @@ import { SectionActionsMenuItems } from "../SectionActionsMenuItems";
 
 export function DashboardSidebarSectionActionsDropdown({
 	color,
+	noun = "group",
 	onRename,
 	onSetColor,
 	onDelete,
@@ -25,9 +26,11 @@ export function DashboardSidebarSectionActionsDropdown({
 					onClick={(event) => event.stopPropagation()}
 					onContextMenu={(event) => event.stopPropagation()}
 					className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground/80 opacity-0 transition-[opacity,color,background-color] hover:bg-fill-hover hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
-					aria-label={t({
-						message: "Group actions",
-					})}
+					aria-label={
+						noun === "section"
+							? t({ message: "Section actions" })
+							: t({ message: "Group actions" })
+					}
 				>
 					<LuEllipsis className="size-3.5" />
 				</button>
@@ -41,6 +44,7 @@ export function DashboardSidebarSectionActionsDropdown({
 			>
 				<SectionActionsMenuItems
 					color={color}
+					noun={noun}
 					kind="dropdown"
 					onRename={onRename}
 					onSetColor={onSetColor}

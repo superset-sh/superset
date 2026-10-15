@@ -5743,6 +5743,9 @@ msgstr "Удалить проект…"
 msgid "Delete script"
 msgstr "Удалить скрипт"
 
+msgid "Delete section"
+msgstr "Удалить раздел"
+
 msgid "Delete selected workspaces"
 msgstr "Удалить выбранные рабочие области"
 
@@ -10149,6 +10152,9 @@ msgstr "Переместить в группу"
 msgid "Move to Right Side"
 msgstr "Переместить вправо"
 
+msgid "Move to section"
+msgstr "Переместить в раздел"
+
 msgid "Move to Tab"
 msgstr "Переместить во вкладку"
 
@@ -10344,6 +10350,9 @@ msgstr "Новый проект"
 
 msgid "New push to branch"
 msgstr "Новый push в ветку"
+
+msgid "New section"
+msgstr "Новый раздел"
 
 msgid "New session"
 msgstr "Новая сессия"
@@ -13360,6 +13369,9 @@ msgstr "Удалить из избранного"
 msgid "Remove from Queue"
 msgstr "Убрать из очереди"
 
+msgid "Remove from section"
+msgstr "Убрать из раздела"
+
 msgid "Remove from sidebar"
 msgstr "Убрать из боковой панели"
 
@@ -13462,6 +13474,9 @@ msgstr "Переименовать хост"
 
 msgid "Rename page"
 msgstr "Переименовать страницу"
+
+msgid "Rename section"
+msgstr "Переименовать раздел"
 
 msgid "Rename session"
 msgstr "Переименовать сессию"
@@ -14550,6 +14565,9 @@ msgstr "Вторичная"
 msgid "Secret Shift Lead"
 msgstr "Тайный начальник смены"
 
+msgid "Section actions"
+msgstr "Действия с разделом"
+
 msgid "Sections"
 msgstr "Разделы"
 
@@ -14898,6 +14916,9 @@ msgstr "Назначить проект…"
 
 msgid "Set Run"
 msgstr "Задать запуск"
+
+msgid "Set section color"
+msgstr "Задать цвет раздела"
 
 msgid "Set this project"
 msgstr "Назначить этот проект"

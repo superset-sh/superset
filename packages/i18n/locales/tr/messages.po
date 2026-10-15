@@ -5743,6 +5743,9 @@ msgstr "Projeyi sil…"
 msgid "Delete script"
 msgstr "Betiği sil"
 
+msgid "Delete section"
+msgstr "Bölümü sil"
+
 msgid "Delete selected workspaces"
 msgstr "Seçili çalışma alanlarını sil"
 
@@ -10149,6 +10152,9 @@ msgstr "Gruba taşı"
 msgid "Move to Right Side"
 msgstr "Sağ tarafa taşı"
 
+msgid "Move to section"
+msgstr "Bölüme taşı"
+
 msgid "Move to Tab"
 msgstr "Sekmeye taşı"
 
@@ -10344,6 +10350,9 @@ msgstr "Yeni proje"
 
 msgid "New push to branch"
 msgstr "Dala yeni push"
+
+msgid "New section"
+msgstr "Yeni bölüm"
 
 msgid "New session"
 msgstr "Yeni oturum"
@@ -13360,6 +13369,9 @@ msgstr "Favorilerden kaldır"
 msgid "Remove from Queue"
 msgstr "Kuyruktan çıkar"
 
+msgid "Remove from section"
+msgstr "Bölümden çıkar"
+
 msgid "Remove from sidebar"
 msgstr "Kenar çubuğundan kaldır"
 
@@ -13462,6 +13474,9 @@ msgstr "Host'u yeniden adlandır"
 
 msgid "Rename page"
 msgstr "Sayfayı yeniden adlandır"
+
+msgid "Rename section"
+msgstr "Bölümü yeniden adlandır"
 
 msgid "Rename session"
 msgstr "Oturumu yeniden adlandır"
@@ -14550,6 +14565,9 @@ msgstr "İkincil"
 msgid "Secret Shift Lead"
 msgstr "Gizli Vardiya Amiri"
 
+msgid "Section actions"
+msgstr "Bölüm eylemleri"
+
 msgid "Sections"
 msgstr "Bölümler"
 
@@ -14898,6 +14916,9 @@ msgstr "Projeyi ayarla…"
 
 msgid "Set Run"
 msgstr "Çalıştırmayı ayarla"
+
+msgid "Set section color"
+msgstr "Bölüm rengini ayarla"
 
 msgid "Set this project"
 msgstr "Bu projeyi ayarla"

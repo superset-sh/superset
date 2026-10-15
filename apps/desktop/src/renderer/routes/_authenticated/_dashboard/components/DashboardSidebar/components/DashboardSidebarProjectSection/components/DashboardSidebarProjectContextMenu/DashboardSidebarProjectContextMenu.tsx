@@ -10,6 +10,8 @@ import {
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import {
+	LuArrowRightLeft,
+	LuArrowUp,
 	LuEye,
 	LuEyeOff,
 	LuFolderInput,
@@ -20,9 +22,13 @@ import {
 	LuTrash2,
 } from "react-icons/lu";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
+import { useProjectSectionMenu } from "./hooks/useProjectSectionMenu";
 
 interface DashboardSidebarProjectContextMenuProps {
 	projectId: string;
+	projectSectionId: string | null;
+	/** The icon rail: section headers aren't shown, so nothing to rename in. */
+	isSidebarCollapsed: boolean;
 	onCreateSection: () => void;
 	onImportWorktrees: () => void;
 	onOpenInFinder: () => void;
@@ -36,6 +42,8 @@ interface DashboardSidebarProjectContextMenuProps {
 
 export function DashboardSidebarProjectContextMenu({
 	projectId,
+	projectSectionId,
+	isSidebarCollapsed,
 	onCreateSection,
 	onImportWorktrees,
 	onOpenInFinder,
@@ -47,6 +55,10 @@ export function DashboardSidebarProjectContextMenu({
 }: DashboardSidebarProjectContextMenuProps) {
 	const { preferences, setTagFolderHidden } = useV2UserPreferences();
 	const hiddenTags = preferences.hiddenTagFolders[projectId] ?? [];
+	const { sections, moveToSection, moveToNewSection } = useProjectSectionMenu({
+		projectId,
+		renameNewSection: !isSidebarCollapsed,
+	});
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
@@ -68,6 +80,40 @@ export function DashboardSidebarProjectContextMenu({
 					<LuFolderPlus className="size-4 mr-2" />
 					<Trans>New group</Trans>
 				</ContextMenuItem>
+				<ContextMenuSub>
+					<ContextMenuSubTrigger>
+						<LuArrowRightLeft className="size-4 mr-2" />
+						<Trans>Move to section</Trans>
+					</ContextMenuSubTrigger>
+					<ContextMenuSubContent className="w-48 max-h-80 overflow-y-auto">
+						{sections.map((section) => (
+							<ContextMenuItem
+								key={section.id}
+								disabled={section.id === projectSectionId}
+								onSelect={() => moveToSection(section.id)}
+							>
+								{section.color && (
+									<span
+										className="size-2 shrink-0 rounded-full mr-2"
+										style={{ backgroundColor: section.color }}
+									/>
+								)}
+								{section.name}
+							</ContextMenuItem>
+						))}
+						{sections.length > 0 && <ContextMenuSeparator />}
+						<ContextMenuItem onSelect={moveToNewSection}>
+							<LuFolderPlus className="size-4 mr-2" />
+							<Trans>New section</Trans>
+						</ContextMenuItem>
+					</ContextMenuSubContent>
+				</ContextMenuSub>
+				{projectSectionId !== null && (
+					<ContextMenuItem onSelect={() => moveToSection(null)}>
+						<LuArrowUp className="size-4 mr-2" />
+						<Trans>Remove from section</Trans>
+					</ContextMenuItem>
+				)}
 				{hiddenTags.length > 0 ? (
 					<ContextMenuSub>
 						<ContextMenuSubTrigger>

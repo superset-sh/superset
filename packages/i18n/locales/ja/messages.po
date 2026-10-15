@@ -5743,6 +5743,9 @@ msgstr "プロジェクトを削除…"
 msgid "Delete script"
 msgstr "スクリプトを削除"
 
+msgid "Delete section"
+msgstr "セクションを削除"
+
 msgid "Delete selected workspaces"
 msgstr "選択したワークスペースを削除"
 
@@ -10149,6 +10152,9 @@ msgstr "グループへ移動"
 msgid "Move to Right Side"
 msgstr "右側に移動"
 
+msgid "Move to section"
+msgstr "セクションへ移動"
+
 msgid "Move to Tab"
 msgstr "タブに移動"
 
@@ -10344,6 +10350,9 @@ msgstr "新規プロジェクト"
 
 msgid "New push to branch"
 msgstr "ブランチへの新規プッシュ"
+
+msgid "New section"
+msgstr "新規セクション"
 
 msgid "New session"
 msgstr "新規セッション"
@@ -13360,6 +13369,9 @@ msgstr "お気に入りから削除"
 msgid "Remove from Queue"
 msgstr "キューから削除"
 
+msgid "Remove from section"
+msgstr "セクションから外す"
+
 msgid "Remove from sidebar"
 msgstr "サイドバーから削除"
 
@@ -13462,6 +13474,9 @@ msgstr "ホストの名前を変更"
 
 msgid "Rename page"
 msgstr "ページの名前を変更"
+
+msgid "Rename section"
+msgstr "セクション名を変更"
 
 msgid "Rename session"
 msgstr "セッションの名前を変更"
@@ -14550,6 +14565,9 @@ msgstr "Secondary"
 msgid "Secret Shift Lead"
 msgstr "秘密のシフトリーダー"
 
+msgid "Section actions"
+msgstr "セクションの操作"
+
 msgid "Sections"
 msgstr "セクション"
 
@@ -14898,6 +14916,9 @@ msgstr "プロジェクトを設定…"
 
 msgid "Set Run"
 msgstr "実行を設定"
+
+msgid "Set section color"
+msgstr "セクションの色を設定"
 
 msgid "Set this project"
 msgstr "このプロジェクトに設定"

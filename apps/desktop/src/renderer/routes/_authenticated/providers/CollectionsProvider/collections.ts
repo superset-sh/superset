@@ -13,8 +13,10 @@ import { reclaimTerminalStateForQuota } from "renderer/lib/terminal/terminal-buf
 import type { z } from "zod";
 import {
 	type DashboardSidebarProjectRow,
+	type DashboardSidebarProjectSectionRow,
 	type DashboardSidebarSectionRow,
 	dashboardSidebarProjectSchema,
+	dashboardSidebarProjectSectionSchema,
 	dashboardSidebarSectionSchema,
 	type FailedWorkspaceCreateRow,
 	failedWorkspaceCreateSchema,
@@ -102,6 +104,13 @@ export interface OrgCollections {
 		LocalStorageCollectionUtils,
 		typeof dashboardSidebarSectionSchema,
 		z.input<typeof dashboardSidebarSectionSchema>
+	>;
+	v2SidebarProjectSections: Collection<
+		DashboardSidebarProjectSectionRow,
+		string,
+		LocalStorageCollectionUtils,
+		typeof dashboardSidebarProjectSectionSchema,
+		z.input<typeof dashboardSidebarProjectSectionSchema>
 	>;
 	v2TerminalPresets: Collection<
 		V2TerminalPresetRow,
@@ -199,6 +208,19 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		basicIndexConfig,
 	);
 
+	// Bounded by the sections a user creates by hand; deleted from the
+	// section menu, which also clears its projects' pointers.
+	const v2SidebarProjectSections = createIndexedCollection(
+		localStorageCollectionOptions(
+			hardenLocalCollection({
+				id: `v2_sidebar_project_sections-${organizationId}`,
+				storageKey: `v2-sidebar-project-sections-${organizationId}`,
+				schema: dashboardSidebarProjectSectionSchema,
+				getKey: (item: DashboardSidebarProjectSectionRow) => item.sectionId,
+			}),
+		),
+	);
+
 	const v2TerminalPresets = createIndexedCollection(
 		localStorageCollectionOptions(
 			hardenLocalCollection({
@@ -243,6 +265,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		v2SidebarProjects,
 		v2WorkspaceLocalState,
 		v2SidebarSections,
+		v2SidebarProjectSections,
 		v2TerminalPresets,
 		v2UserPreferences,
 		failedWorkspaceCreates,

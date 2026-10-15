@@ -31,6 +31,7 @@ interface SectionActionsMenuItemsProps
 
 export function SectionActionsMenuItems({
 	color,
+	noun = "group",
 	kind,
 	onRename,
 	onSetColor,
@@ -125,7 +126,11 @@ export function SectionActionsMenuItems({
 	const colorTrigger = (
 		<>
 			<LuPalette className={iconClassName} />
-			<Trans>Set group color</Trans>
+			{noun === "section" ? (
+				<Trans>Set section color</Trans>
+			) : (
+				<Trans>Set group color</Trans>
+			)}
 		</>
 	);
 
@@ -136,7 +141,11 @@ export function SectionActionsMenuItems({
 				children: (
 					<>
 						<LuPencil className={iconClassName} />
-						<Trans>Rename group</Trans>
+						{noun === "section" ? (
+							<Trans>Rename section</Trans>
+						) : (
+							<Trans>Rename group</Trans>
+						)}
 					</>
 				),
 			})}
@@ -183,7 +192,11 @@ export function SectionActionsMenuItems({
 									: "size-4 text-destructive"
 							}
 						/>
-						<Trans>Delete group</Trans>
+						{noun === "section" ? (
+							<Trans>Delete section</Trans>
+						) : (
+							<Trans>Delete group</Trans>
+						)}
 					</>
 				),
 			})}

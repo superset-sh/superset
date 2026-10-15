@@ -5743,6 +5743,9 @@ msgstr "刪除專案…"
 msgid "Delete script"
 msgstr "刪除指令碼"
 
+msgid "Delete section"
+msgstr "刪除區段"
+
 msgid "Delete selected workspaces"
 msgstr "刪除選中的工作區"
 
@@ -10149,6 +10152,9 @@ msgstr "移動到群組"
 msgid "Move to Right Side"
 msgstr "移到右側"
 
+msgid "Move to section"
+msgstr "移動到區段"
+
 msgid "Move to Tab"
 msgstr "移動到分頁"
 
@@ -10344,6 +10350,9 @@ msgstr "新建專案"
 
 msgid "New push to branch"
 msgstr "向分支推送了新提交"
+
+msgid "New section"
+msgstr "新建區段"
 
 msgid "New session"
 msgstr "新建會話"
@@ -13360,6 +13369,9 @@ msgstr "從最愛移除"
 msgid "Remove from Queue"
 msgstr "移出佇列"
 
+msgid "Remove from section"
+msgstr "從區段移除"
+
 msgid "Remove from sidebar"
 msgstr "從側邊欄移除"
 
@@ -13462,6 +13474,9 @@ msgstr "重新命名主機"
 
 msgid "Rename page"
 msgstr "重新命名頁面"
+
+msgid "Rename section"
+msgstr "重新命名區段"
 
 msgid "Rename session"
 msgstr "重新命名會話"
@@ -14550,6 +14565,9 @@ msgstr "次要"
 msgid "Secret Shift Lead"
 msgstr "秘密班長"
 
+msgid "Section actions"
+msgstr "區段操作"
+
 msgid "Sections"
 msgstr "分區"
 
@@ -14898,6 +14916,9 @@ msgstr "設定專案…"
 
 msgid "Set Run"
 msgstr "設定執行命令"
+
+msgid "Set section color"
+msgstr "設定區段顏色"
 
 msgid "Set this project"
 msgstr "設為此專案"

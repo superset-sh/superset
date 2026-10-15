@@ -70,7 +70,8 @@ export function tombstoneSidebarWorkspaceRecord(
  * workspace created by the CLI or an agent must not undo an explicit hide.
  */
 export function ensureSidebarProjectRecord(
-	collections: Pick<AppCollections, "v2SidebarProjects">,
+	collections: Pick<AppCollections, "v2SidebarProjects"> &
+		Partial<Pick<AppCollections, "v2SidebarProjectSections">>,
 	projectId: string,
 	{ reveal = true }: { reveal?: boolean } = {},
 ): void {
@@ -89,8 +90,11 @@ export function ensureSidebarProjectRecord(
 		createdAt: new Date(),
 		// Prepend, matching new workspaces: the project you just added is
 		// the one you're about to work in.
+		// Sections share the projects' order, so count them too or the new
+		// project lands under a top section.
 		tabOrder: getPrependTabOrder([
 			...collections.v2SidebarProjects.state.values(),
+			...(collections.v2SidebarProjectSections?.state.values() ?? []),
 		]),
 		isCollapsed: false,
 		isHidden: false,

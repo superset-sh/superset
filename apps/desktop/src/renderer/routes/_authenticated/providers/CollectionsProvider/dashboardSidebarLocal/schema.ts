@@ -41,6 +41,23 @@ export const dashboardSidebarProjectSchema = z.object({
 	isHidden: z.boolean().default(false),
 	tabOrder: z.number().int().default(0),
 	defaultOpenInApp: z.string().nullable().default(null),
+	// The project section this project is filed under; null = top level. A
+	// pointer at a deleted section reads as top level.
+	sectionId: z.string().nullable().default(null),
+});
+
+/**
+ * A named section of the Projects list. Sections and top-level projects
+ * share one tabOrder space, so they interleave; a section's projects sort
+ * by their own tabOrder in that same space.
+ */
+export const dashboardSidebarProjectSectionSchema = z.object({
+	sectionId: z.string().uuid(),
+	name: z.string().trim().min(1),
+	createdAt: persistedDateSchema,
+	tabOrder: z.number().int().default(0),
+	isCollapsed: z.boolean().default(false),
+	color: z.string().nullable().default(null),
 });
 
 const paneWorkspaceStateSchema = z.custom<WorkspaceState<unknown>>();
@@ -357,6 +374,9 @@ export type WorkspaceRunTerminalState = z.infer<
 >;
 export type DashboardSidebarSectionRow = z.infer<
 	typeof dashboardSidebarSectionSchema
+>;
+export type DashboardSidebarProjectSectionRow = z.infer<
+	typeof dashboardSidebarProjectSectionSchema
 >;
 export type V2TerminalPresetRow = z.infer<typeof v2TerminalPresetSchema>;
 

@@ -1,5 +1,11 @@
-import { describe, expect, test } from "bun:test";
-import { hasInFlightRowWrite, planExternalSync } from "./useSidebarDnd";
+import { describe, expect, it, test } from "bun:test";
+import {
+	dropProjectOnProject,
+	dropProjectOnSection,
+	hasInFlightRowWrite,
+	planExternalSync,
+	toStoredProjectLane,
+} from "./useSidebarDnd";
 
 const dropped = new Set(["a", "b"]);
 
@@ -78,5 +84,92 @@ describe("planExternalSync", () => {
 				prevFingerprint: "pre-drop",
 			}),
 		).toBe("sync");
+	});
+});
+
+describe("toStoredProjectLane", () => {
+	it("unwraps section ids for persistence", () => {
+		expect(
+			toStoredProjectLane(["psec::work", "b", "a"], { b: "psec::work" }),
+		).toEqual([
+			{ type: "section", id: "work" },
+			{ type: "project", id: "b", sectionId: "work" },
+			{ type: "project", id: "a", sectionId: null },
+		]);
+	});
+});
+
+describe("dropProjectOnProject", () => {
+	const lane = {
+		ids: ["psec::work", "w1", "x", "psec::closed", "c1", "y", "z"],
+		membership: { w1: "psec::work", c1: "psec::closed" },
+		collapsedSectionIds: new Set(["psec::closed"]),
+	};
+
+	it("takes the section of the project it lands on", () => {
+		const down = dropProjectOnProject(lane, "x", "w1");
+		expect(down?.ids.slice(0, 3)).toEqual(["psec::work", "x", "w1"]);
+		expect(down?.membership.x).toBe("psec::work");
+		const up = dropProjectOnProject(lane, "w1", "x");
+		expect(up?.ids.slice(0, 3)).toEqual(["psec::work", "x", "w1"]);
+		expect(up?.membership.w1).toBeUndefined();
+	});
+
+	it("moves up to stay top-level right below a section", () => {
+		const dropped = dropProjectOnProject(lane, "z", "y");
+		expect(dropped?.ids.slice(3)).toEqual(["psec::closed", "c1", "z", "y"]);
+		expect(dropped?.membership.z).toBeUndefined();
+	});
+
+	it("never joins a collapsed section", () => {
+		expect(dropProjectOnProject(lane, "y", "c1")?.membership.y).toBeUndefined();
+	});
+
+	it("keeps a collapsed section's own member in it", () => {
+		const rail = {
+			...lane,
+			ids: [...lane.ids, "c2"],
+			membership: { ...lane.membership, c2: "psec::closed" },
+		};
+		expect(dropProjectOnProject(rail, "c1", "c2")?.membership.c1).toBe(
+			"psec::closed",
+		);
+	});
+
+	it("changes nothing when dropped on itself", () => {
+		expect(dropProjectOnProject(lane, "x", "x")).toBeNull();
+	});
+});
+
+describe("dropProjectOnSection", () => {
+	const lane = {
+		ids: ["psec::empty", "psec::work", "w1", "psec::closed", "c1", "x"],
+		membership: { w1: "psec::work", c1: "psec::closed" },
+		collapsedSectionIds: new Set(["psec::closed"]),
+	};
+
+	it("drops into an empty section above the project, not beside it", () => {
+		const dropped = dropProjectOnSection(lane, "x", "psec::empty");
+		expect(dropped.ids.slice(0, 2)).toEqual(["psec::empty", "x"]);
+		expect(dropped.membership.x).toBe("psec::empty");
+	});
+
+	it("goes first in an open section and last in a collapsed one", () => {
+		expect(dropProjectOnSection(lane, "x", "psec::work").ids).toEqual([
+			"psec::empty",
+			"psec::work",
+			"x",
+			"w1",
+			"psec::closed",
+			"c1",
+		]);
+		expect(dropProjectOnSection(lane, "w1", "psec::closed").ids).toEqual([
+			"psec::empty",
+			"psec::work",
+			"psec::closed",
+			"c1",
+			"w1",
+			"x",
+		]);
 	});
 });

@@ -4,11 +4,13 @@ import type {
 	DashboardSidebarSection,
 	DashboardSidebarWorkspace,
 } from "../../types";
+import type { ProjectSidebarSection } from "../../utils/projectSidebarLane";
 import { DashboardSidebarWorkspaceItem } from "../DashboardSidebarWorkspaceItem";
 
 type ActiveItem =
 	| { type: "workspace"; workspace: DashboardSidebarWorkspace }
-	| { type: "section"; section: DashboardSidebarSection };
+	| { type: "section"; section: DashboardSidebarSection }
+	| { type: "projectSection"; section: ProjectSidebarSection };
 
 interface SidebarDragOverlayProps {
 	activeItem: ActiveItem | null;
@@ -38,6 +40,10 @@ export function SidebarDragOverlay({
 	}
 
 	const { section } = activeItem;
+	const count =
+		activeItem.type === "projectSection"
+			? activeItem.section.projectCount
+			: activeItem.section.workspaces.length;
 	const hasColor =
 		section.color != null && section.color !== PROJECT_COLOR_DEFAULT;
 
@@ -55,7 +61,7 @@ export function SidebarDragOverlay({
 				</div>
 				<span className="truncate">{section.name}</span>
 				<span className="text-[10px] font-normal tabular-nums shrink-0">
-					({section.workspaces.length})
+					({count})
 				</span>
 			</div>
 		</div>

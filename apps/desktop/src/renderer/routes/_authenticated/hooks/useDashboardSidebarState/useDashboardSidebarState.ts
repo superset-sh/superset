@@ -466,18 +466,6 @@ export function useDashboardSidebarState() {
 		[collections],
 	);
 
-	const reorderProjects = useCallback(
-		(projectIds: string[]) => {
-			projectIds.forEach((projectId, index) => {
-				if (!collections.v2SidebarProjects.get(projectId)) return;
-				collections.v2SidebarProjects.update(projectId, (draft) => {
-					draft.tabOrder = index + 1;
-				});
-			});
-		},
-		[collections],
-	);
-
 	const reorderWorkspaces = useCallback(
 		(workspaceIds: string[]) => {
 			workspaceIds.forEach((workspaceId, index) => {
@@ -1062,7 +1050,6 @@ export function useDashboardSidebarState() {
 		reorderPinnedWorkspaces,
 		reorderProjectChildren,
 		removeWorkspaceFromSidebar,
-		reorderProjects,
 		reorderWorkspaces,
 		renameSection,
 		setSectionColor,

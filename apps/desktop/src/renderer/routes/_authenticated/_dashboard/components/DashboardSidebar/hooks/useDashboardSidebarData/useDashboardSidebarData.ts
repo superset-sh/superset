@@ -22,6 +22,7 @@ import type {
 	DashboardSidebarProject,
 	DashboardSidebarWorkspace,
 } from "../../types";
+import type { ProjectPlacementInput } from "../../utils/projectSidebarLane";
 import {
 	buildDashboardSidebarPinnedWorkspaces,
 	buildDashboardSidebarProjects,
@@ -187,6 +188,29 @@ export function useDashboardSidebarData() {
 					isCollapsed: sidebarProjects.isCollapsed,
 					isHidden: sidebarProjects.isHidden,
 					tabOrder: sidebarProjects.tabOrder,
+					sectionId: sidebarProjects.sectionId,
+				})),
+		[collections],
+	);
+	const projectPlacements = useMemo<ProjectPlacementInput[]>(
+		() =>
+			sidebarProjectRows.map((row) => ({
+				projectId: row.projectId,
+				tabOrder: row.tabOrder,
+				sectionId: row.sectionId,
+			})),
+		[sidebarProjectRows],
+	);
+	const { data: projectSections = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ sections: collections.v2SidebarProjectSections })
+				.select(({ sections }) => ({
+					sectionId: sections.sectionId,
+					name: sections.name,
+					color: sections.color,
+					isCollapsed: sections.isCollapsed,
+					tabOrder: sections.tabOrder,
 				})),
 		[collections],
 	);
@@ -566,6 +590,8 @@ export function useDashboardSidebarData() {
 
 	return {
 		groups,
+		projectSections,
+		projectPlacements,
 		hiddenProjects,
 		pinnedWorkspaces,
 		sessionWorkspaces,

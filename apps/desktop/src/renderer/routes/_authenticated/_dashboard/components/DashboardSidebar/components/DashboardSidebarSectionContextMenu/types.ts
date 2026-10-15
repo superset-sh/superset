@@ -1,5 +1,7 @@
 export interface DashboardSidebarSectionActionsProps {
 	color: string | null;
+	/** What the menu calls the container: a workspace group or a project section. */
+	noun?: SectionActionsNoun;
 	onRename: () => void;
 	onSetColor?: (color: string | null) => void;
 	onDelete: () => void;
@@ -8,3 +10,5 @@ export interface DashboardSidebarSectionActionsProps {
 }
 
 export type SectionActionsMenuKind = "context" | "dropdown";
+
+export type SectionActionsNoun = "group" | "section";

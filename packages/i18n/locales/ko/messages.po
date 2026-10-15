@@ -5743,6 +5743,9 @@ msgstr "프로젝트 삭제…"
 msgid "Delete script"
 msgstr "스크립트 삭제"
 
+msgid "Delete section"
+msgstr "섹션 삭제"
+
 msgid "Delete selected workspaces"
 msgstr "선택한 워크스페이스 삭제"
 
@@ -10149,6 +10152,9 @@ msgstr "그룹으로 이동"
 msgid "Move to Right Side"
 msgstr "오른쪽으로 이동"
 
+msgid "Move to section"
+msgstr "섹션으로 이동"
+
 msgid "Move to Tab"
 msgstr "탭으로 이동"
 
@@ -10344,6 +10350,9 @@ msgstr "새 프로젝트"
 
 msgid "New push to branch"
 msgstr "브랜치에 새 푸시"
+
+msgid "New section"
+msgstr "새 섹션"
 
 msgid "New session"
 msgstr "새 세션"
@@ -13360,6 +13369,9 @@ msgstr "즐겨찾기에서 제거"
 msgid "Remove from Queue"
 msgstr "대기열에서 제거"
 
+msgid "Remove from section"
+msgstr "섹션에서 제거"
+
 msgid "Remove from sidebar"
 msgstr "사이드바에서 제거"
 
@@ -13462,6 +13474,9 @@ msgstr "호스트 이름 변경"
 
 msgid "Rename page"
 msgstr "페이지 이름 변경"
+
+msgid "Rename section"
+msgstr "섹션 이름 변경"
 
 msgid "Rename session"
 msgstr "세션 이름 변경"
@@ -14550,6 +14565,9 @@ msgstr "보조"
 msgid "Secret Shift Lead"
 msgstr "비밀의 교대조장"
 
+msgid "Section actions"
+msgstr "섹션 작업"
+
 msgid "Sections"
 msgstr "섹션"
 
@@ -14898,6 +14916,9 @@ msgstr "프로젝트 설정…"
 
 msgid "Set Run"
 msgstr "실행 설정"
+
+msgid "Set section color"
+msgstr "섹션 색상 설정"
 
 msgid "Set this project"
 msgstr "이 프로젝트로 설정"

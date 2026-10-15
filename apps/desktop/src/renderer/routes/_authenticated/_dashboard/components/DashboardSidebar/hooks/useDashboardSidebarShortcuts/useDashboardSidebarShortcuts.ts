@@ -63,6 +63,8 @@ interface UseDashboardSidebarShortcutsOptions {
 	 * only rewrite the persisted collapse state behind the user's back.
 	 */
 	revealCollapsed?: boolean;
+	/** Opens the collapsed Projects-list section a project is filed under. */
+	revealProject?: (projectId: string) => void;
 }
 
 export function useDashboardSidebarShortcuts(
@@ -72,6 +74,7 @@ export function useDashboardSidebarShortcuts(
 	{
 		revealCollapsed = true,
 		pinnedWorkspaces = [],
+		revealProject,
 	}: UseDashboardSidebarShortcutsOptions = {},
 ) {
 	const navigate = useNavigate();
@@ -160,8 +163,11 @@ export function useDashboardSidebarShortcuts(
 			}
 			const location = workspaceLocations.get(workspaceId);
 			if (!location) return;
-			if (location.projectId !== null && location.projectIsCollapsed) {
-				toggleProjectCollapsed(location.projectId);
+			if (location.projectId !== null) {
+				revealProject?.(location.projectId);
+				if (location.projectIsCollapsed) {
+					toggleProjectCollapsed(location.projectId);
+				}
 			}
 			if (location.sectionId && location.sectionIsCollapsed) {
 				toggleSectionCollapsed(location.sectionId);
@@ -170,6 +176,7 @@ export function useDashboardSidebarShortcuts(
 		[
 			pinnedWorkspaces,
 			workspaceLocations,
+			revealProject,
 			toggleProjectCollapsed,
 			toggleSectionCollapsed,
 		],

@@ -1,10 +1,12 @@
 export {
 	type DashboardSidebarDndValue,
 	dropZoneId,
+	isProjectSec,
 	isSec,
 	measuring,
 	PINNED_CONTAINER,
 	parseId,
+	projectSecId,
 	SESSIONS_CONTAINER,
 	type SidebarDndActiveItem,
 	SidebarDndContextProvider,
