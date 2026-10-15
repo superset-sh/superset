@@ -10,6 +10,8 @@ import {
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
+import { type KeyboardEvent, useMemo } from "react";
+import { HiOutlineClipboardDocumentList } from "react-icons/hi2";
 import {
 	LuArrowRightLeft,
 	LuArrowUp,
@@ -30,11 +32,18 @@ import {
 	LuX,
 } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import type { CloudTask } from "renderer/routes/_authenticated/_dashboard/components/CloudTaskRow";
 import { useDashboardSidebarPortKill } from "../../../../hooks/useDashboardSidebarPortKill";
 import { useProjectTagFolderSections } from "../../../../hooks/useProjectTagFolderSections";
 import { useRunAfterMenuClose } from "../../../../hooks/useRunAfterMenuClose";
 import { useDashboardSidebarHoverActions } from "../../../../providers/DashboardSidebarHoverProvider";
 import { useDashboardSidebarWorkspacePorts } from "../../../../providers/DashboardSidebarPortsProvider";
+import { LinkTaskCommand } from "../../../LinkTaskCommand";
+
+/** The menu's typeahead and arrow keys would otherwise steal keystrokes from a submenu's search field. */
+function keepKeysInSearch(event: KeyboardEvent) {
+	if (event.key !== "Escape") event.stopPropagation();
+}
 
 interface DashboardSidebarWorkspaceContextMenuProps {
 	workspaceId: string;
@@ -48,6 +57,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	isUnread: boolean;
 	hasStatus: boolean;
 	hasPullRequest: boolean;
+	taskId: string | null;
 	showDeleteHotkey?: boolean;
 	onTogglePin: () => void;
 	onCreateSection: () => void;
@@ -62,6 +72,8 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	onToggleUnread: () => void;
 	onClearStatus: () => void;
 	onRemovePullRequest: () => void;
+	onToggleTask: (task: CloudTask, isLinked: boolean) => void;
+	onUnlinkTask: () => void;
 	children: React.ReactNode;
 }
 
@@ -75,6 +87,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 	isUnread,
 	hasStatus,
 	hasPullRequest,
+	taskId,
 	showDeleteHotkey = false,
 	onTogglePin,
 	onCreateSection,
@@ -89,6 +102,8 @@ export function DashboardSidebarWorkspaceContextMenu({
 	onToggleUnread,
 	onClearStatus,
 	onRemovePullRequest,
+	onToggleTask,
+	onUnlinkTask,
 	children,
 }: DashboardSidebarWorkspaceContextMenuProps) {
 	const { runAfterClose, onCloseAutoFocus } = useRunAfterMenuClose();
@@ -104,6 +119,10 @@ export function DashboardSidebarWorkspaceContextMenu({
 	// move target.
 	const { sections } = useProjectTagFolderSections(projectId);
 	const canJoinGroup = projectId !== null || isSessionWorkspace;
+	const linkedTaskIds = useMemo(
+		() => new Set(taskId ? [taskId] : []),
+		[taskId],
+	);
 	const handleCloseAllPorts = () => {
 		if (isKillingPorts) return;
 		void killPorts(ports);
@@ -178,6 +197,25 @@ export function DashboardSidebarWorkspaceContextMenu({
 					<ContextMenuItem onSelect={onRemovePullRequest}>
 						<LuUnlink className="size-4 mr-2" />
 						<Trans>Remove PR Link</Trans>
+					</ContextMenuItem>
+				)}
+				<ContextMenuSub>
+					<ContextMenuSubTrigger>
+						<HiOutlineClipboardDocumentList className="size-4 mr-2" />
+						<Trans>Link task</Trans>
+					</ContextMenuSubTrigger>
+					<ContextMenuSubContent className="w-80 p-0">
+						<LinkTaskCommand
+							linkedTaskIds={linkedTaskIds}
+							onToggle={onToggleTask}
+							onKeyDown={keepKeysInSearch}
+						/>
+					</ContextMenuSubContent>
+				</ContextMenuSub>
+				{taskId && (
+					<ContextMenuItem onSelect={onUnlinkTask}>
+						<LuUnlink className="size-4 mr-2" />
+						<Trans>Unlink task</Trans>
 					</ContextMenuItem>
 				)}
 				{/* Group actions mutate placement (sectionId/tabOrder), which a pinned

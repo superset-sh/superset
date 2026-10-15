@@ -8,6 +8,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import type { CloudTask } from "renderer/routes/_authenticated/_dashboard/components/CloudTaskRow";
 import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import { RenameBranchDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
 import {
@@ -68,6 +69,7 @@ export function DashboardSidebarWorkspaceItem({
 		branch,
 		pendingTransaction,
 		pullRequest,
+		taskId,
 	} = workspace;
 	const isSessionWorkspace = workspace.type === "session";
 	const { status: workspaceStatus, diffStats } = useSidebarWorkspaceStatus(id);
@@ -117,6 +119,14 @@ export function DashboardSidebarWorkspaceItem({
 	);
 	const handleAfterBranchRename = (newBranchName: string) => {
 		v2WorkspaceActions.updateWorkspace(id, { branch: newBranchName });
+	};
+	const handleToggleTask = (task: CloudTask, isLinked: boolean) => {
+		v2WorkspaceActions.updateWorkspace(id, {
+			taskId: isLinked ? null : task.id,
+		});
+	};
+	const handleUnlinkTask = () => {
+		v2WorkspaceActions.updateWorkspace(id, { taskId: null });
 	};
 	const isPending = pendingTransaction?.type === "insert";
 
@@ -273,6 +283,9 @@ export function DashboardSidebarWorkspaceItem({
 							onCopyWorkspaceId={handleCopyWorkspaceId}
 							onRemoveFromSidebar={handleRemoveFromSidebar}
 							onRemovePullRequest={handleRemovePullRequest}
+							taskId={taskId}
+							onToggleTask={handleToggleTask}
+							onUnlinkTask={handleUnlinkTask}
 							onRename={startRename}
 							onDelete={requestDelete}
 							onToggleUnread={handleToggleUnread}
@@ -363,6 +376,9 @@ export function DashboardSidebarWorkspaceItem({
 						onCopyWorkspaceId={handleCopyWorkspaceId}
 						onRemoveFromSidebar={handleRemoveFromSidebar}
 						onRemovePullRequest={handleRemovePullRequest}
+						taskId={taskId}
+						onToggleTask={handleToggleTask}
+						onUnlinkTask={handleUnlinkTask}
 						onRename={startRename}
 						onDelete={requestDelete}
 						onToggleUnread={handleToggleUnread}

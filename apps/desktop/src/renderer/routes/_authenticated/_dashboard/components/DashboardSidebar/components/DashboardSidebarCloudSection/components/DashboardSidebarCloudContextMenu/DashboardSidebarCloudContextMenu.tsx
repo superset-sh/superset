@@ -34,7 +34,7 @@ import { ProjectCommand } from "renderer/routes/_authenticated/_dashboard/compon
 import { ProjectGlyph } from "renderer/routes/_authenticated/_dashboard/components/TaskProjectIcon";
 import type { CloudSidebarGroup } from "renderer/routes/_authenticated/_dashboard/stores/cloudSidebarStore";
 import { useRunAfterMenuClose } from "../../../../hooks/useRunAfterMenuClose";
-import { LinkTaskCommand } from "./components/LinkTaskCommand";
+import { LinkTaskCommand } from "../../../LinkTaskCommand";
 
 interface LabelOption {
 	id: string;
