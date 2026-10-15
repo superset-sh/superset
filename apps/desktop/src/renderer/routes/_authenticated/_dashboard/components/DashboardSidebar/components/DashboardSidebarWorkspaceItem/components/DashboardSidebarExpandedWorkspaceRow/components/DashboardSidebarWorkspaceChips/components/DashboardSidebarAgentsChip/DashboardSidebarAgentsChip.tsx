@@ -29,7 +29,7 @@ export function DashboardSidebarAgentsChip({
 	agents,
 }: DashboardSidebarAgentsChipProps) {
 	const { t } = useLingui();
-	const { isOpen, onOpenChange, onPointerEnter, onPointerLeave, toggleOpen } =
+	const { isOpen, onOpenChange, onPointerLeave, toggleOpen } =
 		useDashboardSidebarChipHoverSuppression();
 
 	const subagentCount = agents.reduce(
@@ -57,7 +57,6 @@ export function DashboardSidebarAgentsChip({
 				<Badge asChild variant="secondary">
 					<button
 						type="button"
-						onPointerEnter={onPointerEnter}
 						onPointerLeave={onPointerLeave}
 						onPointerDown={(event) => {
 							event.stopPropagation();

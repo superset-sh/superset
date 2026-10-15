@@ -30,7 +30,7 @@ export function DashboardSidebarPortsChip({
 }: DashboardSidebarPortsChipProps) {
 	const { t } = useLingui();
 	const { isPending, killPorts } = useDashboardSidebarPortKill();
-	const { isOpen, onOpenChange, onPointerEnter, onPointerLeave, toggleOpen } =
+	const { isOpen, onOpenChange, onPointerLeave, toggleOpen } =
 		useDashboardSidebarChipHoverSuppression();
 	const safeTriangle = useHoverCardSafeTriangle(isOpen, onOpenChange);
 
@@ -60,7 +60,6 @@ export function DashboardSidebarPortsChip({
 			<HoverCardTrigger asChild>
 				<button
 					type="button"
-					onPointerEnter={onPointerEnter}
 					onPointerLeave={(event) => {
 						onPointerLeave();
 						safeTriangle.onTriggerPointerLeave(event);
