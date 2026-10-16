@@ -51,6 +51,9 @@ export function translateLineEditChord(
 	if (isMac && onlyMod(event, "alt")) {
 		if (key === "ArrowLeft") return "\x1bb";
 		if (key === "ArrowRight") return "\x1bf";
+		// ⌥⌫ = delete previous word. ESC+DEL is readline/zsh backward-kill-word,
+		// which respects word boundaries like macOS-native inputs do (#2222).
+		if (key === "Backspace") return "\x1b\x7f";
 	}
 	if (isWindows && onlyMod(event, "ctrl")) {
 		if (key === "ArrowLeft") return "\x1bb";
