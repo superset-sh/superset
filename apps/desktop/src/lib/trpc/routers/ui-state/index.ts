@@ -1,7 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { appState } from "main/lib/app-state";
 import type { TabsState, ThemeState } from "main/lib/app-state/schemas";
+import { defaultAppState } from "main/lib/app-state/schemas";
 import { getKey } from "main/lib/window-registry/window-registry";
+import { LEGACY_WINDOW_KEY } from "main/lib/window-state";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
@@ -261,13 +263,20 @@ export const createUiStateRouter = () => {
 			get: publicProcedure.query(({ ctx }): TabsState => {
 				const key = ctx.senderWindow ? getKey(ctx.senderWindow.id) : null;
 				if (!key) return appState.data.tabsState;
-				// A window with no record yet inherits the pre-multi-window
-				// layout, so an existing user's tabs survive the upgrade. Second
-				// and later windows fall back to it too, which is the same thing
-				// they did before this change.
-				return (
-					appState.data.tabsStateByWindow?.[key] ?? appState.data.tabsState
-				);
+				const own = appState.data.tabsStateByWindow?.[key];
+				if (own) return own;
+				// Only the window restored from the pre-multi-window record
+				// inherits it, so an existing user's tabs survive the upgrade.
+				//
+				// Every *other* window starts empty on purpose. Letting them all
+				// fall back to the same record handed them identical pane ids, and
+				// BrowserManager keys `panes` by bare pane id — so the second
+				// window's register() replaced the first window's mapping and tore
+				// down its listeners. Pane ids are unique per mint; they are only
+				// ever duplicated by two windows reading one stored record.
+				return key === LEGACY_WINDOW_KEY
+					? appState.data.tabsState
+					: defaultAppState.tabsState;
 			}),
 
 			set: publicProcedure

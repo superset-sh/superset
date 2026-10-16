@@ -7,6 +7,7 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
+import { LEGACY_WINDOW_KEY } from "shared/window-identity";
 import { WINDOW_STATE_PATH } from "../app-environment";
 
 export interface WindowState {
@@ -87,13 +88,9 @@ const WINDOWS_STATE_PATH = join(
 	"windows-state.json",
 );
 
-/**
- * The key given to the window that inherits the pre-multi-window tab layout.
- * app-state.json holds exactly one `tabsState` from the single-window era; the
- * first restored window adopts it so an existing user's tabs survive the
- * upgrade, and every window created afterwards starts from its own record.
- */
-export const LEGACY_WINDOW_KEY = "legacy-single-window";
+// Re-exported so the existing `main/lib/window-state` importers keep working;
+// it lives in shared because the renderer needs it too (see the module doc).
+export { LEGACY_WINDOW_KEY };
 
 export interface PersistedWindow {
 	/**
