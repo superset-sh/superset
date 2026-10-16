@@ -349,6 +349,11 @@ msgstr "{0} – {1} · API-rate estimate from local session logs"
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — try the Superset tray menu > Host Service > Restart."
 
+#. placeholder {0}: window.label
+#. placeholder {1}: formatPercent(window.usedPercent / 100)
+msgid "{0} · {1} used"
+msgstr "{0} · {1} used"
+
 #. placeholder {0}: host.version
 msgid "{0} · behind"
 msgstr "{0} · behind"
@@ -1389,6 +1394,9 @@ msgstr "4d ago"
 msgid "5 days"
 msgstr "5 days"
 
+msgid "5-hour limit reached"
+msgstr "5-hour limit reached"
+
 msgid "55 call sites pass {code}"
 msgstr "55 call sites pass {code}"
 
@@ -1681,6 +1689,9 @@ msgstr "Add agent configs here later when you want to publish them."
 
 msgid "Add agents…"
 msgstr "Add agents…"
+
+msgid "Add an account in Usage settings"
+msgstr "Add an account in Usage settings"
 
 msgid "add an agent"
 msgstr "add an agent"
@@ -3319,6 +3330,9 @@ msgstr "Cancel plan"
 msgid "Cancel reply"
 msgstr "Cancel reply"
 
+msgid "Cancel the automatic resume"
+msgstr "Cancel the automatic resume"
+
 msgid "Canceled"
 msgstr "Canceled"
 
@@ -4533,6 +4547,12 @@ msgstr "Continue the same workspace from your iPhone"
 
 msgid "Continue the session the last run left"
 msgstr "Continue the session the last run left"
+
+msgid "Continue this chat on another login"
+msgstr "Continue this chat on another login"
+
+msgid "Continue this chat once the limit resets"
+msgstr "Continue this chat once the limit resets"
 
 #. placeholder {0}: connector.displayName
 msgid "Continue to {0}"
@@ -6224,6 +6244,9 @@ msgstr "Dismiss suggestion"
 msgid "Dismiss suggestions"
 msgstr "Dismiss suggestions"
 
+msgid "Dismiss the usage limit notice"
+msgstr "Dismiss the usage limit notice"
+
 msgid "Dismissed"
 msgstr "Dismissed"
 
@@ -6926,6 +6949,9 @@ msgstr "Extra high"
 
 msgid "Extra small"
 msgstr "Extra small"
+
+msgid "Extra usage limit reached"
+msgstr "Extra usage limit reached"
 
 msgid "F4 gate · {F4_GATE_SHARE}%"
 msgstr "F4 gate · {F4_GATE_SHARE}%"
@@ -9446,6 +9472,9 @@ msgstr "Like building with Superset?"
 
 msgid "Lime"
 msgstr "Lime"
+
+msgid "Limit has reset"
+msgstr "Limit has reset"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -14080,12 +14109,18 @@ msgstr "Resume a chat"
 msgid "Resume args"
 msgstr "Resume args"
 
+msgid "Resume at reset"
+msgstr "Resume at reset"
+
 msgid "Resume automation"
 msgstr "Resume automation"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
 msgstr "Resuming {0}…"
+
+msgid "Resuming at reset"
+msgstr "Resuming at reset"
 
 msgid "Resuming the conversation…"
 msgstr "Resuming the conversation…"
@@ -16156,6 +16191,9 @@ msgstr "stopped"
 msgid "Stopped"
 msgstr "Stopped"
 
+msgid "Stopped by the usage limit"
+msgstr "Stopped by the usage limit"
+
 msgid "Stopping the agent in {what}"
 msgstr "Stopping the agent in {what}"
 
@@ -16486,6 +16524,9 @@ msgstr "Sustain"
 
 msgid "Sustain · active days in 30"
 msgstr "Sustain · active days in 30"
+
+msgid "Switch account"
+msgstr "Switch account"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "Switch agents. Keep your workflow"
@@ -17957,9 +17998,6 @@ msgstr "Turn chores into scheduled agents: issue triage, changelog drafts, depen
 msgid "Turn failed"
 msgstr "Turn failed"
 
-msgid "Turn failed: {message}"
-msgstr "Turn failed: {message}"
-
 msgid "Turn on “Allow remote access to this device via relay”"
 msgstr "Turn on “Allow remote access to this device via relay”"
 
@@ -18382,8 +18420,14 @@ msgstr "Usage"
 msgid "Usage is out of date"
 msgstr "Usage is out of date"
 
+msgid "Usage limit reached"
+msgstr "Usage limit reached"
+
 msgid "Usage sections"
 msgstr "Usage sections"
+
+msgid "Usage settings"
+msgstr "Usage settings"
 
 msgid "Usage unavailable."
 msgstr "Usage unavailable."
@@ -18823,8 +18867,17 @@ msgstr "Weekly"
 msgid "Weekly at {time}"
 msgstr "Weekly at {time}"
 
+msgid "Weekly limit reached"
+msgstr "Weekly limit reached"
+
+msgid "Weekly Opus limit reached"
+msgstr "Weekly Opus limit reached"
+
 msgid "Weekly release notes"
 msgstr "Weekly release notes"
+
+msgid "Weekly Sonnet limit reached"
+msgstr "Weekly Sonnet limit reached"
 
 msgid "Welcome back"
 msgstr "Welcome back"

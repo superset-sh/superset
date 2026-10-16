@@ -18,6 +18,7 @@ import {
 	snapshotFromOutline,
 	withItemBodies,
 } from "../../core";
+import type { UsageLimitAction } from "../../protocol/commands";
 import type { Cursor } from "../../protocol/cursor";
 import type { DeltaChannel, Envelope } from "../../protocol/envelope";
 import { isDurableEnvelope, isResetEnvelope } from "../../protocol/envelope";
@@ -110,6 +111,7 @@ export type ChatSession = {
 	removeQueuedPrompt(itemId: string): Promise<void>;
 	steerQueuedPrompt(itemId: string): Promise<void>;
 	resumeQueue(): Promise<void>;
+	respondToUsageLimit(action: UsageLimitAction): Promise<void>;
 	cancelTurn(turnId: string, options?: { pauseQueue?: boolean }): Promise<void>;
 	stopBackgroundTask(taskId: string): Promise<boolean>;
 	respondToApproval(approvalId: string, decision: Decision): Promise<void>;
@@ -472,6 +474,10 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 	);
 
 	const resumeQueue = useCallback(() => client.resumeQueue(), [client]);
+	const respondToUsageLimit = useCallback(
+		(action: UsageLimitAction) => client.respondToUsageLimit(action),
+		[client],
+	);
 
 	const cancelTurn = useCallback(
 		(turnId: string, options?: { pauseQueue?: boolean }) =>
@@ -513,6 +519,7 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 		removeQueuedPrompt,
 		steerQueuedPrompt,
 		resumeQueue,
+		respondToUsageLimit,
 		cancelTurn,
 		stopBackgroundTask,
 		respondToApproval,

@@ -26,6 +26,7 @@ import { useForkChat } from "../../hooks/useForkChat";
 import { readSavedChatMode } from "../../utils/savedChatMode";
 import { AcpRecovery } from "./components/AcpRecovery";
 import { DraftChat } from "./components/DraftChat";
+import { closeChatForAccountSwitch } from "./utils/closeChatForAccountSwitch";
 import { createWhenReachable } from "./utils/createWhenReachable";
 import {
 	isChatCreateWatched,
@@ -54,6 +55,7 @@ export function AcpChatPane({
 	onSessionInfo,
 	onPendingPromptsSent,
 	onQueuePrompt,
+	onRestoreQueuedPrompts,
 	onOpenFile,
 	onOpenPage,
 	onOpenLink,
@@ -78,6 +80,7 @@ export function AcpChatPane({
 	pendingPrompts: UserContent[][];
 	onPendingPromptsSent: () => void;
 	onQueuePrompt: (content: UserContent[]) => void;
+	onRestoreQueuedPrompts: (prompts: UserContent[][]) => void;
 	onSessionCreated: (sessionId: string) => void;
 	onModeChange?: (modeId: string) => void;
 	onSessionInfo: (info: { harnessSessionId?: string; title?: string }) => void;
@@ -101,6 +104,8 @@ export function AcpChatPane({
 	const harness = acpHarnessForPreset(agent?.id);
 	const [failure, setFailure] = useState<string | null>(null);
 	const [unreachable, setUnreachable] = useState(false);
+	const [switchingAccount, setSwitchingAccount] = useState(false);
+	const [transferredFrom, setTransferredFrom] = useState<string | null>(null);
 	const [replacement, setReplacement] = useState<string | null>(null);
 
 	// The stored session outlives its process — after a host restart the row
@@ -376,6 +381,9 @@ export function AcpChatPane({
 	// start, and a later attempt may get past either. Reopening a pane should
 	// just work, so do it.
 	const bindings = useTerminalAgentBindings(workspaceId);
+	const binding = bindings.get(terminalId);
+	const sessionAccount =
+		binding?.chatSessionId === sessionId ? binding.account : undefined;
 	const continuedInTerminal =
 		agentSessionId !== undefined &&
 		[...bindings.values()].some(
@@ -397,6 +405,39 @@ export function AcpChatPane({
 			.catch(() => undefined)
 			.then(() => start(harness, agentSessionId, true));
 	}, [harness, agentSessionId, sessionId, start, wiring.transport]);
+	const switchAccount = useCallback(
+		async (setAccount: () => Promise<unknown>) => {
+			if (!harness || !sessionId || recoveryInFlight.current) return;
+			recoveryInFlight.current = true;
+			setSwitchingAccount(true);
+			try {
+				const queued = await closeChatForAccountSwitch({
+					transport: wiring.transport,
+					sessionId,
+					setAccount,
+				});
+				if (!mounted.current) return;
+				setTransferredFrom(sessionId);
+				onRestoreQueuedPrompts(queued);
+				await start(harness, agentSessionId, true);
+			} catch (error) {
+				recoveryInFlight.current = false;
+				console.error("[acp-chat] account switch failed", error);
+				toast.error(t({ message: "Couldn't stop the chat" }));
+			} finally {
+				if (mounted.current) setSwitchingAccount(false);
+			}
+		},
+		[
+			harness,
+			sessionId,
+			wiring.transport,
+			onRestoreQueuedPrompts,
+			start,
+			agentSessionId,
+			t,
+		],
+	);
 	const { data: replacementState } = useQuery({
 		enabled: replacement !== null,
 		queryKey: ["acp-chat-replacement", replacement],
@@ -431,6 +472,7 @@ export function AcpChatPane({
 		return () => clearTimeout(timer);
 	}, [replacement, replacementState, onSessionCreated, t]);
 	const recovering =
+		switchingAccount ||
 		replacement !== null ||
 		(recoverable && recoveries.current < MAX_RECOVERIES);
 	useEffect(() => {
@@ -506,7 +548,7 @@ export function AcpChatPane({
 		<SessionView
 			client={client}
 			draftKey={draftKey}
-			{...(recovering
+			{...(recovering || transferredFrom === sessionId
 				? {
 						held: {
 							notice: unreachable ? (
@@ -527,6 +569,8 @@ export function AcpChatPane({
 			canForkToWorktree={canForkToWorktree}
 			isActive={isActive}
 			onFork={fork}
+			onSwitchAccount={switchAccount}
+			sessionAccount={sessionAccount}
 			openFile={onOpenFile}
 			openPage={onOpenPage}
 			openLink={onOpenLink}

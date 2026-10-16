@@ -31,6 +31,7 @@ export type LiveSessionRegistryOptions = {
 	observer?: LiveSessionObserver;
 	mintId?: () => string;
 	now?: () => number;
+	usageLimitGraceMs?: number;
 };
 
 export class LiveSessionRegistry {
@@ -63,6 +64,7 @@ export class LiveSessionRegistry {
 			adapter: factory(options),
 			mintId: this.options.mintId,
 			now: this.options.now,
+			usageLimitGraceMs: this.options.usageLimitGraceMs,
 		});
 		this.live.set(options.sessionId, session);
 		this.observe(() => observer?.started(options));

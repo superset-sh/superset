@@ -2,6 +2,7 @@ import type {
 	ChatRouterInputs,
 	ChatRouterOutputs,
 } from "@superset/chat-runtime";
+import type { UsageLimitAction } from "../../protocol/commands";
 import type { Cursor } from "../../protocol/cursor";
 import type { DeltaChannel, Envelope } from "../../protocol/envelope";
 import type { Decision, UserContent } from "../../protocol/items";
@@ -60,6 +61,7 @@ export type SessionClient = {
 	removeQueuedPrompt(itemId: string): Promise<void>;
 	steerQueuedPrompt(itemId: string): Promise<void>;
 	resumeQueue(): Promise<void>;
+	respondToUsageLimit(action: UsageLimitAction): Promise<void>;
 	cancelTurn(turnId: string, options?: { pauseQueue?: boolean }): Promise<void>;
 	stopBackgroundTask(taskId: string): Promise<boolean>;
 	respondToApproval(approvalId: string, decision: Decision): Promise<void>;
@@ -120,6 +122,14 @@ export function createSessionClient(
 
 		resumeQueue: async () => {
 			await options.transport.resumeQueue({ commandId: mintId(), sessionId });
+		},
+
+		respondToUsageLimit: async (action) => {
+			await options.transport.respondToUsageLimit({
+				commandId: mintId(),
+				sessionId,
+				action,
+			});
 		},
 
 		cancelTurn: async (turnId, cancelOptions) => {

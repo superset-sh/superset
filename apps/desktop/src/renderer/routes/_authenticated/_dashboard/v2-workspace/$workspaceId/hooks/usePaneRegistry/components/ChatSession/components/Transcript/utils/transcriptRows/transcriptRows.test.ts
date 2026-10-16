@@ -51,6 +51,57 @@ function publish(id: string, startedAtMs: number): ToolCall {
 }
 
 describe("transcriptRows", () => {
+	test("a failed turn's error is said once, by the status row", () => {
+		const message = "You've hit your usage limit.";
+		const rows = transcriptRows(
+			[
+				{
+					turnId: "turn-1",
+					turn: {
+						id: "turn-1",
+						status: "failed",
+						error: { message },
+						startedAtMs: 2,
+						completedAtMs: 3,
+					},
+					entries: [
+						{ kind: "item", item: prompt },
+						{
+							kind: "item",
+							item: {
+								id: "notice-1",
+								kind: "notice",
+								noticeKind: "error",
+								text: message,
+								startedAtMs: 3,
+							},
+						},
+						{
+							kind: "item",
+							item: {
+								id: "notice-2",
+								kind: "notice",
+								noticeKind: "error",
+								text: "Something else went wrong",
+								startedAtMs: 3,
+							},
+						},
+					],
+				},
+			],
+			[],
+			new Set(),
+			find,
+		);
+		expect(rows.map((row) => row.kind)).toEqual([
+			"item",
+			"working",
+			"item",
+			"turn_status",
+		]);
+		expect(rows.at(-1)).toMatchObject({ status: "failed", message });
+	});
+
 	test("an approval is after its target only when the target row is right above", () => {
 		const approval: ApprovalRequest = {
 			id: "approval:tool-1",

@@ -349,6 +349,11 @@ msgstr "{0} – {1} · schatting op API-tarief uit lokale sessielogs"
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — probeer het Superset-menu in de menubalk > Hostservice > Opnieuw starten."
 
+#. placeholder {0}: window.label
+#. placeholder {1}: formatPercent(window.usedPercent / 100)
+msgid "{0} · {1} used"
+msgstr "{0} · {1} gebruikt"
+
 #. placeholder {0}: host.version
 msgid "{0} · behind"
 msgstr "{0} · verouderd"
@@ -1389,6 +1394,9 @@ msgstr "4d geleden"
 msgid "5 days"
 msgstr "5 dagen"
 
+msgid "5-hour limit reached"
+msgstr "5-uurslimiet bereikt"
+
 msgid "55 call sites pass {code}"
 msgstr "55 aanroepplekken geven {code} door"
 
@@ -1681,6 +1689,9 @@ msgstr "Voeg hier later agentconfiguraties toe als je ze wilt publiceren."
 
 msgid "Add agents…"
 msgstr "Agents toevoegen…"
+
+msgid "Add an account in Usage settings"
+msgstr "Een account toevoegen in de gebruiksinstellingen"
 
 msgid "add an agent"
 msgstr "een agent toevoegen"
@@ -3319,6 +3330,9 @@ msgstr "Plan opzeggen"
 msgid "Cancel reply"
 msgstr "Antwoord annuleren"
 
+msgid "Cancel the automatic resume"
+msgstr "Automatisch hervatten annuleren"
+
 msgid "Canceled"
 msgstr "Geannuleerd"
 
@@ -4533,6 +4547,12 @@ msgstr "Ga verder in dezelfde werkruimte vanaf je iPhone"
 
 msgid "Continue the session the last run left"
 msgstr "Ga verder met de sessie van de vorige run"
+
+msgid "Continue this chat on another login"
+msgstr "Deze chat voortzetten met een andere login"
+
+msgid "Continue this chat once the limit resets"
+msgstr "Deze chat voortzetten zodra de limiet is gereset"
 
 #. placeholder {0}: connector.displayName
 msgid "Continue to {0}"
@@ -6224,6 +6244,9 @@ msgstr "Suggestie negeren"
 msgid "Dismiss suggestions"
 msgstr "Suggesties sluiten"
 
+msgid "Dismiss the usage limit notice"
+msgstr "Melding over gebruikslimiet sluiten"
+
 msgid "Dismissed"
 msgstr "Afgewezen"
 
@@ -6926,6 +6949,9 @@ msgstr "Zeer hoog"
 
 msgid "Extra small"
 msgstr "Extra klein"
+
+msgid "Extra usage limit reached"
+msgstr "Limiet voor extra gebruik bereikt"
 
 msgid "F4 gate · {F4_GATE_SHARE}%"
 msgstr "F4-drempel · {F4_GATE_SHARE}%"
@@ -9446,6 +9472,9 @@ msgstr "Bouw je graag met Superset?"
 
 msgid "Lime"
 msgstr "Limoen"
+
+msgid "Limit has reset"
+msgstr "Limiet is gereset"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -14080,12 +14109,18 @@ msgstr "Chat hervatten"
 msgid "Resume args"
 msgstr "Resume-argumenten"
 
+msgid "Resume at reset"
+msgstr "Hervatten bij reset"
+
 msgid "Resume automation"
 msgstr "Automatisering hervatten"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
 msgstr "{0} hervatten…"
+
+msgid "Resuming at reset"
+msgstr "Wordt hervat bij reset"
 
 msgid "Resuming the conversation…"
 msgstr "Gesprek wordt hervat…"
@@ -16156,6 +16191,9 @@ msgstr "gestopt"
 msgid "Stopped"
 msgstr "Gestopt"
 
+msgid "Stopped by the usage limit"
+msgstr "Gestopt door de gebruikslimiet"
+
 msgid "Stopping the agent in {what}"
 msgstr "Agent in {what} wordt gestopt"
 
@@ -16486,6 +16524,9 @@ msgstr "Volhouden"
 
 msgid "Sustain · active days in 30"
 msgstr "Continuïteit · actieve dagen van 30"
+
+msgid "Switch account"
+msgstr "Van account wisselen"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "Wissel van agent. Houd je workflow"
@@ -17957,9 +17998,6 @@ msgstr "Zet klusjes om in geplande agents: issue-triage, changelog-concepten, de
 msgid "Turn failed"
 msgstr "Beurt mislukt"
 
-msgid "Turn failed: {message}"
-msgstr "Beurt mislukt: {message}"
-
 msgid "Turn on “Allow remote access to this device via relay”"
 msgstr "Zet “Externe toegang tot dit apparaat via de relay toestaan” aan"
 
@@ -18382,8 +18420,14 @@ msgstr "Gebruik"
 msgid "Usage is out of date"
 msgstr "De gebruiksgegevens zijn verouderd"
 
+msgid "Usage limit reached"
+msgstr "Gebruikslimiet bereikt"
+
 msgid "Usage sections"
 msgstr "Onderdelen van gebruik"
+
+msgid "Usage settings"
+msgstr "Gebruiksinstellingen"
 
 msgid "Usage unavailable."
 msgstr "Gebruik niet beschikbaar."
@@ -18823,8 +18867,17 @@ msgstr "Wekelijks"
 msgid "Weekly at {time}"
 msgstr "Wekelijks om {time}"
 
+msgid "Weekly limit reached"
+msgstr "Weeklimiet bereikt"
+
+msgid "Weekly Opus limit reached"
+msgstr "Weeklimiet Opus bereikt"
+
 msgid "Weekly release notes"
 msgstr "Wekelijkse release notes"
+
+msgid "Weekly Sonnet limit reached"
+msgstr "Weeklimiet Sonnet bereikt"
 
 msgid "Welcome back"
 msgstr "Welkom terug"

@@ -125,9 +125,10 @@ export class AcpRpcError extends Error {
 	constructor(
 		readonly method: string,
 		readonly code: number,
-		message: string,
+		/** The agent's own words, without the method that failed. */
+		readonly detail: string,
 	) {
-		super(`${method}: ${message}`);
+		super(`${method}: ${detail}`);
 		this.name = "AcpRpcError";
 	}
 }

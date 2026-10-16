@@ -349,6 +349,11 @@ msgstr "{0} – {1} · ローカルセッションログからのAPI定価換算
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — Supersetのトレイメニュー > ホストサービス > 再起動をお試しください。"
 
+#. placeholder {0}: window.label
+#. placeholder {1}: formatPercent(window.usedPercent / 100)
+msgid "{0} · {1} used"
+msgstr "{0} · {1} 使用済み"
+
 #. placeholder {0}: host.version
 msgid "{0} · behind"
 msgstr "{0} · 古い"
@@ -1389,6 +1394,9 @@ msgstr "4日前"
 msgid "5 days"
 msgstr "5日間"
 
+msgid "5-hour limit reached"
+msgstr "5時間の上限に達しました"
+
 msgid "55 call sites pass {code}"
 msgstr "55か所の呼び出し元が{code}を渡しています"
 
@@ -1681,6 +1689,9 @@ msgstr "公開したいエージェント設定ができたら、ここに追加
 
 msgid "Add agents…"
 msgstr "エージェントを追加…"
+
+msgid "Add an account in Usage settings"
+msgstr "使用量の設定でアカウントを追加"
 
 msgid "add an agent"
 msgstr "エージェントを追加する"
@@ -3319,6 +3330,9 @@ msgstr "プランをキャンセル"
 msgid "Cancel reply"
 msgstr "返信をキャンセル"
 
+msgid "Cancel the automatic resume"
+msgstr "自動再開をキャンセル"
+
 msgid "Canceled"
 msgstr "キャンセル済み"
 
@@ -4533,6 +4547,12 @@ msgstr "同じワークスペースを iPhone から続ける"
 
 msgid "Continue the session the last run left"
 msgstr "前回の実行が残したセッションを継続"
+
+msgid "Continue this chat on another login"
+msgstr "別のログインでこのチャットを続ける"
+
+msgid "Continue this chat once the limit resets"
+msgstr "上限がリセットされたらこのチャットを続ける"
 
 #. placeholder {0}: connector.displayName
 msgid "Continue to {0}"
@@ -6224,6 +6244,9 @@ msgstr "提案を却下"
 msgid "Dismiss suggestions"
 msgstr "提案を閉じる"
 
+msgid "Dismiss the usage limit notice"
+msgstr "使用量上限の通知を閉じる"
+
 msgid "Dismissed"
 msgstr "却下"
 
@@ -6926,6 +6949,9 @@ msgstr "最高"
 
 msgid "Extra small"
 msgstr "極小"
+
+msgid "Extra usage limit reached"
+msgstr "追加使用量の上限に達しました"
 
 msgid "F4 gate · {F4_GATE_SHARE}%"
 msgstr "F4ゲート · {F4_GATE_SHARE}%"
@@ -9446,6 +9472,9 @@ msgstr "Supersetでの開発は気に入りましたか?"
 
 msgid "Lime"
 msgstr "ライム"
+
+msgid "Limit has reset"
+msgstr "上限がリセットされました"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -14080,12 +14109,18 @@ msgstr "チャットを再開"
 msgid "Resume args"
 msgstr "再開時の引数"
 
+msgid "Resume at reset"
+msgstr "リセット時に再開"
+
 msgid "Resume automation"
 msgstr "オートメーションを再開"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
 msgstr "{0}を再開中…"
+
+msgid "Resuming at reset"
+msgstr "リセット時に再開します"
 
 msgid "Resuming the conversation…"
 msgstr "会話を再開しています…"
@@ -16156,6 +16191,9 @@ msgstr "停止"
 msgid "Stopped"
 msgstr "停止しました"
 
+msgid "Stopped by the usage limit"
+msgstr "使用量の上限により停止"
+
 msgid "Stopping the agent in {what}"
 msgstr "{what} のエージェントを停止中"
 
@@ -16486,6 +16524,9 @@ msgstr "継続"
 
 msgid "Sustain · active days in 30"
 msgstr "継続 · 30日間のアクティブ日数"
+
+msgid "Switch account"
+msgstr "アカウントを切り替え"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "エージェントは替える。ワークフローはそのまま"
@@ -17957,9 +17998,6 @@ msgstr "面倒な作業をスケジュール実行のエージェントにしま
 msgid "Turn failed"
 msgstr "ターンが失敗しました"
 
-msgid "Turn failed: {message}"
-msgstr "ターンが失敗しました：{message}"
-
 msgid "Turn on “Allow remote access to this device via relay”"
 msgstr "「リレー経由でこのデバイスへのリモートアクセスを許可」をオンにする"
 
@@ -18382,8 +18420,14 @@ msgstr "使用量"
 msgid "Usage is out of date"
 msgstr "使用状況が古くなっています"
 
+msgid "Usage limit reached"
+msgstr "使用量の上限に達しました"
+
 msgid "Usage sections"
 msgstr "使用量セクション"
+
+msgid "Usage settings"
+msgstr "使用量の設定"
 
 msgid "Usage unavailable."
 msgstr "使用量を取得できません。"
@@ -18823,8 +18867,17 @@ msgstr "毎週"
 msgid "Weekly at {time}"
 msgstr "毎週 {time}"
 
+msgid "Weekly limit reached"
+msgstr "週間の上限に達しました"
+
+msgid "Weekly Opus limit reached"
+msgstr "Opus の週間上限に達しました"
+
 msgid "Weekly release notes"
 msgstr "週次リリースノート"
+
+msgid "Weekly Sonnet limit reached"
+msgstr "Sonnet の週間上限に達しました"
 
 msgid "Welcome back"
 msgstr "おかえりなさい"

@@ -55,6 +55,23 @@ export const backgroundTaskSchema = z.looseObject({
 });
 export type BackgroundTask = z.infer<typeof backgroundTaskSchema>;
 
+/**
+ * The agent's provider refused the last turn for the account's usage, and
+ * the queue waits until someone resumes it. `resetsAtMs` is when the
+ * provider said the window reopens, when it said; `resumeAtReset` is the
+ * host's promise to continue the session then on its own.
+ */
+export const usageLimitSchema = z.looseObject({
+	hitAtMs: z.number(),
+	resetsAtMs: z.number().optional(),
+	resumeAtReset: z.boolean().optional(),
+	/** The provider's name for the window that closed, e.g. `five_hour`. */
+	window: z.string().optional(),
+	/** The model the refused request was for, as the provider names it. */
+	model: z.string().optional(),
+});
+export type UsageLimit = z.infer<typeof usageLimitSchema>;
+
 export const sessionStateSchema = z.looseObject({
 	status: sessionStatusSchema,
 	harness: z.string().min(1),
@@ -73,6 +90,7 @@ export const sessionStateSchema = z.looseObject({
 	harnessSessionId: z.string().optional(),
 	queuePaused: z.boolean().optional(),
 	queueControls: z.boolean().optional(),
+	usageLimit: usageLimitSchema.optional(),
 	backgroundTasks: z.array(backgroundTaskSchema).optional(),
 	awaitingBackground: z.boolean().optional(),
 });

@@ -59,6 +59,12 @@ export const acpPromptResponseSchema = z.looseObject({
 
 export const acpUsageUpdateSchema = z.looseObject({
 	cost: z.unknown().optional(),
+	_meta: z
+		.looseObject({
+			"_claude/rateLimit": z.unknown().optional(),
+			"_claude/model": z.unknown().optional(),
+		})
+		.optional(),
 });
 
 export const ACP_STEERING_METHOD = "_session/steering";

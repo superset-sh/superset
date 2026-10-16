@@ -13,6 +13,7 @@ import type {
 	ToolContent,
 	ToolKind,
 	Turn,
+	UsageLimit,
 	UserContent,
 } from "@superset/chat/protocol";
 import { AGENT_DEFAULT_MODE } from "@superset/chat/protocol";
@@ -23,6 +24,11 @@ import type {
 	HarnessAdapter,
 	HarnessStartOptions,
 } from "../types";
+import {
+	type RefusedWindow,
+	refusedWindow,
+	USAGE_LIMIT_TEXT,
+} from "../usageLimit";
 import {
 	AIR_ASYNC_TASK_STOP_METHOD,
 	AIR_CLIENT_META,
@@ -386,6 +392,8 @@ export class AcpAdapter implements HarnessAdapter {
 	private readonly planItems = new Map<string, number>();
 	private client: AcpRpcClient | null = null;
 	private sessionId: string | null = null;
+	private refused: RefusedWindow = null;
+	private lastModel: string | null = null;
 	private loadingSessionId: string | null = null;
 	private cwd = process.cwd();
 	private openText: OpenText | null = null;
@@ -834,6 +842,7 @@ export class AcpAdapter implements HarnessAdapter {
 		await this.selectionsApplied();
 		const client = this.client;
 		if (!client || !this.sessionId) return;
+		this.refused = null;
 		const turnId = this.mintId();
 		this.emitTurn({ id: turnId, status: "running", startedAtMs: this.now() });
 		this.emitSession({ status: "running" });
@@ -856,16 +865,21 @@ export class AcpAdapter implements HarnessAdapter {
 			this.cancelPendingApprovals(turnId);
 			this.emitSession({ status: "idle" });
 		} catch (error) {
+			// The agent's words are the reader's; the method that failed is not.
+			const message =
+				error instanceof AcpRpcError ? error.detail : (error as Error).message;
 			this.flushOpenText();
 			this.cancelPendingApprovals(turnId);
+			const limit = this.usageLimitFrom(message);
+			if (limit) this.emitSession({ usageLimit: limit });
 			this.emitTurn({
 				id: turnId,
 				status: "failed",
-				error: { message: (error as Error).message },
+				error: { message },
 				startedAtMs: this.currentTurn?.startedAtMs ?? this.now(),
 				completedAtMs: this.now(),
 			});
-			this.emitNotice("error", (error as Error).message);
+			this.emitNotice("error", message);
 			this.emitSession({ status: "idle" });
 		}
 	}
@@ -950,6 +964,12 @@ export class AcpAdapter implements HarnessAdapter {
 
 		if (variant === "usage_update") {
 			const usage = acpUsageUpdateSchema.safeParse(outer.data.update);
+			if (usage.success && usage.data._meta?.["_claude/rateLimit"]) {
+				this.refused = refusedWindow(usage.data._meta["_claude/rateLimit"]);
+			}
+			if (typeof usage.data?._meta?.["_claude/model"] === "string") {
+				this.lastModel = usage.data._meta["_claude/model"];
+			}
 			if (usage.success && usage.data.cost !== undefined) this.flushOpenText();
 			if (
 				usage.success &&
@@ -1990,6 +2010,23 @@ export class AcpAdapter implements HarnessAdapter {
 			},
 			this.resolveTurnId(),
 		);
+	}
+
+	/**
+	 * The agent forwards Claude's `rate_limit_event` on its usage updates and
+	 * ends a refused turn with the CLI's own words. A refusal paid for by extra
+	 * usage reports nothing, and a turn that survives one is not a limit.
+	 */
+	private usageLimitFrom(message: string): UsageLimit | null {
+		const refused = this.refused;
+		this.refused = null;
+		if (!refused && !USAGE_LIMIT_TEXT.test(message)) return null;
+		return {
+			hitAtMs: this.now(),
+			...(refused?.resetsAtMs ? { resetsAtMs: refused.resetsAtMs } : {}),
+			...(refused?.window ? { window: refused.window } : {}),
+			...(this.lastModel ? { model: this.lastModel } : {}),
+		};
 	}
 
 	private emitSession(session: Partial<SessionState>): void {

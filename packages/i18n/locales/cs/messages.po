@@ -349,6 +349,11 @@ msgstr "{0} – {1} · odhad v sazbách API z lokálních logů relací"
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — zkuste nabídku Superset v liště > Host Service > Restart."
 
+#. placeholder {0}: window.label
+#. placeholder {1}: formatPercent(window.usedPercent / 100)
+msgid "{0} · {1} used"
+msgstr "{0} · využito {1}"
+
 #. placeholder {0}: host.version
 msgid "{0} · behind"
 msgstr "{0} · zastaralý"
@@ -1389,6 +1394,9 @@ msgstr "před 4 d"
 msgid "5 days"
 msgstr "5 dní"
 
+msgid "5-hour limit reached"
+msgstr "Dosažen 5hodinový limit"
+
 msgid "55 call sites pass {code}"
 msgstr "55 míst volání předává {code}"
 
@@ -1681,6 +1689,9 @@ msgstr "Konfigurace agentů sem přidejte později, až je budete chtít zveřej
 
 msgid "Add agents…"
 msgstr "Přidat agenty…"
+
+msgid "Add an account in Usage settings"
+msgstr "Přidat účet v nastavení využití"
 
 msgid "add an agent"
 msgstr "přidat agenta"
@@ -3319,6 +3330,9 @@ msgstr "Zrušit tarif"
 msgid "Cancel reply"
 msgstr "Zrušit odpověď"
 
+msgid "Cancel the automatic resume"
+msgstr "Zrušit automatické pokračování"
+
 msgid "Canceled"
 msgstr "Zrušeno"
 
@@ -4533,6 +4547,12 @@ msgstr "Pokračujte ve stejném pracovním prostoru z iPhonu"
 
 msgid "Continue the session the last run left"
 msgstr "Pokračovat v relaci, kterou zanechalo poslední spuštění"
+
+msgid "Continue this chat on another login"
+msgstr "Pokračovat v tomto chatu pod jiným přihlášením"
+
+msgid "Continue this chat once the limit resets"
+msgstr "Pokračovat v tomto chatu po obnovení limitu"
 
 #. placeholder {0}: connector.displayName
 msgid "Continue to {0}"
@@ -6224,6 +6244,9 @@ msgstr "Zamítnout návrh"
 msgid "Dismiss suggestions"
 msgstr "Skrýt návrhy"
 
+msgid "Dismiss the usage limit notice"
+msgstr "Zavřít upozornění na limit využití"
+
 msgid "Dismissed"
 msgstr "Zamítnuto"
 
@@ -6926,6 +6949,9 @@ msgstr "Velmi vysoké"
 
 msgid "Extra small"
 msgstr "Velmi malé"
+
+msgid "Extra usage limit reached"
+msgstr "Dosažen limit dodatečného využití"
 
 msgid "F4 gate · {F4_GATE_SHARE}%"
 msgstr "Brána F4 · {F4_GATE_SHARE} %"
@@ -9446,6 +9472,9 @@ msgstr "Baví vás vývoj v Superset?"
 
 msgid "Lime"
 msgstr "Limetková"
+
+msgid "Limit has reset"
+msgstr "Limit byl obnoven"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -14080,12 +14109,18 @@ msgstr "Pokračovat v chatu"
 msgid "Resume args"
 msgstr "Argumenty pro pokračování"
 
+msgid "Resume at reset"
+msgstr "Pokračovat po obnovení"
+
 msgid "Resume automation"
 msgstr "Pokračovat v automatizaci"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
 msgstr "Obnovuji {0}…"
+
+msgid "Resuming at reset"
+msgstr "Pokračuje po obnovení"
 
 msgid "Resuming the conversation…"
 msgstr "Obnovuji konverzaci…"
@@ -16156,6 +16191,9 @@ msgstr "zastaveno"
 msgid "Stopped"
 msgstr "Zastaveno"
 
+msgid "Stopped by the usage limit"
+msgstr "Zastaveno limitem využití"
+
 msgid "Stopping the agent in {what}"
 msgstr "Zastavuje se agent v {what}"
 
@@ -16486,6 +16524,9 @@ msgstr "Vytrvalost"
 
 msgid "Sustain · active days in 30"
 msgstr "Pravidelnost · aktivní dny z 30"
+
+msgid "Switch account"
+msgstr "Přepnout účet"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "Vyměňte agenta. Workflow zůstane"
@@ -17957,9 +17998,6 @@ msgstr "Proměňte rutinu v naplánované agenty: třídění issues, návrhy ch
 msgid "Turn failed"
 msgstr "Tah selhal"
 
-msgid "Turn failed: {message}"
-msgstr "Tah selhal: {message}"
-
 msgid "Turn on “Allow remote access to this device via relay”"
 msgstr "Zapněte „Povolit vzdálený přístup k tomuto zařízení přes relay“"
 
@@ -18382,8 +18420,14 @@ msgstr "Využití"
 msgid "Usage is out of date"
 msgstr "Údaje o využití jsou zastaralé"
 
+msgid "Usage limit reached"
+msgstr "Dosažen limit využití"
+
 msgid "Usage sections"
 msgstr "Sekce využití"
+
+msgid "Usage settings"
+msgstr "Nastavení využití"
 
 msgid "Usage unavailable."
 msgstr "Využití není dostupné."
@@ -18823,8 +18867,17 @@ msgstr "Týdně"
 msgid "Weekly at {time}"
 msgstr "Týdně v {time}"
 
+msgid "Weekly limit reached"
+msgstr "Dosažen týdenní limit"
+
+msgid "Weekly Opus limit reached"
+msgstr "Dosažen týdenní limit Opus"
+
 msgid "Weekly release notes"
 msgstr "Týdenní poznámky k vydání"
+
+msgid "Weekly Sonnet limit reached"
+msgstr "Dosažen týdenní limit Sonnet"
 
 msgid "Welcome back"
 msgstr "Vítejte zpět"

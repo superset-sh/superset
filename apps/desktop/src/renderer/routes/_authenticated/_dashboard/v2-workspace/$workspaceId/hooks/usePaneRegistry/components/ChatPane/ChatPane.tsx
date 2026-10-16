@@ -1,4 +1,3 @@
-import type { UserContent } from "@superset/chat/protocol";
 import type { RendererContext } from "@superset/panes";
 import { useRef } from "react";
 import { LinkHoverHint } from "renderer/lib/clickPolicy";
@@ -11,6 +10,10 @@ import { useLinkClickHint } from "../../hooks/useLinkClickHint";
 import { AcpChatPane } from "./components/AcpChatPane";
 import { useOpenChatLink } from "./hooks/useOpenChatLink";
 import { useOpenChatPage } from "./hooks/useOpenChatPage";
+import {
+	pendingChatPrompts,
+	prependChatPrompts,
+} from "./utils/pendingChatPrompts";
 import { saveChatMode } from "./utils/savedChatMode";
 
 export function ChatPane({
@@ -36,22 +39,7 @@ export function ChatPane({
 	});
 	const latest = useRef(data);
 	latest.current = data;
-	const firstPrompt: UserContent[] =
-		data.pendingPrompt || data.pendingAttachments?.length
-			? [
-					...(data.pendingPrompt
-						? [{ type: "text" as const, text: data.pendingPrompt }]
-						: []),
-					...(data.pendingAttachments ?? []).map((attachment) => ({
-						type: "attachment" as const,
-						...attachment,
-					})),
-				]
-			: [];
-	const pendingPrompts = [
-		...(firstPrompt.length > 0 ? [firstPrompt] : []),
-		...(data.queuedPrompts ?? []),
-	];
+	const pendingPrompts = pendingChatPrompts(data);
 
 	return (
 		<>
@@ -66,14 +54,20 @@ export function ChatPane({
 						queuedPrompts: _queued,
 						...rest
 					} = latest.current;
+					latest.current = rest;
 					ctx.actions.updateData(rest);
 				}}
-				onQueuePrompt={(content) =>
-					ctx.actions.updateData({
+				onQueuePrompt={(content) => {
+					latest.current = {
 						...latest.current,
 						queuedPrompts: [...(latest.current.queuedPrompts ?? []), content],
-					})
-				}
+					};
+					ctx.actions.updateData(latest.current);
+				}}
+				onRestoreQueuedPrompts={(prompts) => {
+					latest.current = prependChatPrompts(latest.current, prompts);
+					ctx.actions.updateData(latest.current);
+				}}
 				pendingPrompts={pendingPrompts}
 				modelId={data.chatModelId}
 				modelLabel={data.chatModelLabel}

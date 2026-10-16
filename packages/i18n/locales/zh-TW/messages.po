@@ -349,6 +349,11 @@ msgstr "{0} – {1} · 根據本地會話日誌按API價格估算"
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — 請嘗試Superset托盤選單 > 主機服務 > 重啟。"
 
+#. placeholder {0}: window.label
+#. placeholder {1}: formatPercent(window.usedPercent / 100)
+msgid "{0} · {1} used"
+msgstr "{0} · 已用 {1}"
+
 #. placeholder {0}: host.version
 msgid "{0} · behind"
 msgstr "{0} · 落後"
@@ -1389,6 +1394,9 @@ msgstr "4天前"
 msgid "5 days"
 msgstr "5 天"
 
+msgid "5-hour limit reached"
+msgstr "已達到 5 小時上限"
+
 msgid "55 call sites pass {code}"
 msgstr "55 個呼叫位置傳入 {code}"
 
@@ -1681,6 +1689,9 @@ msgstr "以後想釋出代理程式配置時，可以加到這裡。"
 
 msgid "Add agents…"
 msgstr "新增代理程式…"
+
+msgid "Add an account in Usage settings"
+msgstr "在用量設定中新增帳號"
 
 msgid "add an agent"
 msgstr "新增代理程式"
@@ -3319,6 +3330,9 @@ msgstr "取消方案"
 msgid "Cancel reply"
 msgstr "取消回覆"
 
+msgid "Cancel the automatic resume"
+msgstr "取消自動繼續"
+
 msgid "Canceled"
 msgstr "已取消"
 
@@ -4533,6 +4547,12 @@ msgstr "在 iPhone 上繼續同一個工作區"
 
 msgid "Continue the session the last run left"
 msgstr "繼續上次執行留下的工作階段"
+
+msgid "Continue this chat on another login"
+msgstr "使用其他帳號繼續此對話"
+
+msgid "Continue this chat once the limit resets"
+msgstr "上限重設後繼續此對話"
 
 #. placeholder {0}: connector.displayName
 msgid "Continue to {0}"
@@ -6224,6 +6244,9 @@ msgstr "忽略建議"
 msgid "Dismiss suggestions"
 msgstr "忽略建議"
 
+msgid "Dismiss the usage limit notice"
+msgstr "關閉使用上限通知"
+
 msgid "Dismissed"
 msgstr "已忽略"
 
@@ -6926,6 +6949,9 @@ msgstr "極高"
 
 msgid "Extra small"
 msgstr "超小"
+
+msgid "Extra usage limit reached"
+msgstr "已達到額外用量上限"
 
 msgid "F4 gate · {F4_GATE_SHARE}%"
 msgstr "F4關卡 · {F4_GATE_SHARE}%"
@@ -9446,6 +9472,9 @@ msgstr "喜歡用Superset開發嗎？"
 
 msgid "Lime"
 msgstr "萊姆綠"
+
+msgid "Limit has reset"
+msgstr "上限已重設"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -14080,12 +14109,18 @@ msgstr "繼續聊天"
 msgid "Resume args"
 msgstr "恢復引數"
 
+msgid "Resume at reset"
+msgstr "重設後繼續"
+
 msgid "Resume automation"
 msgstr "恢復自動化"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
 msgstr "正在恢復{0}…"
+
+msgid "Resuming at reset"
+msgstr "將在重設後繼續"
 
 msgid "Resuming the conversation…"
 msgstr "正在繼續對話…"
@@ -16156,6 +16191,9 @@ msgstr "已停止"
 msgid "Stopped"
 msgstr "已停止"
 
+msgid "Stopped by the usage limit"
+msgstr "因使用上限而停止"
+
 msgid "Stopping the agent in {what}"
 msgstr "正在停止 {what} 中的代理程式"
 
@@ -16486,6 +16524,9 @@ msgstr "持續"
 
 msgid "Sustain · active days in 30"
 msgstr "持續性 · 30 天內的活躍天數"
+
+msgid "Switch account"
+msgstr "切換帳號"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "換代理程式，不換工作流"
@@ -17957,9 +17998,6 @@ msgstr "把雜活變成定時代理程式：議題分類、更新日誌草稿、
 msgid "Turn failed"
 msgstr "本輪失敗"
 
-msgid "Turn failed: {message}"
-msgstr "本輪失敗：{message}"
-
 msgid "Turn on “Allow remote access to this device via relay”"
 msgstr "開啟「允許透過中繼遠端存取此裝置」"
 
@@ -18382,8 +18420,14 @@ msgstr "用量"
 msgid "Usage is out of date"
 msgstr "用量資料已過期"
 
+msgid "Usage limit reached"
+msgstr "已達到使用上限"
+
 msgid "Usage sections"
 msgstr "用量分區"
+
+msgid "Usage settings"
+msgstr "用量設定"
 
 msgid "Usage unavailable."
 msgstr "無法獲取用量。"
@@ -18823,8 +18867,17 @@ msgstr "每週"
 msgid "Weekly at {time}"
 msgstr "每週{time}"
 
+msgid "Weekly limit reached"
+msgstr "已達到每週上限"
+
+msgid "Weekly Opus limit reached"
+msgstr "已達到 Opus 每週上限"
+
 msgid "Weekly release notes"
 msgstr "每週釋出說明"
+
+msgid "Weekly Sonnet limit reached"
+msgstr "已達到 Sonnet 每週上限"
 
 msgid "Welcome back"
 msgstr "歡迎回來"

@@ -349,6 +349,11 @@ msgstr "{0} – {1} · estimation au tarif API à partir des journaux de session
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — essayez le menu de la barre d'état Superset > Service hôte > Redémarrer."
 
+#. placeholder {0}: window.label
+#. placeholder {1}: formatPercent(window.usedPercent / 100)
+msgid "{0} · {1} used"
+msgstr "{0} · {1} utilisé"
+
 #. placeholder {0}: host.version
 msgid "{0} · behind"
 msgstr "{0} · en retard"
@@ -1389,6 +1394,9 @@ msgstr "il y a 4 j"
 msgid "5 days"
 msgstr "5 jours"
 
+msgid "5-hour limit reached"
+msgstr "Limite de 5 heures atteinte"
+
 msgid "55 call sites pass {code}"
 msgstr "55 sites d'appel passent {code}"
 
@@ -1681,6 +1689,9 @@ msgstr "Ajoutez ici vos configurations d'agents plus tard, quand vous voudrez le
 
 msgid "Add agents…"
 msgstr "Ajouter des agents…"
+
+msgid "Add an account in Usage settings"
+msgstr "Ajouter un compte dans les paramètres d'utilisation"
 
 msgid "add an agent"
 msgstr "ajouter un agent"
@@ -3319,6 +3330,9 @@ msgstr "Annuler le forfait"
 msgid "Cancel reply"
 msgstr "Annuler la réponse"
 
+msgid "Cancel the automatic resume"
+msgstr "Annuler la reprise automatique"
+
 msgid "Canceled"
 msgstr "Annulées"
 
@@ -4533,6 +4547,12 @@ msgstr "Reprenez le même espace de travail depuis votre iPhone"
 
 msgid "Continue the session the last run left"
 msgstr "Continuer la session laissée par la dernière exécution"
+
+msgid "Continue this chat on another login"
+msgstr "Continuer cette discussion avec un autre compte"
+
+msgid "Continue this chat once the limit resets"
+msgstr "Continuer cette discussion une fois la limite réinitialisée"
 
 #. placeholder {0}: connector.displayName
 msgid "Continue to {0}"
@@ -6224,6 +6244,9 @@ msgstr "Ignorer la suggestion"
 msgid "Dismiss suggestions"
 msgstr "Ignorer les suggestions"
 
+msgid "Dismiss the usage limit notice"
+msgstr "Fermer l'avis de limite d'utilisation"
+
 msgid "Dismissed"
 msgstr "Rejetée"
 
@@ -6926,6 +6949,9 @@ msgstr "Très élevé"
 
 msgid "Extra small"
 msgstr "Très petit"
+
+msgid "Extra usage limit reached"
+msgstr "Limite d'utilisation supplémentaire atteinte"
 
 msgid "F4 gate · {F4_GATE_SHARE}%"
 msgstr "Porte F4 · {F4_GATE_SHARE} %"
@@ -9446,6 +9472,9 @@ msgstr "Vous aimez développer avec Superset ?"
 
 msgid "Lime"
 msgstr "Vert lime"
+
+msgid "Limit has reset"
+msgstr "La limite a été réinitialisée"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -14080,12 +14109,18 @@ msgstr "Reprendre une discussion"
 msgid "Resume args"
 msgstr "Arguments de reprise"
 
+msgid "Resume at reset"
+msgstr "Reprendre à la réinitialisation"
+
 msgid "Resume automation"
 msgstr "Reprendre l'automatisation"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
 msgstr "Reprise de {0}…"
+
+msgid "Resuming at reset"
+msgstr "Reprise à la réinitialisation"
 
 msgid "Resuming the conversation…"
 msgstr "Reprise de la conversation…"
@@ -16156,6 +16191,9 @@ msgstr "arrêté"
 msgid "Stopped"
 msgstr "Arrêté"
 
+msgid "Stopped by the usage limit"
+msgstr "Arrêté par la limite d'utilisation"
+
 msgid "Stopping the agent in {what}"
 msgstr "Arrêt de l’agent dans {what}"
 
@@ -16486,6 +16524,9 @@ msgstr "Régularité"
 
 msgid "Sustain · active days in 30"
 msgstr "Régularité · jours actifs sur 30"
+
+msgid "Switch account"
+msgstr "Changer de compte"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "Changez d'agent. Gardez votre flux de travail"
@@ -17957,9 +17998,6 @@ msgstr "Transformez les corvées en agents planifiés : tri des issues, brouillo
 msgid "Turn failed"
 msgstr "Échec du tour"
 
-msgid "Turn failed: {message}"
-msgstr "Échec du tour : {message}"
-
 msgid "Turn on “Allow remote access to this device via relay”"
 msgstr "Activez « Autoriser l'accès distant à cet appareil via le relais »"
 
@@ -18382,8 +18420,14 @@ msgstr "Utilisation"
 msgid "Usage is out of date"
 msgstr "Les données d’utilisation ne sont plus à jour"
 
+msgid "Usage limit reached"
+msgstr "Limite d'utilisation atteinte"
+
 msgid "Usage sections"
 msgstr "Sections d'utilisation"
+
+msgid "Usage settings"
+msgstr "Paramètres d'utilisation"
 
 msgid "Usage unavailable."
 msgstr "Utilisation indisponible."
@@ -18823,8 +18867,17 @@ msgstr "Hebdomadaire"
 msgid "Weekly at {time}"
 msgstr "Hebdomadaire à {time}"
 
+msgid "Weekly limit reached"
+msgstr "Limite hebdomadaire atteinte"
+
+msgid "Weekly Opus limit reached"
+msgstr "Limite hebdomadaire Opus atteinte"
+
 msgid "Weekly release notes"
 msgstr "Notes de version hebdomadaires"
+
+msgid "Weekly Sonnet limit reached"
+msgstr "Limite hebdomadaire Sonnet atteinte"
 
 msgid "Welcome back"
 msgstr "Bon retour"

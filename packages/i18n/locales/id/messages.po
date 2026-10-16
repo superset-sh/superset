@@ -349,6 +349,11 @@ msgstr "{0} – {1} · perkiraan tarif API dari log sesi lokal"
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — coba menu tray Superset > Host Service > Restart."
 
+#. placeholder {0}: window.label
+#. placeholder {1}: formatPercent(window.usedPercent / 100)
+msgid "{0} · {1} used"
+msgstr "{0} · {1} terpakai"
+
 #. placeholder {0}: host.version
 msgid "{0} · behind"
 msgstr "{0} · tertinggal"
@@ -1389,6 +1394,9 @@ msgstr "4h lalu"
 msgid "5 days"
 msgstr "5 hari"
 
+msgid "5-hour limit reached"
+msgstr "Batas 5 jam tercapai"
+
 msgid "55 call sites pass {code}"
 msgstr "55 titik pemanggilan meneruskan {code}"
 
@@ -1681,6 +1689,9 @@ msgstr "Tambahkan konfigurasi agen di sini nanti saat Anda ingin mempublikasikan
 
 msgid "Add agents…"
 msgstr "Tambah agen…"
+
+msgid "Add an account in Usage settings"
+msgstr "Tambahkan akun di pengaturan penggunaan"
 
 msgid "add an agent"
 msgstr "menambah agen"
@@ -3319,6 +3330,9 @@ msgstr "Batalkan paket"
 msgid "Cancel reply"
 msgstr "Batalkan balasan"
 
+msgid "Cancel the automatic resume"
+msgstr "Batalkan lanjutan otomatis"
+
 msgid "Canceled"
 msgstr "Dibatalkan"
 
@@ -4533,6 +4547,12 @@ msgstr "Lanjutkan workspace yang sama dari iPhone Anda"
 
 msgid "Continue the session the last run left"
 msgstr "Lanjutkan sesi yang ditinggalkan proses terakhir"
+
+msgid "Continue this chat on another login"
+msgstr "Lanjutkan chat ini dengan login lain"
+
+msgid "Continue this chat once the limit resets"
+msgstr "Lanjutkan chat ini setelah batas diatur ulang"
 
 #. placeholder {0}: connector.displayName
 msgid "Continue to {0}"
@@ -6224,6 +6244,9 @@ msgstr "Tutup saran"
 msgid "Dismiss suggestions"
 msgstr "Tutup saran"
 
+msgid "Dismiss the usage limit notice"
+msgstr "Tutup pemberitahuan batas penggunaan"
+
 msgid "Dismissed"
 msgstr "Diabaikan"
 
@@ -6926,6 +6949,9 @@ msgstr "Sangat tinggi"
 
 msgid "Extra small"
 msgstr "Ekstra kecil"
+
+msgid "Extra usage limit reached"
+msgstr "Batas penggunaan tambahan tercapai"
 
 msgid "F4 gate · {F4_GATE_SHARE}%"
 msgstr "Gerbang F4 · {F4_GATE_SHARE}%"
@@ -9446,6 +9472,9 @@ msgstr "Suka membangun dengan Superset?"
 
 msgid "Lime"
 msgstr "Limau"
+
+msgid "Limit has reset"
+msgstr "Batas telah diatur ulang"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -14080,12 +14109,18 @@ msgstr "Lanjutkan obrolan"
 msgid "Resume args"
 msgstr "Argumen resume"
 
+msgid "Resume at reset"
+msgstr "Lanjutkan saat diatur ulang"
+
 msgid "Resume automation"
 msgstr "Lanjutkan otomatisasi"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
 msgstr "Melanjutkan {0}…"
+
+msgid "Resuming at reset"
+msgstr "Akan dilanjutkan saat diatur ulang"
 
 msgid "Resuming the conversation…"
 msgstr "Melanjutkan percakapan…"
@@ -16156,6 +16191,9 @@ msgstr "berhenti"
 msgid "Stopped"
 msgstr "Dihentikan"
 
+msgid "Stopped by the usage limit"
+msgstr "Dihentikan oleh batas penggunaan"
+
 msgid "Stopping the agent in {what}"
 msgstr "Menghentikan agen di {what}"
 
@@ -16486,6 +16524,9 @@ msgstr "Konsistensi"
 
 msgid "Sustain · active days in 30"
 msgstr "Konsistensi · hari aktif dari 30"
+
+msgid "Switch account"
+msgstr "Ganti akun"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "Ganti agen. Pertahankan alur kerja Anda"
@@ -17957,9 +17998,6 @@ msgstr "Ubah pekerjaan rutin jadi agen terjadwal: triase issue, draf changelog, 
 msgid "Turn failed"
 msgstr "Giliran gagal"
 
-msgid "Turn failed: {message}"
-msgstr "Giliran gagal: {message}"
-
 msgid "Turn on “Allow remote access to this device via relay”"
 msgstr "Aktifkan “Izinkan akses jarak jauh ke perangkat ini melalui relay”"
 
@@ -18382,8 +18420,14 @@ msgstr "Penggunaan"
 msgid "Usage is out of date"
 msgstr "Data penggunaan sudah tidak mutakhir"
 
+msgid "Usage limit reached"
+msgstr "Batas penggunaan tercapai"
+
 msgid "Usage sections"
 msgstr "Bagian penggunaan"
+
+msgid "Usage settings"
+msgstr "Pengaturan penggunaan"
 
 msgid "Usage unavailable."
 msgstr "Penggunaan tidak tersedia."
@@ -18823,8 +18867,17 @@ msgstr "Mingguan"
 msgid "Weekly at {time}"
 msgstr "Mingguan pukul {time}"
 
+msgid "Weekly limit reached"
+msgstr "Batas mingguan tercapai"
+
+msgid "Weekly Opus limit reached"
+msgstr "Batas mingguan Opus tercapai"
+
 msgid "Weekly release notes"
 msgstr "Catatan rilis mingguan"
+
+msgid "Weekly Sonnet limit reached"
+msgstr "Batas mingguan Sonnet tercapai"
 
 msgid "Welcome back"
 msgstr "Selamat datang kembali"

@@ -349,6 +349,11 @@ msgstr "{0} – {1} · szacunek wg stawek API z lokalnych logów sesji"
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — spróbuj przez menu zasobnika Superset > Usługa hosta > Uruchom ponownie."
 
+#. placeholder {0}: window.label
+#. placeholder {1}: formatPercent(window.usedPercent / 100)
+msgid "{0} · {1} used"
+msgstr "{0} · wykorzystano {1}"
+
 #. placeholder {0}: host.version
 msgid "{0} · behind"
 msgstr "{0} · nieaktualny"
@@ -1389,6 +1394,9 @@ msgstr "4 dni temu"
 msgid "5 days"
 msgstr "5 dni"
 
+msgid "5-hour limit reached"
+msgstr "Osiągnięto limit 5-godzinny"
+
 msgid "55 call sites pass {code}"
 msgstr "55 miejsc wywołania przekazuje {code}"
 
@@ -1681,6 +1689,9 @@ msgstr "Dodaj tu konfiguracje agentów później, gdy zechcesz je opublikować."
 
 msgid "Add agents…"
 msgstr "Dodaj agentów…"
+
+msgid "Add an account in Usage settings"
+msgstr "Dodaj konto w ustawieniach użycia"
 
 msgid "add an agent"
 msgstr "dodać agenta"
@@ -3319,6 +3330,9 @@ msgstr "Anuluj plan"
 msgid "Cancel reply"
 msgstr "Anuluj odpowiedź"
 
+msgid "Cancel the automatic resume"
+msgstr "Anuluj automatyczne wznowienie"
+
 msgid "Canceled"
 msgstr "Anulowane"
 
@@ -4533,6 +4547,12 @@ msgstr "Kontynuuj ten sam obszar roboczy na iPhonie"
 
 msgid "Continue the session the last run left"
 msgstr "Kontynuuj sesję pozostawioną przez ostatnie uruchomienie"
+
+msgid "Continue this chat on another login"
+msgstr "Kontynuuj ten czat na innym koncie"
+
+msgid "Continue this chat once the limit resets"
+msgstr "Kontynuuj ten czat po zresetowaniu limitu"
 
 #. placeholder {0}: connector.displayName
 msgid "Continue to {0}"
@@ -6224,6 +6244,9 @@ msgstr "Odrzuć sugestię"
 msgid "Dismiss suggestions"
 msgstr "Ukryj sugestie"
 
+msgid "Dismiss the usage limit notice"
+msgstr "Zamknij powiadomienie o limicie użycia"
+
 msgid "Dismissed"
 msgstr "Odrzucony"
 
@@ -6926,6 +6949,9 @@ msgstr "Bardzo wysoki"
 
 msgid "Extra small"
 msgstr "Bardzo mały"
+
+msgid "Extra usage limit reached"
+msgstr "Osiągnięto limit dodatkowego użycia"
 
 msgid "F4 gate · {F4_GATE_SHARE}%"
 msgstr "Bramka F4 · {F4_GATE_SHARE}%"
@@ -9446,6 +9472,9 @@ msgstr "Lubisz budować z Superset?"
 
 msgid "Lime"
 msgstr "Limonkowy"
+
+msgid "Limit has reset"
+msgstr "Limit został zresetowany"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -14080,12 +14109,18 @@ msgstr "Wznów czat"
 msgid "Resume args"
 msgstr "Argumenty wznawiania"
 
+msgid "Resume at reset"
+msgstr "Wznów po resecie"
+
 msgid "Resume automation"
 msgstr "Wznów automatyzację"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
 msgstr "Wznawianie {0}…"
+
+msgid "Resuming at reset"
+msgstr "Wznowienie po resecie"
 
 msgid "Resuming the conversation…"
 msgstr "Wznawianie rozmowy…"
@@ -16156,6 +16191,9 @@ msgstr "zatrzymana"
 msgid "Stopped"
 msgstr "Zatrzymano"
 
+msgid "Stopped by the usage limit"
+msgstr "Zatrzymano przez limit użycia"
+
 msgid "Stopping the agent in {what}"
 msgstr "Zatrzymywanie agenta w {what}"
 
@@ -16486,6 +16524,9 @@ msgstr "Regularność"
 
 msgid "Sustain · active days in 30"
 msgstr "Regularność · aktywne dni z 30"
+
+msgid "Switch account"
+msgstr "Zmień konto"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "Zmieniaj agentów. Zachowaj swój workflow"
@@ -17957,9 +17998,6 @@ msgstr "Zamień obowiązki w zaplanowanych agentów: segregację zgłoszeń, szk
 msgid "Turn failed"
 msgstr "Tura nie powiodła się"
 
-msgid "Turn failed: {message}"
-msgstr "Tura nie powiodła się: {message}"
-
 msgid "Turn on “Allow remote access to this device via relay”"
 msgstr "Włącz „Zezwól na zdalny dostęp do tego urządzenia przez przekaźnik”"
 
@@ -18382,8 +18420,14 @@ msgstr "Zużycie"
 msgid "Usage is out of date"
 msgstr "Dane o wykorzystaniu są nieaktualne"
 
+msgid "Usage limit reached"
+msgstr "Osiągnięto limit użycia"
+
 msgid "Usage sections"
 msgstr "Sekcje zużycia"
+
+msgid "Usage settings"
+msgstr "Ustawienia użycia"
 
 msgid "Usage unavailable."
 msgstr "Zużycie niedostępne."
@@ -18823,8 +18867,17 @@ msgstr "Co tydzień"
 msgid "Weekly at {time}"
 msgstr "Co tydzień o {time}"
 
+msgid "Weekly limit reached"
+msgstr "Osiągnięto limit tygodniowy"
+
+msgid "Weekly Opus limit reached"
+msgstr "Osiągnięto tygodniowy limit Opus"
+
 msgid "Weekly release notes"
 msgstr "Cotygodniowe notatki wydania"
+
+msgid "Weekly Sonnet limit reached"
+msgstr "Osiągnięto tygodniowy limit Sonnet"
 
 msgid "Welcome back"
 msgstr "Witamy ponownie"

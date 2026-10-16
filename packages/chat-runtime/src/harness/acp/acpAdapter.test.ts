@@ -48,6 +48,12 @@ class FakeAcpAgent {
 	steeringOutcome: string | null = null;
 	/** Leave session/prompt unanswered, as a turn still running does. */
 	holdPrompts = false;
+	/** Refuse session/prompt with this error after these updates, as a
+	 * rate-limited Claude does. */
+	promptFailure: {
+		updates: Record<string, unknown>[];
+		error: { code: number; message: string };
+	} | null = null;
 	private handlers!: AcpTransportHandlers;
 
 	transport(handlers: AcpTransportHandlers): AcpTransport {
@@ -247,6 +253,15 @@ class FakeAcpAgent {
 				this.respond(frame.id as number, { outcome: this.steeringOutcome });
 			} else if (frame.method === "session/prompt" && this.holdPrompts) {
 				this.heldPrompts.push(frame.id as number);
+			} else if (frame.method === "session/prompt" && this.promptFailure) {
+				for (const update of this.promptFailure.updates) {
+					this.notify("sess-1", update);
+				}
+				this.deliver({
+					jsonrpc: "2.0",
+					id: frame.id,
+					error: this.promptFailure.error,
+				});
 			} else if (frame.method === "session/prompt") {
 				this.notify("sess-1", {
 					sessionUpdate: "agent_message_chunk",
@@ -334,6 +349,79 @@ function textOf(item: Item | undefined): string {
 }
 
 describe("AcpAdapter", () => {
+	it("a refused turn reports the usage limit with the reset the agent forwarded", async () => {
+		const agent = new FakeAcpAgent();
+		agent.promptFailure = {
+			updates: [
+				{
+					sessionUpdate: "usage_update",
+					used: 100,
+					size: 200000,
+					_meta: {
+						"_claude/rateLimit": {
+							status: "rejected",
+							resetsAt: 1785958200,
+							rateLimitType: "five_hour",
+							isUsingOverage: false,
+						},
+						"_claude/model": "claude-sonnet-5-5",
+					},
+				},
+			],
+			error: { code: -32603, message: "error_during_execution" },
+		};
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+		adapter.prompt([{ type: "text", text: "go" }]);
+		await flush(20);
+		const limits = sessionsOf(events).flatMap((session) =>
+			session.usageLimit ? [session.usageLimit] : [],
+		);
+		expect(limits).toEqual([
+			{
+				hitAtMs: 1,
+				resetsAtMs: 1785958200_000,
+				window: "five_hour",
+				model: "claude-sonnet-5-5",
+			},
+		]);
+		const turns = events.flatMap((e) => (e.kind === "turn" ? [e.turn] : []));
+		expect(turns.at(-1)?.status).toBe("failed");
+		expect(turns.at(-1)?.error?.message).toBe("error_during_execution");
+		expect(
+			events.findIndex(
+				(event) =>
+					event.kind === "session" && event.session.usageLimit !== undefined,
+			),
+		).toBeLessThan(
+			events.findIndex(
+				(event) => event.kind === "turn" && event.turn.status === "failed",
+			),
+		);
+	});
+
+	it("a refusal the turn survived, or an allowed window, is not a limit", async () => {
+		const agent = new FakeAcpAgent();
+		agent.promptFailure = {
+			updates: [
+				{
+					sessionUpdate: "usage_update",
+					used: 100,
+					size: 200000,
+					_meta: { "_claude/rateLimit": { status: "allowed", resetsAt: 1 } },
+				},
+			],
+			error: { code: -32603, message: "The model provider reported an error." },
+		};
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+		adapter.prompt([{ type: "text", text: "go" }]);
+		await flush(20);
+		expect(sessionsOf(events).some((session) => session.usageLimit)).toBe(
+			false,
+		);
+	});
+
 	it("bootstraps, streams a turn, and maps items", async () => {
 		const agent = new FakeAcpAgent();
 		let counter = 0;

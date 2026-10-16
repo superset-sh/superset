@@ -349,6 +349,11 @@ msgstr "{0} – {1} · yerel oturum günlüklerinden API tarifesi tahmini"
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — Superset tepsi menüsünde Host hizmeti > Yeniden başlat yolunu deneyin."
 
+#. placeholder {0}: window.label
+#. placeholder {1}: formatPercent(window.usedPercent / 100)
+msgid "{0} · {1} used"
+msgstr "{0} · {1} kullanıldı"
+
 #. placeholder {0}: host.version
 msgid "{0} · behind"
 msgstr "{0} · eski"
@@ -1389,6 +1394,9 @@ msgstr "4g önce"
 msgid "5 days"
 msgstr "5 gün"
 
+msgid "5-hour limit reached"
+msgstr "5 saatlik sınıra ulaşıldı"
+
 msgid "55 call sites pass {code}"
 msgstr "55 çağrı noktası {code} geçiriyor"
 
@@ -1681,6 +1689,9 @@ msgstr "Yayımlamak istediğinizde ajan yapılandırmalarını buraya ekleyin."
 
 msgid "Add agents…"
 msgstr "Ajan ekle…"
+
+msgid "Add an account in Usage settings"
+msgstr "Kullanım ayarlarından hesap ekle"
 
 msgid "add an agent"
 msgstr "ajan ekleme"
@@ -3319,6 +3330,9 @@ msgstr "Planı iptal et"
 msgid "Cancel reply"
 msgstr "Yanıtı iptal et"
 
+msgid "Cancel the automatic resume"
+msgstr "Otomatik devam etmeyi iptal et"
+
 msgid "Canceled"
 msgstr "İptal edildi"
 
@@ -4533,6 +4547,12 @@ msgstr "Aynı çalışma alanına iPhone'unuzdan devam edin"
 
 msgid "Continue the session the last run left"
 msgstr "Son çalıştırmanın bıraktığı oturumu sürdür"
+
+msgid "Continue this chat on another login"
+msgstr "Bu sohbete başka bir hesapla devam et"
+
+msgid "Continue this chat once the limit resets"
+msgstr "Sınır sıfırlandığında bu sohbete devam et"
 
 #. placeholder {0}: connector.displayName
 msgid "Continue to {0}"
@@ -6224,6 +6244,9 @@ msgstr "Öneriyi yoksay"
 msgid "Dismiss suggestions"
 msgstr "Önerileri kapat"
 
+msgid "Dismiss the usage limit notice"
+msgstr "Kullanım sınırı bildirimini kapat"
+
 msgid "Dismissed"
 msgstr "Yok sayıldı"
 
@@ -6926,6 +6949,9 @@ msgstr "Çok yüksek"
 
 msgid "Extra small"
 msgstr "Çok küçük"
+
+msgid "Extra usage limit reached"
+msgstr "Ek kullanım sınırına ulaşıldı"
 
 msgid "F4 gate · {F4_GATE_SHARE}%"
 msgstr "F4 eşiği · %{F4_GATE_SHARE}"
@@ -9446,6 +9472,9 @@ msgstr "Superset ile geliştirmeyi seviyor musunuz?"
 
 msgid "Lime"
 msgstr "Limon yeşili"
+
+msgid "Limit has reset"
+msgstr "Sınır sıfırlandı"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -14080,12 +14109,18 @@ msgstr "Bir sohbete devam et"
 msgid "Resume args"
 msgstr "Sürdürme argümanları"
 
+msgid "Resume at reset"
+msgstr "Sıfırlanınca devam et"
+
 msgid "Resume automation"
 msgstr "Otomasyonu sürdür"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
 msgstr "{0} sürdürülüyor…"
+
+msgid "Resuming at reset"
+msgstr "Sıfırlanınca devam edilecek"
 
 msgid "Resuming the conversation…"
 msgstr "Sohbete devam ediliyor…"
@@ -16156,6 +16191,9 @@ msgstr "durduruldu"
 msgid "Stopped"
 msgstr "Durduruldu"
 
+msgid "Stopped by the usage limit"
+msgstr "Kullanım sınırı nedeniyle durduruldu"
+
 msgid "Stopping the agent in {what}"
 msgstr "{what} içindeki ajan durduruluyor"
 
@@ -16486,6 +16524,9 @@ msgstr "Süreklilik"
 
 msgid "Sustain · active days in 30"
 msgstr "Süreklilik · 30 günde etkin gün"
+
+msgid "Switch account"
+msgstr "Hesap değiştir"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "Ajan değiştirin. İş akışınızı koruyun"
@@ -17957,9 +17998,6 @@ msgstr "Rutin işleri zamanlanmış ajanlara dönüştürün: issue sınıfland�
 msgid "Turn failed"
 msgstr "Tur başarısız"
 
-msgid "Turn failed: {message}"
-msgstr "Tur başarısız: {message}"
-
 msgid "Turn on “Allow remote access to this device via relay”"
 msgstr "“Bu cihaza röle üzerinden uzaktan erişime izin ver” seçeneğini açın"
 
@@ -18382,8 +18420,14 @@ msgstr "Kullanım"
 msgid "Usage is out of date"
 msgstr "Kullanım verileri güncel değil"
 
+msgid "Usage limit reached"
+msgstr "Kullanım sınırına ulaşıldı"
+
 msgid "Usage sections"
 msgstr "Kullanım bölümleri"
+
+msgid "Usage settings"
+msgstr "Kullanım ayarları"
 
 msgid "Usage unavailable."
 msgstr "Kullanım bilgisi yok."
@@ -18823,8 +18867,17 @@ msgstr "Haftalık"
 msgid "Weekly at {time}"
 msgstr "Her hafta saat {time}"
 
+msgid "Weekly limit reached"
+msgstr "Haftalık sınıra ulaşıldı"
+
+msgid "Weekly Opus limit reached"
+msgstr "Haftalık Opus sınırına ulaşıldı"
+
 msgid "Weekly release notes"
 msgstr "Haftalık sürüm notları"
+
+msgid "Weekly Sonnet limit reached"
+msgstr "Haftalık Sonnet sınırına ulaşıldı"
 
 msgid "Welcome back"
 msgstr "Tekrar hoş geldiniz"

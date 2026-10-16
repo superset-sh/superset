@@ -30,6 +30,7 @@ export type ChatRuntimeOptions = {
 	bootstrapLimit?: number;
 	dedupeCapacity?: number;
 	onSessionChanged?: ChatJournalOptions["onSessionChanged"];
+	usageLimitGraceMs?: number;
 };
 
 export type ChatRuntime = {
@@ -65,6 +66,7 @@ export function createChatRuntime(options: ChatRuntimeOptions): ChatRuntime {
 		publish: (envelope) => subscriptions.publish(envelope),
 		harnesses: options.harnesses ?? new Map(),
 		observer: options.observer,
+		usageLimitGraceMs: options.usageLimitGraceMs,
 	});
 	const commands = createCommands({
 		journal,

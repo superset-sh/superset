@@ -4,6 +4,7 @@ import {
 	deriveQueuedPrompts,
 	runningTurnId as findRunningTurnId,
 	launchConfigSelections,
+	presetForAnyHarness,
 } from "@superset/chat/core";
 import type {
 	AvailableCommand,
@@ -24,6 +25,8 @@ import { ChatHistorySidebarScroller } from "@superset/ui/chat-history-sidebar";
 import { toast } from "@superset/ui/sonner";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { TerminalAgentBinding } from "renderer/hooks/host-service/useTerminalAgentBindings";
+import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import type { OpenFile } from "../../../../../../types";
 import {
 	ChatPaneActionsProvider,
@@ -33,6 +36,7 @@ import {
 import type { ChatForkTarget } from "../../types";
 import { buildChatHandoffTranscript } from "../../utils/chatHandoffTranscript";
 import { heldPromptQueue } from "../../utils/heldPromptQueue";
+import { modelDisplayName } from "../../utils/modelDisplayName";
 import { promptHistory } from "../../utils/promptHistory";
 import { railMessages } from "../../utils/railMessages";
 import {
@@ -41,6 +45,10 @@ import {
 	Composer,
 	prependToDraft,
 } from "../Composer";
+import type {
+	SwitchAccount,
+	SwitchableAgent,
+} from "../Composer/components/UsageLimitNotice";
 import { ConnectionNotice } from "../ConnectionNotice";
 import { SessionHeader } from "../SessionHeader";
 import { Transcript } from "../Transcript";
@@ -72,6 +80,8 @@ export function SessionView({
 	preferredModelLabel,
 	onPendingPromptsSent,
 	onFork,
+	onSwitchAccount,
+	sessionAccount,
 	onSessionState,
 	openFile,
 	openPage,
@@ -95,6 +105,8 @@ export function SessionView({
 	onSessionState?: (session: SessionState | null) => void;
 	/** The mode the user picked, so a resumed session can start in it again. */
 	onModeChange?: (modeId: string) => void;
+	onSwitchAccount?: SwitchAccount;
+	sessionAccount?: TerminalAgentBinding["account"];
 	/**
 	 * Absent when the agent cannot branch its own session. The transcript is
 	 * built here because only this view holds the timeline; a branch into
@@ -330,6 +342,35 @@ export function SessionView({
 		],
 	);
 
+	const limit = sessionState?.usageLimit;
+	const respondToUsageLimit = session.respondToUsageLimit;
+	const hostUrl = useWorkspaceHostUrl(workspaceId);
+	const usageLimit = useMemo(() => {
+		if (!limit) return undefined;
+		const preset = harness ? presetForAnyHarness(harness) : undefined;
+		const agent: SwitchableAgent | undefined =
+			preset === "claude" ? "claude" : preset === "codex" ? "codex" : undefined;
+		return {
+			limit,
+			respond: respondToUsageLimit,
+			modelLabel: limit.model
+				? modelDisplayName(limit.model, configOptions ?? [])
+				: undefined,
+			agent,
+			hostUrl,
+			sessionAccount,
+			onSwitchAccount,
+		};
+	}, [
+		limit,
+		respondToUsageLimit,
+		harness,
+		configOptions,
+		hostUrl,
+		onSwitchAccount,
+		sessionAccount,
+	]);
+
 	const heldQueued = held?.queued;
 	const heldQueue = useMemo(
 		() => (heldQueued ? heldPromptQueue(heldQueued) : undefined),
@@ -419,6 +460,7 @@ export function SessionView({
 					onCancelTurn={onCancelTurn}
 					onSend={onSend}
 					promptQueue={heldQueue ?? (held ? undefined : promptQueue)}
+					usageLimit={held ? undefined : usageLimit}
 					workspaceId={workspaceId}
 				/>
 			</ComposerDropZone>

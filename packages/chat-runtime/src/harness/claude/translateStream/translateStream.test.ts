@@ -343,3 +343,111 @@ describe("ClaudeTranslator", () => {
 		});
 	});
 });
+
+describe("ClaudeTranslator usage limit", () => {
+	function translateWith(
+		rateLimitInfo: Record<string, unknown> | null,
+		result: Record<string, unknown>,
+	): AdapterEvent[] {
+		const translator = new ClaudeTranslator({
+			cwd: CWD,
+			now: () => 7,
+			mintId: () => "id",
+		});
+		const messages: unknown[] = [
+			{
+				type: "assistant",
+				message: {
+					id: "m1",
+					model: "claude-sonnet-5-5",
+					content: [{ type: "text", text: "hi" }],
+				},
+			},
+			...(rateLimitInfo
+				? [{ type: "rate_limit_event", rate_limit_info: rateLimitInfo }]
+				: []),
+			{ type: "result", ...result },
+		];
+		return messages.flatMap((message) => translator.translate(message));
+	}
+
+	function limitOf(events: AdapterEvent[]) {
+		return events.flatMap((event) =>
+			event.kind === "session" && event.session.usageLimit
+				? [event.session.usageLimit]
+				: [],
+		);
+	}
+
+	test("a refused window that ends the turn in error is a usage limit with its reset", () => {
+		const events = translateWith(
+			{
+				status: "rejected",
+				resetsAt: 1785958200,
+				rateLimitType: "five_hour",
+				isUsingOverage: false,
+			},
+			{ is_error: true, subtype: "error_during_execution" },
+		);
+		expect(limitOf(events)).toEqual([
+			{
+				hitAtMs: 7,
+				resetsAtMs: 1785958200_000,
+				window: "five_hour",
+				model: "claude-sonnet-5-5",
+			},
+		]);
+		expect(
+			events.findIndex(
+				(event) =>
+					event.kind === "session" && event.session.usageLimit !== undefined,
+			),
+		).toBeLessThan(
+			events.findIndex(
+				(event) => event.kind === "turn" && event.turn.status === "failed",
+			),
+		);
+	});
+
+	test("an allowed window, or a refusal paid for by overage, is nothing", () => {
+		expect(
+			limitOf(
+				translateWith(
+					{ status: "allowed", resetsAt: 1785958200 },
+					{ is_error: true, subtype: "error_during_execution" },
+				),
+			),
+		).toEqual([]);
+		expect(
+			limitOf(
+				translateWith(
+					{ status: "rejected", resetsAt: 1785958200, isUsingOverage: true },
+					{ is_error: true, subtype: "error_during_execution" },
+				),
+			),
+		).toEqual([]);
+	});
+
+	test("a refusal that the turn survived is nothing", () => {
+		expect(
+			limitOf(
+				translateWith(
+					{ status: "rejected", resetsAt: 1785958200 },
+					{ is_error: false, subtype: "success" },
+				),
+			),
+		).toEqual([]);
+	});
+
+	test("the limit named only in the result text still counts, without a reset", () => {
+		expect(
+			limitOf(
+				translateWith(null, {
+					is_error: true,
+					subtype: "error",
+					result: "You've hit your usage limit. Try again later.",
+				}),
+			),
+		).toEqual([{ hitAtMs: 7, model: "claude-sonnet-5-5" }]);
+	});
+});

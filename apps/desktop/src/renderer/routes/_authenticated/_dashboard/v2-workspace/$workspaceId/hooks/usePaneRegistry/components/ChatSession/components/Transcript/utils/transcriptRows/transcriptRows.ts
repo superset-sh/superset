@@ -7,6 +7,7 @@ import {
 import type {
 	ApprovalRequest,
 	Item,
+	Notice,
 	ToolCall,
 	UserMessage,
 } from "@superset/chat/protocol";
@@ -90,6 +91,16 @@ export function transcriptRows(
 			}
 			if (entry.kind === "item") {
 				if (hiddenToolIds.has(entry.item.id)) return;
+				// The harness says a failure twice, as a notice and as the turn's
+				// own error; the turn's row says it once, with its status.
+				if (
+					entry.item.kind === "notice" &&
+					(entry.item as Notice).noticeKind === "error" &&
+					turn?.status === "failed" &&
+					(entry.item as Notice).text === turn.error?.message
+				) {
+					return;
+				}
 				const clientId =
 					entry.item.kind === "user_message"
 						? (entry.item as UserMessage).clientId

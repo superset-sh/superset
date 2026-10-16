@@ -295,6 +295,7 @@
         "@lingui/babel-plugin-lingui-macro": "6.8.0",
         "@sentry/vite-plugin": "5.4.0",
         "@storybook/react-vite": "10.4.2",
+        "@superset/chat-runtime": "workspace:*",
         "@superset/typescript": "workspace:*",
         "@tailwindcss/vite": "4.2.2",
         "@tanstack/router-cli": "1.167.17",

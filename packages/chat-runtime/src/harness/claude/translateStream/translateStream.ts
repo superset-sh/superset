@@ -9,6 +9,11 @@ import type {
 	Usage,
 } from "@superset/chat/protocol";
 import type { AdapterEvent } from "../../types";
+import {
+	type RefusedWindow,
+	refusedWindow,
+	USAGE_LIMIT_TEXT,
+} from "../../usageLimit";
 import type { ToolOutcome, ToolUse } from "../mapToolUse";
 import { contentFor, locationsFor, titleFor, toolKindFor } from "../mapToolUse";
 
@@ -24,7 +29,7 @@ const IGNORED_SYSTEM_SUBTYPES = new Set([
 	"task_progress",
 ]);
 
-const IGNORED_TYPES = new Set(["rate_limit_event", "user_replay"]);
+const IGNORED_TYPES = new Set(["user_replay"]);
 
 type Json = Record<string, unknown>;
 
@@ -74,6 +79,8 @@ export class ClaudeTranslator {
 	private readonly tools = new Map<string, TrackedTool>();
 	private readonly declined = new Set<string>();
 	private interruptReason: string | null = null;
+	private refused: RefusedWindow = null;
+	private lastModel: string | null = null;
 
 	constructor(private readonly options: ClaudeTranslatorOptions) {}
 
@@ -106,6 +113,9 @@ export class ClaudeTranslator {
 				return this.streamEvent(envelope);
 			case "result":
 				return this.result(envelope);
+			case "rate_limit_event":
+				this.rateLimit(envelope);
+				return [];
 			default:
 				return [this.notice("info", `Unmapped ${type} event`)];
 		}
@@ -180,6 +190,8 @@ export class ClaudeTranslator {
 		const message = asObject(envelope.message);
 		if (!message) return [];
 		const messageId = asString(message.id) ?? this.mintId();
+		const model = asString(message.model);
+		if (model && model !== "<synthetic>") this.lastModel = model;
 		const parentItemId = this.parentItemFor(envelope);
 		const events = this.ensureTurn();
 
@@ -343,6 +355,37 @@ export class ClaudeTranslator {
 		return { kind: "session", session: { status: "idle" } };
 	}
 
+	/**
+	 * A `rate_limit_event` says whether requests are allowed. A refusal is
+	 * remembered until the result says what became of the turn: a refused
+	 * window can still be paid for by extra usage, so only a turn that ended
+	 * in error was stopped by it.
+	 */
+	private rateLimit(envelope: Json): void {
+		this.refused = refusedWindow(envelope.rate_limit_info);
+	}
+
+	private usageLimit(envelope: Json, isError: boolean): AdapterEvent | null {
+		const refused = this.refused;
+		this.refused = null;
+		if (!isError) return null;
+		const text = [asString(envelope.result) ?? "", ...asArray(envelope.errors)]
+			.filter((item): item is string => typeof item === "string")
+			.join("\n");
+		if (!refused && !USAGE_LIMIT_TEXT.test(text)) return null;
+		return {
+			kind: "session",
+			session: {
+				usageLimit: {
+					hitAtMs: this.now(),
+					...(refused?.resetsAtMs ? { resetsAtMs: refused.resetsAtMs } : {}),
+					...(refused?.window ? { window: refused.window } : {}),
+					...(this.lastModel ? { model: this.lastModel } : {}),
+				},
+			},
+		};
+	}
+
 	private result(envelope: Json): AdapterEvent[] {
 		if (!this.turnId) return [];
 
@@ -382,7 +425,12 @@ export class ClaudeTranslator {
 		this.turnId = null;
 		this.settledBlocks.clear();
 		this.streamingBlocks.clear();
-		return [{ kind: "turn", turn }, this.sessionIdle()];
+		const limit = this.usageLimit(envelope, isError);
+		return [
+			...(limit ? [limit] : []),
+			{ kind: "turn", turn },
+			this.sessionIdle(),
+		];
 	}
 
 	private currentMessageId = "";

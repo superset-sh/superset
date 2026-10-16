@@ -349,6 +349,11 @@ msgstr "{0} – {1} · оценка по тарифам API из локальн�
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — попробуйте меню Superset в трее > Host Service > Restart."
 
+#. placeholder {0}: window.label
+#. placeholder {1}: formatPercent(window.usedPercent / 100)
+msgid "{0} · {1} used"
+msgstr "{0} · использовано {1}"
+
 #. placeholder {0}: host.version
 msgid "{0} · behind"
 msgstr "{0} · устарел"
@@ -1389,6 +1394,9 @@ msgstr "4 дн. назад"
 msgid "5 days"
 msgstr "5 дней"
 
+msgid "5-hour limit reached"
+msgstr "Достигнут 5-часовой лимит"
+
 msgid "55 call sites pass {code}"
 msgstr "55 мест вызова передают {code}"
 
@@ -1681,6 +1689,9 @@ msgstr "Добавляйте сюда конфигурации агентов п
 
 msgid "Add agents…"
 msgstr "Добавить агентов…"
+
+msgid "Add an account in Usage settings"
+msgstr "Добавить аккаунт в настройках использования"
 
 msgid "add an agent"
 msgstr "добавить агента"
@@ -3319,6 +3330,9 @@ msgstr "Отменить тариф"
 msgid "Cancel reply"
 msgstr "Отменить ответ"
 
+msgid "Cancel the automatic resume"
+msgstr "Отменить автоматическое продолжение"
+
 msgid "Canceled"
 msgstr "Отменена"
 
@@ -4533,6 +4547,12 @@ msgstr "Продолжайте работу в той же рабочей обл
 
 msgid "Continue the session the last run left"
 msgstr "Продолжить сессию, оставшуюся от прошлого запуска"
+
+msgid "Continue this chat on another login"
+msgstr "Продолжить этот чат под другим аккаунтом"
+
+msgid "Continue this chat once the limit resets"
+msgstr "Продолжить этот чат после сброса лимита"
 
 #. placeholder {0}: connector.displayName
 msgid "Continue to {0}"
@@ -6224,6 +6244,9 @@ msgstr "Отклонить предложение"
 msgid "Dismiss suggestions"
 msgstr "Скрыть подсказки"
 
+msgid "Dismiss the usage limit notice"
+msgstr "Закрыть уведомление о лимите использования"
+
 msgid "Dismissed"
 msgstr "Отклонено"
 
@@ -6926,6 +6949,9 @@ msgstr "Очень высокий"
 
 msgid "Extra small"
 msgstr "Очень маленький"
+
+msgid "Extra usage limit reached"
+msgstr "Достигнут лимит дополнительного использования"
 
 msgid "F4 gate · {F4_GATE_SHARE}%"
 msgstr "Шлюз F4 · {F4_GATE_SHARE}%"
@@ -9446,6 +9472,9 @@ msgstr "Нравится создавать с Superset?"
 
 msgid "Lime"
 msgstr "Лаймовый"
+
+msgid "Limit has reset"
+msgstr "Лимит сброшен"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -14080,12 +14109,18 @@ msgstr "Продолжить чат"
 msgid "Resume args"
 msgstr "Аргументы возобновления"
 
+msgid "Resume at reset"
+msgstr "Продолжить после сброса"
+
 msgid "Resume automation"
 msgstr "Возобновить автоматизацию"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
 msgstr "Возобновление {0}…"
+
+msgid "Resuming at reset"
+msgstr "Продолжится после сброса"
 
 msgid "Resuming the conversation…"
 msgstr "Возобновляем разговор…"
@@ -16156,6 +16191,9 @@ msgstr "остановлена"
 msgid "Stopped"
 msgstr "Остановлено"
 
+msgid "Stopped by the usage limit"
+msgstr "Остановлено лимитом использования"
+
 msgid "Stopping the agent in {what}"
 msgstr "Остановка агента в {what}"
 
@@ -16486,6 +16524,9 @@ msgstr "Регулярность"
 
 msgid "Sustain · active days in 30"
 msgstr "Регулярность · активных дней из 30"
+
+msgid "Switch account"
+msgstr "Сменить аккаунт"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "Меняйте агентов. Процесс остаётся"
@@ -17957,9 +17998,6 @@ msgstr "Превратите рутину в агентов по расписа�
 msgid "Turn failed"
 msgstr "Ход завершился ошибкой"
 
-msgid "Turn failed: {message}"
-msgstr "Ход завершился ошибкой: {message}"
-
 msgid "Turn on “Allow remote access to this device via relay”"
 msgstr "Включите «Разрешить удалённый доступ к этому устройству через реле»"
 
@@ -18382,8 +18420,14 @@ msgstr "Использование"
 msgid "Usage is out of date"
 msgstr "Данные об использовании устарели"
 
+msgid "Usage limit reached"
+msgstr "Достигнут лимит использования"
+
 msgid "Usage sections"
 msgstr "Разделы использования"
+
+msgid "Usage settings"
+msgstr "Настройки использования"
 
 msgid "Usage unavailable."
 msgstr "Данные об использовании недоступны."
@@ -18823,8 +18867,17 @@ msgstr "Еженедельно"
 msgid "Weekly at {time}"
 msgstr "Еженедельно в {time}"
 
+msgid "Weekly limit reached"
+msgstr "Достигнут недельный лимит"
+
+msgid "Weekly Opus limit reached"
+msgstr "Достигнут недельный лимит Opus"
+
 msgid "Weekly release notes"
 msgstr "Еженедельные release notes"
+
+msgid "Weekly Sonnet limit reached"
+msgstr "Достигнут недельный лимит Sonnet"
 
 msgid "Welcome back"
 msgstr "С возвращением"

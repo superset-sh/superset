@@ -349,6 +349,11 @@ msgstr "{0} – {1} · 로컬 세션 로그 기반 API 요금 추정치"
 msgid "{0} — try the Superset tray menu > Host Service > Restart."
 msgstr "{0} — Superset 트레이 메뉴 > Host Service > Restart를 사용해 보세요."
 
+#. placeholder {0}: window.label
+#. placeholder {1}: formatPercent(window.usedPercent / 100)
+msgid "{0} · {1} used"
+msgstr "{0} · {1} 사용됨"
+
 #. placeholder {0}: host.version
 msgid "{0} · behind"
 msgstr "{0} · 구버전"
@@ -1389,6 +1394,9 @@ msgstr "4일 전"
 msgid "5 days"
 msgstr "5일"
 
+msgid "5-hour limit reached"
+msgstr "5시간 한도에 도달했습니다"
+
 msgid "55 call sites pass {code}"
 msgstr "55개 호출 지점이 {code}를 전달합니다"
 
@@ -1681,6 +1689,9 @@ msgstr "나중에 공개하고 싶은 에이전트 설정을 여기에 추가하
 
 msgid "Add agents…"
 msgstr "에이전트 추가…"
+
+msgid "Add an account in Usage settings"
+msgstr "사용량 설정에서 계정 추가"
 
 msgid "add an agent"
 msgstr "에이전트를 추가할"
@@ -3319,6 +3330,9 @@ msgstr "플랜 해지"
 msgid "Cancel reply"
 msgstr "답글 취소"
 
+msgid "Cancel the automatic resume"
+msgstr "자동 재개 취소"
+
 msgid "Canceled"
 msgstr "취소됨"
 
@@ -4533,6 +4547,12 @@ msgstr "같은 워크스페이스를 iPhone에서 이어서 작업"
 
 msgid "Continue the session the last run left"
 msgstr "마지막 실행이 남긴 세션을 계속"
+
+msgid "Continue this chat on another login"
+msgstr "다른 로그인으로 이 채팅 계속하기"
+
+msgid "Continue this chat once the limit resets"
+msgstr "한도가 초기화되면 이 채팅 계속하기"
 
 #. placeholder {0}: connector.displayName
 msgid "Continue to {0}"
@@ -6224,6 +6244,9 @@ msgstr "제안 무시"
 msgid "Dismiss suggestions"
 msgstr "추천 닫기"
 
+msgid "Dismiss the usage limit notice"
+msgstr "사용량 한도 알림 닫기"
+
 msgid "Dismissed"
 msgstr "무시됨"
 
@@ -6926,6 +6949,9 @@ msgstr "매우 높음"
 
 msgid "Extra small"
 msgstr "아주 작음"
+
+msgid "Extra usage limit reached"
+msgstr "추가 사용량 한도에 도달했습니다"
 
 msgid "F4 gate · {F4_GATE_SHARE}%"
 msgstr "F4 관문 · {F4_GATE_SHARE}%"
@@ -9446,6 +9472,9 @@ msgstr "Superset으로 만드는 게 즐거우신가요?"
 
 msgid "Lime"
 msgstr "라임"
+
+msgid "Limit has reset"
+msgstr "한도가 초기화되었습니다"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
@@ -14080,12 +14109,18 @@ msgstr "채팅 재개"
 msgid "Resume args"
 msgstr "재개 인수"
 
+msgid "Resume at reset"
+msgstr "초기화 시 재개"
+
 msgid "Resume automation"
 msgstr "자동화 재개"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
 msgstr "{0}을(를) 재개하는 중…"
+
+msgid "Resuming at reset"
+msgstr "초기화 시 재개 예정"
 
 msgid "Resuming the conversation…"
 msgstr "대화를 이어가는 중…"
@@ -16156,6 +16191,9 @@ msgstr "중지됨"
 msgid "Stopped"
 msgstr "중지됨"
 
+msgid "Stopped by the usage limit"
+msgstr "사용량 한도로 중단됨"
+
 msgid "Stopping the agent in {what}"
 msgstr "{what}의 에이전트 중지 중"
 
@@ -16486,6 +16524,9 @@ msgstr "지속"
 
 msgid "Sustain · active days in 30"
 msgstr "지속성 · 30일 중 활동 일수"
+
+msgid "Switch account"
+msgstr "계정 전환"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "에이전트는 바꾸고, 워크플로는 그대로"
@@ -17957,9 +17998,6 @@ msgstr "반복 업무를 예약된 에이전트로 바꾸세요. 이슈 분류, 
 msgid "Turn failed"
 msgstr "턴 실패"
 
-msgid "Turn failed: {message}"
-msgstr "턴 실패: {message}"
-
 msgid "Turn on “Allow remote access to this device via relay”"
 msgstr "“릴레이를 통해 이 기기에 원격 액세스 허용” 켜기"
 
@@ -18382,8 +18420,14 @@ msgstr "사용량"
 msgid "Usage is out of date"
 msgstr "사용량 정보가 오래되었습니다"
 
+msgid "Usage limit reached"
+msgstr "사용량 한도에 도달했습니다"
+
 msgid "Usage sections"
 msgstr "사용량 섹션"
+
+msgid "Usage settings"
+msgstr "사용량 설정"
 
 msgid "Usage unavailable."
 msgstr "사용량을 볼 수 없습니다."
@@ -18823,8 +18867,17 @@ msgstr "매주"
 msgid "Weekly at {time}"
 msgstr "매주 {time}"
 
+msgid "Weekly limit reached"
+msgstr "주간 한도에 도달했습니다"
+
+msgid "Weekly Opus limit reached"
+msgstr "Opus 주간 한도에 도달했습니다"
+
 msgid "Weekly release notes"
 msgstr "주간 릴리스 노트"
+
+msgid "Weekly Sonnet limit reached"
+msgstr "Sonnet 주간 한도에 도달했습니다"
 
 msgid "Welcome back"
 msgstr "다시 오신 것을 환영합니다"
