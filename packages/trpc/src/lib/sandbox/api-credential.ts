@@ -44,6 +44,7 @@ export const SANDBOX_ALLOWED_PROCEDURES: ReadonlySet<string> = new Set([
 	"page.pull",
 	"page.versions",
 	"plugins.list",
+	"plugins.organization.bundle",
 	"plugins.marketplaces.list",
 	"user.me",
 	"user.myOrganization",

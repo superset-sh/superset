@@ -6,6 +6,17 @@ export const DEFAULT_MARKETPLACE = "superset";
 export const DEFAULT_MARKETPLACE_REPO = "superset-sh/superset";
 export const DEFAULT_MARKETPLACE_REF = "main";
 
+const ORGANIZATION_MARKETPLACE_PREFIX = "organization-";
+
+/** Every organization has its own marketplace name, so two organizations' same-named plugins never share an install key. */
+export function organizationMarketplace(organizationId: string): string {
+	return `${ORGANIZATION_MARKETPLACE_PREFIX}${organizationId}`;
+}
+
+export function isOrganizationMarketplace(marketplace: string): boolean {
+	return marketplace.startsWith(ORGANIZATION_MARKETPLACE_PREFIX);
+}
+
 export const SUPERSET_HOSTED_PLUGINS = [
 	"gmail",
 	"google-calendar",
@@ -519,7 +530,14 @@ export function pluginProxyMcpServers(
 		| { connector?: { slug: string } }
 		| undefined;
 	if (!extension?.connector) return undefined;
+	return proxyMcpServer(name, marketplace, options);
+}
 
+function proxyMcpServer(
+	name: string,
+	marketplace: string,
+	options: { headersHelper?: string },
+): Record<string, PluginMcpServerConfig> {
 	return {
 		[name]: {
 			type: "http",
@@ -557,6 +575,13 @@ export function desiredPluginMcpServers(
 		// marketplace it came from: another marketplace's same-named plugin
 		// would otherwise be served Superset's.
 		const marketplace = install.marketplace || DEFAULT_MARKETPLACE;
+		if (isOrganizationMarketplace(marketplace)) {
+			Object.assign(
+				desired,
+				proxyMcpServer(install.name, marketplace, options),
+			);
+			continue;
+		}
 		if (marketplace !== DEFAULT_MARKETPLACE) continue;
 		const entry = PLUGIN_CATALOG.find((p) => p.name === install.name);
 		if (!entry) continue;

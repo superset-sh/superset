@@ -110,6 +110,20 @@ The desktop's next boot would undo a `plugins sync`, and vice versa.
 Skills land in `~/.agents/skills` (what Codex, Vibe, and Kimi read natively) and are mirrored into
 `~/.claude/skills` as a plugin directory, because Claude does not read the shared convention.
 
+## Organization plugins
+
+An organization can have plugins of its own, without a repository. An admin uploads a `plugin.json`
+with `superset plugins organization upload <dir>`, and `publish` makes it installable by members;
+until then it is a draft only admins see. It lives in the `organization_plugins` table, in a
+marketplace named `organization-<organization id>`, so two organizations' same-named plugins never
+share an install.
+
+These plugins are tools only: no skills, and no code served by Superset. The manifest must name a
+connector that has a tool server of its own, or give an `https` `mcp.url`. It cannot take a
+first-party plugin's name, because a client keys each tool server by plugin name. An upload replaces
+the current version for everyone who installed it, with no reinstall. The proxy refuses a call made
+from another organization, and one made after the plugin is unpublished or removed.
+
 ## Command surface
 
 ```
@@ -118,6 +132,7 @@ superset plugins install|uninstall|list|sync    # this machine
 superset plugins enable|disable <name>          # without dropping its skills
 superset plugins connect|connections            # credentials
 superset plugins marketplace list|add|remove    # marketplace sources
+superset plugins organization list|upload|publish|unpublish|remove  # an organization's own plugins
 superset mcp tools|call-tool                    # call a plugin's tools through the proxy
 superset skills list
 ```

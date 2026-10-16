@@ -84,7 +84,7 @@ export async function buildSandboxClaim(args: {
 				}),
 			])
 		: [null, null, undefined];
-	const plugins = await creatorPlugins(creator);
+	const plugins = await creatorPlugins(creator, args.row.organizationId);
 	// The creator's own token when they have connected GitHub: pushes and pull
 	// requests are theirs. The App's installation token otherwise.
 	const token =

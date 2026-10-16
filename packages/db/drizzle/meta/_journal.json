@@ -1065,6 +1065,13 @@
       "when": 1791943359446,
       "tag": "0151_cloud_workspace_boots",
       "breakpoints": true
+    },
+    {
+      "idx": 152,
+      "version": "7",
+      "when": 1792000822495,
+      "tag": "0152_organization_plugin_archives",
+      "breakpoints": true
     }
   ]
 }

@@ -7,6 +7,8 @@ import {
 	string,
 	table,
 } from "@superset/cli-framework";
+import { isOrganizationMarketplace } from "@superset/shared/plugins";
+import type { ApiClient } from "../../../lib/api-client";
 import { command } from "../../../lib/command";
 import { resolvePluginRef } from "../../../lib/plugins/host";
 import {
@@ -17,9 +19,45 @@ import {
 import {
 	ensureDefaultMarketplace,
 	installPlugin,
+	listAvailable,
 } from "../../../lib/plugins/install";
 import { pluginConnector } from "../../../lib/plugins/marketplace";
 import { syncPluginMcpServers } from "../../../lib/plugins/mcp-servers";
+import { installOrganizationPlugin } from "../../../lib/plugins/organization";
+
+const ORGANIZATION = "organization";
+
+async function organizationPlugin(
+	api: ApiClient,
+	name: string,
+	marketplace: string | undefined,
+) {
+	const named =
+		marketplace === ORGANIZATION ||
+		(marketplace !== undefined && isOrganizationMarketplace(marketplace));
+	if (marketplace && !named) return null;
+	if (!named && listAvailable().some((a) => a.entry.name === name)) return null;
+
+	const plugins = await api.plugins.organization.list.query().catch((error) => {
+		if (named) throw error;
+		return [];
+	});
+	const plugin = plugins.find(
+		(p) =>
+			p.name === name &&
+			p.publishedAt &&
+			(!marketplace ||
+				marketplace === ORGANIZATION ||
+				p.marketplace === marketplace),
+	);
+	if (!plugin && named) {
+		throw new CLIError(
+			`Your organization has no published plugin "${name}".`,
+			"See what it has: superset plugins organization list",
+		);
+	}
+	return plugin ?? null;
+}
 
 export default command({
 	sandbox: false,
@@ -28,7 +66,9 @@ export default command({
 	args: [
 		positional("plugin")
 			.required()
-			.desc("Plugin name, or name@marketplace to disambiguate"),
+			.desc(
+				"Plugin name, or name@marketplace to disambiguate (name@organization for one your organization published)",
+			),
 	],
 	options: {
 		marketplace: string().desc(
@@ -55,28 +95,40 @@ export default command({
 			options.marketplace as string | undefined,
 		);
 
-		const local = await installPlugin(name, marketplace, {
-			update: Boolean(options.update),
-		});
+		const organization = await organizationPlugin(ctx.api, name, marketplace);
 
 		let account: Awaited<
 			ReturnType<typeof ctx.api.plugins.install.mutate>
 		> | null = null;
 		let accountError: string | null = null;
-		try {
+		let local: Awaited<ReturnType<typeof installPlugin>>;
+		let slug: string | undefined;
+
+		if (organization) {
 			account = await ctx.api.plugins.install.mutate({
 				name,
-				marketplace: local.marketplace,
+				marketplace: organization.marketplace,
 			});
-		} catch (error) {
-			accountError = error instanceof Error ? error.message : String(error);
+			local = await installOrganizationPlugin(ctx.api, name);
+			slug = account.connector ?? undefined;
+		} else {
+			local = await installPlugin(name, marketplace, {
+				update: Boolean(options.update),
+			});
+			try {
+				account = await ctx.api.plugins.install.mutate({
+					name,
+					marketplace: local.marketplace,
+				});
+			} catch (error) {
+				accountError = error instanceof Error ? error.message : String(error);
+			}
+			slug = pluginConnector(
+				JSON.parse(
+					fs.readFileSync(path.join(local.installPath, "plugin.json"), "utf8"),
+				),
+			);
 		}
-
-		const slug = pluginConnector(
-			JSON.parse(
-				fs.readFileSync(path.join(local.installPath, "plugin.json"), "utf8"),
-			),
-		);
 
 		const connector =
 			slug && !accountError

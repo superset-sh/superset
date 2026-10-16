@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { resolveSupersetHomeDir } from "./paths";
 
@@ -40,4 +41,37 @@ export function pluginCachePath(
 		assertSafePluginSegment(name, "plugin name"),
 		assertSafePluginSegment(version, "version"),
 	);
+}
+
+/**
+ * Writes an unpacked plugin tree to its cache path. Staged and renamed into
+ * place, so a process stopped mid-write leaves no tree that looks installed.
+ */
+export function writePluginTree(
+	marketplace: string,
+	name: string,
+	version: string,
+	files: ReadonlyMap<string, Uint8Array>,
+): string {
+	const target = pluginCachePath(marketplace, name, version);
+	const staging = `${target}.incoming-${process.pid}`;
+	fs.rmSync(staging, { recursive: true, force: true });
+	try {
+		for (const [relative, data] of files) {
+			const destination = path.resolve(staging, relative);
+			if (!destination.startsWith(`${staging}${path.sep}`)) {
+				throw new Error(
+					`Refusing to write "${relative}": it escapes the plugin.`,
+				);
+			}
+			fs.mkdirSync(path.dirname(destination), { recursive: true });
+			fs.writeFileSync(destination, data);
+		}
+		fs.rmSync(target, { recursive: true, force: true });
+		fs.renameSync(staging, target);
+	} catch (error) {
+		fs.rmSync(staging, { recursive: true, force: true });
+		throw error;
+	}
+	return target;
 }

@@ -17,6 +17,10 @@ import {
 	readInstalledPluginSources,
 	setAgentSetupTemplatesDir,
 } from "@superset/agent-setup";
+import {
+	packPluginBundle,
+	pluginBundleHash,
+} from "@superset/shared/plugins/bundle";
 import { seedSandboxPlugins } from "./sandbox-plugins";
 
 let home: string;
@@ -94,6 +98,37 @@ describe("seedSandboxPlugins", () => {
 		expect(existsSync(join(cached, "plugin.json"))).toBe(true);
 		expect(existsSync(join(cached, "skills"))).toBe(true);
 		expect(existsSync(join(cached, "extra", "thing.txt"))).toBe(true);
+	});
+
+	it("unpacks an organization plugin's uploaded tree, so its skills reach the box", async () => {
+		const marketplace = "organization-org-1";
+		const bundle = packPluginBundle(
+			new Map([
+				["plugin.json", Buffer.from('{"name":"team-tools","version":"2.0.0"}')],
+				["skills/triage/SKILL.md", Buffer.from("---\nname: triage\n---\n")],
+			]),
+		);
+		await seedSandboxPlugins(
+			{
+				SUPERSET_SANDBOX_PLUGINS: JSON.stringify([
+					{ marketplace, name: "team-tools", version: "1.0.0", enabled: true },
+				]),
+			},
+			async (name) => ({
+				name,
+				marketplace,
+				version: "2.0.0",
+				contentHash: pluginBundleHash(bundle),
+				bundle: bundle.toString("base64"),
+			}),
+		);
+
+		const cached = pluginCachePath(marketplace, "team-tools", "2.0.0");
+		expect(ledger().plugins[0]).toMatchObject({
+			version: "2.0.0",
+			installPath: cached,
+		});
+		expect(existsSync(join(cached, "skills", "triage", "SKILL.md"))).toBe(true);
 	});
 
 	it("leaves no partial tree behind when the copy fails", async () => {

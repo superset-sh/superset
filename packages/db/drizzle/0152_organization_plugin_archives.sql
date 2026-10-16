@@ -1,0 +1,1 @@
+ALTER TABLE "organization_plugins" ADD COLUMN "content_hash" text NOT NULL;

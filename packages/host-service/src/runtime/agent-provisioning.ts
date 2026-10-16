@@ -10,7 +10,20 @@ import {
 	setupAgentIntegrations,
 } from "@superset/agent-setup";
 import { desiredPluginMcpServers } from "@superset/shared/plugins";
+import { createApiClient } from "../api/createApiClient";
+import { env } from "../env";
+import { SandboxApiAuthProvider } from "../providers/auth";
 import { seedSandboxPlugins } from "./sandbox-plugins";
+
+function organizationBundleFetcher() {
+	if (env.SUPERSET_HOST_RUN_MODE !== "sandbox") return undefined;
+	const api = createApiClient(
+		env.SUPERSET_API_URL,
+		new SandboxApiAuthProvider(),
+		env.ORGANIZATION_ID,
+	);
+	return (name: string) => api.plugins.organization.bundle.query({ name });
+}
 
 /**
  * Locates the agent-setup template assets for this deployment. The CLI
@@ -45,7 +58,7 @@ export async function provisionAgentIntegrations(): Promise<void> {
 		if (templatesDir) setAgentSetupTemplatesDir(templatesDir);
 		// The ledger has to be on disk, and resolved against the templates dir
 		// just applied, before setupAgentIntegrations reads it.
-		await seedSandboxPlugins();
+		await seedSandboxPlugins(process.env, organizationBundleFetcher());
 		// Individual writers soft-fail on missing templates (each is
 		// try/caught), which is exactly the silence that hid #6254 — surface a
 		// broken install loudly instead of one warn per agent.

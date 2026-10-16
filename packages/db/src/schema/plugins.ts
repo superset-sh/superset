@@ -101,6 +101,8 @@ export const organizationPlugins = pgTable(
 		name: text().notNull(),
 		version: text().notNull(),
 		manifest: jsonb().notNull(),
+		/** SHA-256 of the uploaded plugin archive, which is also its R2 key. */
+		contentHash: text("content_hash").notNull(),
 
 		uploadedByUserId: uuid("uploaded_by_user_id").references(() => users.id, {
 			onDelete: "set null",

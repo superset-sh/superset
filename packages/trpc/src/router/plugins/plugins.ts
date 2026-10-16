@@ -1,19 +1,23 @@
 import { db } from "@superset/db/client";
 import {
 	connections,
+	organizationPlugins,
 	pluginInstalls,
 	pluginMarketplaces,
 } from "@superset/db/schema";
 import {
 	FIRST_PARTY_MANIFESTS,
 	firstPartyManifest,
+	isOrganizationMarketplace,
+	organizationMarketplace,
 } from "@superset/shared/plugins";
 import type { TRPCError, TRPCRouterRecord } from "@trpc/server";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { userError } from "../../i18n-error";
 import { AmbiguousConnectionError } from "../../lib/connectors/lookup";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
+import { requireActiveOrgId } from "../utils/active-org";
 import {
 	AmbiguousPluginError,
 	installedPlugin,
@@ -26,6 +30,7 @@ import {
 	pluginNeedsConnection,
 	supersetExtension,
 } from "./manifest";
+import { organizationPluginsRouter } from "./organization";
 import { forgetUpstreamTools } from "./proxy";
 
 const FIRST_PARTY = "superset";
@@ -145,12 +150,12 @@ const marketplacesRouter = {
 			]),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (input.name === FIRST_PARTY) {
+			if (input.name === FIRST_PARTY || isOrganizationMarketplace(input.name)) {
 				throw userError({
 					code: "BAD_REQUEST",
-					message: `"${FIRST_PARTY}" is built in and cannot be replaced`,
+					message: `"${input.name}" is built in and cannot be replaced`,
 					i18nKey: "serverError.plugins.marketplaceReserved",
-					params: { name: FIRST_PARTY },
+					params: { name: input.name },
 				});
 			}
 
@@ -301,7 +306,8 @@ const connectionsRouter = {
 
 export const pluginsRouter = createTRPCRouter({
 	list: protectedProcedure.query(async ({ ctx }) => {
-		const [installs, live] = await Promise.all([
+		const organizationId = ctx.activeOrganizationId;
+		const [everyInstall, live, published] = await Promise.all([
 			db
 				.select()
 				.from(pluginInstalls)
@@ -321,7 +327,30 @@ export const pluginsRouter = createTRPCRouter({
 						isNull(connections.disconnectedAt),
 					),
 				),
+			organizationId
+				? db
+						.select()
+						.from(organizationPlugins)
+						.where(
+							and(
+								eq(organizationPlugins.organizationId, organizationId),
+								isNotNull(organizationPlugins.publishedAt),
+							),
+						)
+						.orderBy(asc(organizationPlugins.name))
+				: [],
 		]);
+
+		const publishedById = new Map(published.map((row) => [row.id, row]));
+		const installs = everyInstall.flatMap(
+			(row): ((typeof everyInstall)[number] & { latest?: string })[] => {
+				if (!row.organizationPluginId) return [row];
+				const current = publishedById.get(row.organizationPluginId);
+				return current
+					? [{ ...row, manifest: current.manifest, latest: current.version }]
+					: [];
+			},
+		);
 
 		const held = new Map<
 			string,
@@ -336,17 +365,17 @@ export const pluginsRouter = createTRPCRouter({
 		const installed = installs.map((row) => {
 			const slug = installConnector(row);
 			const held_ = slug ? (held.get(slug) ?? []) : [];
-			const published =
+			const latest =
 				row.marketplace === FIRST_PARTY
 					? firstPartyManifest(row.pluginName)?.version
-					: undefined;
+					: row.latest;
 			return {
 				...describe(row.manifest as PluginManifest, row.marketplace),
 				connector: slug ?? null,
 				installed: true,
 				enabled: row.enabled,
 				installedAt: row.installedAt as Date | null,
-				latestVersion: published ?? null,
+				latestVersion: latest ?? null,
 				connections: held_,
 				accounts: accountLabels(held_),
 			};
@@ -386,7 +415,36 @@ export const pluginsRouter = createTRPCRouter({
 				};
 			});
 
-		return [...installed, ...available];
+		const organizationAvailable = organizationId
+			? published
+					.filter(
+						(row) =>
+							!installedKeys.has(
+								`${organizationMarketplace(organizationId)}/${row.name}`,
+							),
+					)
+					.map((row) => {
+						const described = describe(
+							row.manifest as PluginManifest,
+							organizationMarketplace(organizationId),
+						);
+						const held_ =
+							described.connector && !claimed.has(described.connector)
+								? (held.get(described.connector) ?? [])
+								: [];
+						return {
+							...described,
+							installed: false,
+							enabled: false,
+							installedAt: null as Date | null,
+							latestVersion: row.version as string | null,
+							connections: held_,
+							accounts: accountLabels(held_),
+						};
+					})
+			: [];
+
+		return [...installed, ...available, ...organizationAvailable];
 	}),
 
 	install: protectedProcedure
@@ -397,6 +455,68 @@ export const pluginsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			if (input.marketplace && isOrganizationMarketplace(input.marketplace)) {
+				const organizationId = requireActiveOrgId(ctx);
+				const [plugin] =
+					input.marketplace === organizationMarketplace(organizationId)
+						? await db
+								.select()
+								.from(organizationPlugins)
+								.where(
+									and(
+										eq(organizationPlugins.organizationId, organizationId),
+										eq(organizationPlugins.name, input.name),
+										isNotNull(organizationPlugins.publishedAt),
+									),
+								)
+								.limit(1)
+						: [];
+				if (!plugin) {
+					throw userError({
+						code: "NOT_FOUND",
+						message: `Unknown plugin "${input.name}"`,
+						i18nKey: "serverError.plugins.unknownPlugin",
+						params: { plugin: input.name },
+					});
+				}
+
+				const manifest = plugin.manifest as PluginManifest;
+				const [row] = await db
+					.insert(pluginInstalls)
+					.values({
+						userId: ctx.session.user.id,
+						organizationId,
+						marketplace: input.marketplace,
+						pluginName: plugin.name,
+						version: plugin.version,
+						manifest,
+						organizationPluginId: plugin.id,
+						enabled: true,
+					})
+					.onConflictDoUpdate({
+						target: [
+							pluginInstalls.userId,
+							pluginInstalls.marketplace,
+							pluginInstalls.pluginName,
+						],
+						set: {
+							version: plugin.version,
+							manifest,
+							organizationPluginId: plugin.id,
+						},
+					})
+					.returning();
+
+				return {
+					id: row?.id,
+					plugin: plugin.name,
+					version: plugin.version,
+					marketplace: input.marketplace,
+					connector: pluginConnector(manifest) ?? null,
+					needsConnection: pluginNeedsConnection(manifest),
+				};
+			}
+
 			if (input.marketplace && input.marketplace !== FIRST_PARTY) {
 				throw userError({
 					code: "BAD_REQUEST",
@@ -554,4 +674,5 @@ export const pluginsRouter = createTRPCRouter({
 
 	marketplaces: marketplacesRouter,
 	connections: connectionsRouter,
+	organization: organizationPluginsRouter,
 });
