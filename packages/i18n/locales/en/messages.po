@@ -1923,6 +1923,12 @@ msgstr "Agent session started"
 msgid "agent settings"
 msgstr "agent settings"
 
+msgid "Agent terminal with account"
+msgstr "Agent terminal with account"
+
+msgid "Agent terminal with account…"
+msgstr "Agent terminal with account…"
+
 msgid "Agent usage rankings"
 msgstr "Agent usage rankings"
 
@@ -3501,6 +3507,12 @@ msgstr "Chat session not found"
 msgid "Chat surfaces: messages, reasoning, suggestions"
 msgstr "Chat surfaces: messages, reasoning, suggestions"
 
+msgid "Chat with account"
+msgstr "Chat with account"
+
+msgid "Chat with account…"
+msgstr "Chat with account…"
+
 msgid "Check again"
 msgstr "Check again"
 
@@ -4844,6 +4856,9 @@ msgstr "Could not delete file"
 msgid "Could not delete this page"
 msgstr "Could not delete this page"
 
+msgid "Could not discard the queued message."
+msgstr "Could not discard the queued message."
+
 msgid "Could not disconnect."
 msgstr "Could not disconnect."
 
@@ -4858,6 +4873,9 @@ msgstr "Could not leave the queue"
 
 msgid "Could not list directory"
 msgstr "Could not list directory"
+
+msgid "Could not load accounts"
+msgstr "Could not load accounts"
 
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
@@ -4935,6 +4953,9 @@ msgstr "Could not reach this workspace's machine"
 msgid "Could not reactivate"
 msgstr "Could not reactivate"
 
+msgid "Could not read queued messages."
+msgstr "Could not read queued messages."
+
 msgid "Could not read selected file"
 msgstr "Could not read selected file"
 
@@ -4986,6 +5007,12 @@ msgstr "Could not set icon"
 msgid "Could not start agent"
 msgstr "Could not start agent"
 
+msgid "Could not start agent terminal"
+msgstr "Could not start agent terminal"
+
+msgid "Could not start chat"
+msgstr "Could not start chat"
+
 msgid "Could not start checkout. Please try again."
 msgstr "Could not start checkout. Please try again."
 
@@ -5006,6 +5033,9 @@ msgstr "Could not stop it"
 
 msgid "Could not stop the agent"
 msgstr "Could not stop the agent"
+
+msgid "Could not stop the agent. Review queued messages or update this host, then try again."
+msgstr "Could not stop the agent. Review queued messages or update this host, then try again."
 
 msgid "Could not stop watching"
 msgstr "Could not stop watching"
@@ -6157,6 +6187,9 @@ msgstr "Discard changes to \"{discardBasename}\"?"
 
 msgid "Discard changes?"
 msgstr "Discard changes?"
+
+msgid "Discard queued message"
+msgstr "Discard queued message"
 
 msgid "Discard recording"
 msgstr "Discard recording"
@@ -9603,6 +9636,9 @@ msgstr "Loader · Braille Spinner"
 msgid "Loading"
 msgstr "Loading"
 
+msgid "Loading accounts…"
+msgstr "Loading accounts…"
+
 msgid "Loading agent settings..."
 msgstr "Loading agent settings..."
 
@@ -10355,6 +10391,9 @@ msgstr "Namespace new branches for this project. Defaults to the host-wide Git s
 msgid "Naming instructions"
 msgstr "Naming instructions"
 
+msgid "Native chat is not enabled"
+msgstr "Native chat is not enabled"
+
 msgid "Native PR reviews"
 msgstr "Native PR reviews"
 
@@ -10686,6 +10725,9 @@ msgstr "No authors found."
 
 msgid "No automations match"
 msgstr "No automations match"
+
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
 
 msgid "No branches found"
 msgstr "No branches found"
@@ -15960,11 +16002,17 @@ msgstr "Start a conversation to see messages here"
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 
+msgid "Start a native chat using an existing login. Recovery keeps this account and working folder."
+msgstr "Start a native chat using an existing login. Recovery keeps this account and working folder."
+
 msgid "Start a new agent session each run"
 msgstr "Start a new agent session each run"
 
 msgid "Start a new chat"
 msgstr "Start a new chat"
+
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
 
 msgid "Start a session"
 msgstr "Start a session"
@@ -15983,6 +16031,9 @@ msgstr "Start browsing"
 
 msgid "Start building in two."
 msgstr "Start building in two."
+
+msgid "Start chat"
+msgstr "Start chat"
 
 msgid "Start coding agents, follow them live, and review the diff from your iPhone or iPad. Available on the App Store; Android is coming soon."
 msgstr "Start coding agents, follow them live, and review the diff from your iPhone or iPad. Available on the App Store; Android is coming soon."
@@ -16007,6 +16058,9 @@ msgstr "Start one with + in the tab strip."
 
 msgid "Start or stop the workspace run command"
 msgstr "Start or stop the workspace run command"
+
+msgid "Start terminal"
+msgstr "Start terminal"
 
 msgid "Start voice mode"
 msgstr "Start voice mode"
@@ -16116,6 +16170,12 @@ msgstr "Stop {0}"
 msgid "Stop {label}"
 msgstr "Stop {label}"
 
+msgid "Stop agent"
+msgstr "Stop agent"
+
+msgid "Stop agent and background work"
+msgstr "Stop agent and background work"
+
 msgid "Stop all agent background processes"
 msgstr "Stop all agent background processes"
 
@@ -16134,6 +16194,9 @@ msgstr "Stop Superset here to delete from another device."
 
 msgid "Stop the agent and send this now"
 msgstr "Stop the agent and send this now"
+
+msgid "Stop this agent and its background work?"
+msgstr "Stop this agent and its background work?"
 
 msgid "Stop watching"
 msgstr "Stop watching"
@@ -17172,6 +17235,12 @@ msgstr "The same app runs natively on iPad, in portrait and landscape."
 msgid "The scorecard"
 msgstr "The scorecard"
 
+msgid "The selected account chat could not be verified in saved layout data. Nothing was launched by this attempt. If storage is full, free space, then rename this tab to save its layout before retrying. Keep this tab open if it still fails."
+msgstr "The selected account chat could not be verified in saved layout data. Nothing was launched by this attempt. If storage is full, free space, then rename this tab to save its layout before retrying. Keep this tab open if it still fails."
+
+msgid "The selected login changed. Choose an account again."
+msgstr "The selected login changed. Choose an account again."
+
 msgid "The self-driving software factory"
 msgstr "The self-driving software factory"
 
@@ -17259,6 +17328,9 @@ msgstr "These commands run automatically when a workspace is created. <0>Read ou
 msgid "These folders still have your files, but they did not come over to the new Superset on their own."
 msgstr "These folders still have your files, but they did not come over to the new Superset on their own."
 
+msgid "These messages were not sent. Copy anything you need, then discard the queue before resuming."
+msgstr "These messages were not sent. Copy anything you need, then discard the queue before resuming."
+
 msgid "These ports are still in use"
 msgstr "These ports are still in use"
 
@@ -17292,6 +17364,9 @@ msgstr "This agent can't branch a conversation"
 msgid "This agent can't run in a cloud workspace"
 msgstr "This agent can't run in a cloud workspace"
 
+msgid "This agent configuration does not support account selection."
+msgstr "This agent configuration does not support account selection."
+
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 
@@ -17316,6 +17391,9 @@ msgstr "This automation is in another organization"
 
 msgid "This cannot be undone."
 msgstr "This cannot be undone."
+
+msgid "This chat could not be opened with its saved account."
+msgstr "This chat could not be opened with its saved account."
 
 msgid "This chat has ended."
 msgstr "This chat has ended."
@@ -17385,6 +17463,9 @@ msgstr "This GitHub installation is already connected to another Superset organi
 
 msgid "This host"
 msgstr "This host"
+
+msgid "This host does not support account selection for native chats."
+msgstr "This host does not support account selection for native chats."
 
 msgid "This host has not reported a version yet."
 msgstr "This host has not reported a version yet."
@@ -17541,6 +17622,9 @@ msgstr "This slug is already taken"
 
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
+
+msgid "This stops the agent process and any background work it owns. Your saved conversation stays available. Review and discard any queued messages first. You can then choose Resume."
+msgstr "This stops the agent process and any background work it owns. Your saved conversation stays available. Review and discard any queued messages first. You can then choose Resume."
 
 msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
 msgstr "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
@@ -18298,6 +18382,9 @@ msgstr "Update Superset on this machine to attach files"
 
 msgid "update the branch prefix"
 msgstr "update the branch prefix"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "Update this host to choose an account for a new terminal."
 
 msgid "Updated"
 msgstr "Updated"

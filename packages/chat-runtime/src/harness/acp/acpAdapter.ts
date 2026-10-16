@@ -201,6 +201,7 @@ function sessionMissing(error: unknown): boolean {
 }
 
 export type AcpAdapterOptions = SpawnAcpOptions & {
+	beforePrompt?: () => Promise<void>;
 	launch?: () => Promise<Pick<SpawnAcpOptions, "command" | "args" | "env">>;
 	/** Selected for a new session that asks for no mode, when the agent offers it. */
 	defaultModeId?: string;
@@ -475,6 +476,7 @@ export class AcpAdapter implements HarnessAdapter {
 		const client = this.client;
 		const sessionId = this.sessionId;
 		if (!client || !sessionId || !this.canSteer()) return false;
+		if (this.options.beforePrompt) await this.options.beforePrompt();
 		const response = await client.request(ACP_STEERING_METHOD, {
 			sessionId,
 			prompt: await this.toAcpPrompt(content),
@@ -762,6 +764,13 @@ export class AcpAdapter implements HarnessAdapter {
 			let response: unknown;
 			let resumed = false;
 			if (startOptions.resume) {
+				if (
+					startOptions.resume.requireExact &&
+					this.agentCapabilities.loadSession !== true
+				)
+					throw new Error(
+						"This agent cannot load the saved conversation. No new conversation was created.",
+					);
 				this.replaying = true;
 				this.loadingSessionId = startOptions.resume.harnessSessionId;
 				try {
@@ -776,6 +785,7 @@ export class AcpAdapter implements HarnessAdapter {
 					);
 					resumed = true;
 				} catch (loadError) {
+					if (startOptions.resume.requireExact) throw loadError;
 					// A session that was started but never prompted has no transcript,
 					// so the agent answers "not found". Any other failure keeps the
 					// conversation, and a new session would hide it from the agent.
@@ -809,11 +819,35 @@ export class AcpAdapter implements HarnessAdapter {
 				);
 			}
 
+			// Validate identity separately: malformed optional response metadata must
+			// never conceal a different session ID during an exact load.
+			if (startOptions.resume?.requireExact && response !== null) {
+				const returnedId =
+					typeof response === "object" &&
+					response !== null &&
+					"sessionId" in response
+						? response.sessionId
+						: undefined;
+				if (
+					returnedId !== undefined &&
+					returnedId !== startOptions.resume.harnessSessionId
+				)
+					throw new Error(
+						"The agent returned a different conversation. No messages were sent.",
+					);
+			}
 			// session/load returns null after replaying history via session/update.
 			const parsed = acpNewSessionResponseSchema.safeParse(response);
 			this.sessionId = parsed.success
 				? parsed.data.sessionId
 				: (startOptions.resume?.harnessSessionId ?? null);
+			if (
+				startOptions.resume?.requireExact &&
+				this.sessionId !== startOptions.resume.harnessSessionId
+			)
+				throw new Error(
+					"The agent returned a different conversation. No messages were sent.",
+				);
 
 			if (!this.sessionId) {
 				this.emitNotice("error", "acp agent returned no session id");
@@ -877,6 +911,7 @@ export class AcpAdapter implements HarnessAdapter {
 		this.emitTurn({ id: turnId, status: "running", startedAtMs: this.now() });
 		this.emitSession({ status: "running" });
 		try {
+			if (this.options.beforePrompt) await this.options.beforePrompt();
 			const response = await client.request("session/prompt", {
 				sessionId: this.sessionId,
 				prompt: await this.toAcpPrompt(content),
@@ -930,7 +965,8 @@ export class AcpAdapter implements HarnessAdapter {
 		// at the agent's first reply. Each one opens a turn of its own, or the
 		// whole replay lands in one group whose order comes down to item id.
 		if (variant === "user_message_chunk" || variant === "user_message") {
-			if (!this.replaying) return;
+			if (!this.replaying || this.isForeignSession(outer.data.sessionId))
+				return;
 			if (this.openText?.kind !== "user_message") {
 				this.flushOpenText();
 				// emitTurn leaves the history turn as `currentTurn`, which

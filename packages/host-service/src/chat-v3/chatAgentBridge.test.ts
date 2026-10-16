@@ -75,6 +75,51 @@ function setup() {
 }
 
 describe("createChatAgentBridge", () => {
+	it("retains a selected chat account and marks conflicting observed metadata", () => {
+		const { bridge, terminalAgentStore } = setup();
+		const account = {
+			agent: "claude" as const,
+			selection: "/fixture/selected",
+			directory: "/fixture/selected",
+			identity: "a".repeat(64),
+		};
+		bridge.started({
+			sessionId: "bound-chat",
+			scopeId: WORKSPACE,
+			harness: "claude-acp",
+			cwd: "/fixture/work",
+			terminalId: TERMINAL,
+			launchContext: {
+				v: 1,
+				cwd: "/fixture/work",
+				terminalId: TERMINAL,
+				account,
+			},
+		});
+		try {
+			expect(
+				terminalAgentStore.listByWorkspace(WORKSPACE)[0]?.account,
+			).toMatchObject({ ...account, pinned: true });
+			bridge.accountCaptured("bound-chat", {
+				...account,
+				credentialKind: "subscription",
+			});
+			expect(
+				terminalAgentStore.listByWorkspace(WORKSPACE)[0]?.account?.conflict,
+			).toBeUndefined();
+			bridge.accountCaptured("bound-chat", {
+				...account,
+				credentialKind: "subscription",
+				identity: "b".repeat(64),
+			});
+			expect(
+				terminalAgentStore.listByWorkspace(WORKSPACE)[0]?.account,
+			).toMatchObject({ ...account, pinned: true, conflict: true });
+		} finally {
+			bridge.stopped("bound-chat");
+		}
+	});
+
 	it("lists the chat as the terminal's agent while it runs", () => {
 		const { bridge, terminalAgentStore, start } = setup();
 		start("chat-1");

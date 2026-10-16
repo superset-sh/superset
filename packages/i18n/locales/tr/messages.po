@@ -1923,6 +1923,12 @@ msgstr "Ajan oturumu başladı"
 msgid "agent settings"
 msgstr "ajan ayarları"
 
+msgid "Agent terminal with account"
+msgstr "Hesap seçerek ajan terminali aç"
+
+msgid "Agent terminal with account…"
+msgstr "Hesap seçerek ajan terminali aç…"
+
 msgid "Agent usage rankings"
 msgstr "Ajan kullanım sıralamaları"
 
@@ -3501,6 +3507,12 @@ msgstr "Sohbet oturumu bulunamadı"
 msgid "Chat surfaces: messages, reasoning, suggestions"
 msgstr "Sohbet yüzeyleri: mesajlar, akıl yürütme, öneriler"
 
+msgid "Chat with account"
+msgstr "Hesap seçerek sohbet et"
+
+msgid "Chat with account…"
+msgstr "Hesap seçerek sohbet et…"
+
 msgid "Check again"
 msgstr "Yeniden denetle"
 
@@ -4844,6 +4856,9 @@ msgstr "Dosya silinemedi"
 msgid "Could not delete this page"
 msgstr "Bu sayfa silinemedi"
 
+msgid "Could not discard the queued message."
+msgstr "Kuyruktaki mesaj silinemedi."
+
 msgid "Could not disconnect."
 msgstr "Bağlantı kesilemedi."
 
@@ -4858,6 +4873,9 @@ msgstr "Kuyruktan çıkılamadı"
 
 msgid "Could not list directory"
 msgstr "Dizin listelenemedi"
+
+msgid "Could not load accounts"
+msgstr "Hesaplar yüklenemedi"
 
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
@@ -4935,6 +4953,9 @@ msgstr "Bu çalışma alanının makinesine erişilemedi"
 msgid "Could not reactivate"
 msgstr "Yeniden etkinleştirilemedi"
 
+msgid "Could not read queued messages."
+msgstr "Kuyruktaki mesajlar okunamadı."
+
 msgid "Could not read selected file"
 msgstr "Seçilen dosya okunamadı"
 
@@ -4986,6 +5007,12 @@ msgstr "Simge ayarlanamadı"
 msgid "Could not start agent"
 msgstr "Ajan başlatılamadı"
 
+msgid "Could not start agent terminal"
+msgstr "Ajan terminali başlatılamadı"
+
+msgid "Could not start chat"
+msgstr "Sohbet başlatılamadı"
+
 msgid "Could not start checkout. Please try again."
 msgstr "Ödeme başlatılamadı. Lütfen tekrar deneyin."
 
@@ -5006,6 +5033,9 @@ msgstr "Durdurulamadı"
 
 msgid "Could not stop the agent"
 msgstr "Ajan durdurulamadı"
+
+msgid "Could not stop the agent. Review queued messages or update this host, then try again."
+msgstr "Ajan durdurulamadı. Kuyruktaki mesajları gözden geçirin veya bu ana makineyi güncelleyin, ardından tekrar deneyin."
 
 msgid "Could not stop watching"
 msgstr "İzleme durdurulamadı"
@@ -6157,6 +6187,9 @@ msgstr "\"{discardBasename}\" dosyasındaki değişiklikler atılsın mı?"
 
 msgid "Discard changes?"
 msgstr "Değişiklikler atılsın mı?"
+
+msgid "Discard queued message"
+msgstr "Kuyruktaki mesajı sil"
 
 msgid "Discard recording"
 msgstr "Kaydı at"
@@ -9603,6 +9636,9 @@ msgstr "Yükleyici · Braille spinner"
 msgid "Loading"
 msgstr "Yükleniyor"
 
+msgid "Loading accounts…"
+msgstr "Hesaplar yükleniyor…"
+
 msgid "Loading agent settings..."
 msgstr "Ajan ayarları yükleniyor..."
 
@@ -10355,6 +10391,9 @@ msgstr "Bu projedeki yeni dalları bir ad alanına alın. Varsayılan olarak hos
 msgid "Naming instructions"
 msgstr "Adlandırma yönergeleri"
 
+msgid "Native chat is not enabled"
+msgstr "Yerel sohbet etkin değil"
+
 msgid "Native PR reviews"
 msgstr "Yerel PR incelemeleri"
 
@@ -10686,6 +10725,9 @@ msgstr "Yazar bulunamadı."
 
 msgid "No automations match"
 msgstr "Eşleşen otomasyon yok"
+
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "Kullanılabilir abonelik hesabı yok. Kullanım bölümünde hesap ekleyin veya oturum açın, ardından yenileyin."
 
 msgid "No branches found"
 msgstr "Dal bulunamadı"
@@ -15960,11 +16002,17 @@ msgstr "Mesajları burada görmek için bir konuşma başlatın"
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "Bu terminalin son bağlamıyla yeni bir ajan oturumu başlatır. Çalışma alanındaki dosyalar doğruluğun kaynağı olmayı sürdürür."
 
+msgid "Start a native chat using an existing login. Recovery keeps this account and working folder."
+msgstr "Mevcut bir oturum açma bilgisiyle yerel sohbet başlatın. Kurtarma sırasında bu hesap ve çalışma klasörü korunur."
+
 msgid "Start a new agent session each run"
 msgstr "Her çalıştırmada yeni bir aracı oturumu başlat"
 
 msgid "Start a new chat"
 msgstr "Yeni sohbet başlat"
+
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "Mevcut bir hesapla yeni terminal başlatın. Diğer sohbetler ve varsayılan hesabınız değişmez."
 
 msgid "Start a session"
 msgstr "Bir oturum başlat"
@@ -15983,6 +16031,9 @@ msgstr "Taramaya başlayın"
 
 msgid "Start building in two."
 msgstr "İki adımda geliştirmeye başlayın."
+
+msgid "Start chat"
+msgstr "Sohbet başlat"
 
 msgid "Start coding agents, follow them live, and review the diff from your iPhone or iPad. Available on the App Store; Android is coming soon."
 msgstr "iPhone veya iPad'inizden kodlama ajanlarını başlatın, canlı takip edin ve diff'i inceleyin. App Store'da mevcut; Android yakında geliyor."
@@ -16007,6 +16058,9 @@ msgstr "Sekme şeridindeki + ile bir tane başlatın."
 
 msgid "Start or stop the workspace run command"
 msgstr "Çalışma alanı çalıştırma komutunu başlat veya durdur"
+
+msgid "Start terminal"
+msgstr "Terminali başlat"
 
 msgid "Start voice mode"
 msgstr "Sesli modu başlat"
@@ -16116,6 +16170,12 @@ msgstr "Durdur: {0}"
 msgid "Stop {label}"
 msgstr "{label} öğesini durdur"
 
+msgid "Stop agent"
+msgstr "Ajanı durdur"
+
+msgid "Stop agent and background work"
+msgstr "Ajanı ve arka plan görevlerini durdur"
+
 msgid "Stop all agent background processes"
 msgstr "Tüm ajan arka plan işlemlerini durdur"
 
@@ -16134,6 +16194,9 @@ msgstr "Başka bir cihazdan silmek için Superset'i burada durdurun."
 
 msgid "Stop the agent and send this now"
 msgstr "Ajanı durdur ve şimdi gönder"
+
+msgid "Stop this agent and its background work?"
+msgstr "Bu ajan ve arka plan görevleri durdurulsun mu?"
 
 msgid "Stop watching"
 msgstr "İzlemeyi durdur"
@@ -17172,6 +17235,12 @@ msgstr "Aynı uygulama iPad'de yerel olarak, dikey ve yatay modda çalışır."
 msgid "The scorecard"
 msgstr "Puan tablosu"
 
+msgid "The selected account chat could not be verified in saved layout data. Nothing was launched by this attempt. If storage is full, free space, then rename this tab to save its layout before retrying. Keep this tab open if it still fails."
+msgstr "Seçilen hesabın sohbeti kayıtlı yerleşim verilerinde doğrulanamadı. Bu denemede hiçbir şey başlatılmadı. Depolama alanı doluysa yer açın, ardından yeniden denemeden önce yerleşimini kaydetmek için bu sekmeyi yeniden adlandırın. Sorun devam ederse bu sekmeyi açık tutun."
+
+msgid "The selected login changed. Choose an account again."
+msgstr "Seçilen hesap değişti. Yeniden bir hesap seçin."
+
 msgid "The self-driving software factory"
 msgstr "Kendi kendini süren yazılım fabrikası"
 
@@ -17259,6 +17328,9 @@ msgstr "Bu komutlar bir çalışma alanı oluşturulduğunda otomatik olarak ça
 msgid "These folders still have your files, but they did not come over to the new Superset on their own."
 msgstr "Bu klasörlerde hâlâ dosyalarınız var, ancak yeni Superset'e kendiliğinden aktarılmadılar."
 
+msgid "These messages were not sent. Copy anything you need, then discard the queue before resuming."
+msgstr "Bu mesajlar gönderilmedi. Gerekenleri kopyalayın, ardından devam etmeden önce kuyruğu temizleyin."
+
 msgid "These ports are still in use"
 msgstr "Bu portlar hâlâ kullanımda"
 
@@ -17292,6 +17364,9 @@ msgstr "Bu aracı bir konuşmayı çatallayamaz"
 msgid "This agent can't run in a cloud workspace"
 msgstr "Bu ajan bir bulut çalışma alanında çalışamaz"
 
+msgid "This agent configuration does not support account selection."
+msgstr "Bu ajan yapılandırması hesap seçimini desteklemiyor."
+
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Bu ajan seçili cihazda artık yok (ajanları sıfırlanmış olabilir). Yeni bir tane seçene kadar çalıştırmalar başarısız olacak."
 
@@ -17316,6 +17391,9 @@ msgstr "Bu otomasyon başka bir kuruluşta"
 
 msgid "This cannot be undone."
 msgstr "Bu geri alınamaz."
+
+msgid "This chat could not be opened with its saved account."
+msgstr "Bu sohbet kayıtlı hesabıyla açılamadı."
 
 msgid "This chat has ended."
 msgstr "Bu sohbet sona erdi."
@@ -17385,6 +17463,9 @@ msgstr "Bu GitHub kurulumu zaten başka bir Superset kuruluşuna bağlı. Oradak
 
 msgid "This host"
 msgstr "Bu host"
+
+msgid "This host does not support account selection for native chats."
+msgstr "Bu ana makine yerel sohbetler için hesap seçimini desteklemiyor."
 
 msgid "This host has not reported a version yet."
 msgstr "Bu ana makine henüz bir sürüm bildirmedi."
@@ -17541,6 +17622,9 @@ msgstr "Bu slug zaten alınmış"
 
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "Bu işlem kuruluşunuzdaki tüm Teams tetikleyicilerini durdurur ve bildirim aboneliklerini kiracınızdan kaldırır. İstediğiniz zaman yeniden bağlanabilirsiniz."
+
+msgid "This stops the agent process and any background work it owns. Your saved conversation stays available. Review and discard any queued messages first. You can then choose Resume."
+msgstr "Bu işlem ajan sürecini ve yönettiği tüm arka plan görevlerini durdurur. Kayıtlı konuşmanız kullanılabilir durumda kalır. Önce kuyruktaki mesajları gözden geçirip silin. Ardından Sürdür seçeneğini seçebilirsiniz."
 
 msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
 msgstr "Bu alt ajan artık ana makine tarafından izlenmiyor. Dökümü, ajanın oturum dizininde diskte kalır."
@@ -18298,6 +18382,9 @@ msgstr "Dosya eklemek için bu makinede Superset'i güncelleyin"
 
 msgid "update the branch prefix"
 msgstr "dal ön ekini güncelleme"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "Yeni bir terminal için hesap seçmek üzere bu sunucuyu güncelleyin."
 
 msgid "Updated"
 msgstr "Güncellendi"

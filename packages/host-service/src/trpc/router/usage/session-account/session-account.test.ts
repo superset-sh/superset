@@ -2,7 +2,12 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { readAccountIdentity, validateSessionAccount } from "./session-account";
+import {
+	readAccountIdentity,
+	type SessionAccount,
+	sameSessionAccountContext,
+	validateSessionAccount,
+} from "./session-account";
 
 const dirs: string[] = [];
 async function directory() {
@@ -88,5 +93,43 @@ describe("session account identity", () => {
 		expect(await readAccountIdentity("codex", dir)).toBeNull();
 		await writeFile(join(dir, "auth.json"), "{");
 		expect(await readAccountIdentity("codex", dir)).toBeNull();
+	});
+});
+
+describe("durable account context equality", () => {
+	const account: SessionAccount = {
+		agent: "claude",
+		selection: "/fixture",
+		directory: "/fixture",
+		credentialKind: "subscription",
+		identity: "alice",
+		pinned: true,
+	};
+	test("ignores object order and display email", () => {
+		expect(
+			sameSessionAccountContext(account, {
+				email: "renamed@example.com",
+				...account,
+			}),
+		).toBe(true);
+	});
+	test("rejects missing context and all routing or safety changes", () => {
+		expect(sameSessionAccountContext(null, null)).toBe(false);
+		expect(sameSessionAccountContext(undefined, account)).toBe(false);
+		for (const changed of [
+			{ agent: "codex" },
+			{ selection: null },
+			{ directory: "/other" },
+			{ credentialKind: "api_key" },
+			{ identity: "bob" },
+			{ pinned: undefined },
+			{ conflict: true },
+		])
+			expect(
+				sameSessionAccountContext(account, {
+					...account,
+					...changed,
+				} as SessionAccount),
+			).toBe(false);
 	});
 });

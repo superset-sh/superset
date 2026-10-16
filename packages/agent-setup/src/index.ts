@@ -83,6 +83,7 @@ export {
 } from "./config";
 export {
 	readSharedDisabledAgentIds,
+	resolveDisabledAgentIds,
 	writeSharedDisabledAgentIds,
 } from "./disabled-agent-hooks";
 export {

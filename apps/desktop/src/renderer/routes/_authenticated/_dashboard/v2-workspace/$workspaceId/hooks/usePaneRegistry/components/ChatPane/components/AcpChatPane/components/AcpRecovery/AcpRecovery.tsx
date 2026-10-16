@@ -1,5 +1,6 @@
 import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
+import type { ReactNode } from "react";
 
 /**
  * Shown when the chat cannot be used: the agent session had no transcript to
@@ -12,21 +13,25 @@ import { Button } from "@superset/ui/button";
  */
 export function AcpRecovery({
 	detail,
+	children,
 	onResume,
 	onStartNew,
 	reason,
 }: {
-	reason: "no-transcript" | "stopped" | "in-terminal";
+	reason: "no-transcript" | "stopped" | "in-terminal" | "account";
 	detail?: string | undefined;
+	children?: ReactNode;
 	onResume?: () => void;
-	onStartNew: () => void;
+	onStartNew?: () => void;
 }) {
 	return (
 		// w-full because the pane lays its children out in a row: without it this
 		// sizes to its content and hugs the left edge.
 		<div className="flex h-full w-full flex-col items-center justify-center gap-3 p-8 text-center">
 			<p className="max-w-sm text-muted-foreground text-sm">
-				{reason === "in-terminal" ? (
+				{reason === "account" ? (
+					<Trans>This chat could not be opened with its saved account.</Trans>
+				) : reason === "in-terminal" ? (
 					<Trans>
 						This chat stopped because the conversation continued in a terminal.
 					</Trans>
@@ -44,15 +49,18 @@ export function AcpRecovery({
 					{detail}
 				</p>
 			)}
+			{children}
 			<div className="flex gap-2">
 				{onResume && (
 					<Button onClick={onResume} size="sm">
 						<Trans>Resume</Trans>
 					</Button>
 				)}
-				<Button onClick={onStartNew} size="sm" variant="secondary">
-					<Trans>Start a new chat</Trans>
-				</Button>
+				{onStartNew && (
+					<Button onClick={onStartNew} size="sm" variant="secondary">
+						<Trans>Start a new chat</Trans>
+					</Button>
+				)}
 			</div>
 		</div>
 	);

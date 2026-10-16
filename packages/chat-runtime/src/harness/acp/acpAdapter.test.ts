@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { spawn } from "node:child_process";
 import type { Item } from "@superset/chat/protocol";
 import { AGENT_DEFAULT_MODE } from "@superset/chat/protocol";
+import { waitFor } from "../../testing/testUtils";
 import type { AdapterEvent } from "../types";
 import {
 	AcpAdapter,
@@ -27,6 +28,8 @@ class FakeAcpAgent {
 	loadError: { code: number; message: string } | null = null;
 	/** Answer nothing, as an agent stuck on a login prompt does. */
 	silent = false;
+	loadSupported = true;
+	loadResult: Record<string, unknown> | null = null;
 	/** What the agent answers `initialize` with; older agents answer 1. */
 	protocolVersion = 2;
 	/** Session capabilities advertised at initialize; both shipped agents fork. */
@@ -209,6 +212,7 @@ class FakeAcpAgent {
 						: {}),
 					protocolVersion: this.protocolVersion,
 					capabilities: {
+						loadSession: this.loadSupported,
 						promptCapabilities: { image: true },
 						...(this.sessionCapabilities
 							? { sessionCapabilities: this.sessionCapabilities }
@@ -252,6 +256,8 @@ class FakeAcpAgent {
 				const sessionId = (frame.params as { sessionId: string }).sessionId;
 				for (const update of this.replayUpdates) this.notify(sessionId, update);
 				this.respond(frame.id as number, null);
+			} else if (frame.method === "session/load" && this.loadResult) {
+				this.respond(frame.id as number, this.loadResult);
 			} else if (frame.method === "session/load" && this.wholeMessageReplay) {
 				const sessionId = (frame.params as { sessionId: string }).sessionId;
 				this.notify(sessionId, {
@@ -390,6 +396,106 @@ function textOf(item: Item | undefined): string {
 }
 
 describe("AcpAdapter", () => {
+	for (const failure of [
+		"missing-capability",
+		"load-error",
+		"different-id",
+		"malformed-metadata",
+	] as const) {
+		it(`exact recovery refuses ${failure} without starting or prompting a different session`, async () => {
+			const agent = new FakeAcpAgent();
+			agent.loadSupported = failure !== "missing-capability";
+			agent.loadFails = failure === "load-error";
+			if (failure === "different-id")
+				agent.loadResult = { sessionId: "foreign" };
+			if (failure === "malformed-metadata")
+				agent.loadResult = { sessionId: "foreign", modes: false };
+			const adapter = new AcpAdapter({
+				command: "fake",
+				createTransport: (_opts, handlers) => agent.transport(handlers),
+			});
+			const events: AdapterEvent[] = [];
+			void collect(
+				adapter.start({
+					cwd: "/work",
+					resume: { harnessSessionId: "sess-1", requireExact: true },
+				}),
+				events,
+			);
+			adapter.prompt([{ type: "text", text: "held" }]);
+			await flush();
+			expect(agent.sent.map((frame) => frame.method)).not.toContain(
+				"session/new",
+			);
+			expect(agent.sent.map((frame) => frame.method)).not.toContain(
+				"session/prompt",
+			);
+			expect(sessionsOf(events).at(-1)?.status).toBe("dead");
+			await adapter.dispose();
+		});
+	}
+
+	for (const variant of ["user_message", "user_message_chunk"] as const) {
+		it(`ignores foreign ${variant} during exact history replay`, async () => {
+			const agent = new FakeAcpAgent();
+			agent.foreignUpdateDuringLoad = {
+				sessionUpdate: variant,
+				content:
+					variant === "user_message"
+						? [{ type: "text", text: "foreign history" }]
+						: { type: "text", text: "foreign history" },
+			};
+			const adapter = new AcpAdapter({
+				command: "fake",
+				createTransport: (_opts, handlers) => agent.transport(handlers),
+			});
+			const events: AdapterEvent[] = [];
+			void collect(
+				adapter.start({
+					cwd: "/work",
+					resume: { harnessSessionId: "sess-1", requireExact: true },
+				}),
+				events,
+			);
+			await waitFor(() => sessionsOf(events).at(-1)?.status === "idle");
+			expect(JSON.stringify(itemsOf(events))).not.toContain("foreign history");
+			expect(sessionsOf(events).at(-1)?.status).toBe("idle");
+			await adapter.dispose();
+		});
+	}
+
+	it("revalidates a selected account before prompt and steering", async () => {
+		const agent = new FakeAcpAgent();
+		agent.holdPrompts = true;
+		agent.steeringOutcome = "injected";
+		let valid = true;
+		const adapter = new AcpAdapter({
+			command: "fake",
+			createTransport: (_opts, handlers) => agent.transport(handlers),
+			beforePrompt: async () => {
+				if (!valid) throw new Error("account changed");
+			},
+		});
+		const events: AdapterEvent[] = [];
+		void collect(adapter.start({ cwd: "/work" }), events);
+		await flush();
+		adapter.prompt([{ type: "text", text: "first" }]);
+		await flush();
+		valid = false;
+		await expect(
+			adapter.steer([{ type: "text", text: "second" }]),
+		).rejects.toThrow("account changed");
+		expect(
+			agent.sent.filter((frame) => frame.method === "_session/steering"),
+		).toHaveLength(0);
+		adapter.prompt([{ type: "text", text: "third" }]);
+		await flush();
+		expect(
+			agent.sent.filter((frame) => frame.method === "session/prompt"),
+		).toHaveLength(1);
+		await adapter.dispose();
+	});
+
 	it("bootstraps, streams a turn, and maps items", async () => {
 		const agent = new FakeAcpAgent();
 		let counter = 0;

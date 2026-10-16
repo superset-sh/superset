@@ -21,6 +21,48 @@ export const createSessionInputSchema = z.object({
 });
 export type CreateSessionInput = z.infer<typeof createSessionInputSchema>;
 
+export const chatAccountSelectionSchema = z.strictObject({
+	selection: z.string().nullable(),
+	identity: z.string().regex(/^[a-f0-9]{64}$/),
+});
+export type ChatAccountSelection = z.infer<typeof chatAccountSelectionSchema>;
+
+export const chatLaunchAccountSchema = chatAccountSelectionSchema.extend({
+	agent: z.enum(["claude", "codex"]),
+	directory: z.string().min(1),
+});
+export type ChatLaunchAccount = z.infer<typeof chatLaunchAccountSchema>;
+
+export const chatLaunchContextSchema = z.strictObject({
+	v: z.literal(1),
+	cwd: z.string().min(1),
+	terminalId: z.string().min(1),
+	account: chatLaunchAccountSchema,
+	initialModeId: z.string().optional(),
+	initialModelId: z.string().optional(),
+	forkOfSessionId: z.string().min(1).optional(),
+});
+export type ChatLaunchContext = z.infer<typeof chatLaunchContextSchema>;
+
+export const createAccountSessionInputSchema = createSessionInputSchema
+	.omit({ resume: true, terminalId: true })
+	.extend({
+		harness: z.enum(["claude-acp", "codex-acp"]),
+		account: chatAccountSelectionSchema,
+	})
+	.strict();
+export type CreateAccountSessionInput = z.infer<
+	typeof createAccountSessionInputSchema
+>;
+
+export const recoverAccountSessionInputSchema = z.strictObject({
+	commandId: z.uuid(),
+	sessionId: z.string().min(1),
+});
+export type RecoverAccountSessionInput = z.infer<
+	typeof recoverAccountSessionInputSchema
+>;
+
 export const promptInputSchema = z.object({
 	...commandBaseFields,
 	clientId: z.string().min(1),
@@ -104,6 +146,13 @@ export const closeSessionInputSchema = z.object({
 	sessionId: z.string().min(1),
 });
 export type CloseSessionInput = z.infer<typeof closeSessionInputSchema>;
+
+export const closeStoppedAccountSessionInputSchema = z.strictObject({
+	sessionId: z.string().min(1),
+});
+export type CloseStoppedAccountSessionInput = z.infer<
+	typeof closeStoppedAccountSessionInputSchema
+>;
 
 export const getSessionInputSchema = z.object({ sessionId: z.string().min(1) });
 export type GetSessionInput = z.infer<typeof getSessionInputSchema>;

@@ -18,6 +18,7 @@ import { chatPortTerminalIds, portManager } from "../ports/port-manager";
 import { fanOutAgentLifecycle } from "../trpc/router/notifications/fan-out-agent-lifecycle";
 import type { SessionAccount } from "../trpc/router/usage/session-account/session-account";
 import type { HostServiceContext } from "../types";
+import { sessionAccountForChat } from "./accountLaunch";
 import { ACP_HARNESSES } from "./acpCatalogue";
 
 const LIFECYCLE_BY_STATUS: Partial<
@@ -179,6 +180,9 @@ export function createChatAgentBridge(
 				workspaceId: options.scopeId,
 				agentId,
 				queuedPrompts: 0,
+				...(options.launchContext
+					? { account: sessionAccountForChat(options.launchContext.account) }
+					: {}),
 				...(options.resume
 					? { agentSessionId: options.resume.harnessSessionId }
 					: {}),
@@ -201,6 +205,17 @@ export function createChatAgentBridge(
 		accountCaptured(sessionId, account) {
 			const chat = chats.get(sessionId);
 			if (!chat) return;
+			if (chat.account?.pinned) {
+				if (
+					chat.account.agent !== account.agent ||
+					chat.account.selection !== account.selection ||
+					chat.account.identity !== account.identity ||
+					account.credentialKind !== "subscription"
+				)
+					chat.account = { ...chat.account, conflict: true };
+				if (current(sessionId)) attach(chat);
+				return;
+			}
 			chat.account = account;
 			if (current(sessionId)) attach(chat);
 		},

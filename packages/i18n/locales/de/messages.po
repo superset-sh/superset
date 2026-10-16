@@ -1923,6 +1923,12 @@ msgstr "Agenten-Sitzung gestartet"
 msgid "agent settings"
 msgstr "Agenten-Einstellungen"
 
+msgid "Agent terminal with account"
+msgstr "Agent-Terminal mit Konto"
+
+msgid "Agent terminal with account…"
+msgstr "Agent-Terminal mit Konto…"
+
 msgid "Agent usage rankings"
 msgstr "Ranglisten zur Agentennutzung"
 
@@ -3501,6 +3507,12 @@ msgstr "Chat-Sitzung nicht gefunden"
 msgid "Chat surfaces: messages, reasoning, suggestions"
 msgstr "Chat-Oberflächen: Nachrichten, Reasoning, Vorschläge"
 
+msgid "Chat with account"
+msgstr "Chat mit Konto"
+
+msgid "Chat with account…"
+msgstr "Chat mit Konto…"
+
 msgid "Check again"
 msgstr "Erneut prüfen"
 
@@ -4844,6 +4856,9 @@ msgstr "Datei konnte nicht gelöscht werden"
 msgid "Could not delete this page"
 msgstr "Diese Seite konnte nicht gelöscht werden"
 
+msgid "Could not discard the queued message."
+msgstr "Die Nachricht in der Warteschlange konnte nicht verworfen werden."
+
 msgid "Could not disconnect."
 msgstr "Trennen fehlgeschlagen."
 
@@ -4858,6 +4873,9 @@ msgstr "Warteschlange konnte nicht verlassen werden"
 
 msgid "Could not list directory"
 msgstr "Verzeichnis konnte nicht gelistet werden"
+
+msgid "Could not load accounts"
+msgstr "Konten konnten nicht geladen werden"
 
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
@@ -4935,6 +4953,9 @@ msgstr "Der Rechner dieses Arbeitsbereichs war nicht erreichbar"
 msgid "Could not reactivate"
 msgstr "Reaktivierung nicht möglich"
 
+msgid "Could not read queued messages."
+msgstr "Nachrichten in der Warteschlange konnten nicht gelesen werden."
+
 msgid "Could not read selected file"
 msgstr "Ausgewählte Datei konnte nicht gelesen werden"
 
@@ -4986,6 +5007,12 @@ msgstr "Icon konnte nicht gesetzt werden"
 msgid "Could not start agent"
 msgstr "Agent konnte nicht gestartet werden"
 
+msgid "Could not start agent terminal"
+msgstr "Agent-Terminal konnte nicht gestartet werden"
+
+msgid "Could not start chat"
+msgstr "Chat konnte nicht gestartet werden"
+
 msgid "Could not start checkout. Please try again."
 msgstr "Checkout konnte nicht gestartet werden. Bitte versuche es erneut."
 
@@ -5006,6 +5033,9 @@ msgstr "Konnte nicht beendet werden"
 
 msgid "Could not stop the agent"
 msgstr "Agent konnte nicht gestoppt werden"
+
+msgid "Could not stop the agent. Review queued messages or update this host, then try again."
+msgstr "Der Agent konnte nicht gestoppt werden. Prüfe die Nachrichten in der Warteschlange oder aktualisiere diesen Host und versuche es erneut."
 
 msgid "Could not stop watching"
 msgstr "Beobachten ließ sich nicht beenden"
@@ -6157,6 +6187,9 @@ msgstr "Änderungen an \"{discardBasename}\" verwerfen?"
 
 msgid "Discard changes?"
 msgstr "Änderungen verwerfen?"
+
+msgid "Discard queued message"
+msgstr "Nachricht aus Warteschlange verwerfen"
 
 msgid "Discard recording"
 msgstr "Aufnahme verwerfen"
@@ -9603,6 +9636,9 @@ msgstr "Loader · Braille-Spinner"
 msgid "Loading"
 msgstr "Wird geladen"
 
+msgid "Loading accounts…"
+msgstr "Konten werden geladen…"
+
 msgid "Loading agent settings..."
 msgstr "Agenten-Einstellungen werden geladen..."
 
@@ -10355,6 +10391,9 @@ msgstr "Neue Branches für dieses Projekt in einem Namensraum bündeln. Standard
 msgid "Naming instructions"
 msgstr "Benennungsvorgaben"
 
+msgid "Native chat is not enabled"
+msgstr "Nativer Chat ist nicht aktiviert"
+
 msgid "Native PR reviews"
 msgstr "Native PR-Reviews"
 
@@ -10686,6 +10725,9 @@ msgstr "Keine Autoren gefunden."
 
 msgid "No automations match"
 msgstr "Keine passenden Automatisierungen"
+
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "Keine verfügbaren Abonnementkonten. Füge unter Nutzung ein Konto hinzu oder melde dich an und aktualisiere dann die Liste."
 
 msgid "No branches found"
 msgstr "Keine Branches gefunden"
@@ -15960,11 +16002,17 @@ msgstr "Starte eine Unterhaltung, damit hier Nachrichten erscheinen"
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "Startet eine neue Agent-Sitzung mit dem jüngsten Kontext dieses Terminals. Maßgeblich bleiben die Dateien im Workspace."
 
+msgid "Start a native chat using an existing login. Recovery keeps this account and working folder."
+msgstr "Starte einen nativen Chat mit einer bestehenden Anmeldung. Bei der Wiederherstellung bleiben dieses Konto und dieser Arbeitsordner erhalten."
+
 msgid "Start a new agent session each run"
 msgstr "Bei jedem Lauf eine neue Agent-Sitzung starten"
 
 msgid "Start a new chat"
 msgstr "Neuen Chat starten"
+
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "Starte ein neues Terminal mit einer bestehenden Anmeldung. Andere Chats und dein Standardkonto bleiben unverändert."
 
 msgid "Start a session"
 msgstr "Sitzung starten"
@@ -15983,6 +16031,9 @@ msgstr "Losbrowsen"
 
 msgid "Start building in two."
 msgstr "In zwei Schritten loslegen."
+
+msgid "Start chat"
+msgstr "Chat starten"
 
 msgid "Start coding agents, follow them live, and review the diff from your iPhone or iPad. Available on the App Store; Android is coming soon."
 msgstr "Coding-Agents starten, live verfolgen und den Diff auf iPhone oder iPad prüfen. Im App Store erhältlich; Android folgt bald."
@@ -16007,6 +16058,9 @@ msgstr "Starte eine mit + in der Tab-Leiste."
 
 msgid "Start or stop the workspace run command"
 msgstr "Den Run-Befehl des Arbeitsbereichs starten oder stoppen"
+
+msgid "Start terminal"
+msgstr "Terminal starten"
 
 msgid "Start voice mode"
 msgstr "Sprachmodus starten"
@@ -16116,6 +16170,12 @@ msgstr "{0} stoppen"
 msgid "Stop {label}"
 msgstr "{label} stoppen"
 
+msgid "Stop agent"
+msgstr "Agent stoppen"
+
+msgid "Stop agent and background work"
+msgstr "Agent und Hintergrundaufgaben stoppen"
+
 msgid "Stop all agent background processes"
 msgstr "Alle Hintergrundprozesse der Agenten stoppen"
 
@@ -16134,6 +16194,9 @@ msgstr "Beende Superset hier, um von einem anderen Gerät aus zu löschen."
 
 msgid "Stop the agent and send this now"
 msgstr "Agent stoppen und jetzt senden"
+
+msgid "Stop this agent and its background work?"
+msgstr "Diesen Agenten und seine Hintergrundaufgaben stoppen?"
 
 msgid "Stop watching"
 msgstr "Nicht mehr beobachten"
@@ -17172,6 +17235,12 @@ msgstr "Dieselbe App läuft nativ auf dem iPad, im Hoch- und im Querformat."
 msgid "The scorecard"
 msgstr "Der Scorecard"
 
+msgid "The selected account chat could not be verified in saved layout data. Nothing was launched by this attempt. If storage is full, free space, then rename this tab to save its layout before retrying. Keep this tab open if it still fails."
+msgstr "Der Chat des ausgewählten Kontos konnte in den gespeicherten Layoutdaten nicht bestätigt werden. Bei diesem Versuch wurde nichts gestartet. Falls der Speicher voll ist, gib Speicherplatz frei und benenne diesen Tab um, um sein Layout vor dem nächsten Versuch zu speichern. Lass den Tab geöffnet, falls es weiterhin fehlschlägt."
+
+msgid "The selected login changed. Choose an account again."
+msgstr "Die ausgewählte Anmeldung hat sich geändert. Wähle erneut ein Konto."
+
 msgid "The self-driving software factory"
 msgstr "Die selbstfahrende Softwarefabrik"
 
@@ -17259,6 +17328,9 @@ msgstr "Diese Befehle laufen automatisch, wenn ein Arbeitsbereich erstellt wird.
 msgid "These folders still have your files, but they did not come over to the new Superset on their own."
 msgstr "Diese Ordner enthalten noch deine Dateien, wurden aber nicht automatisch in das neue Superset übernommen."
 
+msgid "These messages were not sent. Copy anything you need, then discard the queue before resuming."
+msgstr "Diese Nachrichten wurden nicht gesendet. Kopiere alles, was du brauchst, und leere dann die Warteschlange, bevor du fortfährst."
+
 msgid "These ports are still in use"
 msgstr "Diese Ports sind noch in Benutzung"
 
@@ -17292,6 +17364,9 @@ msgstr "Dieser Agent kann keine Unterhaltung verzweigen"
 msgid "This agent can't run in a cloud workspace"
 msgstr "Dieser Agent kann nicht in einem Cloud-Arbeitsbereich laufen"
 
+msgid "This agent configuration does not support account selection."
+msgstr "Diese Agent-Konfiguration unterstützt keine Kontoauswahl."
+
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Diesen Agenten gibt es auf dem gewählten Gerät nicht mehr (seine Agenten wurden möglicherweise zurückgesetzt). Läufe schlagen fehl, bis du einen neuen auswählst."
 
@@ -17316,6 +17391,9 @@ msgstr "Diese Automatisierung befindet sich in einer anderen Organisation"
 
 msgid "This cannot be undone."
 msgstr "Das lässt sich nicht rückgängig machen."
+
+msgid "This chat could not be opened with its saved account."
+msgstr "Dieser Chat konnte nicht mit seinem gespeicherten Konto geöffnet werden."
 
 msgid "This chat has ended."
 msgstr "Dieser Chat ist beendet."
@@ -17385,6 +17463,9 @@ msgstr "Diese GitHub-Installation ist bereits mit einer anderen Superset-Organis
 
 msgid "This host"
 msgstr "Dieser Host"
+
+msgid "This host does not support account selection for native chats."
+msgstr "Dieser Host unterstützt keine Kontoauswahl für native Chats."
 
 msgid "This host has not reported a version yet."
 msgstr "Dieser Host hat noch keine Version gemeldet."
@@ -17541,6 +17622,9 @@ msgstr "Dieser Slug ist bereits vergeben"
 
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "Das stoppt jeden Teams-Trigger in deiner Organisation und entfernt die Benachrichtigungs-Abos aus deinem Tenant. Du kannst jederzeit neu verbinden."
+
+msgid "This stops the agent process and any background work it owns. Your saved conversation stays available. Review and discard any queued messages first. You can then choose Resume."
+msgstr "Dies stoppt den Agentenprozess und alle zugehörigen Hintergrundaufgaben. Deine gespeicherte Unterhaltung bleibt verfügbar. Prüfe zuerst die Nachrichten in der Warteschlange und verwirf sie. Danach kannst du Fortsetzen wählen."
 
 msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
 msgstr "Dieser Subagent wird vom Host nicht mehr verfolgt. Sein Protokoll bleibt auf der Festplatte im Sitzungsverzeichnis des Agenten."
@@ -18298,6 +18382,9 @@ msgstr "Aktualisiere Superset auf diesem Rechner, um Dateien anzuhängen"
 
 msgid "update the branch prefix"
 msgstr "das Branch-Präfix aktualisieren"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "Aktualisiere diesen Host, um ein Konto für ein neues Terminal auszuwählen."
 
 msgid "Updated"
 msgstr "Aktualisiert"

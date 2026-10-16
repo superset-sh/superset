@@ -1,10 +1,13 @@
 import { delimiter } from "node:path";
 import { getBinDir } from "@superset/agent-setup";
+import type { ChatLaunchContext } from "@superset/chat/protocol";
 import { eq } from "drizzle-orm";
 import type { HostDb } from "../db";
 import { projects, workspaces } from "../db/schema";
 import { buildHostLaunchEnv, waitForTerminalBaseEnv } from "../terminal/env";
+import { withPinnedAccountEnv } from "../trpc/router/agents/launch-account";
 import { resolveDefaultAccountTerminalEnv } from "../trpc/router/usage/default-account";
+import { sessionAccountForChat, validateChatAccount } from "./accountLaunch";
 
 function workspacePaths(
 	db: HostDb,
@@ -57,10 +60,12 @@ export async function buildChatAgentEnv(options: {
 	cwd: string;
 	workspaceId: string;
 	terminalId?: string;
+	launchContext?: ChatLaunchContext;
+	harness?: string;
 }): Promise<Record<string, string>> {
 	await waitForTerminalBaseEnv();
 	const paths = workspacePaths(options.db, options.workspaceId);
-	return withoutAmbientKeys(
+	const env = withoutAmbientKeys(
 		withSupersetBinFirst({
 			...buildHostLaunchEnv({
 				cwd: options.cwd,
@@ -71,5 +76,16 @@ export async function buildChatAgentEnv(options: {
 			}),
 			...resolveDefaultAccountTerminalEnv(options.db),
 		}),
+	);
+	if (!options.launchContext) return env;
+	await validateChatAccount(
+		options.db,
+		options.launchContext,
+		options.harness ?? "",
+		options.workspaceId,
+	);
+	return withPinnedAccountEnv(
+		sessionAccountForChat(options.launchContext.account),
+		env,
 	);
 }

@@ -1923,6 +1923,12 @@ msgstr "Сессия агента запущена"
 msgid "agent settings"
 msgstr "настройки агента"
 
+msgid "Agent terminal with account"
+msgstr "Терминал агента с выбором аккаунта"
+
+msgid "Agent terminal with account…"
+msgstr "Терминал агента с выбором аккаунта…"
+
 msgid "Agent usage rankings"
 msgstr "Рейтинги использования агентов"
 
@@ -3501,6 +3507,12 @@ msgstr "Сессия чата не найдена"
 msgid "Chat surfaces: messages, reasoning, suggestions"
 msgstr "Поверхности чата: сообщения, рассуждения, подсказки"
 
+msgid "Chat with account"
+msgstr "Чат с выбранным аккаунтом"
+
+msgid "Chat with account…"
+msgstr "Чат с выбранным аккаунтом…"
+
 msgid "Check again"
 msgstr "Проверить снова"
 
@@ -4844,6 +4856,9 @@ msgstr "Не удалось удалить файл"
 msgid "Could not delete this page"
 msgstr "Не удалось удалить эту страницу"
 
+msgid "Could not discard the queued message."
+msgstr "Не удалось удалить сообщение из очереди."
+
 msgid "Could not disconnect."
 msgstr "Не удалось отключить."
 
@@ -4858,6 +4873,9 @@ msgstr "Не удалось выйти из очереди"
 
 msgid "Could not list directory"
 msgstr "Не удалось прочитать содержимое папки"
+
+msgid "Could not load accounts"
+msgstr "Не удалось загрузить аккаунты"
 
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
@@ -4935,6 +4953,9 @@ msgstr "Не удалось связаться с машиной этой раб
 msgid "Could not reactivate"
 msgstr "Не удалось активировать заново"
 
+msgid "Could not read queued messages."
+msgstr "Не удалось прочитать сообщения в очереди."
+
 msgid "Could not read selected file"
 msgstr "Не удалось прочитать выбранный файл"
 
@@ -4986,6 +5007,12 @@ msgstr "Не удалось установить иконку"
 msgid "Could not start agent"
 msgstr "Не удалось запустить агента"
 
+msgid "Could not start agent terminal"
+msgstr "Не удалось запустить терминал агента"
+
+msgid "Could not start chat"
+msgstr "Не удалось начать чат"
+
 msgid "Could not start checkout. Please try again."
 msgstr "Не удалось начать оформление. Попробуйте ещё раз."
 
@@ -5006,6 +5033,9 @@ msgstr "Не удалось остановить"
 
 msgid "Could not stop the agent"
 msgstr "Не удалось остановить агента"
+
+msgid "Could not stop the agent. Review queued messages or update this host, then try again."
+msgstr "Не удалось остановить агента. Проверьте сообщения в очереди или обновите этот хост, затем повторите попытку."
 
 msgid "Could not stop watching"
 msgstr "Не удалось прекратить отслеживание"
@@ -6157,6 +6187,9 @@ msgstr "Отменить изменения в «{discardBasename}»?"
 
 msgid "Discard changes?"
 msgstr "Отменить изменения?"
+
+msgid "Discard queued message"
+msgstr "Удалить сообщение из очереди"
 
 msgid "Discard recording"
 msgstr "Удалить запись"
@@ -9603,6 +9636,9 @@ msgstr "Загрузчик · брайлевский спиннер"
 msgid "Loading"
 msgstr "Загрузка"
 
+msgid "Loading accounts…"
+msgstr "Загрузка аккаунтов…"
+
 msgid "Loading agent settings..."
 msgstr "Загрузка настроек агента..."
 
@@ -10355,6 +10391,9 @@ msgstr "Пространство имён для новых веток этог�
 msgid "Naming instructions"
 msgstr "Правила именования"
 
+msgid "Native chat is not enabled"
+msgstr "Встроенный чат не включён"
+
 msgid "Native PR reviews"
 msgstr "Нативное ревью PR"
 
@@ -10686,6 +10725,9 @@ msgstr "Авторы не найдены."
 
 msgid "No automations match"
 msgstr "Нет подходящих автоматизаций"
+
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "Нет доступных аккаунтов с подпиской. Добавьте аккаунт или войдите в разделе «Использование», затем обновите список."
 
 msgid "No branches found"
 msgstr "Ветки не найдены"
@@ -15960,11 +16002,17 @@ msgstr "Начните диалог, чтобы сообщения появил�
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "Запускает новую сессию агента с недавним контекстом этого терминала. Источником истины остаются файлы рабочего пространства."
 
+msgid "Start a native chat using an existing login. Recovery keeps this account and working folder."
+msgstr "Начните встроенный чат с существующим входом в аккаунт. При восстановлении сохраняются этот аккаунт и рабочая папка."
+
 msgid "Start a new agent session each run"
 msgstr "Запускать новую сессию агента при каждом запуске"
 
 msgid "Start a new chat"
 msgstr "Начать новый чат"
+
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "Запустите новый терминал с существующим входом. Другие чаты и аккаунт по умолчанию останутся без изменений."
 
 msgid "Start a session"
 msgstr "Запустить сессию"
@@ -15983,6 +16031,9 @@ msgstr "Начните просмотр"
 
 msgid "Start building in two."
 msgstr "Начните разработку за два."
+
+msgid "Start chat"
+msgstr "Начать чат"
 
 msgid "Start coding agents, follow them live, and review the diff from your iPhone or iPad. Available on the App Store; Android is coming soon."
 msgstr "Запускайте агентов для кода, следите за ними в реальном времени и проверяйте diff с iPhone или iPad. Доступно в App Store; Android скоро."
@@ -16007,6 +16058,9 @@ msgstr "Запустите сессию кнопкой + в полосе вкл�
 
 msgid "Start or stop the workspace run command"
 msgstr "Запустить или остановить команду запуска рабочей области"
+
+msgid "Start terminal"
+msgstr "Запустить терминал"
 
 msgid "Start voice mode"
 msgstr "Запустить голосовой режим"
@@ -16116,6 +16170,12 @@ msgstr "Остановить {0}"
 msgid "Stop {label}"
 msgstr "Остановить {label}"
 
+msgid "Stop agent"
+msgstr "Остановить агента"
+
+msgid "Stop agent and background work"
+msgstr "Остановить агента и фоновые задачи"
+
 msgid "Stop all agent background processes"
 msgstr "Остановить все фоновые процессы агентов"
 
@@ -16134,6 +16194,9 @@ msgstr "Остановите Superset здесь, чтобы удалить с �
 
 msgid "Stop the agent and send this now"
 msgstr "Остановить агента и отправить сейчас"
+
+msgid "Stop this agent and its background work?"
+msgstr "Остановить этого агента и его фоновые задачи?"
 
 msgid "Stop watching"
 msgstr "Прекратить отслеживание"
@@ -17172,6 +17235,12 @@ msgstr "То же приложение работает на iPad нативно
 msgid "The scorecard"
 msgstr "Таблица оценок"
 
+msgid "The selected account chat could not be verified in saved layout data. Nothing was launched by this attempt. If storage is full, free space, then rename this tab to save its layout before retrying. Keep this tab open if it still fails."
+msgstr "Не удалось подтвердить чат выбранного аккаунта в сохранённых данных расположения вкладок. Эта попытка ничего не запустила. Если хранилище заполнено, освободите место, затем переименуйте эту вкладку, чтобы сохранить её расположение перед повторной попыткой. Если ошибка повторится, оставьте вкладку открытой."
+
+msgid "The selected login changed. Choose an account again."
+msgstr "Выбранный аккаунт изменился. Выберите аккаунт заново."
+
 msgid "The self-driving software factory"
 msgstr "Самоуправляемая софтверная фабрика"
 
@@ -17259,6 +17328,9 @@ msgstr "Эти команды выполняются автоматически 
 msgid "These folders still have your files, but they did not come over to the new Superset on their own."
 msgstr "В этих папках всё ещё есть ваши файлы, но они не перенеслись в новый Superset автоматически."
 
+msgid "These messages were not sent. Copy anything you need, then discard the queue before resuming."
+msgstr "Эти сообщения не были отправлены. Скопируйте всё нужное, затем очистите очередь перед возобновлением."
+
 msgid "These ports are still in use"
 msgstr "Эти порты ещё используются"
 
@@ -17292,6 +17364,9 @@ msgstr "Этот агент не может ответвить разговор"
 msgid "This agent can't run in a cloud workspace"
 msgstr "Этот агент не может работать в облачной рабочей области"
 
+msgid "This agent configuration does not support account selection."
+msgstr "Эта конфигурация агента не поддерживает выбор аккаунта."
+
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Этого агента больше нет на выбранном устройстве (возможно, его агенты были сброшены). Запуски будут падать, пока не выберете нового."
 
@@ -17316,6 +17391,9 @@ msgstr "Эта автоматизация находится в другой о�
 
 msgid "This cannot be undone."
 msgstr "Это нельзя отменить."
+
+msgid "This chat could not be opened with its saved account."
+msgstr "Не удалось открыть этот чат с сохранённым аккаунтом."
 
 msgid "This chat has ended."
 msgstr "Этот чат завершён."
@@ -17385,6 +17463,9 @@ msgstr "Эта установка GitHub уже подключена к друг
 
 msgid "This host"
 msgstr "Этот хост"
+
+msgid "This host does not support account selection for native chats."
+msgstr "Этот хост не поддерживает выбор аккаунта для встроенных чатов."
 
 msgid "This host has not reported a version yet."
 msgstr "Этот хост ещё не сообщил версию."
@@ -17541,6 +17622,9 @@ msgstr "Этот slug уже занят"
 
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "Это остановит все триггеры Teams в вашей организации и удалит подписки на уведомления из вашего тенанта. Переподключиться можно в любой момент."
+
+msgid "This stops the agent process and any background work it owns. Your saved conversation stays available. Review and discard any queued messages first. You can then choose Resume."
+msgstr "Это остановит процесс агента и все принадлежащие ему фоновые задачи. Сохранённый разговор останется доступным. Сначала проверьте и удалите сообщения в очереди. Затем можно выбрать «Возобновить»."
 
 msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
 msgstr "Хост больше не отслеживает этого субагента. Его стенограмма остаётся на диске в каталоге сессии агента."
@@ -18298,6 +18382,9 @@ msgstr "Обновите Superset на этой машине, чтобы при�
 
 msgid "update the branch prefix"
 msgstr "обновить префикс ветки"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "Обновите этот хост, чтобы выбрать аккаунт для нового терминала."
 
 msgid "Updated"
 msgstr "Обновлено"

@@ -22,6 +22,11 @@ import {
 } from "@superset/chat-runtime";
 import type { Hono, MiddlewareHandler } from "hono";
 import type { HostDb } from "../db";
+import {
+	ACCOUNT_CHAT_HARNESSES,
+	prepareChatAccount,
+	validateChatAccount,
+} from "./accountLaunch";
 import { cliFloor } from "./acpCatalogue";
 import { acpHarnessEntries } from "./acpHarnesses";
 import { resolveAgentCli } from "./agentCli";
@@ -127,6 +132,8 @@ export function createChatV3Mount(options: {
 			harnesses: harnessRegistry(options.db, options.agents),
 			observer: options.agents,
 			onSessionChanged: options.onSessionChanged,
+			validateAccountLaunch: (context, harness, scopeId) =>
+				validateChatAccount(options.db, context, harness, scopeId),
 		});
 		return built;
 	};
@@ -161,7 +168,11 @@ export function registerChatV3Routes(options: {
 	options.app.use(`${endpoint}/*`, (c, next) => {
 		handler ??= trpcServer({
 			endpoint,
-			router: createChatRouter(options.mount.runtime(), { resolveCwd }),
+			router: createChatRouter(options.mount.runtime(), {
+				resolveCwd,
+				accountHarnesses: ACCOUNT_CHAT_HARNESSES,
+				prepareAccount: prepareChatAccount,
+			}),
 		});
 		return handler(c, next);
 	});

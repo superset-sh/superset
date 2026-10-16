@@ -25,6 +25,7 @@ import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel"
 import { getV2NotificationSourcesForTab } from "renderer/stores/v2-notifications";
 import { useStore } from "zustand";
 import { useWorkspace } from "../providers/WorkspaceProvider";
+import { AccountTerminalDialog } from "./components/AccountTerminalDialog";
 import { AddTabMenu } from "./components/AddTabMenu";
 import { ChangesControl } from "./components/ChangesControl";
 import { CloudWorkspaceTabBarControls } from "./components/CloudWorkspaceTabBarControls";
@@ -212,8 +213,17 @@ function V2WorkspaceContent() {
 		[store, rightStore],
 	);
 	const launcher = useV2TerminalLauncher();
-	const { createNewAgentSession, openAgentChat, focusAgentTerminal } =
-		useAgentSessionLauncher({ workspaceId, store });
+	const [accountTerminalOpen, setAccountTerminalOpen] = useState(false);
+	const [accountChatOpen, setAccountChatOpen] = useState(false);
+	const accountTerminalReturnFocus = useRef<HTMLElement | null>(null);
+	const accountChatReturnFocus = useRef<HTMLElement | null>(null);
+	const {
+		createNewAgentSession,
+		createAccountTerminal,
+		createAccountChat,
+		openAgentChat,
+		focusAgentTerminal,
+	} = useAgentSessionLauncher({ workspaceId, store });
 	const {
 		matchedPresets,
 		newTabPresets,
@@ -680,6 +690,22 @@ function V2WorkspaceContent() {
 									renderAddTabMenu={() => (
 										<AddTabMenu
 											onAddTerminal={addTerminalTab}
+											onAddAccountChat={
+												isSandbox
+													? undefined
+													: (returnFocus) => {
+															accountChatReturnFocus.current = returnFocus;
+															setAccountChatOpen(true);
+														}
+											}
+											onAddAccountTerminal={
+												isSandbox
+													? undefined
+													: (returnFocus) => {
+															accountTerminalReturnFocus.current = returnFocus;
+															setAccountTerminalOpen(true);
+														}
+											}
 											onAddBrowser={addBrowserTab}
 											onAddChanges={openChanges}
 											onAddDesktop={isSandbox ? addDesktopTab : undefined}
@@ -788,6 +814,23 @@ function V2WorkspaceContent() {
 				recentlyViewedFiles={recentFiles}
 				openFilePaths={openFilePaths}
 			/>
+			{accountChatOpen && (
+				<AccountTerminalDialog
+					key={`${workspaceId}:chat`}
+					surface="chat"
+					onClose={() => setAccountChatOpen(false)}
+					onLaunch={createAccountChat}
+					returnFocus={accountChatReturnFocus.current}
+				/>
+			)}
+			{accountTerminalOpen && (
+				<AccountTerminalDialog
+					key={workspaceId}
+					onClose={() => setAccountTerminalOpen(false)}
+					onLaunch={createAccountTerminal}
+					returnFocus={accountTerminalReturnFocus.current}
+				/>
+			)}
 		</FileDocumentStoreProvider>
 	);
 }

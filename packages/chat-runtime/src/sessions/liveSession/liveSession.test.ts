@@ -23,7 +23,10 @@ import {
 	waitFor,
 } from "../../testing/testUtils";
 
-function startSession(script: FakeHarnessScript): {
+function startSession(
+	script: FakeHarnessScript,
+	accountBound = false,
+): {
 	runtime: ChatRuntime;
 	sessionId: string;
 } {
@@ -34,6 +37,22 @@ function startSession(script: FakeHarnessScript): {
 		scopeId: "workspace-1",
 		harness: FAKE_HARNESS,
 		cwd: "/tmp/workspace",
+		...(accountBound
+			? {
+					terminalId: "account-pane",
+					launchContext: {
+						v: 1 as const,
+						cwd: "/tmp/workspace",
+						terminalId: "account-pane",
+						account: {
+							agent: "claude" as const,
+							selection: "/fixture/account",
+							directory: "/fixture/account",
+							identity: "a".repeat(64),
+						},
+					},
+				}
+			: {}),
 	});
 	return { runtime, sessionId };
 }
@@ -516,11 +535,17 @@ describe("LiveSession", () => {
 		await runtime.dispose();
 	});
 
-	test("a queued prompt whose steer is refused still runs next", async () => {
-		const { runtime, sessionId } = startSession({
-			...GATED_THEN_QUICK,
-			steer: false,
-		});
+	test.each([
+		false,
+		true,
+	])("a queued prompt whose steer is refused still runs next (account bound: %s)", async (accountBound) => {
+		const { runtime, sessionId } = startSession(
+			{
+				...GATED_THEN_QUICK,
+				steer: false,
+			},
+			accountBound,
+		);
 		sendPrompt(runtime, sessionId, "first");
 		const second = sendPrompt(runtime, sessionId, "second");
 		const third = sendPrompt(runtime, sessionId, "third");
@@ -618,8 +643,11 @@ describe("LiveSession", () => {
 		await runtime.dispose();
 	});
 
-	test("steerQueuedPrompt interrupts the turn and delivers that prompt next", async () => {
-		const { runtime, sessionId } = startSession(GATED_THEN_QUICK);
+	test.each([
+		false,
+		true,
+	])("steerQueuedPrompt interrupts the turn and delivers that prompt next (account bound: %s)", async (accountBound) => {
+		const { runtime, sessionId } = startSession(GATED_THEN_QUICK, accountBound);
 		sendPrompt(runtime, sessionId, "first");
 		await waitForApproval(runtime, sessionId);
 		const second = sendPrompt(runtime, sessionId, "second");
@@ -649,8 +677,11 @@ describe("LiveSession", () => {
 		await runtime.dispose();
 	});
 
-	test("a prompt sent with steer for the running turn interrupts it and runs next", async () => {
-		const { runtime, sessionId } = startSession(GATED_THEN_QUICK);
+	test.each([
+		false,
+		true,
+	])("a prompt sent with steer for the running turn interrupts it and runs next (account bound: %s)", async (accountBound) => {
+		const { runtime, sessionId } = startSession(GATED_THEN_QUICK, accountBound);
 		sendPrompt(runtime, sessionId, "first");
 		await waitForApproval(runtime, sessionId);
 		const second = sendPrompt(runtime, sessionId, "second");
@@ -827,8 +858,11 @@ describe("LiveSession", () => {
 		await runtime.dispose();
 	});
 
-	test("cancelTurn without pauseQueue keeps sending the queue", async () => {
-		const { runtime, sessionId } = startSession(GATED_THEN_QUICK);
+	test.each([
+		false,
+		true,
+	])("cancelTurn without pauseQueue keeps sending the queue (account bound: %s)", async (accountBound) => {
+		const { runtime, sessionId } = startSession(GATED_THEN_QUICK, accountBound);
 		sendPrompt(runtime, sessionId, "first");
 		await waitForApproval(runtime, sessionId);
 		const second = sendPrompt(runtime, sessionId, "second");
@@ -914,6 +948,113 @@ describe("LiveSession", () => {
 		expect(snapshot.items.get(second.itemId)?.item).toMatchObject({
 			discarded: true,
 		});
+		await runtime.dispose();
+	});
+
+	test("an account-bound failed turn publishes its paused queue and resumes only on request", async () => {
+		const { runtime, sessionId } = startSession(
+			{
+				turns: [
+					[
+						{ kind: "turn", turn: turn("t1") },
+						{ kind: "item", item: approvalRequest("ap1"), turnId: "t1" },
+						{
+							kind: "turn",
+							turn: turn("t1", { status: "failed", completedAtMs: 2 }),
+						},
+						{ kind: "session", session: { status: "idle" } },
+					],
+					[
+						{ kind: "turn", turn: turn("t2") },
+						{
+							kind: "turn",
+							turn: turn("t2", { status: "completed", completedAtMs: 3 }),
+						},
+						{ kind: "session", session: { status: "idle" } },
+					],
+				],
+			},
+			true,
+		);
+		try {
+			sendPrompt(runtime, sessionId, "first");
+			await waitForApproval(runtime, sessionId);
+			const pending = sendPrompt(runtime, sessionId, "second");
+			runtime.commands.respondToApproval({
+				commandId: randomUUID(),
+				sessionId,
+				approvalId: "ap1",
+				decision: { type: "accept" },
+			});
+			const latest = () =>
+				reduceMany(emptySnapshot(), journalEnvelopes(runtime, sessionId));
+			await waitFor(() => latest().session?.status === "idle");
+			expect(latest().session?.queuePaused).toBe(true);
+			expect(runtime.commands.getQueue({ sessionId })).toMatchObject({
+				paused: true,
+				prompts: [{ itemId: pending.itemId }],
+			});
+			runtime.commands.resumeQueue({ commandId: randomUUID(), sessionId });
+			await waitFor(() => latest().items.get(pending.itemId)?.turnId === "t2");
+			expect(latest().session?.queuePaused).toBe(false);
+		} finally {
+			await runtime.dispose();
+		}
+	});
+
+	test("an account-bound agent crash keeps unsent messages for explicit review", async () => {
+		const { runtime, sessionId } = startSession(
+			{
+				turns: [
+					[
+						{ kind: "turn", turn: turn("t1") },
+						{
+							kind: "turn",
+							turn: turn("t1", { status: "failed", completedAtMs: 2 }),
+							delayMs: 1,
+						},
+						{ kind: "session", session: { status: "dead" } },
+					],
+				],
+			},
+			true,
+		);
+		sendPrompt(runtime, sessionId, "first");
+		const pending = sendPrompt(runtime, sessionId, "second");
+		await waitFor(() => runtime.sessions.get(sessionId)?.status === "dead");
+		expect(
+			runtime.commands
+				.getQueue({ sessionId })
+				.prompts.map((item) => item.itemId),
+		).toEqual([pending.itemId]);
+		await runtime.commands.closeSession({ sessionId });
+		const stored = runtime.commands.getQueue({ sessionId });
+		expect(stored.live).toBe(false);
+		expect(stored.prompts.map((item) => item.itemId)).toEqual([pending.itemId]);
+		runtime.commands.removeQueuedPrompt({
+			sessionId,
+			itemId: pending.itemId,
+			commandId: randomUUID(),
+		});
+		expect(runtime.commands.getQueue({ sessionId }).prompts).toEqual([]);
+		await runtime.dispose();
+	});
+
+	test("closing an account-bound session keeps its unsent queue", async () => {
+		const { runtime, sessionId } = startSession(GATED_THEN_QUICK, true);
+		sendPrompt(runtime, sessionId, "first");
+		await waitForApproval(runtime, sessionId);
+		const pending = sendPrompt(runtime, sessionId, "second");
+		await runtime.commands.closeSession({ sessionId });
+		expect(
+			reduceMany(emptySnapshot(), journalEnvelopes(runtime, sessionId)).session
+				?.queuePaused,
+		).toBe(true);
+		expect(
+			runtime.commands
+				.getQueue({ sessionId })
+				.prompts.map((item) => item.itemId),
+		).toEqual([pending.itemId]);
 		await runtime.dispose();
 	});
 

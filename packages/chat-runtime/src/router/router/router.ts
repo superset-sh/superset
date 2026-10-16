@@ -1,6 +1,10 @@
 import {
+	type ChatAccountSelection,
+	type ChatLaunchAccount,
 	cancelTurnInputSchema,
 	closeSessionInputSchema,
+	closeStoppedAccountSessionInputSchema,
+	createAccountSessionInputSchema,
 	createSessionInputSchema,
 	forkSessionInputSchema,
 	getItemBodiesInputSchema,
@@ -10,6 +14,7 @@ import {
 	listSessionsInputSchema,
 	promptInputSchema,
 	queuedPromptInputSchema,
+	recoverAccountSessionInputSchema,
 	respondToApprovalInputSchema,
 	resumeQueueInputSchema,
 	setConfigOptionInputSchema,
@@ -20,6 +25,10 @@ import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { initTRPC, TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { ChatRuntime } from "../../index";
+import {
+	findAccountCommand,
+	readLaunchContext,
+} from "../../projection/launchContext";
 
 const t = initTRPC.create();
 
@@ -27,6 +36,13 @@ export const createChatCallerFactory = t.createCallerFactory;
 
 export type ChatRouterOptions = {
 	resolveCwd(workspaceId: string): string | Promise<string>;
+	accountHarnesses?: readonly string[];
+	prepareAccount?(input: {
+		harness: string;
+		account: ChatAccountSelection;
+		cwd: string;
+		scopeId: string;
+	}): Promise<ChatLaunchAccount>;
 };
 
 const UNKNOWN_HARNESS = /^unknown harness /;
@@ -74,8 +90,141 @@ export function createChatRouter(
 	}
 
 	return t.router({
+		accountSessionByCommand: t.procedure
+			.input(z.strictObject({ commandId: z.uuid() }))
+			.query(({ input }) => {
+				const row = findAccountCommand(runtime.db, input.commandId);
+				if (!row) return null;
+				const context = readLaunchContext(row);
+				if (!context)
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message: "The saved chat account is unavailable.",
+					});
+				return {
+					sessionId: row.sessionId,
+					epoch: row.epoch,
+					terminalId: context.terminalId,
+				};
+			}),
+		accountCapabilities: t.procedure.query(() => ({
+			version: 1 as const,
+			harnesses: options.prepareAccount
+				? [...(options.accountHarnesses ?? [])]
+				: [],
+		})),
+
+		createAccountSession: t.procedure
+			.input(createAccountSessionInputSchema)
+			.mutation(async ({ input }) => {
+				if (
+					!options.prepareAccount ||
+					!options.accountHarnesses?.includes(input.harness)
+				)
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message:
+							"This host does not support account selection for this chat agent.",
+					});
+				const receipt = findAccountCommand(runtime.db, input.commandId);
+				if (receipt) {
+					const context = readLaunchContext(receipt);
+					if (
+						!context ||
+						context.forkOfSessionId !== undefined ||
+						receipt.predecessorSessionId !== null ||
+						receipt.scopeId !== input.workspaceId ||
+						receipt.harness !== input.harness ||
+						context.account.selection !== input.account.selection ||
+						context.account.identity !== input.account.identity ||
+						context.initialModeId !== input.modeId ||
+						context.initialModelId !== input.modelId
+					)
+						throw new TRPCError({
+							code: "CONFLICT",
+							message:
+								"This command already belongs to another conversation or account.",
+						});
+					return {
+						sessionId: receipt.sessionId,
+						epoch: receipt.epoch,
+						terminalId: context.terminalId as string,
+					};
+				}
+				const cwd = await options.resolveCwd(input.workspaceId);
+				const account = await options.prepareAccount({
+					harness: input.harness,
+					account: input.account,
+					cwd,
+					scopeId: input.workspaceId,
+				});
+				if (
+					account.selection !== input.account.selection ||
+					account.identity !== input.account.identity
+				)
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message: "The selected chat account changed. Nothing was launched.",
+					});
+				const concurrent = findAccountCommand(runtime.db, input.commandId);
+				if (concurrent) {
+					const context = readLaunchContext(concurrent);
+					if (
+						!context ||
+						context.forkOfSessionId !== undefined ||
+						concurrent.predecessorSessionId !== null ||
+						concurrent.scopeId !== input.workspaceId ||
+						concurrent.harness !== input.harness ||
+						context.account.selection !== input.account.selection ||
+						context.account.identity !== input.account.identity ||
+						context.initialModeId !== input.modeId ||
+						context.initialModelId !== input.modelId
+					)
+						throw new TRPCError({
+							code: "CONFLICT",
+							message:
+								"This command already belongs to another conversation or account.",
+						});
+					return {
+						sessionId: concurrent.sessionId,
+						epoch: concurrent.epoch,
+						terminalId: context.terminalId,
+					};
+				}
+				const terminalId = crypto.randomUUID();
+				const created = guarded(() =>
+					runtime.commands.createSession({
+						commandId: input.commandId,
+						scopeId: input.workspaceId,
+						harness: input.harness,
+						cwd,
+						terminalId,
+						modeId: input.modeId,
+						modelId: input.modelId,
+						launchContext: {
+							v: 1,
+							cwd,
+							terminalId,
+							account,
+							initialModeId: input.modeId,
+							initialModelId: input.modelId,
+						},
+					}),
+				);
+				return { ...created, terminalId };
+			}),
+
+		recoverAccountSession: t.procedure
+			.input(recoverAccountSessionInputSchema)
+			.mutation(({ input }) => runtime.commands.recoverAccountSession(input)),
+
 		createSession: t.procedure
-			.input(createSessionInputSchema)
+			.input(
+				createSessionInputSchema.extend({
+					account: z.never().optional(),
+					launchContext: z.never().optional(),
+				}),
+			)
 			.mutation(async ({ input }) => {
 				const { workspaceId, ...rest } = input;
 				const cwd = await options.resolveCwd(workspaceId);
@@ -145,6 +294,12 @@ export function createChatRouter(
 				const cwd = await options.resolveCwd(workspaceId);
 				return guarded(() => runtime.commands.forkSession({ ...rest, cwd }));
 			}),
+
+		closeStoppedAccountSession: t.procedure
+			.input(closeStoppedAccountSessionInputSchema)
+			.mutation(({ input }) =>
+				runtime.commands.closeStoppedAccountSession(input),
+			),
 
 		closeSession: t.procedure
 			.input(closeSessionInputSchema)

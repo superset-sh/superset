@@ -6,6 +6,7 @@ import { createAcpAdapter } from "@superset/chat-runtime";
 import type { HostDb } from "../db";
 import { resolveAttachmentPath } from "../trpc/router/attachments/storage";
 import { captureSessionAccount } from "../trpc/router/usage/session-account/session-account";
+import { validateChatAccount } from "./accountLaunch";
 import { ACP_HARNESSES } from "./acpCatalogue";
 import { resolveAgentCli } from "./agentCli";
 import { buildChatAgentEnv } from "./agentEnv";
@@ -45,12 +46,24 @@ export function acpHarnessFactory(
 		}
 	}
 
-	return (options) =>
-		createAcpAdapter({
+	return (options) => {
+		const launchContext = options.launchContext;
+		return createAcpAdapter({
 			command: entry.binary,
 			cwd: options.cwd,
 			resolveAttachment,
 			storeImage: storeAgentImage,
+			...(launchContext
+				? {
+						beforePrompt: () =>
+							validateChatAccount(
+								db,
+								launchContext,
+								options.harness,
+								options.scopeId,
+							),
+					}
+				: {}),
 			...(entry.fullAccessModeId
 				? { defaultModeId: entry.fullAccessModeId }
 				: {}),
@@ -67,9 +80,18 @@ export function acpHarnessFactory(
 							cwd: options.cwd,
 							workspaceId: options.scopeId,
 							terminalId: options.terminalId,
+							launchContext: options.launchContext,
+							harness: options.harness,
 						}),
 				});
 				const env = cli.env;
+				if (options.launchContext)
+					await validateChatAccount(
+						db,
+						options.launchContext,
+						options.harness,
+						options.scopeId,
+					);
 				void captureSessionAccount(
 					entry.binary,
 					(entry.binary === "codex" ? env.CODEX_HOME : env.CLAUDE_CONFIG_DIR) ??
@@ -103,6 +125,7 @@ export function acpHarnessFactory(
 				};
 			},
 		});
+	};
 }
 
 export function acpHarnessEntries(

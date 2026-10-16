@@ -1923,6 +1923,12 @@ msgstr "智能体会话已开始"
 msgid "agent settings"
 msgstr "智能体设置"
 
+msgid "Agent terminal with account"
+msgstr "使用指定账户启动代理终端"
+
+msgid "Agent terminal with account…"
+msgstr "使用指定账户启动代理终端…"
+
 msgid "Agent usage rankings"
 msgstr "智能体使用量排行"
 
@@ -3501,6 +3507,12 @@ msgstr "未找到聊天会话"
 msgid "Chat surfaces: messages, reasoning, suggestions"
 msgstr "聊天界面：消息、推理、建议"
 
+msgid "Chat with account"
+msgstr "使用指定账户聊天"
+
+msgid "Chat with account…"
+msgstr "使用指定账户聊天…"
+
 msgid "Check again"
 msgstr "重新检查"
 
@@ -4844,6 +4856,9 @@ msgstr "无法删除文件"
 msgid "Could not delete this page"
 msgstr "无法删除这个页面"
 
+msgid "Could not discard the queued message."
+msgstr "无法丢弃队列中的消息。"
+
 msgid "Could not disconnect."
 msgstr "无法断开连接。"
 
@@ -4858,6 +4873,9 @@ msgstr "无法移出队列"
 
 msgid "Could not list directory"
 msgstr "无法列出目录"
+
+msgid "Could not load accounts"
+msgstr "无法加载账户"
 
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
@@ -4935,6 +4953,9 @@ msgstr "无法连接到这个工作区所在的机器"
 msgid "Could not reactivate"
 msgstr "无法重新激活"
 
+msgid "Could not read queued messages."
+msgstr "无法读取队列中的消息。"
+
 msgid "Could not read selected file"
 msgstr "无法读取所选文件"
 
@@ -4986,6 +5007,12 @@ msgstr "无法设置图标"
 msgid "Could not start agent"
 msgstr "无法启动智能体"
 
+msgid "Could not start agent terminal"
+msgstr "无法启动代理终端"
+
+msgid "Could not start chat"
+msgstr "无法启动聊天"
+
 msgid "Could not start checkout. Please try again."
 msgstr "无法开始结账，请重试。"
 
@@ -5006,6 +5033,9 @@ msgstr "无法停止"
 
 msgid "Could not stop the agent"
 msgstr "无法停止智能体"
+
+msgid "Could not stop the agent. Review queued messages or update this host, then try again."
+msgstr "无法停止智能体。请检查队列中的消息或更新此主机，然后重试。"
 
 msgid "Could not stop watching"
 msgstr "无法停止关注"
@@ -6157,6 +6187,9 @@ msgstr "放弃对“{discardBasename}”的更改？"
 
 msgid "Discard changes?"
 msgstr "放弃更改？"
+
+msgid "Discard queued message"
+msgstr "丢弃队列中的消息"
 
 msgid "Discard recording"
 msgstr "放弃录音"
@@ -9603,6 +9636,9 @@ msgstr "加载器 · 盲文加载动画"
 msgid "Loading"
 msgstr "加载中"
 
+msgid "Loading accounts…"
+msgstr "正在加载账户…"
+
 msgid "Loading agent settings..."
 msgstr "正在加载智能体设置..."
 
@@ -10355,6 +10391,9 @@ msgstr "为此项目的新分支设置命名空间。默认使用主机全局的
 msgid "Naming instructions"
 msgstr "命名说明"
 
+msgid "Native chat is not enabled"
+msgstr "未启用原生聊天"
+
 msgid "Native PR reviews"
 msgstr "原生PR审查"
 
@@ -10686,6 +10725,9 @@ msgstr "未找到作者。"
 
 msgid "No automations match"
 msgstr "没有匹配的自动化"
+
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "没有可用的订阅账户。请在“用量”中添加账户或登录，然后刷新。"
 
 msgid "No branches found"
 msgstr "未找到分支"
@@ -15960,11 +16002,17 @@ msgstr "开始一段对话，消息会显示在这里"
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "以该终端最近的上下文启动一个新的智能体会话。工作区中的文件仍是准确来源。"
 
+msgid "Start a native chat using an existing login. Recovery keeps this account and working folder."
+msgstr "使用现有登录启动原生聊天。恢复时将保留此账户和工作文件夹。"
+
 msgid "Start a new agent session each run"
 msgstr "每次运行都启动新的智能体会话"
 
 msgid "Start a new chat"
 msgstr "开始新的聊天"
+
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "使用现有登录启动新终端。其他聊天和默认账户保持不变。"
 
 msgid "Start a session"
 msgstr "开始一个会话"
@@ -15983,6 +16031,9 @@ msgstr "开始浏览"
 
 msgid "Start building in two."
 msgstr "两步开始构建。"
+
+msgid "Start chat"
+msgstr "启动聊天"
 
 msgid "Start coding agents, follow them live, and review the diff from your iPhone or iPad. Available on the App Store; Android is coming soon."
 msgstr "在 iPhone 或 iPad 上启动编程智能体、实时跟进并审查差异。已在 App Store 上架；Android 版即将推出。"
@@ -16007,6 +16058,9 @@ msgstr "用标签栏中的+新建一个。"
 
 msgid "Start or stop the workspace run command"
 msgstr "启动或停止工作区运行命令"
+
+msgid "Start terminal"
+msgstr "启动终端"
 
 msgid "Start voice mode"
 msgstr "开始语音模式"
@@ -16116,6 +16170,12 @@ msgstr "停止{0}"
 msgid "Stop {label}"
 msgstr "停止 {label}"
 
+msgid "Stop agent"
+msgstr "停止智能体"
+
+msgid "Stop agent and background work"
+msgstr "停止智能体及后台任务"
+
 msgid "Stop all agent background processes"
 msgstr "停止所有代理后台进程"
 
@@ -16134,6 +16194,9 @@ msgstr "在此停止Superset，然后从其他设备删除。"
 
 msgid "Stop the agent and send this now"
 msgstr "停止智能体并立即发送"
+
+msgid "Stop this agent and its background work?"
+msgstr "停止此智能体及其后台任务？"
 
 msgid "Stop watching"
 msgstr "停止关注"
@@ -17172,6 +17235,12 @@ msgstr "同一个应用在 iPad 上原生运行，支持竖屏和横屏。"
 msgid "The scorecard"
 msgstr "评分表"
 
+msgid "The selected account chat could not be verified in saved layout data. Nothing was launched by this attempt. If storage is full, free space, then rename this tab to save its layout before retrying. Keep this tab open if it still fails."
+msgstr "无法在已保存的布局数据中验证所选账户的聊天。本次尝试未启动任何内容。如果存储空间已满，请释放空间，然后重命名此标签页以保存布局，再重试。如果仍然失败，请保持此标签页打开。"
+
+msgid "The selected login changed. Choose an account again."
+msgstr "所选登录已更改。请重新选择账户。"
+
 msgid "The self-driving software factory"
 msgstr "自动驾驶的软件工厂"
 
@@ -17259,6 +17328,9 @@ msgstr "创建工作区时会自动运行这些命令。<0>阅读文档<1/></0>"
 msgid "These folders still have your files, but they did not come over to the new Superset on their own."
 msgstr "这些文件夹中仍有你的文件，但没有自动迁移到新版 Superset。"
 
+msgid "These messages were not sent. Copy anything you need, then discard the queue before resuming."
+msgstr "这些消息尚未发送。请复制需要的内容，然后在恢复前清空队列。"
+
 msgid "These ports are still in use"
 msgstr "这些端口仍在使用中"
 
@@ -17292,6 +17364,9 @@ msgstr "该智能体无法分叉对话"
 msgid "This agent can't run in a cloud workspace"
 msgstr "此智能体无法在云端工作区中运行"
 
+msgid "This agent configuration does not support account selection."
+msgstr "此代理配置不支持选择账户。"
+
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "所选设备上已不存在这个智能体（它的智能体可能被重置过）。在你选择新的智能体之前，运行都会失败。"
 
@@ -17316,6 +17391,9 @@ msgstr "此自动化位于其他组织"
 
 msgid "This cannot be undone."
 msgstr "此操作无法撤销。"
+
+msgid "This chat could not be opened with its saved account."
+msgstr "无法使用已保存的账户打开此聊天。"
 
 msgid "This chat has ended."
 msgstr "此聊天已结束。"
@@ -17385,6 +17463,9 @@ msgstr "这个GitHub安装已连接到另一个Superset组织。请先在那里�
 
 msgid "This host"
 msgstr "此主机"
+
+msgid "This host does not support account selection for native chats."
+msgstr "此主机不支持为原生聊天选择账户。"
 
 msgid "This host has not reported a version yet."
 msgstr "此主机尚未报告版本。"
@@ -17541,6 +17622,9 @@ msgstr "此slug已被占用"
 
 msgid "This stops every Teams trigger in your organization and removes the notification subscriptions from your tenant. You can reconnect at any time."
 msgstr "这会停止你组织中所有的Teams触发器，并从你的租户中移除通知订阅。你可以随时重新连接。"
+
+msgid "This stops the agent process and any background work it owns. Your saved conversation stays available. Review and discard any queued messages first. You can then choose Resume."
+msgstr "这将停止智能体进程及其管理的所有后台任务。已保存的对话仍然可用。请先检查并丢弃队列中的消息，然后选择“恢复”。"
 
 msgid "This subagent is no longer tracked by the host. Its transcript stays on disk under the agent's session directory."
 msgstr "主机不再跟踪该子智能体。其记录仍保存在磁盘上的智能体会话目录中。"
@@ -18298,6 +18382,9 @@ msgstr "请在这台机器上更新Superset以附加文件"
 
 msgid "update the branch prefix"
 msgstr "更新分支前缀"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "请更新此主机，以便为新终端选择账户。"
 
 msgid "Updated"
 msgstr "已更新"

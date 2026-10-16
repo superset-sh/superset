@@ -1,9 +1,15 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "bun:test";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildDefaultAccountResolver } from "./agent-wrappers-common";
+
+const homes: string[] = [];
+afterEach(() => {
+	for (const home of homes.splice(0))
+		rmSync(home, { recursive: true, force: true });
+});
 
 /** Runs the resolver block under bash and returns the resulting env var. */
 function resolve(env: Record<string, string | undefined>): string {
@@ -57,6 +63,7 @@ function makeHome(pointer: string | null): {
 	profile: string;
 } {
 	const home = mkdtempSync(join(tmpdir(), "superset-resolver-"));
+	homes.push(home);
 	const profile = join(home, "profile");
 	mkdirSync(join(home, "state"), { recursive: true });
 	mkdirSync(profile);
@@ -67,6 +74,21 @@ function makeHome(pointer: string | null): {
 }
 
 describe("buildDefaultAccountResolver", () => {
+	it("keeps an explicitly pinned system or profile account when the host default changes", () => {
+		const { home, profile } = makeHome(null);
+		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);
+		for (const selected of [undefined, "/selected/account"]) {
+			expect(
+				resolve({
+					SUPERSET_TERMINAL_ID: "t1",
+					SUPERSET_HOME_DIR: home,
+					SUPERSET_PINNED_ACCOUNT: "CLAUDE_CONFIG_DIR",
+					CLAUDE_CONFIG_DIR: selected,
+					SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR: selected,
+				}),
+			).toBe(selected ?? "<unset>");
+		}
+	});
 	it("adopts the pointer in a Superset terminal with no spawn-time value", () => {
 		const { home, profile } = makeHome("");
 		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);
