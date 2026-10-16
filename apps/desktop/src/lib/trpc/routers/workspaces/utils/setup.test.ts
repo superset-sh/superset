@@ -1,9 +1,19 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { PROJECTS_DIR_NAME, SUPERSET_DIR_NAME } from "shared/constants";
-import { loadSetupConfig, mergeConfigs } from "./setup";
+import {
+	copySupersetConfigToWorktree,
+	loadSetupConfig,
+	mergeConfigs,
+} from "./setup";
 
 const TEST_DIR = join(tmpdir(), `superset-test-setup-${process.pid}`);
 const MAIN_REPO = join(TEST_DIR, "main-repo");
@@ -530,6 +540,137 @@ describe("config.local.json", () => {
 
 		const config = loadSetupConfig({ mainRepoPath: MAIN_REPO });
 		expect(config).toEqual({ setup: ["team-setup.sh"] });
+	});
+});
+
+describe("copySupersetConfigToWorktree", () => {
+	const MAIN_SUPERSET = join(MAIN_REPO, ".superset");
+	const WORKTREE_SUPERSET = join(WORKTREE, ".superset");
+
+	beforeEach(() => {
+		mkdirSync(MAIN_SUPERSET, { recursive: true });
+		mkdirSync(WORKTREE, { recursive: true });
+		writeFileSync(
+			join(MAIN_SUPERSET, "config.json"),
+			JSON.stringify({ setup: ["./.superset/setup.sh"] }),
+		);
+	});
+
+	afterEach(() => {
+		if (existsSync(TEST_DIR)) {
+			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+	});
+
+	test("copies non-secret config into a fresh worktree", () => {
+		writeFileSync(join(MAIN_SUPERSET, "setup.sh"), "#!/bin/sh\nbun install\n");
+		mkdirSync(join(MAIN_SUPERSET, "lib"), { recursive: true });
+		writeFileSync(join(MAIN_SUPERSET, "lib", "ports.sh"), "echo 3000\n");
+
+		const result = copySupersetConfigToWorktree(MAIN_REPO, WORKTREE);
+
+		expect(result.copied).toBe(true);
+		expect(existsSync(join(WORKTREE_SUPERSET, "config.json"))).toBe(true);
+		expect(existsSync(join(WORKTREE_SUPERSET, "setup.sh"))).toBe(true);
+		expect(existsSync(join(WORKTREE_SUPERSET, "lib", "ports.sh"))).toBe(true);
+	});
+
+	test("does not copy dotenv secrets into the worktree", () => {
+		writeFileSync(
+			join(MAIN_SUPERSET, ".env"),
+			"ANTHROPIC_API_KEY=sk-ant-old\n",
+		);
+		writeFileSync(join(MAIN_SUPERSET, ".env.local"), "DATABASE_URL=postgres\n");
+
+		copySupersetConfigToWorktree(MAIN_REPO, WORKTREE);
+
+		expect(existsSync(join(WORKTREE_SUPERSET, ".env"))).toBe(false);
+		expect(existsSync(join(WORKTREE_SUPERSET, ".env.local"))).toBe(false);
+		// The rest of the config still lands, so setup scripts keep working.
+		expect(existsSync(join(WORKTREE_SUPERSET, "config.json"))).toBe(true);
+	});
+
+	test("does not copy credential files nested inside .superset", () => {
+		mkdirSync(join(MAIN_SUPERSET, "lib"), { recursive: true });
+		writeFileSync(join(MAIN_SUPERSET, "lib", ".env"), "TOKEN=abc\n");
+		writeFileSync(join(MAIN_SUPERSET, "credentials.json"), "{}");
+		writeFileSync(join(MAIN_SUPERSET, "deploy.pem"), "key\n");
+
+		copySupersetConfigToWorktree(MAIN_REPO, WORKTREE);
+
+		expect(existsSync(join(WORKTREE_SUPERSET, "lib", ".env"))).toBe(false);
+		expect(existsSync(join(WORKTREE_SUPERSET, "credentials.json"))).toBe(false);
+		expect(existsSync(join(WORKTREE_SUPERSET, "deploy.pem"))).toBe(false);
+	});
+
+	test("reports which credential files were skipped so callers can warn", () => {
+		writeFileSync(
+			join(MAIN_SUPERSET, ".env"),
+			"ANTHROPIC_API_KEY=sk-ant-old\n",
+		);
+
+		const result = copySupersetConfigToWorktree(MAIN_REPO, WORKTREE);
+
+		expect(result.skippedSecretFiles).toEqual([".env"]);
+	});
+
+	test("still copies dotenv templates, which hold no secrets", () => {
+		writeFileSync(join(MAIN_SUPERSET, ".env.example"), "ANTHROPIC_API_KEY=\n");
+
+		const result = copySupersetConfigToWorktree(MAIN_REPO, WORKTREE);
+
+		expect(existsSync(join(WORKTREE_SUPERSET, ".env.example"))).toBe(true);
+		expect(result.skippedSecretFiles).toEqual([]);
+	});
+
+	// Regression for #5945: the copy runs once, at worktree creation, and is
+	// never refreshed. Snapshotting a key here means the worktree keeps serving
+	// the pre-rotation value while the main checkout picks up the new one.
+	test("worktree holds no stale key snapshot after the main key rotates", () => {
+		writeFileSync(
+			join(MAIN_SUPERSET, ".env"),
+			"ANTHROPIC_API_KEY=sk-ant-old\n",
+		);
+
+		copySupersetConfigToWorktree(MAIN_REPO, WORKTREE);
+
+		writeFileSync(
+			join(MAIN_SUPERSET, ".env"),
+			"ANTHROPIC_API_KEY=sk-ant-new\n",
+		);
+
+		// A second call is a no-op once the worktree has a .superset dir, so a
+		// copied secret can never be refreshed.
+		copySupersetConfigToWorktree(MAIN_REPO, WORKTREE);
+
+		expect(existsSync(join(WORKTREE_SUPERSET, ".env"))).toBe(false);
+		expect(readFileSync(join(MAIN_SUPERSET, ".env"), "utf-8")).toContain(
+			"sk-ant-new",
+		);
+	});
+
+	test("leaves an existing worktree .superset directory untouched", () => {
+		mkdirSync(WORKTREE_SUPERSET, { recursive: true });
+		writeFileSync(
+			join(WORKTREE_SUPERSET, "config.json"),
+			JSON.stringify({ setup: ["worktree-setup.sh"] }),
+		);
+
+		const result = copySupersetConfigToWorktree(MAIN_REPO, WORKTREE);
+
+		expect(result.copied).toBe(false);
+		expect(
+			JSON.parse(readFileSync(join(WORKTREE_SUPERSET, "config.json"), "utf-8")),
+		).toEqual({ setup: ["worktree-setup.sh"] });
+	});
+
+	test("is a no-op when the main repo has no .superset directory", () => {
+		rmSync(MAIN_SUPERSET, { recursive: true, force: true });
+
+		const result = copySupersetConfigToWorktree(MAIN_REPO, WORKTREE);
+
+		expect(result).toEqual({ copied: false, skippedSecretFiles: [] });
+		expect(existsSync(WORKTREE_SUPERSET)).toBe(false);
 	});
 });
 
