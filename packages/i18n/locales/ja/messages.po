@@ -4037,6 +4037,10 @@ msgstr "コードブロック"
 msgid "Code Block"
 msgstr "Code Block"
 
+#. Homepage headline, line 2 of 2, after “Run an Army of”. Shown in a scanline style.
+msgid "Coding Agents"
+msgstr "コードを書こう"
+
 msgid "Collapse"
 msgstr "折りたたむ"
 
@@ -12310,6 +12314,10 @@ msgstr "並列のエージェントワークツリー"
 msgid "Parallel agents"
 msgstr "並列エージェント"
 
+#. Homepage headline, line 2 of 2, after “The IDE for”. Shown in a scanline style.
+msgid "Parallel Agents"
+msgstr "専用IDE"
+
 msgid "Parallel agents guide"
 msgstr "並列エージェントガイド"
 
@@ -14309,6 +14317,10 @@ msgstr "再実行"
 
 msgid "Run agents side by side"
 msgstr "エージェントを並べて実行"
+
+#. Homepage headline, line 1 of 2. Line 2 is “Coding Agents”; reorder the two lines if the language needs it.
+msgid "Run an Army of"
+msgstr "エージェント軍団で"
 
 msgid "Run any agent you set up in Superset, such as Claude or Codex."
 msgstr "Superset で設定したエージェントなら何でも実行できます。たとえば Claude や Codex です。"
@@ -17061,6 +17073,10 @@ msgstr "ホストは以前のビルドに戻りました。"
 
 msgid "The human reads every line before it merges."
 msgstr "人間がマージ前に全行を読む。"
+
+#. Homepage headline, line 1 of 2. Line 2 is “Parallel Agents”; reorder the two lines if the language needs it.
+msgid "The IDE for"
+msgstr "並列エージェント"
 
 msgid "The image upload expired — attach it again"
 msgstr "画像のアップロードの有効期限が切れました — もう一度添付してください"

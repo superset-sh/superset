@@ -4037,6 +4037,10 @@ msgstr "Code block"
 msgid "Code Block"
 msgstr "Code Block"
 
+#. Homepage headline, line 2 of 2, after “Run an Army of”. Shown in a scanline style.
+msgid "Coding Agents"
+msgstr "Coding Agents"
+
 msgid "Collapse"
 msgstr "Collapse"
 
@@ -12310,6 +12314,10 @@ msgstr "Parallel agent worktrees"
 msgid "Parallel agents"
 msgstr "Parallel agents"
 
+#. Homepage headline, line 2 of 2, after “The IDE for”. Shown in a scanline style.
+msgid "Parallel Agents"
+msgstr "Parallel Agents"
+
 msgid "Parallel agents guide"
 msgstr "Parallel agents guide"
 
@@ -14309,6 +14317,10 @@ msgstr "Run again"
 
 msgid "Run agents side by side"
 msgstr "Run agents side by side"
+
+#. Homepage headline, line 1 of 2. Line 2 is “Coding Agents”; reorder the two lines if the language needs it.
+msgid "Run an Army of"
+msgstr "Run an Army of"
 
 msgid "Run any agent you set up in Superset, such as Claude or Codex."
 msgstr "Run any agent you set up in Superset, such as Claude or Codex."
@@ -17061,6 +17073,10 @@ msgstr "The host went back to its previous build."
 
 msgid "The human reads every line before it merges."
 msgstr "The human reads every line before it merges."
+
+#. Homepage headline, line 1 of 2. Line 2 is “Parallel Agents”; reorder the two lines if the language needs it.
+msgid "The IDE for"
+msgstr "The IDE for"
 
 msgid "The image upload expired — attach it again"
 msgstr "The image upload expired — attach it again"

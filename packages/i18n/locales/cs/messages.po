@@ -4037,6 +4037,10 @@ msgstr "Blok kódu"
 msgid "Code Block"
 msgstr "Blok kódu"
 
+#. Homepage headline, line 2 of 2, after “Run an Army of”. Shown in a scanline style.
+msgid "Coding Agents"
+msgstr "kódovacích agentů"
+
 msgid "Collapse"
 msgstr "Sbalit"
 
@@ -12310,6 +12314,10 @@ msgstr "Paralelní worktree agentů"
 msgid "Parallel agents"
 msgstr "Paralelní agenti"
 
+#. Homepage headline, line 2 of 2, after “The IDE for”. Shown in a scanline style.
+msgid "Parallel Agents"
+msgstr "paralelní agenty"
+
 msgid "Parallel agents guide"
 msgstr "Průvodce paralelními agenty"
 
@@ -14309,6 +14317,10 @@ msgstr "Spustit znovu"
 
 msgid "Run agents side by side"
 msgstr "Spouštějte agenty vedle sebe"
+
+#. Homepage headline, line 1 of 2. Line 2 is “Coding Agents”; reorder the two lines if the language needs it.
+msgid "Run an Army of"
+msgstr "Spusťte armádu"
 
 msgid "Run any agent you set up in Superset, such as Claude or Codex."
 msgstr "Spusťte libovolného agenta nastaveného v Supersetu, třeba Claude nebo Codex."
@@ -17061,6 +17073,10 @@ msgstr "Hostitel se vrátil k předchozímu sestavení."
 
 msgid "The human reads every line before it merges."
 msgstr "Člověk přečte každý řádek, než se sloučí."
+
+#. Homepage headline, line 1 of 2. Line 2 is “Parallel Agents”; reorder the two lines if the language needs it.
+msgid "The IDE for"
+msgstr "IDE pro"
 
 msgid "The image upload expired — attach it again"
 msgstr "Platnost nahrání obrázku vypršela — připojte ho znovu"

@@ -4037,6 +4037,10 @@ msgstr "Blok kode"
 msgid "Code Block"
 msgstr "Blok Kode"
 
+#. Homepage headline, line 2 of 2, after “Run an Army of”. Shown in a scanline style.
+msgid "Coding Agents"
+msgstr "agen coding"
+
 msgid "Collapse"
 msgstr "Ciutkan"
 
@@ -12310,6 +12314,10 @@ msgstr "Worktree agen paralel"
 msgid "Parallel agents"
 msgstr "Agen paralel"
 
+#. Homepage headline, line 2 of 2, after “The IDE for”. Shown in a scanline style.
+msgid "Parallel Agents"
+msgstr "agen paralel"
+
 msgid "Parallel agents guide"
 msgstr "Panduan agen paralel"
 
@@ -14309,6 +14317,10 @@ msgstr "Jalankan lagi"
 
 msgid "Run agents side by side"
 msgstr "Jalankan agen berdampingan"
+
+#. Homepage headline, line 1 of 2. Line 2 is “Coding Agents”; reorder the two lines if the language needs it.
+msgid "Run an Army of"
+msgstr "Jalankan pasukan"
 
 msgid "Run any agent you set up in Superset, such as Claude or Codex."
 msgstr "Jalankan agen apa pun yang Anda atur di Superset, misalnya Claude atau Codex."
@@ -17061,6 +17073,10 @@ msgstr "Host kembali ke build sebelumnya."
 
 msgid "The human reads every line before it merges."
 msgstr "Manusia membaca tiap baris sebelum di-merge."
+
+#. Homepage headline, line 1 of 2. Line 2 is “Parallel Agents”; reorder the two lines if the language needs it.
+msgid "The IDE for"
+msgstr "IDE untuk"
 
 msgid "The image upload expired — attach it again"
 msgstr "Unggahan gambar kedaluwarsa — lampirkan lagi"

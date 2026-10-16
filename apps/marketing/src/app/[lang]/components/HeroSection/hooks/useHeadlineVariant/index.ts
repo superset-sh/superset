@@ -1,0 +1,1 @@
+export { useHeadlineVariant } from "./useHeadlineVariant";
