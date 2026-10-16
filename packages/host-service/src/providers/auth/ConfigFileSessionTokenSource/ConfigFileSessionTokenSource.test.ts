@@ -89,6 +89,38 @@ describe("ConfigFileSessionTokenSource", () => {
 			expiresAt: expect.any(Number),
 		});
 	});
+	test("refreshes once when two processes refresh the same config", async () => {
+		const configPath = join(dir, "config.json");
+		writeAuthConfig(configPath);
+		let refreshCalls = 0;
+		globalThis.fetch = (async () => {
+			refreshCalls++;
+			await new Promise((resolve) => setTimeout(resolve, 50));
+			return new Response(
+				JSON.stringify({
+					access_token: "at_refreshed",
+					refresh_token: "rt_refreshed",
+					expires_in: 3600,
+				}),
+			);
+		}) as unknown as typeof fetch;
+		const sources = [0, 1].map(
+			() =>
+				new ConfigFileSessionTokenSource({
+					configPath,
+					apiUrl: "https://api.test",
+				}),
+		);
+		for (const source of sources) source.invalidateCache();
+
+		const tokens = await Promise.all(
+			sources.map((source) => source.getSessionToken()),
+		);
+
+		expect(tokens).toEqual(["at_refreshed", "at_refreshed"]);
+		expect(refreshCalls).toBe(1);
+	});
+
 	test("stops sending a refresh token the server rejected", async () => {
 		const configPath = join(dir, "config.json");
 		writeAuthConfig(configPath);

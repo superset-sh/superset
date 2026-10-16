@@ -281,7 +281,7 @@ export const oauthClients = authSchema.table("oauth_clients", {
 
 export const oauthRefreshTokens = authSchema.table("oauth_refresh_tokens", {
 	id: uuid("id").primaryKey().defaultRandom(),
-	token: text("token").notNull(),
+	token: text("token").notNull().unique(),
 	clientId: text("client_id")
 		.notNull()
 		.references(() => oauthClients.clientId, { onDelete: "cascade" }),

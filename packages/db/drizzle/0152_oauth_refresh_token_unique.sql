@@ -1,0 +1,1 @@
+ALTER TABLE "auth"."oauth_refresh_tokens" ADD CONSTRAINT "oauth_refresh_tokens_token_unique" UNIQUE("token");

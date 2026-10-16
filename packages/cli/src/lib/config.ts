@@ -11,18 +11,14 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { resolveWriteTarget } from "@superset/agent-setup/write-file-if-changed";
+import type { StoredOAuth } from "@superset/shared/oauth-refresh";
 import { env } from "./env";
 import { getSupersetHomeDir } from "./settings/paths";
 
-/** A token this close to `auth.expiresAt` is treated as expired. */
-export const AUTH_REFRESH_LEEWAY_MS = 5 * 60 * 1000;
+export { AUTH_REFRESH_LEEWAY_MS } from "@superset/shared/oauth-refresh";
 
 export type SupersetConfig = {
-	auth?: {
-		accessToken: string;
-		refreshToken?: string;
-		expiresAt: number;
-	};
+	auth?: StoredOAuth;
 	apiKey?: string;
 	organizationId?: string;
 };

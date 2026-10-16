@@ -42,7 +42,12 @@ function isNonEmptyString(value: unknown): value is string {
 
 // Exhaustive over the auth block for the same reason as CHECKS below.
 const AUTH_KEYS: { [K in keyof NonNullable<SupersetConfig["auth"]>]-?: true } =
-	{ accessToken: true, refreshToken: true, expiresAt: true };
+	{
+		accessToken: true,
+		refreshToken: true,
+		expiresAt: true,
+		refreshStartedAt: true,
+	};
 
 function checkAuth(value: unknown, now: number): FieldCheck {
 	if (!isPlainObject(value)) {
@@ -56,6 +61,26 @@ function checkAuth(value: unknown, now: number): FieldCheck {
 	const hasRefresh = isNonEmptyString(value.refreshToken);
 	if (value.refreshToken !== undefined && !hasRefresh) {
 		issues.push(error("`auth.refreshToken` must be a non-empty string"));
+	}
+	if (
+		value.refreshStartedAt !== undefined &&
+		(typeof value.refreshStartedAt !== "number" ||
+			!Number.isFinite(value.refreshStartedAt))
+	) {
+		issues.push(
+			error(
+				"`auth.refreshStartedAt` must be a finite number (ms since the epoch)",
+			),
+		);
+	} else if (
+		typeof value.refreshStartedAt === "number" &&
+		value.refreshStartedAt > now
+	) {
+		issues.push(
+			warning(
+				"`auth.refreshStartedAt` is in the future: if it is more than 5 minutes ahead, the next command drops the refresh token (run: superset auth login)",
+			),
+		);
 	}
 	for (const key of Object.keys(value)) {
 		if (!Object.hasOwn(AUTH_KEYS, key)) {

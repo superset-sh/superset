@@ -479,3 +479,30 @@ version's files, write the diff to
 package root), update the key in `patchedDependencies`, run `bun install`, then
 `bun test apps/mobile/react-native-enriched-markdown-list-patch.test.ts`. It is
 a native change: rebuild the app to see it.
+
+## @better-auth/oauth-provider (`@better-auth%2Foauth-provider@<version>.patch`)
+
+**Why:** the token endpoint rotates the refresh token on every refresh. When a
+rotated token is sent again, it treats that as theft and deletes every refresh
+and access token the user holds for that client, on every machine. Several CLI
+processes on one machine, or the CLI and a host-service, refresh at the same
+moment as a matter of course, and a client that loses a response retries it.
+Both send the rotated token again within seconds, and the user is logged out
+everywhere (GH #8426). A check in a `before` hook cannot fix this: between the
+hook's read and the provider's read, another request can rotate the token.
+
+**What it changes** (`dist/index.mjs`, `handleRefreshTokenGrant`): when the
+token was revoked less than 10 minutes ago, the request still fails with
+`invalid_grant` but the token family is kept. Reuse after 10 minutes still
+deletes it. The CLI retries a refresh with an unknown outcome only within 5
+minutes (`retryWindowMs` in `packages/cli/src/lib/oauth-refresh.ts`), so keep
+that below this window.
+
+**Guard test:** `packages/auth/src/oauth-provider-refresh-grace-patch.test.ts`.
+It runs the installed provider against an in-memory database.
+
+**Regenerating after a version bump:** `bun patch @better-auth/oauth-provider`,
+make the same change in `handleRefreshTokenGrant` (keep the
+`superset-patch: refresh-reuse-grace` comment), `bun patch --commit
+'node_modules/@better-auth/oauth-provider'`, then
+`bun test packages/auth/src/oauth-provider-refresh-grace-patch.test.ts`.

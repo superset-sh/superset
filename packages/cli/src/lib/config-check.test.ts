@@ -105,12 +105,32 @@ describe("checkConfig", () => {
 
 	it("errors on auth fields of the wrong type", () => {
 		const result = check({
-			auth: { accessToken: "tok", refreshToken: 7, expiresAt: "soon" },
+			auth: {
+				accessToken: "tok",
+				refreshToken: 7,
+				expiresAt: "soon",
+				refreshStartedAt: "now",
+			},
 		});
 		expect(result.valid).toBe(false);
 		expect(result.issues.map((i) => i.message)).toEqual([
 			"`auth.refreshToken` must be a non-empty string",
+			"`auth.refreshStartedAt` must be a finite number (ms since the epoch)",
 			"`auth.expiresAt` must be a finite number (ms since the epoch)",
+		]);
+	});
+
+	it("warns about a refreshStartedAt in the future", () => {
+		const result = check({
+			auth: {
+				accessToken: "tok",
+				refreshToken: "r",
+				expiresAt: NOW + 3_600_000,
+				refreshStartedAt: NOW + 60_000,
+			},
+		});
+		expect(result.issues.map((i) => i.message)).toEqual([
+			"`auth.refreshStartedAt` is in the future: if it is more than 5 minutes ahead, the next command drops the refresh token (run: superset auth login)",
 		]);
 	});
 

@@ -4,6 +4,10 @@
 	"private": true,
 	"type": "module",
 	"exports": {
+		"./oauth-refresh": {
+			"types": "./src/oauth-refresh.ts",
+			"default": "./src/oauth-refresh.ts"
+		},
 		"./terminal-colors": "./src/terminal-colors.ts",
 		"./voice": {
 			"types": "./src/voice/index.ts",

@@ -101,6 +101,7 @@
 		"workerd"
 	],
 	"patchedDependencies": {
+		"@better-auth/oauth-provider@1.6.22": "patches/@better-auth%2Foauth-provider@1.6.22.patch",
 		"metro@0.84.5": "patches/metro@0.84.5.patch",
 		"metro@0.84.6": "patches/metro@0.84.6.patch",
 		"metro@0.87.1": "patches/metro@0.87.1.patch",

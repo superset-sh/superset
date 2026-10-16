@@ -10,16 +10,19 @@ import {
 } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { resolveWriteTarget } from "@superset/agent-setup/write-file-if-changed";
+import {
+	isAuthFresh,
+	REFRESH_TIMINGS,
+	refreshLockPath,
+	refreshStoredAuth,
+	type StoredOAuth,
+} from "@superset/shared/oauth-refresh";
 
 const CLIENT_ID = "superset-cli";
 const LOGIN_AGAIN_MESSAGE = "Session expired. Run: superset auth login";
 
 type SupersetAuthConfig = {
-	auth?: {
-		accessToken: string;
-		refreshToken?: string;
-		expiresAt: number;
-	};
+	auth?: StoredOAuth;
 	apiKey?: string;
 	organizationId?: string;
 };
@@ -79,23 +82,13 @@ function loginAgainError(): Error {
 	return new Error(LOGIN_AGAIN_MESSAGE);
 }
 
-function authMatches(
-	left: NonNullable<SupersetAuthConfig["auth"]>,
-	right: NonNullable<SupersetAuthConfig["auth"]>,
-): boolean {
-	return (
-		left.accessToken === right.accessToken &&
-		left.refreshToken === right.refreshToken &&
-		left.expiresAt === right.expiresAt
-	);
-}
+const REFRESH_TIMEOUT_MS = 60_000;
 
 export class ConfigFileSessionTokenSource {
 	private readonly configPath: string;
 	private readonly apiUrl: string;
 	private refreshPromise: Promise<string> | null = null;
 	private refreshNeeded = false;
-	private rejectedRefreshToken: string | null = null;
 
 	constructor(options: ConfigFileSessionTokenSourceOptions) {
 		this.configPath = options.configPath;
@@ -118,76 +111,60 @@ export class ConfigFileSessionTokenSource {
 
 		if (this.refreshPromise) return this.refreshPromise;
 
-		if (!auth.refreshToken || auth.refreshToken === this.rejectedRefreshToken) {
-			throw loginAgainError();
-		}
-		this.refreshPromise = this.refreshAccessToken(auth).finally(() => {
-			this.refreshPromise = null;
-		});
+		const rejectedAccessToken = auth.accessToken;
+		this.refreshPromise = refreshStoredAuth<SupersetAuthConfig>(
+			{
+				refresh: (refreshToken) => this.refreshAccessToken(refreshToken),
+				readConfig: () => readConfig(this.configPath),
+				writeConfig: (next) => writeConfig(this.configPath, next),
+				lockPath: refreshLockPath(this.configPath),
+				...REFRESH_TIMINGS,
+				now: () => Date.now(),
+				sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+			},
+			(stored, now) =>
+				stored.accessToken !== rejectedAccessToken && isAuthFresh(stored, now),
+		)
+			.then((refreshed) => {
+				this.refreshNeeded = false;
+				return refreshed.apiKey?.trim() || refreshed.auth.accessToken;
+			})
+			.catch(() => {
+				throw loginAgainError();
+			})
+			.finally(() => {
+				this.refreshPromise = null;
+			});
 
 		return this.refreshPromise;
 	}
 
-	private async refreshAccessToken(
-		auth: NonNullable<SupersetAuthConfig["auth"]>,
-	): Promise<string> {
-		if (!auth.refreshToken) throw loginAgainError();
-
-		let response: Response;
-		try {
-			response = await fetch(`${this.apiUrl}/api/auth/oauth2/token`, {
-				method: "POST",
-				headers: { "Content-Type": "application/x-www-form-urlencoded" },
-				body: new URLSearchParams({
-					grant_type: "refresh_token",
-					refresh_token: auth.refreshToken,
-					client_id: CLIENT_ID,
-					resource: this.apiUrl,
-				}),
-			});
-		} catch {
-			throw loginAgainError();
+	private async refreshAccessToken(refreshToken: string) {
+		const response = await fetch(`${this.apiUrl}/api/auth/oauth2/token`, {
+			method: "POST",
+			signal: AbortSignal.timeout(REFRESH_TIMEOUT_MS),
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			body: new URLSearchParams({
+				grant_type: "refresh_token",
+				refresh_token: refreshToken,
+				client_id: CLIENT_ID,
+				resource: this.apiUrl,
+			}),
+		});
+		if (!response.ok) {
+			throw Object.assign(
+				new Error(`Token refresh failed: ${response.status}`),
+				{
+					status: response.status,
+				},
+			);
 		}
-
-		if (response.status === 400 || response.status === 401) {
-			this.rejectedRefreshToken = auth.refreshToken;
-		}
-		if (!response.ok) throw loginAgainError();
-
-		let data: OAuthRefreshResponse;
-		try {
-			data = (await response.json()) as OAuthRefreshResponse;
-		} catch {
-			throw loginAgainError();
-		}
-
-		if (!data.access_token) throw loginAgainError();
-
-		const nextAuth = {
+		const data = (await response.json()) as OAuthRefreshResponse;
+		if (!data.access_token) throw new Error("Token refresh returned no token");
+		return {
 			accessToken: data.access_token,
-			refreshToken: data.refresh_token ?? auth.refreshToken,
+			refreshToken: data.refresh_token ?? refreshToken,
 			expiresAt: Date.now() + (data.expires_in ?? 60 * 60) * 1000,
 		};
-
-		const latestConfig = await readConfig(this.configPath);
-		const latestApiKey = latestConfig.apiKey?.trim();
-		if (latestApiKey) {
-			this.refreshNeeded = false;
-			return latestApiKey;
-		}
-		if (!latestConfig.auth) throw loginAgainError();
-
-		if (!authMatches(latestConfig.auth, auth)) {
-			this.refreshNeeded = false;
-			return latestConfig.auth.accessToken;
-		}
-
-		await writeConfig(this.configPath, {
-			...latestConfig,
-			auth: nextAuth,
-		});
-
-		this.refreshNeeded = false;
-		return nextAuth.accessToken;
 	}
 }

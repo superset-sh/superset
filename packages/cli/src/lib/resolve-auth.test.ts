@@ -231,3 +231,75 @@ describe("resolveAuth in a Superset terminal", () => {
 		expect(result.bearer).toBe("sk_live_own");
 	});
 });
+
+describe("resolveAuth OAuth refresh", () => {
+	const realFetch = globalThis.fetch;
+	let tokenRequests = 0;
+
+	afterEach(() => {
+		globalThis.fetch = realFetch;
+		tokenRequests = 0;
+		fs.rmSync(path.join(tempHome, "auth-refresh.lock"), { force: true });
+	});
+
+	function stubTokenEndpoint(): void {
+		globalThis.fetch = (async (input: string | URL | Request) => {
+			if (!String(input).endsWith("/api/auth/oauth2/token")) {
+				throw new Error(`unexpected request ${String(input)}`);
+			}
+			tokenRequests++;
+			await new Promise((resolve) => setTimeout(resolve, 30));
+			return Response.json({
+				access_token: `fresh-${tokenRequests}`,
+				refresh_token: `rotated-${tokenRequests}`,
+				expires_in: 3600,
+			});
+		}) as typeof fetch;
+	}
+
+	const expiring = () => ({
+		accessToken: "stale",
+		refreshToken: "stale-refresh",
+		expiresAt: Date.now() + 60_000,
+	});
+
+	it("parallel commands in the refresh window send one refresh and share its token", async () => {
+		stubTokenEndpoint();
+		writeConfig({ auth: expiring() });
+
+		const results = await Promise.all([
+			resolveAuth(undefined),
+			resolveAuth(undefined),
+			resolveAuth(undefined),
+		]);
+
+		expect(tokenRequests).toBe(1);
+		expect(results.map((r) => r.bearer)).toEqual([
+			"fresh-1",
+			"fresh-1",
+			"fresh-1",
+		]);
+		expect(readConfig().auth?.refreshToken).toBe("rotated-1");
+	});
+
+	it("waits for a refresh another process holds and uses its token", async () => {
+		stubTokenEndpoint();
+		writeConfig({ auth: expiring() });
+		const lockPath = path.join(tempHome, "auth-refresh.lock");
+		fs.writeFileSync(lockPath, "other-process");
+
+		const pending = resolveAuth(undefined);
+		await new Promise((resolve) => setTimeout(resolve, 100));
+		writeConfig({
+			auth: {
+				accessToken: "theirs",
+				refreshToken: "their-refresh",
+				expiresAt: Date.now() + 3_600_000,
+			},
+		});
+		fs.rmSync(lockPath);
+
+		expect((await pending).bearer).toBe("theirs");
+		expect(tokenRequests).toBe(0);
+	});
+});
