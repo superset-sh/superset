@@ -1,6 +1,7 @@
 import { cn } from "@superset/ui/utils";
 import { CgLaptop } from "react-icons/cg";
 import {
+	LuGitFork,
 	LuGitMerge,
 	LuGitPullRequest,
 	LuGitPullRequestClosed,
@@ -83,6 +84,15 @@ export function DashboardSidebarWorkspaceIcon({
 			if (workspaceType === "local") {
 				return (
 					<CgLaptop className={cn("size-4 transition-colors", iconColor)} />
+				);
+			}
+
+			if (workspaceType === "worktree") {
+				return (
+					<LuGitFork
+						className={cn("size-4 transition-colors", iconColor)}
+						strokeWidth={1.75}
+					/>
 				);
 			}
 

@@ -9,7 +9,7 @@ import { cn } from "@superset/ui/utils";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { CgLaptop } from "react-icons/cg";
-import { LuGitBranch, LuLaptop, LuMonitor } from "react-icons/lu";
+import { LuGitBranch, LuGitFork, LuLaptop, LuMonitor } from "react-icons/lu";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -204,7 +204,11 @@ function V2WorkspaceList({ query }: { query: string }) {
 									<span className="min-w-0 truncate font-normal">
 										{displayName}
 									</span>
-									<CgLaptop className="!size-3.5 shrink-0 text-muted-foreground" />
+									{workspace.type === "local" ? (
+										<CgLaptop className="!size-3.5 shrink-0 text-muted-foreground" />
+									) : workspace.type === "worktree" ? (
+										<LuGitFork className="!size-3 shrink-0 text-muted-foreground" />
+									) : null}
 								</span>
 								<span className="flex min-w-0 max-w-44 items-center gap-1 text-muted-foreground text-xs">
 									<HostIcon className="!size-3 shrink-0" />
