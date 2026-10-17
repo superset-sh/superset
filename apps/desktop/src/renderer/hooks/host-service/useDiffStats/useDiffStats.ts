@@ -9,6 +9,11 @@ export interface DiffStats {
 	deletions: number;
 }
 
+// A one-shot read (the sidebar hover card) gets no git:changed subscription:
+// that would make the host attach a recursive watch of the whole worktree
+// just to show two numbers.
+const ONE_SHOT_STALE_MS = 30_000;
+
 export function getDiffStatsQueryKey(
 	hostUrl: string | null,
 	workspaceId: string,
@@ -18,9 +23,10 @@ export function getDiffStatsQueryKey(
 
 export function useDiffStats(
 	workspaceId: string,
-	options?: { enabled?: boolean },
+	options?: { enabled?: boolean; live?: boolean },
 ): DiffStats | null {
 	const enabled = options?.enabled ?? true;
+	const live = options?.live ?? true;
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
 	const queryClient = useQueryClient();
 	const queryKey = useMemo(
@@ -39,21 +45,21 @@ export function useDiffStats(
 			});
 		},
 		refetchOnWindowFocus: false,
-		staleTime: Number.POSITIVE_INFINITY,
+		staleTime: live ? Number.POSITIVE_INFINITY : ONE_SHOT_STALE_MS,
 	});
 
 	const invalidate = useCallback(() => {
 		void queryClient.invalidateQueries({ queryKey });
 	}, [queryClient, queryKey]);
 
-	// Stays subscribed while disabled: invalidation marks the cached stats
-	// stale so they refetch when the query is re-enabled (staleTime is
-	// Infinity, so a gated subscription would freeze counts).
+	// A live read stays subscribed while disabled: invalidation marks the
+	// cached stats stale so they refetch when the query is re-enabled
+	// (staleTime is Infinity, so a gated subscription would freeze counts).
 	useWorkspaceEvent(
 		"git:changed",
 		workspaceId,
 		invalidate,
-		Boolean(workspaceId) && Boolean(hostUrl),
+		live && Boolean(workspaceId) && Boolean(hostUrl),
 	);
 
 	return useMemo<DiffStats | null>(() => {
