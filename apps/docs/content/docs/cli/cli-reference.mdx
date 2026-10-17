@@ -862,8 +862,9 @@ superset workspaces create --project prj_… --name "perf-spike" --branch perf/s
 	options={[
 		{ flag: "--host <id>", description: "Host the workspaces live on." },
 		{ flag: "--local", description: "Target this machine." },
+		{ flag: "--delete-branch", description: "Also delete each workspace's local branch (`git branch -D`). Host workspaces only. Off by default." },
 	]}
-	output={`{ deleted: string[]; warnings: string[] }`}
+	output={`{ deleted: string[]; branchesDeleted: string[]; warnings: string[] }`}
 >
 Archive one or more workspaces. Without `--host` or `--local`, this targets
 cloud workspaces if your account has them, else this machine. The old name
@@ -873,14 +874,23 @@ cloud workspaces if your account has them, else this machine. The old name
   7 days. A restore within those 7 days keeps its disk; after that, the
   workspace starts again from a fresh sandbox.
 - **Worktree workspace on a host:** its folder is removed, with any uncommitted
-  changes. Its branch stays, so a restore brings back only committed work. A
-  workspace that shares the project's own checkout keeps that folder.
+  changes. Its branch stays, so a restore brings back only committed work,
+  unless you pass `--delete-branch`. A workspace that shares the project's own
+  checkout keeps that folder.
+
+`--delete-branch` is consent to a forced delete: the branch goes with
+`git branch -D` even when unmerged, so unpushed commits on it are lost. It runs
+after the workspace is archived, so a git failure lands in `warnings` instead of
+failing the command. `branchesDeleted` lists the workspaces whose branch is gone
+(one that was already gone counts). Cloud workspaces have no local branch, so
+the flag is rejected for them.
 
 `deleted` lists the archived IDs; the field keeps its old name so existing
 scripts still work.
 
 ```bash
 superset workspaces archive ws_a ws_b ws_c
+superset workspaces archive --local ws_a --delete-branch
 ```
 </Command>
 
