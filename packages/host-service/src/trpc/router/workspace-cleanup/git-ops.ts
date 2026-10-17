@@ -62,6 +62,10 @@ export const cleanupGitOps = {
 		worktreePath: string;
 		gitEnv: GitTaskEnv;
 		force?: boolean;
+		/** Confirmed inside the managed worktrees root by the caller before it
+		 * is set — the worker will native-rm the directory first (see
+		 * `gitWorktreeRemoveTask`). */
+		nativeRm?: boolean;
 	}): Promise<{ stillRegistered: boolean; removeError?: string }> {
 		// Generous timeout: removal recursively deletes the worktree
 		// directory, which can take a while for large trees (node_modules
