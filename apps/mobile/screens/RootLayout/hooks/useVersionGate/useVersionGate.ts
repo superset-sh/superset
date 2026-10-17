@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import * as Application from "expo-application";
-import { lt } from "semver";
+import { lt, valid } from "semver";
 import { z } from "zod";
 import { env } from "@/lib/env";
 
@@ -9,7 +9,9 @@ const REFETCH_INTERVAL_MS = 30 * 60 * 1000;
 export const APP_VERSION = Application.nativeApplicationVersion ?? "0.0.0";
 
 const versionResponseSchema = z.object({
-	minimumVersion: z.string(),
+	// A malformed minimum fails the query, and so fails open, instead of
+	// throwing out of `lt` on every render.
+	minimumVersion: z.string().refine((version) => valid(version) !== null),
 	message: z.string(),
 });
 
