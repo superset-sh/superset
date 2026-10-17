@@ -9,6 +9,11 @@ interface TerminalPaneLocation {
 
 export type FocusOrAddTerminalPaneResult = "focused" | "added";
 
+export interface LinkedTerminalPaneStore {
+	store: StoreApi<WorkspaceStore<PaneViewerData>>;
+	reveal: () => void;
+}
+
 export function findTerminalPaneLocation(
 	state: WorkspaceState<PaneViewerData>,
 	terminalId: string,
@@ -41,8 +46,14 @@ export function focusTerminalPane(
 export function focusOrAddTerminalPane(
 	store: StoreApi<WorkspaceStore<PaneViewerData>>,
 	terminalId: string,
+	linkedStores: readonly LinkedTerminalPaneStore[] = [],
 ): FocusOrAddTerminalPaneResult {
 	if (focusTerminalPane(store, terminalId)) return "focused";
+	for (const linked of linkedStores) {
+		if (!focusTerminalPane(linked.store, terminalId)) continue;
+		linked.reveal();
+		return "focused";
+	}
 
 	store.getState().addTab({
 		panes: [

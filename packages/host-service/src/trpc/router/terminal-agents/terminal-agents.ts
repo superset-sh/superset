@@ -4,8 +4,10 @@ import {
 } from "@superset/shared/agent-catalog";
 import { boundTranscriptText } from "@superset/shared/terminal-session-handoff";
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
+import { savedConversations } from "../../../db/schema";
 import type { EventBus } from "../../../events";
 import { reconcileMissingTerminalSessions } from "../../../terminal/reaper/reaper";
 import {
@@ -35,6 +37,11 @@ import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { type AgentRunResult, runAgentInWorkspace } from "../agents/agents";
 import { toTerminalSessionError } from "../terminal/errors";
+import type { SessionAccount } from "../usage/session-account/session-account";
+import {
+	accountResumeSource,
+	resumeTerminalWithAccount,
+} from "./resume-account";
 
 type GetOrCreateResult = {
 	binding: TerminalAgentBinding;
@@ -60,6 +67,8 @@ export interface ResumeSessionDeps {
 		agent: string;
 		prompt: string;
 		resumeSessionId?: string;
+		account?: SessionAccount;
+		surface?: "terminal";
 	}) => Promise<AgentRunResult>;
 	disposeSession: (
 		terminalId: string,
@@ -112,14 +121,24 @@ function bindingHasHarnessSession(
  * shows none, the agent is launched fresh instead of `--resume`-ing into "no
  * conversation found". A store that does hold one (a resumed session idle
  * since its restore) or cannot be read resumes as usual. Nothing is lost
- * either way: the pane comes back as the same agent on the current default
- * account.
+ * either way: the pane comes back as the same agent. Explicitly selected
+ * accounts remain pinned; legacy sessions follow the current default.
  */
 export async function resumeTerminalAgentSession(
 	deps: ResumeSessionDeps,
 	input: { workspaceId: string; terminalId: string },
 ): Promise<ResumeResult> {
 	const { workspaceId, terminalId } = input;
+	// Adopted history must use its exact, current local reference. This older
+	// recovery path can start fresh when a transcript is missing.
+	if (
+		deps.db
+			.select({ id: savedConversations.id })
+			.from(savedConversations)
+			.where(eq(savedConversations.terminalId, terminalId))
+			.get()
+	)
+		return { resumed: false };
 	const key = `${workspaceId}::${terminalId}`;
 	const pending = resumeInflight.get(key);
 	if (pending) return pending;
@@ -131,6 +150,14 @@ export async function resumeTerminalAgentSession(
 			terminalId,
 		);
 		if (!claimed?.agentSessionId) return { resumed: false };
+		if (claimed.accountInvalid) {
+			unclaimResumeCandidateBinding(deps.db, terminalId);
+			throw new TRPCError({
+				code: "PRECONDITION_FAILED",
+				message:
+					"The saved account information is unreadable. Nothing was launched.",
+			});
+		}
 
 		const config = resolveHostAgentConfig(
 			deps.db,
@@ -156,6 +183,9 @@ export async function resumeTerminalAgentSession(
 				agent: config.id,
 				prompt: "",
 				...(resumable ? { resumeSessionId: claimed.agentSessionId } : {}),
+				...(claimed.account?.pinned
+					? { account: claimed.account, surface: "terminal" as const }
+					: {}),
 			});
 		} catch (error) {
 			unclaimResumeCandidateBinding(deps.db, terminalId);
@@ -219,7 +249,13 @@ export function listAccountRestartCandidates(
 ): Array<{ binding: TerminalAgentBinding; agentLabel: string }> {
 	const out: Array<{ binding: TerminalAgentBinding; agentLabel: string }> = [];
 	for (const binding of store.list()) {
-		if (!binding.agentSessionId || binding.chatSessionId) continue;
+		if (
+			!binding.agentSessionId ||
+			binding.chatSessionId ||
+			binding.account?.pinned ||
+			binding.accountInvalid
+		)
+			continue;
 		const config = resolveHostAgentConfig(
 			db,
 			binding.definitionId ?? binding.agentId,
@@ -376,6 +412,39 @@ const GET_OR_CREATE_TIMEOUT_MS = 10_000;
 const MAX_AGENT_TRANSCRIPT_CHARS = 400_000;
 
 export const terminalAgentsRouter = router({
+	accountResumeSource: protectedProcedure
+		.input(
+			z.object({ workspaceId: z.string(), terminalId: z.string() }).strict(),
+		)
+		.query(({ ctx, input }) => accountResumeSource(ctx.db, input)),
+
+	resumeWithAccount: protectedProcedure
+		.input(
+			z
+				.object({
+					workspaceId: z.string(),
+					terminalId: z.string(),
+					expectedRevision: z.string().regex(/^[a-f0-9]{64}$/),
+					account: z
+						.object({
+							selection: z.string().max(4096).nullable(),
+							identity: z.string().regex(/^[a-f0-9]{64}$/),
+						})
+						.strict(),
+				})
+				.strict(),
+		)
+		.mutation(({ ctx, input }) =>
+			resumeTerminalWithAccount(
+				{
+					db: ctx.db,
+					runAgent: (runInput) => runAgentInWorkspace(ctx, runInput),
+					eventBus: ctx.eventBus,
+				},
+				input,
+			),
+		),
+
 	list: protectedProcedure.query(({ ctx }) => {
 		return ctx.terminalAgentStore.list();
 	}),

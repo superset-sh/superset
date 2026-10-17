@@ -156,6 +156,7 @@ export function buildDefaultAccountResolver(
 		: `unset ${envVar}
   unset SUPERSET_DEFAULT_${envVar}`;
 	return `if [ -n "$SUPERSET_TERMINAL_ID" ] && [ -n "$SUPERSET_HOME_DIR" ] \\
+  && [ "$SUPERSET_PINNED_ACCOUNT" != "${envVar}" ] \\
   && { [ -z "\${${envVar}}" ] || [ "\${${envVar}}" = "\${SUPERSET_DEFAULT_${envVar}}" ]; } \\
   && [ -f ${pointer} ]; then
   superset_default_account="$(cat ${pointer} 2>/dev/null)"

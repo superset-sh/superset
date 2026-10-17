@@ -88,6 +88,23 @@ describe("focusTerminalPane", () => {
 });
 
 describe("focusOrAddTerminalPane", () => {
+	it("reveals an existing terminal in a linked pane area without duplicating it", () => {
+		const center = createWorkspaceStore<PaneViewerData>();
+		const right = createWorkspaceStore<PaneViewerData>({
+			initialState: workspaceState(),
+		});
+		let revealed = 0;
+		expect(
+			focusOrAddTerminalPane(center, "terminal-2", [
+				{ store: right, reveal: () => revealed++ },
+			]),
+		).toBe("focused");
+		expect(center.getState().tabs).toHaveLength(0);
+		expect(right.getState().tabs).toHaveLength(2);
+		expect(right.getState().activeTabId).toBe("tab-2");
+		expect(right.getState().getTab("tab-2")?.activePaneId).toBe("pane-2");
+		expect(revealed).toBe(1);
+	});
 	it("focuses an existing terminal pane instead of adding a duplicate", () => {
 		const store = createWorkspaceStore<PaneViewerData>({
 			initialState: workspaceState(),

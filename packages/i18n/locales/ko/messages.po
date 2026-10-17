@@ -1952,6 +1952,12 @@ msgstr "에이전트 세션을 시작했습니다"
 msgid "agent settings"
 msgstr "에이전트 설정"
 
+msgid "Agent terminal with account"
+msgstr "계정을 선택해 에이전트 터미널 시작"
+
+msgid "Agent terminal with account…"
+msgstr "계정을 선택해 에이전트 터미널 시작…"
+
 msgid "Agent usage rankings"
 msgstr "에이전트 사용량 순위"
 
@@ -3171,6 +3177,9 @@ msgstr "커뮤니티가 공유한 스킬, MCP 서버, 에이전트 설정을 둘
 msgid "Browse for directory"
 msgstr "디렉터리 찾아보기"
 
+msgid "Browse saved history"
+msgstr "저장된 기록 찾아보기"
+
 msgid "Browse shared themes and future agent configs for Superset."
 msgstr "Superset에 공유된 테마와 앞으로 추가될 에이전트 설정을 둘러보세요."
 
@@ -3447,6 +3456,9 @@ msgstr "인증서 오류"
 
 msgid "Chain of Thought"
 msgstr "생각의 흐름"
+
+msgid "Change account"
+msgstr "계정 변경"
 
 msgid "Change assignee"
 msgstr "담당자 변경"
@@ -4907,6 +4919,9 @@ msgstr "대기열에서 나갈 수 없습니다"
 msgid "Could not list directory"
 msgstr "디렉터리를 나열할 수 없습니다"
 
+msgid "Could not load accounts"
+msgstr "계정을 불러오지 못했습니다"
+
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
 msgstr "{0}에서 에이전트를 불러오지 못했습니다"
@@ -4925,6 +4940,9 @@ msgstr "플러그인을 불러오지 못했습니다. 연결을 확인하고 다
 
 msgid "Could not load presets from the host"
 msgstr "호스트에서 프리셋을 불러올 수 없습니다"
+
+msgid "Could not load saved conversations"
+msgstr "저장된 대화를 불러오지 못했습니다"
 
 msgid "Could not load this diff"
 msgstr "이 차이를 불러올 수 없습니다"
@@ -4949,6 +4967,9 @@ msgstr "링크를 열 수 없습니다"
 
 msgid "Could not open Photos"
 msgstr "사진 앱을 열지 못했습니다"
+
+msgid "Could not open saved conversation"
+msgstr "저장된 대화를 열지 못했습니다"
 
 #. placeholder {0}: params?.remote
 #. placeholder {1}: params?.branch
@@ -5028,6 +5049,9 @@ msgstr "재개할 수 없습니다"
 msgid "Could not resume the chat"
 msgstr "채팅을 재개할 수 없습니다"
 
+msgid "Could not resume this conversation"
+msgstr "이 대화를 재개할 수 없습니다"
+
 msgid "Could not send"
 msgstr "보낼 수 없습니다"
 
@@ -5042,6 +5066,9 @@ msgstr "공유할 수 없습니다"
 
 msgid "Could not start agent"
 msgstr "에이전트를 시작하지 못했습니다"
+
+msgid "Could not start agent terminal"
+msgstr "에이전트 터미널을 시작하지 못했습니다"
 
 msgid "Could not start checkout. Please try again."
 msgstr "결제를 시작할 수 없습니다. 다시 시도해 주세요."
@@ -8552,6 +8579,9 @@ msgstr "휴대폰에서 바로 Mac에 로컬 작업 트리 환경을 띄울 수 
 msgid "I can be in a café with my coffee while the work keeps moving forward."
 msgstr "카페에서 커피를 마시는 동안에도 작업은 계속 진행됩니다."
 
+msgid "I exited this conversation in the original app. No tools or background jobs are still running."
+msgstr "원래 앱에서 이 대화를 종료했습니다. 실행 중인 도구나 백그라운드 작업이 없습니다."
+
 msgid "I start my morning walks with an idea, and end with a pull request."
 msgstr "아이디어 하나로 아침 산책을 시작하고, 풀 리퀘스트 하나로 마무리합니다."
 
@@ -9699,6 +9729,9 @@ msgstr "로더 · 브라유 스피너"
 msgid "Loading"
 msgstr "불러오는 중"
 
+msgid "Loading accounts…"
+msgstr "계정 불러오는 중…"
+
 msgid "Loading agent settings..."
 msgstr "에이전트 설정을 불러오는 중..."
 
@@ -9776,6 +9809,9 @@ msgstr "리포지토리를 불러오는 중..."
 
 msgid "Loading review..."
 msgstr "리뷰를 불러오는 중..."
+
+msgid "Loading saved conversations…"
+msgstr "저장된 대화 불러오는 중…"
 
 msgid "Loading terminal scripts..."
 msgstr "터미널 스크립트를 불러오는 중..."
@@ -10795,6 +10831,9 @@ msgstr "작성자를 찾을 수 없습니다."
 msgid "No automations match"
 msgstr "일치하는 자동화가 없습니다"
 
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "사용 가능한 구독 계정이 없습니다. 사용량에서 계정을 추가하거나 로그인한 후 새로고침하세요."
+
 msgid "No branches found"
 msgstr "브랜치를 찾을 수 없습니다"
 
@@ -10821,6 +10860,9 @@ msgstr "보고된 검사가 없습니다."
 
 msgid "No Chrome, Brave, Arc, or other Chromium browsers were found."
 msgstr "Chrome, Brave, Arc 등 Chromium 기반 브라우저를 찾을 수 없습니다."
+
+msgid "No Claude agent is configured on this host."
+msgstr "이 호스트에 Claude 에이전트가 구성되어 있지 않습니다."
 
 msgid "No Claude or Codex usage found on this machine yet. Join now and you'll appear once you've used an agent."
 msgstr "이 컴퓨터에서 아직 Claude 또는 Codex 사용량을 찾지 못했습니다. 지금 참여하면 에이전트를 사용한 뒤 순위에 표시됩니다."
@@ -11200,6 +11242,9 @@ msgstr "맞는 포지션이 없어요. 그래도 연락해도 될까요?"
 
 msgid "No runs yet"
 msgstr "아직 실행 기록이 없습니다"
+
+msgid "No saved Claude conversations were found in this account for the current workspace."
+msgstr "이 계정에서 현재 작업 공간에 해당하는 저장된 Claude 대화를 찾지 못했습니다."
 
 msgid "No screenshots yet"
 msgstr "아직 스크린샷이 없습니다"
@@ -11801,6 +11846,9 @@ msgstr "명령 팔레트 열기"
 msgid "Open comment on GitHub"
 msgstr "GitHub에서 코멘트 열기"
 
+msgid "Open conversation"
+msgstr "대화 열기"
+
 msgid "Open details"
 msgstr "세부 정보 열기"
 
@@ -11828,6 +11876,9 @@ msgstr "드로어 열기"
 msgid "Open existing PR or create a new one on GitHub"
 msgstr "기존 PR을 열거나 GitHub에서 새 PR을 만듭니다"
 
+msgid "Open existing terminal"
+msgstr "기존 터미널 열기"
+
 msgid "open file"
 msgstr "파일 열기"
 
@@ -11845,6 +11896,9 @@ msgstr "폴더에서 열기"
 
 msgid "Open full screen"
 msgstr "전체 화면으로 열기"
+
+msgid "Open history from this account in the current workspace. After adoption, later opens use its current local history. Background work is not transferred."
+msgstr "현재 작업 공간에서 이 계정의 기록을 엽니다. 가져온 후에는 다시 열 때 최신 로컬 기록을 사용합니다. 백그라운드 작업은 이전되지 않습니다."
 
 msgid "Open host"
 msgstr "호스트 열기"
@@ -12052,6 +12106,12 @@ msgstr "최근 항목 열기"
 
 msgid "Open roles"
 msgstr "채용 공고"
+
+msgid "Open saved Claude conversation"
+msgstr "저장된 Claude 대화 열기"
+
+msgid "Open saved Claude conversation…"
+msgstr "저장된 Claude 대화 열기…"
 
 msgid "Open session in"
 msgstr "세션 열기 위치"
@@ -13882,6 +13942,9 @@ msgstr "닫은 탭 다시 열기"
 msgid "Reopen PR"
 msgstr "PR 다시 열기"
 
+msgid "Reopen the saved conversation in the same workspace. No message is sent. Background work is not transferred."
+msgstr "같은 워크스페이스에서 저장된 대화를 다시 엽니다. 메시지는 전송되지 않습니다. 백그라운드 작업은 이전되지 않습니다."
+
 msgid "Reopen thread"
 msgstr "스레드 다시 열기"
 
@@ -14231,6 +14294,12 @@ msgstr "재개 인수"
 
 msgid "Resume automation"
 msgstr "자동화 재개"
+
+msgid "Resume conversation"
+msgstr "대화 재개"
+
+msgid "Resume with another account"
+msgstr "다른 계정으로 재개"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
@@ -14649,6 +14718,12 @@ msgstr "저장됨"
 #. placeholder {0}: created?.name ?? name.trim()
 msgid "Saved \"{0}\" as an environment"
 msgstr "\"{0}\"을(를) 환경으로 저장했습니다"
+
+msgid "Saved conversations"
+msgstr "저장된 대화"
+
+msgid "Saved in Superset"
+msgstr "Superset에 저장됨"
 
 msgid "Saved to Downloads"
 msgstr "다운로드 폴더에 저장했습니다"
@@ -16150,6 +16225,9 @@ msgstr "실행할 때마다 새 에이전트 세션 시작"
 msgid "Start a new chat"
 msgstr "새 채팅 시작"
 
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "기존 로그인으로 새 터미널을 시작합니다. 다른 채팅과 기본 계정은 변경되지 않습니다."
+
 msgid "Start a session"
 msgstr "세션 시작"
 
@@ -16188,6 +16266,9 @@ msgstr "탭 막대의 +로 시작하세요."
 
 msgid "Start or stop the workspace run command"
 msgstr "워크스페이스 실행 명령을 시작하거나 중지합니다"
+
+msgid "Start terminal"
+msgstr "터미널 시작"
 
 msgid "Start voice mode"
 msgstr "음성 모드 시작"
@@ -17368,6 +17449,9 @@ msgstr "같은 앱이 iPad에서 네이티브로 실행되며 세로와 가로 �
 msgid "The scorecard"
 msgstr "성적표"
 
+msgid "The selected login changed. Choose an account again."
+msgstr "선택한 로그인이 변경되었습니다. 계정을 다시 선택하세요."
+
 msgid "The self-driving software factory"
 msgstr "자율 주행 소프트웨어 공장"
 
@@ -17491,6 +17575,9 @@ msgstr "이 에이전트는 대화를 분기할 수 없습니다"
 msgid "This agent can't run in a cloud workspace"
 msgstr "이 에이전트는 클라우드 워크스페이스에서 실행할 수 없습니다"
 
+msgid "This agent configuration does not support account selection."
+msgstr "이 에이전트 구성은 계정 선택을 지원하지 않습니다."
+
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "이 에이전트는 선택한 기기에 더 이상 존재하지 않습니다 (에이전트가 초기화되었을 수 있습니다). 새 에이전트를 선택할 때까지 실행이 실패합니다."
 
@@ -17542,6 +17629,12 @@ msgstr "이 클라우드 워크스페이스를 시작할 수 없습니다"
 
 msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
 msgstr "이 클라우드 워크스페이스를 깨우는 중입니다. 한동안 사용하지 않았다면 최대 30초가 걸릴 수 있습니다."
+
+msgid "This conversation cannot be resumed with another account."
+msgstr "이 대화는 다른 계정으로 재개할 수 없습니다."
+
+msgid "This conversation is no longer available to resume."
+msgstr "이 대화는 더 이상 재개할 수 없습니다."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "재부팅/충돌 복구에 사용하는 저장된 스크롤백을 삭제합니다."
@@ -17725,6 +17818,9 @@ msgstr "레이블, 명령, 인수, 프롬프트 및 재개 설정, 환경 변수
 
 msgid "This repository does not allow merging from here."
 msgstr "이 리포지토리는 여기에서 머지하는 것을 허용하지 않습니다."
+
+msgid "This saved history changed. Select it again before opening."
+msgstr "이 저장된 기록이 변경되었습니다. 열기 전에 다시 선택하세요."
 
 msgid "This screen doesn't exist"
 msgstr "이 화면은 존재하지 않습니다"
@@ -18497,6 +18593,12 @@ msgstr "파일을 첨부하려면 이 컴퓨터에서 Superset을 업데이트�
 
 msgid "update the branch prefix"
 msgstr "브랜치 접두사를 업데이트할"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "새 터미널의 계정을 선택하려면 이 호스트를 업데이트하세요."
+
+msgid "Update this host to open saved Claude history."
+msgstr "저장된 Claude 기록을 열려면 이 호스트를 업데이트하세요."
 
 msgid "Updated"
 msgstr "업데이트됨"

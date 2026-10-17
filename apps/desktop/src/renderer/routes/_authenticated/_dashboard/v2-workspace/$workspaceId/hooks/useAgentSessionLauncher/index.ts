@@ -1,4 +1,5 @@
 export type {
+	CreateAccountTerminal,
 	CreateNewAgentSession,
 	CreateNewAgentSessionInput,
 	OpenAgentChat,

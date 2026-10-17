@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import {
 	mkdirSync,
 	mkdtempSync,
 	readFileSync,
+	realpathSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
@@ -10,7 +12,11 @@ import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { claudeProjectDirName } from "../../terminal-agents/harness-sessions/claude.ts";
 import { HostWorkerPool } from "../host-worker-pool.ts";
-import { harnessTasks, harnessTranscriptTask } from "./harness.ts";
+import {
+	harnessTasks,
+	harnessTranscriptTask,
+	inspectSavedConversationTask,
+} from "./harness.ts";
 
 const WORKER_ENTRY = path.resolve(import.meta.dirname, "..", "host-worker.ts");
 const NATIVE_MODULES = ["better-sqlite3", "node-pty", "@parcel/watcher"];
@@ -47,6 +53,7 @@ function importGraph(entry: string): Map<string, string[]> {
 describe("harness worker tasks", () => {
 	test("registers every task and has no duplicate types", () => {
 		expect(harnessTasks).toContain(harnessTranscriptTask);
+		expect(harnessTasks).toContain(inspectSavedConversationTask);
 		const types = harnessTasks.map((task) => task.type);
 		expect(types).toEqual([...new Set(types)]);
 	});
@@ -93,4 +100,46 @@ describe("harness worker tasks", () => {
 
 		expect(result).toEqual({ text: "User: off the loop", harness: "claude" });
 	});
+});
+
+test("saved-history worker returns only stable identity evidence and refuses invalid history", async () => {
+	const temporary = mkdtempSync(path.join(tmpdir(), "saved-history-task-"));
+	cleanup.push(() => rmSync(temporary, { recursive: true, force: true }));
+	const configDir = realpathSync(temporary);
+	const cwd = path.join(configDir, "workspace");
+	mkdirSync(cwd);
+	const sessionId = "55555555-6666-4777-8888-999900001111";
+	const directory = path.join(configDir, "projects", claudeProjectDirName(cwd));
+	mkdirSync(directory, { recursive: true });
+	const file = path.join(directory, `${sessionId}.jsonl`);
+	const content = `${JSON.stringify({ type: "user", sessionId, cwd, uuid: "11111111-2222-4333-8444-555555555555", message: { role: "user", content: "synthetic worker validation" } })}\n`;
+	writeFileSync(file, content);
+	const pool = new HostWorkerPool({ scriptPathResolver: () => WORKER_ENTRY });
+	cleanup.push(() => pool.dispose());
+	const input = {
+		provider: "claude" as const,
+		sourceDirectory: configDir,
+		targetDirectory: configDir,
+		sessionId,
+		cwd,
+	};
+	const workerOnlyTask: typeof inspectSavedConversationTask = {
+		...inspectSavedConversationTask,
+		handler: async (): Promise<never> => {
+			throw new Error("This fixture must not run inline");
+		},
+	};
+	expect(pool.getMode()).toBe("worker");
+	const result = await pool.run(workerOnlyTask, input);
+	expect(result).toEqual({
+		path: file,
+		device: expect.any(Number),
+		inode: expect.any(Number),
+		size: Buffer.byteLength(content),
+		modifiedAt: expect.any(Number),
+		changedAt: expect.any(Number),
+		sha256: createHash("sha256").update(content).digest("hex"),
+	});
+	writeFileSync(file, "{invalid JSON}\n");
+	expect(await pool.run(workerOnlyTask, input)).toBeNull();
 });

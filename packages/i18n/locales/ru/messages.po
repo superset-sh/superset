@@ -1952,6 +1952,12 @@ msgstr "Сессия агента запущена"
 msgid "agent settings"
 msgstr "настройки агента"
 
+msgid "Agent terminal with account"
+msgstr "Терминал агента с выбором аккаунта"
+
+msgid "Agent terminal with account…"
+msgstr "Терминал агента с выбором аккаунта…"
+
 msgid "Agent usage rankings"
 msgstr "Рейтинги использования агентов"
 
@@ -3171,6 +3177,9 @@ msgstr "Просматривайте и устанавливайте навык�
 msgid "Browse for directory"
 msgstr "Выбрать папку"
 
+msgid "Browse saved history"
+msgstr "Просмотреть сохранённую историю"
+
 msgid "Browse shared themes and future agent configs for Superset."
 msgstr "Смотрите общедоступные темы и будущие конфигурации агентов для Superset."
 
@@ -3447,6 +3456,9 @@ msgstr "Ошибка сертификата"
 
 msgid "Chain of Thought"
 msgstr "Цепочка рассуждений"
+
+msgid "Change account"
+msgstr "Сменить аккаунт"
 
 msgid "Change assignee"
 msgstr "Изменить исполнителя"
@@ -4907,6 +4919,9 @@ msgstr "Не удалось выйти из очереди"
 msgid "Could not list directory"
 msgstr "Не удалось прочитать содержимое папки"
 
+msgid "Could not load accounts"
+msgstr "Не удалось загрузить аккаунты"
+
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
 msgstr "Не удалось загрузить агентов с {0}"
@@ -4925,6 +4940,9 @@ msgstr "Не удалось загрузить плагины. Проверьт�
 
 msgid "Could not load presets from the host"
 msgstr "Не удалось загрузить пресеты с хоста"
+
+msgid "Could not load saved conversations"
+msgstr "Не удалось загрузить сохранённые разговоры"
 
 msgid "Could not load this diff"
 msgstr "Не удалось загрузить этот diff"
@@ -4949,6 +4967,9 @@ msgstr "Не удалось открыть ссылку"
 
 msgid "Could not open Photos"
 msgstr "Не удалось открыть «Фото»"
+
+msgid "Could not open saved conversation"
+msgstr "Не удалось открыть сохранённый разговор"
 
 #. placeholder {0}: params?.remote
 #. placeholder {1}: params?.branch
@@ -5028,6 +5049,9 @@ msgstr "Не удалось возобновить"
 msgid "Could not resume the chat"
 msgstr "Не удалось продолжить чат"
 
+msgid "Could not resume this conversation"
+msgstr "Не удалось возобновить этот разговор"
+
 msgid "Could not send"
 msgstr "Не удалось отправить"
 
@@ -5042,6 +5066,9 @@ msgstr "Не удалось поделиться"
 
 msgid "Could not start agent"
 msgstr "Не удалось запустить агента"
+
+msgid "Could not start agent terminal"
+msgstr "Не удалось запустить терминал агента"
 
 msgid "Could not start checkout. Please try again."
 msgstr "Не удалось начать оформление. Попробуйте ещё раз."
@@ -8552,6 +8579,9 @@ msgstr "Ещё мне очень нравится, что я могу прямо
 msgid "I can be in a café with my coffee while the work keeps moving forward."
 msgstr "Я могу сидеть в кафе с чашкой кофе, а работа тем временем продолжается."
 
+msgid "I exited this conversation in the original app. No tools or background jobs are still running."
+msgstr "Этот разговор закрыт в исходном приложении. Инструменты и фоновые задачи больше не выполняются."
+
 msgid "I start my morning walks with an idea, and end with a pull request."
 msgstr "Я начинаю утреннюю прогулку с идеей, а заканчиваю с пул-реквестом."
 
@@ -9699,6 +9729,9 @@ msgstr "Загрузчик · брайлевский спиннер"
 msgid "Loading"
 msgstr "Загрузка"
 
+msgid "Loading accounts…"
+msgstr "Загрузка аккаунтов…"
+
 msgid "Loading agent settings..."
 msgstr "Загрузка настроек агента..."
 
@@ -9776,6 +9809,9 @@ msgstr "Загрузка репозиториев..."
 
 msgid "Loading review..."
 msgstr "Загрузка ревью..."
+
+msgid "Loading saved conversations…"
+msgstr "Загрузка сохранённых разговоров…"
 
 msgid "Loading terminal scripts..."
 msgstr "Загрузка скриптов терминала..."
@@ -10795,6 +10831,9 @@ msgstr "Авторы не найдены."
 msgid "No automations match"
 msgstr "Нет подходящих автоматизаций"
 
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "Нет доступных аккаунтов с подпиской. Добавьте аккаунт или войдите в разделе «Использование», затем обновите список."
+
 msgid "No branches found"
 msgstr "Ветки не найдены"
 
@@ -10821,6 +10860,9 @@ msgstr "Проверок нет."
 
 msgid "No Chrome, Brave, Arc, or other Chromium browsers were found."
 msgstr "Chrome, Brave, Arc и другие браузеры на Chromium не найдены."
+
+msgid "No Claude agent is configured on this host."
+msgstr "На этом хосте не настроен агент Claude."
 
 msgid "No Claude or Codex usage found on this machine yet. Join now and you'll appear once you've used an agent."
 msgstr "На этой машине пока нет данных об использовании Claude или Codex. Присоединяйтесь — вы появитесь, как только поработаете с агентом."
@@ -11200,6 +11242,9 @@ msgstr "Мне не подходит ни одна вакансия. Стоит 
 
 msgid "No runs yet"
 msgstr "Запусков пока нет"
+
+msgid "No saved Claude conversations were found in this account for the current workspace."
+msgstr "В этом аккаунте не найдены сохранённые разговоры Claude для текущего рабочего пространства."
 
 msgid "No screenshots yet"
 msgstr "Скриншотов пока нет"
@@ -11801,6 +11846,9 @@ msgstr "Открыть палитру команд"
 msgid "Open comment on GitHub"
 msgstr "Открыть комментарий на GitHub"
 
+msgid "Open conversation"
+msgstr "Открыть разговор"
+
 msgid "Open details"
 msgstr "Открыть подробности"
 
@@ -11828,6 +11876,9 @@ msgstr "Открыть шторку"
 msgid "Open existing PR or create a new one on GitHub"
 msgstr "Открыть существующий PR или создать новый на GitHub"
 
+msgid "Open existing terminal"
+msgstr "Открыть существующий терминал"
+
 msgid "open file"
 msgstr "открыть файл"
 
@@ -11845,6 +11896,9 @@ msgstr "Открыть из папки"
 
 msgid "Open full screen"
 msgstr "Открыть во весь экран"
+
+msgid "Open history from this account in the current workspace. After adoption, later opens use its current local history. Background work is not transferred."
+msgstr "Откройте историю этого аккаунта в текущем рабочем пространстве. После импорта при последующих открытиях используется актуальная локальная история. Фоновые задачи не переносятся."
 
 msgid "Open host"
 msgstr "Открыть хост"
@@ -12052,6 +12106,12 @@ msgstr "Открыть недавние"
 
 msgid "Open roles"
 msgstr "Вакансии"
+
+msgid "Open saved Claude conversation"
+msgstr "Открыть сохранённый разговор Claude"
+
+msgid "Open saved Claude conversation…"
+msgstr "Открыть сохранённый разговор Claude…"
 
 msgid "Open session in"
 msgstr "Открыть сессию в"
@@ -13882,6 +13942,9 @@ msgstr "Открыть заново закрытую вкладку"
 msgid "Reopen PR"
 msgstr "Открыть PR заново"
 
+msgid "Reopen the saved conversation in the same workspace. No message is sent. Background work is not transferred."
+msgstr "Открыть сохранённый разговор в том же рабочем пространстве. Сообщение не отправляется. Фоновые задачи не переносятся."
+
 msgid "Reopen thread"
 msgstr "Снова открыть ветку"
 
@@ -14231,6 +14294,12 @@ msgstr "Аргументы возобновления"
 
 msgid "Resume automation"
 msgstr "Возобновить автоматизацию"
+
+msgid "Resume conversation"
+msgstr "Возобновить разговор"
+
+msgid "Resume with another account"
+msgstr "Возобновить с другой учётной записью"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
@@ -14649,6 +14718,12 @@ msgstr "Сохранено"
 #. placeholder {0}: created?.name ?? name.trim()
 msgid "Saved \"{0}\" as an environment"
 msgstr "«{0}» сохранено как окружение"
+
+msgid "Saved conversations"
+msgstr "Сохранённые разговоры"
+
+msgid "Saved in Superset"
+msgstr "Сохранено в Superset"
 
 msgid "Saved to Downloads"
 msgstr "Сохранено в «Загрузки»"
@@ -16150,6 +16225,9 @@ msgstr "Запускать новую сессию агента при кажд�
 msgid "Start a new chat"
 msgstr "Начать новый чат"
 
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "Запустите новый терминал с существующим входом. Другие чаты и аккаунт по умолчанию останутся без изменений."
+
 msgid "Start a session"
 msgstr "Запустить сессию"
 
@@ -16188,6 +16266,9 @@ msgstr "Запустите сессию кнопкой + в полосе вкл�
 
 msgid "Start or stop the workspace run command"
 msgstr "Запустить или остановить команду запуска рабочей области"
+
+msgid "Start terminal"
+msgstr "Запустить терминал"
 
 msgid "Start voice mode"
 msgstr "Запустить голосовой режим"
@@ -17368,6 +17449,9 @@ msgstr "То же приложение работает на iPad нативно
 msgid "The scorecard"
 msgstr "Таблица оценок"
 
+msgid "The selected login changed. Choose an account again."
+msgstr "Выбранный аккаунт изменился. Выберите аккаунт заново."
+
 msgid "The self-driving software factory"
 msgstr "Самоуправляемая софтверная фабрика"
 
@@ -17491,6 +17575,9 @@ msgstr "Этот агент не может ответвить разговор"
 msgid "This agent can't run in a cloud workspace"
 msgstr "Этот агент не может работать в облачной рабочей области"
 
+msgid "This agent configuration does not support account selection."
+msgstr "Эта конфигурация агента не поддерживает выбор аккаунта."
+
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Этого агента больше нет на выбранном устройстве (возможно, его агенты были сброшены). Запуски будут падать, пока не выберете нового."
 
@@ -17542,6 +17629,12 @@ msgstr "Не удаётся запустить эту облачную рабо�
 
 msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
 msgstr "Облачное рабочее пространство запускается. После простоя это может занять до 30 секунд."
+
+msgid "This conversation cannot be resumed with another account."
+msgstr "Этот разговор нельзя возобновить с другой учётной записью."
+
+msgid "This conversation is no longer available to resume."
+msgstr "Этот разговор больше недоступен для возобновления."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Это удалит сохранённую прокрутку, используемую для восстановления после перезагрузки или сбоя."
@@ -17725,6 +17818,9 @@ msgstr "Это заменит его название, команду, аргу�
 
 msgid "This repository does not allow merging from here."
 msgstr "Этот репозиторий не разрешает слияние отсюда."
+
+msgid "This saved history changed. Select it again before opening."
+msgstr "Эта сохранённая история изменилась. Выберите её ещё раз перед открытием."
 
 msgid "This screen doesn't exist"
 msgstr "Такого экрана нет"
@@ -18497,6 +18593,12 @@ msgstr "Обновите Superset на этой машине, чтобы при�
 
 msgid "update the branch prefix"
 msgstr "обновить префикс ветки"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "Обновите этот хост, чтобы выбрать аккаунт для нового терминала."
+
+msgid "Update this host to open saved Claude history."
+msgstr "Обновите этот хост, чтобы открыть сохранённую историю Claude."
 
 msgid "Updated"
 msgstr "Обновлено"

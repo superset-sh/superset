@@ -1952,6 +1952,12 @@ msgstr "代理程式會話已開始"
 msgid "agent settings"
 msgstr "代理程式設定"
 
+msgid "Agent terminal with account"
+msgstr "使用指定帳戶啟動代理終端機"
+
+msgid "Agent terminal with account…"
+msgstr "使用指定帳戶啟動代理終端機…"
+
 msgid "Agent usage rankings"
 msgstr "代理程式使用量排行"
 
@@ -3171,6 +3177,9 @@ msgstr "瀏覽並安裝社群共享的技能、MCP伺服器和代理程式配置
 msgid "Browse for directory"
 msgstr "瀏覽目錄"
 
+msgid "Browse saved history"
+msgstr "瀏覽已儲存的歷史記錄"
+
 msgid "Browse shared themes and future agent configs for Superset."
 msgstr "瀏覽 Superset 的共享佈景主題與未來的代理設定。"
 
@@ -3447,6 +3456,9 @@ msgstr "證書錯誤"
 
 msgid "Chain of Thought"
 msgstr "思維鏈"
+
+msgid "Change account"
+msgstr "變更帳戶"
 
 msgid "Change assignee"
 msgstr "變更負責人"
@@ -4907,6 +4919,9 @@ msgstr "無法移出佇列"
 msgid "Could not list directory"
 msgstr "無法列出目錄"
 
+msgid "Could not load accounts"
+msgstr "無法載入帳戶"
+
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
 msgstr "無法從{0}載入代理程式"
@@ -4925,6 +4940,9 @@ msgstr "無法載入外掛。請檢查連線後再試一次。"
 
 msgid "Could not load presets from the host"
 msgstr "無法從主機載入預設"
+
+msgid "Could not load saved conversations"
+msgstr "無法載入已儲存的對話"
 
 msgid "Could not load this diff"
 msgstr "無法載入這個差異"
@@ -4949,6 +4967,9 @@ msgstr "無法開啟連結"
 
 msgid "Could not open Photos"
 msgstr "無法開啟「照片」"
+
+msgid "Could not open saved conversation"
+msgstr "無法開啟已儲存的對話"
 
 #. placeholder {0}: params?.remote
 #. placeholder {1}: params?.branch
@@ -5028,6 +5049,9 @@ msgstr "無法繼續"
 msgid "Could not resume the chat"
 msgstr "無法繼續聊天"
 
+msgid "Could not resume this conversation"
+msgstr "無法繼續此對話"
+
 msgid "Could not send"
 msgstr "無法傳送"
 
@@ -5042,6 +5066,9 @@ msgstr "無法分享"
 
 msgid "Could not start agent"
 msgstr "無法啟動代理程式"
+
+msgid "Could not start agent terminal"
+msgstr "無法啟動代理終端機"
 
 msgid "Could not start checkout. Please try again."
 msgstr "無法開始結帳，請再試一次。"
@@ -8552,6 +8579,9 @@ msgstr "我也很喜歡能直接用手機在 Mac 上啟動本機工作樹環境�
 msgid "I can be in a café with my coffee while the work keeps moving forward."
 msgstr "我可以在咖啡館喝咖啡，工作也一直在推進。"
 
+msgid "I exited this conversation in the original app. No tools or background jobs are still running."
+msgstr "我已在原始應用程式中結束此對話。沒有工具或背景工作仍在執行。"
+
 msgid "I start my morning walks with an idea, and end with a pull request."
 msgstr "我帶著一個想法開始晨間散步，結束時就有了一個提取請求。"
 
@@ -9699,6 +9729,9 @@ msgstr "載入器 · 點字載入動畫"
 msgid "Loading"
 msgstr "載入中"
 
+msgid "Loading accounts…"
+msgstr "正在載入帳戶…"
+
 msgid "Loading agent settings..."
 msgstr "正在載入代理程式設定..."
 
@@ -9776,6 +9809,9 @@ msgstr "正在載入儲存庫..."
 
 msgid "Loading review..."
 msgstr "正在載入評審..."
+
+msgid "Loading saved conversations…"
+msgstr "正在載入已儲存的對話…"
 
 msgid "Loading terminal scripts..."
 msgstr "正在載入終端指令碼..."
@@ -10795,6 +10831,9 @@ msgstr "未找到作者。"
 msgid "No automations match"
 msgstr "沒有匹配的自動化"
 
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "沒有可用的訂閱帳戶。請在「用量」中新增帳戶或登入，然後重新整理。"
+
 msgid "No branches found"
 msgstr "未找到分支"
 
@@ -10821,6 +10860,9 @@ msgstr "沒有檢查報告。"
 
 msgid "No Chrome, Brave, Arc, or other Chromium browsers were found."
 msgstr "未找到Chrome、Brave、Arc或其他Chromium瀏覽器。"
+
+msgid "No Claude agent is configured on this host."
+msgstr "此主機上未設定 Claude 代理程式。"
 
 msgid "No Claude or Codex usage found on this machine yet. Join now and you'll appear once you've used an agent."
 msgstr "這臺機器上還沒有發現Claude或Codex的用量。現在加入，用過代理程式後你就會出現在榜單上。"
@@ -11200,6 +11242,9 @@ msgstr "沒有適合我的職位，還可以聯絡你們嗎？"
 
 msgid "No runs yet"
 msgstr "還沒有執行過"
+
+msgid "No saved Claude conversations were found in this account for the current workspace."
+msgstr "此帳戶中找不到目前工作區的已儲存 Claude 對話。"
 
 msgid "No screenshots yet"
 msgstr "暫無截圖"
@@ -11801,6 +11846,9 @@ msgstr "開啟命令面板"
 msgid "Open comment on GitHub"
 msgstr "在GitHub上開啟評論"
 
+msgid "Open conversation"
+msgstr "開啟對話"
+
 msgid "Open details"
 msgstr "開啟詳細資料"
 
@@ -11828,6 +11876,9 @@ msgstr "開啟抽屜"
 msgid "Open existing PR or create a new one on GitHub"
 msgstr "開啟現有PR，或在GitHub上建立新PR"
 
+msgid "Open existing terminal"
+msgstr "開啟現有終端機"
+
 msgid "open file"
 msgstr "開啟檔案"
 
@@ -11845,6 +11896,9 @@ msgstr "從資料夾開啟"
 
 msgid "Open full screen"
 msgstr "全螢幕開啟"
+
+msgid "Open history from this account in the current workspace. After adoption, later opens use its current local history. Background work is not transferred."
+msgstr "在目前工作區中開啟此帳戶的歷史記錄。匯入後，再次開啟時會使用最新的本機歷史記錄。背景工作不會轉移。"
 
 msgid "Open host"
 msgstr "開啟主機"
@@ -12052,6 +12106,12 @@ msgstr "開啟最近使用"
 
 msgid "Open roles"
 msgstr "空缺職位"
+
+msgid "Open saved Claude conversation"
+msgstr "開啟已儲存的 Claude 對話"
+
+msgid "Open saved Claude conversation…"
+msgstr "開啟已儲存的 Claude 對話…"
 
 msgid "Open session in"
 msgstr "會話開啟於"
@@ -13882,6 +13942,9 @@ msgstr "重新開啟已關閉的分頁"
 msgid "Reopen PR"
 msgstr "重新開啟PR"
 
+msgid "Reopen the saved conversation in the same workspace. No message is sent. Background work is not transferred."
+msgstr "在同一工作區中重新開啟已儲存的對話。不會傳送訊息，也不會轉移背景工作。"
+
 msgid "Reopen thread"
 msgstr "重新開啟討論串"
 
@@ -14231,6 +14294,12 @@ msgstr "恢復引數"
 
 msgid "Resume automation"
 msgstr "恢復自動化"
+
+msgid "Resume conversation"
+msgstr "繼續對話"
+
+msgid "Resume with another account"
+msgstr "使用其他帳戶繼續"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
@@ -14649,6 +14718,12 @@ msgstr "已儲存"
 #. placeholder {0}: created?.name ?? name.trim()
 msgid "Saved \"{0}\" as an environment"
 msgstr "已將「{0}」儲存為環境"
+
+msgid "Saved conversations"
+msgstr "已儲存的對話"
+
+msgid "Saved in Superset"
+msgstr "已儲存至 Superset"
 
 msgid "Saved to Downloads"
 msgstr "已儲存到「下載」資料夾"
@@ -16150,6 +16225,9 @@ msgstr "每次執行都啟動新的代理程式工作階段"
 msgid "Start a new chat"
 msgstr "開始新的聊天"
 
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "使用現有登入啟動新的終端機。其他聊天和預設帳戶保持不變。"
+
 msgid "Start a session"
 msgstr "開始一個會話"
 
@@ -16188,6 +16266,9 @@ msgstr "用分頁列中的+新建一個。"
 
 msgid "Start or stop the workspace run command"
 msgstr "啟動或停止工作區執行命令"
+
+msgid "Start terminal"
+msgstr "啟動終端機"
 
 msgid "Start voice mode"
 msgstr "開始語音模式"
@@ -17368,6 +17449,9 @@ msgstr "同一個應用程式在 iPad 上原生執行，支援直向和橫向。
 msgid "The scorecard"
 msgstr "評分表"
 
+msgid "The selected login changed. Choose an account again."
+msgstr "所選登入已變更。請重新選擇帳戶。"
+
 msgid "The self-driving software factory"
 msgstr "自動駕駛的軟體工廠"
 
@@ -17491,6 +17575,9 @@ msgstr "此代理無法分叉對話"
 msgid "This agent can't run in a cloud workspace"
 msgstr "此代理程式無法在雲端工作區中執行"
 
+msgid "This agent configuration does not support account selection."
+msgstr "此代理設定不支援選擇帳戶。"
+
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "所選裝置上已不存在這個代理程式（它的代理程式可能被重置過）。在你選擇新的代理程式之前，執行都會失敗。"
 
@@ -17542,6 +17629,12 @@ msgstr "無法啟動此雲端工作區"
 
 msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
 msgstr "正在喚醒此雲端工作區。如果它已閒置一段時間，可能需要最多 30 秒。"
+
+msgid "This conversation cannot be resumed with another account."
+msgstr "無法使用其他帳戶繼續此對話。"
+
+msgid "This conversation is no longer available to resume."
+msgstr "此對話已無法繼續。"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "這將刪除用於重啟/崩潰恢復的已儲存回滾緩衝。"
@@ -17725,6 +17818,9 @@ msgstr "這會用目前內建配置替換它的名稱、命令、引數、提示
 
 msgid "This repository does not allow merging from here."
 msgstr "此儲存庫不允許從這裡合併。"
+
+msgid "This saved history changed. Select it again before opening."
+msgstr "此已儲存的歷史記錄已變更。請在開啟前重新選取。"
 
 msgid "This screen doesn't exist"
 msgstr "此頁面不存在"
@@ -18497,6 +18593,12 @@ msgstr "請在這臺機器上更新Superset以附加檔案"
 
 msgid "update the branch prefix"
 msgstr "更新分支字首"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "請更新此主機，以便為新的終端機選擇帳戶。"
+
+msgid "Update this host to open saved Claude history."
+msgstr "請更新此主機以開啟已儲存的 Claude 歷史記錄。"
 
 msgid "Updated"
 msgstr "已更新"

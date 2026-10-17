@@ -19,7 +19,10 @@ import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
-import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
+import {
+	focusOrAddTerminalPane,
+	type LinkedTerminalPaneStore,
+} from "../../utils/focusTerminalPane";
 
 export interface CreateNewAgentSessionInput {
 	configId: string;
@@ -35,6 +38,11 @@ export type CreateNewAgentSession = (
 	input: CreateNewAgentSessionInput,
 ) => Promise<{ terminalId: string } | null>;
 
+export type CreateAccountTerminal = (input: {
+	configId: string;
+	account: { selection: string | null; identity: string };
+}) => Promise<void>;
+
 export type OpenAgentChat = (
 	input: Omit<CreateNewAgentSessionInput, "forkSessionId" | "prompt"> & {
 		prompt?: string;
@@ -45,23 +53,54 @@ export type OpenAgentChat = (
 interface UseAgentSessionLauncherOptions {
 	workspaceId: string;
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
+	linkedStores?: readonly LinkedTerminalPaneStore[];
 }
 
 export function useAgentSessionLauncher({
 	workspaceId,
 	store,
+	linkedStores,
 }: UseAgentSessionLauncherOptions): {
 	createNewAgentSession: CreateNewAgentSession;
+	createAccountTerminal: CreateAccountTerminal;
 	openAgentChat: OpenAgentChat;
 	focusAgentTerminal: (terminalId: string) => void;
 } {
 	const { t } = useLingui();
 	const runAgent = workspaceTrpc.agents.run.useMutation();
+	const runWithAccount = workspaceTrpc.agents.runWithAccount.useMutation();
 	const appearance = useTerminalAppearance();
 	const awaitAcpChatEnabled = useAwaitAcpChatEnabled();
 	const { hostUrl } = useWorkspaceClient();
 	const { data: agentConfigs } = useV2AgentConfigs(hostUrl);
 	const queryClient = useQueryClient();
+	const createAccountTerminal = useCallback<CreateAccountTerminal>(
+		async ({ configId, account }) => {
+			const result = await runWithAccount.mutateAsync({
+				workspaceId,
+				agent: configId,
+				account,
+				prompt: "",
+				surface: "terminal",
+				colors: terminalQueryColors(appearance.theme),
+			});
+			if (result.kind !== "terminal") {
+				throw new Error(
+					t({ message: "Selected agent isn't a terminal agent" }),
+				);
+			}
+			store.getState().addTab({
+				panes: [
+					{
+						kind: "terminal",
+						titleOverride: result.label,
+						data: { terminalId: result.sessionId } satisfies TerminalPaneData,
+					},
+				],
+			});
+		},
+		[runWithAccount, workspaceId, appearance.theme, store, t],
+	);
 
 	const openAgentChat = useCallback<OpenAgentChat>(
 		async (input) => {
@@ -173,10 +212,15 @@ export function useAgentSessionLauncher({
 
 	const focusAgentTerminal = useCallback(
 		(terminalId: string) => {
-			focusOrAddTerminalPane(store, terminalId);
+			focusOrAddTerminalPane(store, terminalId, linkedStores);
 		},
-		[store],
+		[store, linkedStores],
 	);
 
-	return { createNewAgentSession, openAgentChat, focusAgentTerminal };
+	return {
+		createNewAgentSession,
+		createAccountTerminal,
+		openAgentChat,
+		focusAgentTerminal,
+	};
 }

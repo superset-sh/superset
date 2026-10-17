@@ -1952,6 +1952,12 @@ msgstr "エージェントセッションを開始しました"
 msgid "agent settings"
 msgstr "エージェント設定"
 
+msgid "Agent terminal with account"
+msgstr "アカウントを指定してエージェントターミナルを起動"
+
+msgid "Agent terminal with account…"
+msgstr "アカウントを指定してエージェントターミナルを起動…"
+
 msgid "Agent usage rankings"
 msgstr "エージェント使用量ランキング"
 
@@ -3171,6 +3177,9 @@ msgstr "コミュニティが共有したスキル、MCPサーバー、エージ
 msgid "Browse for directory"
 msgstr "ディレクトリを参照"
 
+msgid "Browse saved history"
+msgstr "保存済みの履歴を参照"
+
 msgid "Browse shared themes and future agent configs for Superset."
 msgstr "Superset向けに共有されたテーマと今後のエージェント設定を閲覧できます。"
 
@@ -3447,6 +3456,9 @@ msgstr "証明書エラー"
 
 msgid "Chain of Thought"
 msgstr "思考プロセス"
+
+msgid "Change account"
+msgstr "アカウントを変更"
 
 msgid "Change assignee"
 msgstr "担当者を変更"
@@ -4907,6 +4919,9 @@ msgstr "キューから抜けられませんでした"
 msgid "Could not list directory"
 msgstr "ディレクトリを一覧表示できませんでした"
 
+msgid "Could not load accounts"
+msgstr "アカウントを読み込めませんでした"
+
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
 msgstr "{0}からエージェントを読み込めませんでした"
@@ -4925,6 +4940,9 @@ msgstr "プラグインを読み込めませんでした。接続を確認して
 
 msgid "Could not load presets from the host"
 msgstr "ホストからプリセットを読み込めませんでした"
+
+msgid "Could not load saved conversations"
+msgstr "保存済みの会話を読み込めませんでした"
 
 msgid "Could not load this diff"
 msgstr "この差分を読み込めませんでした"
@@ -4949,6 +4967,9 @@ msgstr "リンクを開けませんでした"
 
 msgid "Could not open Photos"
 msgstr "「写真」を開けませんでした"
+
+msgid "Could not open saved conversation"
+msgstr "保存済みの会話を開けませんでした"
 
 #. placeholder {0}: params?.remote
 #. placeholder {1}: params?.branch
@@ -5028,6 +5049,9 @@ msgstr "再開できませんでした"
 msgid "Could not resume the chat"
 msgstr "チャットを再開できませんでした"
 
+msgid "Could not resume this conversation"
+msgstr "この会話を再開できませんでした"
+
 msgid "Could not send"
 msgstr "送信できませんでした"
 
@@ -5042,6 +5066,9 @@ msgstr "共有できませんでした"
 
 msgid "Could not start agent"
 msgstr "エージェントを起動できませんでした"
+
+msgid "Could not start agent terminal"
+msgstr "エージェントターミナルを起動できませんでした"
 
 msgid "Could not start checkout. Please try again."
 msgstr "チェックアウトを開始できませんでした。もう一度お試しください。"
@@ -8552,6 +8579,9 @@ msgstr "スマートフォンから直接、自分のMacにローカルのワー
 msgid "I can be in a café with my coffee while the work keeps moving forward."
 msgstr "カフェでコーヒーを飲んでいる間も、作業は進み続けます。"
 
+msgid "I exited this conversation in the original app. No tools or background jobs are still running."
+msgstr "元のアプリでこの会話を終了しました。実行中のツールやバックグラウンドジョブはありません。"
+
 msgid "I start my morning walks with an idea, and end with a pull request."
 msgstr "朝の散歩をアイデアとともに始め、プルリクエストとともに終えます。"
 
@@ -9699,6 +9729,9 @@ msgstr "Loader · Braille Spinner"
 msgid "Loading"
 msgstr "読み込み中"
 
+msgid "Loading accounts…"
+msgstr "アカウントを読み込み中…"
+
 msgid "Loading agent settings..."
 msgstr "エージェント設定を読み込み中..."
 
@@ -9776,6 +9809,9 @@ msgstr "リポジトリを読み込み中..."
 
 msgid "Loading review..."
 msgstr "レビューを読み込み中..."
+
+msgid "Loading saved conversations…"
+msgstr "保存済みの会話を読み込み中…"
 
 msgid "Loading terminal scripts..."
 msgstr "ターミナルスクリプトを読み込み中..."
@@ -10795,6 +10831,9 @@ msgstr "作成者が見つかりません。"
 msgid "No automations match"
 msgstr "一致するオートメーションがありません"
 
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "利用可能なサブスクリプションアカウントがありません。「使用量」でアカウントを追加するかログインしてから、更新してください。"
+
 msgid "No branches found"
 msgstr "ブランチが見つかりません"
 
@@ -10821,6 +10860,9 @@ msgstr "チェックはありません。"
 
 msgid "No Chrome, Brave, Arc, or other Chromium browsers were found."
 msgstr "Chrome、Brave、ArcなどのChromiumブラウザが見つかりませんでした。"
+
+msgid "No Claude agent is configured on this host."
+msgstr "このホストには Claude エージェントが設定されていません。"
 
 msgid "No Claude or Codex usage found on this machine yet. Join now and you'll appear once you've used an agent."
 msgstr "このマシンでClaudeやCodexの使用がまだ見つかりません。今参加すれば、エージェントを使い始めた時点で表示されます。"
@@ -11200,6 +11242,9 @@ msgstr "合うポジションがありません。それでも連絡してよい
 
 msgid "No runs yet"
 msgstr "実行はまだありません"
+
+msgid "No saved Claude conversations were found in this account for the current workspace."
+msgstr "現在のワークスペースに対応する保存済みの Claude の会話が、このアカウントに見つかりませんでした。"
 
 msgid "No screenshots yet"
 msgstr "スクリーンショットはまだありません"
@@ -11801,6 +11846,9 @@ msgstr "コマンドパレットを開く"
 msgid "Open comment on GitHub"
 msgstr "GitHubでコメントを開く"
 
+msgid "Open conversation"
+msgstr "会話を開く"
+
 msgid "Open details"
 msgstr "詳細を開く"
 
@@ -11828,6 +11876,9 @@ msgstr "ドロワーを開く"
 msgid "Open existing PR or create a new one on GitHub"
 msgstr "既存のPRを開く、またはGitHubで新規作成する"
 
+msgid "Open existing terminal"
+msgstr "既存のターミナルを開く"
+
 msgid "open file"
 msgstr "ファイルを開く"
 
@@ -11845,6 +11896,9 @@ msgstr "フォルダから開く"
 
 msgid "Open full screen"
 msgstr "全画面で開く"
+
+msgid "Open history from this account in the current workspace. After adoption, later opens use its current local history. Background work is not transferred."
+msgstr "このアカウントの履歴を現在のワークスペースで開きます。取り込み後は、開くたびに最新のローカル履歴を使用します。バックグラウンドの作業は引き継がれません。"
 
 msgid "Open host"
 msgstr "ホストを開く"
@@ -12052,6 +12106,12 @@ msgstr "最近使った項目を開く"
 
 msgid "Open roles"
 msgstr "募集中のポジション"
+
+msgid "Open saved Claude conversation"
+msgstr "保存済みの Claude の会話を開く"
+
+msgid "Open saved Claude conversation…"
+msgstr "保存済みの Claude の会話を開く…"
 
 msgid "Open session in"
 msgstr "セッションを開く場所"
@@ -13882,6 +13942,9 @@ msgstr "閉じたタブを再度開く"
 msgid "Reopen PR"
 msgstr "PRを再オープン"
 
+msgid "Reopen the saved conversation in the same workspace. No message is sent. Background work is not transferred."
+msgstr "同じワークスペースで保存済みの会話を再度開きます。メッセージは送信されません。バックグラウンドの作業は引き継がれません。"
+
 msgid "Reopen thread"
 msgstr "スレッドを再開"
 
@@ -14231,6 +14294,12 @@ msgstr "再開時の引数"
 
 msgid "Resume automation"
 msgstr "オートメーションを再開"
+
+msgid "Resume conversation"
+msgstr "会話を再開"
+
+msgid "Resume with another account"
+msgstr "別のアカウントで再開"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
@@ -14649,6 +14718,12 @@ msgstr "保存済み"
 #. placeholder {0}: created?.name ?? name.trim()
 msgid "Saved \"{0}\" as an environment"
 msgstr "「{0}」を環境として保存しました"
+
+msgid "Saved conversations"
+msgstr "保存済みの会話"
+
+msgid "Saved in Superset"
+msgstr "Superset に保存済み"
 
 msgid "Saved to Downloads"
 msgstr "ダウンロードフォルダに保存しました"
@@ -16150,6 +16225,9 @@ msgstr "実行ごとに新しいエージェントセッションを開始"
 msgid "Start a new chat"
 msgstr "新しいチャットを開始"
 
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "既存のログインを使って新しいターミナルを起動します。他のチャットと既定のアカウントは変更されません。"
+
 msgid "Start a session"
 msgstr "セッションを開始"
 
@@ -16188,6 +16266,9 @@ msgstr "タブバーの+から開始できます。"
 
 msgid "Start or stop the workspace run command"
 msgstr "ワークスペースの実行コマンドを開始または停止する"
+
+msgid "Start terminal"
+msgstr "ターミナルを起動"
 
 msgid "Start voice mode"
 msgstr "音声モードを開始"
@@ -17368,6 +17449,9 @@ msgstr "同じアプリが iPad でネイティブに動作し、縦向きにも
 msgid "The scorecard"
 msgstr "スコアカード"
 
+msgid "The selected login changed. Choose an account again."
+msgstr "選択したログインが変更されました。アカウントを選び直してください。"
+
 msgid "The self-driving software factory"
 msgstr "自動運転するソフトウェア工場"
 
@@ -17491,6 +17575,9 @@ msgstr "このエージェントは会話を分岐できません"
 msgid "This agent can't run in a cloud workspace"
 msgstr "このエージェントはクラウドワークスペースで実行できません"
 
+msgid "This agent configuration does not support account selection."
+msgstr "このエージェント設定ではアカウントを選択できません。"
+
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "選択したデバイスにこのエージェントは存在しません(エージェントがリセットされた可能性があります)。新しいエージェントを選ぶまで実行は失敗します。"
 
@@ -17542,6 +17629,12 @@ msgstr "このクラウドワークスペースを起動できません"
 
 msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
 msgstr "このクラウドワークスペースを起動しています。しばらく使われていなかった場合は、最大30秒かかることがあります。"
+
+msgid "This conversation cannot be resumed with another account."
+msgstr "この会話は別のアカウントでは再開できません。"
+
+msgid "This conversation is no longer available to resume."
+msgstr "この会話は再開できなくなりました。"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "再起動やクラッシュからの復旧に使う保存済みスクロールバックを削除します。"
@@ -17725,6 +17818,9 @@ msgstr "ラベル、コマンド、引数、プロンプトと再開設定、環
 
 msgid "This repository does not allow merging from here."
 msgstr "このリポジトリはここからのマージを許可していません。"
+
+msgid "This saved history changed. Select it again before opening."
+msgstr "この保存済みの履歴は変更されています。開く前にもう一度選択してください。"
 
 msgid "This screen doesn't exist"
 msgstr "この画面は存在しません"
@@ -18497,6 +18593,12 @@ msgstr "ファイルを添付するには、このマシンでSupersetを更新�
 
 msgid "update the branch prefix"
 msgstr "ブランチのプレフィックスを更新する"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "新しいターミナルのアカウントを選択するには、このホストを更新してください。"
+
+msgid "Update this host to open saved Claude history."
+msgstr "保存済みの Claude の履歴を開くには、このホストを更新してください。"
 
 msgid "Updated"
 msgstr "更新済み"

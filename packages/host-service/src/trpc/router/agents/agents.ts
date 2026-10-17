@@ -1,4 +1,7 @@
-import { isBuiltinAgentId } from "@superset/shared/agent-catalog";
+import {
+	type AgentDefinitionId,
+	isBuiltinAgentId,
+} from "@superset/shared/agent-catalog";
 import { FORK_SESSION_ID_TOKEN } from "@superset/shared/agent-definition";
 import {
 	buildAgentEffortArgs,
@@ -46,7 +49,16 @@ import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { resolveAttachmentPath } from "../attachments/storage";
 import { toTerminalSessionError } from "../terminal/errors";
+import type { SessionAccount } from "../usage/session-account/session-account";
 import { seedAgentFolderTrust } from "../workspace-creation/shared/seed-agent-trust";
+import { validateAccountAuthRouting } from "./account-auth-routing";
+import {
+	listLaunchAccounts,
+	pinnedAccountCommandPrefix,
+	prepareLaunchAccountHooks,
+	resolveLaunchAccount,
+	validatePinnedLaunchAccount,
+} from "./launch-account";
 
 /**
  * Build a shell command string that runs the resolved agent config with the
@@ -132,6 +144,14 @@ function buildAttachmentBlock(
 }
 
 export interface AgentRunInput {
+	/** Internal recovery transaction; never accepted by a public input schema. */
+	terminalLaunch?: {
+		terminalId: string;
+		beforeInitialCommand: () => Promise<void>;
+		onInitialCommandReady: () => void;
+	};
+	/** Internal, validated explicit selection. Public callers use runWithAccount. */
+	account?: SessionAccount;
 	colors?: TerminalColors;
 	workspaceId: string;
 	agent: string;
@@ -457,7 +477,14 @@ export function buildTerminalAgentLaunch(
 	);
 	const modelEnv = buildAgentModelEnv(launchPresetId, input.model);
 	return {
-		fullCommand: `${envOverlayPrefix({ ...agentLaunchEnv(db, config), ...modelEnv })}${command}`,
+		fullCommand: `${
+			input.account
+				? pinnedAccountCommandPrefix(input.account, {
+						...config.env,
+						...modelEnv,
+					})
+				: envOverlayPrefix({ ...agentLaunchEnv(db, config), ...modelEnv })
+		}${command}`,
 		label: config.label,
 	};
 }
@@ -477,16 +504,37 @@ export function bindResumedSession(
 	input: AgentRunInput,
 	terminalId: string,
 ): void {
-	if (!input.resumeSessionId) return;
-	const presetId = resolveHostAgentConfig(ctx.db, input.agent)?.presetId;
+	if (!input.resumeSessionId && !input.account) return;
+	const config = resolveHostAgentConfig(ctx.db, input.agent);
+	const presetId = config?.presetId;
 	if (!presetId || !isBuiltinAgentId(presetId)) return;
+	const observed = ctx.terminalAgentStore.get(terminalId);
+	let account = input.account;
+	if (
+		account &&
+		observed &&
+		(observed.agentId !== account.agent ||
+			(observed.account &&
+				(observed.account.agent !== account.agent ||
+					observed.account.identity !== account.identity ||
+					observed.account.directory !== account.directory)) ||
+			(input.resumeSessionId &&
+				observed.agentSessionId &&
+				input.resumeSessionId !== observed.agentSessionId))
+	)
+		account = { ...account, conflict: true };
 
 	ctx.terminalAgentStore.recordEvent({
 		terminalId,
 		workspaceId: input.workspaceId,
 		eventType: "Attached",
 		agentId: presetId,
-		agentSessionId: input.resumeSessionId,
+		agentSessionId: account
+			? (observed?.agentSessionId ?? input.resumeSessionId)
+			: input.resumeSessionId,
+		...(account
+			? { account, definitionId: config.id as AgentDefinitionId }
+			: {}),
 		occurredAt: Date.now(),
 	});
 }
@@ -497,7 +545,7 @@ async function runTerminalAgent(
 ): Promise<AgentRunResult> {
 	const { fullCommand, label } = buildTerminalAgentLaunch(ctx.db, input);
 
-	const terminalId = crypto.randomUUID();
+	const terminalId = input.terminalLaunch?.terminalId ?? crypto.randomUUID();
 	const result = await createTerminalSessionInternal({
 		terminalId,
 		workspaceId: input.workspaceId,
@@ -505,13 +553,24 @@ async function runTerminalAgent(
 		eventBus: ctx.eventBus,
 		initialCommand: fullCommand,
 		colors: input.colors,
+		...(input.terminalLaunch
+			? {
+					beforeInitialCommand: input.terminalLaunch.beforeInitialCommand,
+					onInitialCommandReady: () => {
+						ctx.db.transaction(() => {
+							bindResumedSession(ctx, input, terminalId);
+							input.terminalLaunch?.onInitialCommandReady();
+						});
+					},
+				}
+			: {}),
 	});
 
 	if ("error" in result) {
 		throw toTerminalSessionError(result);
 	}
 
-	bindResumedSession(ctx, input, result.terminalId);
+	if (!input.terminalLaunch) bindResumedSession(ctx, input, result.terminalId);
 
 	return {
 		kind: "terminal",
@@ -778,6 +837,34 @@ export async function runAgentInWorkspace(
 	ctx: HostServiceContext,
 	input: AgentRunInput,
 ): Promise<AgentRunResult> {
+	if (
+		input.terminalLaunch &&
+		(!input.account || !input.resumeSessionId || input.surface !== "terminal")
+	)
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"A guarded launch requires exact account-bound terminal recovery.",
+		});
+	if (input.account) {
+		if (
+			input.surface === "chat" ||
+			input.continueTerminalId ||
+			input.forkSessionId
+		) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Explicit account selection requires a new terminal launch.",
+			});
+		}
+		const config = resolveHostAgentConfig(ctx.db, input.agent);
+		if (!config)
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "The selected agent is no longer available.",
+			});
+		await validatePinnedLaunchAccount(config, input.account);
+	}
 	const workspace = ctx.db.query.workspaces
 		.findFirst({
 			// A tombstoned (archived) row is gone for agent launches: without
@@ -798,6 +885,10 @@ export async function runAgentInWorkspace(
 			message: `Workspace ${input.workspaceId} not found on this host — it may have been deleted.`,
 		});
 	}
+	if (input.account) {
+		await validateAccountAuthRouting(input.account, workspace.worktreePath);
+		prepareLaunchAccountHooks(input.account);
+	}
 	// Ahead of the launch path: continuing costs no pty and no trust seeding.
 	const continued =
 		continueChatAgent(ctx, input) ?? (await continueTerminalAgent(ctx, input));
@@ -808,7 +899,7 @@ export async function runAgentInWorkspace(
 	// folder in the launching agent's own trust store so its first
 	// interactive boot skips the trust dialog. Worktree workspaces inherit
 	// trust from the main checkout and need nothing.
-	if (workspace.projectId === null) {
+	if (workspace.projectId === null && !input.account) {
 		const config = resolveHostAgentConfig(ctx.db, input.agent);
 		if (config) {
 			await seedAgentFolderTrust(ctx.db, workspace.worktreePath, config);
@@ -821,6 +912,55 @@ export async function runAgentInWorkspace(
 }
 
 export const agentsRouter = router({
+	launchAccounts: protectedProcedure
+		.input(z.object({ agent: z.string().min(1) }))
+		.query(async ({ ctx, input }) => {
+			const config = resolveHostAgentConfig(ctx.db, input.agent);
+			if (!config)
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "The selected agent is no longer available.",
+				});
+			return listLaunchAccounts(config);
+		}),
+	// Separate procedure so an older host cannot strip the selection and launch
+	// with its default. Explicit choices must never fall back to agents.run.
+	runWithAccount: protectedProcedure
+		.input(
+			z
+				.object({
+					workspaceId: z.string().uuid(),
+					colors: terminalColorsSchema.optional(),
+					agent: z.string().min(1),
+					prompt: z.string().default(""),
+					attachmentIds: z.array(z.string().uuid()).optional(),
+					model: z.string().min(1).optional(),
+					effort: z.string().min(1).optional(),
+					mode: z.string().min(1).optional(),
+					surface: z.literal("terminal").optional(),
+					account: z
+						.object({
+							selection: z.string().max(4096).nullable(),
+							identity: z.string().regex(/^[a-f0-9]{64}$/),
+						})
+						.strict(),
+				})
+				.strict(),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const config = resolveHostAgentConfig(ctx.db, input.agent);
+			if (!config)
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "The selected agent is no longer available.",
+				});
+			const account = await resolveLaunchAccount(config, input.account);
+			return runAgentInWorkspace(ctx, {
+				...input,
+				surface: "terminal",
+				account,
+			});
+		}),
 	run: protectedProcedure
 		.input(
 			z.object({

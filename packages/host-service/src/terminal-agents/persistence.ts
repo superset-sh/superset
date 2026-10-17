@@ -12,6 +12,7 @@ import {
 } from "drizzle-orm";
 import type { HostDb } from "../db";
 import { terminalAgentBindings, terminalSessions } from "../db/schema.ts";
+import { parsePersistedSessionAccount } from "../trpc/router/usage/session-account/session-account";
 import type {
 	TerminalAgentBindingListFilter,
 	TerminalAgentBindingPersistence,
@@ -28,6 +29,8 @@ const bindingColumns = {
 	agentId: terminalAgentBindings.agentId,
 	agentSessionId: terminalAgentBindings.agentSessionId,
 	definitionId: terminalAgentBindings.definitionId,
+	accountJson: terminalAgentBindings.accountJson,
+	launchId: terminalAgentBindings.launchId,
 	startedAt: terminalAgentBindings.startedAt,
 	lastEventAt: terminalAgentBindings.lastEventAt,
 	lastEventType: terminalAgentBindings.lastEventType,
@@ -41,6 +44,8 @@ interface BindingRow {
 	agentId: TerminalAgentId;
 	agentSessionId: string | null;
 	definitionId: AgentDefinitionId | null;
+	accountJson: string | null;
+	launchId: string | null;
 	startedAt: number;
 	lastEventAt: number;
 	lastEventType: string;
@@ -49,12 +54,19 @@ interface BindingRow {
 }
 
 function rowToBinding(row: BindingRow): TerminalAgentBinding {
+	const account = parsePersistedSessionAccount(row.accountJson);
 	return {
 		terminalId: row.terminalId,
 		workspaceId: row.workspaceId,
 		agentId: row.agentId,
 		...(row.agentSessionId ? { agentSessionId: row.agentSessionId } : {}),
 		...(row.definitionId ? { definitionId: row.definitionId } : {}),
+		...(account === null
+			? { accountInvalid: true as const }
+			: account
+				? { account }
+				: {}),
+		...(row.launchId !== null ? { launchId: row.launchId } : {}),
 		startedAt: row.startedAt,
 		lastEventAt: row.lastEventAt,
 		lastEventType: row.lastEventType,
@@ -582,6 +594,11 @@ export class SqliteTerminalAgentBindingPersistence
 	}
 
 	upsert(binding: TerminalAgentBinding): void {
+		const accountJson = binding.accountInvalid
+			? '{"invalid":true}'
+			: binding.account
+				? JSON.stringify(binding.account)
+				: null;
 		// A fresh event for the terminal revives an ended row: a new agent
 		// session started there, so the old resume candidate is superseded.
 		this.db
@@ -592,6 +609,8 @@ export class SqliteTerminalAgentBindingPersistence
 				agentId: binding.agentId,
 				agentSessionId: binding.agentSessionId ?? null,
 				definitionId: binding.definitionId ?? null,
+				accountJson,
+				launchId: binding.launchId ?? null,
 				startedAt: binding.startedAt,
 				lastEventAt: binding.lastEventAt,
 				lastEventType: binding.lastEventType,
@@ -605,6 +624,8 @@ export class SqliteTerminalAgentBindingPersistence
 					agentId: binding.agentId,
 					agentSessionId: binding.agentSessionId ?? null,
 					definitionId: binding.definitionId ?? null,
+					accountJson,
+					launchId: binding.launchId ?? null,
 					startedAt: binding.startedAt,
 					lastEventAt: binding.lastEventAt,
 					lastEventType: binding.lastEventType,

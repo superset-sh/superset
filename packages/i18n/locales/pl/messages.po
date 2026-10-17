@@ -1952,6 +1952,12 @@ msgstr "Sesja agenta uruchomiona"
 msgid "agent settings"
 msgstr "ustawienia agenta"
 
+msgid "Agent terminal with account"
+msgstr "Terminal agenta z wyborem konta"
+
+msgid "Agent terminal with account…"
+msgstr "Terminal agenta z wyborem konta…"
+
 msgid "Agent usage rankings"
 msgstr "Rankingi użycia agentów"
 
@@ -3171,6 +3177,9 @@ msgstr "Przeglądaj i instaluj umiejętności, serwery MCP i konfiguracje agent�
 msgid "Browse for directory"
 msgstr "Przeglądaj katalogi"
 
+msgid "Browse saved history"
+msgstr "Przeglądaj zapisaną historię"
+
 msgid "Browse shared themes and future agent configs for Superset."
 msgstr "Przeglądaj udostępnione motywy i przyszłe konfiguracje agentów dla Superset."
 
@@ -3447,6 +3456,9 @@ msgstr "Błąd certyfikatu"
 
 msgid "Chain of Thought"
 msgstr "Tok rozumowania"
+
+msgid "Change account"
+msgstr "Zmień konto"
 
 msgid "Change assignee"
 msgstr "Zmień osobę przypisaną"
@@ -4907,6 +4919,9 @@ msgstr "Nie udało się opuścić kolejki"
 msgid "Could not list directory"
 msgstr "Nie udało się wylistować katalogu"
 
+msgid "Could not load accounts"
+msgstr "Nie udało się wczytać kont"
+
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
 msgstr "Nie udało się wczytać agentów z {0}"
@@ -4925,6 +4940,9 @@ msgstr "Nie udało się wczytać wtyczek. Sprawdź połączenie i spróbuj ponow
 
 msgid "Could not load presets from the host"
 msgstr "Nie udało się wczytać presetów z hosta"
+
+msgid "Could not load saved conversations"
+msgstr "Nie udało się wczytać zapisanych rozmów"
 
 msgid "Could not load this diff"
 msgstr "Nie udało się wczytać tych różnic"
@@ -4949,6 +4967,9 @@ msgstr "Nie udało się otworzyć linku"
 
 msgid "Could not open Photos"
 msgstr "Nie udało się otworzyć Zdjęć"
+
+msgid "Could not open saved conversation"
+msgstr "Nie udało się otworzyć zapisanej rozmowy"
 
 #. placeholder {0}: params?.remote
 #. placeholder {1}: params?.branch
@@ -5028,6 +5049,9 @@ msgstr "Nie udało się wznowić"
 msgid "Could not resume the chat"
 msgstr "Nie udało się wznowić czatu"
 
+msgid "Could not resume this conversation"
+msgstr "Nie udało się wznowić tej rozmowy"
+
 msgid "Could not send"
 msgstr "Nie udało się wysłać"
 
@@ -5042,6 +5066,9 @@ msgstr "Nie udało się udostępnić"
 
 msgid "Could not start agent"
 msgstr "Nie udało się uruchomić agenta"
+
+msgid "Could not start agent terminal"
+msgstr "Nie udało się uruchomić terminala agenta"
 
 msgid "Could not start checkout. Please try again."
 msgstr "Nie udało się rozpocząć płatności. Spróbuj ponownie."
@@ -8552,6 +8579,9 @@ msgstr "Bardzo podoba mi się też to, że mogę uruchomić lokalne środowisko 
 msgid "I can be in a café with my coffee while the work keeps moving forward."
 msgstr "Mogę siedzieć w kawiarni z kawą, a praca wciąż posuwa się naprzód."
 
+msgid "I exited this conversation in the original app. No tools or background jobs are still running."
+msgstr "Zamknięto tę rozmowę w oryginalnej aplikacji. Żadne narzędzia ani zadania w tle już nie działają."
+
 msgid "I start my morning walks with an idea, and end with a pull request."
 msgstr "Zaczynam poranne spacery z pomysłem, a kończę z pull requestem."
 
@@ -9699,6 +9729,9 @@ msgstr "Loader · Braille Spinner"
 msgid "Loading"
 msgstr "Wczytywanie"
 
+msgid "Loading accounts…"
+msgstr "Wczytywanie kont…"
+
 msgid "Loading agent settings..."
 msgstr "Wczytywanie ustawień agenta..."
 
@@ -9776,6 +9809,9 @@ msgstr "Wczytywanie repozytoriów..."
 
 msgid "Loading review..."
 msgstr "Wczytywanie przeglądu..."
+
+msgid "Loading saved conversations…"
+msgstr "Wczytywanie zapisanych rozmów…"
 
 msgid "Loading terminal scripts..."
 msgstr "Wczytywanie skryptów terminala..."
@@ -10795,6 +10831,9 @@ msgstr "Nie znaleziono autorów."
 msgid "No automations match"
 msgstr "Brak pasujących automatyzacji"
 
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "Brak dostępnych kont z subskrypcją. Dodaj konto lub zaloguj się w sekcji Użycie, a następnie odśwież."
+
 msgid "No branches found"
 msgstr "Nie znaleziono gałęzi"
 
@@ -10821,6 +10860,9 @@ msgstr "Brak zgłoszonych kontroli."
 
 msgid "No Chrome, Brave, Arc, or other Chromium browsers were found."
 msgstr "Nie znaleziono przeglądarek Chrome, Brave, Arc ani innych opartych na Chromium."
+
+msgid "No Claude agent is configured on this host."
+msgstr "Na tym hoście nie skonfigurowano agenta Claude."
 
 msgid "No Claude or Codex usage found on this machine yet. Join now and you'll appear once you've used an agent."
 msgstr "Nie znaleziono jeszcze zużycia Claude ani Codex na tej maszynie. Dołącz teraz, a pojawisz się po pierwszym użyciu agenta."
@@ -11200,6 +11242,9 @@ msgstr "Żadne stanowisko do mnie nie pasuje. Czy mimo to warto się odezwać?"
 
 msgid "No runs yet"
 msgstr "Brak uruchomień"
+
+msgid "No saved Claude conversations were found in this account for the current workspace."
+msgstr "Na tym koncie nie znaleziono zapisanych rozmów Claude dla bieżącego obszaru roboczego."
 
 msgid "No screenshots yet"
 msgstr "Brak zrzutów ekranu"
@@ -11801,6 +11846,9 @@ msgstr "Otwórz paletę poleceń"
 msgid "Open comment on GitHub"
 msgstr "Otwórz komentarz na GitHub"
 
+msgid "Open conversation"
+msgstr "Otwórz rozmowę"
+
 msgid "Open details"
 msgstr "Otwórz szczegóły"
 
@@ -11828,6 +11876,9 @@ msgstr "Otwórz szufladę"
 msgid "Open existing PR or create a new one on GitHub"
 msgstr "Otwórz istniejący PR lub utwórz nowy na GitHub"
 
+msgid "Open existing terminal"
+msgstr "Otwórz istniejący terminal"
+
 msgid "open file"
 msgstr "otwórz plik"
 
@@ -11845,6 +11896,9 @@ msgstr "Otwórz z folderu"
 
 msgid "Open full screen"
 msgstr "Otwórz na pełnym ekranie"
+
+msgid "Open history from this account in the current workspace. After adoption, later opens use its current local history. Background work is not transferred."
+msgstr "Otwórz historię tego konta w bieżącym obszarze roboczym. Po zaimportowaniu kolejne otwarcia korzystają z aktualnej historii lokalnej. Zadania w tle nie są przenoszone."
 
 msgid "Open host"
 msgstr "Otwórz host"
@@ -12052,6 +12106,12 @@ msgstr "Otwórz ostatnie"
 
 msgid "Open roles"
 msgstr "Otwarte stanowiska"
+
+msgid "Open saved Claude conversation"
+msgstr "Otwórz zapisaną rozmowę Claude"
+
+msgid "Open saved Claude conversation…"
+msgstr "Otwórz zapisaną rozmowę Claude…"
 
 msgid "Open session in"
 msgstr "Otwórz sesję w"
@@ -13882,6 +13942,9 @@ msgstr "Otwórz ponownie zamkniętą kartę"
 msgid "Reopen PR"
 msgstr "Otwórz PR ponownie"
 
+msgid "Reopen the saved conversation in the same workspace. No message is sent. Background work is not transferred."
+msgstr "Otwórz ponownie zapisaną rozmowę w tej samej przestrzeni roboczej. Żadna wiadomość nie zostanie wysłana. Zadania w tle nie zostaną przeniesione."
+
 msgid "Reopen thread"
 msgstr "Otwórz wątek ponownie"
 
@@ -14231,6 +14294,12 @@ msgstr "Argumenty wznawiania"
 
 msgid "Resume automation"
 msgstr "Wznów automatyzację"
+
+msgid "Resume conversation"
+msgstr "Wznów rozmowę"
+
+msgid "Resume with another account"
+msgstr "Wznów z innym kontem"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
@@ -14649,6 +14718,12 @@ msgstr "Zapisano"
 #. placeholder {0}: created?.name ?? name.trim()
 msgid "Saved \"{0}\" as an environment"
 msgstr "Zapisano \"{0}\" jako środowisko"
+
+msgid "Saved conversations"
+msgstr "Zapisane rozmowy"
+
+msgid "Saved in Superset"
+msgstr "Zapisano w Superset"
 
 msgid "Saved to Downloads"
 msgstr "Zapisano w Pobranych"
@@ -16150,6 +16225,9 @@ msgstr "Rozpocznij nową sesję agenta przy każdym uruchomieniu"
 msgid "Start a new chat"
 msgstr "Rozpocznij nowy czat"
 
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "Uruchom nowy terminal, korzystając z istniejącego logowania. Inne czaty i konto domyślne pozostaną bez zmian."
+
 msgid "Start a session"
 msgstr "Uruchom sesję"
 
@@ -16188,6 +16266,9 @@ msgstr "Uruchom ją przyciskiem + na pasku kart."
 
 msgid "Start or stop the workspace run command"
 msgstr "Uruchom lub zatrzymaj polecenie obszaru roboczego"
+
+msgid "Start terminal"
+msgstr "Uruchom terminal"
 
 msgid "Start voice mode"
 msgstr "Uruchom tryb głosowy"
@@ -17368,6 +17449,9 @@ msgstr "Ta sama aplikacja działa natywnie na iPadzie, w pionie i w poziomie."
 msgid "The scorecard"
 msgstr "Karta wyników"
 
+msgid "The selected login changed. Choose an account again."
+msgstr "Wybrane dane logowania uległy zmianie. Wybierz konto ponownie."
+
 msgid "The self-driving software factory"
 msgstr "Samojezdna fabryka oprogramowania"
 
@@ -17491,6 +17575,9 @@ msgstr "Ten agent nie może rozgałęzić rozmowy"
 msgid "This agent can't run in a cloud workspace"
 msgstr "Ten agent nie może działać w obszarze roboczym w chmurze"
 
+msgid "This agent configuration does not support account selection."
+msgstr "Ta konfiguracja agenta nie obsługuje wyboru konta."
+
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Ten agent już nie istnieje na wybranym urządzeniu (jego agenci mogli zostać zresetowani). Uruchomienia będą kończyć się błędem, dopóki nie wybierzesz nowego."
 
@@ -17542,6 +17629,12 @@ msgstr "Nie można uruchomić tego obszaru roboczego w chmurze"
 
 msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
 msgstr "Ten obszar roboczy w chmurze jest wybudzany. Po okresie bezczynności może to potrwać do 30 sekund."
+
+msgid "This conversation cannot be resumed with another account."
+msgstr "Nie można wznowić tej rozmowy z innym kontem."
+
+msgid "This conversation is no longer available to resume."
+msgstr "Ta rozmowa nie jest już dostępna do wznowienia."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Usuwa to zapisany bufor przewijania używany do odzyskiwania po restarcie lub awarii."
@@ -17725,6 +17818,9 @@ msgstr "Zastąpi to jego etykietę, polecenie, argumenty, ustawienia promptu i w
 
 msgid "This repository does not allow merging from here."
 msgstr "To repozytorium nie pozwala na scalanie z tego miejsca."
+
+msgid "This saved history changed. Select it again before opening."
+msgstr "Ta zapisana historia uległa zmianie. Wybierz ją ponownie przed otwarciem."
 
 msgid "This screen doesn't exist"
 msgstr "Ten ekran nie istnieje"
@@ -18497,6 +18593,12 @@ msgstr "Zaktualizuj Superset na tej maszynie, aby dołączać pliki"
 
 msgid "update the branch prefix"
 msgstr "zaktualizować prefiksu gałęzi"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "Zaktualizuj tego hosta, aby wybrać konto dla nowego terminala."
+
+msgid "Update this host to open saved Claude history."
+msgstr "Zaktualizuj ten host, aby otworzyć zapisaną historię Claude."
 
 msgid "Updated"
 msgstr "Zaktualizowano"

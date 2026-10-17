@@ -3,4 +3,5 @@ export {
 	findTerminalPaneLocation,
 	focusOrAddTerminalPane,
 	focusTerminalPane,
+	type LinkedTerminalPaneStore,
 } from "./focusTerminalPane";

@@ -1952,6 +1952,12 @@ msgstr "Ajan oturumu başladı"
 msgid "agent settings"
 msgstr "ajan ayarları"
 
+msgid "Agent terminal with account"
+msgstr "Hesap seçerek ajan terminali aç"
+
+msgid "Agent terminal with account…"
+msgstr "Hesap seçerek ajan terminali aç…"
+
 msgid "Agent usage rankings"
 msgstr "Ajan kullanım sıralamaları"
 
@@ -3171,6 +3177,9 @@ msgstr "Toplulukça paylaşılan becerilere, MCP sunucularına ve ajan yapıland
 msgid "Browse for directory"
 msgstr "Dizine gözat"
 
+msgid "Browse saved history"
+msgstr "Kayıtlı geçmişe göz at"
+
 msgid "Browse shared themes and future agent configs for Superset."
 msgstr "Superset için paylaşılan temalara ve gelecekteki ajan yapılandırmalarına göz atın."
 
@@ -3447,6 +3456,9 @@ msgstr "Sertifika hatası"
 
 msgid "Chain of Thought"
 msgstr "Düşünce zinciri"
+
+msgid "Change account"
+msgstr "Hesabı değiştir"
 
 msgid "Change assignee"
 msgstr "Atananı değiştir"
@@ -4907,6 +4919,9 @@ msgstr "Kuyruktan çıkılamadı"
 msgid "Could not list directory"
 msgstr "Dizin listelenemedi"
 
+msgid "Could not load accounts"
+msgstr "Hesaplar yüklenemedi"
+
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
 msgstr "{0} üzerinden ajanlar yüklenemedi"
@@ -4925,6 +4940,9 @@ msgstr "Eklentiler yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin."
 
 msgid "Could not load presets from the host"
 msgstr "Host'tan hazır ayarlar yüklenemedi"
+
+msgid "Could not load saved conversations"
+msgstr "Kayıtlı konuşmalar yüklenemedi"
 
 msgid "Could not load this diff"
 msgstr "Bu fark yüklenemedi"
@@ -4949,6 +4967,9 @@ msgstr "Bağlantı açılamadı"
 
 msgid "Could not open Photos"
 msgstr "Fotoğraflar açılamadı"
+
+msgid "Could not open saved conversation"
+msgstr "Kayıtlı konuşma açılamadı"
 
 #. placeholder {0}: params?.remote
 #. placeholder {1}: params?.branch
@@ -5028,6 +5049,9 @@ msgstr "Devam ettirilemedi"
 msgid "Could not resume the chat"
 msgstr "Sohbete devam edilemedi"
 
+msgid "Could not resume this conversation"
+msgstr "Bu konuşma sürdürülemedi"
+
 msgid "Could not send"
 msgstr "Gönderilemedi"
 
@@ -5042,6 +5066,9 @@ msgstr "Paylaşılamadı"
 
 msgid "Could not start agent"
 msgstr "Ajan başlatılamadı"
+
+msgid "Could not start agent terminal"
+msgstr "Ajan terminali başlatılamadı"
 
 msgid "Could not start checkout. Please try again."
 msgstr "Ödeme başlatılamadı. Lütfen tekrar deneyin."
@@ -8552,6 +8579,9 @@ msgstr "Doğrudan telefonumdan Mac’imde yerel bir çalışma ağacı ortamı b
 msgid "I can be in a café with my coffee while the work keeps moving forward."
 msgstr "Ben kafede kahvemi içerken iş ilerlemeye devam edebiliyor."
 
+msgid "I exited this conversation in the original app. No tools or background jobs are still running."
+msgstr "Bu konuşmadan özgün uygulamada çıktım. Çalışan araç veya arka plan görevi kalmadı."
+
 msgid "I start my morning walks with an idea, and end with a pull request."
 msgstr "Sabah yürüyüşlerime bir fikirle başlıyor, bir pull request ile bitiriyorum."
 
@@ -9699,6 +9729,9 @@ msgstr "Yükleyici · Braille spinner"
 msgid "Loading"
 msgstr "Yükleniyor"
 
+msgid "Loading accounts…"
+msgstr "Hesaplar yükleniyor…"
+
 msgid "Loading agent settings..."
 msgstr "Ajan ayarları yükleniyor..."
 
@@ -9776,6 +9809,9 @@ msgstr "Depolar yükleniyor..."
 
 msgid "Loading review..."
 msgstr "İnceleme yükleniyor..."
+
+msgid "Loading saved conversations…"
+msgstr "Kayıtlı konuşmalar yükleniyor…"
 
 msgid "Loading terminal scripts..."
 msgstr "Terminal betikleri yükleniyor..."
@@ -10795,6 +10831,9 @@ msgstr "Yazar bulunamadı."
 msgid "No automations match"
 msgstr "Eşleşen otomasyon yok"
 
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "Kullanılabilir abonelik hesabı yok. Kullanım bölümünde hesap ekleyin veya oturum açın, ardından yenileyin."
+
 msgid "No branches found"
 msgstr "Dal bulunamadı"
 
@@ -10821,6 +10860,9 @@ msgstr "Kontrol bildirilmedi."
 
 msgid "No Chrome, Brave, Arc, or other Chromium browsers were found."
 msgstr "Chrome, Brave, Arc veya başka bir Chromium tarayıcısı bulunamadı."
+
+msgid "No Claude agent is configured on this host."
+msgstr "Bu ana makinede yapılandırılmış bir Claude ajanı yok."
 
 msgid "No Claude or Codex usage found on this machine yet. Join now and you'll appear once you've used an agent."
 msgstr "Bu makinede henüz Claude veya Codex kullanımı bulunamadı. Şimdi katılın; bir ajan kullandığınızda listede görüneceksiniz."
@@ -11200,6 +11242,9 @@ msgstr "Bana uyan bir pozisyon yok. Yine de iletişime geçmeli miyim?"
 
 msgid "No runs yet"
 msgstr "Henüz çalıştırma yok"
+
+msgid "No saved Claude conversations were found in this account for the current workspace."
+msgstr "Bu hesapta geçerli çalışma alanı için kayıtlı Claude konuşması bulunamadı."
 
 msgid "No screenshots yet"
 msgstr "Henüz ekran görüntüsü yok"
@@ -11801,6 +11846,9 @@ msgstr "Komut paletini aç"
 msgid "Open comment on GitHub"
 msgstr "Yorumu GitHub'da aç"
 
+msgid "Open conversation"
+msgstr "Konuşmayı aç"
+
 msgid "Open details"
 msgstr "Ayrıntıları aç"
 
@@ -11828,6 +11876,9 @@ msgstr "Çekmeceyi aç"
 msgid "Open existing PR or create a new one on GitHub"
 msgstr "Mevcut PR'ı aç veya GitHub'da yeni bir tane oluştur"
 
+msgid "Open existing terminal"
+msgstr "Mevcut terminali aç"
+
 msgid "open file"
 msgstr "dosyayı aç"
 
@@ -11845,6 +11896,9 @@ msgstr "Klasörden aç"
 
 msgid "Open full screen"
 msgstr "Tam ekranda aç"
+
+msgid "Open history from this account in the current workspace. After adoption, later opens use its current local history. Background work is not transferred."
+msgstr "Bu hesabın geçmişini geçerli çalışma alanında açın. İçe aktarıldıktan sonra sonraki açılışlarda güncel yerel geçmiş kullanılır. Arka plan görevleri aktarılmaz."
 
 msgid "Open host"
 msgstr "Host'u aç"
@@ -12052,6 +12106,12 @@ msgstr "Son kullanılanı aç"
 
 msgid "Open roles"
 msgstr "Açık pozisyonlar"
+
+msgid "Open saved Claude conversation"
+msgstr "Kayıtlı Claude konuşmasını aç"
+
+msgid "Open saved Claude conversation…"
+msgstr "Kayıtlı Claude konuşmasını aç…"
 
 msgid "Open session in"
 msgstr "Oturumu şurada aç"
@@ -13882,6 +13942,9 @@ msgstr "Kapatılan sekmeyi yeniden aç"
 msgid "Reopen PR"
 msgstr "PR'ı yeniden aç"
 
+msgid "Reopen the saved conversation in the same workspace. No message is sent. Background work is not transferred."
+msgstr "Kaydedilen konuşmayı aynı çalışma alanında yeniden açın. Mesaj gönderilmez. Arka plan görevleri aktarılmaz."
+
 msgid "Reopen thread"
 msgstr "Konuyu yeniden aç"
 
@@ -14231,6 +14294,12 @@ msgstr "Sürdürme argümanları"
 
 msgid "Resume automation"
 msgstr "Otomasyonu sürdür"
+
+msgid "Resume conversation"
+msgstr "Konuşmayı sürdür"
+
+msgid "Resume with another account"
+msgstr "Başka bir hesapla sürdür"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
@@ -14649,6 +14718,12 @@ msgstr "Kaydedildi"
 #. placeholder {0}: created?.name ?? name.trim()
 msgid "Saved \"{0}\" as an environment"
 msgstr "\"{0}\" ortam olarak kaydedildi"
+
+msgid "Saved conversations"
+msgstr "Kayıtlı konuşmalar"
+
+msgid "Saved in Superset"
+msgstr "Superset içinde kaydedildi"
 
 msgid "Saved to Downloads"
 msgstr "İndirilenler klasörüne kaydedildi"
@@ -16150,6 +16225,9 @@ msgstr "Her çalıştırmada yeni bir aracı oturumu başlat"
 msgid "Start a new chat"
 msgstr "Yeni sohbet başlat"
 
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "Mevcut bir hesapla yeni terminal başlatın. Diğer sohbetler ve varsayılan hesabınız değişmez."
+
 msgid "Start a session"
 msgstr "Bir oturum başlat"
 
@@ -16188,6 +16266,9 @@ msgstr "Sekme şeridindeki + ile bir tane başlatın."
 
 msgid "Start or stop the workspace run command"
 msgstr "Çalışma alanı çalıştırma komutunu başlat veya durdur"
+
+msgid "Start terminal"
+msgstr "Terminali başlat"
 
 msgid "Start voice mode"
 msgstr "Sesli modu başlat"
@@ -17368,6 +17449,9 @@ msgstr "Aynı uygulama iPad'de yerel olarak, dikey ve yatay modda çalışır."
 msgid "The scorecard"
 msgstr "Puan tablosu"
 
+msgid "The selected login changed. Choose an account again."
+msgstr "Seçilen hesap değişti. Yeniden bir hesap seçin."
+
 msgid "The self-driving software factory"
 msgstr "Kendi kendini süren yazılım fabrikası"
 
@@ -17491,6 +17575,9 @@ msgstr "Bu aracı bir konuşmayı çatallayamaz"
 msgid "This agent can't run in a cloud workspace"
 msgstr "Bu ajan bir bulut çalışma alanında çalışamaz"
 
+msgid "This agent configuration does not support account selection."
+msgstr "Bu ajan yapılandırması hesap seçimini desteklemiyor."
+
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Bu ajan seçili cihazda artık yok (ajanları sıfırlanmış olabilir). Yeni bir tane seçene kadar çalıştırmalar başarısız olacak."
 
@@ -17542,6 +17629,12 @@ msgstr "Bu bulut çalışma alanı başlatılamıyor"
 
 msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
 msgstr "Bu bulut çalışma alanı uyandırılıyor; bir süre kullanılmadıysa bu işlem 30 saniyeye kadar sürebilir."
+
+msgid "This conversation cannot be resumed with another account."
+msgstr "Bu konuşma başka bir hesapla sürdürülemez."
+
+msgid "This conversation is no longer available to resume."
+msgstr "Bu konuşma artık sürdürülemiyor."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Bu işlem, yeniden başlatma/çökme kurtarma için saklanan kaydırma geçmişini siler."
@@ -17725,6 +17818,9 @@ msgstr "Bu işlem; etiketini, komutunu, argümanlarını, istem ve sürdürme ay
 
 msgid "This repository does not allow merging from here."
 msgstr "Bu depo buradan birleştirmeye izin vermiyor."
+
+msgid "This saved history changed. Select it again before opening."
+msgstr "Bu kayıtlı geçmiş değişti. Açmadan önce yeniden seçin."
 
 msgid "This screen doesn't exist"
 msgstr "Bu ekran mevcut değil"
@@ -18497,6 +18593,12 @@ msgstr "Dosya eklemek için bu makinede Superset'i güncelleyin"
 
 msgid "update the branch prefix"
 msgstr "dal ön ekini güncelleme"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "Yeni bir terminal için hesap seçmek üzere bu sunucuyu güncelleyin."
+
+msgid "Update this host to open saved Claude history."
+msgstr "Kayıtlı Claude geçmişini açmak için bu ana makineyi güncelleyin."
 
 msgid "Updated"
 msgstr "Güncellendi"
