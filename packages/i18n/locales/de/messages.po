@@ -2150,6 +2150,9 @@ msgstr "Alle Sitzungen wurden über das Upgrade hinweg erhalten."
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "Alle Sitzungen wurden geschlossen und ein frischer Daemon läuft."
 
+msgid "All tabs"
+msgstr "Alle Tabs"
+
 msgid "All tasks"
 msgstr "Alle Aufgaben"
 

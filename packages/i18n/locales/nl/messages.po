@@ -2150,6 +2150,9 @@ msgstr "Alle sessies zijn behouden bij de upgrade."
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "Alle sessies zijn gesloten en er draait een verse daemon."
 
+msgid "All tabs"
+msgstr "Alle tabbladen"
+
 msgid "All tasks"
 msgstr "Alle taken"
 

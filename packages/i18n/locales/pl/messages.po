@@ -2150,6 +2150,9 @@ msgstr "Wszystkie sesje zachowane mimo aktualizacji."
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "Wszystkie sesje zamknięto i działa świeży demon."
 
+msgid "All tabs"
+msgstr "Wszystkie karty"
+
 msgid "All tasks"
 msgstr "Wszystkie zadania"
 

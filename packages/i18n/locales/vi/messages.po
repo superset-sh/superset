@@ -2150,6 +2150,9 @@ msgstr "Mọi phiên đều được giữ nguyên qua lần nâng cấp."
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "Đã đóng mọi phiên và một daemon mới đang chạy."
 
+msgid "All tabs"
+msgstr "Tất cả các thẻ"
+
 msgid "All tasks"
 msgstr "Tất cả tác vụ"
 

@@ -2150,6 +2150,9 @@ msgstr "Yükseltme boyunca tüm oturumlar korundu."
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "Tüm oturumlar kapatıldı ve yeni bir daemon çalışıyor."
 
+msgid "All tabs"
+msgstr "Tüm sekmeler"
+
 msgid "All tasks"
 msgstr "Tüm görevler"
 

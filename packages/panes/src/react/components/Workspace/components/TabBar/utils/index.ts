@@ -1,1 +1,1 @@
-export { computeInsertIndex, TAB_WIDTH } from "./utils";
+export { computeInsertIndex, TAB_WIDTH, wheelScrollDelta } from "./utils";

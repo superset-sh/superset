@@ -2150,6 +2150,9 @@ msgstr "Všechny relace přežily aktualizaci."
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "Všechny relace byly zavřeny a běží čerstvý démon."
 
+msgid "All tabs"
+msgstr "Všechny karty"
+
 msgid "All tasks"
 msgstr "Všechny úkoly"
 

@@ -10,6 +10,7 @@ import {
 	type ComponentProps,
 	type ReactNode,
 	useCallback,
+	useLayoutEffect,
 	useRef,
 	useState,
 } from "react";
@@ -24,7 +25,13 @@ import type { Tab } from "../../../../../types";
 import type { PaneRegistry } from "../../../../types";
 import { PANE_DRAG_TYPE } from "../Tab/components/Pane/components/PaneHeader";
 import { TAB_DRAG_TYPE, TabItem } from "./components/TabItem";
+import { TabOverflowMenu } from "./components/TabOverflowMenu";
+import { useTabBarWheelScroll } from "./hooks/useTabBarWheelScroll";
 import { computeInsertIndex, TAB_WIDTH } from "./utils";
+
+function prefersReducedMotion(): boolean {
+	return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 interface TabBarProps<TData> {
 	store: StoreApi<WorkspaceStore<TData>>;
@@ -96,8 +103,24 @@ export function TabBar<TData>({
 	renderTabBarTrailing,
 	renderTabAccessory,
 }: TabBarProps<TData>) {
+	const scrollerRef = useRef<HTMLDivElement>(null);
 	const tabsTrackRef = useRef<HTMLDivElement>(null);
+	const tabElementsRef = useRef(new Map<string, HTMLDivElement>());
 	const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
+
+	useTabBarWheelScroll(scrollerRef);
+
+	// Keep the active tab reachable: keyboard switching, new tabs, and tab
+	// restore change the active tab without scrolling the strip. Keyed on the
+	// id only, so drag-reordering the active tab never fights the gesture.
+	useLayoutEffect(() => {
+		if (!activeTabId) return;
+		tabElementsRef.current.get(activeTabId)?.scrollIntoView({
+			block: "nearest",
+			inline: "nearest",
+			behavior: prefersReducedMotion() ? "auto" : "smooth",
+		});
+	}, [activeTabId]);
 
 	const insertIndexRef = useRef<number | null>(null);
 	const [insertIndex, setInsertIndex] = useState<number | null>(null);
@@ -211,7 +234,9 @@ export function TabBar<TData>({
 				</div>
 			)}
 			<OverflowFadeContainer
+				ref={scrollerRef}
 				observeChildren
+				fadeEdges={["left", "right"]}
 				onOverflowChange={handleOverflowChange}
 				className="hide-scrollbar flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden"
 			>
@@ -223,6 +248,10 @@ export function TabBar<TData>({
 						<div
 							className="h-full shrink-0 pt-1"
 							key={tab.id}
+							ref={(node) => {
+								if (node) tabElementsRef.current.set(tab.id, node);
+								else tabElementsRef.current.delete(tab.id);
+							}}
 							style={{ width: TAB_WIDTH }}
 						>
 							<TabItem
@@ -259,8 +288,18 @@ export function TabBar<TData>({
 				</div>
 			</OverflowFadeContainer>
 			{hasHorizontalOverflow && (
-				<div className="no-drag flex h-full w-10 shrink-0 items-center justify-center border-b border-border">
-					<AddTabButton renderAddTabMenu={renderAddTabMenu} />
+				<div className="no-drag flex h-full shrink-0 items-stretch border-b border-border">
+					<div className="flex h-full w-10 items-center justify-center">
+						<TabOverflowMenu
+							tabs={tabs}
+							activeTabId={activeTabId}
+							registry={registry}
+							onSelectTab={onSelectTab}
+						/>
+					</div>
+					<div className="flex h-full w-10 items-center justify-center">
+						<AddTabButton renderAddTabMenu={renderAddTabMenu} />
+					</div>
 				</div>
 			)}
 			{renderTabBarTrailing && (

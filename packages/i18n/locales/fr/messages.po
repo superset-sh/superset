@@ -2150,6 +2150,9 @@ msgstr "Toutes les sessions ont été préservées pendant la mise à niveau."
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "Toutes les sessions ont été fermées et un démon neuf est en cours d'exécution."
 
+msgid "All tabs"
+msgstr "Tous les onglets"
+
 msgid "All tasks"
 msgstr "Toutes les tâches"
 

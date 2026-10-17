@@ -2150,6 +2150,9 @@ msgstr "Semua sesi dipertahankan sepanjang upgrade."
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "Semua sesi ditutup dan daemon baru sedang berjalan."
 
+msgid "All tabs"
+msgstr "Semua tab"
+
 msgid "All tasks"
 msgstr "Semua tugas"
 

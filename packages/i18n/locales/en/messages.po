@@ -2150,6 +2150,9 @@ msgstr "All sessions preserved across the upgrade."
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "All sessions were closed and a fresh daemon is running."
 
+msgid "All tabs"
+msgstr "All tabs"
+
 msgid "All tasks"
 msgstr "All tasks"
 

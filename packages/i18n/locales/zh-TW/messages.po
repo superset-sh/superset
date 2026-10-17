@@ -2150,6 +2150,9 @@ msgstr "升級過程中所有會話都已保留。"
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "所有會話已關閉，全新的守護程式正在執行。"
 
+msgid "All tabs"
+msgstr "所有分頁"
+
 msgid "All tasks"
 msgstr "全部任務"
 

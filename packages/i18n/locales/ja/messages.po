@@ -2150,6 +2150,9 @@ msgstr "アップグレード後もすべてのセッションが維持されま
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "すべてのセッションを閉じ、新しいデーモンが動作しています。"
 
+msgid "All tabs"
+msgstr "すべてのタブ"
+
 msgid "All tasks"
 msgstr "すべてのタスク"
 

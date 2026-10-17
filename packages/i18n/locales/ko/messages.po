@@ -2150,6 +2150,9 @@ msgstr "업그레이드 과정에서 모든 세션이 유지되었습니다."
 msgid "All sessions were closed and a fresh daemon is running."
 msgstr "모든 세션이 닫히고 새 데몬이 실행 중입니다."
 
+msgid "All tabs"
+msgstr "모든 탭"
+
 msgid "All tasks"
 msgstr "모든 작업"
 
