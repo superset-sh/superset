@@ -27,8 +27,12 @@ const mockScreen = {
 	getDisplayMatching: mock(() => getPrimaryDisplayMock()),
 };
 
-const { getInitialWindowBounds, isVisibleOnAnyDisplay, setScreenForTesting } =
-	await import("./bounds-validation");
+const {
+	getInitialWindowBounds,
+	getRestorableBounds,
+	isVisibleOnAnyDisplay,
+	setScreenForTesting,
+} = await import("./bounds-validation");
 const screen = mockScreen;
 
 const MIN_VISIBLE_OVERLAP = 50;
@@ -448,5 +452,47 @@ describe("getInitialWindowBounds", () => {
 			expect(result.width).toBe(3800);
 			expect(result.height).toBe(2100);
 		});
+	});
+});
+
+describe("getRestorableBounds", () => {
+	const builtIn = {
+		bounds: { x: 0, y: 0, width: 1512, height: 982 },
+		workAreaSize: { width: 1512, height: 949 },
+	};
+	const external = {
+		bounds: { x: 1512, y: 0, width: 2560, height: 1440 },
+		workAreaSize: { width: 2560, height: 1415 },
+	};
+	const maximizedOnExternal = { x: 1512, y: 25, width: 2560, height: 1415 };
+
+	function maximizedWindow(normalBounds: typeof maximizedOnExternal) {
+		return {
+			isMaximized: () => true,
+			getBounds: () => maximizedOnExternal,
+			getNormalBounds: () => normalBounds,
+		};
+	}
+
+	beforeEach(() => {
+		(
+			screen.getDisplayMatching as ReturnType<typeof MockType>
+		).mockImplementation(({ x }: { x: number }) =>
+			x >= external.bounds.x ? external : builtIn,
+		);
+	});
+
+	it("returns the normal bounds when maximized on the same display", () => {
+		const normalBounds = { x: 1600, y: 100, width: 1200, height: 800 };
+		expect(getRestorableBounds(maximizedWindow(normalBounds))).toEqual(
+			normalBounds,
+		);
+	});
+
+	it("returns the maximized bounds when the normal bounds are on another display", () => {
+		const normalBounds = { x: 0, y: 33, width: 1512, height: 949 };
+		expect(getRestorableBounds(maximizedWindow(normalBounds))).toEqual(
+			maximizedOnExternal,
+		);
 	});
 });

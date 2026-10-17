@@ -1,5 +1,6 @@
 export {
 	getInitialWindowBounds,
+	getRestorableBounds,
 	type InitialWindowBounds,
 	isVisibleOnAnyDisplay,
 } from "./bounds-validation";

@@ -54,6 +54,22 @@ export function isVisibleOnAnyDisplay(bounds: Rectangle): boolean {
 	});
 }
 
+// macOS keeps normal bounds on the display a window was first maximized on.
+export function getRestorableBounds(window: {
+	isMaximized(): boolean;
+	getBounds(): Rectangle;
+	getNormalBounds(): Rectangle;
+}): Rectangle {
+	const bounds = window.getBounds();
+	if (!window.isMaximized()) return bounds;
+	const normalBounds = window.getNormalBounds();
+	const current = getScreen().getDisplayMatching(bounds).bounds;
+	const normal = getScreen().getDisplayMatching(normalBounds).bounds;
+	return current.x === normal.x && current.y === normal.y
+		? normalBounds
+		: bounds;
+}
+
 /**
  * Clamps saved dimensions to not exceed the work area of the display the
  * saved position (x/y) actually sits on — not always the primary display.
