@@ -19,6 +19,7 @@ export const AGENT_ICON_OPTIONS: readonly AgentIconOption[] = [
 	{ id: "droid", label: "Droid" },
 	{ id: "mastracode", label: "Mastra" },
 	{ id: "pi", label: "Pi" },
+	{ id: "prime-agent", label: "Prime Agent" },
 	{ id: "vibe", label: "Mistral Vibe" },
 	{ id: "kimi", label: "Kimi Code" },
 	{ id: "grok", label: "Grok" },

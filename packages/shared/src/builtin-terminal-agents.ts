@@ -137,6 +137,17 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
+		id: "prime-agent",
+		label: "Prime Agent",
+		description:
+			"Prime Agent's terminal coding assistant with persistent sessions and agent workflows.",
+		command: "prime-agent",
+		resumeCommand: "prime-agent --resume",
+		forkCommand: "prime-agent --fork {sessionId}",
+		nonInteractiveCommand: "prime-agent --print",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
 		id: "pi",
 		label: "Pi",
 		description:

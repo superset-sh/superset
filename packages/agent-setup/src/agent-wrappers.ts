@@ -143,6 +143,13 @@ export {
 	PI_EXTENSION_MARKER,
 	removePiExtension,
 } from "./agent-wrappers-pi";
+export {
+	createPrimeAgentExtension,
+	createPrimeAgentWrapper,
+	getPrimeAgentExtensionContent,
+	getPrimeAgentExtensionPath,
+	removePrimeAgentExtension,
+} from "./agent-wrappers-prime-agent";
 export { createUfoWrapper } from "./agent-wrappers-ufo";
 export {
 	createVibeHooksToml,
