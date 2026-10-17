@@ -13,6 +13,7 @@ import {
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import { LuFolderOpen } from "react-icons/lu";
 import { RemotePathPicker } from "renderer/components/RemotePathPicker";
@@ -26,6 +27,7 @@ interface ProjectLocationSectionProps {
 	projectId: string;
 	projectName?: string;
 	currentPath: string | null;
+	isPathMissing: boolean;
 	repoCloneUrl: string | null;
 	hostUrl: string | null;
 	hostName: string;
@@ -37,6 +39,7 @@ export function ProjectLocationSection({
 	projectId,
 	projectName,
 	currentPath,
+	isPathMissing,
 	repoCloneUrl,
 	hostUrl,
 	hostName,
@@ -143,30 +146,45 @@ export function ProjectLocationSection({
 	return (
 		<>
 			{currentPath ? (
-				<div className="flex w-[28rem] max-w-full items-center gap-2">
-					<div className="flex h-9 min-w-0 flex-1 items-center overflow-x-auto whitespace-nowrap rounded-md border bg-transparent px-3 dark:bg-input/30">
-						<ClickablePath path={currentPath} className="max-w-none shrink-0" />
+				<div className="flex w-[28rem] max-w-full flex-col gap-1.5">
+					<div className="flex items-center gap-2">
+						<div
+							className={cn(
+								"flex h-9 min-w-0 flex-1 items-center overflow-x-auto whitespace-nowrap rounded-md border bg-transparent px-3 dark:bg-input/30",
+								isPathMissing && "border-destructive",
+							)}
+						>
+							<ClickablePath
+								path={currentPath}
+								className="max-w-none shrink-0"
+							/>
+						</div>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									type="button"
+									variant="outline"
+									size="icon"
+									className="size-9 shrink-0"
+									onClick={handleChange}
+									disabled={selectDirectory.isPending || isSubmitting}
+									aria-label={t({
+										message: "Change location",
+									})}
+								>
+									<LuFolderOpen className="size-4" />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>
+								<Trans>Change location</Trans>
+							</TooltipContent>
+						</Tooltip>
 					</div>
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Button
-								type="button"
-								variant="outline"
-								size="icon"
-								className="size-9 shrink-0"
-								onClick={handleChange}
-								disabled={selectDirectory.isPending || isSubmitting}
-								aria-label={t({
-									message: "Change location",
-								})}
-							>
-								<LuFolderOpen className="size-4" />
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent>
-							<Trans>Change location</Trans>
-						</TooltipContent>
-					</Tooltip>
+					{isPathMissing && (
+						<p className="text-xs text-destructive">
+							<Trans>Folder is missing</Trans>
+						</p>
+					)}
 				</div>
 			) : (
 				<div className="flex items-center gap-3">

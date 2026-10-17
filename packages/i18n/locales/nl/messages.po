@@ -3358,6 +3358,9 @@ msgstr "Paden van externe werkruimtes kunnen niet in een externe editor worden g
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Paden van externe werkruimtes kunnen niet in Finder worden geopend"
 
+msgid "Can't reach the host"
+msgstr "Host niet bereikbaar"
+
 msgid "Cancel"
 msgstr "Annuleren"
 
@@ -7782,6 +7785,9 @@ msgstr "Het zoekveld in de takenweergave focussen"
 
 msgid "Folder"
 msgstr "Map"
+
+msgid "Folder is missing"
+msgstr "Map ontbreekt"
 
 msgid "Folder links"
 msgstr "Maplinks"

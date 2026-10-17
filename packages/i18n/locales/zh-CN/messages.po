@@ -3358,6 +3358,9 @@ msgstr "无法在外部编辑器中打开远程工作区路径"
 msgid "Can't open remote workspace paths in Finder"
 msgstr "无法在Finder中打开远程工作区路径"
 
+msgid "Can't reach the host"
+msgstr "无法连接主机"
+
 msgid "Cancel"
 msgstr "取消"
 
@@ -7782,6 +7785,9 @@ msgstr "聚焦任务视图中的搜索框"
 
 msgid "Folder"
 msgstr "文件夹"
+
+msgid "Folder is missing"
+msgstr "文件夹不存在"
 
 msgid "Folder links"
 msgstr "文件夹链接"

@@ -3358,6 +3358,9 @@ msgstr "Uzak çalışma alanı yolları harici düzenleyicide açılamaz"
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Uzak çalışma alanı yolları Finder'da açılamaz"
 
+msgid "Can't reach the host"
+msgstr "Host'a ulaşılamıyor"
+
 msgid "Cancel"
 msgstr "İptal"
 
@@ -7782,6 +7785,9 @@ msgstr "Görevler görünümündeki arama girişine odaklan"
 
 msgid "Folder"
 msgstr "Klasör"
+
+msgid "Folder is missing"
+msgstr "Klasör eksik"
 
 msgid "Folder links"
 msgstr "Klasör bağlantıları"

@@ -599,10 +599,27 @@ export function NewWorkspaceScreen({
 		modeSupport ? selectedPresetId : null,
 	);
 
+	const { otherHosts } = useWorkspaceHostOptions();
+	const selectedRemoteHostPresence = useMemo<
+		"online" | "offline" | "unknown" | null
+	>(() => {
+		const selectedHostId = draft.hostId ?? machineId;
+		if (
+			!selectedHostId ||
+			selectedHostId === machineId ||
+			selectedHostId === CLOUD_HOST_ID
+		)
+			return null;
+		const remote = otherHosts.find((host) => host.id === selectedHostId);
+		if (!remote || remote.isConnecting) return "unknown";
+		return remote.isOnline ? "online" : "offline";
+	}, [draft.hostId, machineId, otherHosts]);
+
 	// ── Base branch ──────────────────────────────────────────────────
 	const { pickerProps } = useBranchPickerController({
 		projectId,
 		hostId: draft.hostId,
+		isHostOffline: selectedRemoteHostPresence === "offline",
 		cloudRepository,
 		baseBranch: draft.baseBranch,
 		typedWorkspaceName: draft.workspaceName,
@@ -657,7 +674,6 @@ export function NewWorkspaceScreen({
 		},
 	);
 
-	const { otherHosts } = useWorkspaceHostOptions();
 	const submitBlocker = useMemo<string | null>(() => {
 		const selectedHostId = draft.hostId ?? machineId;
 		// A cloud workspace is provisioned by the API from its environment: no
@@ -680,9 +696,8 @@ export function NewWorkspaceScreen({
 			return t({
 				message: "No active host",
 			});
-		if (selectedHostId !== machineId) {
-			const remote = otherHosts.find((host) => host.id === selectedHostId);
-			if (!remote?.isOnline)
+		if (selectedRemoteHostPresence !== null) {
+			if (selectedRemoteHostPresence !== "online")
 				return t({
 					message: "Host is offline",
 				});
@@ -699,7 +714,7 @@ export function NewWorkspaceScreen({
 		draft.hostId,
 		machineId,
 		activeHostUrl,
-		otherHosts,
+		selectedRemoteHostPresence,
 		isCloudTargetLoading,
 		defaultHint,
 		projectRepositoryFullName,
@@ -1209,7 +1224,10 @@ export function NewWorkspaceScreen({
 										onSelectCheckout={(checkout) => updateDraft({ checkout })}
 									/>
 									{draft.checkout === "worktree" && (
-										<CompareBaseBranchPicker {...pickerProps} />
+										<CompareBaseBranchPicker
+											{...pickerProps}
+											onChangeProjectLocation={handleGoToSetup}
+										/>
 									)}
 								</>
 							)}

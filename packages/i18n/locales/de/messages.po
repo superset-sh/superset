@@ -3358,6 +3358,9 @@ msgstr "Pfade aus Remote-Arbeitsbereichen lassen sich nicht im externen Editor Ã
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Pfade aus Remote-Arbeitsbereichen lassen sich nicht im Finder Ã¶ffnen"
 
+msgid "Can't reach the host"
+msgstr "Host nicht erreichbar"
+
 msgid "Cancel"
 msgstr "Abbrechen"
 
@@ -7782,6 +7785,9 @@ msgstr "Das Suchfeld in der Aufgabenansicht fokussieren"
 
 msgid "Folder"
 msgstr "Ordner"
+
+msgid "Folder is missing"
+msgstr "Ordner fehlt"
 
 msgid "Folder links"
 msgstr "Ordner-Links"

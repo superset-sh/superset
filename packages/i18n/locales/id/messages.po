@@ -3358,6 +3358,9 @@ msgstr "Tidak bisa membuka path workspace jarak jauh di editor eksternal"
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Tidak bisa membuka path workspace jarak jauh di Finder"
 
+msgid "Can't reach the host"
+msgstr "Tidak dapat menjangkau host"
+
 msgid "Cancel"
 msgstr "Batal"
 
@@ -7782,6 +7785,9 @@ msgstr "Fokus ke kolom pencarian di tampilan tugas"
 
 msgid "Folder"
 msgstr "Folder"
+
+msgid "Folder is missing"
+msgstr "Folder hilang"
 
 msgid "Folder links"
 msgstr "Tautan folder"

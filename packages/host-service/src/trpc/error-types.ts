@@ -43,6 +43,23 @@ export function isProjectNotSetupCause(
 	);
 }
 
+/** Thrown when a project's folder is no longer a directory on this host. */
+export interface ProjectDirMissingCause {
+	kind: "PROJECT_DIR_MISSING";
+	repoPath: string;
+}
+
+export function isProjectDirMissingCause(
+	value: unknown,
+): value is ProjectDirMissingCause {
+	return (
+		!!value &&
+		typeof value === "object" &&
+		"kind" in value &&
+		(value as { kind: unknown }).kind === "PROJECT_DIR_MISSING"
+	);
+}
+
 /**
  * Thrown by `workspaceCleanup.destroy` when another destroy for the same
  * workspace is already in flight. Distinct from a dirty-worktree CONFLICT

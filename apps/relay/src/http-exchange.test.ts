@@ -5,6 +5,9 @@ import { HttpExchanges } from "./http-exchange";
 beforeEach(() => jest.useFakeTimers());
 afterEach(() => jest.useRealTimers());
 
+const settledNow = <T>(promise: Promise<T>) =>
+	Promise.race([promise, Promise.resolve("still pending" as const)]);
+
 const request = {
 	method: "GET",
 	pathWithQuery: "/health",
@@ -14,7 +17,8 @@ const request = {
 
 test("a slow dial still leaves time for the HTTP response", async () => {
 	const exchanges = new HttpExchanges();
-	const result = exchanges.begin("ticket", request);
+	const onDialTimeout = mock(() => {});
+	const result = exchanges.begin("ticket", request, onDialTimeout);
 	const dial = { send: mock(() => {}), close: mock(() => {}) };
 	jest.advanceTimersByTime(32_000);
 	expect(exchanges.has("ticket")).toBe(true);
@@ -30,6 +34,17 @@ test("a slow dial still leaves time for the HTTP response", async () => {
 	expect(await result).toMatchObject({ ok: true, status: 200 });
 	expect(exchanges.has("ticket")).toBe(false);
 	expect(dial.close).toHaveBeenCalledTimes(1);
+	expect(onDialTimeout).not.toHaveBeenCalled();
+});
+
+test("a dial that never arrives fails at the dial deadline and reports it", async () => {
+	const exchanges = new HttpExchanges();
+	const onDialTimeout = mock(() => {});
+	const result = exchanges.begin("ticket", request, onDialTimeout);
+	jest.advanceTimersByTime(35_000);
+	expect(await settledNow(result)).toEqual({ ok: false, reason: "timeout" });
+	expect(exchanges.has("ticket")).toBe(false);
+	expect(onDialTimeout).toHaveBeenCalledTimes(1);
 });
 
 test("an unanswered HTTP exchange still expires", async () => {

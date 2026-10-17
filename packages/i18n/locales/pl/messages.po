@@ -3358,6 +3358,9 @@ msgstr "Nie można otwierać ścieżek zdalnego obszaru roboczego w zewnętrznym
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Nie można otwierać ścieżek zdalnego obszaru roboczego w Finderze"
 
+msgid "Can't reach the host"
+msgstr "Nie można połączyć się z hostem"
+
 msgid "Cancel"
 msgstr "Anuluj"
 
@@ -7782,6 +7785,9 @@ msgstr "Aktywuj pole wyszukiwania w widoku zadań"
 
 msgid "Folder"
 msgstr "Folder"
+
+msgid "Folder is missing"
+msgstr "Brak folderu"
 
 msgid "Folder links"
 msgstr "Linki do folderów"

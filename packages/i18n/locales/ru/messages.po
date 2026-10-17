@@ -3358,6 +3358,9 @@ msgstr "Пути удалённых рабочих областей нельзя
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Пути удалённых рабочих областей нельзя открыть в Finder"
 
+msgid "Can't reach the host"
+msgstr "Не удаётся связаться с хостом"
+
 msgid "Cancel"
 msgstr "Отмена"
 
@@ -7782,6 +7785,9 @@ msgstr "Фокус на поле поиска в разделе задач"
 
 msgid "Folder"
 msgstr "Папка"
+
+msgid "Folder is missing"
+msgstr "Папка отсутствует"
 
 msgid "Folder links"
 msgstr "Ссылки на папки"

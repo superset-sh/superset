@@ -3358,6 +3358,9 @@ msgstr "Impossibile aprire i percorsi di un workspace remoto in un editor estern
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Impossibile aprire i percorsi di un workspace remoto nel Finder"
 
+msgid "Can't reach the host"
+msgstr "Impossibile raggiungere l'host"
+
 msgid "Cancel"
 msgstr "Annulla"
 
@@ -7782,6 +7785,9 @@ msgstr "Attiva il campo di ricerca nella vista task"
 
 msgid "Folder"
 msgstr "Cartella"
+
+msgid "Folder is missing"
+msgstr "La cartella non esiste"
 
 msgid "Folder links"
 msgstr "Link alle cartelle"

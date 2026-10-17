@@ -3358,6 +3358,9 @@ msgstr "Não dá para abrir caminhos de áreas de trabalho remotas em um editor 
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Não dá para abrir caminhos de áreas de trabalho remotas no Finder"
 
+msgid "Can't reach the host"
+msgstr "Não foi possível acessar o host"
+
 msgid "Cancel"
 msgstr "Cancelar"
 
@@ -7782,6 +7785,9 @@ msgstr "Focar o campo de busca na visualização de tarefas"
 
 msgid "Folder"
 msgstr "Pasta"
+
+msgid "Folder is missing"
+msgstr "A pasta não existe"
 
 msgid "Folder links"
 msgstr "Links de pasta"

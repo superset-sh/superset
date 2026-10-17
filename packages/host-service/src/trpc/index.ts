@@ -12,8 +12,10 @@ import { readErrorDiagnostics } from "./error-diagnostics";
 import {
 	type DeleteInProgressCause,
 	isDeleteInProgressCause,
+	isProjectDirMissingCause,
 	isProjectNotSetupCause,
 	isTeardownFailureCause,
+	type ProjectDirMissingCause,
 	type ProjectNotSetupCause,
 	type TeardownFailureCause,
 } from "./error-types";
@@ -56,6 +58,10 @@ const t = initTRPC
 							projectId: error.cause.projectId,
 						}
 					: undefined;
+			const projectDirMissing: ProjectDirMissingCause | undefined =
+				isProjectDirMissingCause(error.cause)
+					? { kind: "PROJECT_DIR_MISSING", repoPath: error.cause.repoPath }
+					: undefined;
 			const deleteInProgress: DeleteInProgressCause | undefined =
 				isDeleteInProgressCause(error.cause)
 					? { kind: "DELETE_IN_PROGRESS" }
@@ -67,6 +73,7 @@ const t = initTRPC
 					...shape.data,
 					teardownFailure,
 					projectNotSetup,
+					projectDirMissing,
 					deleteInProgress,
 					i18nKey: i18nCause?.i18nKey ?? null,
 					i18nParams: i18nCause?.i18nParams ?? null,

@@ -3358,6 +3358,9 @@ msgstr "リモートワークスペースのパスは外部エディタで開け
 msgid "Can't open remote workspace paths in Finder"
 msgstr "リモートワークスペースのパスはFinderで開けません"
 
+msgid "Can't reach the host"
+msgstr "ホストに接続できません"
+
 msgid "Cancel"
 msgstr "キャンセル"
 
@@ -7782,6 +7785,9 @@ msgstr "タスクビューの検索入力にフォーカスする"
 
 msgid "Folder"
 msgstr "フォルダ"
+
+msgid "Folder is missing"
+msgstr "フォルダが見つかりません"
 
 msgid "Folder links"
 msgstr "フォルダリンク"

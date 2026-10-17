@@ -78,6 +78,7 @@ export class HostTunnel extends Server<RelayEnv> {
 		ReturnType<typeof setTimeout>
 	>();
 	private readonly httpExchanges = new HttpExchanges();
+	private lastHostPingAt = 0;
 
 	// ── RPC (called by the Worker) ────────────────────────────────────
 	// Every client call says who is asking. This object is the one place
@@ -120,10 +121,13 @@ export class HostTunnel extends Server<RelayEnv> {
 		if (access === "error") return "access-error";
 		const host = this.hostConn();
 		if (!host) return "no-host";
+		const dialedAt = Date.now();
 		const arrived = new Promise<PrepareStreamResult>((resolve) => {
 			this.pendingDials.set(ticket, resolve);
 			setTimeout(() => {
-				if (this.pendingDials.delete(ticket)) resolve("timeout");
+				if (!this.pendingDials.delete(ticket)) return;
+				resolve("timeout");
+				this.closeUnresponsiveHost(host, dialedAt);
 			}, DIAL_TIMEOUT_MS);
 		});
 		this.sendDial(host, {
@@ -150,7 +154,10 @@ export class HostTunnel extends Server<RelayEnv> {
 		const host = this.hostConn();
 		if (!host) return { ok: false, reason: "timeout" };
 		const ticket = crypto.randomUUID();
-		const result = this.httpExchanges.begin(ticket, request);
+		const dialedAt = Date.now();
+		const result = this.httpExchanges.begin(ticket, request, () =>
+			this.closeUnresponsiveHost(host, dialedAt),
+		);
 		this.sendDial(host, {
 			type: "stream:dial",
 			ticket,
@@ -309,7 +316,8 @@ export class HostTunnel extends Server<RelayEnv> {
 			// Only the live host refreshes liveness: a ping in flight from a
 			// just-replaced socket must not extend the stale window.
 			if (this.hostConn()?.id === conn.id) {
-				void this.ctx.storage.put("lastHostSeenAt", Date.now());
+				this.lastHostPingAt = Date.now();
+				void this.ctx.storage.put("lastHostSeenAt", this.lastHostPingAt);
 			}
 			conn.send('{"type":"pong"}');
 			return;
@@ -397,7 +405,7 @@ export class HostTunnel extends Server<RelayEnv> {
 			console.log(
 				`[relay] host stale, closing: ${state?.kind === "host" ? state.hostId : this.name}`,
 			);
-			closeQuietly(host, RELAY_CLOSE.staleHost, "No keepalive from host");
+			await this.evictHost(host, "No keepalive from host");
 			return;
 		}
 
@@ -422,6 +430,27 @@ export class HostTunnel extends Server<RelayEnv> {
 			return;
 		}
 		this.httpExchanges.fail(ticket);
+	}
+
+	// Ignored a dial and has not pinged since it was sent: frozen, not merely
+	// a failed dial-back (hosts before 1.27 never report those). Every host
+	// pings every 30s, so a live one pings inside the 35s dial window.
+	private closeUnresponsiveHost(host: Connection, dialedAt: number): void {
+		if (this.hostConn()?.id !== host.id) return;
+		if (this.lastHostPingAt >= dialedAt) return;
+		const state = host.state as ConnState | undefined;
+		console.log(
+			`[relay] host did not answer a dial, closing: ${state?.kind === "host" ? state.hostId : this.name}`,
+		);
+		void this.evictHost(host, "Host did not answer a dial");
+	}
+
+	// An unresponsive peer never completes the close handshake, so its close
+	// event (and the stream teardown in it) can be minutes away. Clients see
+	// presence through their streams, so tear them down now.
+	private async evictHost(host: Connection, reason: string): Promise<void> {
+		closeQuietly(host, RELAY_CLOSE.staleHost, reason);
+		await this.handleGone(host);
 	}
 
 	private hostConn(): Connection | null {

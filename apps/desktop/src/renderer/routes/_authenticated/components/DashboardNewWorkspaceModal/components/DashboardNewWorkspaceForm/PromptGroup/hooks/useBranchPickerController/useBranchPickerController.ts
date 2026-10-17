@@ -20,6 +20,7 @@ type PickerProps = React.ComponentProps<typeof CompareBaseBranchPicker>;
 export interface UseBranchPickerControllerArgs {
 	projectId: string | null;
 	hostId: string | null;
+	isHostOffline: boolean;
 	/** Cloud only: the primary repository whose branches are offered. */
 	cloudRepository?: CloudRepository | null;
 	baseBranch: string | null;
@@ -37,6 +38,7 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 	const {
 		projectId,
 		hostId,
+		isHostOffline,
 		cloudRepository = null,
 		baseBranch,
 		typedWorkspaceName,
@@ -61,6 +63,9 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 		defaultBranch,
 		isLoading: isBranchesLoading,
 		isError: isBranchesError,
+		error: branchesError,
+		isRefetching: isBranchesRefetching,
+		refetch: refetchBranches,
 		isFetchingNextPage,
 		hasNextPage,
 		fetchNextPage,
@@ -70,6 +75,7 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 		branchSearch,
 		branchFilter,
 		cloudRepository,
+		!isHostOffline,
 	);
 
 	const effectiveCompareBaseBranch = baseBranch || defaultBranch || null;
@@ -152,11 +158,19 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 		void fetchNextPage();
 	}, [fetchNextPage]);
 
+	const onRetryBranches = useCallback(() => {
+		void refetchBranches();
+	}, [refetchBranches]);
+
 	const pickerProps: PickerProps = {
 		effectiveCompareBaseBranch,
 		defaultBranch,
 		isBranchesLoading,
 		isBranchesError,
+		branchesError,
+		isBranchesRefetching,
+		onRetryBranches,
+		isHostOffline,
 		branches,
 		branchSearch,
 		onBranchSearchChange: setBranchSearch,

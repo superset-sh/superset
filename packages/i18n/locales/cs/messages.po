@@ -3358,6 +3358,9 @@ msgstr "Cesty vzdáleného pracovního prostoru nejde otevřít v externím edit
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Cesty vzdáleného pracovního prostoru nejde otevřít ve Finderu"
 
+msgid "Can't reach the host"
+msgstr "Host není dostupný"
+
 msgid "Cancel"
 msgstr "Zrušit"
 
@@ -7782,6 +7785,9 @@ msgstr "Zaměřit vyhledávací pole v zobrazení úkolů"
 
 msgid "Folder"
 msgstr "Složka"
+
+msgid "Folder is missing"
+msgstr "Složka chybí"
 
 msgid "Folder links"
 msgstr "Odkazy na složky"

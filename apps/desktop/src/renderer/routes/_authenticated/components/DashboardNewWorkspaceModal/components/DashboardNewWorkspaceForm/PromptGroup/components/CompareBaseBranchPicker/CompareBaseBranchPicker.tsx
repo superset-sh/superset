@@ -8,7 +8,7 @@ import {
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { GoGitBranch, GoGlobe } from "react-icons/go";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { LuFolderOpen } from "react-icons/lu";
@@ -19,6 +19,7 @@ import {
 	FORM_PICKER_MENU_CLASS,
 	FormPickerTrigger,
 } from "../FormPickerTrigger";
+import { BranchLoadFailure } from "./components/BranchLoadFailure";
 import {
 	type OpenWorkspaceTarget,
 	toOpenWorkspaceTarget,
@@ -31,6 +32,11 @@ interface CompareBaseBranchPickerProps {
 	defaultBranch: string | null | undefined;
 	isBranchesLoading: boolean;
 	isBranchesError: boolean;
+	branchesError: unknown;
+	isBranchesRefetching: boolean;
+	onRetryBranches: () => void;
+	onChangeProjectLocation?: () => void;
+	isHostOffline: boolean;
 	branches: BranchRow[];
 	branchSearch: string;
 	onBranchSearchChange: (value: string) => void;
@@ -54,6 +60,11 @@ export function CompareBaseBranchPicker({
 	defaultBranch,
 	isBranchesLoading,
 	isBranchesError,
+	branchesError,
+	isBranchesRefetching,
+	onRetryBranches,
+	onChangeProjectLocation,
+	isHostOffline,
 	branches,
 	branchSearch,
 	onBranchSearchChange,
@@ -69,16 +80,14 @@ export function CompareBaseBranchPicker({
 	const [open, setOpen] = useState(false);
 	// Mirror cmdk's selected row so Mod+Enter can resolve it without DOM lookup.
 	const [selectedValue, setSelectedValue] = useState("");
-	const sentinelRef = useRef<HTMLDivElement | null>(null);
+	const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null);
 	const handleOpenChange = (nextOpen: boolean) => {
 		setOpen(nextOpen);
 		if (!nextOpen) onBranchSearchChange("");
 	};
 
 	useEffect(() => {
-		if (!open || !hasNextPage || isFetchingNextPage) return;
-		const el = sentinelRef.current;
-		if (!el) return;
+		if (!open || !hasNextPage || isFetchingNextPage || !sentinel) return;
 		// Guard against cascade: when isFetchingNextPage flips false → effect
 		// re-runs → observer reattaches → if sentinel is still in the root
 		// margin (e.g. tall viewport, small page), the callback fires again
@@ -95,16 +104,29 @@ export function CompareBaseBranchPicker({
 			},
 			{ rootMargin: "64px" },
 		);
-		observer.observe(el);
+		observer.observe(sentinel);
 		return () => observer.disconnect();
-	}, [open, hasNextPage, isFetchingNextPage, onLoadMore]);
+	}, [open, hasNextPage, isFetchingNextPage, sentinel, onLoadMore]);
 
-	if (isBranchesError) {
+	if (isHostOffline) {
 		return (
-			<span className="text-xs text-destructive">
-				<Trans>Failed to load branches</Trans>
+			<span className="truncate text-[11px] text-muted-foreground">
+				<Trans>Host is offline</Trans>
 			</span>
 		);
+	}
+
+	const branchesFailure = (
+		<BranchLoadFailure
+			error={branchesError}
+			isRetrying={isBranchesRefetching}
+			onRetry={onRetryBranches}
+			onChangeProjectLocation={onChangeProjectLocation}
+		/>
+	);
+
+	if (isBranchesError && branches.length === 0 && !open) {
+		return branchesFailure;
 	}
 
 	return (
@@ -175,11 +197,13 @@ export function CompareBaseBranchPicker({
 						</TabsList>
 					</Tabs>
 					<CommandList className="max-h-[420px]">
-						{!isBranchesLoading && branches.length === 0 && (
-							<CommandEmpty>
-								<Trans>No branches found</Trans>
-							</CommandEmpty>
-						)}
+						{!isBranchesLoading &&
+							!isBranchesError &&
+							branches.length === 0 && (
+								<CommandEmpty>
+									<Trans>No branches found</Trans>
+								</CommandEmpty>
+							)}
 						{branches.map((branch) => {
 							const isRemoteOnly = branch.isRemote && !branch.isLocal;
 							const isWorktree = Boolean(branch.worktreePath);
@@ -263,13 +287,17 @@ export function CompareBaseBranchPicker({
 								</CommandItem>
 							);
 						})}
-						{hasNextPage && (
-							<div
-								ref={sentinelRef}
-								className="py-2 text-center text-[11px] text-muted-foreground/60"
-							>
-								{isFetchingNextPage ? <Trans>Loading more...</Trans> : ""}
-							</div>
+						{isBranchesError ? (
+							<div className="flex justify-center py-2">{branchesFailure}</div>
+						) : (
+							hasNextPage && (
+								<div
+									ref={setSentinel}
+									className="py-2 text-center text-[11px] text-muted-foreground/60"
+								>
+									{isFetchingNextPage ? <Trans>Loading more...</Trans> : ""}
+								</div>
+							)
 						)}
 					</CommandList>
 				</Command>

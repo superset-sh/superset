@@ -15,6 +15,7 @@ export interface WorkspaceHostOption {
 	id: string;
 	name: string;
 	isOnline: boolean;
+	isConnecting: boolean;
 	version: string | null;
 	versionState: HostVersionState;
 }
@@ -63,6 +64,7 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 				machineId: host.machineId,
 				name: host.name,
 				isOnline: host.isOnline,
+				isConnecting: host.isConnecting,
 				version: host.version,
 			}));
 	}, [activeOrganizationId, currentUserId, hostMemberRows, hostRows]);
@@ -80,6 +82,7 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 					id: host.machineId,
 					name: host.name,
 					isOnline: host.isOnline,
+					isConnecting: host.isConnecting,
 					version: host.version,
 					versionState: deriveHostVersionState(host.version, appVersion),
 				}))

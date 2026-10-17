@@ -1,5 +1,6 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import type { RouterOutputs } from "@superset/trpc";
+import type { HostConnectionStatus } from "@superset/workspace-client";
 import { useEffect, useMemo, useState } from "react";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
@@ -8,7 +9,11 @@ import { getHostEventBus } from "renderer/lib/host-event-bus";
 
 type HostRow = RouterOutputs["host"]["roster"][number];
 
-export type KnownHostRow = HostRow & { isOnline: boolean };
+export type KnownHostRow = HostRow & {
+	isOnline: boolean;
+	/** The first connection attempt has not resolved, so online is unknown. */
+	isConnecting: boolean;
+};
 
 const NO_ROWS: HostRow[] = [];
 
@@ -52,10 +57,14 @@ export function useKnownHosts(): {
 	const presence = useRelayPresence(relayUrl, rows);
 	const hosts = useMemo(
 		() =>
-			rows.map((row) => ({
-				...row,
-				isOnline: presence.get(row.machineId) ?? false,
-			})),
+			rows.map((row) => {
+				const state = presence.get(row.machineId) ?? "connecting";
+				return {
+					...row,
+					isOnline: state === "open",
+					isConnecting: state === "connecting",
+				};
+			}),
 		[rows, presence],
 	);
 	return { hosts, organizationId, settled: hostsQuery.data !== undefined };
@@ -64,7 +73,7 @@ export function useKnownHosts(): {
 function useRelayPresence(
 	relayUrl: string,
 	rows: HostRow[],
-): Map<string, boolean> {
+): Map<string, HostConnectionStatus["state"]> {
 	const hostUrls = useMemo(
 		() =>
 			rows.map(
@@ -76,15 +85,15 @@ function useRelayPresence(
 			),
 		[rows, relayUrl],
 	);
-	const [presence, setPresence] = useState<Map<string, boolean>>(
-		() => new Map(),
-	);
+	const [presence, setPresence] = useState<
+		Map<string, HostConnectionStatus["state"]>
+	>(() => new Map());
 	useEffect(() => {
 		const read = () =>
 			new Map(
 				hostUrls.map(([machineId, hostUrl]) => [
 					machineId,
-					getHostEventBus(hostUrl).getConnectionStatus().state === "open",
+					getHostEventBus(hostUrl).getConnectionStatus().state,
 				]),
 			);
 		setPresence(read());
