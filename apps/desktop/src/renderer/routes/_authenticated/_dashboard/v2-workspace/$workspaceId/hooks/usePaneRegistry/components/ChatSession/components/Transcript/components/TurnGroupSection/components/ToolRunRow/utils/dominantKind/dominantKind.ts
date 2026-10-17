@@ -1,4 +1,5 @@
 import type { ToolCall, ToolKind } from "@superset/chat/protocol";
+import { effectiveToolKind } from "../../../../../../utils/shellIntent";
 
 const TIE_ORDER: readonly ToolKind[] = [
 	"edit",
@@ -16,7 +17,8 @@ const TIE_ORDER: readonly ToolKind[] = [
 export function dominantKind(items: readonly ToolCall[]): ToolKind {
 	const counts = new Map<ToolKind, number>();
 	for (const item of items) {
-		counts.set(item.toolKind, (counts.get(item.toolKind) ?? 0) + 1);
+		const kind = effectiveToolKind(item);
+		counts.set(kind, (counts.get(kind) ?? 0) + 1);
 	}
 	let best: ToolKind = "other";
 	let bestCount = 0;

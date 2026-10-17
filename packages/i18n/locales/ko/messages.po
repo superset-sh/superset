@@ -6608,6 +6608,10 @@ msgctxt "github release action"
 msgid "Edited"
 msgstr "편집됨"
 
+msgctxt "shell intent"
+msgid "Edited"
+msgstr "편집함"
+
 msgid "Edited {ago}"
 msgstr "{ago} 편집됨"
 
@@ -6615,6 +6619,10 @@ msgid "Editing"
 msgstr "편집"
 
 msgctxt "file change"
+msgid "Editing"
+msgstr "편집 중"
+
+msgctxt "shell intent"
 msgid "Editing"
 msgstr "편집 중"
 
@@ -8721,6 +8729,10 @@ msgstr "에이전트 지침 개선하기"
 msgid "Improved diff viewer"
 msgstr "차이 뷰어 개선"
 
+#. placeholder {0}: intent.path
+msgid "in {0}"
+msgstr "{0}에서"
+
 msgid "in 14h"
 msgstr "14시간 후"
 
@@ -9642,6 +9654,10 @@ msgstr "호스트의 워크스페이스를 나열, 생성, 수정, 삭제합니�
 msgid "List, get, create, update, and delete tasks; track status."
 msgstr "작업을 나열, 조회, 생성, 수정, 삭제하고 상태를 추적합니다."
 
+msgctxt "shell intent"
+msgid "Listed"
+msgstr "목록 표시함"
+
 msgid "Listening"
 msgstr "듣는 중"
 
@@ -9653,6 +9669,10 @@ msgstr "채널 메시지와 새 채널을 수신하고 있습니다."
 
 msgid "Listening status unavailable"
 msgstr "댓글 수신 상태를 확인할 수 없음"
+
+msgctxt "shell intent"
+msgid "Listing"
+msgstr "목록 표시 중"
 
 msgid "Listing sessions in {what}"
 msgstr "{what}의 세션 나열 중"
@@ -13409,6 +13429,10 @@ msgstr "다시 활성화하는 중…"
 msgid "Read"
 msgstr "읽음"
 
+msgctxt "shell intent"
+msgid "Read"
+msgstr "읽음"
+
 msgid "Read and plan without changing anything"
 msgstr "아무것도 변경하지 않고 읽고 계획만"
 
@@ -13450,6 +13474,10 @@ msgstr "설정 가이드 읽기"
 
 msgid "Read the source and every pull request."
 msgstr "소스 코드와 모든 풀 리퀘스트를 읽어 보세요."
+
+msgctxt "shell intent"
+msgid "Reading"
+msgstr "읽는 중"
 
 msgid "Reading {what}"
 msgstr "{what} 읽는 중"
@@ -14922,8 +14950,16 @@ msgstr "회의 노트 검색"
 msgid "Search..."
 msgstr "검색..."
 
+msgctxt "shell intent"
+msgid "Searched"
+msgstr "검색함"
+
 msgid "Searched for tooltip overrides"
 msgstr "툴팁 재정의를 검색함"
+
+msgctxt "shell intent"
+msgid "Searching"
+msgstr "검색 중"
 
 msgid "Searching for Kbd usages"
 msgstr "Kbd 사용처를 검색하는 중"
@@ -19421,12 +19457,20 @@ msgstr "프롬프트는 한 번만 쓰세요. 실행마다 전용 워크스페�
 msgid "Write."
 msgstr "작성."
 
+msgctxt "shell intent"
+msgid "Writing"
+msgstr "쓰는 중"
+
 msgid "Writing code is no longer where engineer hours go. Reading it is. Teams that adopted parallel agents in 2025 hit the wall first: ten agents can produce more diffs before lunch than a team can honestly review by Friday."
 msgstr "엔지니어의 시간은 더 이상 코드를 쓰는 데 들어가지 않습니다. 읽는 데 들어갑니다. 2025년에 병렬 에이전트를 도입한 팀들이 먼저 벽에 부딪혔습니다. 에이전트 열 개가 점심 전에 만들어 내는 차이는 한 팀이 금요일까지 제대로 리뷰할 수 있는 양을 넘습니다."
 
 msgid "Writing file..."
 msgstr "파일 쓰는 중..."
 
+msgid "Wrote"
+msgstr "씀"
+
+msgctxt "shell intent"
 msgid "Wrote"
 msgstr "씀"
 

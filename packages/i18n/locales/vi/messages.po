@@ -6608,6 +6608,10 @@ msgctxt "github release action"
 msgid "Edited"
 msgstr "Đã chỉnh sửa"
 
+msgctxt "shell intent"
+msgid "Edited"
+msgstr "Đã sửa"
+
 msgid "Edited {ago}"
 msgstr "Đã sửa {ago}"
 
@@ -6615,6 +6619,10 @@ msgid "Editing"
 msgstr "Chỉnh sửa"
 
 msgctxt "file change"
+msgid "Editing"
+msgstr "Đang sửa"
+
+msgctxt "shell intent"
 msgid "Editing"
 msgstr "Đang sửa"
 
@@ -8721,6 +8729,10 @@ msgstr "Cải thiện hướng dẫn cho agent"
 msgid "Improved diff viewer"
 msgstr "Khung xem diff cải tiến"
 
+#. placeholder {0}: intent.path
+msgid "in {0}"
+msgstr "trong {0}"
+
 msgid "in 14h"
 msgstr "sau 14 giờ"
 
@@ -9642,6 +9654,10 @@ msgstr "Liệt kê, tạo, cập nhật và xóa workspace trên một host."
 msgid "List, get, create, update, and delete tasks; track status."
 msgstr "Liệt kê, lấy, tạo, cập nhật và xóa tác vụ; theo dõi trạng thái."
 
+msgctxt "shell intent"
+msgid "Listed"
+msgstr "Đã liệt kê"
+
 msgid "Listening"
 msgstr "Đang nghe"
 
@@ -9653,6 +9669,10 @@ msgstr "Đang lắng nghe tin nhắn kênh và kênh mới."
 
 msgid "Listening status unavailable"
 msgstr "Không có thông tin trạng thái lắng nghe"
+
+msgctxt "shell intent"
+msgid "Listing"
+msgstr "Đang liệt kê"
 
 msgid "Listing sessions in {what}"
 msgstr "Đang liệt kê các phiên trong {what}"
@@ -13409,6 +13429,10 @@ msgstr "Đang kích hoạt lại…"
 msgid "Read"
 msgstr "Đã đọc"
 
+msgctxt "shell intent"
+msgid "Read"
+msgstr "Đã đọc"
+
 msgid "Read and plan without changing anything"
 msgstr "Đọc và lập kế hoạch mà không thay đổi gì"
 
@@ -13450,6 +13474,10 @@ msgstr "Đọc hướng dẫn thiết lập"
 
 msgid "Read the source and every pull request."
 msgstr "Đọc mã nguồn và mọi pull request."
+
+msgctxt "shell intent"
+msgid "Reading"
+msgstr "Đang đọc"
 
 msgid "Reading {what}"
 msgstr "Đang đọc {what}"
@@ -14922,8 +14950,16 @@ msgstr "Tìm trong ghi chú cuộc họp của bạn"
 msgid "Search..."
 msgstr "Tìm kiếm..."
 
+msgctxt "shell intent"
+msgid "Searched"
+msgstr "Đã tìm"
+
 msgid "Searched for tooltip overrides"
 msgstr "Đã tìm các chỗ ghi đè tooltip"
+
+msgctxt "shell intent"
+msgid "Searching"
+msgstr "Đang tìm"
 
 msgid "Searching for Kbd usages"
 msgstr "Đang tìm các chỗ dùng Kbd"
@@ -19421,12 +19457,20 @@ msgstr "Viết prompt một lần. Mỗi lượt chạy có workspace riêng."
 msgid "Write."
 msgstr "Viết."
 
+msgctxt "shell intent"
+msgid "Writing"
+msgstr "Đang ghi"
+
 msgid "Writing code is no longer where engineer hours go. Reading it is. Teams that adopted parallel agents in 2025 hit the wall first: ten agents can produce more diffs before lunch than a team can honestly review by Friday."
 msgstr "Viết code không còn là nơi tiêu tốn giờ công của kỹ sư. Đọc code mới là. Các đội áp dụng agent song song từ 2025 chạm tường trước tiên: mười agent có thể tạo ra nhiều diff trước bữa trưa hơn mức một đội có thể review tử tế cho tới thứ Sáu."
 
 msgid "Writing file..."
 msgstr "Đang ghi tệp..."
 
+msgid "Wrote"
+msgstr "Đã ghi"
+
+msgctxt "shell intent"
 msgid "Wrote"
 msgstr "Đã ghi"
 

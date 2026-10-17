@@ -15,13 +15,15 @@ import { usePluginMentionOptions } from "renderer/hooks/usePluginMentionOptions"
 import { toolTitle } from "../../utils/toolTitle";
 import { ToolContentList } from "../ToolContentList";
 import { FileChangeTitle } from "./components/FileChangeTitle";
+import { ShellIntentTitle } from "./components/ShellIntentTitle";
 import { StatusWord } from "./components/StatusWord";
 
 const TITLE_SWEEP_SECONDS = 1.6;
 
 /**
  * One line per call on a rail of steps: what the agent did, a command in
- * mono, a file as a chip that previews its edit. A running call turns a
+ * mono, a file as a chip that previews its edit, a shell command that only
+ * read or searched as that read or search. A running call turns a
  * dashed ring and sweeps its title; a settled one recedes. The line opens
  * what the call produced: a button under the whole row toggles it, so the
  * chip can be a button of its own without one inside the other.
@@ -31,7 +33,6 @@ export function ToolCallRow({ item }: { item: ToolCall }) {
 	const [open, setOpen] = useState(false);
 	const hasBody = item.content.length > 0;
 	const running = item.status === "running";
-	const command = item.toolKind === "execute";
 	const installedPlugins = usePluginMentionOptions();
 	const mcpServer = item.mcpServer;
 	const plugin = mcpServer
@@ -39,7 +40,11 @@ export function ToolCallRow({ item }: { item: ToolCall }) {
 		: undefined;
 	const toggle = hasBody ? () => setOpen((value) => !value) : undefined;
 
-	const { change, label } = toolTitle(item, t, Boolean(plugin));
+	const { change, command, intent, label } = toolTitle(
+		item,
+		t,
+		Boolean(plugin),
+	);
 	let title: ReactNode;
 	if (change) {
 		title = (
@@ -51,6 +56,8 @@ export function ToolCallRow({ item }: { item: ToolCall }) {
 				verb={label}
 			/>
 		);
+	} else if (intent) {
+		title = <ShellIntentTitle intent={intent} running={running} verb={label} />;
 	} else {
 		const face = command ? "font-mono text-[13px]" : undefined;
 		title = running ? (

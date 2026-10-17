@@ -6608,6 +6608,10 @@ msgctxt "github release action"
 msgid "Edited"
 msgstr "Düzenlendi"
 
+msgctxt "shell intent"
+msgid "Edited"
+msgstr "Düzenlendi"
+
 msgid "Edited {ago}"
 msgstr "{ago} düzenlendi"
 
@@ -6615,6 +6619,10 @@ msgid "Editing"
 msgstr "Düzenleme"
 
 msgctxt "file change"
+msgid "Editing"
+msgstr "Düzenleniyor"
+
+msgctxt "shell intent"
 msgid "Editing"
 msgstr "Düzenleniyor"
 
@@ -8721,6 +8729,10 @@ msgstr "Ajan yönergelerini iyileştir"
 msgid "Improved diff viewer"
 msgstr "Geliştirilmiş fark görüntüleyici"
 
+#. placeholder {0}: intent.path
+msgid "in {0}"
+msgstr "{0} içinde"
+
 msgid "in 14h"
 msgstr "14sa içinde"
 
@@ -9642,6 +9654,10 @@ msgstr "Bir host'taki çalışma alanlarını listeleyin, oluşturun, güncelley
 msgid "List, get, create, update, and delete tasks; track status."
 msgstr "Görevleri listeleyin, alın, oluşturun, güncelleyin ve silin; durumu izleyin."
 
+msgctxt "shell intent"
+msgid "Listed"
+msgstr "Listelendi"
+
 msgid "Listening"
 msgstr "Dinliyor"
 
@@ -9653,6 +9669,10 @@ msgstr "Kanal mesajları ve yeni kanallar dinleniyor."
 
 msgid "Listening status unavailable"
 msgstr "Dinleme durumu kullanılamıyor"
+
+msgctxt "shell intent"
+msgid "Listing"
+msgstr "Listeleniyor"
 
 msgid "Listing sessions in {what}"
 msgstr "{what} içindeki oturumlar listeleniyor"
@@ -13409,6 +13429,10 @@ msgstr "Yeniden etkinleştiriliyor…"
 msgid "Read"
 msgstr "Okundu"
 
+msgctxt "shell intent"
+msgid "Read"
+msgstr "Okundu"
+
 msgid "Read and plan without changing anything"
 msgstr "Hiçbir şeyi değiştirmeden oku ve planla"
 
@@ -13450,6 +13474,10 @@ msgstr "Kurulum rehberini okuyun"
 
 msgid "Read the source and every pull request."
 msgstr "Kaynak kodu ve her pull request'i okuyun."
+
+msgctxt "shell intent"
+msgid "Reading"
+msgstr "Okunuyor"
 
 msgid "Reading {what}"
 msgstr "{what} okunuyor"
@@ -14922,8 +14950,16 @@ msgstr "Toplantı notlarınızda arayın"
 msgid "Search..."
 msgstr "Ara..."
 
+msgctxt "shell intent"
+msgid "Searched"
+msgstr "Arandı"
+
 msgid "Searched for tooltip overrides"
 msgstr "Tooltip geçersiz kılmaları arandı"
+
+msgctxt "shell intent"
+msgid "Searching"
+msgstr "Aranıyor"
 
 msgid "Searching for Kbd usages"
 msgstr "Kbd kullanımları aranıyor"
@@ -19421,12 +19457,20 @@ msgstr "İstemi bir kez yazın. Her çalıştırmanın kendi çalışma alanı o
 msgid "Write."
 msgstr "Yazın."
 
+msgctxt "shell intent"
+msgid "Writing"
+msgstr "Yazılıyor"
+
 msgid "Writing code is no longer where engineer hours go. Reading it is. Teams that adopted parallel agents in 2025 hit the wall first: ten agents can produce more diffs before lunch than a team can honestly review by Friday."
 msgstr "Mühendis saatleri artık kod yazmaya gitmiyor. Kod okumaya gidiyor. 2025'te paralel ajanları benimseyen takımlar duvara ilk çarpanlar oldu: on ajan, bir takımın cuma gününe kadar dürüstçe inceleyebileceğinden daha fazla farkı öğleden önce üretebilir."
 
 msgid "Writing file..."
 msgstr "Dosya yazılıyor..."
 
+msgid "Wrote"
+msgstr "Yazıldı"
+
+msgctxt "shell intent"
 msgid "Wrote"
 msgstr "Yazıldı"
 

@@ -6608,6 +6608,10 @@ msgctxt "github release action"
 msgid "Edited"
 msgstr "已编辑"
 
+msgctxt "shell intent"
+msgid "Edited"
+msgstr "已编辑"
+
 msgid "Edited {ago}"
 msgstr "编辑于{ago}"
 
@@ -6615,6 +6619,10 @@ msgid "Editing"
 msgstr "编辑"
 
 msgctxt "file change"
+msgid "Editing"
+msgstr "编辑中"
+
+msgctxt "shell intent"
 msgid "Editing"
 msgstr "编辑中"
 
@@ -8721,6 +8729,10 @@ msgstr "改进智能体说明"
 msgid "Improved diff viewer"
 msgstr "更好的差异查看器"
 
+#. placeholder {0}: intent.path
+msgid "in {0}"
+msgstr "于 {0}"
+
 msgid "in 14h"
 msgstr "14小时后"
 
@@ -9642,6 +9654,10 @@ msgstr "列出、创建、更新和删除主机上的工作区。"
 msgid "List, get, create, update, and delete tasks; track status."
 msgstr "列出、获取、创建、更新和删除任务；跟踪状态。"
 
+msgctxt "shell intent"
+msgid "Listed"
+msgstr "已列出"
+
 msgid "Listening"
 msgstr "正在聆听"
 
@@ -9653,6 +9669,10 @@ msgstr "正在监听频道消息和新建的频道。"
 
 msgid "Listening status unavailable"
 msgstr "监听状态不可用"
+
+msgctxt "shell intent"
+msgid "Listing"
+msgstr "列出中"
 
 msgid "Listing sessions in {what}"
 msgstr "正在列出 {what} 的会话"
@@ -13409,6 +13429,10 @@ msgstr "正在重新激活…"
 msgid "Read"
 msgstr "已读取"
 
+msgctxt "shell intent"
+msgid "Read"
+msgstr "已读取"
+
 msgid "Read and plan without changing anything"
 msgstr "只读取和规划，不做任何更改"
 
@@ -13450,6 +13474,10 @@ msgstr "阅读设置指南"
 
 msgid "Read the source and every pull request."
 msgstr "阅读源代码和每一个拉取请求。"
+
+msgctxt "shell intent"
+msgid "Reading"
+msgstr "读取中"
 
 msgid "Reading {what}"
 msgstr "正在读取 {what}"
@@ -14922,8 +14950,16 @@ msgstr "搜索你的会议记录"
 msgid "Search..."
 msgstr "搜索..."
 
+msgctxt "shell intent"
+msgid "Searched"
+msgstr "已搜索"
+
 msgid "Searched for tooltip overrides"
 msgstr "搜索了tooltip的样式覆盖"
+
+msgctxt "shell intent"
+msgid "Searching"
+msgstr "搜索中"
 
 msgid "Searching for Kbd usages"
 msgstr "正在搜索Kbd的使用处"
@@ -19421,12 +19457,20 @@ msgstr "提示词只需写一次，每次运行都有独立的工作区。"
 msgid "Write."
 msgstr "编写。"
 
+msgctxt "shell intent"
+msgid "Writing"
+msgstr "写入中"
+
 msgid "Writing code is no longer where engineer hours go. Reading it is. Teams that adopted parallel agents in 2025 hit the wall first: ten agents can produce more diffs before lunch than a team can honestly review by Friday."
 msgstr "工程师的时间不再花在写代码上，而是花在读代码上。2025年就用上并行智能体的团队最先撞墙：十个智能体在午饭前产出的差异，一个团队到周五也认真审不完。"
 
 msgid "Writing file..."
 msgstr "正在写入文件..."
 
+msgid "Wrote"
+msgstr "已写入"
+
+msgctxt "shell intent"
 msgid "Wrote"
 msgstr "已写入"
 
