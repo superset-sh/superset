@@ -30,6 +30,7 @@ export interface CommandContext {
 	hostServiceStatus: HostServiceAvailabilityStatus;
 	localMachineId: string | null;
 	notificationSoundsMuted: boolean;
+	availableExternalApps?: ExternalApp[] | null;
 	isV2CloudEnabled: boolean;
 	navigate: (path: string) => void;
 	/** Opens the new-workspace surface (v2 route, or the v1 modal). */
