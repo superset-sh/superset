@@ -8,10 +8,12 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { captureCodexQuotaSnapshot } from "./codex";
 import {
 	API_BILLING_MARKER,
 	claudeKeychainAccounts,
 	discoverClaudeProfiles,
+	discoverCodexHomes,
 	readCodexProfileKind,
 } from "./profiles";
 
@@ -156,5 +158,52 @@ describe("discoverClaudeProfiles", () => {
 			credentialKind: "subscription",
 			loginFingerprint: null,
 		});
+	});
+});
+
+describe("quota-only Codex discovery", () => {
+	it("retains broken secondary auth as unavailable without making it selectable", async () => {
+		const base = tempProfile();
+		const malformed = tempProfile();
+		writeFileSync(join(malformed, "auth.json"), "{");
+		const unreadable = tempProfile();
+		mkdirSync(join(unreadable, "auth.json"));
+		const api = tempProfile();
+		writeFileSync(
+			join(api, "auth.json"),
+			JSON.stringify({ OPENAI_API_KEY: "synthetic-api" }),
+		);
+		const empty = tempProfile();
+		const options = {
+			defaultHome: base,
+			candidates: [malformed, unreadable, api, empty],
+		};
+		expect(
+			(await discoverCodexHomes(options)).map((profile) => profile.home),
+		).toEqual([base]);
+		const homes = await discoverCodexHomes({
+			...options,
+			includeUnavailable: true,
+		});
+		expect(homes.map((profile) => profile.home)).toEqual([
+			base,
+			malformed,
+			unreadable,
+		]);
+		let fetches = 0;
+		const snapshot = await captureCodexQuotaSnapshot(
+			async () => homes,
+			async () => {
+				fetches++;
+				throw new Error("must not fetch unreadable auth");
+			},
+		);
+		const cards = await snapshot.load();
+		expect(
+			cards
+				.filter((card) => card.status === "unavailable")
+				.map((card) => card.selection),
+		).toEqual([malformed, unreadable]);
+		expect(fetches).toBe(0);
 	});
 });

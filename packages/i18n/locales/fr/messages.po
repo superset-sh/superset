@@ -1952,6 +1952,12 @@ msgstr "Session d'agent démarrée"
 msgid "agent settings"
 msgstr "paramètres de l'agent"
 
+msgid "Agent terminal with account"
+msgstr "Terminal d’agent avec un compte"
+
+msgid "Agent terminal with account…"
+msgstr "Terminal d’agent avec un compte…"
+
 msgid "Agent usage rankings"
 msgstr "Classements d'utilisation des agents"
 
@@ -4907,6 +4913,9 @@ msgstr "Impossible de quitter la file"
 msgid "Could not list directory"
 msgstr "Impossible de lister le répertoire"
 
+msgid "Could not load accounts"
+msgstr "Impossible de charger les comptes"
+
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
 msgstr "Impossible de charger les agents depuis {0}"
@@ -5042,6 +5051,9 @@ msgstr "Impossible de partager"
 
 msgid "Could not start agent"
 msgstr "Impossible de démarrer l'agent"
+
+msgid "Could not start agent terminal"
+msgstr "Impossible de démarrer le terminal d’agent"
 
 msgid "Could not start checkout. Please try again."
 msgstr "Impossible de lancer le paiement. Veuillez réessayer."
@@ -9699,6 +9711,9 @@ msgstr "Chargeur · Spinner braille"
 msgid "Loading"
 msgstr "Chargement"
 
+msgid "Loading accounts…"
+msgstr "Chargement des comptes…"
+
 msgid "Loading agent settings..."
 msgstr "Chargement des paramètres de l'agent..."
 
@@ -10794,6 +10809,9 @@ msgstr "Aucun auteur trouvé."
 
 msgid "No automations match"
 msgstr "Aucune automatisation ne correspond"
+
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "Aucun compte avec abonnement disponible. Ajoutez un compte ou connectez-vous dans Utilisation, puis actualisez."
 
 msgid "No branches found"
 msgstr "Aucune branche trouvée"
@@ -16150,6 +16168,9 @@ msgstr "Démarrer une nouvelle session d'agent à chaque exécution"
 msgid "Start a new chat"
 msgstr "Démarrer une nouvelle discussion"
 
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "Démarrez un nouveau terminal avec une connexion existante. Les autres discussions et votre compte par défaut restent inchangés."
+
 msgid "Start a session"
 msgstr "Démarrer une session"
 
@@ -16188,6 +16209,9 @@ msgstr "Démarrez-en une avec + dans la barre d'onglets."
 
 msgid "Start or stop the workspace run command"
 msgstr "Démarrer ou arrêter la commande de l'espace de travail"
+
+msgid "Start terminal"
+msgstr "Démarrer le terminal"
 
 msgid "Start voice mode"
 msgstr "Démarrer le mode vocal"
@@ -17368,6 +17392,9 @@ msgstr "La même app fonctionne nativement sur iPad, en portrait comme en paysag
 msgid "The scorecard"
 msgstr "Le bilan"
 
+msgid "The selected login changed. Choose an account again."
+msgstr "La connexion sélectionnée a changé. Choisissez à nouveau un compte."
+
 msgid "The self-driving software factory"
 msgstr "L'usine logicielle autonome"
 
@@ -17490,6 +17517,9 @@ msgstr "Cet agent ne peut pas dupliquer une conversation"
 
 msgid "This agent can't run in a cloud workspace"
 msgstr "Cet agent ne peut pas s'exécuter dans un espace de travail cloud"
+
+msgid "This agent configuration does not support account selection."
+msgstr "Cette configuration d’agent ne permet pas de choisir un compte."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Cet agent n'existe plus sur l'appareil sélectionné (ses agents ont peut-être été réinitialisés). Les exécutions échoueront tant que vous n'en aurez pas choisi un nouveau."
@@ -18497,6 +18527,9 @@ msgstr "Mettez à jour Superset sur cette machine pour joindre des fichiers"
 
 msgid "update the branch prefix"
 msgstr "mettre à jour le préfixe de branche"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "Mettez à jour cet hôte pour choisir un compte pour un nouveau terminal."
 
 msgid "Updated"
 msgstr "Mis à jour"

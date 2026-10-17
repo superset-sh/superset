@@ -60,6 +60,10 @@ export const terminalAgentBindings = sqliteTable(
 		agentId: text("agent_id").notNull().$type<AgentIdentityId>(),
 		agentSessionId: text("agent_session_id"),
 		definitionId: text("definition_id").$type<AgentDefinitionId>(),
+		// Non-secret account identity and launch provenance. Nullable so existing
+		// bindings keep their original default-account behavior.
+		accountJson: text("account_json"),
+		launchId: text("launch_id"),
 		startedAt: integer("started_at").notNull(),
 		lastEventAt: integer("last_event_at").notNull(),
 		lastEventType: text("last_event_type").notNull(),

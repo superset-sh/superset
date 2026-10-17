@@ -23,11 +23,17 @@
 
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import { homedir, platform, userInfo } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { resolveAmbientCodexHome } from "@superset/agent-setup";
+import { readProfileFile } from "./profile-file";
+import {
+	parseQuotaCredentialJson,
+	QuotaCredentialReadError,
+	readQuotaCredentialFile,
+} from "./quota-credentials";
 
 const execFileAsync = promisify(execFile);
 
@@ -61,6 +67,8 @@ export interface ClaudeProfile {
 }
 
 export interface CodexHome {
+	/** Quota-only discovery retains an unreadable profile; never selectable. */
+	quotaUnavailable?: true;
 	home: string;
 	sourceLabel: string;
 	credentialKind: ProfileCredentialKind;
@@ -123,11 +131,9 @@ async function readClaudeIdentity(
 ): Promise<{ email: string | null } | null> {
 	const statePath = join(configDir, ".claude.json");
 	try {
-		const info = await stat(statePath);
-		if (!info.isFile() || info.size > MAX_STATE_FILE_BYTES) return null;
-		const parsed: ClaudeStateFile = JSON.parse(
-			await readFile(statePath, "utf-8"),
-		);
+		const file = await readProfileFile(statePath, MAX_STATE_FILE_BYTES);
+		if (!file) return null;
+		const parsed: ClaudeStateFile = JSON.parse(file.content);
 		const account = parsed.oauthAccount;
 		if (!account?.accountUuid && !account?.emailAddress) return null;
 		return { email: account.emailAddress ?? null };
@@ -143,10 +149,8 @@ export async function readApiBillingFingerprint(
 ): Promise<string | null> {
 	const markerPath = join(profileDir, API_BILLING_MARKER);
 	try {
-		const info = await stat(markerPath);
-		if (!info.isFile() || info.size > MAX_MARKER_BYTES) return null;
-		const content = (await readFile(markerPath, "utf-8")).trim();
-		return content === agent ? `${info.mtimeMs}` : null;
+		const file = await readProfileFile(markerPath, MAX_MARKER_BYTES);
+		return file?.content.trim() === agent ? `${file.mtimeMs}` : null;
 	} catch {
 		return null;
 	}
@@ -229,23 +233,43 @@ export function claudeKeychainAccounts(
  * accounts are probed first; the unscoped lookup then covers items an older
  * client filed under a different name.
  */
-export async function readKeychainSecrets(service: string): Promise<string[]> {
+export async function readKeychainSecrets(
+	service: string,
+	strict = false,
+): Promise<string[]> {
 	if (platform() !== "darwin") return [];
-	const secrets: string[] = [];
 	const scopes = [
 		...claudeKeychainAccounts().map((account) => ["-a", account]),
 		[],
 	];
-	for (const scope of scopes) {
-		try {
+	return collectKeychainSecrets(
+		scopes,
+		async (scope) => {
 			const { stdout } = await execFileAsync(
 				"security",
 				["find-generic-password", ...scope, "-s", service, "-w"],
-				{ timeout: 5_000 },
+				{ timeout: 5_000, maxBuffer: 1024 * 1024 },
 			);
-			const secret = stdout.trim();
+			return stdout;
+		},
+		strict,
+	);
+}
+
+export async function collectKeychainSecrets(
+	scopes: string[][],
+	read: (scope: string[]) => Promise<string>,
+	strict: boolean,
+): Promise<string[]> {
+	const secrets: string[] = [];
+	for (const scope of scopes) {
+		try {
+			const secret = (await read(scope)).trim();
 			if (secret && !secrets.includes(secret)) secrets.push(secret);
-		} catch {
+		} catch (error) {
+			if (strict && (error as { code?: unknown }).code !== 44) {
+				throw new QuotaCredentialReadError();
+			}
 			// No item under this scope.
 		}
 	}
@@ -269,15 +293,42 @@ export async function readCodexProfileKind(
 		return { credentialKind: "api_key", loginFingerprint: apiFingerprint };
 	}
 	try {
-		const parsed: CodexAuthShape = JSON.parse(
-			await readFile(join(codexHome, "auth.json"), "utf-8"),
+		const file = await readProfileFile(
+			join(codexHome, "auth.json"),
+			MAX_STATE_FILE_BYTES,
 		);
+		if (!file) return null;
+		const parsed: CodexAuthShape = JSON.parse(file.content);
 		return parsed.tokens?.access_token
 			? { credentialKind: "subscription", loginFingerprint: null }
 			: null;
 	} catch {
 		// No parsable auth.json — not a Codex home.
 		return null;
+	}
+}
+
+async function readCodexQuotaProfileKind(
+	codexHome: string,
+): Promise<Pick<
+	CodexHome,
+	"credentialKind" | "loginFingerprint" | "quotaUnavailable"
+> | null> {
+	const kind = await readCodexProfileKind(codexHome);
+	if (kind) return kind;
+	try {
+		const file = await readQuotaCredentialFile(join(codexHome, "auth.json"));
+		if (!file) return null;
+		// Readable signed-out and unmarked API-key homes remain excluded.
+		// A malformed/unreadable existing auth file gets an unavailable card.
+		parseQuotaCredentialJson(file);
+		return null;
+	} catch {
+		return {
+			credentialKind: "subscription",
+			loginFingerprint: null,
+			quotaUnavailable: true,
+		};
 	}
 }
 
@@ -292,9 +343,15 @@ export async function readCodexProfileKind(
  * `selection: null`. It is listed even without an `auth.json` so the
  * add-account poller has a baseline to compare a fresh `codex login` against.
  */
-export async function discoverCodexHomes(): Promise<CodexHome[]> {
+export async function discoverCodexHomes(
+	options: {
+		includeUnavailable?: boolean;
+		candidates?: readonly string[];
+		defaultHome?: string;
+	} = {},
+): Promise<CodexHome[]> {
 	const home = homedir();
-	const defaultHome = resolveAmbientCodexHome(home);
+	const defaultHome = options.defaultHome ?? resolveAmbientCodexHome(home);
 	const defaultKind = (await readCodexProfileKind(defaultHome)) ?? {
 		credentialKind: "subscription" as const,
 		loginFingerprint: null,
@@ -310,12 +367,16 @@ export async function discoverCodexHomes(): Promise<CodexHome[]> {
 		],
 	]);
 
-	const candidates = (await listSubdirectories(home)).filter((path) =>
-		path.slice(home.length + 1).startsWith(".codex"),
-	);
+	const candidates =
+		options.candidates ??
+		(await listSubdirectories(home)).filter((path) =>
+			path.slice(home.length + 1).startsWith(".codex"),
+		);
 	for (const candidate of candidates) {
 		if (homes.has(candidate)) continue;
-		const kind = await readCodexProfileKind(candidate);
+		const kind = await (options.includeUnavailable
+			? readCodexQuotaProfileKind(candidate)
+			: readCodexProfileKind(candidate));
 		if (!kind) continue;
 		homes.set(candidate, {
 			home: candidate,

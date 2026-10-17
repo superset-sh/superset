@@ -19,6 +19,14 @@ import {
 	keychainServicesForConfigDir,
 	readKeychainSecrets,
 } from "./profiles";
+import type { QuotaSnapshot } from "./quota-cache";
+import {
+	parseQuotaCredentialJson,
+	QuotaCredentialReadError,
+	readQuotaCredentialFile,
+	type UnavailableQuotaSlot,
+	unavailableQuotaAccount,
+} from "./quota-credentials";
 import type {
 	UsageAccount,
 	UsageAccountStatus,
@@ -60,10 +68,22 @@ function parseCredential(
 	accountKey: string,
 	sourceLabel: string,
 	selection: string | null,
+	strict = false,
 ): ClaudeOauthCredential | null {
 	try {
-		const parsed: ClaudeCredentialFile = JSON.parse(raw);
+		const parsed: ClaudeCredentialFile = strict
+			? parseQuotaCredentialJson(raw)
+			: JSON.parse(raw);
 		const oauth = parsed.claudeAiOauth;
+		if (
+			strict &&
+			oauth !== undefined &&
+			(typeof oauth !== "object" ||
+				oauth === null ||
+				typeof oauth.accessToken !== "string" ||
+				!oauth.accessToken.trim())
+		)
+			throw new QuotaCredentialReadError();
 		if (!oauth?.accessToken) return null;
 		return {
 			accessToken: oauth.accessToken,
@@ -83,6 +103,7 @@ function parseCredential(
 			selection,
 		};
 	} catch {
+		if (strict) throw new QuotaCredentialReadError();
 		return null;
 	}
 }
@@ -91,19 +112,26 @@ async function readCredentialFile(
 	path: string,
 	sourceLabel: string,
 	selection: string | null,
+	strict = false,
 ): Promise<ClaudeOauthCredential | null> {
 	try {
-		const raw = await readFile(path, "utf-8");
-		return parseCredential(raw, path, sourceLabel, selection);
+		const raw = strict
+			? await readQuotaCredentialFile(path)
+			: await readFile(path, "utf-8");
+		if (raw === null) return null;
+		return parseCredential(raw, path, sourceLabel, selection, strict);
 	} catch {
+		if (strict) throw new QuotaCredentialReadError();
 		return null;
 	}
 }
 
 /** The default login's Keychain item: the freshest of the items sharing its
  * service, since a sibling without a Claude login can sit beside it. */
-async function readKeychainCredential(): Promise<ClaudeOauthCredential | null> {
-	const secrets = await readKeychainSecrets(CLAUDE_KEYCHAIN_SERVICE);
+async function readKeychainCredential(
+	strict = false,
+): Promise<ClaudeOauthCredential | null> {
+	const secrets = await readKeychainSecrets(CLAUDE_KEYCHAIN_SERVICE, strict);
 	return pickFreshest(
 		secrets.map((secret) =>
 			parseCredential(
@@ -111,6 +139,7 @@ async function readKeychainCredential(): Promise<ClaudeOauthCredential | null> {
 				`keychain:${CLAUDE_KEYCHAIN_SERVICE}`,
 				"Keychain",
 				null,
+				strict,
 			),
 		),
 	);
@@ -174,34 +203,47 @@ export function pickFreshest<T extends ClaudeOauthCredential>(
 }
 
 /** Identity of the default login, readable even when its token is expired. */
-export async function readDefaultLoginEmail(): Promise<string | null> {
+export async function readDefaultLoginEmail(
+	strict = false,
+): Promise<string | null> {
 	try {
-		const parsed = JSON.parse(
-			await readFile(join(homedir(), ".claude.json"), "utf-8"),
+		const raw = strict
+			? await readQuotaCredentialFile(
+					join(homedir(), ".claude.json"),
+					50 * 1024 * 1024,
+				)
+			: await readFile(join(homedir(), ".claude.json"), "utf-8");
+		if (raw === null) return null;
+		const parsed = (
+			strict ? parseQuotaCredentialJson(raw) : JSON.parse(raw)
 		) as { oauthAccount?: { emailAddress?: string } };
 		return parsed.oauthAccount?.emailAddress ?? null;
 	} catch {
+		if (strict) throw new QuotaCredentialReadError();
 		return null;
 	}
 }
 
 export async function readProfileCredential(
 	profile: Awaited<ReturnType<typeof discoverClaudeProfiles>>[number],
+	strict = false,
 ): Promise<ClaudeOauthCredential | null> {
 	const fromFile = await readCredentialFile(
 		profile.credentialsPath,
 		profile.sourceLabel,
 		profile.configDir,
+		strict,
 	);
 	const candidates: Array<ClaudeOauthCredential | null> = [fromFile];
 	for (const service of profile.keychainServices) {
-		for (const secret of await readKeychainSecrets(service)) {
+		for (const secret of await readKeychainSecrets(service, strict)) {
 			candidates.push(
 				parseCredential(
 					secret,
 					profile.configDir,
 					profile.sourceLabel,
 					profile.configDir,
+					strict,
 				),
 			);
 		}
@@ -256,11 +298,76 @@ export async function readClaudeLoginFingerprint(
  * only the freshest of the three surfaces (a stale sibling would otherwise
  * render as a phantom expired account).
  */
-async function discoverClaudeCredentials(): Promise<{
+interface ClaudeQuotaInputs {
 	credentials: ClaudeOauthCredential[];
 	signedOutProfiles: Awaited<ReturnType<typeof discoverClaudeProfiles>>;
 	apiProfiles: Awaited<ReturnType<typeof discoverClaudeProfiles>>;
-}> {
+	unavailableSlots?: UnavailableQuotaSlot[];
+}
+
+interface ClaudeCredentialSlot {
+	source: UnavailableQuotaSlot;
+	read: () => Promise<ClaudeOauthCredential | null>;
+	profile?: Awaited<ReturnType<typeof discoverClaudeProfiles>>[number];
+}
+
+/** Keep unreadable slots separate from signed-out profiles and healthy logins. */
+export async function captureClaudeCredentialSlots(
+	slots: ClaudeCredentialSlot[],
+	apiProfiles: ClaudeQuotaInputs["apiProfiles"],
+): Promise<ClaudeQuotaInputs> {
+	const apiSelections = new Set(
+		apiProfiles.map((profile) => profile.configDir),
+	);
+	const results = await Promise.all(
+		slots
+			.filter((slot) => !apiSelections.has(slot.source.selection ?? ""))
+			.map(async (slot) => {
+				try {
+					return { slot, credential: await slot.read(), unavailable: false };
+				} catch {
+					return { slot, credential: null, unavailable: true };
+				}
+			}),
+	);
+	const credentials = new Map<string, ClaudeOauthCredential>();
+	const unavailableSlots = new Map<string | null, UnavailableQuotaSlot>();
+	const signedOutProfiles: ClaudeQuotaInputs["signedOutProfiles"] = [];
+	for (const { slot, unavailable } of results) {
+		if (unavailable) unavailableSlots.set(slot.source.selection, slot.source);
+	}
+	for (const { slot, credential, unavailable } of results) {
+		if (unavailable || unavailableSlots.has(slot.source.selection)) continue;
+		if (credential && !credentials.has(credential.accessToken)) {
+			credentials.set(credential.accessToken, credential);
+		} else if (!credential && slot.profile)
+			signedOutProfiles.push(slot.profile);
+	}
+	return {
+		credentials: [...credentials.values()],
+		signedOutProfiles,
+		apiProfiles,
+		unavailableSlots: [...unavailableSlots.values()],
+	};
+}
+
+export async function readDefaultQuotaCredential(
+	readCredentials: () => Promise<Array<ClaudeOauthCredential | null>>,
+	readEmail = readDefaultLoginEmail,
+): Promise<ClaudeOauthCredential | null> {
+	const [email, credentials] = await Promise.all([
+		readEmail(true).catch(() => null),
+		readCredentials(),
+	]);
+	const credential = pickFreshest(credentials);
+	return credential
+		? { ...credential, email: credential.email ?? email }
+		: null;
+}
+
+async function discoverClaudeCredentials(
+	strict = false,
+): Promise<ClaudeQuotaInputs> {
 	const home = homedir();
 	const defaultCandidates: Array<{ path: string; sourceLabel: string }> = [
 		{
@@ -296,21 +403,69 @@ async function discoverClaudeCredentials(): Promise<{
 	const apiProfiles = allProfiles.filter(
 		(profile) => profile.credentialKind === "api_key",
 	);
+	if (strict) {
+		return captureClaudeCredentialSlots(
+			[
+				{
+					source: {
+						agent: "claude",
+						accountKey: `keychain:${CLAUDE_KEYCHAIN_SERVICE}`,
+						sourceLabel: "Default Claude login",
+						selection: null,
+					},
+					read: () =>
+						readDefaultQuotaCredential(async () => {
+							const [keychain, files] = await Promise.all([
+								readKeychainCredential(true),
+								Promise.all(
+									defaultCandidates.map(({ path, sourceLabel }) =>
+										readCredentialFile(path, sourceLabel, null, true),
+									),
+								),
+							]);
+							return [keychain, ...files];
+						}),
+				},
+				...explicitCandidates.map(({ path, sourceLabel, configDir }) => ({
+					source: {
+						agent: "claude" as const,
+						accountKey: path,
+						sourceLabel,
+						selection: configDir,
+					},
+					read: () => readCredentialFile(path, sourceLabel, configDir, true),
+				})),
+				...profiles.map((profile) => ({
+					source: {
+						agent: "claude" as const,
+						accountKey: profile.configDir,
+						sourceLabel: profile.sourceLabel,
+						selection: profile.configDir,
+					},
+					read: () => readProfileCredential(profile, true),
+					profile,
+				})),
+			],
+			apiProfiles,
+		);
+	}
 	const [defaultEmail, keychainCredential, defaultFiles, explicit, profiled] =
 		await Promise.all([
-			readDefaultLoginEmail(),
-			readKeychainCredential(),
+			readDefaultLoginEmail(strict),
+			readKeychainCredential(strict),
 			Promise.all(
 				defaultCandidates.map(({ path, sourceLabel }) =>
-					readCredentialFile(path, sourceLabel, null),
+					readCredentialFile(path, sourceLabel, null, strict),
 				),
 			),
 			Promise.all(
 				explicitCandidates.map(({ path, sourceLabel, configDir }) =>
-					readCredentialFile(path, sourceLabel, configDir),
+					readCredentialFile(path, sourceLabel, configDir, strict),
 				),
 			),
-			Promise.all(profiles.map(readProfileCredential)),
+			Promise.all(
+				profiles.map((profile) => readProfileCredential(profile, strict)),
+			),
 		]);
 
 	const defaultCredential = pickFreshest([keychainCredential, ...defaultFiles]);
@@ -548,9 +703,62 @@ async function fetchClaudeAccount(
 }
 
 export async function fetchClaudeAccounts(): Promise<UsageAccount[]> {
-	const { credentials, signedOutProfiles, apiProfiles } =
-		await discoverClaudeCredentials();
-	const accounts = await Promise.all(credentials.map(fetchClaudeAccount));
+	return fetchClaudeSnapshot(await discoverClaudeCredentials());
+}
+
+export async function captureClaudeQuotaSnapshot(
+	capture = () => discoverClaudeCredentials(true),
+	fetchAccount = fetchClaudeAccount,
+): Promise<QuotaSnapshot<UsageAccount[]>> {
+	let snapshot: ClaudeQuotaInputs;
+	try {
+		snapshot = structuredClone(await capture());
+	} catch {
+		snapshot = {
+			credentials: [],
+			signedOutProfiles: [],
+			apiProfiles: [],
+			unavailableSlots: [
+				{
+					agent: "claude",
+					accountKey: "claude:discovery",
+					sourceLabel: "Claude accounts",
+					selection: null,
+				},
+			],
+		};
+	}
+	const revision = createHash("sha256")
+		.update(
+			JSON.stringify([
+				{
+					...snapshot,
+					credentials: snapshot.credentials.map(
+						({ email: _email, ...credential }) => credential,
+					),
+				},
+				snapshot.credentials.map((credential) =>
+					classifyLapsedToken(credential),
+				),
+			]),
+		)
+		.digest("hex");
+	return { revision, load: () => fetchClaudeSnapshot(snapshot, fetchAccount) };
+}
+
+async function fetchClaudeSnapshot(
+	{
+		credentials,
+		signedOutProfiles,
+		apiProfiles,
+		unavailableSlots = [],
+	}: Awaited<ReturnType<typeof discoverClaudeCredentials>>,
+	fetchAccount = fetchClaudeAccount,
+): Promise<UsageAccount[]> {
+	const accounts = [
+		...(await Promise.all(credentials.map(fetchAccount))),
+		...unavailableSlots.map(unavailableQuotaAccount),
+	];
 	for (const profile of apiProfiles) {
 		accounts.push({
 			agent: "claude",

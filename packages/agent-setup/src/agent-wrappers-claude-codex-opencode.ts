@@ -163,8 +163,8 @@ export function removeClaudeManagedHooks(): void {
  * on a non-default account would lose lifecycle/status hooks — Claude reads
  * settings exclusively from the active config dir.
  */
-export function ensureClaudeManagedHooksAt(configDir: string): void {
-	ensureManagedJsonHooks({
+export function ensureClaudeManagedHooksAt(configDir: string): boolean {
+	return ensureManagedJsonHooks({
 		...claudeHooksSpec(getNotifyScriptPath()),
 		getFilePath: () => path.join(configDir, "settings.json"),
 	});
@@ -266,8 +266,8 @@ export function removeCodexManagedHooks(): void {
  * Merges Superset hooks into `<codexHome>/hooks.json` for a secondary Codex
  * home (CODEX_HOME account) — same rationale as ensureClaudeManagedHooksAt.
  */
-export function ensureCodexManagedHooksAt(codexHome: string): void {
-	ensureManagedJsonHooks({
+export function ensureCodexManagedHooksAt(codexHome: string): boolean {
+	return ensureManagedJsonHooks({
 		...codexHooksSpec(getNotifyScriptPath()),
 		getFilePath: () => path.join(codexHome, "hooks.json"),
 	});

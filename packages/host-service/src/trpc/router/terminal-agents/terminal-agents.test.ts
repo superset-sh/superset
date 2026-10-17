@@ -1,6 +1,7 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, it } from "bun:test";
 import { resolve } from "node:path";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../../../db";
@@ -141,6 +142,70 @@ function createDeps(
 }
 
 describe("resumeTerminalAgentSession", () => {
+	it("refuses malformed persisted account context without consuming recovery", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db);
+		db.update(terminalAgentBindings)
+			.set({ accountJson: "broken" })
+			.where(eq(terminalAgentBindings.terminalId, "t1"))
+			.run();
+		const { deps, runCalls } = createDeps(db);
+		await expect(
+			resumeTerminalAgentSession(deps, {
+				workspaceId: "ws-1",
+				terminalId: "t1",
+			}),
+		).rejects.toThrow("saved account information is unreadable");
+		expect(runCalls).toEqual([]);
+		expect(findResumeCandidateBinding(db, "ws-1", "t1")?.accountInvalid).toBe(
+			true,
+		);
+	});
+	it("carries the persisted explicit account through exact-session recovery", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db);
+		const account = {
+			agent: "claude",
+			selection: "/selected/profile",
+			directory: "/selected/profile",
+			credentialKind: "subscription",
+			identity: "a".repeat(64),
+			email: "fixture@example.test",
+			pinned: true,
+		};
+		db.update(terminalAgentBindings)
+			.set({ accountJson: JSON.stringify(account), launchId: "old-launch" })
+			.where(eq(terminalAgentBindings.terminalId, "t1"))
+			.run();
+		const { deps, runCalls } = createDeps(db);
+		await resumeTerminalAgentSession(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+		expect(runCalls[0]).toMatchObject({
+			resumeSessionId: "sess-t1",
+			account,
+			surface: "terminal",
+		});
+	});
+
+	it("leaves the recovery candidate intact when its selected account cannot launch", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db);
+		const { deps, disposedTerminals } = createDeps(db, {
+			runAgent: async () => {
+				throw new Error("saved account changed");
+			},
+		});
+		await expect(
+			resumeTerminalAgentSession(deps, {
+				workspaceId: "ws-1",
+				terminalId: "t1",
+			}),
+		).rejects.toThrow("saved account changed");
+		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
+		expect(disposedTerminals).toEqual([]);
+	});
 	it("claims, relaunches with the saved session id, and disposes the dead terminal", async () => {
 		const db = createTestDb();
 		seedResumableBinding(db);
@@ -465,6 +530,27 @@ describe("findResumedSuccessorTerminalId", () => {
 });
 
 describe("listAccountRestartCandidates", () => {
+	it("does not include explicitly selected accounts in a global default switch", () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "pinned" });
+		db.update(terminalAgentBindings)
+			.set({
+				accountJson: JSON.stringify({
+					agent: "claude",
+					selection: "/selected",
+					directory: "/selected",
+					credentialKind: "subscription",
+					identity: "a".repeat(64),
+					pinned: true,
+				}),
+			})
+			.where(eq(terminalAgentBindings.terminalId, "pinned"))
+			.run();
+		expect(listAccountRestartCandidates(db, createStore(db), "claude")).toEqual(
+			[],
+		);
+	});
 	it("lists live provider sessions with a resumable conversation, nothing else", () => {
 		const db = createTestDb();
 		seedAgentConfig(db);
