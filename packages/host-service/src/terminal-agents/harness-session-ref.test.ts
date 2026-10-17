@@ -1,6 +1,7 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, it } from "bun:test";
 import { resolve } from "node:path";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../db";
@@ -59,6 +60,39 @@ function seed(db: HostDb, config: { presetId: string; envJson: string }) {
 }
 
 describe("terminalHarnessSession", () => {
+	it("looks in the persisted selected profile after the default/config changes", () => {
+		const db = createTestDb();
+		seed(db, {
+			presetId: "claude",
+			envJson: JSON.stringify({ CLAUDE_CONFIG_DIR: "/later/default" }),
+		});
+		db.update(schema.terminalAgentBindings)
+			.set({
+				accountJson: JSON.stringify({
+					agent: "claude",
+					selection: "/selected/profile",
+					directory: "/selected/profile",
+					credentialKind: "subscription",
+					identity: "a".repeat(64),
+					pinned: true,
+				}),
+			})
+			.where(eq(schema.terminalAgentBindings.terminalId, "t-1"))
+			.run();
+		expect(terminalHarnessSession(db, "t-1")?.ref.env).toEqual({
+			CLAUDE_CONFIG_DIR: "/selected/profile",
+		});
+	});
+
+	it("does not read default-account history for an unreadable persisted pin", () => {
+		const db = createTestDb();
+		seed(db, { presetId: "claude", envJson: "{}" });
+		db.update(schema.terminalAgentBindings)
+			.set({ accountJson: "broken" })
+			.where(eq(schema.terminalAgentBindings.terminalId, "t-1"))
+			.run();
+		expect(terminalHarnessSession(db, "t-1")).toBeNull();
+	});
 	it("names the harness that wrote the session, not the config's preset", () => {
 		const db = createTestDb();
 		seed(db, {

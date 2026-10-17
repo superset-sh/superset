@@ -51,6 +51,8 @@ export interface TerminalSubagent {
 export interface TerminalAgentBinding {
 	launchId?: string;
 	account?: import("../trpc/router/usage/session-account/session-account").SessionAccount;
+	/** Non-null stored context was malformed; never resume using a default. */
+	accountInvalid?: true;
 	terminalId: string;
 	workspaceId: string;
 	agentId: TerminalAgentId;

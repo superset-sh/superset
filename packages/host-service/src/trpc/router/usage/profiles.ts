@@ -23,11 +23,12 @@
 
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import { homedir, platform, userInfo } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { resolveAmbientCodexHome } from "@superset/agent-setup";
+import { readProfileFile } from "./profile-file";
 
 const execFileAsync = promisify(execFile);
 
@@ -123,11 +124,9 @@ async function readClaudeIdentity(
 ): Promise<{ email: string | null } | null> {
 	const statePath = join(configDir, ".claude.json");
 	try {
-		const info = await stat(statePath);
-		if (!info.isFile() || info.size > MAX_STATE_FILE_BYTES) return null;
-		const parsed: ClaudeStateFile = JSON.parse(
-			await readFile(statePath, "utf-8"),
-		);
+		const file = await readProfileFile(statePath, MAX_STATE_FILE_BYTES);
+		if (!file) return null;
+		const parsed: ClaudeStateFile = JSON.parse(file.content);
 		const account = parsed.oauthAccount;
 		if (!account?.accountUuid && !account?.emailAddress) return null;
 		return { email: account.emailAddress ?? null };
@@ -143,10 +142,8 @@ export async function readApiBillingFingerprint(
 ): Promise<string | null> {
 	const markerPath = join(profileDir, API_BILLING_MARKER);
 	try {
-		const info = await stat(markerPath);
-		if (!info.isFile() || info.size > MAX_MARKER_BYTES) return null;
-		const content = (await readFile(markerPath, "utf-8")).trim();
-		return content === agent ? `${info.mtimeMs}` : null;
+		const file = await readProfileFile(markerPath, MAX_MARKER_BYTES);
+		return file?.content.trim() === agent ? `${file.mtimeMs}` : null;
 	} catch {
 		return null;
 	}
@@ -269,9 +266,12 @@ export async function readCodexProfileKind(
 		return { credentialKind: "api_key", loginFingerprint: apiFingerprint };
 	}
 	try {
-		const parsed: CodexAuthShape = JSON.parse(
-			await readFile(join(codexHome, "auth.json"), "utf-8"),
+		const file = await readProfileFile(
+			join(codexHome, "auth.json"),
+			MAX_STATE_FILE_BYTES,
 		);
+		if (!file) return null;
+		const parsed: CodexAuthShape = JSON.parse(file.content);
 		return parsed.tokens?.access_token
 			? { credentialKind: "subscription", loginFingerprint: null }
 			: null;

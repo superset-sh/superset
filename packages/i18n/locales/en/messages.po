@@ -1952,6 +1952,12 @@ msgstr "Agent session started"
 msgid "agent settings"
 msgstr "agent settings"
 
+msgid "Agent terminal with account"
+msgstr "Agent terminal with account"
+
+msgid "Agent terminal with account…"
+msgstr "Agent terminal with account…"
+
 msgid "Agent usage rankings"
 msgstr "Agent usage rankings"
 
@@ -4907,6 +4913,9 @@ msgstr "Could not leave the queue"
 msgid "Could not list directory"
 msgstr "Could not list directory"
 
+msgid "Could not load accounts"
+msgstr "Could not load accounts"
+
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
 msgstr "Could not load agents from {0}"
@@ -5042,6 +5051,9 @@ msgstr "Could not share"
 
 msgid "Could not start agent"
 msgstr "Could not start agent"
+
+msgid "Could not start agent terminal"
+msgstr "Could not start agent terminal"
 
 msgid "Could not start checkout. Please try again."
 msgstr "Could not start checkout. Please try again."
@@ -9699,6 +9711,9 @@ msgstr "Loader · Braille Spinner"
 msgid "Loading"
 msgstr "Loading"
 
+msgid "Loading accounts…"
+msgstr "Loading accounts…"
+
 msgid "Loading agent settings..."
 msgstr "Loading agent settings..."
 
@@ -10794,6 +10809,9 @@ msgstr "No authors found."
 
 msgid "No automations match"
 msgstr "No automations match"
+
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
 
 msgid "No branches found"
 msgstr "No branches found"
@@ -16150,6 +16168,9 @@ msgstr "Start a new agent session each run"
 msgid "Start a new chat"
 msgstr "Start a new chat"
 
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+
 msgid "Start a session"
 msgstr "Start a session"
 
@@ -16188,6 +16209,9 @@ msgstr "Start one with + in the tab strip."
 
 msgid "Start or stop the workspace run command"
 msgstr "Start or stop the workspace run command"
+
+msgid "Start terminal"
+msgstr "Start terminal"
 
 msgid "Start voice mode"
 msgstr "Start voice mode"
@@ -17368,6 +17392,9 @@ msgstr "The same app runs natively on iPad, in portrait and landscape."
 msgid "The scorecard"
 msgstr "The scorecard"
 
+msgid "The selected login changed. Choose an account again."
+msgstr "The selected login changed. Choose an account again."
+
 msgid "The self-driving software factory"
 msgstr "The self-driving software factory"
 
@@ -17490,6 +17517,9 @@ msgstr "This agent can't branch a conversation"
 
 msgid "This agent can't run in a cloud workspace"
 msgstr "This agent can't run in a cloud workspace"
+
+msgid "This agent configuration does not support account selection."
+msgstr "This agent configuration does not support account selection."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
@@ -18497,6 +18527,9 @@ msgstr "Update Superset on this machine to attach files"
 
 msgid "update the branch prefix"
 msgstr "update the branch prefix"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "Update this host to choose an account for a new terminal."
 
 msgid "Updated"
 msgstr "Updated"

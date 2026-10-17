@@ -843,6 +843,80 @@ describe("bindResumedSession", () => {
 	const WORKSPACE_ID = "11111111-1111-1111-1111-111111111111";
 	const TERMINAL_ID = "22222222-2222-2222-2222-222222222222";
 
+	it("refuses pinned recovery when an early native ID conflicts before account metadata arrives", () => {
+		const db = createTestDb();
+		seedCodexConfig(db);
+		const store = new TerminalAgentStore();
+		store.recordEvent({
+			terminalId: TERMINAL_ID,
+			workspaceId: WORKSPACE_ID,
+			agentId: "codex",
+			agentSessionId: "observed-session",
+			eventType: "SessionStart",
+			occurredAt: 1,
+		});
+		bindResumedSession(
+			{ db, terminalAgentStore: store },
+			{
+				workspaceId: WORKSPACE_ID,
+				agent: "codex",
+				prompt: "",
+				resumeSessionId: "requested-session",
+				account: {
+					agent: "codex",
+					selection: "/selected",
+					directory: "/selected",
+					credentialKind: "subscription",
+					identity: "a".repeat(64),
+					pinned: true,
+				},
+			},
+			TERMINAL_ID,
+		);
+		expect(store.get(TERMINAL_ID)?.agentSessionId).toBe("observed-session");
+		expect(store.get(TERMINAL_ID)?.account?.conflict).toBe(true);
+	});
+
+	for (const matching of [true, false]) {
+		it(`preserves early hook identity and ${matching ? "pins a matching account" : "blocks a conflicting account"}`, () => {
+			const db = createTestDb();
+			seedCodexConfig(db);
+			const store = new TerminalAgentStore();
+			const account = {
+				agent: "codex" as const,
+				selection: "/selected",
+				directory: "/selected",
+				credentialKind: "subscription" as const,
+				identity: "a".repeat(64),
+				pinned: true as const,
+			};
+			store.recordEvent({
+				terminalId: TERMINAL_ID,
+				workspaceId: WORKSPACE_ID,
+				agentId: "codex",
+				agentSessionId: "native-first",
+				eventType: "Attached",
+				occurredAt: 1,
+				account: {
+					...account,
+					identity: matching ? account.identity : "other",
+				},
+			});
+			bindResumedSession(
+				{ db, terminalAgentStore: store },
+				{ workspaceId: WORKSPACE_ID, agent: "codex", prompt: "", account },
+				TERMINAL_ID,
+			);
+			expect(store.get(TERMINAL_ID)?.agentSessionId).toBe("native-first");
+			expect(String(store.get(TERMINAL_ID)?.definitionId)).toBe(
+				"00000000-0000-0000-0000-00000000000c",
+			);
+			expect(store.get(TERMINAL_ID)?.account).toEqual(
+				matching ? account : { ...account, conflict: true },
+			);
+		});
+	}
+
 	it("binds the resumed session id without waiting for a hook", () => {
 		const db = createTestDb();
 		seedCodexConfig(db);

@@ -1952,6 +1952,12 @@ msgstr "Agenten-Sitzung gestartet"
 msgid "agent settings"
 msgstr "Agenten-Einstellungen"
 
+msgid "Agent terminal with account"
+msgstr "Agent-Terminal mit Konto"
+
+msgid "Agent terminal with account…"
+msgstr "Agent-Terminal mit Konto…"
+
 msgid "Agent usage rankings"
 msgstr "Ranglisten zur Agentennutzung"
 
@@ -4907,6 +4913,9 @@ msgstr "Warteschlange konnte nicht verlassen werden"
 msgid "Could not list directory"
 msgstr "Verzeichnis konnte nicht gelistet werden"
 
+msgid "Could not load accounts"
+msgstr "Konten konnten nicht geladen werden"
+
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
 msgstr "Agenten von {0} konnten nicht geladen werden"
@@ -5042,6 +5051,9 @@ msgstr "Teilen nicht möglich"
 
 msgid "Could not start agent"
 msgstr "Agent konnte nicht gestartet werden"
+
+msgid "Could not start agent terminal"
+msgstr "Agent-Terminal konnte nicht gestartet werden"
 
 msgid "Could not start checkout. Please try again."
 msgstr "Checkout konnte nicht gestartet werden. Bitte versuche es erneut."
@@ -9699,6 +9711,9 @@ msgstr "Loader · Braille-Spinner"
 msgid "Loading"
 msgstr "Wird geladen"
 
+msgid "Loading accounts…"
+msgstr "Konten werden geladen…"
+
 msgid "Loading agent settings..."
 msgstr "Agenten-Einstellungen werden geladen..."
 
@@ -10794,6 +10809,9 @@ msgstr "Keine Autoren gefunden."
 
 msgid "No automations match"
 msgstr "Keine passenden Automatisierungen"
+
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "Keine verfügbaren Abonnementkonten. Füge unter Nutzung ein Konto hinzu oder melde dich an und aktualisiere dann die Liste."
 
 msgid "No branches found"
 msgstr "Keine Branches gefunden"
@@ -16150,6 +16168,9 @@ msgstr "Bei jedem Lauf eine neue Agent-Sitzung starten"
 msgid "Start a new chat"
 msgstr "Neuen Chat starten"
 
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "Starte ein neues Terminal mit einer bestehenden Anmeldung. Andere Chats und dein Standardkonto bleiben unverändert."
+
 msgid "Start a session"
 msgstr "Sitzung starten"
 
@@ -16188,6 +16209,9 @@ msgstr "Starte eine mit + in der Tab-Leiste."
 
 msgid "Start or stop the workspace run command"
 msgstr "Den Run-Befehl des Arbeitsbereichs starten oder stoppen"
+
+msgid "Start terminal"
+msgstr "Terminal starten"
 
 msgid "Start voice mode"
 msgstr "Sprachmodus starten"
@@ -17368,6 +17392,9 @@ msgstr "Dieselbe App läuft nativ auf dem iPad, im Hoch- und im Querformat."
 msgid "The scorecard"
 msgstr "Der Scorecard"
 
+msgid "The selected login changed. Choose an account again."
+msgstr "Die ausgewählte Anmeldung hat sich geändert. Wähle erneut ein Konto."
+
 msgid "The self-driving software factory"
 msgstr "Die selbstfahrende Softwarefabrik"
 
@@ -17490,6 +17517,9 @@ msgstr "Dieser Agent kann keine Unterhaltung verzweigen"
 
 msgid "This agent can't run in a cloud workspace"
 msgstr "Dieser Agent kann nicht in einem Cloud-Arbeitsbereich laufen"
+
+msgid "This agent configuration does not support account selection."
+msgstr "Diese Agent-Konfiguration unterstützt keine Kontoauswahl."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Diesen Agenten gibt es auf dem gewählten Gerät nicht mehr (seine Agenten wurden möglicherweise zurückgesetzt). Läufe schlagen fehl, bis du einen neuen auswählst."
@@ -18497,6 +18527,9 @@ msgstr "Aktualisiere Superset auf diesem Rechner, um Dateien anzuhängen"
 
 msgid "update the branch prefix"
 msgstr "das Branch-Präfix aktualisieren"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "Aktualisiere diesen Host, um ein Konto für ein neues Terminal auszuwählen."
 
 msgid "Updated"
 msgstr "Aktualisiert"

@@ -1,7 +1,9 @@
 import { eq } from "drizzle-orm";
 import type { HostDb } from "../db";
 import { terminalAgentBindings, workspaces } from "../db/schema";
+import { pinnedAccountEnv } from "../trpc/router/agents/launch-account";
 import { resolveDefaultAccountEnv } from "../trpc/router/usage/default-account";
+import { parsePersistedSessionAccount } from "../trpc/router/usage/session-account/session-account";
 import { agentLaunchEnv, resolveHostAgentConfig } from "./agent-config";
 import type { HarnessSessionRef } from "./harness-sessions";
 
@@ -25,6 +27,7 @@ export function terminalHarnessSession(
 			workspaceId: terminalAgentBindings.workspaceId,
 			transcriptPath: terminalAgentBindings.transcriptPath,
 			endedAt: terminalAgentBindings.endedAt,
+			accountJson: terminalAgentBindings.accountJson,
 		})
 		.from(terminalAgentBindings)
 		.where(eq(terminalAgentBindings.terminalId, terminalId))
@@ -39,15 +42,19 @@ export function terminalHarnessSession(
 		db,
 		binding.definitionId ?? binding.agentId,
 	);
+	const account = parsePersistedSessionAccount(binding.accountJson);
+	if (account === null) return null;
 	return {
 		ref: {
 			agentId: binding.agentId,
 			sessionId: binding.agentSessionId,
 			worktreePath,
 			reportedPath: binding.transcriptPath,
-			env: config
-				? agentLaunchEnv(db, config)
-				: resolveDefaultAccountEnv(db, binding.agentId),
+			env: account?.pinned
+				? pinnedAccountEnv(account)
+				: config
+					? agentLaunchEnv(db, config)
+					: resolveDefaultAccountEnv(db, binding.agentId),
 		},
 		endedAt: binding.endedAt,
 	};

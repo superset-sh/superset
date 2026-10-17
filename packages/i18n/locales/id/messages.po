@@ -1952,6 +1952,12 @@ msgstr "Sesi agen dimulai"
 msgid "agent settings"
 msgstr "pengaturan agen"
 
+msgid "Agent terminal with account"
+msgstr "Terminal agen dengan akun"
+
+msgid "Agent terminal with account…"
+msgstr "Terminal agen dengan akun…"
+
 msgid "Agent usage rankings"
 msgstr "Peringkat penggunaan agen"
 
@@ -4907,6 +4913,9 @@ msgstr "Tidak bisa keluar dari antrean"
 msgid "Could not list directory"
 msgstr "Tidak bisa menampilkan isi direktori"
 
+msgid "Could not load accounts"
+msgstr "Tidak dapat memuat akun"
+
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
 msgstr "Tidak bisa memuat agen dari {0}"
@@ -5042,6 +5051,9 @@ msgstr "Tidak bisa membagikan"
 
 msgid "Could not start agent"
 msgstr "Tidak bisa memulai agen"
+
+msgid "Could not start agent terminal"
+msgstr "Tidak dapat memulai terminal agen"
 
 msgid "Could not start checkout. Please try again."
 msgstr "Tidak dapat memulai checkout. Coba lagi."
@@ -9699,6 +9711,9 @@ msgstr "Loader · Braille Spinner"
 msgid "Loading"
 msgstr "Memuat"
 
+msgid "Loading accounts…"
+msgstr "Memuat akun…"
+
 msgid "Loading agent settings..."
 msgstr "Memuat pengaturan agen..."
 
@@ -10794,6 +10809,9 @@ msgstr "Tidak ada penulis ditemukan."
 
 msgid "No automations match"
 msgstr "Tidak ada otomatisasi yang cocok"
+
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "Tidak ada akun langganan yang tersedia. Tambahkan akun atau masuk di Penggunaan, lalu muat ulang."
 
 msgid "No branches found"
 msgstr "Tidak ada branch ditemukan"
@@ -16150,6 +16168,9 @@ msgstr "Mulai sesi agen baru setiap kali dijalankan"
 msgid "Start a new chat"
 msgstr "Mulai chat baru"
 
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "Mulai terminal baru menggunakan login yang sudah ada. Chat lain dan akun default Anda tidak berubah."
+
 msgid "Start a session"
 msgstr "Mulai sesi"
 
@@ -16188,6 +16209,9 @@ msgstr "Mulai satu dengan + di bilah tab."
 
 msgid "Start or stop the workspace run command"
 msgstr "Mulai atau hentikan perintah run workspace"
+
+msgid "Start terminal"
+msgstr "Mulai terminal"
 
 msgid "Start voice mode"
 msgstr "Mulai mode suara"
@@ -17368,6 +17392,9 @@ msgstr "Aplikasi yang sama berjalan native di iPad, dalam mode potret dan lanska
 msgid "The scorecard"
 msgstr "Kartu skor"
 
+msgid "The selected login changed. Choose an account again."
+msgstr "Login yang dipilih telah berubah. Pilih akun lagi."
+
 msgid "The self-driving software factory"
 msgstr "Pabrik perangkat lunak yang menyetir sendiri"
 
@@ -17490,6 +17517,9 @@ msgstr "Agen ini tidak dapat mencabangkan percakapan"
 
 msgid "This agent can't run in a cloud workspace"
 msgstr "Agen ini tidak bisa berjalan di workspace cloud"
+
+msgid "This agent configuration does not support account selection."
+msgstr "Konfigurasi agen ini tidak mendukung pemilihan akun."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Agen ini sudah tidak ada di perangkat yang dipilih (agennya mungkin telah direset). Run akan gagal sampai Anda memilih yang baru."
@@ -18497,6 +18527,9 @@ msgstr "Perbarui Superset di mesin ini untuk melampirkan file"
 
 msgid "update the branch prefix"
 msgstr "memperbarui prefix branch"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "Perbarui host ini untuk memilih akun bagi terminal baru."
 
 msgid "Updated"
 msgstr "Diperbarui"

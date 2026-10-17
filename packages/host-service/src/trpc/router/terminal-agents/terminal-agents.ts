@@ -35,6 +35,7 @@ import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { type AgentRunResult, runAgentInWorkspace } from "../agents/agents";
 import { toTerminalSessionError } from "../terminal/errors";
+import type { SessionAccount } from "../usage/session-account/session-account";
 
 type GetOrCreateResult = {
 	binding: TerminalAgentBinding;
@@ -60,6 +61,8 @@ export interface ResumeSessionDeps {
 		agent: string;
 		prompt: string;
 		resumeSessionId?: string;
+		account?: SessionAccount;
+		surface?: "terminal";
 	}) => Promise<AgentRunResult>;
 	disposeSession: (
 		terminalId: string,
@@ -112,8 +115,8 @@ function bindingHasHarnessSession(
  * shows none, the agent is launched fresh instead of `--resume`-ing into "no
  * conversation found". A store that does hold one (a resumed session idle
  * since its restore) or cannot be read resumes as usual. Nothing is lost
- * either way: the pane comes back as the same agent on the current default
- * account.
+ * either way: the pane comes back as the same agent. Explicitly selected
+ * accounts remain pinned; legacy sessions follow the current default.
  */
 export async function resumeTerminalAgentSession(
 	deps: ResumeSessionDeps,
@@ -131,6 +134,14 @@ export async function resumeTerminalAgentSession(
 			terminalId,
 		);
 		if (!claimed?.agentSessionId) return { resumed: false };
+		if (claimed.accountInvalid) {
+			unclaimResumeCandidateBinding(deps.db, terminalId);
+			throw new TRPCError({
+				code: "PRECONDITION_FAILED",
+				message:
+					"The saved account information is unreadable. Nothing was launched.",
+			});
+		}
 
 		const config = resolveHostAgentConfig(
 			deps.db,
@@ -156,6 +167,9 @@ export async function resumeTerminalAgentSession(
 				agent: config.id,
 				prompt: "",
 				...(resumable ? { resumeSessionId: claimed.agentSessionId } : {}),
+				...(claimed.account?.pinned
+					? { account: claimed.account, surface: "terminal" as const }
+					: {}),
 			});
 		} catch (error) {
 			unclaimResumeCandidateBinding(deps.db, terminalId);
@@ -219,7 +233,13 @@ export function listAccountRestartCandidates(
 ): Array<{ binding: TerminalAgentBinding; agentLabel: string }> {
 	const out: Array<{ binding: TerminalAgentBinding; agentLabel: string }> = [];
 	for (const binding of store.list()) {
-		if (!binding.agentSessionId || binding.chatSessionId) continue;
+		if (
+			!binding.agentSessionId ||
+			binding.chatSessionId ||
+			binding.account?.pinned ||
+			binding.accountInvalid
+		)
+			continue;
 		const config = resolveHostAgentConfig(
 			db,
 			binding.definitionId ?? binding.agentId,

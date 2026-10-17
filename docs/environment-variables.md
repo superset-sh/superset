@@ -97,6 +97,8 @@ or the value arrives empty.
 
 `SUPERSET_AGENT_LAUNCH_ID` is set by the outer agent wrapper to a process-and-start-time identifier. Hook children inherit it so a new launch in the same terminal cannot inherit the previous login attribution. It is runtime metadata, not a deployment secret or user setting; it does not belong in `.env` templates or deploy workflows.
 
+`SUPERSET_PINNED_ACCOUNT` is set only on an explicitly account-selected terminal agent command. It names `CLAUDE_CONFIG_DIR` or `CODEX_HOME` and tells the matching wrapper to preserve that launch's selection instead of rereading the global default pointer. It is scoped to the launched process and its children, not exported into the surrounding shell. It is not authentication proof or a deployment setting.
+
 `SUPERSET_ACCOUNT_ATTRIBUTION_TOKEN` is issued by the host for each new terminal and authorizes only that terminal’s login-attribution hook metadata. It is not the host authentication token. Tokens expire when the host process restarts; open a new terminal to restore verified login attribution. The host injects it at PTY creation, so it does not belong in deployment configuration.
 
 `SUPERSET_HOST_AUTO_UPDATE` is a standalone host runtime preference, set to `true` by `superset start --auto-update` and `false` otherwise. Direct service launchers may set it explicitly. It defaults to `false`, is excluded from login-shell imports, and is inherited by update/rollback successors. Like install provenance, it does not belong in deployment secrets or shared environment templates.

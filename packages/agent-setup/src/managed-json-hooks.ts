@@ -128,9 +128,9 @@ export function getManagedJsonHooksContent<Entry>(
 
 export function ensureManagedJsonHooks<Entry>(
 	spec: ManagedJsonHooksSpec<Entry>,
-): void {
+): boolean {
 	const content = getManagedJsonHooksContent(spec);
-	if (content === null) return;
+	if (content === null) return false;
 
 	const filePath = spec.getFilePath();
 	fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -138,6 +138,7 @@ export function ensureManagedJsonHooks<Entry>(
 	console.log(
 		`[agent-setup] ${changed ? "Updated" : "Verified"} ${spec.fileLabel}`,
 	);
+	return true;
 }
 
 /**

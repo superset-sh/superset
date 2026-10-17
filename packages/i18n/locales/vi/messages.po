@@ -1952,6 +1952,12 @@ msgstr "Phiên agent đã bắt đầu"
 msgid "agent settings"
 msgstr "cài đặt agent"
 
+msgid "Agent terminal with account"
+msgstr "Terminal của tác nhân với tài khoản"
+
+msgid "Agent terminal with account…"
+msgstr "Terminal của tác nhân với tài khoản…"
+
 msgid "Agent usage rankings"
 msgstr "Xếp hạng mức dùng agent"
 
@@ -4907,6 +4913,9 @@ msgstr "Không thể rời hàng đợi"
 msgid "Could not list directory"
 msgstr "Không thể liệt kê thư mục"
 
+msgid "Could not load accounts"
+msgstr "Không thể tải tài khoản"
+
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
 msgstr "Không thể tải agent từ {0}"
@@ -5042,6 +5051,9 @@ msgstr "Không thể chia sẻ"
 
 msgid "Could not start agent"
 msgstr "Không thể khởi động agent"
+
+msgid "Could not start agent terminal"
+msgstr "Không thể khởi động terminal của tác nhân"
 
 msgid "Could not start checkout. Please try again."
 msgstr "Không thể bắt đầu thanh toán. Vui lòng thử lại."
@@ -9699,6 +9711,9 @@ msgstr "Loader · Braille Spinner"
 msgid "Loading"
 msgstr "Đang tải"
 
+msgid "Loading accounts…"
+msgstr "Đang tải tài khoản…"
+
 msgid "Loading agent settings..."
 msgstr "Đang tải cài đặt agent..."
 
@@ -10794,6 +10809,9 @@ msgstr "Không tìm thấy tác giả nào."
 
 msgid "No automations match"
 msgstr "Không có tự động hóa nào khớp"
+
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "Không có tài khoản nào có gói đăng ký khả dụng. Thêm tài khoản hoặc đăng nhập vào một tài khoản trong mục Mức sử dụng, rồi làm mới."
 
 msgid "No branches found"
 msgstr "Không tìm thấy nhánh nào"
@@ -16150,6 +16168,9 @@ msgstr "Bắt đầu một phiên agent mới mỗi lần chạy"
 msgid "Start a new chat"
 msgstr "Bắt đầu trò chuyện mới"
 
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "Khởi động terminal mới bằng thông tin đăng nhập hiện có. Các cuộc trò chuyện khác và tài khoản mặc định không thay đổi."
+
 msgid "Start a session"
 msgstr "Bắt đầu một phiên"
 
@@ -16188,6 +16209,9 @@ msgstr "Bắt đầu một phiên bằng dấu + trên thanh tab."
 
 msgid "Start or stop the workspace run command"
 msgstr "Bắt đầu hoặc dừng lệnh chạy của workspace"
+
+msgid "Start terminal"
+msgstr "Khởi động terminal"
 
 msgid "Start voice mode"
 msgstr "Bắt đầu chế độ giọng nói"
@@ -17368,6 +17392,9 @@ msgstr "Cùng một ứng dụng chạy native trên iPad, ở cả chế độ 
 msgid "The scorecard"
 msgstr "Bảng điểm"
 
+msgid "The selected login changed. Choose an account again."
+msgstr "Thông tin đăng nhập đã chọn đã thay đổi. Hãy chọn lại tài khoản."
+
 msgid "The self-driving software factory"
 msgstr "Nhà máy phần mềm tự vận hành"
 
@@ -17490,6 +17517,9 @@ msgstr "Tác nhân này không thể tạo nhánh hội thoại"
 
 msgid "This agent can't run in a cloud workspace"
 msgstr "Agent này không thể chạy trong workspace cloud"
+
+msgid "This agent configuration does not support account selection."
+msgstr "Cấu hình tác nhân này không hỗ trợ chọn tài khoản."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Agent này không còn tồn tại trên thiết bị đã chọn (agent trên đó có thể đã bị đặt lại). Các lần chạy sẽ thất bại cho đến khi bạn chọn agent khác."
@@ -18497,6 +18527,9 @@ msgstr "Hãy cập nhật Superset trên máy này để đính kèm tệp"
 
 msgid "update the branch prefix"
 msgstr "cập nhật tiền tố nhánh"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "Cập nhật máy chủ này để chọn tài khoản cho terminal mới."
 
 msgid "Updated"
 msgstr "Đã cập nhật"

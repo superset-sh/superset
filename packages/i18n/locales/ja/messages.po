@@ -1952,6 +1952,12 @@ msgstr "エージェントセッションを開始しました"
 msgid "agent settings"
 msgstr "エージェント設定"
 
+msgid "Agent terminal with account"
+msgstr "アカウントを指定してエージェントターミナルを起動"
+
+msgid "Agent terminal with account…"
+msgstr "アカウントを指定してエージェントターミナルを起動…"
+
 msgid "Agent usage rankings"
 msgstr "エージェント使用量ランキング"
 
@@ -4907,6 +4913,9 @@ msgstr "キューから抜けられませんでした"
 msgid "Could not list directory"
 msgstr "ディレクトリを一覧表示できませんでした"
 
+msgid "Could not load accounts"
+msgstr "アカウントを読み込めませんでした"
+
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
 msgstr "{0}からエージェントを読み込めませんでした"
@@ -5042,6 +5051,9 @@ msgstr "共有できませんでした"
 
 msgid "Could not start agent"
 msgstr "エージェントを起動できませんでした"
+
+msgid "Could not start agent terminal"
+msgstr "エージェントターミナルを起動できませんでした"
 
 msgid "Could not start checkout. Please try again."
 msgstr "チェックアウトを開始できませんでした。もう一度お試しください。"
@@ -9699,6 +9711,9 @@ msgstr "Loader · Braille Spinner"
 msgid "Loading"
 msgstr "読み込み中"
 
+msgid "Loading accounts…"
+msgstr "アカウントを読み込み中…"
+
 msgid "Loading agent settings..."
 msgstr "エージェント設定を読み込み中..."
 
@@ -10794,6 +10809,9 @@ msgstr "作成者が見つかりません。"
 
 msgid "No automations match"
 msgstr "一致するオートメーションがありません"
+
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "利用可能なサブスクリプションアカウントがありません。「使用量」でアカウントを追加するかログインしてから、更新してください。"
 
 msgid "No branches found"
 msgstr "ブランチが見つかりません"
@@ -16150,6 +16168,9 @@ msgstr "実行ごとに新しいエージェントセッションを開始"
 msgid "Start a new chat"
 msgstr "新しいチャットを開始"
 
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "既存のログインを使って新しいターミナルを起動します。他のチャットと既定のアカウントは変更されません。"
+
 msgid "Start a session"
 msgstr "セッションを開始"
 
@@ -16188,6 +16209,9 @@ msgstr "タブバーの+から開始できます。"
 
 msgid "Start or stop the workspace run command"
 msgstr "ワークスペースの実行コマンドを開始または停止する"
+
+msgid "Start terminal"
+msgstr "ターミナルを起動"
 
 msgid "Start voice mode"
 msgstr "音声モードを開始"
@@ -17368,6 +17392,9 @@ msgstr "同じアプリが iPad でネイティブに動作し、縦向きにも
 msgid "The scorecard"
 msgstr "スコアカード"
 
+msgid "The selected login changed. Choose an account again."
+msgstr "選択したログインが変更されました。アカウントを選び直してください。"
+
 msgid "The self-driving software factory"
 msgstr "自動運転するソフトウェア工場"
 
@@ -17490,6 +17517,9 @@ msgstr "このエージェントは会話を分岐できません"
 
 msgid "This agent can't run in a cloud workspace"
 msgstr "このエージェントはクラウドワークスペースで実行できません"
+
+msgid "This agent configuration does not support account selection."
+msgstr "このエージェント設定ではアカウントを選択できません。"
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "選択したデバイスにこのエージェントは存在しません(エージェントがリセットされた可能性があります)。新しいエージェントを選ぶまで実行は失敗します。"
@@ -18497,6 +18527,9 @@ msgstr "ファイルを添付するには、このマシンでSupersetを更新�
 
 msgid "update the branch prefix"
 msgstr "ブランチのプレフィックスを更新する"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "新しいターミナルのアカウントを選択するには、このホストを更新してください。"
 
 msgid "Updated"
 msgstr "更新済み"

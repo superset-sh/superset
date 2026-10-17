@@ -23,7 +23,10 @@ import {
 	getLocalWorkspace,
 	insertLocalWorkspace,
 } from "../../../workspaces/local-workspace-store";
-import { notificationsRouter } from "./notifications";
+import {
+	createNotificationsRouter,
+	notificationsRouter,
+} from "./notifications";
 
 interface BroadcastedAgentLifecycleEvent {
 	workspaceId: string;
@@ -139,6 +142,7 @@ function createDbContext({
 	const workspaceChanged: WorkspaceChangedMessage[] = [];
 	const eventBus = {
 		broadcastAgentLifecycle: () => {},
+		broadcastAgentBindingsChanged: () => {},
 		broadcastWorkspaceChanged: (
 			message: Omit<WorkspaceChangedMessage, "type">,
 		) => {
@@ -609,6 +613,71 @@ describe("reported transcript path", () => {
 });
 
 describe("login attribution authentication", () => {
+	it("retains a conflicting explicit pin instead of falling back to the default account", async () => {
+		const { ctx, terminalAgentStore } = createContext("workspace-1");
+		const account = {
+			agent: "claude" as const,
+			selection: "/selected",
+			directory: "/selected",
+			credentialKind: "subscription" as const,
+			identity: "a".repeat(64),
+			pinned: true as const,
+		};
+		terminalAgentStore.recordEvent({
+			terminalId: "terminal-1",
+			workspaceId: "workspace-1",
+			agentId: "claude",
+			account,
+			launchId: "one",
+			eventType: "Attached",
+			occurredAt: 1,
+		});
+		await notificationsRouter.createCaller(ctx).hook({
+			terminalId: "terminal-1",
+			eventType: "SessionStart",
+			agent: { agentId: "claude", sessionId: "native" },
+			launchId: "one",
+			accountProfile: "",
+			apiKey: true,
+			attributionToken: issueAttributionToken("terminal-1"),
+		});
+		expect(terminalAgentStore.get("terminal-1")?.account).toEqual({
+			...account,
+			conflict: true,
+		});
+	});
+
+	it("does not let unauthenticated launch metadata erase an explicit pin", async () => {
+		const { ctx, terminalAgentStore } = createContext("workspace-1");
+		const account = {
+			agent: "claude" as const,
+			selection: "/selected",
+			directory: "/selected",
+			credentialKind: "subscription" as const,
+			identity: "a".repeat(64),
+			pinned: true as const,
+		};
+		terminalAgentStore.recordEvent({
+			terminalId: "terminal-1",
+			workspaceId: "workspace-1",
+			agentId: "claude",
+			agentSessionId: "native",
+			account,
+			launchId: "one",
+			eventType: "Attached",
+			occurredAt: 1,
+		});
+		await notificationsRouter.createCaller(ctx).hook({
+			terminalId: "terminal-1",
+			eventType: "SessionStart",
+			agent: { agentId: "claude", sessionId: "other" },
+			launchId: "other-launch",
+			accountProfile: "",
+			apiKey: true,
+		});
+		expect(terminalAgentStore.get("terminal-1")?.account).toEqual(account);
+		expect(terminalAgentStore.get("terminal-1")?.agentSessionId).toBe("native");
+	});
 	it("publishes launch events after the binding and account are readable", async () => {
 		const { ctx, terminalAgentStore, broadcastAgentLifecycle } =
 			createContext("workspace-1");
@@ -663,5 +732,352 @@ describe("login attribution authentication", () => {
 			apiKey: true,
 		});
 		expect(terminalAgentStore.get("terminal-1")?.account).toBeUndefined();
+	});
+});
+
+describe("pinned capture race safety", () => {
+	const account = {
+		agent: "claude" as const,
+		selection: "/selected",
+		directory: "/selected",
+		credentialKind: "subscription" as const,
+		identity: "a".repeat(64),
+		pinned: true as const,
+	};
+	function pinned() {
+		const context = createContext("workspace-1");
+		context.terminalAgentStore.recordEvent({
+			terminalId: "terminal-1",
+			workspaceId: "workspace-1",
+			agentId: "claude",
+			account,
+			launchId: "one",
+			eventType: "Attached",
+			occurredAt: 1,
+		});
+		return context;
+	}
+	const hook = {
+		terminalId: "terminal-1",
+		eventType: "SessionStart",
+		agent: { agentId: "claude", sessionId: "native" },
+		launchId: "one",
+		accountProfile: "/selected",
+	};
+	it("does not accept the first native id from an unattributed hook", async () => {
+		const { ctx, terminalAgentStore } = pinned();
+		await notificationsRouter
+			.createCaller(ctx)
+			.hook({ ...hook, agent: { ...hook.agent, sessionId: "forged" } });
+		expect(
+			terminalAgentStore.get("terminal-1")?.agentSessionId,
+		).toBeUndefined();
+		await createNotificationsRouter(async () => account)
+			.createCaller(ctx)
+			.hook({ ...hook, attributionToken: issueAttributionToken("terminal-1") });
+		expect(terminalAgentStore.get("terminal-1")?.account).toEqual(account);
+		expect(terminalAgentStore.get("terminal-1")?.agentSessionId).toBe("native");
+	});
+	it("retains an explicit pin when capture is temporarily unavailable", async () => {
+		const { ctx, terminalAgentStore } = pinned();
+		await createNotificationsRouter(async () => undefined)
+			.createCaller(ctx)
+			.hook({ ...hook, attributionToken: issueAttributionToken("terminal-1") });
+		expect(terminalAgentStore.get("terminal-1")?.account).toEqual(account);
+	});
+	it("does not heal a positively conflicting pin on a later matching capture", async () => {
+		const { ctx, terminalAgentStore } = pinned();
+		await createNotificationsRouter(async () => ({
+			...account,
+			identity: "b".repeat(64),
+		}))
+			.createCaller(ctx)
+			.hook({ ...hook, attributionToken: issueAttributionToken("terminal-1") });
+		await createNotificationsRouter(async () => account)
+			.createCaller(ctx)
+			.hook({ ...hook, attributionToken: issueAttributionToken("terminal-1") });
+		expect(terminalAgentStore.get("terminal-1")?.account?.conflict).toBe(true);
+	});
+	function deferredCapture(value: typeof account | undefined = account) {
+		let finish!: () => void;
+		let started!: () => void;
+		const capturing = new Promise<void>((resolve) => {
+			started = resolve;
+		});
+		const captured = new Promise<typeof account | undefined>((resolve) => {
+			finish = () => resolve(value);
+		});
+		return {
+			capturing,
+			finish,
+			capture: () => {
+				started();
+				return captured;
+			},
+		};
+	}
+
+	it("retains native details when the same launch's wrapper report finishes first", async () => {
+		const { ctx, db } = createDbContext({
+			terminalId: "terminal-1",
+			workspaceId: "workspace-1",
+		});
+		ctx.terminalAgentStore = new TerminalAgentStore(
+			new SqliteTerminalAgentBindingPersistence(db),
+		);
+		ctx.terminalAgentStore.recordEvent({
+			terminalId: "terminal-1",
+			workspaceId: "workspace-1",
+			agentId: "claude",
+			account,
+			launchId: "one",
+			eventType: "Attached",
+			occurredAt: 1,
+		});
+		const pendingCapture = deferredCapture();
+		const caller = createNotificationsRouter(
+			pendingCapture.capture,
+		).createCaller(ctx);
+		const transcriptPath = resolve(
+			homedir(),
+			".claude/projects/-tmp-workspace-1/native.jsonl",
+		);
+		const pending = caller.hook({
+			...hook,
+			transcriptPath,
+			attributionToken: issueAttributionToken("terminal-1"),
+		});
+		await pendingCapture.capturing;
+		await createNotificationsRouter(async () => account)
+			.createCaller(ctx)
+			.hook({
+				...hook,
+				agent: { agentId: "claude" },
+				attributionToken: issueAttributionToken("terminal-1"),
+			});
+		const wrapper = ctx.terminalAgentStore.get("terminal-1");
+		pendingCapture.finish();
+		expect((await pending).ignored).toBe(false);
+		const restored = new TerminalAgentStore(
+			new SqliteTerminalAgentBindingPersistence(db),
+		).get("terminal-1");
+		expect(restored).toMatchObject({
+			account,
+			agentSessionId: "native",
+			startedAt: wrapper?.startedAt,
+			lastEventAt: wrapper?.lastEventAt,
+			lastEventType: wrapper?.lastEventType,
+		});
+		expect(
+			db
+				.select({ path: terminalAgentBindings.transcriptPath })
+				.from(terminalAgentBindings)
+				.where(eq(terminalAgentBindings.terminalId, "terminal-1"))
+				.get()?.path,
+		).toBe(transcriptPath);
+	});
+
+	for (const eventType of ["Start", "Stop"]) {
+		it(`merges a same-launch account after ${eventType} without replaying lifecycle`, async () => {
+			const {
+				ctx,
+				terminalAgentStore,
+				broadcastAgentLifecycle,
+				broadcastAgentBindingsChanged,
+			} = createContext("workspace-1");
+			terminalAgentStore.recordEvent({
+				terminalId: "terminal-1",
+				workspaceId: "workspace-1",
+				agentId: "claude",
+				launchId: "one",
+				eventType: "Attached",
+				occurredAt: 1,
+			});
+			const pendingCapture = deferredCapture();
+			const pending = createNotificationsRouter(pendingCapture.capture)
+				.createCaller(ctx)
+				.hook({
+					...hook,
+					attributionToken: issueAttributionToken("terminal-1"),
+				});
+			await pendingCapture.capturing;
+			await notificationsRouter.createCaller(ctx).hook({
+				...hook,
+				accountProfile: undefined,
+				eventType,
+				attributionToken: issueAttributionToken("terminal-1"),
+			});
+			const advanced = terminalAgentStore.get("terminal-1");
+			pendingCapture.finish();
+			expect((await pending).ignored).toBe(false);
+			expect(terminalAgentStore.get("terminal-1")).toMatchObject({
+				account,
+				agentSessionId: "native",
+				startedAt: advanced?.startedAt,
+				lastEventAt: advanced?.lastEventAt,
+				lastEventType: eventType,
+			});
+			expect(broadcastAgentLifecycle).toHaveBeenCalledTimes(1);
+			expect(broadcastAgentBindingsChanged).toHaveBeenCalledTimes(1);
+		});
+	}
+
+	it("records a captured pin mismatch after same-launch work starts", async () => {
+		const { ctx, terminalAgentStore } = pinned();
+		const pendingCapture = deferredCapture({
+			...account,
+			identity: "b".repeat(64),
+		});
+		const pending = createNotificationsRouter(pendingCapture.capture)
+			.createCaller(ctx)
+			.hook({ ...hook, attributionToken: issueAttributionToken("terminal-1") });
+		await pendingCapture.capturing;
+		await notificationsRouter.createCaller(ctx).hook({
+			...hook,
+			accountProfile: undefined,
+			eventType: "Start",
+			attributionToken: issueAttributionToken("terminal-1"),
+		});
+		const advanced = terminalAgentStore.get("terminal-1");
+		pendingCapture.finish();
+		expect((await pending).ignored).toBe(false);
+		expect(terminalAgentStore.get("terminal-1")).toMatchObject({
+			account: { ...account, conflict: true },
+			agentSessionId: "native",
+			lastEventType: "Start",
+			lastEventAt: advanced?.lastEventAt,
+		});
+	});
+
+	for (const replacement of ["native-id", "account", "ended"] as const) {
+		it(`rejects delayed metadata after ${replacement} ownership changes`, async () => {
+			const { ctx, terminalAgentStore } = pinned();
+			const pendingCapture = deferredCapture();
+			const pending = createNotificationsRouter(pendingCapture.capture)
+				.createCaller(ctx)
+				.hook({
+					...hook,
+					attributionToken: issueAttributionToken("terminal-1"),
+				});
+			await pendingCapture.capturing;
+			terminalAgentStore.recordEvent({
+				terminalId: "terminal-1",
+				workspaceId: "workspace-1",
+				agentId: "claude",
+				account:
+					replacement === "account"
+						? { ...account, identity: "c".repeat(64) }
+						: account,
+				agentSessionId:
+					replacement === "native-id" ? "other-native" : undefined,
+				launchId: "one",
+				eventType: replacement === "ended" ? "exit" : "Start",
+				occurredAt: 2,
+			});
+			const advanced = terminalAgentStore.get("terminal-1");
+			pendingCapture.finish();
+			expect((await pending).ignored).toBe(true);
+			expect(terminalAgentStore.get("terminal-1")).toEqual(advanced);
+		});
+	}
+
+	it("rejects a replaced account even when the delayed capture matches its new identity", async () => {
+		const { ctx, terminalAgentStore } = pinned();
+		const replacement = { ...account, identity: "c".repeat(64) };
+		const pendingCapture = deferredCapture(replacement);
+		const pending = createNotificationsRouter(pendingCapture.capture)
+			.createCaller(ctx)
+			.hook({ ...hook, attributionToken: issueAttributionToken("terminal-1") });
+		await pendingCapture.capturing;
+		terminalAgentStore.recordEvent({
+			terminalId: "terminal-1",
+			workspaceId: "workspace-1",
+			agentId: "claude",
+			account: replacement,
+			launchId: "one",
+			eventType: "Start",
+			occurredAt: 2,
+		});
+		const advanced = terminalAgentStore.get("terminal-1");
+		pendingCapture.finish();
+		expect((await pending).ignored).toBe(true);
+		expect(terminalAgentStore.get("terminal-1")).toEqual(advanced);
+	});
+
+	for (const replacement of ["launch", "native-id"] as const) {
+		it(`does not merge a different ${replacement} into a launch that advanced during capture`, async () => {
+			const { ctx, terminalAgentStore } = pinned();
+			terminalAgentStore.recordEvent({
+				terminalId: "terminal-1",
+				workspaceId: "workspace-1",
+				agentId: "claude",
+				agentSessionId: "original-native",
+				launchId: "one",
+				account,
+				eventType: "Attached",
+				occurredAt: 2,
+			});
+			const pendingCapture = deferredCapture();
+			const pending = createNotificationsRouter(pendingCapture.capture)
+				.createCaller(ctx)
+				.hook({
+					...hook,
+					launchId: replacement === "launch" ? "two" : "one",
+					agent: {
+						agentId: "claude",
+						sessionId:
+							replacement === "native-id" ? "other-native" : "original-native",
+					},
+					attributionToken: issueAttributionToken("terminal-1"),
+				});
+			await pendingCapture.capturing;
+			terminalAgentStore.recordEvent({
+				terminalId: "terminal-1",
+				workspaceId: "workspace-1",
+				agentId: "claude",
+				agentSessionId: "original-native",
+				launchId: "one",
+				eventType: "Start",
+				occurredAt: 3,
+			});
+			const advanced = terminalAgentStore.get("terminal-1");
+			pendingCapture.finish();
+			expect((await pending).ignored).toBe(true);
+			expect(terminalAgentStore.get("terminal-1")).toEqual(advanced);
+		});
+	}
+
+	it("discards delayed account capture after a newer launch replaces the binding", async () => {
+		const { ctx, terminalAgentStore } = pinned();
+		let finish!: (value: typeof account) => void;
+		const captured = new Promise<typeof account>((resolve) => {
+			finish = resolve;
+		});
+		let started!: () => void;
+		const capturing = new Promise<void>((resolve) => {
+			started = resolve;
+		});
+		const pending = createNotificationsRouter(() => {
+			started();
+			return captured;
+		})
+			.createCaller(ctx)
+			.hook({ ...hook, attributionToken: issueAttributionToken("terminal-1") });
+		await capturing;
+		const newer = { ...account, identity: "c".repeat(64) };
+		terminalAgentStore.recordEvent({
+			terminalId: "terminal-1",
+			workspaceId: "workspace-1",
+			agentId: "claude",
+			agentSessionId: "newer-native",
+			account: newer,
+			launchId: "two",
+			eventType: "Start",
+			occurredAt: 2,
+		});
+		finish(account);
+		expect((await pending).ignored).toBe(true);
+		expect(terminalAgentStore.get("terminal-1")?.account).toEqual(newer);
+		expect(terminalAgentStore.get("terminal-1")?.launchId).toBe("two");
 	});
 });
