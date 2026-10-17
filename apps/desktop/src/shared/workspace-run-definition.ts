@@ -1,3 +1,4 @@
+import type { ExecutionMode } from "@superset/local-db/schema/zod";
 import {
 	filterMatchingPresetsForProject,
 	isProjectTargetedPreset,
@@ -16,6 +17,7 @@ export type WorkspaceRunDefinition =
 			name: string;
 			commands: string[];
 			cwd?: string;
+			executionMode?: ExecutionMode;
 	  };
 
 export interface WorkspaceRunPresetLike {
@@ -23,8 +25,16 @@ export interface WorkspaceRunPresetLike {
 	name: string;
 	commands: string[];
 	cwd?: string;
+	executionMode?: ExecutionMode;
 	projectIds?: string[] | null;
 	useAsWorkspaceRun?: boolean;
+}
+
+export type WorkspaceRunLaunchLayout = "single" | "split-panes" | "tabs";
+
+export interface WorkspaceRunLaunch {
+	layout: WorkspaceRunLaunchLayout;
+	commands: string[];
 }
 
 function nonEmptyCommands(commands: readonly string[] | null | undefined) {
@@ -67,6 +77,28 @@ export function presetToWorkspaceRun(
 		name: preset.name,
 		commands,
 		cwd: normalizeCwd(preset.cwd),
+		...(preset.executionMode ? { executionMode: preset.executionMode } : {}),
+	};
+}
+
+export function planWorkspaceRunLaunch(
+	definition: WorkspaceRunDefinition | null | undefined,
+): WorkspaceRunLaunch | null {
+	if (!definition || definition.commands.length === 0) return null;
+	const mode =
+		definition.source === "terminal-preset"
+			? definition.executionMode
+			: undefined;
+	if (
+		definition.commands.length === 1 ||
+		mode === undefined ||
+		mode === "sequential"
+	) {
+		return { layout: "single", commands: [definition.commands.join(" && ")] };
+	}
+	return {
+		layout: mode === "new-tab" ? "tabs" : "split-panes",
+		commands: definition.commands,
 	};
 }
 

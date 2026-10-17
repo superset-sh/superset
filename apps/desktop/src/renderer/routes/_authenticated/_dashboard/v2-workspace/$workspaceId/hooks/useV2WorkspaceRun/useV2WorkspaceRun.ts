@@ -9,14 +9,16 @@ import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
-import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type {
 	V2TerminalPresetRow,
 	WorkspaceRunTerminalState,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
-import { selectWorkspaceRunDefinition } from "shared/workspace-run-definition";
+import {
+	planWorkspaceRunLaunch,
+	selectWorkspaceRunDefinition,
+} from "shared/workspace-run-definition";
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneViewerData, TerminalPaneData } from "../../types";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
@@ -55,7 +57,7 @@ function markStopped(
 function makeTerminalPane(
 	terminalId: string,
 	paneId: string,
-): CreatePaneInput<PaneViewerData> {
+): CreatePaneInput<PaneViewerData> & { id: string } {
 	return {
 		id: paneId,
 		kind: "terminal",
@@ -66,6 +68,25 @@ function makeTerminalPane(
 		),
 		data: { terminalId } as TerminalPaneData,
 	};
+}
+
+function findPriorRunPanes(
+	state: WorkspaceStore<PaneViewerData>,
+	priorRunTerminalIds: ReadonlySet<string>,
+): { tabId: string; paneIds: [string, ...string[]] } | null {
+	for (let i = state.tabs.length - 1; i >= 0; i--) {
+		const tab = state.tabs[i];
+		if (!tab) continue;
+		const [first, ...rest] = Object.entries(tab.panes)
+			.filter(([, pane]) => {
+				if (pane.kind !== "terminal") return false;
+				const terminalId = (pane.data as TerminalPaneData).terminalId;
+				return Boolean(terminalId) && priorRunTerminalIds.has(terminalId);
+			})
+			.map(([paneId]) => paneId);
+		if (first) return { tabId: tab.id, paneIds: [first, ...rest] };
+	}
+	return null;
 }
 
 function getDefinitionId(
@@ -148,13 +169,14 @@ export function useV2WorkspaceRun({
 		],
 	);
 
-	const runningState = useMemo(
+	const runningStates = useMemo(
 		() =>
 			Object.values(workspaceRunTerminals)
 				.filter((state) => state.state === "running")
-				.sort((a, b) => b.startedAt - a.startedAt)[0] ?? null,
+				.sort((a, b) => b.startedAt - a.startedAt),
 		[workspaceRunTerminals],
 	);
+	const runningState = runningStates[0] ?? null;
 
 	const updateWorkspaceRunTerminals = useCallback(
 		(updater: (states: Record<string, WorkspaceRunTerminalState>) => void) => {
@@ -169,8 +191,8 @@ export function useV2WorkspaceRun({
 
 	const startWorkspaceRun = useCallback(async () => {
 		if (isStartingRef.current) return;
-		const command = buildTerminalCommand(definition?.commands);
-		if (!definition || !command) {
+		const launch = planWorkspaceRunLaunch(definition);
+		if (!definition || !launch) {
 			toast.error(
 				t({
 					message: "No workspace run command configured",
@@ -193,53 +215,83 @@ export function useV2WorkspaceRun({
 			// we're about to create doesn't itself match.
 			const priorRunTerminalIds = new Set(Object.keys(workspaceRunTerminals));
 
-			const terminalId = await launcher.create({
-				command,
-				cwd: definition.cwd,
-			});
+			const created = await Promise.allSettled(
+				launch.commands.map((command) =>
+					launcher.create({ command, cwd: definition.cwd }),
+				),
+			);
+			const terminalIds = created.flatMap((result) =>
+				result.status === "fulfilled" ? [result.value] : [],
+			);
+			const failed = created.find(
+				(result): result is PromiseRejectedResult =>
+					result.status === "rejected",
+			);
+			if (failed) {
+				// A partially started run would leave live processes nothing
+				// tracks; kill the ones that did start before surfacing the error.
+				await Promise.allSettled(
+					terminalIds.map((terminalId) =>
+						killSessionMutation.mutateAsync({ terminalId, workspaceId }),
+					),
+				);
+				throw failed.reason;
+			}
 			const startedAt = Date.now();
 			updateWorkspaceRunTerminals((states) => {
-				states[terminalId] = {
-					terminalId,
-					workspaceId,
-					state: "running",
-					command,
-					definitionSource: definition.source,
-					definitionId: getDefinitionId(definition),
-					startedAt,
-				};
+				terminalIds.forEach((terminalId, index) => {
+					states[terminalId] = {
+						terminalId,
+						workspaceId,
+						state: "running",
+						command: launch.commands[index] ?? "",
+						definitionSource: definition.source,
+						definitionId: getDefinitionId(definition),
+						startedAt,
+					};
+				});
 			});
 
 			const state = store.getState();
-			let reused: { tabId: string; paneId: string } | null = null;
-			for (let i = state.tabs.length - 1; i >= 0; i--) {
-				const tab = state.tabs[i];
-				if (!tab) continue;
-				for (const [paneId, pane] of Object.entries(tab.panes)) {
-					if (pane.kind !== "terminal") continue;
-					const paneTerminalId = (pane.data as TerminalPaneData).terminalId;
-					if (paneTerminalId && priorRunTerminalIds.has(paneTerminalId)) {
-						reused = { tabId: tab.id, paneId };
-						break;
-					}
+			const [firstPane, ...restPanes] = terminalIds.map((terminalId) =>
+				makeTerminalPane(terminalId, crypto.randomUUID()),
+			);
+			if (!firstPane) return;
+			const panes: [typeof firstPane, ...(typeof firstPane)[]] = [
+				firstPane,
+				...restPanes,
+			];
+
+			if (launch.layout === "tabs") {
+				for (const pane of panes) {
+					state.addTab({ id: crypto.randomUUID(), panes: [pane] });
 				}
-				if (reused) break;
+				return;
 			}
 
-			if (reused) {
-				const nextData: TerminalPaneData = { terminalId };
-				state.setPaneData({ paneId: reused.paneId, data: nextData });
-				state.setActivePane({
-					tabId: reused.tabId,
-					paneId: reused.paneId,
-				});
-				state.setActiveTab(reused.tabId);
-			} else {
-				const tabId = crypto.randomUUID();
-				const paneId = crypto.randomUUID();
-				const pane = makeTerminalPane(terminalId, paneId);
-				state.addTab({ id: tabId, panes: [pane] });
+			const prior = findPriorRunPanes(state, priorRunTerminalIds);
+			if (!prior) {
+				state.addTab({ id: crypto.randomUUID(), panes });
+				return;
 			}
+
+			let lastPaneId =
+				prior.paneIds[prior.paneIds.length - 1] ?? prior.paneIds[0];
+			panes.forEach((pane, index) => {
+				const reusedPaneId = prior.paneIds[index];
+				if (reusedPaneId) {
+					state.setPaneData({ paneId: reusedPaneId, data: pane.data });
+					return;
+				}
+				state.addPane({
+					tabId: prior.tabId,
+					pane,
+					relativeToPaneId: lastPaneId,
+				});
+				lastPaneId = pane.id;
+			});
+			state.setActivePane({ tabId: prior.tabId, paneId: prior.paneIds[0] });
+			state.setActiveTab(prior.tabId);
 		} catch (error) {
 			toast.error(
 				t({
@@ -260,6 +312,7 @@ export function useV2WorkspaceRun({
 		}
 	}, [
 		definition,
+		killSessionMutation,
 		launcher,
 		store,
 		t,
@@ -268,115 +321,132 @@ export function useV2WorkspaceRun({
 		workspaceRunTerminals,
 	]);
 
-	const stopWorkspaceRun = useCallback(async () => {
-		if (!runningState) return;
-		setIsPending(true);
-		try {
+	const stopTerminal = useCallback(
+		async (terminalId: string) => {
 			const stopRequestedAt = Date.now();
-			await writeInputMutation.mutateAsync({
-				terminalId: runningState.terminalId,
-				workspaceId,
-				data: CTRL_C_INPUT,
-			});
-			const stoppedAt = Date.now();
-			updateWorkspaceRunTerminals((states) => {
-				const state = states[runningState.terminalId];
-				if (!state || state.state !== "running") return;
-				state.stopRequestedAt = stopRequestedAt;
-				markStopped(state, stoppedAt, { state: "stopped-by-user" });
-			});
-		} catch (error) {
-			if (isTerminalGoneError(error)) {
+			try {
+				await writeInputMutation.mutateAsync({
+					terminalId,
+					workspaceId,
+					data: CTRL_C_INPUT,
+				});
 				const stoppedAt = Date.now();
 				updateWorkspaceRunTerminals((states) => {
-					const state = states[runningState.terminalId];
+					const state = states[terminalId];
 					if (!state || state.state !== "running") return;
-					markStopped(state, stoppedAt);
+					state.stopRequestedAt = stopRequestedAt;
+					markStopped(state, stoppedAt, { state: "stopped-by-user" });
 				});
-				return;
+			} catch (error) {
+				if (isTerminalGoneError(error)) {
+					const stoppedAt = Date.now();
+					updateWorkspaceRunTerminals((states) => {
+						const state = states[terminalId];
+						if (!state || state.state !== "running") return;
+						markStopped(state, stoppedAt);
+					});
+					return;
+				}
+				updateWorkspaceRunTerminals((states) => {
+					const state = states[terminalId];
+					if (!state || state.state !== "running") return;
+					delete state.stopRequestedAt;
+				});
+				throw error;
 			}
+		},
+		[updateWorkspaceRunTerminals, workspaceId, writeInputMutation],
+	);
 
-			updateWorkspaceRunTerminals((states) => {
-				const state = states[runningState.terminalId];
-				if (!state || state.state !== "running") return;
-				delete state.stopRequestedAt;
-			});
-			toast.error(
-				t({
-					message: "Failed to stop workspace run command",
-				}),
-				{
-					description: errorMessage(
-						error,
-						t({
-							message: "Unknown error",
-						}),
-					),
-				},
+	const stopWorkspaceRun = useCallback(async () => {
+		if (runningStates.length === 0) return;
+		setIsPending(true);
+		try {
+			const results = await Promise.allSettled(
+				runningStates.map((state) => stopTerminal(state.terminalId)),
 			);
+			const failure = results.find(
+				(result): result is PromiseRejectedResult =>
+					result.status === "rejected",
+			);
+			if (failure) {
+				toast.error(
+					t({
+						message: "Failed to stop workspace run command",
+					}),
+					{
+						description: errorMessage(
+							failure.reason,
+							t({
+								message: "Unknown error",
+							}),
+						),
+					},
+				);
+			}
 		} finally {
 			setIsPending(false);
 		}
-	}, [
-		runningState,
-		t,
-		updateWorkspaceRunTerminals,
-		workspaceId,
-		writeInputMutation,
-	]);
+	}, [runningStates, stopTerminal, t]);
+
+	const killTerminal = useCallback(
+		async (terminalId: string) => {
+			try {
+				await killSessionMutation.mutateAsync({ terminalId, workspaceId });
+				const stoppedAt = Date.now();
+				updateWorkspaceRunTerminals((states) => {
+					const state = states[terminalId];
+					if (!state) return;
+					state.stopRequestedAt ??= stoppedAt;
+					markStopped(state, stoppedAt, { state: "stopped-by-user" });
+				});
+			} catch (error) {
+				if (isTerminalGoneError(error)) {
+					const stoppedAt = Date.now();
+					updateWorkspaceRunTerminals((states) => {
+						const state = states[terminalId];
+						if (!state || state.state !== "running") return;
+						markStopped(state, stoppedAt);
+					});
+					return;
+				}
+				throw error;
+			}
+		},
+		[killSessionMutation, updateWorkspaceRunTerminals, workspaceId],
+	);
 
 	const forceStopWorkspaceRun = useCallback(async () => {
-		if (!runningState) return;
+		if (runningStates.length === 0) return;
 		setIsPending(true);
 		try {
-			await killSessionMutation.mutateAsync({
-				terminalId: runningState.terminalId,
-				workspaceId,
-			});
-			const stoppedAt = Date.now();
-			updateWorkspaceRunTerminals((states) => {
-				const state = states[runningState.terminalId];
-				if (!state) return;
-				state.stopRequestedAt ??= stoppedAt;
-				markStopped(state, stoppedAt, { state: "stopped-by-user" });
-			});
-			await utils.terminal.list.invalidate({ workspaceId });
-		} catch (error) {
-			if (isTerminalGoneError(error)) {
-				const stoppedAt = Date.now();
-				updateWorkspaceRunTerminals((states) => {
-					const state = states[runningState.terminalId];
-					if (!state || state.state !== "running") return;
-					markStopped(state, stoppedAt);
-				});
-				await utils.terminal.list.invalidate({ workspaceId });
-				return;
-			}
-
-			toast.error(
-				t({
-					message: "Failed to force stop workspace run command",
-				}),
-				{
-					description: errorMessage(
-						error,
-						t({
-							message: "Unknown error",
-						}),
-					),
-				},
+			const results = await Promise.allSettled(
+				runningStates.map((state) => killTerminal(state.terminalId)),
 			);
+			await utils.terminal.list.invalidate({ workspaceId });
+			const failure = results.find(
+				(result): result is PromiseRejectedResult =>
+					result.status === "rejected",
+			);
+			if (failure) {
+				toast.error(
+					t({
+						message: "Failed to force stop workspace run command",
+					}),
+					{
+						description: errorMessage(
+							failure.reason,
+							t({
+								message: "Unknown error",
+							}),
+						),
+					},
+				);
+			}
 		} finally {
 			setIsPending(false);
 		}
-	}, [
-		killSessionMutation,
-		runningState,
-		t,
-		updateWorkspaceRunTerminals,
-		utils,
-		workspaceId,
-	]);
+	}, [killTerminal, runningStates, t, utils, workspaceId]);
 
 	const toggleWorkspaceRun = useCallback(async () => {
 		if (runningState) {
