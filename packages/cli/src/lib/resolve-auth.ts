@@ -1,14 +1,16 @@
 import { CLIError } from "@superset/cli-framework";
 import { type ApiClient, createApiClient } from "./api-client";
-import { refreshAccessToken } from "./auth";
 import {
-	AUTH_REFRESH_LEEWAY_MS,
 	readConfig,
 	resolveOrganizationId,
 	type SupersetConfig,
-	writeConfig,
 } from "./config";
 import { readHostApiToken } from "./host-api-token";
+import {
+	isAuthFresh,
+	RefreshInProgressError,
+	refreshStoredAuth,
+} from "./oauth-refresh";
 
 export type AuthSource = "override" | "host" | "config" | "oauth" | "sandbox";
 
@@ -45,23 +47,26 @@ export async function resolveAuth(
 		authSource = "config";
 	} else if (config.auth) {
 		const auth = config.auth;
-		if (auth.expiresAt - AUTH_REFRESH_LEEWAY_MS < Date.now()) {
+		if (!isAuthFresh(auth, Date.now())) {
 			if (!auth.refreshToken) {
 				throw new CLIError("Session expired", "Run: superset auth login");
 			}
+			// Coordinated across processes: parallel commands must spend the
+			// stored refresh token at most once, or the server's rotation
+			// revokes the whole login (GH #8426).
 			try {
-				const refreshed = await refreshAccessToken(auth.refreshToken);
-				config = {
-					...config,
-					auth: {
-						accessToken: refreshed.accessToken,
-						refreshToken: refreshed.refreshToken,
-						expiresAt: refreshed.expiresAt,
-					},
-				};
-				writeConfig(config);
-				bearer = refreshed.accessToken;
-			} catch {
+				config = await refreshStoredAuth();
+			} catch (error) {
+				if (error instanceof RefreshInProgressError) {
+					throw new CLIError(
+						"Another superset command is renewing the login",
+						"Retry in a few seconds",
+					);
+				}
+				throw new CLIError("Session expired", "Run: superset auth login");
+			}
+			bearer = config.auth?.accessToken;
+			if (!bearer) {
 				throw new CLIError("Session expired", "Run: superset auth login");
 			}
 		} else {

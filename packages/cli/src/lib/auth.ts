@@ -230,12 +230,22 @@ async function exchangeCodeForToken({
 	};
 }
 
+/**
+ * Upper bound on one refresh round trip. The cross-process refresh lock
+ * (oauth-refresh.ts) treats a lock older than its stale threshold as a dead
+ * holder, so the refresh a holder runs under that lock must finish or fail
+ * well inside that threshold; an unbounded fetch would make a slow network
+ * look like a crashed process and get a live lock stolen.
+ */
+export const REFRESH_TIMEOUT_MS = 10_000;
+
 export async function refreshAccessToken(
 	refreshToken: string,
 ): Promise<LoginResult> {
 	const apiUrl = env.SUPERSET_API_URL;
 	const response = await fetch(`${apiUrl}/api/auth/oauth2/token`, {
 		method: "POST",
+		signal: AbortSignal.timeout(REFRESH_TIMEOUT_MS),
 		headers: { "Content-Type": "application/x-www-form-urlencoded" },
 		body: new URLSearchParams({
 			grant_type: "refresh_token",
