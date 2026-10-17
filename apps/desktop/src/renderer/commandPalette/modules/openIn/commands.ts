@@ -106,8 +106,8 @@ export const openInProvider: CommandProvider = {
 			return [];
 		}
 
-		const preferredApp = context.workspace.preferredOpenInApp ?? "finder";
-		const preferredOption = findOption(preferredApp);
+		const preferredApp = context.workspace.preferredOpenInApp;
+		const preferredOption = preferredApp ? findOption(preferredApp) : undefined;
 
 		const submenuChildren: Command[] = APP_OPTIONS.map((option) => ({
 			id: `openIn.${option.id}`,

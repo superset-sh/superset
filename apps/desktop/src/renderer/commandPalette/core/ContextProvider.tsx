@@ -16,6 +16,7 @@ import {
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { resolveV2OpenInApp } from "renderer/routes/_authenticated/hooks/useV2ProjectDefaultApp";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -64,17 +65,25 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 	}, [hostWorkspaces, v2WorkspaceId]);
 	const projectId = v2Workspace?.projectId ?? null;
 
-	const { data: preferredAppRows = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ sp: collections.v2SidebarProjects })
-				.where(({ sp }) => eq(sp.projectId, projectId ?? ""))
-				.select(({ sp }) => ({ defaultOpenInApp: sp.defaultOpenInApp })),
-		[collections, projectId],
-	);
+	const { data: preferredAppRows = [], isReady: isProjectOpenInAppReady } =
+		useLiveQuery(
+			(q) =>
+				q
+					.from({ sp: collections.v2SidebarProjects })
+					.where(({ sp }) => eq(sp.projectId, projectId ?? ""))
+					.select(({ sp }) => ({ defaultOpenInApp: sp.defaultOpenInApp })),
+			[collections, projectId],
+		);
+	const projectOpenInApp = preferredAppRows[0]?.defaultOpenInApp as
+		| ExternalApp
+		| null
+		| undefined;
+	const { data: globalDefaultEditor, isPending: isGlobalDefaultPending } =
+		electronTrpc.settings.getDefaultEditor.useQuery();
 	const preferredOpenInApp =
-		(preferredAppRows[0]?.defaultOpenInApp as ExternalApp | null | undefined) ??
-		undefined;
+		isProjectOpenInAppReady && (projectOpenInApp || !isGlobalDefaultPending)
+			? resolveV2OpenInApp(projectOpenInApp, globalDefaultEditor)
+			: undefined;
 
 	const { data: notificationSoundsMuted = false } =
 		electronTrpc.settings.getNotificationSoundsMuted.useQuery();
