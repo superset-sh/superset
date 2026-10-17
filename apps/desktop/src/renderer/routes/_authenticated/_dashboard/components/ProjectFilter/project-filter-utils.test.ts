@@ -4,6 +4,7 @@ import {
 	normalizeProjectFilters,
 	parseProjectFilterParam,
 	resolveProjectFilterParams,
+	resolvePullRequestListFilters,
 	serializeProjectFilters,
 } from "./project-filter-utils";
 
@@ -53,5 +54,42 @@ describe("project filter serialization", () => {
 		expect(
 			resolveProjectFilterParams(undefined, undefined, undefined),
 		).toBeUndefined();
+	});
+});
+
+describe("pull request list filter resolution", () => {
+	test("a legacy project param filters the list when no PR is open", () => {
+		expect(
+			resolvePullRequestListFilters({
+				projects: undefined,
+				project: "project-1",
+				prIsOpen: false,
+			}),
+		).toEqual(["project-1"]);
+	});
+
+	test("an open PR's project param never narrows the list (GH #7577)", () => {
+		// Opening a PR writes `project` to identify the detail pane's repo.
+		// With "all repositories" active that used to be misread as a list
+		// filter, which changed every query key and refetched every page.
+		expect(
+			resolvePullRequestListFilters({
+				projects: undefined,
+				project: "project-1",
+				prIsOpen: true,
+			}),
+		).toBeUndefined();
+	});
+
+	test("an explicit projects param wins either way", () => {
+		for (const prIsOpen of [true, false]) {
+			expect(
+				resolvePullRequestListFilters({
+					projects: "project-1,project-2",
+					project: "project-3",
+					prIsOpen,
+				}),
+			).toEqual(["project-1", "project-2"]);
+		}
 	});
 });
