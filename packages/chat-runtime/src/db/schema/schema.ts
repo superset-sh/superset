@@ -5,6 +5,7 @@ import {
 	primaryKey,
 	sqliteTable,
 	text,
+	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
 export const CHAT_DB_FILENAME = "chat.db";
@@ -30,13 +31,24 @@ export const chatSessionsLocal = sqliteTable(
 		scopeId: text("scope_id").notNull(),
 		harness: text().notNull(),
 		harnessSessionId: text("harness_session_id"),
+		launchContextJson: text("launch_context"),
+		createCommandId: text("create_command_id"),
+		predecessorSessionId: text("predecessor_session_id"),
 		epoch: text().notNull(),
 		status: text().$type<SessionStatus>().notNull(),
 		title: text(),
 		queuedCount: integer("queued_count").notNull().default(0),
 		updatedAt: integer("updated_at").notNull(),
 	},
-	(table) => [index("chat_sessions_local_scope_id_idx").on(table.scopeId)],
+	(table) => [
+		index("chat_sessions_local_scope_id_idx").on(table.scopeId),
+		uniqueIndex("chat_sessions_local_create_command_id_idx").on(
+			table.createCommandId,
+		),
+		uniqueIndex("chat_sessions_local_predecessor_session_id_idx").on(
+			table.predecessorSessionId,
+		),
+	],
 );
 
 export type JournalRow = typeof chatJournal.$inferSelect;
