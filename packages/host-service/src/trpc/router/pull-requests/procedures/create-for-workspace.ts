@@ -1,3 +1,4 @@
+import type { Octokit } from "@octokit/rest";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -21,8 +22,8 @@ const createInputSchema = z.object({
  * Creates a GitHub PR from the workspace's current branch. The base is the
  * branch's configured `branch.<name>.base` (what the Changes panel's base
  * selector writes) falling back to the repo default branch. After creation
- * the workspace's PR link is refreshed immediately so the UI doesn't wait
- * out the next background sync tick.
+ * persist the returned PR directly; discovery and review/check requests must
+ * not delay the workspace link.
  */
 export const createForWorkspace = protectedProcedure
 	.input(createInputSchema)
@@ -70,7 +71,7 @@ export const createForWorkspace = protectedProcedure
 
 		const repo = await resolveGithubRepo(ctx, workspace.projectId);
 		const octokit = await ctx.github();
-		let created: { number: number; html_url: string };
+		let created: Awaited<ReturnType<Octokit["pulls"]["create"]>>["data"];
 		try {
 			const { data } = await octokit.pulls.create({
 				owner: repo.owner,
@@ -88,16 +89,36 @@ export const createForWorkspace = protectedProcedure
 				"GitHub refused to create the pull request.",
 			);
 		}
-		// The PR exists at this point — a refresh hiccup (rate limit, transient
-		// network) must not surface as a create failure; the background sync
-		// links it within its next pass anyway.
+		// The PR exists at this point. A local persistence failure must not
+		// report creation as failed and encourage a duplicate remote mutation.
+		// Background discovery can retry the association.
 		try {
-			await ctx.runtime.pullRequests.refreshPullRequestsByWorkspaces([
-				input.workspaceId,
-			]);
+			await ctx.runtime.pullRequests.linkWorkspaceToCreatedPullRequest({
+				workspaceId: input.workspaceId,
+				projectId: workspace.projectId,
+				expectedWorkspace: workspace,
+				pullRequest: {
+					number: created.number,
+					url: created.html_url,
+					title: created.title,
+					state: created.merged_at
+						? "merged"
+						: created.state === "closed"
+							? "closed"
+							: "open",
+					isDraft: created.draft,
+					mergedAt: created.merged_at,
+					headRefName: created.head.ref,
+					headRefOid: created.head.sha,
+					headRepositoryOwner: created.head.repo?.owner.login,
+					headRepositoryName: created.head.repo?.name,
+					isCrossRepository:
+						created.head.repo?.full_name !== created.base.repo.full_name,
+				},
+			});
 		} catch (error) {
 			console.warn(
-				"[pull-requests:create-for-workspace] created PR but failed to refresh workspace link",
+				"[pull-requests:create-for-workspace] created PR but failed to save workspace link",
 				{ workspaceId: input.workspaceId, prNumber: created.number, error },
 			);
 		}
