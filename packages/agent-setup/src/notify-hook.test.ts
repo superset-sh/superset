@@ -1,5 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	symlinkSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { getTemplatePath } from "./config";
@@ -109,7 +115,7 @@ function writeHookManifest(home: string, orgId: string, endpoint: string) {
 
 describe("getNotifyScriptContent", () => {
 	it("bumps the notify hook marker when hook semantics change", () => {
-		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v20");
+		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v21");
 	});
 
 	it("forwards the main session's transcript path with its identity", async () => {
@@ -917,6 +923,87 @@ describe("session login metadata", () => {
 			expect(JSON.stringify(host.requests)).not.toContain(
 				"secret-must-stay-local",
 			);
+		} finally {
+			host.stop();
+		}
+	});
+});
+
+describe("notify hook process hygiene", () => {
+	it("keeps the payload valid JSON when an env value carries control characters", async () => {
+		const host = fakeHostService(false);
+		try {
+			await runNotifyHookAsync(
+				{ hook_event_name: "Stop", session_id: "s-1" },
+				{
+					SUPERSET_HOST_AGENT_HOOK_URL: `${host.url}/trpc/notifications.hook`,
+					SUPERSET_ACCOUNT_ATTRIBUTION_TOKEN: "line1\nline2\ttabbed",
+				},
+			);
+			expect(host.requests[0]?.json).toMatchObject({
+				attributionToken: "line1\nline2\ttabbed",
+			});
+		} finally {
+			host.stop();
+		}
+	});
+
+	// The hook runs synchronously on every agent lifecycle event, so each
+	// external program it launches is paid dozens of times per prompt; on
+	// macOS under load that reached multi-second prompts and 30 s hook
+	// timeouts (GH #8245). Parsing must need nothing beyond bash itself:
+	// this PATH holds only bash and curl, so any grep/sed/head/tr/cat/date
+	// the script reaches for fails loudly here.
+	it("parses and dispatches with only bash and curl on PATH", async () => {
+		const bashPath = Bun.which("bash");
+		const curlPath = Bun.which("curl");
+		if (!bashPath || !curlPath) throw new Error("bash and curl required");
+		const bin = mkdtempSync(path.join(tmpdir(), "notify-hook-bin-"));
+		symlinkSync(curlPath, path.join(bin, "curl"));
+		const manifestHome = mkdtempSync(path.join(tmpdir(), "notify-hook-mh-"));
+		const host = fakeHostService(false);
+		try {
+			writeHookManifest(manifestHome, "org-1", host.url);
+			const proc = Bun.spawn({
+				cmd: [bashPath, "-c", renderNotifyHookScript()],
+				env: {
+					PATH: bin,
+					SUPERSET_AGENT_ID: "claude",
+					SUPERSET_HOOK_HARNESS: "claude",
+					SUPERSET_TERMINAL_ID: "terminal-test",
+					SUPERSET_HOME_DIR: manifestHome,
+				},
+				stdin: Buffer.from(
+					JSON.stringify({
+						hook_event_name: "Stop",
+						session_id: "11111111-2222-4333-8444-555555555555",
+						transcript_path: "/tmp/sessions/main.jsonl",
+						last_assistant_message: 'done: "quoted" and back\\slash',
+					}),
+				),
+				stdout: "pipe",
+				stderr: "pipe",
+			});
+			const [exitCode, stderr] = await Promise.all([
+				proc.exited,
+				new Response(proc.stderr).text(),
+			]);
+			expect(stderr).not.toContain("command not found");
+			expect(exitCode).toBe(0);
+			expect(host.requests).toEqual([
+				{
+					json: {
+						terminalId: "terminal-test",
+						eventType: "Stop",
+						agent: {
+							agentId: "claude",
+							sessionId: "11111111-2222-4333-8444-555555555555",
+						},
+						preview: 'done: "quoted" and back\\slash',
+						transcriptPath: "/tmp/sessions/main.jsonl",
+					},
+				},
+			]);
 		} finally {
 			host.stop();
 		}
