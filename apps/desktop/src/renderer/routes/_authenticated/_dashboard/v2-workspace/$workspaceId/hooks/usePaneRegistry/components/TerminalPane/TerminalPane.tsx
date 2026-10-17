@@ -3,6 +3,7 @@ import type { RendererContext } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
+import { useTerminalAgentBinding } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { terminalQueryColors } from "renderer/lib/terminal/terminal-query-colors";
 import type { OpenFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import "@xterm/xterm/css/xterm.css";
@@ -69,7 +70,11 @@ import {
 	terminalRichInputOpenStore,
 	useTerminalRichInputOpen,
 } from "./richInputOpenStore";
-import { shellEscapePaths } from "./utils";
+import {
+	escapePathsLikeTerminalDrag,
+	resolveLocalFilePaths,
+	shellEscapePaths,
+} from "./utils";
 
 interface TerminalPaneProps {
 	ctx: RendererContext<PaneViewerData>;
@@ -403,7 +408,8 @@ export function TerminalPane({
 	// workspace lives on another host (relay-reached machine, cloud sandbox),
 	// ship the clipboard bytes there via filesystem.writeFile and paste the
 	// resulting paths instead. Local workspaces keep the Ctrl+V forward, which
-	// lets TUIs attach the image natively.
+	// lets TUIs attach the image natively, except for files copied in Finder in
+	// a Claude Code terminal (see "Local Claude file paste" below).
 	const { machineId } = useLocalHostService();
 	const hostWorkspaces = useHostWorkspaces();
 	const workspaceHostId = hostWorkspaces.workspaces.find(
@@ -468,7 +474,10 @@ export function TerminalPane({
 
 		terminalRuntimeRegistry.setImagePasteOverride(
 			terminalId,
-			(files) => uploadAndPasteFiles(files, worktreePath),
+			(files) => {
+				uploadAndPasteFiles(files, worktreePath);
+				return true;
+			},
 			terminalInstanceId,
 		);
 		return () => {
@@ -485,6 +494,45 @@ export function TerminalPane({
 		isRemoteHost,
 		uploadAndPasteFiles,
 	]);
+
+	// --- Local Claude file paste ---
+	// Claude Code reads only image data from the clipboard on Ctrl+V. For a file
+	// copied in Finder it attaches the file's icon or finds no image, so paste
+	// the real paths instead. Pathless data (screenshots) keeps Ctrl+V.
+	const agentBinding = useTerminalAgentBinding(workspaceId, terminalId);
+	const isLocalClaudeTerminal =
+		hostWorkspaces.isReady &&
+		Boolean(machineId) &&
+		workspaceHostId === machineId &&
+		agentBinding?.agentId === "claude";
+
+	useEffect(() => {
+		if (!isLocalClaudeTerminal) return;
+
+		terminalRuntimeRegistry.setImagePasteOverride(
+			terminalId,
+			(files) => {
+				const paths = resolveLocalFilePaths(files, (file) =>
+					window.webUtils.getPathForFile(file),
+				);
+				if (!paths) return false;
+				terminalRuntimeRegistry.paste(
+					terminalId,
+					escapePathsLikeTerminalDrag(paths),
+					terminalInstanceId,
+				);
+				return true;
+			},
+			terminalInstanceId,
+		);
+		return () => {
+			terminalRuntimeRegistry.setImagePasteOverride(
+				terminalId,
+				null,
+				terminalInstanceId,
+			);
+		};
+	}, [terminalId, terminalInstanceId, isLocalClaudeTerminal]);
 
 	useTerminalInterruptClear({
 		terminalId,

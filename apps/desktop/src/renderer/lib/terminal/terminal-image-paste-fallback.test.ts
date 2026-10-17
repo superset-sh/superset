@@ -158,7 +158,7 @@ describe("handleImagePasteFallback", () => {
 			},
 		});
 		const { terminal, input } = makeFakeTerminal();
-		const override = mock((_files: File[]) => {});
+		const override = mock((_files: File[]) => true);
 
 		handleImagePasteFallback(event, terminal, () => override);
 
@@ -168,6 +168,25 @@ describe("handleImagePasteFallback", () => {
 			fileA,
 			fileB,
 		] as unknown as File[]);
+		expect(flags.defaultPrevented).toBe(true);
+		expect(flags.immediateStopped).toBe(true);
+	});
+
+	it("forwards ^V when the override declines the files", () => {
+		// Local Claude terminals: a screenshot has no path on disk, so the
+		// override returns false and Claude Code reads the image itself.
+		const { event, flags } = clipboardEvent({
+			types: ["Files"],
+			getData: () => "",
+			files: { length: 1 },
+		});
+		const { terminal, input } = makeFakeTerminal();
+		const override = mock((_files: File[]) => false);
+
+		handleImagePasteFallback(event, terminal, () => override);
+
+		expect(override).toHaveBeenCalledTimes(1);
+		expect(input).toHaveBeenCalledWith("\x16", true);
 		expect(flags.defaultPrevented).toBe(true);
 		expect(flags.immediateStopped).toBe(true);
 	});
@@ -191,7 +210,7 @@ describe("handleImagePasteFallback", () => {
 			getData: (t) => (t === "text/plain" ? "hello" : ""),
 		});
 		const { terminal, input } = makeFakeTerminal();
-		const override = mock((_files: File[]) => {});
+		const override = mock((_files: File[]) => true);
 
 		handleImagePasteFallback(event, terminal, () => override);
 
