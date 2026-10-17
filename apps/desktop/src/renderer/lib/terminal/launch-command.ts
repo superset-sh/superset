@@ -1,3 +1,4 @@
+import { isTerminalAttachCanceledMessage } from "./attach-cancel";
 import { waitForTerminalSessionReady } from "./session-readiness";
 
 interface TerminalCreateOrAttachInput {
@@ -106,6 +107,47 @@ export async function launchCommandInPane({
 	await writeCommandInPane({ paneId, command, write, noExecute });
 }
 
+/** Attach attempts per launch, including the first. */
+export const ATTACH_ATTEMPT_LIMIT = 3;
+
+/**
+ * Spaces the retries out rather than burning the budget inside one render, so
+ * a component that is mid-remount has time to settle on the attach the retry
+ * will ride.
+ */
+const ATTACH_RETRY_DELAY_MS = 25;
+
+function isCanceledAttach(error: unknown): boolean {
+	return isTerminalAttachCanceledMessage(
+		error instanceof Error ? error.message : String(error),
+	);
+}
+
+/**
+ * Attaches the pane a command is about to be written into, retrying when the
+ * attach is cancelled out from under us.
+ *
+ * A launch attaches with `joinPending: true`, so when the pane's `<Terminal>`
+ * already has an attach in flight the launch rides on that request instead of
+ * owning one (#2748). The AbortController stays with the component, though, so
+ * when it unmounts or supersedes its own attach — routine while workspace init
+ * brings an agent pane up mid-render — the shared request is aborted and the
+ * passenger launch dies with it, even though the pane is alive and about to be
+ * re-attached.
+ *
+ * A cancellation is therefore transient for a launch, never a verdict on the
+ * pane, so we retry. Where the component cancelled on the way out, the retry
+ * opens its own request and owns it. Where the component cancelled to supersede
+ * itself, it has already issued the replacement synchronously, so the retry
+ * joins that instead — which is just as good, since that attach is the one
+ * about to succeed. What the budget buys is surviving a burst of supersedes;
+ * it is not unbounded, so a pane that thrashes its attach more than
+ * ATTACH_ATTEMPT_LIMIT times still fails, and now fails loudly instead of
+ * silently.
+ *
+ * A pane that is genuinely gone rejects with TERMINAL_SESSION_KILLED instead,
+ * which is not retried — only cancellations are.
+ */
 export async function ensureTerminalAttached({
 	paneId,
 	tabId,
@@ -119,11 +161,23 @@ export async function ensureTerminalAttached({
 	cwd?: string;
 	createOrAttach: (input: TerminalCreateOrAttachInput) => Promise<unknown>;
 }): Promise<void> {
-	await createOrAttach({
-		paneId,
-		tabId,
-		workspaceId,
-		cwd,
-		joinPending: true,
-	});
+	for (let attempt = 1; ; attempt++) {
+		try {
+			await createOrAttach({
+				paneId,
+				tabId,
+				workspaceId,
+				cwd,
+				joinPending: true,
+			});
+			return;
+		} catch (error) {
+			if (attempt >= ATTACH_ATTEMPT_LIMIT || !isCanceledAttach(error)) {
+				throw error;
+			}
+			await new Promise((resolve) =>
+				setTimeout(resolve, ATTACH_RETRY_DELAY_MS),
+			);
+		}
+	}
 }
