@@ -36,7 +36,9 @@ export class TerminalModes {
 		csi: (sequence, final) => this.applyCsi(sequence, final),
 		osc: (sequence) => {
 			if (sequence === `${SHELL_READY_OSC_ID};${SHELL_READY_MARKER_PAYLOAD}`)
-				this.reclaimer.noteShellReady();
+				this.reclaimer.noteShellReady({
+					alternateScreen: this.value.alternate,
+				});
 		},
 	});
 

@@ -87,7 +87,9 @@ export function installInputModeReclaimer(terminal: Terminal): IDisposable {
 		parser.registerOscHandler(SHELL_READY_OSC_ID, (data) => {
 			// Exact match: OSC 777 is also urxvt's notification channel.
 			if (data !== SHELL_READY_MARKER_PAYLOAD) return false;
-			reclaimer.noteShellReady();
+			reclaimer.noteShellReady({
+				alternateScreen: terminal.buffer.active.type === "alternate",
+			});
 			if (!scheduled) {
 				scheduled = true;
 				queueMicrotask(() => {
