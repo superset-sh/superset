@@ -295,10 +295,82 @@ describe("browserRuntimeRegistry guest lifecycle", () => {
 
 			fire(entry.webview, "did-navigate-in-page", {
 				url: "http://localhost:3000/app#tab",
+				isMainFrame: true,
 			});
 			expect(browserRuntimeRegistry.getState(paneId).currentUrl).toBe(
 				"http://localhost:3000/app#tab",
 			);
+		} finally {
+			registryInternals.entries.delete(paneId);
+		}
+	});
+
+	test("ignores in-page navigations from subframes", () => {
+		const paneId = "lifecycle-subframe-navigation-pane";
+		const entry = createEntry(paneId);
+		const persisted: string[] = [];
+		entry.onPersist = (state) => persisted.push(state.url);
+		try {
+			fire(entry.webview, "did-navigate", { url: "http://localhost:3000/app" });
+			// An embedded SPA calling history.pushState in its own frame.
+			fire(entry.webview, "did-navigate-in-page", {
+				url: "http://localhost:4000/inner",
+				isMainFrame: false,
+			});
+			expect(browserRuntimeRegistry.getState(paneId).currentUrl).toBe(
+				"http://localhost:3000/app",
+			);
+			fire(entry.webview, "did-stop-loading");
+			expect(persisted).toEqual(["http://localhost:3000/app"]);
+		} finally {
+			registryInternals.entries.delete(paneId);
+		}
+	});
+
+	test("keeps the favicon when a subframe starts loading", () => {
+		const paneId = "lifecycle-favicon-subframe-pane";
+		const entry = createEntry(paneId);
+		try {
+			fire(entry.webview, "did-start-loading");
+			fire(entry.webview, "did-navigate", { url: "http://localhost:3000/" });
+			fire(entry.webview, "page-favicon-updated", {
+				favicons: ["http://localhost:3000/icon.svg"],
+			});
+			fire(entry.webview, "did-stop-loading");
+			expect(browserRuntimeRegistry.getState(paneId).faviconUrl).toBe(
+				"http://localhost:3000/icon.svg",
+			);
+
+			// A late iframe: Electron emits did-start-loading with no did-navigate.
+			fire(entry.webview, "did-start-loading");
+			fire(entry.webview, "did-stop-loading");
+			expect(browserRuntimeRegistry.getState(paneId).faviconUrl).toBe(
+				"http://localhost:3000/icon.svg",
+			);
+		} finally {
+			registryInternals.entries.delete(paneId);
+		}
+	});
+
+	test("clears the favicon when the main frame commits a new document", () => {
+		const paneId = "lifecycle-favicon-navigation-pane";
+		const entry = createEntry(paneId);
+		try {
+			fire(entry.webview, "did-navigate", { url: "http://localhost:3000/" });
+			fire(entry.webview, "page-favicon-updated", {
+				favicons: ["http://localhost:3000/icon.svg"],
+			});
+			fire(entry.webview, "did-start-loading");
+			fire(entry.webview, "did-navigate", { url: "http://other.example/" });
+			expect(browserRuntimeRegistry.getState(paneId).faviconUrl).toBeNull();
+
+			fire(entry.webview, "did-fail-load", {
+				errorCode: -102,
+				errorDescription: "ERR_CONNECTION_REFUSED",
+				validatedURL: "http://localhost:3000/",
+				isMainFrame: true,
+			});
+			expect(browserRuntimeRegistry.getState(paneId).faviconUrl).toBeNull();
 		} finally {
 			registryInternals.entries.delete(paneId);
 		}
@@ -318,6 +390,10 @@ describe("browserRuntimeRegistry guest lifecycle", () => {
 			expect(state.currentUrl).toBe("http://localhost:3000/");
 			expect(state.error?.code).toBe(-102);
 
+			// A fresh main-frame load clears the earlier failure; a subframe
+			// failure during it must not bring the overlay back.
+			fire(entry.webview, "did-start-loading");
+			fire(entry.webview, "did-navigate", { url: "http://localhost:3000/" });
 			fire(entry.webview, "did-fail-load", {
 				errorCode: -105,
 				errorDescription: "ERR_NAME_NOT_RESOLVED",
@@ -326,6 +402,8 @@ describe("browserRuntimeRegistry guest lifecycle", () => {
 			});
 			state = browserRuntimeRegistry.getState(paneId);
 			expect(state.currentUrl).toBe("http://localhost:3000/");
+			// A broken embed is not a broken page: no full-pane error overlay.
+			expect(state.error).toBeNull();
 		} finally {
 			registryInternals.entries.delete(paneId);
 		}

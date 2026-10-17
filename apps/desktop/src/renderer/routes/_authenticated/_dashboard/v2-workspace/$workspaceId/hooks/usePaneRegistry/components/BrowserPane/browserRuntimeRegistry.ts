@@ -338,11 +338,17 @@ export class BrowserRuntimeRegistryImpl {
 			}
 		};
 
+		// did-start-loading is a WebContents-level signal: it also fires when
+		// a subframe starts loading after the page is up (a lazily mounted
+		// iframe). The favicon belongs to the main document, so it is cleared
+		// on a committed main-frame navigation instead, not here. Otherwise
+		// a late iframe wipes it and nothing restores it, because the
+		// document's icon links have not changed and page-favicon-updated
+		// does not fire again.
 		const handleDidStartLoading = () => {
 			this.setState(paneId, {
 				isLoading: true,
 				error: null,
-				faviconUrl: null,
 			});
 		};
 
@@ -370,17 +376,25 @@ export class BrowserRuntimeRegistryImpl {
 			firePersist();
 		};
 
+		// did-navigate is main-frame only (subframes use did-frame-navigate),
+		// so a new document starts here with no title and no favicon until
+		// its own page-title-updated / page-favicon-updated arrive.
 		const handleDidNavigate = (e: Electron.DidNavigateEvent) => {
 			this.setState(paneId, {
 				currentUrl: e.url ?? "",
 				pageTitle: "",
+				faviconUrl: null,
 				isLoading: false,
 			});
 			this.refreshNavState(paneId);
 			this.refreshZoomState(paneId);
 		};
 
+		// did-navigate-in-page fires for every frame. An embedded SPA calling
+		// history.pushState must not take over the address bar, or a refresh
+		// or restore of the pane would load the iframe's URL as the page.
 		const handleDidNavigateInPage = (e: Electron.DidNavigateInPageEvent) => {
+			if (!e.isMainFrame) return;
 			this.setState(paneId, { currentUrl: e.url ?? "" });
 			this.refreshNavState(paneId);
 		};
@@ -406,13 +420,17 @@ export class BrowserRuntimeRegistryImpl {
 
 		const handleDidFailLoad = (e: Electron.DidFailLoadEvent) => {
 			if (e.errorCode === -3) return; // ERR_ABORTED
+			// A broken embed is not a broken page: only a main-frame failure
+			// replaces the page with the error overlay.
+			if (!e.isMainFrame) return;
 			// A failed main-frame load commits Chromium's error page without a
-			// did-navigate, so the address comes from the failure itself.
+			// did-navigate, so the address comes from the failure itself and
+			// the previous document's favicon no longer applies.
 			this.setState(paneId, {
 				isLoading: false,
-				...(e.isMainFrame
-					? { currentUrl: e.validatedURL ?? "", pageTitle: "" }
-					: {}),
+				currentUrl: e.validatedURL ?? "",
+				pageTitle: "",
+				faviconUrl: null,
 				error: {
 					code: e.errorCode ?? 0,
 					description: e.errorDescription ?? "",
