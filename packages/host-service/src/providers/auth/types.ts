@@ -1,5 +1,5 @@
 export interface ApiAuthProvider {
-	getHeaders(): Promise<Record<string, string>>;
+	getHeaders(signal?: AbortSignal): Promise<Record<string, string>>;
 	/**
 	 * Drop any cached credentials so the next `getHeaders()` call re-derives
 	 * them from the underlying source. The cloud trpc client calls this on
