@@ -314,7 +314,7 @@ const checks: Array<[label: string, command: string, expect: RegExp]> = [
 	["eas-cli", "eas --version", /\d+\.\d+\.\d+/],
 	["psql", "psql --version", /\d+\.\d+/],
 	["ntn", "ntn --version", /\d+\.\d+\.\d+/],
-	["lim", "lim --version", /\d+\.\d+\.\d+/],
+	["agent-device", "agent-device --version", /\d+\.\d+\.\d+/],
 	["stripe", "stripe --version", /\d+\.\d+\.\d+/],
 ];
 let failed = 0;
