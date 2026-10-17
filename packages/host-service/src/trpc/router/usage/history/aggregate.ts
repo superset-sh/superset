@@ -79,6 +79,14 @@ export interface UsageDrilldownEntry {
 	tokens: number;
 }
 
+export type UsageSource = "local-logs" | "account-api";
+
+const ACCOUNT_SCOPED_AGENTS: ReadonlySet<UsageAgent> = new Set(["cursor"]);
+
+export function usageSourceOf(agent: UsageAgent): UsageSource {
+	return ACCOUNT_SCOPED_AGENTS.has(agent) ? "account-api" : "local-logs";
+}
+
 export interface UsageHistory {
 	days: number;
 	buckets: UsageDailyBucket[];
@@ -102,6 +110,9 @@ export interface UsageHistory {
 	};
 	scannedFiles: number;
 	pricingTableUpdated: string;
+	/** `account-api` usage is the same on every host signed in to the
+	 * account, so it must not be summed across hosts. */
+	sources?: Partial<Record<UsageAgent, UsageSource>>;
 }
 
 /** Local-timezone calendar day, matching what the user's clock says. */
@@ -416,5 +427,8 @@ export async function computeUsageHistory(
 		totals,
 		scannedFiles: scannedFiles,
 		pricingTableUpdated: PRICING_TABLE_UPDATED,
+		sources: Object.fromEntries(
+			sortedModels.map((row) => [row.agent, usageSourceOf(row.agent)]),
+		),
 	};
 }
