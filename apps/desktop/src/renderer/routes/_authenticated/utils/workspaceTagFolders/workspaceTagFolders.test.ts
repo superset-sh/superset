@@ -9,6 +9,7 @@ import {
 	EMPTY_TAG_FOLDER_CONTEXT,
 	getProjectFolderTagIndex,
 	mintFolderTag,
+	omitStaleMaterializedFolders,
 	parseSidebarFolderKey,
 	resolveWorkspaceFolder,
 	resolveWorkspaceSectionId,
@@ -586,5 +587,90 @@ describe("deriveTagFolders with host settings and hidden folders", () => {
 					`${folder.projectId === PROJECT_B ? "B" : "A"}:${folder.tag}`,
 			),
 		).toEqual(["A:null", "B:perf"]);
+	});
+});
+
+describe("interaction-materialized folder rows", () => {
+	const perfKey = buildSidebarFolderKey(PROJECT_A, "perf");
+	const cache = makeSection({
+		sectionId: perfKey,
+		tag: "perf",
+		isCollapsed: true,
+		materializedByInteraction: true,
+	});
+
+	it("keeps the row (and its collapse state) while a workspace carries the tag", () => {
+		const folders = deriveTagFolders(
+			[cache],
+			[makeWorkspace({ id: "w1", tags: ["perf"] })],
+			EMPTY_TAG_FOLDER_CONTEXT,
+		);
+		expect(folders).toHaveLength(1);
+		expect(folders[0]).toMatchObject({
+			sectionId: perfKey,
+			isDerived: false,
+			isCollapsed: true,
+		});
+	});
+
+	it("drops the row once the last workspace carrying the tag is gone", () => {
+		expect(deriveTagFolders([cache], [], EMPTY_TAG_FOLDER_CONTEXT)).toEqual([]);
+		expect(
+			deriveTagFolders(
+				[cache],
+				[makeWorkspace({ id: "w1", tags: ["other"] })],
+				EMPTY_TAG_FOLDER_CONTEXT,
+			).map((folder) => folder.tag),
+		).toEqual(["other"]);
+	});
+
+	it("matches members through tag normalization", () => {
+		const folders = deriveTagFolders(
+			[{ ...cache, tag: "Perf" }],
+			[makeWorkspace({ id: "w1", tags: [" PERF "] })],
+			EMPTY_TAG_FOLDER_CONTEXT,
+		);
+		expect(folders).toHaveLength(1);
+	});
+
+	it("only members of the same project keep it alive", () => {
+		expect(
+			deriveTagFolders(
+				[cache],
+				[makeWorkspace({ id: "w1", projectId: PROJECT_B, tags: ["perf"] })],
+				EMPTY_TAG_FOLDER_CONTEXT,
+			).map((folder) => folder.projectId),
+		).toEqual([PROJECT_B]);
+	});
+
+	it("a folder made on purpose stays visible while empty", () => {
+		for (const created of [
+			makeSection({ sectionId: perfKey, tag: "perf" }),
+			makeSection({
+				sectionId: perfKey,
+				tag: "perf",
+				materializedByInteraction: false,
+			}),
+		]) {
+			expect(
+				deriveTagFolders([created], [], EMPTY_TAG_FOLDER_CONTEXT),
+			).toHaveLength(1);
+		}
+	});
+
+	it("a legacy row without a tag is never dropped", () => {
+		const legacy = makeSection({
+			sectionId: "legacy-row",
+			tag: null,
+			materializedByInteraction: true,
+		});
+		expect(
+			deriveTagFolders([legacy], [], EMPTY_TAG_FOLDER_CONTEXT),
+		).toHaveLength(1);
+	});
+
+	it("omitStaleMaterializedFolders keeps unrelated rows untouched", () => {
+		const kept = makeSection({ sectionId: "kept", tag: "kept" });
+		expect(omitStaleMaterializedFolders([cache, kept], [])).toEqual([kept]);
 	});
 });
