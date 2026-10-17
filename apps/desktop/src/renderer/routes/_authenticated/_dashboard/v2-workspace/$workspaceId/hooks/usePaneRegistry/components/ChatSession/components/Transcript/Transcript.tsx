@@ -23,6 +23,7 @@ import {
 	type KeyboardEvent,
 	type PointerEvent,
 	useCallback,
+	useDeferredValue,
 	useEffect,
 	useMemo,
 	useRef,
@@ -43,6 +44,7 @@ import { useNearRows } from "./hooks/useNearRows";
 import { useScrollAnchorKey } from "./hooks/useScrollAnchorKey";
 import { useScrollbarGutter } from "./hooks/useScrollbarGutter";
 import { useTranscriptFind } from "./hooks/useTranscriptFind";
+import { useTranscriptWindow } from "./hooks/useTranscriptWindow";
 import { ChatImageGalleryProvider } from "./providers/ChatImageGalleryProvider";
 import { copySourceText } from "./utils/copySourceText";
 import { galleryImages } from "./utils/galleryImages";
@@ -68,6 +70,9 @@ const SCROLL_KEYS = new Set([
 ]);
 
 export type TranscriptProps = {
+	sessionId: string;
+	revealMessageId?: string | null;
+	onMessageRevealed?: () => void;
 	groups: TurnGroup[];
 	snapshot: SessionSnapshot;
 	approvals: ApprovalRequest[];
@@ -116,7 +121,10 @@ export function Transcript({
 	onRequestItemBodies,
 	onRespond,
 	onRetryPrompt,
+	onMessageRevealed,
 	outbox,
+	revealMessageId = null,
+	sessionId,
 	snapshot,
 }: TranscriptProps) {
 	const { t } = useLingui();
@@ -260,6 +268,46 @@ export function Transcript({
 		eager: find.isOpen,
 	});
 
+	const revealRowKey = useMemo(
+		() =>
+			revealMessageId === null
+				? null
+				: (rows.find((row) => rowMessageId(row) === revealMessageId)?.key ??
+					null),
+		[rows, revealMessageId],
+	);
+	const findMountsAll = useDeferredValue(find.isOpen);
+	const transcriptWindow = useTranscriptWindow({
+		rows,
+		viewport,
+		sessionId,
+		pinnedRowKeys: [
+			anchorRowKey,
+			findMountsAll ? (rows[0]?.key ?? null) : null,
+			find.currentRowKey,
+			revealRowKey,
+		],
+		observeRow,
+	});
+	const { resetToTail, holdRevealUntilScrollEnds } = transcriptWindow;
+	const findWasOpen = useRef(false);
+	useEffect(() => {
+		if (findWasOpen.current && !find.isOpen && !awayFromEndRef.current) {
+			resetToTail();
+		}
+		findWasOpen.current = find.isOpen;
+	}, [find.isOpen, resetToTail]);
+
+	useEffect(() => {
+		if (revealMessageId === null) return;
+		holdRevealUntilScrollEnds();
+		scrollerRef.current.scrollToMessage(revealMessageId, {
+			align: "start",
+			behavior: "smooth",
+		});
+		onMessageRevealed?.();
+	}, [revealMessageId, onMessageRevealed, holdRevealUntilScrollEnds]);
+
 	const firstPendingApprovalId = approvals[0]?.id ?? null;
 	useEffect(() => {
 		if (!firstPendingApprovalId || !awayFromEndRef.current) return;
@@ -268,41 +316,45 @@ export function Transcript({
 		});
 	}, [firstPendingApprovalId]);
 
-	const contentChildren = rows.map((row, index) => {
-		const recent = index >= rows.length - RECENT_ROWS_RENDERED_IN_FULL;
-		const scrollAnchor = row.key === anchorRowKey;
-		return (
-			<TranscriptRowItem
-				canForkToWorktree={canForkToWorktree}
-				className={cn(
-					REMEMBER_SIZE_CLASSNAME,
-					!recent && OFFSCREEN_CLASSNAME,
-					"px-4 pb-1",
-					proseTopPadding(row, rows[index - 1]),
-				)}
-				commands={commands}
-				isEntryCollapsed={isEntryCollapsed}
-				key={row.key}
-				lastReply={lastReplies.has(row.key)}
-				messageId={rowMessageId(row)}
-				onDiscardPrompt={onDiscardPrompt}
-				onFork={onFork}
-				onRespond={onRespond}
-				onRetryPrompt={onRetryPrompt}
-				onToggleEntry={onToggleEntry}
-				rendered={
-					recent ||
-					scrollAnchor ||
-					seenRowKeys.has(row.key) ||
-					row.key === find.currentRowKey
-				}
-				row={row}
-				rowRef={observeRow(row.key)}
-				scrollAnchor={scrollAnchor}
-				snapshot={snapshot}
-			/>
-		);
-	});
+	const contentChildren = rows
+		.slice(transcriptWindow.startIndex)
+		.map((row, offset) => {
+			const index = transcriptWindow.startIndex + offset;
+			const recent = index >= rows.length - RECENT_ROWS_RENDERED_IN_FULL;
+			const scrollAnchor = row.key === anchorRowKey;
+			return (
+				<TranscriptRowItem
+					canForkToWorktree={canForkToWorktree}
+					className={cn(
+						REMEMBER_SIZE_CLASSNAME,
+						!recent && OFFSCREEN_CLASSNAME,
+						"px-4 pb-1",
+						proseTopPadding(row, rows[index - 1]),
+					)}
+					commands={commands}
+					isEntryCollapsed={isEntryCollapsed}
+					key={row.key}
+					lastReply={lastReplies.has(row.key)}
+					messageId={rowMessageId(row)}
+					onDiscardPrompt={onDiscardPrompt}
+					onFork={onFork}
+					onRespond={onRespond}
+					onRetryPrompt={onRetryPrompt}
+					onToggleEntry={onToggleEntry}
+					rendered={
+						recent ||
+						scrollAnchor ||
+						seenRowKeys.has(row.key) ||
+						row.key === find.currentRowKey ||
+						row.key === revealRowKey
+					}
+					row={row}
+					rowRef={transcriptWindow.rowRef(row.key)}
+					scrollAnchor={scrollAnchor}
+					snapshot={snapshot}
+				/>
+			);
+		});
 
 	return (
 		<MessageScroller.Root className="relative flex min-h-0 min-w-0 flex-1 flex-col">
@@ -353,6 +405,13 @@ export function Transcript({
 								olderPages.loading && <Spinner className="size-4" />
 							)}
 						</div>
+					)}
+					{transcriptWindow.startIndex > 0 && (
+						<div
+							aria-hidden="true"
+							ref={transcriptWindow.spacerRef}
+							style={{ height: transcriptWindow.spacerHeight }}
+						/>
 					)}
 					<MessageScroller.Content
 						className={cn(

@@ -146,13 +146,15 @@ export function useTranscriptFind({
 	);
 	const segments = useMemo(
 		() =>
-			findSegments(
-				indexed.rows,
-				indexed.snapshot,
-				indexed.snapshot.session?.harness,
-				formatToolTitle,
-			),
-		[indexed, formatToolTitle],
+			isOpen
+				? findSegments(
+						indexed.rows,
+						indexed.snapshot,
+						indexed.snapshot.session?.harness,
+						formatToolTitle,
+					)
+				: [],
+		[isOpen, indexed, formatToolTitle],
 	);
 	const settledNeedle = useDebouncedValue(findNeedle(query), debounceMs);
 	const needle = isOpen ? settledNeedle : "";

@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import type {
 	SessionClient,
 	SessionStream,
@@ -21,9 +28,19 @@ import {
 import type { Cursor } from "../../protocol/cursor";
 import type { DeltaChannel, Envelope } from "../../protocol/envelope";
 import { isDurableEnvelope, isResetEnvelope } from "../../protocol/envelope";
-import type { Decision, UserContent, UserMessage } from "../../protocol/items";
+import type {
+	Decision,
+	ToolCall,
+	UserContent,
+	UserMessage,
+} from "../../protocol/items";
 
 import { newerThan } from "./utils/newerThan";
+import {
+	cachedSnapshot,
+	cacheSnapshot,
+	forgetSnapshot,
+} from "./utils/snapshotCache";
 
 export type FrameScheduler = (flush: () => void) => () => void;
 
@@ -73,6 +90,40 @@ async function fetchSeed(
 		kind: "page",
 		envelopes: page.envelopes,
 		nextBefore: page.nextBefore,
+	};
+}
+
+type InitialLoad = [
+	session: Awaited<ReturnType<SessionClient["getSession"]>>,
+	seed: Seed | null,
+];
+
+function fetchInitialLoad(
+	client: SessionClient,
+	pageSize: number | undefined,
+	timed: <T>(request: Promise<T>) => Promise<T> = (request) => request,
+): Promise<InitialLoad> {
+	return Promise.all([
+		timed(client.getSession()),
+		fetchSeed(client, pageSize, timed),
+	]);
+}
+
+function withCachedBodies(seed: Seed, cached: SessionSnapshot): Seed {
+	if (seed.kind !== "outline") return seed;
+	const bodies = [...cached.items.values()].filter(({ item }) => {
+		if (item.kind !== "tool_call" || hasOmittedBody(item)) return false;
+		const fresh = seed.snapshot.items.get(item.id)?.item;
+		return (
+			fresh?.kind === "tool_call" &&
+			(fresh as ToolCall).status !== "running" &&
+			(fresh as ToolCall).status === (item as ToolCall).status
+		);
+	});
+	if (bodies.length === 0) return seed;
+	return {
+		kind: "outline",
+		snapshot: withItemBodies(seed.snapshot, bodies),
 	};
 }
 
@@ -133,7 +184,13 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 	const pageSize = options.pageSize;
 	const deltasKey = (options.deltas ?? DEFAULT_DELTAS).join(",");
 
-	const [snapshot, setSnapshot] = useState<SessionSnapshot>(emptySnapshot);
+	const [snapshot, setSnapshot] = useState<SessionSnapshot>(
+		() => cachedSnapshot(client.sessionId) ?? emptySnapshot(),
+	);
+	const snapshotRef = useRef(snapshot);
+	useLayoutEffect(() => {
+		snapshotRef.current = snapshot;
+	}, [snapshot]);
 	const [status, setStatus] = useState<ChatSessionStatus>("loading");
 	const [connection, setConnection] = useState<StreamStatus>("connecting");
 	const [unreachable, setUnreachable] = useState(false);
@@ -337,8 +394,10 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 		setStatus("loading");
 		setUnreachable(false);
 		setConnection("connecting");
-		setSnapshot(emptySnapshot());
+		const cached = cachedSnapshot(client.sessionId);
+		setSnapshot(cached ?? emptySnapshot());
 		setHasOlder(false);
+		let loaded = false;
 		nextBeforeRef.current = null;
 		pendingRef.current = [];
 
@@ -373,11 +432,10 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 			});
 
 		const seed = async (attempt: number) => {
-			let session: Awaited<ReturnType<SessionClient["getSession"]>>;
-			let seed: Seed | null;
+			let session: InitialLoad[0];
+			let seed: InitialLoad[1];
 			try {
-				session = await timed(client.getSession());
-				seed = await fetchSeed(client, pageSize, timed);
+				[session, seed] = await fetchInitialLoad(client, pageSize, timed);
 			} catch {
 				if (cancelled) return;
 				setUnreachable(true);
@@ -387,8 +445,16 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 			setUnreachable(false);
 			if (cancelled) return;
 			let seeded: SessionSnapshot | null = null;
-			if (seed) seeded = applySeed(seed, false);
-			else setSnapshot(emptySnapshot());
+			if (seed) {
+				seeded = applySeed(
+					cached ? withCachedBodies(seed, cached) : seed,
+					false,
+				);
+			} else {
+				if (!session.session) forgetSnapshot(client.sessionId);
+				setSnapshot(emptySnapshot());
+			}
+			loaded = seed !== null;
 			setStatus("ready");
 			stream = client.subscribe({
 				deltas,
@@ -405,6 +471,9 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 		void seed(0);
 
 		return () => {
+			if (loaded && !snapshotRef.current.pendingReset) {
+				cacheSnapshot(client.sessionId, snapshotRef.current);
+			}
 			cancelled = true;
 			seedGenerationRef.current += 1;
 			cancelRetry?.();

@@ -12,6 +12,7 @@ import {
 export type ChatHistorySidebarScrollerProps = {
 	messages: ChatHistorySidebarMessage[];
 	className?: string;
+	onMessageSelect?: (messageId: string) => void;
 };
 
 function visibleTurnIds(
@@ -41,6 +42,7 @@ function visibleTurnIds(
 export function ChatHistorySidebarScroller({
 	messages,
 	className,
+	onMessageSelect,
 }: ChatHistorySidebarScrollerProps) {
 	const { scrollToMessage } = useMessageScroller();
 	const { visibleMessageIds } = useMessageScrollerVisibility();
@@ -50,7 +52,9 @@ export function ChatHistorySidebarScroller({
 			messages={messages}
 			activeMessageIds={visibleTurnIds(messages, visibleMessageIds)}
 			onMessageSelect={(message) =>
-				scrollToMessage(message.id, { align: "start", behavior: "smooth" })
+				onMessageSelect
+					? onMessageSelect(message.id)
+					: scrollToMessage(message.id, { align: "start", behavior: "smooth" })
 			}
 			className={className}
 		/>

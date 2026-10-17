@@ -199,6 +199,36 @@ function unreachableUntil(
 	};
 }
 
+function heldUntilReleased(transport: ChatTransport): {
+	transport: ChatTransport;
+	requested: string[];
+	release: () => void;
+} {
+	const requested: string[] = [];
+	let release = () => {};
+	const released = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	return {
+		transport: new Proxy(transport, {
+			get: (target, prop, receiver) => {
+				if (prop !== "getSession" && prop !== "getOutline") {
+					return Reflect.get(target, prop, receiver);
+				}
+				return async (input: { sessionId: string }) => {
+					requested.push(prop);
+					await released;
+					return prop === "getSession"
+						? target.getSession(input)
+						: target.getOutline(input);
+				};
+			},
+		}),
+		requested,
+		release: () => release(),
+	};
+}
+
 describe("useChatSession", () => {
 	test("keeps retrying while the host is unreachable and loads once it answers", async () => {
 		const stack = await startStack();
@@ -672,5 +702,136 @@ describe("useChatSession", () => {
 		view.unmount();
 		client.close();
 		await stack.runtime.dispose();
+	});
+
+	test("requests the session and its outline together", async () => {
+		const stack = await startStack();
+		const host = heldUntilReleased(stack.transport);
+		const client = stack.makeClient({ transport: host.transport });
+		const view = render(<Probe client={client} />);
+
+		await domWaitFor(() =>
+			expect([...host.requested].sort()).toEqual(["getOutline", "getSession"]),
+		);
+		host.release();
+		await domWaitFor(() => expect(session().status).toBe("ready"));
+		view.unmount();
+		client.close();
+		await stack.runtime.dispose();
+	});
+
+	test("shows the last transcript of a session at once when it mounts again", async () => {
+		const stack = await startStack();
+		const first = stack.makeClient();
+		const firstView = render(<Probe client={first} />);
+		await domWaitFor(() => expect(session().status).toBe("ready"));
+		act(() => {
+			session().sendPrompt([{ type: "text", text: "hello" }]);
+		});
+		await domWaitFor(() =>
+			expect(session().snapshot.session?.status).toBe("idle"),
+		);
+		const shown = [...session().snapshot.items.keys()];
+		firstView.unmount();
+		first.close();
+
+		const host = heldUntilReleased(stack.transport);
+		const again = stack.makeClient({ transport: host.transport });
+		const view = render(<Probe client={again} />);
+		expect(session().status).toBe("loading");
+		expect([...session().snapshot.items.keys()]).toEqual(shown);
+
+		host.release();
+		await domWaitFor(() => expect(session().status).toBe("ready"));
+		expect([...session().snapshot.items.keys()]).toEqual(shown);
+		view.unmount();
+		again.close();
+		await stack.runtime.dispose();
+	});
+
+	test("keeps loaded tool bodies when the fresh outline replaces the cached transcript", async () => {
+		const stack = await startStack();
+		const transport = withOmittedTool(stack.transport);
+		const first = stack.makeClient({ transport });
+		const firstView = render(<Probe client={first} />);
+		await domWaitFor(() => expect(session().status).toBe("ready"));
+		act(() => session().requestItemBodies(["tool-1"]));
+		await domWaitFor(() =>
+			expect(session().snapshot.items.get("tool-1")?.item.bodyOmitted).toBe(
+				undefined,
+			),
+		);
+		firstView.unmount();
+		first.close();
+
+		const host = heldUntilReleased(transport);
+		const again = stack.makeClient({ transport: host.transport });
+		const view = render(<Probe client={again} />);
+		host.release();
+		await domWaitFor(() => expect(session().status).toBe("ready"));
+		expect(session().snapshot.items.get("tool-1")?.item.bodyOmitted).toBe(
+			undefined,
+		);
+		view.unmount();
+		again.close();
+		await stack.runtime.dispose();
+	});
+
+	async function cacheAndFailLoad(
+		reset: "session_not_found" | "journal_missing",
+	): Promise<number> {
+		const stack = await startStack();
+		const first = stack.makeClient();
+		const firstView = render(<Probe client={first} />);
+		await domWaitFor(() => expect(session().status).toBe("ready"));
+		act(() => {
+			session().sendPrompt([{ type: "text", text: "hello" }]);
+		});
+		await domWaitFor(() =>
+			expect(session().snapshot.session?.status).toBe("idle"),
+		);
+		const cachedItems = session().snapshot.items.size;
+		firstView.unmount();
+		first.close();
+
+		const failing: ChatTransport = new Proxy(stack.transport, {
+			get: (target, prop, receiver) => {
+				if (prop === "getOutline" || prop === "getItems") {
+					return async () => ({ ok: false, reset });
+				}
+				if (prop === "getSession" && reset === "session_not_found") {
+					return async () => ({
+						live: false,
+						session: undefined,
+						cursor: null,
+					});
+				}
+				return Reflect.get(target, prop, receiver);
+			},
+		});
+		const failed = stack.makeClient({ transport: failing });
+		const failedView = render(<Probe client={failed} />);
+		await domWaitFor(() => expect(session().status).toBe("ready"));
+		failedView.unmount();
+		failed.close();
+
+		const host = heldUntilReleased(stack.transport);
+		const again = stack.makeClient({ transport: host.transport });
+		const view = render(<Probe client={again} />);
+		const shown = session().snapshot.items.size;
+		host.release();
+		view.unmount();
+		again.close();
+		await stack.runtime.dispose();
+		expect(cachedItems).toBeGreaterThan(0);
+		return shown;
+	}
+
+	test("forgets the cached transcript of a session the host no longer has", async () => {
+		expect(await cacheAndFailLoad("session_not_found")).toBe(0);
+	});
+
+	test("keeps the cached transcript when the journal cannot be read", async () => {
+		expect(await cacheAndFailLoad("journal_missing")).toBeGreaterThan(0);
 	});
 });

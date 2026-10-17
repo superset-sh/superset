@@ -175,20 +175,23 @@ export const ChatSessionView = forwardRef<
 	);
 
 	const { respondToApproval } = chat;
+	const loaded = chat.status === "ready";
 	const onRespond = useCallback(
 		(approvalId: string, decision: Decision) =>
-			respondToApproval(approvalId, decision).catch(
-				failAlert(t({ message: "Could not answer the agent" })),
-			),
-		[respondToApproval, failAlert, t],
+			loaded
+				? respondToApproval(approvalId, decision).catch(
+						failAlert(t({ message: "Could not answer the agent" })),
+					)
+				: Promise.resolve(),
+		[respondToApproval, loaded, failAlert, t],
 	);
 
 	const stop = useCallback(() => {
-		if (!turnId) return;
+		if (!turnId || !loaded) return;
 		void chat
 			.cancelTurn(turnId, { pauseQueue: true })
 			.catch(failAlert(t({ message: "Could not stop the agent" })));
-	}, [chat, turnId, failAlert, t]);
+	}, [chat, turnId, loaded, failAlert, t]);
 
 	const branchFrom = useCallback(
 		(itemId: string) => {
