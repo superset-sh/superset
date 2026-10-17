@@ -12,6 +12,7 @@ import {
 	encryptOptional,
 	encryptSecret,
 } from "../../../lib/connectors";
+import { markDisconnected } from "../token-refresh";
 import {
 	GOOGLE_SCOPES,
 	REFRESH_BUFFER_MS,
@@ -165,14 +166,9 @@ class ConnectionOAuth2Client extends OAuth2Client {
 			} catch (error) {
 				// The grant was revoked (or the app's access removed in the account
 				// settings). Nothing here can recover it; the person has to reconnect.
+				// Not through `tx`: the rethrow rolls it back.
 				if (isInvalidGrant(error)) {
-					await tx
-						.update(connections)
-						.set({
-							disconnectedAt: new Date(),
-							disconnectReason: "invalid_grant",
-						})
-						.where(eq(connections.id, this.connectionId));
+					await markDisconnected(this.connectionId, "invalid_grant");
 				}
 				throw error;
 			}
