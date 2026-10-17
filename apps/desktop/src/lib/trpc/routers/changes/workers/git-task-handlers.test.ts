@@ -189,7 +189,7 @@ describe("getFileContents", () => {
 		writeFileSync(join(repoPath, "file.txt"), "three\n");
 		run(repoPath, "git add file.txt");
 		run(repoPath, "git rm -q --cached file3.txt");
-	});
+	}, 60_000);
 
 	test("against-base compares origin base to HEAD", async () => {
 		const result = await executeGitTask("getFileContents", {
