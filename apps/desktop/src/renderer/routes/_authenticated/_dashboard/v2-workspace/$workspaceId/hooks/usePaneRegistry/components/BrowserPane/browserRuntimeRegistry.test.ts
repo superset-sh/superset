@@ -1,4 +1,12 @@
-import { describe, expect, mock, spyOn, test } from "bun:test";
+import {
+	afterEach,
+	describe,
+	expect,
+	mock,
+	setSystemTime,
+	spyOn,
+	test,
+} from "bun:test";
 import { pointerPassthrough } from "renderer/lib/pointer-passthrough";
 import { BrowserRuntimeRegistryImpl } from "./browserRuntimeRegistry";
 
@@ -10,6 +18,7 @@ const browserRuntimeRegistry = new BrowserRuntimeRegistryImpl({
 		register: { mutate: register },
 		unregister: { mutate: unregister },
 		onAgentActivePanes: { subscribe: () => ({ unsubscribe: () => {} }) },
+		onAgentInput: { subscribe: () => ({ unsubscribe: () => {} }) },
 	},
 	browserHistory: {
 		upsert: { mutate: async () => ({ success: true }) },
@@ -421,5 +430,166 @@ describe("browserRuntimeRegistry background open", () => {
 			rootSpy.mockRestore();
 			await new Promise((resolve) => setTimeout(resolve, 0));
 		}
+	});
+});
+
+describe("browserRuntimeRegistry agent input focus", () => {
+	let sendAgentInput: (state: { paneId: string; active: boolean }) => void =
+		() => {};
+	const registry = new BrowserRuntimeRegistryImpl({
+		browser: {
+			register: { mutate: register },
+			unregister: { mutate: unregister },
+			onAgentActivePanes: { subscribe: () => ({ unsubscribe: () => {} }) },
+			onAgentInput: {
+				subscribe: (
+					_input: undefined,
+					handlers: { onData: typeof sendAgentInput },
+				) => {
+					sendAgentInput = handlers.onData;
+					return { unsubscribe: () => {} };
+				},
+			},
+		},
+		browserHistory: {
+			upsert: { mutate: async () => ({ success: true }) },
+		},
+	} as unknown as ConstructorParameters<typeof BrowserRuntimeRegistryImpl>[0]);
+	interface FocusEntry {
+		webview: EventTarget & { blur: ReturnType<typeof mock> };
+		visible: boolean;
+	}
+	const internals = registry as unknown as {
+		entries: Map<string, FocusEntry>;
+		installGlobalListeners: () => void;
+		createEntry: (
+			paneId: string,
+			initialUrl: string,
+			workspaceId: string,
+		) => FocusEntry;
+	};
+	internals.installGlobalListeners();
+
+	const createEntry = (paneId: string, visible: boolean) => {
+		const original = document.createElement;
+		document.createElement = (() =>
+			Object.assign(new EventTarget(), {
+				style: {},
+				setAttribute: () => {},
+				remove: () => {},
+				blur: mock(() => {}),
+				src: "",
+			})) as unknown as typeof original;
+		try {
+			const entry = internals.createEntry(
+				paneId,
+				"https://example.com",
+				"workspace-1",
+			);
+			entry.visible = visible;
+			internals.entries.set(paneId, entry);
+			return entry;
+		} finally {
+			document.createElement = original;
+		}
+	};
+	// The user's terminal: focused, then blurred by Chromium as the guest
+	// takes keyboard focus.
+	const typeInTerminal = () => {
+		const terminal = document.createElement("textarea");
+		document.body.appendChild(terminal);
+		terminal.focus();
+		return terminal;
+	};
+
+	afterEach(() => {
+		setSystemTime();
+		internals.entries.clear();
+		document.body.replaceChildren();
+	});
+
+	test("hands focus back when an agent's click focuses a visible guest", () => {
+		const entry = createEntry("focus-agent-visible", true);
+		const terminal = typeInTerminal();
+
+		sendAgentInput({ paneId: "focus-agent-visible", active: true });
+		terminal.blur();
+		entry.webview.dispatchEvent(new Event("focus"));
+
+		expect(document.activeElement).toBe(terminal);
+	});
+
+	test("still hands focus back just after the agent's input settles", () => {
+		const entry = createEntry("focus-agent-settled", true);
+		const terminal = typeInTerminal();
+
+		sendAgentInput({ paneId: "focus-agent-settled", active: true });
+		sendAgentInput({ paneId: "focus-agent-settled", active: false });
+		terminal.blur();
+		entry.webview.dispatchEvent(new Event("focus"));
+
+		expect(document.activeElement).toBe(terminal);
+	});
+
+	test("keeps focus in a visible guest the user clicks once agent input is over", () => {
+		const entry = createEntry("focus-user-click", true);
+		const terminal = typeInTerminal();
+		sendAgentInput({ paneId: "focus-user-click", active: true });
+		sendAgentInput({ paneId: "focus-user-click", active: false });
+
+		setSystemTime(new Date(Date.now() + 1_000));
+		terminal.blur();
+		entry.webview.dispatchEvent(new Event("focus"));
+
+		expect(document.activeElement).not.toBe(terminal);
+		expect(entry.webview.blur).not.toHaveBeenCalled();
+	});
+
+	test("a parked guest never keeps focus", () => {
+		const entry = createEntry("focus-parked", false);
+		const terminal = typeInTerminal();
+
+		terminal.blur();
+		entry.webview.dispatchEvent(new Event("focus"));
+
+		expect(document.activeElement).toBe(terminal);
+	});
+
+	test("hands focus back to what was focused before any guest existed", () => {
+		const terminal = typeInTerminal();
+		const fresh = new BrowserRuntimeRegistryImpl({
+			browser: {
+				onAgentActivePanes: { subscribe: () => ({ unsubscribe: () => {} }) },
+				onAgentInput: { subscribe: () => ({ unsubscribe: () => {} }) },
+			},
+		} as unknown as ConstructorParameters<
+			typeof BrowserRuntimeRegistryImpl
+		>[0]);
+		(
+			fresh as unknown as { installGlobalListeners: () => void }
+		).installGlobalListeners();
+		const webview = Object.assign(new EventTarget(), { blur: mock(() => {}) });
+
+		terminal.blur();
+		(
+			fresh as unknown as {
+				handleWebviewFocus: (
+					paneId: string,
+					entry: { webview: typeof webview; visible: boolean },
+				) => void;
+			}
+		).handleWebviewFocus("focus-fresh", { webview, visible: false });
+
+		expect(document.activeElement).toBe(terminal);
+	});
+
+	test("blurs the guest when there is nothing to hand focus back to", () => {
+		const entry = createEntry("focus-parked-nothing", false);
+		const terminal = typeInTerminal();
+		terminal.remove();
+
+		entry.webview.dispatchEvent(new Event("focus"));
+
+		expect(entry.webview.blur).toHaveBeenCalledTimes(1);
 	});
 });
