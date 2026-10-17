@@ -23,6 +23,12 @@ Add the clone to the installed Superset app and create a workspace for your
 change. Superset creates that workspace as an isolated git worktree. In the new
 workspace terminal, run:
 
+**PostgreSQL version change:** local setup now starts PostgreSQL 18 with a new,
+empty `superset_db18_data` volume. It does not upgrade the old PostgreSQL 17
+data. Before running setup after pulling this change, read the
+[export, retention and rollback guide](./docs/development-postgres.md) and
+save an export if the old data matters.
+
 ```bash
 ./.superset/setup.local.sh
 bun run dev
@@ -47,6 +53,10 @@ validation, and `setup.local.sh` runs everything against a local Docker stack.
 6. Writes a gitignored `.superset/config.local.json` overlay so subsequent worktrees automatically use this setup
 
 Re-run the script any time to refresh the workspace. To tear the local DB stack down:
+
+**This deletes the local database volume.** Keep it until the version change
+and any imported data have been verified; see the
+[retention guide](./docs/development-postgres.md).
 
 ```bash
 ./.superset/teardown.local.sh
@@ -98,8 +108,8 @@ See [`AGENTS.md`](./AGENTS.md) for repo structure, monorepo conventions, and dat
   from a Superset workspace instead of the repository's main checkout, run
   `./.superset/setup.local.sh` in that worktree, then run `bun run dev` again.
 - **Port collision**: `setup.local.sh` allocates a fresh port window per worktree. If you ran the script before this change landed, re-run it to migrate.
-- **DB connection errors after pulling main**: re-run `./.superset/setup.local.sh`; it's idempotent and will apply any new migrations.
-- **Stuck Docker stack**: `./.superset/teardown.local.sh` then re-run setup.
+- **DB connection errors after pulling main**: before re-running `./.superset/setup.local.sh`, check the [PostgreSQL version-change guide](./docs/development-postgres.md). Setup applies migrations, but a version change starts a separate empty database.
+- **Stuck Docker stack**: `./.superset/teardown.local.sh` deletes the local database volume. Back up any data you need and complete [version-change verification](./docs/development-postgres.md) before using it, then re-run setup.
 
 ## Contributing
 
