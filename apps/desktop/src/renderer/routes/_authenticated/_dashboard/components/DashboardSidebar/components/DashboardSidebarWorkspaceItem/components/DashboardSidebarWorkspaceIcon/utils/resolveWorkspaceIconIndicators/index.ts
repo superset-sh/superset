@@ -1,0 +1,1 @@
+export { resolveWorkspaceIconIndicators } from "./resolveWorkspaceIconIndicators";

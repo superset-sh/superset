@@ -17,6 +17,7 @@ import type {
 	DashboardSidebarWorkspacePullRequest,
 	DashboardSidebarWorkspaceType,
 } from "../../../../types";
+import { resolveWorkspaceIconIndicators } from "./utils/resolveWorkspaceIconIndicators";
 
 interface DashboardSidebarWorkspaceIconProps {
 	hostType: DashboardSidebarWorkspaceHostType;
@@ -67,6 +68,11 @@ export function DashboardSidebarWorkspaceIcon({
 	);
 	const isRemoteDeviceOffline =
 		hostType === "remote-device" && hostIsOnline === false;
+	const { showSpinner, overlayStatus } = resolveWorkspaceIconIndicators({
+		isCreatePending,
+		workspaceStatus,
+		hasPullRequest: pullRequestState !== null,
+	});
 
 	const renderPrimaryIcon = () => {
 		if (pullRequestState) {
@@ -108,14 +114,20 @@ export function DashboardSidebarWorkspaceIcon({
 
 	return (
 		<>
-			{isCreatePending || workspaceStatus === "working" ? (
+			{showSpinner ? (
 				<AsciiSpinner className="text-base" />
 			) : (
 				renderPrimaryIcon()
 			)}
-			{workspaceStatus && workspaceStatus !== "working" && (
+			{overlayStatus && (
 				<span className={cn("absolute", overlayPosition)}>
-					<StatusIndicator status={workspaceStatus} />
+					<StatusIndicator
+						status={overlayStatus}
+						className={cn(
+							overlayStatus === "working" &&
+								"animate-pulse motion-reduce:animate-none",
+						)}
+					/>
 				</span>
 			)}
 		</>
