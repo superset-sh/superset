@@ -44,10 +44,7 @@ export function HeroSection() {
 			}),
 			// Beat on the empty second line before the payoff line types
 			delayBefore: 450,
-			// Plain inline (not inline-block): vertical padding on inline boxes
-			// paints the brackets without affecting line height, so the line
-			// can't jump when this segment mounts mid-animation
-			className: "corner-brackets px-[0.2em] py-[0.06em] whitespace-nowrap",
+			className: "headline-marks",
 		},
 	];
 
@@ -80,14 +77,14 @@ export function HeroSection() {
 							</span>
 						</Link>
 						<div className="space-y-4 sm:space-y-6">
-							<h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1] [word-spacing:0.15em] whitespace-pre-line text-foreground relative max-w-6xl mx-auto">
+							<h1 className="text-[min(2.25rem,8.6vw)] sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1] [word-spacing:0.15em] whitespace-pre-line text-foreground relative max-w-6xl mx-auto">
 								{/* Real headline for screen readers and no-JS crawlers; the
 								    typewriter below is purely visual */}
 								<span className="sr-only">
 									{headlineSegments.map((segment) => segment.text).join("")}
 								</span>
 								{/* Sizer must mirror the visible segments' styling so wrapping matches */}
-								<span className="invisible" aria-hidden="true">
+								<span className="headline-sizer invisible" aria-hidden="true">
 									{headlineSegments.map((segment) => (
 										<span key={segment.id} className={segment.className}>
 											{segment.text}
@@ -99,10 +96,7 @@ export function HeroSection() {
 										segments={headlineSegments}
 										speed={40}
 										delay={600}
-										// Caret matches the corner-bracket box height (1.30em) for the
-										// whole animation; drawn via scale-y so its layout height stays
-										// 0.72em and can't inflate the line box
-										cursorClassName="inline-block ml-0.5 w-3 -mr-3.5 h-[0.72em] origin-bottom scale-y-[1.806] translate-y-[0.268em] bg-brand"
+										cursorClassName="inline-block ml-0.5 w-3 -mr-3.5 h-[0.72em] bg-brand"
 									/>
 								</span>
 							</h1>
