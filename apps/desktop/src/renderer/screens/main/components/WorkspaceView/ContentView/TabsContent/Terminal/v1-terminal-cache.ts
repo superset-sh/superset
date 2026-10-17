@@ -33,6 +33,8 @@ export interface CachedTerminal {
 	wrapper: HTMLDivElement;
 	/** Disposes renderer RAF, query suppression, GPU renderer, etc. */
 	cleanupCreation: () => void;
+	/** Clears the GPU renderer's glyph atlas and cached model, then repaints. */
+	resetRenderer: () => void;
 
 	// --- Stream management ---
 
@@ -70,7 +72,10 @@ function hostIsVisible(container: HTMLDivElement | null): boolean {
 	return container.clientWidth > 0 && container.clientHeight > 0;
 }
 
-function fitAndRefresh(entry: CachedTerminal): boolean {
+function fitAndRefresh(
+	entry: CachedTerminal,
+	options: { resetRenderer?: boolean } = {},
+): boolean {
 	if (!hostIsVisible(entry.container)) return false;
 
 	const { xterm } = entry;
@@ -92,7 +97,14 @@ function fitAndRefresh(entry: CachedTerminal): boolean {
 	}
 
 	const dimensionsChanged = xterm.cols !== prevCols || xterm.rows !== prevRows;
-	xterm.refresh(0, Math.max(0, xterm.rows - 1));
+	// A dimension change repaints through the renderer's own resize path, which
+	// already invalidates its cached model; only an unchanged-size repaint needs
+	// the explicit reset.
+	if (options.resetRenderer && !dimensionsChanged) {
+		entry.resetRenderer();
+	} else {
+		xterm.refresh(0, Math.max(0, xterm.rows - 1));
+	}
 
 	return dimensionsChanged;
 }
@@ -102,9 +114,10 @@ function fitAndRefresh(entry: CachedTerminal): boolean {
 function scheduleFitAndRefresh(
 	entry: CachedTerminal,
 	onChanged?: () => void,
+	options: { resetRenderer?: boolean } = {},
 ): void {
 	runWhenParserIdle(entry.gate, () => {
-		if (fitAndRefresh(entry)) {
+		if (fitAndRefresh(entry, options)) {
 			onChanged?.();
 		}
 	});
@@ -129,8 +142,15 @@ export function getOrCreate(
 		console.log(`[v1-terminal-cache] Creating new terminal: ${paneId}`);
 	}
 
-	const { xterm, fitAddon, searchAddon, gate, wrapper, cleanup } =
-		createTerminalInWrapper(options);
+	const {
+		xterm,
+		fitAddon,
+		searchAddon,
+		gate,
+		wrapper,
+		resetRenderer,
+		cleanup,
+	} = createTerminalInWrapper(options);
 
 	const entry: CachedTerminal = {
 		xterm,
@@ -139,6 +159,7 @@ export function getOrCreate(
 		gate,
 		wrapper,
 		cleanupCreation: cleanup,
+		resetRenderer,
 		subscription: null,
 		streamReady: false,
 		pendingStreamEvents: [],
@@ -163,13 +184,18 @@ export function attachToContainer(
 	const entry = cache.get(paneId);
 	if (!entry) return;
 
+	// Parked wrappers can come back with stale glyphs painted over correct
+	// cells, and the renderer's cached model makes a plain refresh a no-op for
+	// them — see resetTerminalRenderer.
+	const wasParked = entry.container === null;
+
 	entry.container = container;
 	container.appendChild(entry.wrapper);
 
 	// Refit and repaint on reattach because the wrapper may have been parked
 	// while its live container changed size. Reports through onResize since a
 	// gated fit may run after this call returns.
-	scheduleFitAndRefresh(entry, onResize);
+	scheduleFitAndRefresh(entry, onResize, { resetRenderer: wasParked });
 	// xterm's initial cell-width measurement may have run before the configured
 	// font finished loading, baking wrong glyph metrics into the renderer
 	// (#4617). Refit once fonts are ready so the layout matches the rendered
