@@ -1,3 +1,4 @@
+import { isAbsolute } from "node:path";
 import type { AgentIdentity } from "@superset/shared/agent-identity";
 import { desktopNotificationSchema } from "@superset/shared/desktop-notification";
 import { eq } from "drizzle-orm";
@@ -5,7 +6,10 @@ import { z } from "zod";
 import { terminalSessions } from "../../../db/schema";
 import { mapEventType } from "../../../events";
 import { verifyAttributionToken } from "../../../terminal-agents/attribution-token";
-import { recordTerminalAgentTranscriptPath } from "../../../terminal-agents/persistence";
+import {
+	recordTerminalAgentAccountProfile,
+	recordTerminalAgentTranscriptPath,
+} from "../../../terminal-agents/persistence";
 import { isTrustedTranscriptPath } from "../../../terminal-agents/transcript-path";
 import { protectedProcedure, publicProcedure, router } from "../../index";
 import { captureSessionAccount } from "../usage/session-account/session-account";
@@ -54,6 +58,12 @@ const hookInput = z.object({
 function trimOrUndefined(value: string | undefined): string | undefined {
 	const trimmed = value?.trim();
 	return trimmed ? trimmed : undefined;
+}
+
+/** An absolute home dir, or null for the default home and unverifiable setups. */
+function launchAccountProfile(profile: string | undefined): string | null {
+	const trimmed = trimOrUndefined(profile);
+	return trimmed && isAbsolute(trimmed) ? trimmed : null;
 }
 
 function normalizeAgentIdentity(
@@ -148,10 +158,13 @@ export const notificationsRouter = router({
 		const preview = trimOrUndefined(input.preview);
 
 		const prior = ctx.terminalAgentStore.get(input.terminalId);
-		const account =
+		const reportedProfile =
 			verifyAttributionToken(input.terminalId, input.attributionToken) &&
-			eventType === "Attached" &&
-			input.accountProfile !== undefined &&
+			eventType === "Attached"
+				? input.accountProfile
+				: undefined;
+		const account =
+			reportedProfile !== undefined &&
 			(!prior?.account ||
 				prior.agentId !== agent?.agentId ||
 				(input.launchId && input.launchId !== prior.launchId) ||
@@ -160,7 +173,7 @@ export const notificationsRouter = router({
 					agent.sessionId !== prior.agentSessionId))
 				? await captureSessionAccount(
 						agent?.agentId,
-						input.accountProfile,
+						reportedProfile,
 						input.apiKey ?? false,
 					).catch(() => undefined)
 				: undefined;
@@ -175,6 +188,13 @@ export const notificationsRouter = router({
 			...(agent?.definitionId ? { definitionId: agent.definitionId } : {}),
 			occurredAt,
 		});
+		if (reportedProfile !== undefined && agent?.agentId) {
+			recordTerminalAgentAccountProfile(ctx.db, {
+				terminalId: input.terminalId,
+				agentId: agent.agentId,
+				accountProfile: launchAccountProfile(reportedProfile),
+			});
+		}
 		const transcriptPath = trimOrUndefined(input.transcriptPath);
 		if (
 			agent?.sessionId &&

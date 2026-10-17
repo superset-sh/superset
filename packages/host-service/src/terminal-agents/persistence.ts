@@ -221,6 +221,42 @@ export function recordTerminalAgentTranscriptPath(
 }
 
 /**
+ * Remember the account home the agent bound to this terminal launched under.
+ * Written only while the binding still names that agent.
+ */
+export function recordTerminalAgentAccountProfile(
+	db: HostDb,
+	input: {
+		terminalId: string;
+		agentId: TerminalAgentId;
+		accountProfile: string | null;
+	},
+): void {
+	db.update(terminalAgentBindings)
+		.set({ accountProfile: input.accountProfile })
+		.where(
+			and(
+				eq(terminalAgentBindings.terminalId, input.terminalId),
+				eq(terminalAgentBindings.agentId, input.agentId),
+			),
+		)
+		.run();
+}
+
+export function getTerminalAgentAccountProfile(
+	db: HostDb,
+	terminalId: string,
+): string | null {
+	return (
+		db
+			.select({ accountProfile: terminalAgentBindings.accountProfile })
+			.from(terminalAgentBindings)
+			.where(eq(terminalAgentBindings.terminalId, terminalId))
+			.get()?.accountProfile ?? null
+	);
+}
+
+/**
  * Record where a consumed candidate's session was relaunched, so a pane
  * that was not mounted for the "resumed" lifecycle event can still find
  * it. Written by the resume path once the launch has a terminal id.
@@ -613,6 +649,7 @@ export class SqliteTerminalAgentBindingPersistence
 					// A reported transcript belongs to the session that reported
 					// it; the next session in this terminal reports its own.
 					transcriptPath: sql`CASE WHEN ${terminalAgentBindings.agentSessionId} IS excluded.agent_session_id THEN ${terminalAgentBindings.transcriptPath} ELSE NULL END`,
+					accountProfile: sql`CASE WHEN ${terminalAgentBindings.agentId} IS excluded.agent_id THEN ${terminalAgentBindings.accountProfile} ELSE NULL END`,
 				},
 			})
 			.run();

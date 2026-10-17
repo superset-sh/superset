@@ -608,6 +608,76 @@ describe("reported transcript path", () => {
 	});
 });
 
+describe("launch account profile", () => {
+	function createPersistedContext() {
+		const context = createDbContext({
+			terminalId: "terminal-1",
+			workspaceId: "workspace-1",
+		});
+		context.ctx.terminalAgentStore = new TerminalAgentStore(
+			new SqliteTerminalAgentBindingPersistence(context.db),
+		);
+		return context;
+	}
+
+	function storedProfile(db: HostDb) {
+		return db
+			.select({ profile: terminalAgentBindings.accountProfile })
+			.from(terminalAgentBindings)
+			.where(eq(terminalAgentBindings.terminalId, "terminal-1"))
+			.get()?.profile;
+	}
+
+	function sessionStart(accountProfile: string, agentId = "claude") {
+		return {
+			terminalId: "terminal-1",
+			eventType: "SessionStart",
+			agent: { agentId },
+			accountProfile,
+			attributionToken: issueAttributionToken("terminal-1"),
+		};
+	}
+
+	it("keeps the home the agent launched under", async () => {
+		const { ctx, db } = createPersistedContext();
+		await notificationsRouter
+			.createCaller(ctx)
+			.hook(sessionStart("/srv/accounts/work/.claude"));
+		expect(storedProfile(db)).toBe("/srv/accounts/work/.claude");
+	});
+
+	it("ignores a profile from a hook without the terminal's token", async () => {
+		const { ctx, db } = createPersistedContext();
+		await notificationsRouter.createCaller(ctx).hook({
+			...sessionStart("/srv/accounts/work/.claude"),
+			attributionToken: issueAttributionToken("other-terminal"),
+		});
+		expect(storedProfile(db)).toBeNull();
+	});
+
+	for (const reported of ["", "__unverified__", "relative/.claude"]) {
+		it(`stores no home for ${JSON.stringify(reported)}`, async () => {
+			const { ctx, db } = createPersistedContext();
+			const caller = notificationsRouter.createCaller(ctx);
+			await caller.hook(sessionStart("/srv/accounts/work/.claude"));
+			await caller.hook(sessionStart(reported));
+			expect(storedProfile(db)).toBeNull();
+		});
+	}
+
+	it("drops the home when another agent binds the terminal", async () => {
+		const { ctx, db } = createPersistedContext();
+		const caller = notificationsRouter.createCaller(ctx);
+		await caller.hook(sessionStart("/srv/accounts/work/.claude"));
+		await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "Stop",
+			agent: { agentId: "codex" },
+		});
+		expect(storedProfile(db)).toBeNull();
+	});
+});
+
 describe("login attribution authentication", () => {
 	it("publishes launch events after the binding and account are readable", async () => {
 		const { ctx, terminalAgentStore, broadcastAgentLifecycle } =

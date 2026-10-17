@@ -145,6 +145,8 @@ export interface AgentRunInput {
 	resumeSessionId?: string;
 	/** Session id to clone into a new provider-owned session. */
 	forkSessionId?: string;
+	/** Account home env to launch under instead of the agent's default. */
+	accountEnv?: Record<string, string>;
 	/**
 	 * A terminal an earlier call from this same caller left behind. When it is
 	 * still running this agent, the prompt is delivered into that session
@@ -457,7 +459,7 @@ export function buildTerminalAgentLaunch(
 	);
 	const modelEnv = buildAgentModelEnv(launchPresetId, input.model);
 	return {
-		fullCommand: `${envOverlayPrefix({ ...agentLaunchEnv(db, config), ...modelEnv })}${command}`,
+		fullCommand: `${envOverlayPrefix({ ...agentLaunchEnv(db, config), ...input.accountEnv, ...modelEnv })}${command}`,
 		label: config.label,
 	};
 }

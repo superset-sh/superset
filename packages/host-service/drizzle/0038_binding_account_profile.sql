@@ -1,0 +1,1 @@
+ALTER TABLE `terminal_agent_bindings` ADD `account_profile` text;
