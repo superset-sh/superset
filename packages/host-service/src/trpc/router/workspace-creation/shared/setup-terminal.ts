@@ -112,7 +112,13 @@ export function resolveInitialCommand(args: {
 
 	const initialCommand =
 		resolved.kind === "commands"
-			? resolved.commands.join(" && ")
+			? resolved.commands.map(toSetupCommand).join(" && ")
 			: `bash ${shellSingleQuote(resolved.scriptPath)}`;
 	return { initialCommand, ...(resolved.cwd && { cwd: resolved.cwd }) };
+}
+
+function toSetupCommand(command: string): string {
+	return command.includes("\n")
+		? `bash -c ${shellSingleQuote(command)}`
+		: command;
 }
