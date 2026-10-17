@@ -5,7 +5,7 @@ import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { FsWatcherManager } from "../watch";
 import { watchSingleFile } from "../watch-file";
-import { chokidarWatchBackend } from "./chokidar-backend";
+import { directoryWatchBackend } from "./directory-backend";
 
 const cleanups: Array<() => void | Promise<void>> = [];
 afterEach(async () => {
@@ -39,7 +39,7 @@ test("concurrent roots preserve tracked and explicit file events through detach 
 		(_, i) => `packages/p${i}/vendor`,
 	);
 	const manager = new FsWatcherManager({
-		backend: chokidarWatchBackend,
+		backend: directoryWatchBackend,
 		useDefaultIgnores: false,
 		listGitIgnoredDirs: async () => ignored,
 		debounceMs: 10,

@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { monitorEventLoopDelay, performance } from "node:perf_hooks";
 import { setTimeout as delay } from "node:timers/promises";
-import { chokidarWatchBackend } from "./chokidar-backend";
+import { directoryWatchBackend } from "./directory-backend";
 import type { NativeWatchSubscription } from "./types";
 
 const roots = Number(process.argv[2] ?? 4);
@@ -14,7 +14,7 @@ if (![1, 4].includes(roots) || ![1, 4].includes(concurrency)) {
 const packageCount = 100;
 const visibleFilesPerPackage = 40;
 const ignoredFilesPerDirectory = 8;
-const fixture = await mkdtemp(path.join(tmpdir(), "chokidar-crawl-"));
+const fixture = await mkdtemp(path.join(tmpdir(), "directory-crawl-"));
 const subscriptions: NativeWatchSubscription[] = [];
 const deadline = setTimeout(() => {
 	console.error("Benchmark exceeded 45 seconds");
@@ -73,7 +73,7 @@ try {
 		for (let offset = 0; offset < roots; offset += concurrency) {
 			await Promise.all(
 				rootPaths.slice(offset, offset + concurrency).map(async (rootPath) => {
-					const subscription = await chokidarWatchBackend.subscribe({
+					const subscription = await directoryWatchBackend.subscribe({
 						rootPath,
 						ignore,
 						generation: 1,

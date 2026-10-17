@@ -1,8 +1,8 @@
-import { chokidarWatchBackend } from "./chokidar-backend";
+import { directoryWatchBackend } from "./directory-backend";
 import { parcelWatchBackend } from "./parcel-backend";
 import type { NativeWatchBackend } from "./types";
 
-export { chokidarWatchBackend } from "./chokidar-backend";
+export { directoryWatchBackend } from "./directory-backend";
 export { createIgnoreMatcher } from "./ignore-matcher";
 export { parcelWatchBackend } from "./parcel-backend";
 export type {
@@ -20,6 +20,6 @@ export type {
  */
 export function defaultWatchBackend(): NativeWatchBackend {
 	return process.platform === "linux"
-		? chokidarWatchBackend
+		? directoryWatchBackend
 		: parcelWatchBackend;
 }
