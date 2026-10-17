@@ -77,6 +77,7 @@ import {
 	useOpenTemplateGalleryModal,
 } from "renderer/stores/add-repository-modal";
 import { COLLAPSED_WORKSPACE_SIDEBAR_WIDTH } from "renderer/stores/workspace-sidebar-state";
+import { useIsNewDashboardSidebar } from "../../hooks/useNewDashboardSidebarEnabled";
 
 interface DashboardSidebarHeaderProps {
 	isCollapsed?: boolean;
@@ -160,6 +161,8 @@ export function DashboardSidebarHeader({
 	const isProjectsOpen = !!matchRoute({ to: "/projects", fuzzy: true });
 	const isCloudEnabled =
 		useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES) === true;
+	const isNewSidebar = useIsNewDashboardSidebar();
+	const showsCloudAndProjectsLinks = isCloudEnabled && !isNewSidebar;
 	const v2WorkspaceMatch = matchRoute({
 		to: "/v2-workspace/$workspaceId",
 		fuzzy: true,
@@ -388,7 +391,7 @@ export function DashboardSidebarHeader({
 						</TooltipContent>
 					</Tooltip>
 
-					{isCloudEnabled && (
+					{showsCloudAndProjectsLinks && (
 						<Tooltip delayDuration={300}>
 							<TooltipTrigger asChild>
 								<button
@@ -414,7 +417,7 @@ export function DashboardSidebarHeader({
 						</Tooltip>
 					)}
 
-					{isCloudEnabled && (
+					{showsCloudAndProjectsLinks && (
 						<Tooltip delayDuration={300}>
 							<TooltipTrigger asChild>
 								<button
@@ -747,7 +750,7 @@ export function DashboardSidebarHeader({
 				</span>
 			</button>
 
-			{isCloudEnabled && (
+			{showsCloudAndProjectsLinks && (
 				<button
 					type="button"
 					onClick={handleCloudWorkspacesClick}
@@ -769,7 +772,7 @@ export function DashboardSidebarHeader({
 				</button>
 			)}
 
-			{isCloudEnabled && (
+			{showsCloudAndProjectsLinks && (
 				<button
 					type="button"
 					onClick={handleProjectsClick}
