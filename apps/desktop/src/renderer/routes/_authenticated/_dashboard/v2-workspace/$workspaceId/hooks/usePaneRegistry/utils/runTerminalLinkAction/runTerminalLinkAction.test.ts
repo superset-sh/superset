@@ -59,7 +59,7 @@ describe("runUrlLinkAction", () => {
 		);
 	});
 
-	it("opens the pull request in the right pane when asked", () => {
+	it("opens the pull request in the right pane whenever one exists", () => {
 		const store = createWorkspaceStore<PaneViewerData>({
 			initialState: workspaceState(),
 		});
@@ -74,7 +74,7 @@ describe("runUrlLinkAction", () => {
 				rightPane: { store: rightStore, reveal: () => (revealed = true) },
 			},
 			PR_URL,
-			"rightPane",
+			"pane",
 		);
 
 		expect(revealed).toBe(true);

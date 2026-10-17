@@ -1,1 +1,0 @@
-export { useRightPaneAreaExpansion } from "./useRightPaneAreaExpansion";

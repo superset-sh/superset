@@ -10,6 +10,7 @@ import type {
 	ComposerChip,
 	ComposerMentionEntry,
 	ComposerMentionProvider,
+	ComposerPanelContent,
 	PromptInputCommand,
 	PromptInputHandle,
 	PromptInputSubmitPayload,
@@ -36,20 +37,25 @@ import { AgentComposer } from "renderer/routes/_authenticated/components/AgentCo
 import { CHAT_COLUMN_CLASSNAME, CHAT_GUTTER_CLASSNAME } from "../../constants";
 import { commandChip, LEADING_COMMAND } from "../../utils/commandChip";
 import { elementsForChips } from "../../utils/messageElements";
+import type { RewindPoint } from "../../utils/rewindTimeline";
 import { type AgentSwitcher, ModelPicker } from "./components/ModelPicker";
 import { ModePicker, type SessionMode } from "./components/ModePicker";
 import { QueuedPrompts } from "./components/QueuedPrompts";
+import { RewindPanel } from "./components/RewindPanel";
 import { useAttachmentPreview } from "./hooks/useAttachmentPreview";
 import {
 	takeRecoveredDraftText,
 	useComposerDraft,
 } from "./hooks/useComposerDraft";
 import { useFooterTier } from "./hooks/useFooterTier";
+import { useMcpServerPicker } from "./hooks/useMcpServerPicker";
 import { useQueueActions } from "./hooks/useQueueActions";
 import { useUploadAttachments } from "./hooks/useUploadAttachments";
+import { mcpServerOfChip, withMcpContext } from "./utils/mcpServerChips";
 
 export type ComposerProps = {
 	workspaceId: string;
+	agentId?: string;
 	draftKey: string;
 	inputRef?: Ref<Pick<PromptInputHandle, "appendText" | "focus">>;
 	availableCommands: AvailableCommand[];
@@ -73,7 +79,13 @@ export type ComposerProps = {
 		resume: () => Promise<void>;
 		steer: (itemId: string) => Promise<void>;
 	};
+	rewind?: {
+		points: RewindPoint[];
+		onPick: (point: RewindPoint) => void;
+	};
 };
+
+const REWIND_COMMAND = "rewind";
 
 /**
  * The agent's own slash commands, in the shape the composer's menu takes.
@@ -100,6 +112,7 @@ const FOCUS_HANDOFF_MS = 1000;
 let focusHandoff: { draftKey: string; at: number } | null = null;
 
 export const Composer = memo(function Composer({
+	agentId,
 	agentSwitcher,
 	availableCommands,
 	configOptions,
@@ -116,6 +129,7 @@ export const Composer = memo(function Composer({
 	onSend,
 	placeholder,
 	promptQueue,
+	rewind,
 	workspaceId,
 }: ComposerProps) {
 	const { t } = useLingui();
@@ -126,6 +140,7 @@ export const Composer = memo(function Composer({
 	const { storedDraft, onChange, clearDraft } = useComposerDraft(draftKey);
 	const promptInputRef = useRef<PromptInputHandle>(null);
 	const queueActions = useQueueActions(promptQueue, promptInputRef);
+	const mcpPicker = useMcpServerPicker({ workspaceId, agentId });
 	useImperativeHandle(
 		inputRef,
 		() => ({
@@ -258,14 +273,57 @@ export const Composer = memo(function Composer({
 		[searchFiles, searchPages, t],
 	);
 
-	const commands = useMemo(
-		() =>
-			toMenuCommands(availableCommands, {
+	const rewindRef = useRef(rewind);
+	rewindRef.current = rewind;
+	const openRewind = useCallback(
+		(open: (panel: ComposerPanelContent) => void) =>
+			open({
+				title: t({ message: "Rewind" }),
+				render: ({ close }) => (
+					<RewindPanel
+						points={rewindRef.current?.points ?? []}
+						onPick={(point) => {
+							close();
+							rewindRef.current?.onPick(point);
+						}}
+					/>
+				),
+			}),
+		[t],
+	);
+	const hasRewind = rewind !== undefined;
+
+	const mcpCommand = mcpPicker.command;
+	const commands = useMemo(() => {
+		const local: PromptInputCommand[] = [
+			...(mcpCommand ? [mcpCommand] : []),
+			...(hasRewind
+				? [
+						{
+							id: REWIND_COMMAND,
+							title: `/${REWIND_COMMAND}`,
+							description: t({
+								message: "Go back to an earlier message and restore the files",
+							}),
+							group: t({ message: "Commands" }),
+							onSelect: (ctx) => openRewind(ctx.openPanel),
+						} satisfies PromptInputCommand,
+					]
+				: []),
+		];
+		const agentCommands = toMenuCommands(
+			availableCommands.filter(
+				(command) =>
+					!(mcpCommand && command.name === "mcp") &&
+					!(hasRewind && command.name === REWIND_COMMAND),
+			),
+			{
 				commands: t({ message: "Commands" }),
 				mcp: t({ message: "MCP Server Commands" }),
-			}),
-		[availableCommands, t],
-	);
+			},
+		);
+		return [...local, ...agentCommands];
+	}, [availableCommands, mcpCommand, hasRewind, openRewind, t]);
 
 	const send = useCallback(
 		async (
@@ -280,13 +338,17 @@ export const Composer = memo(function Composer({
 				promptInputRef.current?.appendText(appendPastedText(text, pastedTexts));
 				return;
 			}
-			const elements = elementsForChips(text.trim(), mentions);
+			const message = withMcpContext(
+				text.trim(),
+				mentions.flatMap((chip) => mcpServerOfChip(chip) ?? []),
+			);
+			const elements = elementsForChips(message, mentions);
 			onSend(
 				[
 					{
 						type: "text",
 						text: appendPastedText(
-							[text.trim(), ...tags].filter(Boolean).join("\n"),
+							[message, ...tags].filter(Boolean).join("\n"),
 							pastedTexts,
 						),
 						...(elements.length > 0 ? { elements } : {}),
@@ -313,6 +375,13 @@ export const Composer = memo(function Composer({
 			)
 				return;
 			const name = LEADING_COMMAND.exec(text.trim())?.[1];
+			if (name === REWIND_COMMAND && hasRewind) {
+				// Submitting closes any open panel once this returns.
+				setTimeout(() =>
+					openRewind((panel) => promptInputRef.current?.openPanel(panel)),
+				);
+				return;
+			}
 			if (
 				name &&
 				availableCommands.length > 0 &&
@@ -323,7 +392,7 @@ export const Composer = memo(function Composer({
 			}
 			return send(text, files, mentions, pastedTexts, steer);
 		},
-		[availableCommands, disabled, send, t],
+		[availableCommands, disabled, hasRewind, openRewind, send, t],
 	);
 
 	const queueListRef = useRef<HTMLUListElement>(null);
@@ -368,6 +437,7 @@ export const Composer = memo(function Composer({
 				collapseLargePastes
 				commands={commands}
 				defaultValue={storedDraft}
+				findChips={mcpPicker.findChips}
 				history={history}
 				key={draftKey}
 				mentionProviders={mentionProviders}
@@ -405,6 +475,7 @@ export const Composer = memo(function Composer({
 				}
 			/>
 			{attachmentPreview.overlay}
+			{mcpPicker.dialog}
 		</div>
 	);
 });

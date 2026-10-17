@@ -24,7 +24,7 @@ export function openChangesPaneInStore(
 ): void {
 	const state = store.getState();
 
-	if (target === "pane") {
+	if (target === "pane" && !state.openInTabs) {
 		const activeTab = state.tabs.find((tab) => tab.id === state.activeTabId);
 		if (activeTab) {
 			const existing = Object.values(activeTab.panes).find(

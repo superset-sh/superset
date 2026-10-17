@@ -967,9 +967,15 @@ msgstr "{name} est intégré et ne peut pas être supprimé"
 msgid "serverError.plugins.marketplaceReserved"
 msgstr "{name} est intégré et ne peut pas être remplacé"
 
+msgid "{name} is installed"
+msgstr "{name} est installé"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} n'est pas ajouté"
+
+msgid "{name} plugin"
+msgstr "Plugin {name}"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {Indiquez au moins une personne, ou choisissez {choice}.} sender {Indiquez au moins un expéditeur, ou choisissez {choice}.} other {Indiquez au moins un élément, ou choisissez {choice}.}}"
@@ -1419,8 +1425,8 @@ msgstr "Un point de terminaison CDP par volet"
 msgid "A changelog goes out every week. Most new hires ship to users in their first few days."
 msgstr "Un changelog est publié chaque semaine. La plupart des nouvelles recrues livrent aux utilisateurs dès leurs premiers jours."
 
-msgid "A chat can't switch to another provider partway through. Fork this conversation into a new {label} chat instead. This {currentLabel} chat stays open."
-msgstr "Un chat ne peut pas changer de fournisseur en cours de route. Dupliquez plutôt cette conversation dans un nouveau chat {label}. Ce chat {currentLabel} reste ouvert."
+msgid "A chat can't switch to another provider partway through. Start a fresh {label} chat, or fork this conversation into one. This {currentLabel} chat stays open."
+msgstr "Un chat ne peut pas changer de fournisseur en cours de route. Démarrez un nouveau chat {label}, ou dupliquez cette conversation dans un nouveau chat. Ce chat {currentLabel} reste ouvert."
 
 msgid "A chat takes its name from the agent."
 msgstr "Un chat prend son nom de l'agent."
@@ -3552,6 +3558,9 @@ msgstr "Vérification des environnements…"
 msgid "Checking host…"
 msgstr "Vérification de l'hôte…"
 
+msgid "Checking MCP servers…"
+msgstr "Vérification des serveurs MCP…"
+
 msgid "Checking out a PR requires a project"
 msgstr "Récupérer une pull request nécessite un projet"
 
@@ -3624,6 +3633,9 @@ msgstr "Choisir un agent"
 msgid "Choose an existing repo folder"
 msgstr "Choisir un dossier de dépôt existant"
 
+msgid "Choose an MCP server"
+msgstr "Choisissez un serveur MCP"
+
 msgid "Choose app"
 msgstr "Choisir une application"
 
@@ -3635,6 +3647,9 @@ msgstr "Choisissez comment la vue des changements s'ouvre depuis la barre supér
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "Choisissez comment ouvrir les chemins de fichiers lors d'un Cmd+clic dans le terminal"
+
+msgid "Choose MCP servers for this message"
+msgstr "Choisir des serveurs MCP pour ce message"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "Choisissez ce qu'il faut effacer du navigateur intégré."
@@ -4268,6 +4283,9 @@ msgstr "Choisissez quels agents apparaissent dans les lanceurs et comment leurs 
 msgid "Configure workspace run command"
 msgstr "Configurer la commande d'exécution de l'espace de travail"
 
+msgid "Configured for {agent}"
+msgstr "Configuré pour {agent}"
+
 msgid "Confirm before quitting"
 msgstr "Confirmer avant de quitter"
 
@@ -4521,9 +4539,6 @@ msgstr "Menu contextuel"
 
 msgid "Continue"
 msgstr "Continuer"
-
-msgid "Continue in a new {label} chat?"
-msgstr "Continuer dans un nouveau chat {label} ?"
 
 msgid "Continue or fork session"
 msgstr "Continuer ou forker la session"
@@ -4929,6 +4944,9 @@ msgstr "Impossible de joindre la machine de cet espace de travail"
 msgid "Could not reactivate"
 msgstr "Réactivation impossible"
 
+msgid "Could not read MCP servers."
+msgstr "Impossible de lire les serveurs MCP."
+
 msgid "Could not read selected file"
 msgstr "Impossible de lire le fichier sélectionné"
 
@@ -5177,6 +5195,12 @@ msgstr "Impossible de restaurer « {projectName} »"
 
 msgid "Couldn't restore \"{workspaceName}\""
 msgstr "Impossible de restaurer « {workspaceName} »"
+
+msgid "Couldn't restore the files"
+msgstr "Impossible de restaurer les fichiers"
+
+msgid "Couldn't rewind the chat"
+msgstr "Impossible de rembobiner le chat"
 
 msgid "Couldn't save"
 msgstr "Échec de l'enregistrement"
@@ -6114,6 +6138,9 @@ msgstr "Désactiver la compétence"
 
 msgid "Disabled"
 msgstr "Désactivé"
+
+msgid "Disabled in agent config"
+msgstr "Désactivé dans la configuration de l'agent"
 
 msgid "Disabled toggle"
 msgstr "Bascule désactivée"
@@ -7819,14 +7846,14 @@ msgstr "Oublier {domain}"
 msgid "Fork args"
 msgstr "Arguments de fork"
 
+msgid "Fork conversation"
+msgstr "Dupliquer la conversation"
+
 msgid "Fork session"
 msgstr "Forker la session"
 
 msgid "Fork session…"
 msgstr "Forker la session…"
-
-msgid "Fork to new chat"
-msgstr "Dupliquer dans un nouveau chat"
 
 msgid "Form controls and field composition"
 msgstr "Contrôles de formulaire et composition des champs"
@@ -8052,6 +8079,9 @@ msgstr "Revenir en arrière"
 
 msgid "Go back home"
 msgstr "Retourner à l'accueil"
+
+msgid "Go back to an earlier message and restore the files"
+msgstr "Revenir à un message précédent et restaurer les fichiers"
 
 msgid "Go back to the previous page in history"
 msgstr "Revenir à la page précédente de l'historique"
@@ -8692,6 +8722,9 @@ msgstr "Dans l'application de bureau Superset, ouvrez Paramètres → Accès dis
 msgid "In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers, and Asia as a whole now accounts for more users than the US."
 msgstr "En moins d’un an, plus de 130 000 développeurs dans 176 pays ont utilisé Superset et créé plus de 1,5 million d’espaces de travail d’agents. Le Japon est son deuxième marché après les États-Unis, avec plus de 12 000 développeurs, et l’Asie dans son ensemble compte désormais plus d’utilisateurs que les États-Unis."
 
+msgid "In your next chat"
+msgstr "Dans votre prochain chat"
+
 msgid "In your terminal"
 msgstr "Dans votre terminal"
 
@@ -9054,6 +9087,9 @@ msgstr "Sa propre branche et sa propre copie des fichiers"
 
 msgid "Its replies go with it."
 msgstr "Ses réponses seront aussi supprimées."
+
+msgid "Its tools reach the agent in your next chat."
+msgstr "Ses outils seront disponibles pour l'agent dans votre prochain chat."
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Ses espaces de travail et terminaux sont indisponibles jusqu'à son redémarrage — utilisez le menu de la barre d'état Superset > Service hôte > Redémarrer."
@@ -9684,6 +9720,10 @@ msgstr "Chargement..."
 msgid "Loading…"
 msgstr "Chargement…"
 
+msgctxt "MCP server scope"
+msgid "local"
+msgstr "local"
+
 msgid "Local"
 msgstr "Local"
 
@@ -9848,6 +9888,9 @@ msgstr "Gérer le forfait"
 msgid "Manage plan on the web"
 msgstr "Gérer le forfait sur le web"
 
+msgid "Manage plugins…"
+msgstr "Gérer les plugins…"
+
 msgid "Manage sessions"
 msgstr "Gérer les sessions"
 
@@ -9947,6 +9990,9 @@ msgstr "Serveur MCP"
 msgid "MCP Server Commands"
 msgstr "Commandes du serveur MCP"
 
+msgid "MCP servers"
+msgstr "Serveurs MCP"
+
 msgid "Measured over the trailing 30 days"
 msgstr "Mesuré sur les 30 derniers jours"
 
@@ -10027,9 +10073,6 @@ msgstr "Commit de fusion"
 #. placeholder {0}: error.message
 msgid "Merge failed: {0}"
 msgstr "Échec de la fusion : {0}"
-
-msgid "Merge into center"
-msgstr "Fusionner au centre"
 
 msgid "Merge pull request"
 msgstr "Fusionner la pull request"
@@ -10278,9 +10321,6 @@ msgstr "L'essentiel de l'histoire du logiciel"
 msgid "Move {count} to Group"
 msgstr "Déplacer {count} vers un groupe"
 
-msgid "Move to Center"
-msgstr "Déplacer au centre"
-
 msgid "Move to group"
 msgstr "Déplacer vers un groupe"
 
@@ -10446,6 +10486,9 @@ msgstr "Nouveau navigateur"
 
 msgid "new challengers"
 msgstr "nouveaux adversaires"
+
+msgid "New Chat"
+msgstr "Nouveau chat"
 
 msgid "New cloud workspace"
 msgstr "Nouvel espace de travail cloud"
@@ -10852,6 +10895,9 @@ msgstr "Aucune icône"
 msgid "No icons match."
 msgstr "Aucune icône ne correspond."
 
+msgid "No installed agent can be opened as a chat"
+msgstr "Aucun agent installé ne peut être ouvert en chat"
+
 msgid "No Internet Connection"
 msgstr "Aucune connexion internet"
 
@@ -10900,6 +10946,9 @@ msgstr "Aucun résultat"
 msgid "No matching files"
 msgstr "Aucun fichier correspondant"
 
+msgid "No matching MCP servers"
+msgstr "Aucun serveur MCP correspondant"
+
 msgid "No matching models"
 msgstr "Aucun modèle correspondant"
 
@@ -10911,6 +10960,9 @@ msgstr "Aucune page correspondante"
 
 msgid "No matching repositories."
 msgstr "Aucun dépôt correspondant."
+
+msgid "No MCP servers found"
+msgstr "Aucun serveur MCP trouvé"
 
 msgid "No members yet"
 msgstr "Aucun membre pour l'instant"
@@ -11620,6 +11672,9 @@ msgstr "Ouvrir {path} dans le volet Fichier"
 
 msgid "Open a multiline prompt composer for the active terminal"
 msgstr "Ouvrir un éditeur de prompt multiligne pour le terminal actif"
+
+msgid "Open a new {label} chat?"
+msgstr "Ouvrir un nouveau chat {label} ?"
 
 msgid "Open a pane, or drag one here from the center."
 msgstr "Ouvrez un panneau ou faites-en glisser un ici depuis le centre."
@@ -12477,6 +12532,9 @@ msgstr "Choisir un dossier…"
 msgid "Pick a low-risk papercut, fix it, and explain how it was verified."
 msgstr "Choisir un désagrément à faible risque, le corriger et expliquer comment il a été vérifié."
 
+msgid "Pick a message. The chat goes back to just before it, and the message returns to the composer."
+msgstr "Choisissez un message. Le chat revient juste avant ce message, et le message retourne dans la zone de saisie."
+
 msgid "Pick a model"
 msgstr "Choisir un modèle"
 
@@ -12915,6 +12973,10 @@ msgstr "Progression"
 msgid "Progress · Spinner"
 msgstr "Progression · Spinner"
 
+msgctxt "MCP server scope"
+msgid "project"
+msgstr "projet"
+
 msgid "Project"
 msgstr "Projet"
 
@@ -12947,6 +13009,9 @@ msgstr "Projet introuvable."
 
 msgid "Project not set up on this host"
 msgstr "Projet non configuré sur cet hôte"
+
+msgid "Project not trusted in Codex"
+msgstr "Projet non approuvé dans Codex"
 
 msgid "Project ready — open it from the sidebar."
 msgstr "Projet prêt — ouvrez-le depuis la barre latérale."
@@ -13276,6 +13341,9 @@ msgstr "Lire les logs de déploiement et de build"
 
 msgid "Read it on your phone"
 msgstr "Lisez-la sur votre téléphone"
+
+msgid "Read MCP servers again"
+msgstr "Relire les serveurs MCP"
 
 msgid "Read the changelog"
 msgstr "Lire le changelog"
@@ -14213,6 +14281,18 @@ msgstr "Révoquer la clé API"
 msgid "Revoke key"
 msgstr "Révoquer la clé"
 
+msgid "Rewind"
+msgstr "Rembobiner"
+
+msgid "Rewind chat and files"
+msgstr "Rembobiner le chat et les fichiers"
+
+msgid "Rewind chat only"
+msgstr "Rembobiner le chat uniquement"
+
+msgid "Rewind to this message?"
+msgstr "Rembobiner jusqu’à ce message ?"
+
 msgid "Rewrote it and published version 2."
 msgstr "Réécrit et publié en version 2."
 
@@ -14678,6 +14758,9 @@ msgstr "Rechercher dans Linear"
 
 msgid "Search Linear…"
 msgstr "Rechercher dans Linear…"
+
+msgid "Search MCP servers…"
+msgstr "Rechercher des serveurs MCP…"
 
 msgid "Search models"
 msgstr "Rechercher des modèles"
@@ -16002,6 +16085,9 @@ msgstr "Commencer l'essai gratuit"
 msgid "Start free. Upgrade when your team outgrows it. Enterprise plans for organizations with advanced security and compliance needs."
 msgstr "Commencez gratuitement. Passez à l'offre supérieure quand votre équipe s'agrandit. Des offres Enterprise pour les organisations aux besoins avancés de sécurité et de conformité."
 
+msgid "Start fresh"
+msgstr "Recommencer à zéro"
+
 msgid "Start from a template"
 msgstr "Partir d'un modèle"
 
@@ -16143,6 +16229,9 @@ msgstr "Arrêtez Superset ici pour le supprimer depuis un autre appareil."
 
 msgid "Stop the agent and send this now"
 msgstr "Arrêter l'agent et envoyer maintenant"
+
+msgid "Stop the agent before you rewind"
+msgstr "Arrêtez l’agent avant de rembobiner"
 
 msgid "Stop watching"
 msgstr "Arrêter la surveillance"
@@ -17268,6 +17357,12 @@ msgstr "Thèmes"
 msgid "Themes and agents"
 msgstr "Thèmes et agents"
 
+msgid "There are no messages to rewind to yet."
+msgstr "Il n’y a encore aucun message vers lequel rembobiner."
+
+msgid "There is no file snapshot for that message, so nothing was rewound. Choose Rewind chat only to rewind just the conversation."
+msgstr "Il n’existe aucun instantané des fichiers pour ce message, donc rien n’a été rembobiné. Choisissez « Rembobiner le chat uniquement » pour ne rembobiner que la conversation."
+
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "Ces commandes s'exécutent automatiquement lorsqu'un espace de travail est créé. <0>Lire notre documentation<1/></0>"
 
@@ -17401,6 +17496,9 @@ msgstr "Cette installation GitHub est déjà connectée à une autre organisatio
 msgid "This host"
 msgstr "Cet hôte"
 
+msgid "This host can't restore files, so nothing was rewound. Choose Rewind chat only to rewind just the conversation."
+msgstr "Cet hôte ne peut pas restaurer les fichiers, donc rien n’a été rembobiné. Choisissez « Rembobiner le chat uniquement » pour ne rembobiner que la conversation."
+
 msgid "This host has not reported a version yet."
 msgstr "Cet hôte n'a pas encore signalé de version."
 
@@ -17442,6 +17540,9 @@ msgstr "Ce Mac"
 
 msgid "This machine"
 msgstr "Cette machine"
+
+msgid "This message and everything after it leave the chat, and the message goes back to the composer. Rewinding the files also undoes changes made since then. A snapshot of the current files is kept first."
+msgstr "Ce message et tout ce qui suit quittent le chat, et le message retourne dans la zone de saisie. Rembobiner aussi les fichiers annule les modifications faites depuis. Un instantané des fichiers actuels est d’abord conservé."
 
 msgid "This Microsoft tenant is already connected by {detail}. Ask them to disconnect first."
 msgstr "Ce tenant Microsoft est déjà connecté par {detail}. Demandez-lui de le déconnecter d'abord."
@@ -18478,6 +18579,10 @@ msgstr "Utilisé lorsque votre système est en mode sombre."
 
 msgid "Used when your system is in light mode."
 msgstr "Utilisé lorsque votre système est en mode clair."
+
+msgctxt "MCP server scope"
+msgid "user"
+msgstr "utilisateur"
 
 msgid "User already has access to this host"
 msgstr "Cet utilisateur a déjà accès à cet hôte"

@@ -4,3 +4,10 @@
  * only one of the two surfaces knows how to carry it out.
  */
 export type ChatForkTarget = "workspace" | "worktree";
+
+/** A rewind picked in the chat: the message to go back before, and the conversation up to it. */
+export type ChatRewindRequest = {
+	itemId: string;
+	messageText: string;
+	transcript: string;
+};

@@ -185,6 +185,10 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["chatModeByAgent"],
 	],
 	[
+		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/lastChatAgent/lastChatAgent.ts",
+		["chatLastAgent"],
+	],
+	[
 		"src/renderer/hooks/useAgentModelPreference/useAgentModelPreference.ts",
 		["lastSelectedV2WorkspaceCreateModelByPreset"],
 	],

@@ -110,6 +110,7 @@ export type CreateTabInput<TData> = {
 };
 
 export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
+	readonly openInTabs: boolean;
 	addTab: (args: CreateTabInput<TData>) => void;
 	removeTab: (tabId: string, options?: { intent?: "close" | "remove" }) => void;
 	insertTab: (args: { tab: Tab<TData>; index?: number }) => void;
@@ -195,6 +196,7 @@ export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
 
 export interface CreateWorkspaceStoreOptions<TData> {
 	initialState?: WorkspaceState<TData>;
+	openInTabs?: boolean;
 }
 
 export function createWorkspaceStore<TData>(
@@ -211,8 +213,10 @@ export function createWorkspaceStore<TData>(
 			}
 		}
 	};
+	const openInTabs = options?.openInTabs === true;
 	return createStore<WorkspaceStore<TData>>((set, get) => ({
 		version: 1,
+		openInTabs,
 		tabs: options?.initialState?.tabs ?? [],
 		activeTabId: options?.initialState?.activeTabId ?? null,
 
@@ -472,6 +476,27 @@ export function createWorkspaceStore<TData>(
 
 		openPane: (args) => {
 			const s = get();
+			if (openInTabs) {
+				const candidates = [
+					...s.tabs.filter((t) => t.id === s.activeTabId),
+					...s.tabs.filter((t) => t.id !== s.activeTabId),
+				];
+				for (const t of candidates) {
+					const reusable = Object.values(t.panes).find(
+						(p) => p.kind === args.pane.kind && !p.pinned,
+					);
+					if (!reusable) continue;
+					get().replacePane({
+						tabId: t.id,
+						paneId: reusable.id,
+						newPane: args.pane,
+					});
+					get().setActiveTab(t.id);
+					return;
+				}
+				get().addTab({ panes: [args.pane] });
+				return;
+			}
 			const activeTabId = s.activeTabId;
 			const tab = activeTabId ? s.tabs.find((t) => t.id === activeTabId) : null;
 

@@ -27,6 +27,7 @@ import { acpHarnessEntries } from "./acpHarnesses";
 import { resolveAgentCli } from "./agentCli";
 import { buildChatAgentEnv } from "./agentEnv";
 import type { ChatAgentBridge } from "./chatAgentBridge";
+import { createGitCheckpoints } from "./gitCheckpoints";
 import { createResolveCwd } from "./resolveCwd";
 
 export const CHAT_V3_TRPC_PATH = "/chat-v3/trpc";
@@ -126,6 +127,7 @@ export function createChatV3Mount(options: {
 			migrationsFolder: migrationsFolder(),
 			harnesses: harnessRegistry(options.db, options.agents),
 			observer: options.agents,
+			checkpoints: createGitCheckpoints(),
 			onSessionChanged: options.onSessionChanged,
 		});
 		return built;

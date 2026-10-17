@@ -4,6 +4,10 @@ import { selectRuntimesToEvict } from "renderer/lib/terminal/terminal-runtime-ev
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { BrowserLoadError } from "shared/tabs-types";
 import { sanitizeUrl } from "./sanitizeUrl";
+import {
+	clippingAncestorRects,
+	visibleClipPath,
+} from "./utils/visibleClipPath";
 
 export interface BrowserRuntimeState {
 	currentUrl: string;
@@ -196,14 +200,39 @@ export class BrowserRuntimeRegistryImpl {
 		}
 	}
 
+	private applyShownStyle(entry: RegistryEntry): void {
+		entry.webview.style.visibility = "visible";
+		entry.webview.style.opacity = "";
+		entry.overlay.style.visibility = "visible";
+	}
+
 	private updateLayout(entry: RegistryEntry) {
 		if (!entry.placeholder) return;
 		const rect = entry.placeholder.getBoundingClientRect();
+		const clipPath =
+			entry.placeholder instanceof Element
+				? visibleClipPath(rect, clippingAncestorRects(entry.placeholder))
+				: "";
 		for (const style of [entry.webview.style, entry.overlay.style]) {
 			style.top = `${rect.top}px`;
 			style.left = `${rect.left}px`;
 			style.width = `${rect.width}px`;
 			style.height = `${rect.height}px`;
+			style.clipPath = clipPath;
+		}
+	}
+
+	// The placeholder's ResizeObserver misses moves that do not resize it, so
+	// callers run this on each frame while panes slide.
+	relayout(): void {
+		for (const [paneId, entry] of this.entries) {
+			if (!entry.placeholder || !entry.visible) continue;
+			this.updateLayout(entry);
+			if (getComputedStyle(entry.placeholder).visibility === "hidden") {
+				this.applyParkedStyle(paneId, entry);
+			} else {
+				this.applyShownStyle(entry);
+			}
 		}
 	}
 
@@ -571,9 +600,7 @@ export class BrowserRuntimeRegistryImpl {
 		entry.resizeObserver = observer;
 
 		this.updateLayout(entry);
-		entry.webview.style.visibility = "visible";
-		entry.webview.style.opacity = "";
-		entry.overlay.style.visibility = "visible";
+		this.applyShownStyle(entry);
 		this.applyPointerPassthrough(pointerPassthrough.active);
 	}
 

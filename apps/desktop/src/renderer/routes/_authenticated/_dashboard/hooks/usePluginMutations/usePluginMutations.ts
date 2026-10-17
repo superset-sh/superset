@@ -10,8 +10,15 @@ import { posthog } from "renderer/lib/posthog";
 const displayName = (name: string) =>
 	getPluginByName(name)?.interface.displayName ?? name;
 
-/** Install/uninstall/toggle with shared toasts, analytics, and invalidation. */
-export function usePluginMutations() {
+/**
+ * Install/uninstall/toggle with shared toasts, analytics, and invalidation.
+ * A caller that reports an install itself passes `announceInstall: false`.
+ */
+export function usePluginMutations({
+	announceInstall = true,
+}: {
+	announceInstall?: boolean;
+} = {}) {
 	const { t } = useLingui();
 	const utils = cloudTrpc.useUtils();
 	const navigate = useNavigate();
@@ -51,6 +58,7 @@ export function usePluginMutations() {
 	const installMutation = electronTrpc.plugins.install.useMutation({
 		onSuccess: (_data, variables) => {
 			posthog.capture("plugin_installed", { plugin: variables.name });
+			if (!announceInstall) return;
 			toast.success(
 				t({
 					message: `${displayName(variables.name)} installed`,

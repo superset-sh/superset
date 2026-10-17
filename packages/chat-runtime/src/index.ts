@@ -1,3 +1,4 @@
+import type { ChatCheckpoints } from "./checkpoints";
 import type { ChatCommands } from "./commands";
 import { CommandDedupe, createCommands } from "./commands";
 import type { ChatDb, OpenChatDb } from "./db";
@@ -10,6 +11,7 @@ import { LiveSessionRegistry } from "./sessions";
 import type { Schedule, Sink, SubscribeOptions, Subscription } from "./stream";
 import { SubscriptionHub } from "./stream";
 
+export * from "./checkpoints";
 export * from "./commands";
 export * from "./db";
 export * from "./harness";
@@ -26,6 +28,7 @@ export type ChatRuntimeOptions = {
 	openDatabase?: OpenChatDb;
 	harnesses?: HarnessRegistry;
 	observer?: LiveSessionObserver;
+	checkpoints?: ChatCheckpoints;
 	schedule?: Schedule;
 	bootstrapLimit?: number;
 	dedupeCapacity?: number;
@@ -65,12 +68,14 @@ export function createChatRuntime(options: ChatRuntimeOptions): ChatRuntime {
 		publish: (envelope) => subscriptions.publish(envelope),
 		harnesses: options.harnesses ?? new Map(),
 		observer: options.observer,
+		checkpoints: options.checkpoints,
 	});
 	const commands = createCommands({
 		journal,
 		db,
 		sessions,
 		live,
+		checkpoints: options.checkpoints,
 		dedupe: new CommandDedupe(options.dedupeCapacity),
 	});
 

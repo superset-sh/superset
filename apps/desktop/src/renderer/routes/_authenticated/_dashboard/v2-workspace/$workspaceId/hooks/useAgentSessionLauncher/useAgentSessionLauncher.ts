@@ -20,6 +20,7 @@ import type {
 	TerminalPaneData,
 } from "../../types";
 import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
+import { readLastChatAgent } from "../../utils/lastChatAgent";
 
 export interface CreateNewAgentSessionInput {
 	configId: string;
@@ -34,6 +35,8 @@ export interface CreateNewAgentSessionInput {
 export type CreateNewAgentSession = (
 	input: CreateNewAgentSessionInput,
 ) => Promise<{ terminalId: string } | null>;
+
+export type OpenNewChat = () => Promise<{ terminalId: string } | null>;
 
 export type OpenAgentChat = (
 	input: Omit<CreateNewAgentSessionInput, "forkSessionId" | "prompt"> & {
@@ -53,6 +56,7 @@ export function useAgentSessionLauncher({
 }: UseAgentSessionLauncherOptions): {
 	createNewAgentSession: CreateNewAgentSession;
 	openAgentChat: OpenAgentChat;
+	openNewChat: OpenNewChat;
 	focusAgentTerminal: (terminalId: string) => void;
 } {
 	const { t } = useLingui();
@@ -101,6 +105,23 @@ export function useAgentSessionLauncher({
 		},
 		[awaitAcpChatEnabled, queryClient, hostUrl, agentConfigs, store],
 	);
+
+	const openNewChat = useCallback<OpenNewChat>(async () => {
+		const configs = await queryClient
+			.ensureQueryData(v2AgentConfigsQueryOptions(hostUrl))
+			.catch(() => agentConfigs ?? []);
+		const chatPresetIds = configs
+			.map((config) => config.presetId)
+			.filter((presetId) => acpHarnessForPreset(presetId));
+		const presetId = [readLastChatAgent(), "claude", ...chatPresetIds].find(
+			(candidate) => candidate && chatPresetIds.includes(candidate),
+		);
+		if (!presetId) {
+			toast.error(t({ message: "No installed agent can be opened as a chat" }));
+			return null;
+		}
+		return openAgentChat({ configId: "", presetId, placement: "new-tab" });
+	}, [queryClient, hostUrl, agentConfigs, openAgentChat, t]);
 
 	const createNewAgentSession = useCallback<CreateNewAgentSession>(
 		async (input) => {
@@ -178,5 +199,10 @@ export function useAgentSessionLauncher({
 		[store],
 	);
 
-	return { createNewAgentSession, openAgentChat, focusAgentTerminal };
+	return {
+		createNewAgentSession,
+		openAgentChat,
+		openNewChat,
+		focusAgentTerminal,
+	};
 }

@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
+import { deriveTimeline, emptySnapshot, reduceMany } from "@superset/chat/core";
+import type { UserMessage } from "@superset/chat/protocol";
 import type { FakeHarnessScript } from "../../harness/fake";
+import { FakeHarness } from "../../harness/fake";
 import type { ChatRuntime } from "../../index";
 import { agentMessage, turn } from "../../testing/fixtures";
 import { createTestRuntime } from "../../testing/testRuntime";
@@ -308,6 +311,89 @@ describe("chat commands", () => {
 			ok: false,
 			reset: "session_not_found",
 		});
+		await runtime.dispose();
+	});
+
+	test("rewindSession opens a session holding the transcript before a message, with the handoff out of view", async () => {
+		const later = Date.now() + 60_000;
+		const scriptedTurn = (turnId: string, text: string) => [
+			{ kind: "turn" as const, turn: turn(turnId, { startedAtMs: later }) },
+			{
+				kind: "item" as const,
+				item: { ...agentMessage(`${turnId}-reply`, text), startedAtMs: later },
+				turnId,
+			},
+			{
+				kind: "turn" as const,
+				turn: turn(turnId, {
+					status: "completed",
+					startedAtMs: later,
+					completedAtMs: later,
+				}),
+			},
+			{ kind: "session" as const, session: { status: "idle" as const } },
+		];
+		const scripts: FakeHarnessScript[] = [
+			{ turns: [scriptedTurn("t1", "one"), scriptedTurn("t2", "two")] },
+			{ turns: [scriptedTurn("t3", "got it")] },
+		];
+		let created = 0;
+		const runtime = createTestRuntime({
+			harnesses: new Map([
+				[FAKE_HARNESS, () => new FakeHarness(scripts[created++] ?? { turns: [] })],
+			]),
+		});
+		const { sessionId } = createSession(runtime);
+		const send = (text: string) =>
+			runtime.commands.prompt({
+				commandId: randomUUID(),
+				sessionId,
+				clientId: text,
+				content: [{ type: "text", text }],
+			});
+		send("first");
+		await waitFor(() => runtime.sessions.get(sessionId)?.status === "idle");
+		const second = send("second");
+		await waitFor(
+			() =>
+				runtime.live.require(sessionId).turn?.id === "t2" &&
+				runtime.live.require(sessionId).turn?.status === "completed",
+		);
+
+		const rewound = await runtime.commands.rewindSession({
+			commandId: randomUUID(),
+			sessionId,
+			itemId: second.itemId,
+			handoffPrompt: "earlier conversation",
+			cwd: "/tmp/workspace",
+		});
+		await waitFor(
+			() =>
+				runtime.live.require(rewound.sessionId).turn?.status === "completed",
+		);
+
+		const envelopes = journalEnvelopes(runtime, rewound.sessionId);
+		const shown = deriveTimeline(
+			reduceMany(emptySnapshot(), envelopes),
+		).flatMap((group) =>
+			group.entries.flatMap((entry) =>
+				entry.kind === "item" ? [entry.item] : entry.items,
+			),
+		);
+		expect(
+			shown.map((item) =>
+				item.kind === "user_message"
+					? (item as UserMessage).content[0]
+					: item.id,
+			),
+		).toEqual([{ type: "text", text: "first" }, "t1-reply"]);
+		const handoff = envelopes.find(
+			(envelope) =>
+				envelope.event.type === "item" &&
+				envelope.event.item.kind === "user_message" &&
+				(envelope.event.item as UserMessage).hidden === true,
+		);
+		expect(handoff).toBeDefined();
 		await runtime.dispose();
 	});
 });

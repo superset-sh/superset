@@ -1,12 +1,7 @@
-import type { WorkspaceStore } from "@superset/panes";
 import { createContext, useContext } from "react";
-import type { StoreApi } from "zustand/vanilla";
-import type { PaneViewerData } from "../../types";
+import type { PaneTarget } from "../../types";
 
-export interface RightPaneLinkTarget {
-	store: StoreApi<WorkspaceStore<PaneViewerData>>;
-	reveal: () => void;
-}
+export type RightPaneLinkTarget = PaneTarget;
 
 const RightPaneLinkTargetContext = createContext<RightPaneLinkTarget | null>(
 	null,

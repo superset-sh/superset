@@ -1,3 +1,4 @@
+import type { CreatePaneInput } from "@superset/panes";
 import {
 	type FocusDirection,
 	getPaneParentDirection,
@@ -16,6 +17,7 @@ import type {
 	BrowserPaneData,
 	DesktopPaneData,
 	MobilePaneData,
+	PaneTarget,
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
@@ -25,6 +27,7 @@ import { useWorkspaceRightSidebarOpen } from "../useWorkspaceRightSidebarOpen";
 
 export function useWorkspaceHotkeys({
 	store,
+	viewer,
 	matchedPresets,
 	executePreset,
 	addTerminalTab,
@@ -35,6 +38,7 @@ export function useWorkspaceHotkeys({
 	isSandbox,
 }: {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
+	viewer: PaneTarget;
 	matchedPresets: V2TerminalPresetRow[];
 	executePreset: (preset: V2TerminalPresetRow) => void | Promise<void>;
 	addTerminalTab: () => Promise<void>;
@@ -76,7 +80,8 @@ export function useWorkspaceHotkeys({
 	});
 
 	useHotkey("NEW_BROWSER", () => {
-		store.getState().addTab({
+		viewer.reveal();
+		viewer.store.getState().addTab({
 			panes: [
 				{
 					kind: "browser",
@@ -266,9 +271,13 @@ export function useWorkspaceHotkeys({
 		});
 	});
 
-	useHotkey(
-		"SPLIT_WITH_DESKTOP",
-		() => {
+	const splitWithViewerPane = useCallback(
+		(newPane: CreatePaneInput<PaneViewerData>) => {
+			if (viewer.store !== store) {
+				viewer.reveal();
+				viewer.store.getState().openPane({ pane: newPane });
+				return;
+			}
 			const state = store.getState();
 			const active = state.getActivePane();
 			if (!active) return;
@@ -276,48 +285,37 @@ export function useWorkspaceHotkeys({
 				tabId: active.tabId,
 				paneId: active.pane.id,
 				position: "right",
-				newPane: {
-					kind: "desktop",
-					data: { kind: "desktop" } as DesktopPaneData,
-				},
+				newPane,
 			});
 		},
+		[store, viewer],
+	);
+
+	useHotkey(
+		"SPLIT_WITH_DESKTOP",
+		() =>
+			splitWithViewerPane({
+				kind: "desktop",
+				data: { kind: "desktop" } as DesktopPaneData,
+			}),
 		{ enabled: isSandbox },
 	);
 
 	// Not gated on isSandbox: a local machine with Xcode/Android SDK gets a
 	// mobile pane too, backed by a local simulator.
-	useHotkey("SPLIT_WITH_MOBILE", () => {
-		const state = store.getState();
-		const active = state.getActivePane();
-		if (!active) return;
-		state.splitPane({
-			tabId: active.tabId,
-			paneId: active.pane.id,
-			position: "right",
-			newPane: {
-				kind: "mobile",
-				data: { kind: "mobile" } as MobilePaneData,
-			},
-		});
-	});
+	useHotkey("SPLIT_WITH_MOBILE", () =>
+		splitWithViewerPane({
+			kind: "mobile",
+			data: { kind: "mobile" } as MobilePaneData,
+		}),
+	);
 
-	useHotkey("SPLIT_WITH_BROWSER", () => {
-		const state = store.getState();
-		const active = state.getActivePane();
-		if (!active) return;
-		state.splitPane({
-			tabId: active.tabId,
-			paneId: active.pane.id,
-			position: "right",
-			newPane: {
-				kind: "browser",
-				data: {
-					url: defaultBrowserUrl,
-				} as BrowserPaneData,
-			},
-		});
-	});
+	useHotkey("SPLIT_WITH_BROWSER", () =>
+		splitWithViewerPane({
+			kind: "browser",
+			data: { url: defaultBrowserUrl } as BrowserPaneData,
+		}),
+	);
 
 	useHotkey("EQUALIZE_PANE_SPLITS", () => {
 		const state = store.getState();

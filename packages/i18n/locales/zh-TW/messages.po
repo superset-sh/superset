@@ -967,9 +967,15 @@ msgstr "{name} 是內建的，無法移除"
 msgid "serverError.plugins.marketplaceReserved"
 msgstr "{name} 是內建的，無法取代"
 
+msgid "{name} is installed"
+msgstr "{name} 已安裝"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} 尚未新增"
+
+msgid "{name} plugin"
+msgstr "{name} 外掛程式"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {請至少指定一個人員，或選擇{choice}。} sender {請至少指定一個寄件者，或選擇{choice}。} other {請至少指定一個項目，或選擇{choice}。}}"
@@ -1419,8 +1425,8 @@ msgstr "每個窗格一個 CDP 端點"
 msgid "A changelog goes out every week. Most new hires ship to users in their first few days."
 msgstr "我們每週發布一次更新日誌。大多數新進同仁到職頭幾天就會向使用者發布功能。"
 
-msgid "A chat can't switch to another provider partway through. Fork this conversation into a new {label} chat instead. This {currentLabel} chat stays open."
-msgstr "聊天進行中無法切換到其他提供者。請將此對話分支到新的 {label} 聊天。目前的 {currentLabel} 聊天會保持開啟。"
+msgid "A chat can't switch to another provider partway through. Start a fresh {label} chat, or fork this conversation into one. This {currentLabel} chat stays open."
+msgstr "聊天進行中無法切換到其他提供者。請開始新的 {label} 聊天，或將此對話分岔到新聊天中。此 {currentLabel} 聊天會保持開啟。"
 
 msgid "A chat takes its name from the agent."
 msgstr "聊天的名稱來自代理程式。"
@@ -3552,6 +3558,9 @@ msgstr "正在檢查環境…"
 msgid "Checking host…"
 msgstr "正在檢查主機…"
 
+msgid "Checking MCP servers…"
+msgstr "正在檢查MCP伺服器…"
+
 msgid "Checking out a PR requires a project"
 msgstr "檢出PR需要一個專案"
 
@@ -3624,6 +3633,9 @@ msgstr "選擇代理程式"
 msgid "Choose an existing repo folder"
 msgstr "選擇已有的儲存庫資料夾"
 
+msgid "Choose an MCP server"
+msgstr "選擇一個MCP伺服器"
+
 msgid "Choose app"
 msgstr "選擇應用"
 
@@ -3635,6 +3647,9 @@ msgstr "選擇從頂欄開啟變更檢視的方式"
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "選擇在終端中Cmd+點選檔案路徑時的開啟方式"
+
+msgid "Choose MCP servers for this message"
+msgstr "為這則訊息選擇MCP伺服器"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "選擇要從應用程式內瀏覽器清除的內容。"
@@ -4268,6 +4283,9 @@ msgstr "配置哪些代理程式出現在啟動器中，以及它們的啟動方
 msgid "Configure workspace run command"
 msgstr "配置工作區執行命令"
 
+msgid "Configured for {agent}"
+msgstr "已為 {agent} 設定"
+
 msgid "Confirm before quitting"
 msgstr "退出前確認"
 
@@ -4521,9 +4539,6 @@ msgstr "右鍵選單"
 
 msgid "Continue"
 msgstr "繼續"
-
-msgid "Continue in a new {label} chat?"
-msgstr "在新的 {label} 聊天中繼續？"
 
 msgid "Continue or fork session"
 msgstr "繼續或分支會話"
@@ -4929,6 +4944,9 @@ msgstr "無法連線到這個工作區所在的機器"
 msgid "Could not reactivate"
 msgstr "無法重新啟用"
 
+msgid "Could not read MCP servers."
+msgstr "無法讀取MCP伺服器。"
+
 msgid "Could not read selected file"
 msgstr "無法讀取所選檔案"
 
@@ -5177,6 +5195,12 @@ msgstr "無法還原「{projectName}」"
 
 msgid "Couldn't restore \"{workspaceName}\""
 msgstr "無法還原「{workspaceName}」"
+
+msgid "Couldn't restore the files"
+msgstr "無法還原檔案"
+
+msgid "Couldn't rewind the chat"
+msgstr "無法倒回聊天"
 
 msgid "Couldn't save"
 msgstr "儲存失敗"
@@ -6114,6 +6138,9 @@ msgstr "停用技能"
 
 msgid "Disabled"
 msgstr "已停用"
+
+msgid "Disabled in agent config"
+msgstr "已在代理程式設定中停用"
 
 msgid "Disabled toggle"
 msgstr "停用的切換控制項"
@@ -7819,14 +7846,14 @@ msgstr "忘記{domain}"
 msgid "Fork args"
 msgstr "分支參數"
 
+msgid "Fork conversation"
+msgstr "分岔對話"
+
 msgid "Fork session"
 msgstr "分支會話"
 
 msgid "Fork session…"
 msgstr "分支會話…"
-
-msgid "Fork to new chat"
-msgstr "分支到新聊天"
 
 msgid "Form controls and field composition"
 msgstr "表單控制項與欄位組合"
@@ -8052,6 +8079,9 @@ msgstr "返回"
 
 msgid "Go back home"
 msgstr "返回首頁"
+
+msgid "Go back to an earlier message and restore the files"
+msgstr "回到先前的訊息並還原檔案"
 
 msgid "Go back to the previous page in history"
 msgstr "返回歷史記錄中的上一頁"
@@ -8692,6 +8722,9 @@ msgstr "在Superset桌面應用程式中開啟「設定 → 遠端存取」，�
 msgid "In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers, and Asia as a whole now accounts for more users than the US."
 msgstr "不到一年，來自 176 個國家、超過 130,000 名開發者執行過 Superset，並建立了超過 150 萬個 agent 工作區。日本是僅次於美國的第二大市場，擁有超過 12,000 名開發者，而整個亞洲的使用者數如今已超過美國。"
 
+msgid "In your next chat"
+msgstr "下一次聊天中"
+
 msgid "In your terminal"
 msgstr "在終端中"
 
@@ -9054,6 +9087,9 @@ msgstr "獨立的分支和檔案副本"
 
 msgid "Its replies go with it."
 msgstr "其回覆也會一併刪除。"
+
+msgid "Its tools reach the agent in your next chat."
+msgstr "它的工具會在你的下一次聊天中提供給代理程式。"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "在它重啟之前，其工作區和終端都不可用，請使用Superset托盤選單 > 主機服務 > 重啟。"
@@ -9684,6 +9720,10 @@ msgstr "載入中..."
 msgid "Loading…"
 msgstr "正在載入…"
 
+msgctxt "MCP server scope"
+msgid "local"
+msgstr "本機"
+
 msgid "Local"
 msgstr "本地"
 
@@ -9848,6 +9888,9 @@ msgstr "管理方案"
 msgid "Manage plan on the web"
 msgstr "在網頁端管理方案"
 
+msgid "Manage plugins…"
+msgstr "管理外掛程式…"
+
 msgid "Manage sessions"
 msgstr "管理會話"
 
@@ -9947,6 +9990,9 @@ msgstr "MCP伺服器"
 msgid "MCP Server Commands"
 msgstr "MCP伺服器命令"
 
+msgid "MCP servers"
+msgstr "MCP伺服器"
+
 msgid "Measured over the trailing 30 days"
 msgstr "以最近 30 天計算"
 
@@ -10027,9 +10073,6 @@ msgstr "合併提交"
 #. placeholder {0}: error.message
 msgid "Merge failed: {0}"
 msgstr "合併失敗：{0}"
-
-msgid "Merge into center"
-msgstr "合併到中間"
 
 msgid "Merge pull request"
 msgstr "合併拉取請求"
@@ -10278,9 +10321,6 @@ msgstr "軟體史的大部分時間"
 msgid "Move {count} to Group"
 msgstr "將{count}個移動到群組"
 
-msgid "Move to Center"
-msgstr "移到中間"
-
 msgid "Move to group"
 msgstr "移動到群組"
 
@@ -10446,6 +10486,9 @@ msgstr "新建瀏覽器"
 
 msgid "new challengers"
 msgstr "換對手"
+
+msgid "New Chat"
+msgstr "新建聊天"
 
 msgid "New cloud workspace"
 msgstr "新建雲端工作區"
@@ -10852,6 +10895,9 @@ msgstr "無圖示"
 msgid "No icons match."
 msgstr "沒有符合的圖示。"
 
+msgid "No installed agent can be opened as a chat"
+msgstr "沒有已安裝的代理程式可以聊天形式開啟"
+
 msgid "No Internet Connection"
 msgstr "無網路連線"
 
@@ -10900,6 +10946,9 @@ msgstr "沒有匹配項"
 msgid "No matching files"
 msgstr "沒有符合的檔案"
 
+msgid "No matching MCP servers"
+msgstr "沒有符合的MCP伺服器"
+
 msgid "No matching models"
 msgstr "沒有符合的模型"
 
@@ -10911,6 +10960,9 @@ msgstr "沒有符合的頁面"
 
 msgid "No matching repositories."
 msgstr "沒有相符的儲存庫。"
+
+msgid "No MCP servers found"
+msgstr "找不到MCP伺服器"
 
 msgid "No members yet"
 msgstr "暫無成員"
@@ -11620,6 +11672,9 @@ msgstr "在檔案面板中開啟{path}"
 
 msgid "Open a multiline prompt composer for the active terminal"
 msgstr "為目前終端開啟多行提示詞編輯器"
+
+msgid "Open a new {label} chat?"
+msgstr "要開啟新的 {label} 聊天嗎？"
 
 msgid "Open a pane, or drag one here from the center."
 msgstr "開啟一個窗格，或從中間拖一個到這裡。"
@@ -12477,6 +12532,9 @@ msgstr "選擇資料夾…"
 msgid "Pick a low-risk papercut, fix it, and explain how it was verified."
 msgstr "挑一個低風險的小毛病，修好它，並說明是怎麼驗證的。"
 
+msgid "Pick a message. The chat goes back to just before it, and the message returns to the composer."
+msgstr "選擇一則訊息。聊天會回到這則訊息之前，該訊息會回到輸入框。"
+
 msgid "Pick a model"
 msgstr "選擇模型"
 
@@ -12915,6 +12973,10 @@ msgstr "進度"
 msgid "Progress · Spinner"
 msgstr "進度條 · 載入指示器"
 
+msgctxt "MCP server scope"
+msgid "project"
+msgstr "專案"
+
 msgid "Project"
 msgstr "專案"
 
@@ -12947,6 +13009,9 @@ msgstr "找不到該專案。"
 
 msgid "Project not set up on this host"
 msgstr "專案未在此主機上設定"
+
+msgid "Project not trusted in Codex"
+msgstr "專案在Codex中未受信任"
 
 msgid "Project ready — open it from the sidebar."
 msgstr "專案已就緒，可從側邊欄開啟。"
@@ -13276,6 +13341,9 @@ msgstr "查看部署和建置日誌"
 
 msgid "Read it on your phone"
 msgstr "在手機上閱讀"
+
+msgid "Read MCP servers again"
+msgstr "重新讀取MCP伺服器"
 
 msgid "Read the changelog"
 msgstr "檢視更新日誌"
@@ -14213,6 +14281,18 @@ msgstr "吊銷API金鑰"
 msgid "Revoke key"
 msgstr "吊銷金鑰"
 
+msgid "Rewind"
+msgstr "倒回"
+
+msgid "Rewind chat and files"
+msgstr "倒回聊天和檔案"
+
+msgid "Rewind chat only"
+msgstr "只倒回聊天"
+
+msgid "Rewind to this message?"
+msgstr "要倒回到這則訊息嗎？"
+
 msgid "Rewrote it and published version 2."
 msgstr "已重寫並發布第 2 版。"
 
@@ -14678,6 +14758,9 @@ msgstr "搜尋Linear"
 
 msgid "Search Linear…"
 msgstr "搜尋Linear…"
+
+msgid "Search MCP servers…"
+msgstr "搜尋MCP伺服器…"
 
 msgid "Search models"
 msgstr "搜尋模型"
@@ -16002,6 +16085,9 @@ msgstr "開始免費試用"
 msgid "Start free. Upgrade when your team outgrows it. Enterprise plans for organizations with advanced security and compliance needs."
 msgstr "免費開始。團隊用不夠時再升級。企業方案面向有進階安全與合規需求的組織。"
 
+msgid "Start fresh"
+msgstr "重新開始"
+
 msgid "Start from a template"
 msgstr "從模板開始"
 
@@ -16143,6 +16229,9 @@ msgstr "在此停止Superset，然後從其他裝置刪除。"
 
 msgid "Stop the agent and send this now"
 msgstr "停止代理並立即傳送"
+
+msgid "Stop the agent before you rewind"
+msgstr "倒回前請先停止代理程式"
 
 msgid "Stop watching"
 msgstr "停止關注"
@@ -17268,6 +17357,12 @@ msgstr "主題"
 msgid "Themes and agents"
 msgstr "主題與代理程式"
 
+msgid "There are no messages to rewind to yet."
+msgstr "目前還沒有可以倒回的訊息。"
+
+msgid "There is no file snapshot for that message, so nothing was rewound. Choose Rewind chat only to rewind just the conversation."
+msgstr "這則訊息沒有檔案快照，因此沒有倒回任何內容。若只想倒回對話，請選擇「只倒回聊天」。"
+
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "建立工作區時會自動執行這些命令。<0>閱讀文件<1/></0>"
 
@@ -17401,6 +17496,9 @@ msgstr "這個GitHub安裝已連線到另一個Superset組織。請先在那裡�
 msgid "This host"
 msgstr "此主機"
 
+msgid "This host can't restore files, so nothing was rewound. Choose Rewind chat only to rewind just the conversation."
+msgstr "此主機無法還原檔案，因此沒有倒回任何內容。若只想倒回對話，請選擇「只倒回聊天」。"
+
 msgid "This host has not reported a version yet."
 msgstr "此主機尚未回報版本。"
 
@@ -17442,6 +17540,9 @@ msgstr "這台Mac"
 
 msgid "This machine"
 msgstr "本機"
+
+msgid "This message and everything after it leave the chat, and the message goes back to the composer. Rewinding the files also undoes changes made since then. A snapshot of the current files is kept first."
+msgstr "這則訊息及之後的內容會從聊天中移除，該訊息會回到輸入框。同時倒回檔案會復原此後的變更。系統會先保存目前檔案的快照。"
 
 msgid "This Microsoft tenant is already connected by {detail}. Ask them to disconnect first."
 msgstr "這個Microsoft租戶已被{detail}連線。請讓對方先斷開連線。"
@@ -18478,6 +18579,10 @@ msgstr "在系統處於深色模式時使用。"
 
 msgid "Used when your system is in light mode."
 msgstr "在系統處於淺色模式時使用。"
+
+msgctxt "MCP server scope"
+msgid "user"
+msgstr "使用者"
 
 msgid "User already has access to this host"
 msgstr "該使用者已擁有此主機的存取權限"

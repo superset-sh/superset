@@ -1,5 +1,5 @@
 import { cn } from "@superset/ui/utils";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface ResizablePanelProps {
 	/** The content to render inside the panel */
@@ -29,6 +29,8 @@ interface ResizablePanelProps {
 	clampWidth?: boolean;
 	/** Callback when the resize handle is double-clicked */
 	onDoubleClickHandle?: () => void;
+	/** Call `onWidthChange` once on release instead of on every drag frame. */
+	commitOnRelease?: boolean;
 	/**
 	 * Renders as a flexible, full-width panel with no resize handle instead
 	 * of a fixed-width one — for a sibling pane that can be collapsed, so
@@ -52,7 +54,19 @@ export function ResizablePanel({
 	clampWidth = true,
 	onDoubleClickHandle,
 	disabled = false,
+	commitOnRelease = false,
 }: ResizablePanelProps) {
+	const [draftWidth, setDraftWidth] = useState<number | null>(null);
+	const [committedWidth, setCommittedWidth] = useState(width);
+	const draftWidthRef = useRef<number | null>(null);
+	// The committed width arrives through `width`; hold the draft until then so
+	// the panel does not flash back to its old width for a frame.
+	if (width !== committedWidth) {
+		setCommittedWidth(width);
+		setDraftWidth(null);
+		draftWidthRef.current = null;
+	}
+	const shownWidth = draftWidth ?? width;
 	const startXRef = useRef(0);
 	const startWidthRef = useRef(0);
 	const pendingWidthRef = useRef<number | null>(null);
@@ -62,17 +76,20 @@ export function ResizablePanel({
 		const pendingWidth = pendingWidthRef.current;
 		pendingWidthRef.current = null;
 		if (pendingWidth === null) return;
-		onWidthChange(pendingWidth);
-	}, [onWidthChange]);
+		if (commitOnRelease) {
+			draftWidthRef.current = pendingWidth;
+			setDraftWidth(pendingWidth);
+		} else onWidthChange(pendingWidth);
+	}, [onWidthChange, commitOnRelease]);
 
 	const handleMouseDown = useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault();
 			startXRef.current = e.clientX;
-			startWidthRef.current = width;
+			startWidthRef.current = shownWidth;
 			onResizingChange(true);
 		},
-		[width, onResizingChange],
+		[shownWidth, onResizingChange],
 	);
 
 	const handleMouseMove = useCallback(
@@ -106,8 +123,17 @@ export function ResizablePanel({
 			rafIdRef.current = null;
 		}
 		flushPendingWidth();
+		if (commitOnRelease && draftWidthRef.current !== null) {
+			onWidthChange(draftWidthRef.current);
+		}
 		onResizingChange(false);
-	}, [isResizing, onResizingChange, flushPendingWidth]);
+	}, [
+		isResizing,
+		onResizingChange,
+		flushPendingWidth,
+		commitOnRelease,
+		onWidthChange,
+	]);
 
 	useEffect(() => {
 		if (isResizing) {
@@ -138,7 +164,7 @@ export function ResizablePanel({
 				!disabled && (handleSide === "right" ? "border-r" : "border-l"),
 				className,
 			)}
-			style={disabled ? undefined : { width }}
+			style={disabled ? undefined : { width: shownWidth }}
 		>
 			{children}
 			{!disabled && (
@@ -146,7 +172,7 @@ export function ResizablePanel({
 				<div
 					role="separator"
 					aria-orientation="vertical"
-					aria-valuenow={width}
+					aria-valuenow={shownWidth}
 					aria-valuemin={minWidth}
 					aria-valuemax={maxWidth}
 					tabIndex={0}

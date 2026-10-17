@@ -1,8 +1,12 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { acpHarnessForPreset } from "@superset/chat/core";
 import { AGENT_DEFAULT_MODE, type UserContent } from "@superset/chat/protocol";
+import { errorMessage } from "@superset/i18n/errors";
 import { getAgentModelSupport } from "@superset/shared/agent-models";
-import { buildChatSessionHandoffPrompt } from "@superset/shared/terminal-session-handoff";
+import {
+	buildChatRewindPrompt,
+	buildChatSessionHandoffPrompt,
+} from "@superset/shared/terminal-session-handoff";
 import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { useWorkspaceClient } from "@superset/workspace-client";
@@ -14,13 +18,17 @@ import { useTerminalAgentBindings } from "renderer/hooks/host-service/useTermina
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import type { OpenFile } from "../../../../../../types";
+import { prependToDraft } from "../../../ChatSession/components/Composer";
 import { SessionView } from "../../../ChatSession/components/SessionView";
 import { useSessionClient } from "../../../ChatSession/hooks/useSessionClient";
 import type {
 	OpenLink,
 	OpenPage,
 } from "../../../ChatSession/providers/ChatPaneActionsProvider";
-import type { ChatForkTarget } from "../../../ChatSession/types";
+import type {
+	ChatForkTarget,
+	ChatRewindRequest,
+} from "../../../ChatSession/types";
 import { isUnrestrictedMode } from "../../../ChatSession/utils/isUnrestrictedMode";
 import { useForkChat } from "../../hooks/useForkChat";
 import { readSavedChatMode } from "../../utils/savedChatMode";
@@ -60,7 +68,8 @@ export function AcpChatPane({
 	onModeChange,
 	onSessionCreated,
 	onSwitchAgent,
-	onForkAgent,
+	onOpenAgentChat,
+	onRewound,
 	pendingPrompts,
 	sessionId,
 	terminalId,
@@ -85,7 +94,9 @@ export function AcpChatPane({
 	onOpenPage?: OpenPage;
 	onOpenLink?: OpenLink;
 	onSwitchAgent?: (target: AgentSwitchTarget) => void;
-	onForkAgent?: (target: AgentSwitchTarget & { handoffPrompt: string }) => void;
+	onOpenAgentChat?: (target: AgentSwitchTarget) => void;
+	/** The chat restarts in a fresh agent session, told the conversation before the rewind point. */
+	onRewound?: (handoffPrompt: string | null) => void;
 	modelId?: string;
 	modelLabel?: string;
 	modeId?: string;
@@ -328,17 +339,23 @@ export function AcpChatPane({
 						: null,
 				};
 				const { handoffPrompt } = target;
-				if (handoffPrompt && onForkAgent) {
+				if (handoffPrompt && onOpenAgentChat) {
 					alert({
-						title: t({ message: `Continue in a new ${label} chat?` }),
+						title: t({ message: `Open a new ${label} chat?` }),
 						description: t({
-							message: `A chat can't switch to another provider partway through. Fork this conversation into a new ${label} chat instead. This ${currentLabel} chat stays open.`,
+							message: `A chat can't switch to another provider partway through. Start a fresh ${label} chat, or fork this conversation into one. This ${currentLabel} chat stays open.`,
 						}),
 						actions: [
 							{
-								label: t({ message: "Fork to new chat" }),
+								label: t({ message: "Fork conversation" }),
 								variant: "default",
-								onClick: () => onForkAgent({ ...target, handoffPrompt }),
+								onClick: () => onOpenAgentChat(target),
+							},
+							{
+								label: t({ message: "Start fresh" }),
+								variant: "outline",
+								onClick: () =>
+									onOpenAgentChat({ ...target, handoffPrompt: null }),
 							},
 							{ label: t({ message: "Cancel" }), variant: "ghost" },
 						],
@@ -362,7 +379,7 @@ export function AcpChatPane({
 		agent,
 		agentConfigs,
 		onSwitchAgent,
-		onForkAgent,
+		onOpenAgentChat,
 		sessionId,
 		t,
 		wiring.transport,
@@ -452,6 +469,133 @@ export function AcpChatPane({
 	}, [recover]);
 
 	const draftKey = `chat-v3-draft:${terminalId}`;
+
+	const runRewind = useCallback(
+		async (request: ChatRewindRequest, restoreFiles: boolean) => {
+			if (!sessionId || !onRewound) return;
+			let files: "restored" | "missing" | "unsupported" | "skipped" = "skipped";
+			if (restoreFiles) {
+				try {
+					({ files } = await wiring.transport.rewindFiles({
+						commandId: crypto.randomUUID(),
+						sessionId,
+						itemId: request.itemId,
+						workspaceId,
+					}));
+				} catch (error) {
+					console.error("[acp-chat] rewind files failed", error);
+					toast.error(t({ message: "Couldn't restore the files" }), {
+						description: errorMessage(error, t({ message: "Unknown error" })),
+					});
+					return;
+				}
+				if (files === "missing") {
+					toast.error(
+						t({
+							message:
+								"There is no file snapshot for that message, so nothing was rewound. Choose Rewind chat only to rewind just the conversation.",
+						}),
+					);
+					return;
+				}
+				if (files === "unsupported") {
+					toast.error(
+						t({
+							message:
+								"This host can't restore files, so nothing was rewound. Choose Rewind chat only to rewind just the conversation.",
+						}),
+					);
+					return;
+				}
+			}
+			if (!mounted.current) return;
+			const handoffPrompt = request.transcript.trim()
+				? buildChatRewindPrompt({
+						transcript: request.transcript,
+						...(agentLabel ? { sourceAgentLabel: agentLabel } : {}),
+						filesRestored: files === "restored",
+					})
+				: null;
+			let rewound: { sessionId: string } | null;
+			try {
+				rewound = await wiring.transport.rewindSession({
+					commandId: crypto.randomUUID(),
+					sessionId,
+					itemId: request.itemId,
+					workspaceId,
+					...(handoffPrompt ? { handoffPrompt } : {}),
+					...(modelId ? { modelId } : {}),
+					...(modeId ? { modeId } : {}),
+				});
+			} catch (error) {
+				// A host from before rewindSession: fall back to a fresh session
+				// that is handed the conversation in plain view.
+				if (
+					!(
+						error instanceof TRPCClientError &&
+						/No procedure/.test(error.message)
+					)
+				) {
+					console.error("[acp-chat] rewind failed", error);
+					toast.error(t({ message: "Couldn't rewind the chat" }), {
+						description: errorMessage(error, t({ message: "Unknown error" })),
+					});
+					return;
+				}
+				rewound = null;
+			}
+			if (!mounted.current) return;
+			prependToDraft(draftKey, [request.messageText]);
+			if (rewound) {
+				onSessionCreated(rewound.sessionId);
+			} else {
+				attaching.current = false;
+				onRewound(handoffPrompt);
+			}
+			void wiring.transport
+				.closeSession({ sessionId })
+				.catch((error: unknown) =>
+					console.warn("[acp-chat] could not close the rewound chat", error),
+				);
+		},
+		[
+			sessionId,
+			onRewound,
+			onSessionCreated,
+			wiring.transport,
+			workspaceId,
+			t,
+			draftKey,
+			agentLabel,
+			modelId,
+			modeId,
+		],
+	);
+	const rewind = useCallback(
+		(request: ChatRewindRequest) =>
+			alert({
+				title: t({ message: "Rewind to this message?" }),
+				description: t({
+					message:
+						"This message and everything after it leave the chat, and the message goes back to the composer. Rewinding the files also undoes changes made since then. A snapshot of the current files is kept first.",
+				}),
+				actions: [
+					{
+						label: t({ message: "Rewind chat and files" }),
+						variant: "default",
+						onClick: () => void runRewind(request, true),
+					},
+					{
+						label: t({ message: "Rewind chat only" }),
+						variant: "outline",
+						onClick: () => void runRewind(request, false),
+					},
+					{ label: t({ message: "Cancel" }), variant: "ghost" },
+				],
+			}),
+		[runRewind, t],
+	);
+
 	const draft = (notice: ReactNode) => (
 		<DraftChat
 			draftKey={draftKey}
@@ -504,6 +648,7 @@ export function AcpChatPane({
 
 	return (
 		<SessionView
+			agentId={agent?.id}
 			client={client}
 			draftKey={draftKey}
 			{...(recovering
@@ -527,6 +672,7 @@ export function AcpChatPane({
 			canForkToWorktree={canForkToWorktree}
 			isActive={isActive}
 			onFork={fork}
+			onRewind={onRewound ? rewind : undefined}
 			openFile={onOpenFile}
 			openPage={onOpenPage}
 			openLink={onOpenLink}

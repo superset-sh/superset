@@ -1,4 +1,3 @@
-import type { WorkspaceStore } from "@superset/panes";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { V2UserPreferencesApi } from "renderer/hooks/useV2UserPreferences";
@@ -10,8 +9,7 @@ import {
 	toRelativeWorkspacePath,
 } from "shared/absolute-paths";
 import { useStore } from "zustand";
-import type { StoreApi } from "zustand/vanilla";
-import type { FilePaneData, OpenFile, PaneViewerData } from "../../types";
+import type { FilePaneData, OpenFile, PaneTarget } from "../../types";
 import { setWorkspaceSidebarTab } from "../../utils/setWorkspaceSidebarTab";
 import {
 	type RecentFile,
@@ -26,10 +24,10 @@ interface PendingReveal {
 }
 
 export function useWorkspaceFileNavigation({
-	store,
+	viewer,
 	setRightSidebarOpen,
 }: {
-	store: StoreApi<WorkspaceStore<PaneViewerData>>;
+	viewer: PaneTarget;
 	setRightSidebarOpen: V2UserPreferencesApi["setRightSidebarOpen"];
 }): {
 	openFilePane: OpenFile;
@@ -55,7 +53,7 @@ export function useWorkspaceFileNavigation({
 	const revealInFinder = useRevealInFinder(workspace.id);
 	const collections = useCollections();
 
-	const activeFilePanePath = useStore(store, (state) => {
+	const activeFilePanePath = useStore(viewer.store, (state) => {
 		const tab = state.tabs.find(
 			(candidate) => candidate.id === state.activeTabId,
 		);
@@ -82,7 +80,7 @@ export function useWorkspaceFileNavigation({
 		}
 	}, [activeFilePanePath]);
 
-	const openFilePathsKey = useStore(store, (state) =>
+	const openFilePathsKey = useStore(viewer.store, (state) =>
 		state.tabs
 			.flatMap((tab) =>
 				Object.values(tab.panes)
@@ -110,9 +108,15 @@ export function useWorkspaceFileNavigation({
 					recordView({ relativePath, absolutePath: absoluteFilePath });
 				}
 			}
-			openFilePaneInStore(store, absoluteFilePath, openInNewTab, position);
+			viewer.reveal();
+			openFilePaneInStore(
+				viewer.store,
+				absoluteFilePath,
+				openInNewTab,
+				position,
+			);
 		},
-		[store, worktreePath, recordView],
+		[viewer, worktreePath, recordView],
 	);
 
 	// User-facing file opens from the workspace sidebar layer the VS-Code-style
@@ -126,7 +130,7 @@ export function useWorkspaceFileNavigation({
 			const absoluteFilePath = worktreePath
 				? toAbsoluteWorkspacePath(worktreePath, filePath)
 				: filePath;
-			const state = store.getState();
+			const state = viewer.store.getState();
 			const active = state.getActivePane();
 			if (
 				active?.pane.kind === "file" &&
@@ -137,7 +141,7 @@ export function useWorkspaceFileNavigation({
 			}
 			openFilePane(filePath);
 		},
-		[openFilePane, store, worktreePath],
+		[openFilePane, viewer, worktreePath],
 	);
 
 	const revealPath = useCallback(

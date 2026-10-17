@@ -1,0 +1,1 @@
+export { useRightPaneAreaFullScreen } from "./useRightPaneAreaFullScreen";

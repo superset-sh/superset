@@ -967,9 +967,15 @@ msgstr "{name} là tích hợp sẵn nên không thể gỡ"
 msgid "serverError.plugins.marketplaceReserved"
 msgstr "{name} là tích hợp sẵn nên không thể thay thế"
 
+msgid "{name} is installed"
+msgstr "Đã cài {name}"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} chưa được thêm"
+
+msgid "{name} plugin"
+msgstr "Plugin {name}"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {Hãy chỉ định ít nhất một người, hoặc chọn {choice}.} sender {Hãy chỉ định ít nhất một người gửi, hoặc chọn {choice}.} other {Hãy chỉ định ít nhất một mục, hoặc chọn {choice}.}}"
@@ -1419,8 +1425,8 @@ msgstr "Một endpoint CDP cho mỗi ngăn"
 msgid "A changelog goes out every week. Most new hires ship to users in their first few days."
 msgstr "Changelog được phát hành mỗi tuần. Hầu hết nhân sự mới đã phát hành tới người dùng ngay trong vài ngày đầu."
 
-msgid "A chat can't switch to another provider partway through. Fork this conversation into a new {label} chat instead. This {currentLabel} chat stays open."
-msgstr "Cuộc trò chuyện không thể chuyển sang nhà cung cấp khác giữa chừng. Thay vào đó, hãy tách cuộc trò chuyện này sang một cuộc trò chuyện {label} mới. Cuộc trò chuyện {currentLabel} này vẫn mở."
+msgid "A chat can't switch to another provider partway through. Start a fresh {label} chat, or fork this conversation into one. This {currentLabel} chat stays open."
+msgstr "Không thể chuyển chat sang nhà cung cấp khác giữa chừng. Hãy bắt đầu một chat {label} mới, hoặc tách cuộc trò chuyện này sang một chat mới. Chat {currentLabel} này vẫn mở."
 
 msgid "A chat takes its name from the agent."
 msgstr "Chat lấy tên từ agent."
@@ -3552,6 +3558,9 @@ msgstr "Đang kiểm tra môi trường…"
 msgid "Checking host…"
 msgstr "Đang kiểm tra host…"
 
+msgid "Checking MCP servers…"
+msgstr "Đang kiểm tra server MCP…"
+
 msgid "Checking out a PR requires a project"
 msgstr "Checkout một PR cần có dự án"
 
@@ -3624,6 +3633,9 @@ msgstr "Chọn agent"
 msgid "Choose an existing repo folder"
 msgstr "Chọn một thư mục repo có sẵn"
 
+msgid "Choose an MCP server"
+msgstr "Chọn một server MCP"
+
 msgid "Choose app"
 msgstr "Chọn ứng dụng"
 
@@ -3635,6 +3647,9 @@ msgstr "Chọn cách chế độ xem thay đổi mở từ thanh trên cùng"
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "Chọn cách mở đường dẫn tệp khi Cmd+nhấp trong terminal"
+
+msgid "Choose MCP servers for this message"
+msgstr "Chọn server MCP cho tin nhắn này"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "Chọn thứ cần xóa khỏi trình duyệt trong ứng dụng."
@@ -4268,6 +4283,9 @@ msgstr "Chọn agent nào xuất hiện trong trình khởi chạy và cách d�
 msgid "Configure workspace run command"
 msgstr "Cấu hình lệnh chạy của workspace"
 
+msgid "Configured for {agent}"
+msgstr "Đã cấu hình cho {agent}"
+
 msgid "Confirm before quitting"
 msgstr "Xác nhận trước khi thoát"
 
@@ -4521,9 +4539,6 @@ msgstr "Context Menu"
 
 msgid "Continue"
 msgstr "Tiếp tục"
-
-msgid "Continue in a new {label} chat?"
-msgstr "Tiếp tục trong cuộc trò chuyện {label} mới?"
 
 msgid "Continue or fork session"
 msgstr "Tiếp tục hoặc fork phiên"
@@ -4929,6 +4944,9 @@ msgstr "Không kết nối được tới máy của workspace này"
 msgid "Could not reactivate"
 msgstr "Không thể kích hoạt lại"
 
+msgid "Could not read MCP servers."
+msgstr "Không đọc được các server MCP."
+
 msgid "Could not read selected file"
 msgstr "Không thể đọc tệp đã chọn"
 
@@ -5177,6 +5195,12 @@ msgstr "Không thể khôi phục \"{projectName}\""
 
 msgid "Couldn't restore \"{workspaceName}\""
 msgstr "Không thể khôi phục \"{workspaceName}\""
+
+msgid "Couldn't restore the files"
+msgstr "Không thể khôi phục tệp"
+
+msgid "Couldn't rewind the chat"
+msgstr "Không thể tua lại chat"
 
 msgid "Couldn't save"
 msgstr "Không lưu được"
@@ -6114,6 +6138,9 @@ msgstr "Tắt skill"
 
 msgid "Disabled"
 msgstr "Đã tắt"
+
+msgid "Disabled in agent config"
+msgstr "Đã tắt trong cấu hình agent"
 
 msgid "Disabled toggle"
 msgstr "Công tắc đã tắt"
@@ -7819,14 +7846,14 @@ msgstr "Quên {domain}"
 msgid "Fork args"
 msgstr "Tham số fork"
 
+msgid "Fork conversation"
+msgstr "Tách cuộc trò chuyện"
+
 msgid "Fork session"
 msgstr "Fork phiên"
 
 msgid "Fork session…"
 msgstr "Fork phiên…"
-
-msgid "Fork to new chat"
-msgstr "Tách sang cuộc trò chuyện mới"
 
 msgid "Form controls and field composition"
 msgstr "Các điều khiển form và cách ghép trường"
@@ -8052,6 +8079,9 @@ msgstr "Quay lại"
 
 msgid "Go back home"
 msgstr "Quay về trang chủ"
+
+msgid "Go back to an earlier message and restore the files"
+msgstr "Quay lại một tin nhắn trước đó và khôi phục tệp"
 
 msgid "Go back to the previous page in history"
 msgstr "Quay lại trang trước trong lịch sử"
@@ -8692,6 +8722,9 @@ msgstr "Trong ứng dụng Superset trên máy tính, mở Cài đặt → Truy 
 msgid "In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers, and Asia as a whole now accounts for more users than the US."
 msgstr "Chưa đầy một năm, hơn 130.000 nhà phát triển tại 176 quốc gia đã chạy Superset và tạo hơn 1,5 triệu workspace agent. Nhật Bản là thị trường lớn thứ hai sau Mỹ, với hơn 12.000 nhà phát triển, và châu Á nói chung hiện có nhiều người dùng hơn Mỹ."
 
+msgid "In your next chat"
+msgstr "Trong cuộc trò chuyện sau"
+
 msgid "In your terminal"
 msgstr "Trong terminal của bạn"
 
@@ -9054,6 +9087,9 @@ msgstr "Nhánh riêng và bản sao tệp riêng"
 
 msgid "Its replies go with it."
 msgstr "Các câu trả lời cũng bị xóa theo."
+
+msgid "Its tools reach the agent in your next chat."
+msgstr "Công cụ của nó sẽ có cho agent trong cuộc trò chuyện sau."
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Các workspace và terminal của nó không khả dụng cho đến khi khởi động lại — dùng menu khay Superset > Host Service > Restart."
@@ -9684,6 +9720,10 @@ msgstr "Đang tải..."
 msgid "Loading…"
 msgstr "Đang tải…"
 
+msgctxt "MCP server scope"
+msgid "local"
+msgstr "cục bộ"
+
 msgid "Local"
 msgstr "Cục bộ"
 
@@ -9848,6 +9888,9 @@ msgstr "Quản lý gói"
 msgid "Manage plan on the web"
 msgstr "Quản lý gói trên web"
 
+msgid "Manage plugins…"
+msgstr "Quản lý plugin…"
+
 msgid "Manage sessions"
 msgstr "Quản lý phiên"
 
@@ -9947,6 +9990,9 @@ msgstr "Server MCP"
 msgid "MCP Server Commands"
 msgstr "Lệnh server MCP"
 
+msgid "MCP servers"
+msgstr "Server MCP"
+
 msgid "Measured over the trailing 30 days"
 msgstr "Đo trong 30 ngày gần nhất"
 
@@ -10027,9 +10073,6 @@ msgstr "Merge commit"
 #. placeholder {0}: error.message
 msgid "Merge failed: {0}"
 msgstr "Merge thất bại: {0}"
-
-msgid "Merge into center"
-msgstr "Gộp vào giữa"
 
 msgid "Merge pull request"
 msgstr "Merge pull request"
@@ -10278,9 +10321,6 @@ msgstr "Gần như suốt lịch sử phần mềm"
 msgid "Move {count} to Group"
 msgstr "Chuyển {count} vào nhóm"
 
-msgid "Move to Center"
-msgstr "Chuyển vào giữa"
-
 msgid "Move to group"
 msgstr "Chuyển vào nhóm"
 
@@ -10446,6 +10486,9 @@ msgstr "Trình duyệt mới"
 
 msgid "new challengers"
 msgstr "đối thủ mới"
+
+msgid "New Chat"
+msgstr "Chat mới"
 
 msgid "New cloud workspace"
 msgstr "Workspace cloud mới"
@@ -10852,6 +10895,9 @@ msgstr "Không có biểu tượng"
 msgid "No icons match."
 msgstr "Không có biểu tượng phù hợp."
 
+msgid "No installed agent can be opened as a chat"
+msgstr "Không có tác tử nào đã cài có thể mở dưới dạng chat"
+
 msgid "No Internet Connection"
 msgstr "Không có kết nối internet"
 
@@ -10900,6 +10946,9 @@ msgstr "Không có kết quả khớp"
 msgid "No matching files"
 msgstr "Không có tệp phù hợp"
 
+msgid "No matching MCP servers"
+msgstr "Không có server MCP phù hợp"
+
 msgid "No matching models"
 msgstr "Không có mô hình phù hợp"
 
@@ -10911,6 +10960,9 @@ msgstr "Không có trang phù hợp"
 
 msgid "No matching repositories."
 msgstr "Không có repository nào khớp."
+
+msgid "No MCP servers found"
+msgstr "Không tìm thấy server MCP"
 
 msgid "No members yet"
 msgstr "Chưa có thành viên nào"
@@ -11620,6 +11672,9 @@ msgstr "Mở {path} trong khung tệp"
 
 msgid "Open a multiline prompt composer for the active terminal"
 msgstr "Mở ô soạn prompt nhiều dòng cho terminal đang mở"
+
+msgid "Open a new {label} chat?"
+msgstr "Mở một chat {label} mới?"
 
 msgid "Open a pane, or drag one here from the center."
 msgstr "Mở một ngăn, hoặc kéo một ngăn từ giữa vào đây."
@@ -12477,6 +12532,9 @@ msgstr "Chọn một thư mục…"
 msgid "Pick a low-risk papercut, fix it, and explain how it was verified."
 msgstr "Chọn một lỗi vặt ít rủi ro, sửa nó và giải thích cách đã kiểm chứng."
 
+msgid "Pick a message. The chat goes back to just before it, and the message returns to the composer."
+msgstr "Chọn một tin nhắn. Chat quay lại ngay trước tin nhắn đó, và tin nhắn trở về ô soạn thảo."
+
 msgid "Pick a model"
 msgstr "Chọn một mô hình"
 
@@ -12915,6 +12973,10 @@ msgstr "Tiến độ"
 msgid "Progress · Spinner"
 msgstr "Progress · Spinner"
 
+msgctxt "MCP server scope"
+msgid "project"
+msgstr "dự án"
+
 msgid "Project"
 msgstr "Dự án"
 
@@ -12947,6 +13009,9 @@ msgstr "Không tìm thấy dự án."
 
 msgid "Project not set up on this host"
 msgstr "Dự án chưa được thiết lập trên host này"
+
+msgid "Project not trusted in Codex"
+msgstr "Dự án chưa được tin cậy trong Codex"
 
 msgid "Project ready — open it from the sidebar."
 msgstr "Dự án đã sẵn sàng — mở nó từ thanh bên."
@@ -13276,6 +13341,9 @@ msgstr "Đọc log deployment và build"
 
 msgid "Read it on your phone"
 msgstr "Đọc trên điện thoại"
+
+msgid "Read MCP servers again"
+msgstr "Đọc lại các server MCP"
 
 msgid "Read the changelog"
 msgstr "Đọc changelog"
@@ -14213,6 +14281,18 @@ msgstr "Thu hồi khóa API"
 msgid "Revoke key"
 msgstr "Thu hồi khóa"
 
+msgid "Rewind"
+msgstr "Tua lại"
+
+msgid "Rewind chat and files"
+msgstr "Tua lại chat và tệp"
+
+msgid "Rewind chat only"
+msgstr "Chỉ tua lại chat"
+
+msgid "Rewind to this message?"
+msgstr "Tua lại đến tin nhắn này?"
+
 msgid "Rewrote it and published version 2."
 msgstr "Đã viết lại và xuất bản phiên bản 2."
 
@@ -14678,6 +14758,9 @@ msgstr "Tìm trong Linear"
 
 msgid "Search Linear…"
 msgstr "Tìm trong Linear…"
+
+msgid "Search MCP servers…"
+msgstr "Tìm server MCP…"
 
 msgid "Search models"
 msgstr "Tìm mô hình"
@@ -16002,6 +16085,9 @@ msgstr "Dùng thử miễn phí"
 msgid "Start free. Upgrade when your team outgrows it. Enterprise plans for organizations with advanced security and compliance needs."
 msgstr "Bắt đầu miễn phí. Nâng cấp khi đội của bạn lớn hơn. Gói Enterprise dành cho tổ chức có nhu cầu bảo mật và tuân thủ nâng cao."
 
+msgid "Start fresh"
+msgstr "Bắt đầu lại"
+
 msgid "Start from a template"
 msgstr "Bắt đầu từ mẫu"
 
@@ -16143,6 +16229,9 @@ msgstr "Hãy dừng Superset ở đây để xóa từ thiết bị khác."
 
 msgid "Stop the agent and send this now"
 msgstr "Dừng tác tử và gửi ngay"
+
+msgid "Stop the agent before you rewind"
+msgstr "Hãy dừng tác tử trước khi tua lại"
 
 msgid "Stop watching"
 msgstr "Ngừng theo dõi"
@@ -17268,6 +17357,12 @@ msgstr "Chủ đề"
 msgid "Themes and agents"
 msgstr "Giao diện và agent"
 
+msgid "There are no messages to rewind to yet."
+msgstr "Chưa có tin nhắn nào để tua lại."
+
+msgid "There is no file snapshot for that message, so nothing was rewound. Choose Rewind chat only to rewind just the conversation."
+msgstr "Không có ảnh chụp nhanh tệp cho tin nhắn đó, nên chưa có gì được tua lại. Chọn \"Chỉ tua lại chat\" để chỉ tua lại cuộc trò chuyện."
+
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "Các lệnh này chạy tự động khi một workspace được tạo. <0>Đọc tài liệu<1/></0>"
 
@@ -17401,6 +17496,9 @@ msgstr "Bản cài đặt GitHub này đã kết nối với một tổ chức S
 msgid "This host"
 msgstr "Host này"
 
+msgid "This host can't restore files, so nothing was rewound. Choose Rewind chat only to rewind just the conversation."
+msgstr "Máy chủ này không thể khôi phục tệp, nên chưa có gì được tua lại. Chọn \"Chỉ tua lại chat\" để chỉ tua lại cuộc trò chuyện."
+
 msgid "This host has not reported a version yet."
 msgstr "Máy chủ này chưa báo cáo phiên bản."
 
@@ -17442,6 +17540,9 @@ msgstr "Mac này"
 
 msgid "This machine"
 msgstr "Máy này"
+
+msgid "This message and everything after it leave the chat, and the message goes back to the composer. Rewinding the files also undoes changes made since then. A snapshot of the current files is kept first."
+msgstr "Tin nhắn này và mọi thứ sau nó sẽ rời khỏi chat, và tin nhắn trở về ô soạn thảo. Tua lại cả tệp cũng hoàn tác các thay đổi từ lúc đó. Ảnh chụp nhanh của các tệp hiện tại được lưu trước."
 
 msgid "This Microsoft tenant is already connected by {detail}. Ask them to disconnect first."
 msgstr "Tenant Microsoft này đã được {detail} kết nối. Hãy nhờ họ ngắt kết nối trước."
@@ -18478,6 +18579,10 @@ msgstr "Dùng khi hệ thống ở chế độ tối."
 
 msgid "Used when your system is in light mode."
 msgstr "Dùng khi hệ thống ở chế độ sáng."
+
+msgctxt "MCP server scope"
+msgid "user"
+msgstr "người dùng"
 
 msgid "User already has access to this host"
 msgstr "Người dùng đã có quyền truy cập host này"

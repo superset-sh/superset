@@ -16,12 +16,12 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { DashboardSidebar } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar";
 import { DashboardSidebarPortsProvider } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarPortsProvider";
 import { PortForwardsProvider } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/PortForwardsProvider";
+import { WorkspaceSidebarPanel } from "renderer/routes/_authenticated/_dashboard/components/WorkspaceSidebarPanel";
 import { useHistoryNavigationShortcuts } from "renderer/routes/_authenticated/_dashboard/hooks/useHistoryNavigationShortcuts";
 import { useCloudSidebarStore } from "renderer/routes/_authenticated/_dashboard/stores/cloudSidebarStore";
 import { useDevSeedV2Sidebar } from "renderer/routes/_authenticated/hooks/useDevSeedV2Sidebar";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
 import { DeleteWorkspaceDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
 import { useAutomationFailuresStore } from "renderer/stores/automation-failures";
@@ -30,12 +30,7 @@ import { usePortsDisplayMode } from "renderer/stores/inline-workspace-ports";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
 import { syncPersistedStoreAcrossWindows } from "renderer/stores/syncPersistedStoreAcrossWindows";
 import { useV2NotificationStore } from "renderer/stores/v2-notifications";
-import {
-	COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
-	DEFAULT_WORKSPACE_SIDEBAR_WIDTH,
-	MAX_WORKSPACE_SIDEBAR_WIDTH,
-	useWorkspaceSidebarStore,
-} from "renderer/stores/workspace-sidebar-state";
+import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
 import { ContentBoundary } from "../components/ContentBoundary";
 import { AddRepositoryModals } from "./components/AddRepositoryModals";
 import { CrossVersionMismatchState } from "./components/CrossVersionMismatchState";
@@ -137,14 +132,12 @@ function DashboardLayout() {
 		localMachineId !== "" &&
 		currentV2Workspace.hostId !== localMachineId;
 
-	const {
-		toggleCollapsed: toggleWorkspaceSidebarCollapsed,
-		width: workspaceSidebarWidth,
-		setWidth: setWorkspaceSidebarWidth,
-		isResizing: isWorkspaceSidebarResizing,
-		setIsResizing: setWorkspaceSidebarIsResizing,
-		isCollapsed: isWorkspaceSidebarCollapsed,
-	} = useWorkspaceSidebarStore();
+	const toggleWorkspaceSidebarCollapsed = useWorkspaceSidebarStore(
+		(s) => s.toggleCollapsed,
+	);
+	const isWorkspaceSidebarCollapsed = useWorkspaceSidebarStore((s) =>
+		s.isCollapsed(),
+	);
 
 	// Global hotkeys for dashboard
 	useHotkey("OPEN_SETTINGS", () => navigate({ to: "/settings/account" }));
@@ -194,40 +187,28 @@ function DashboardLayout() {
 	// The collapsed rail's top strip continues the page's header row, so the
 	// panel must not draw its own full-height border: the sidebar's inner
 	// border, which stops below the strip, is the only divider.
-	const railContinuesHeaderRow =
-		!showsAppTopBar && isWorkspaceSidebarCollapsed();
+	const railContinuesHeaderRow = !showsAppTopBar && isWorkspaceSidebarCollapsed;
 
 	const sidebarPanel = (
-		<ResizablePanel
-			width={workspaceSidebarWidth}
-			onWidthChange={setWorkspaceSidebarWidth}
-			isResizing={isWorkspaceSidebarResizing}
-			onResizingChange={setWorkspaceSidebarIsResizing}
-			minWidth={COLLAPSED_WORKSPACE_SIDEBAR_WIDTH}
-			maxWidth={MAX_WORKSPACE_SIDEBAR_WIDTH}
-			handleSide="right"
-			clampWidth={false}
+		<WorkspaceSidebarPanel
 			className={railContinuesHeaderRow ? "border-r-0" : undefined}
-			onDoubleClickHandle={() =>
-				setWorkspaceSidebarWidth(DEFAULT_WORKSPACE_SIDEBAR_WIDTH)
-			}
 		>
 			{isV2CloudEnabled ? (
-				<DashboardSidebar isCollapsed={isWorkspaceSidebarCollapsed()} />
+				<DashboardSidebar isCollapsed={isWorkspaceSidebarCollapsed} />
 			) : (
 				<WorkspaceSidebar
-					isCollapsed={isWorkspaceSidebarCollapsed()}
+					isCollapsed={isWorkspaceSidebarCollapsed}
 					activeProjectId={currentWorkspace?.projectId ?? null}
 					activeProjectName={currentWorkspace?.project?.name ?? null}
 				/>
 			)}
-		</ResizablePanel>
+		</WorkspaceSidebarPanel>
 	);
 
 	// v2 screens draw their own headers, so the sidebar always runs full
 	// height beside them; only v1 screens keep the TopBar above both.
 	const sidebarOutsideColumn =
-		!showsAppTopBar || (isV2CloudEnabled && !isWorkspaceSidebarCollapsed());
+		!showsAppTopBar || (isV2CloudEnabled && !isWorkspaceSidebarCollapsed);
 
 	return (
 		// The single ports-data provider for both layout modes. It lives up here
@@ -241,7 +222,7 @@ function DashboardLayout() {
 			enabled={
 				isV2CloudEnabled &&
 				(portsDisplayMode === "topbar" ||
-					!isWorkspaceSidebarCollapsed() ||
+					!isWorkspaceSidebarCollapsed ||
 					// Port forwarding follows the selected remote workspace and
 					// needs its port list even when no ports UI is on screen.
 					selectedWorkspaceIsRemote)

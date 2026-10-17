@@ -913,3 +913,37 @@ describe("explicit pane close notifications", () => {
 		expect(closed).toEqual([]);
 	});
 });
+
+describe("openInTabs", () => {
+	const paneIdsByTab = (
+		store: ReturnType<typeof createWorkspaceStore<TestData>>,
+	) => store.getState().tabs.map((tab) => Object.keys(tab.panes));
+
+	it("reuses an unpinned pane of the kind in any tab, else adds a tab instead of splitting", () => {
+		const store = createWorkspaceStore<TestData>({ openInTabs: true });
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store
+			.getState()
+			.addTab({ id: "t2", panes: [{ ...tp("list"), kind: "list" }] });
+
+		store.getState().openPane({ pane: tp("p2") });
+		expect(paneIdsByTab(store)).toEqual([["p2"], ["list"]]);
+		expect(store.getState().activeTabId).toBe("t1");
+
+		store.getState().setPanePinned({ paneId: "p2", pinned: true });
+		store.getState().openPane({ pane: tp("p3") });
+		expect(paneIdsByTab(store)).toEqual([["p2"], ["list"], ["p3"]]);
+	});
+
+	it("still splits when asked to", () => {
+		const store = createWorkspaceStore<TestData>({ openInTabs: true });
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().splitPane({
+			tabId: "t1",
+			paneId: "p1",
+			position: "right",
+			newPane: tp("p2"),
+		});
+		expect(paneIdsByTab(store)).toEqual([["p1", "p2"]]);
+	});
+});

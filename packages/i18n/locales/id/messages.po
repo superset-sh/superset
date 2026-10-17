@@ -967,9 +967,15 @@ msgstr "{name} bawaan dan tidak dapat dihapus"
 msgid "serverError.plugins.marketplaceReserved"
 msgstr "{name} bawaan dan tidak dapat diganti"
 
+msgid "{name} is installed"
+msgstr "{name} sudah terpasang"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} belum ditambahkan"
+
+msgid "{name} plugin"
+msgstr "Plugin {name}"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {Tentukan minimal satu orang, atau pilih {choice}.} sender {Tentukan minimal satu pengirim, atau pilih {choice}.} other {Tentukan minimal satu entri, atau pilih {choice}.}}"
@@ -1419,8 +1425,8 @@ msgstr "Satu endpoint CDP per panel"
 msgid "A changelog goes out every week. Most new hires ship to users in their first few days."
 msgstr "Changelog terbit setiap minggu. Kebanyakan karyawan baru sudah merilis ke pengguna dalam beberapa hari pertama."
 
-msgid "A chat can't switch to another provider partway through. Fork this conversation into a new {label} chat instead. This {currentLabel} chat stays open."
-msgstr "Chat tidak dapat beralih ke penyedia lain di tengah percakapan. Sebagai gantinya, cabangkan percakapan ini ke chat {label} baru. Chat {currentLabel} ini tetap terbuka."
+msgid "A chat can't switch to another provider partway through. Start a fresh {label} chat, or fork this conversation into one. This {currentLabel} chat stays open."
+msgstr "Chat tidak bisa beralih ke penyedia lain di tengah jalan. Mulai chat {label} baru, atau cabangkan percakapan ini ke chat baru. Chat {currentLabel} ini tetap terbuka."
 
 msgid "A chat takes its name from the agent."
 msgstr "Chat mengambil namanya dari agen."
@@ -3552,6 +3558,9 @@ msgstr "Memeriksa environment…"
 msgid "Checking host…"
 msgstr "Memeriksa host…"
 
+msgid "Checking MCP servers…"
+msgstr "Memeriksa server MCP…"
+
 msgid "Checking out a PR requires a project"
 msgstr "Checkout PR memerlukan sebuah proyek"
 
@@ -3624,6 +3633,9 @@ msgstr "Pilih agen"
 msgid "Choose an existing repo folder"
 msgstr "Pilih folder repo yang sudah ada"
 
+msgid "Choose an MCP server"
+msgstr "Pilih server MCP"
+
 msgid "Choose app"
 msgstr "Pilih aplikasi"
 
@@ -3635,6 +3647,9 @@ msgstr "Pilih cara membuka tampilan perubahan dari bilah atas"
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "Pilih cara membuka path file saat Cmd+klik di terminal"
+
+msgid "Choose MCP servers for this message"
+msgstr "Pilih server MCP untuk pesan ini"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "Pilih apa yang ingin dibersihkan dari browser dalam aplikasi."
@@ -4268,6 +4283,9 @@ msgstr "Atur agen mana yang muncul di peluncur dan bagaimana peluncurannya disus
 msgid "Configure workspace run command"
 msgstr "Atur perintah run workspace"
 
+msgid "Configured for {agent}"
+msgstr "Dikonfigurasi untuk {agent}"
+
 msgid "Confirm before quitting"
 msgstr "Konfirmasi sebelum keluar"
 
@@ -4521,9 +4539,6 @@ msgstr "Menu Konteks"
 
 msgid "Continue"
 msgstr "Lanjutkan"
-
-msgid "Continue in a new {label} chat?"
-msgstr "Lanjutkan di chat {label} baru?"
 
 msgid "Continue or fork session"
 msgstr "Lanjutkan atau fork sesi"
@@ -4929,6 +4944,9 @@ msgstr "Tidak bisa menjangkau mesin workspace ini"
 msgid "Could not reactivate"
 msgstr "Tidak bisa mengaktifkan kembali"
 
+msgid "Could not read MCP servers."
+msgstr "Tidak bisa membaca server MCP."
+
 msgid "Could not read selected file"
 msgstr "Tidak bisa membaca file yang dipilih"
 
@@ -5177,6 +5195,12 @@ msgstr "Tidak dapat memulihkan \"{projectName}\""
 
 msgid "Couldn't restore \"{workspaceName}\""
 msgstr "Tidak dapat memulihkan \"{workspaceName}\""
+
+msgid "Couldn't restore the files"
+msgstr "Tidak dapat memulihkan file"
+
+msgid "Couldn't rewind the chat"
+msgstr "Tidak dapat memutar balik chat"
 
 msgid "Couldn't save"
 msgstr "Tidak bisa menyimpan"
@@ -6114,6 +6138,9 @@ msgstr "Nonaktifkan skill"
 
 msgid "Disabled"
 msgstr "Nonaktif"
+
+msgid "Disabled in agent config"
+msgstr "Dinonaktifkan di konfigurasi agen"
 
 msgid "Disabled toggle"
 msgstr "Toggle nonaktif"
@@ -7819,14 +7846,14 @@ msgstr "Lupakan {domain}"
 msgid "Fork args"
 msgstr "Argumen fork"
 
+msgid "Fork conversation"
+msgstr "Cabangkan percakapan"
+
 msgid "Fork session"
 msgstr "Fork sesi"
 
 msgid "Fork session…"
 msgstr "Fork sesi…"
-
-msgid "Fork to new chat"
-msgstr "Cabangkan ke chat baru"
 
 msgid "Form controls and field composition"
 msgstr "Kontrol form dan komposisi field"
@@ -8052,6 +8079,9 @@ msgstr "Kembali"
 
 msgid "Go back home"
 msgstr "Kembali ke beranda"
+
+msgid "Go back to an earlier message and restore the files"
+msgstr "Kembali ke pesan sebelumnya dan pulihkan file"
 
 msgid "Go back to the previous page in history"
 msgstr "Kembali ke halaman sebelumnya di riwayat"
@@ -8692,6 +8722,9 @@ msgstr "Di aplikasi desktop Superset, buka Pengaturan → Akses Jarak Jauh dan a
 msgid "In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers, and Asia as a whole now accounts for more users than the US."
 msgstr "Dalam waktu kurang dari setahun, lebih dari 130.000 developer di 176 negara telah menjalankan Superset dan membuat lebih dari 1,5 juta workspace agen. Jepang adalah pasar terbesar kedua setelah AS, dengan lebih dari 12.000 developer, dan Asia secara keseluruhan kini memiliki lebih banyak pengguna daripada AS."
 
+msgid "In your next chat"
+msgstr "Di chat berikutnya"
+
 msgid "In your terminal"
 msgstr "Di terminal Anda"
 
@@ -9054,6 +9087,9 @@ msgstr "Branch dan salinan file tersendiri"
 
 msgid "Its replies go with it."
 msgstr "Balasannya ikut terhapus."
+
+msgid "Its tools reach the agent in your next chat."
+msgstr "Alatnya tersedia untuk agen di chat berikutnya."
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Workspace dan terminalnya tidak tersedia sampai layanan ini dimulai ulang — pakai menu tray Superset > Host Service > Restart."
@@ -9684,6 +9720,10 @@ msgstr "Memuat..."
 msgid "Loading…"
 msgstr "Memuat…"
 
+msgctxt "MCP server scope"
+msgid "local"
+msgstr "lokal"
+
 msgid "Local"
 msgstr "Lokal"
 
@@ -9848,6 +9888,9 @@ msgstr "Kelola Paket"
 msgid "Manage plan on the web"
 msgstr "Kelola paket lewat web"
 
+msgid "Manage plugins…"
+msgstr "Kelola plugin…"
+
 msgid "Manage sessions"
 msgstr "Kelola sesi"
 
@@ -9947,6 +9990,9 @@ msgstr "Server MCP"
 msgid "MCP Server Commands"
 msgstr "Perintah server MCP"
 
+msgid "MCP servers"
+msgstr "Server MCP"
+
 msgid "Measured over the trailing 30 days"
 msgstr "Diukur selama 30 hari terakhir"
 
@@ -10027,9 +10073,6 @@ msgstr "Merge Commit"
 #. placeholder {0}: error.message
 msgid "Merge failed: {0}"
 msgstr "Merge gagal: {0}"
-
-msgid "Merge into center"
-msgstr "Gabungkan ke tengah"
 
 msgid "Merge pull request"
 msgstr "Merge pull request"
@@ -10278,9 +10321,6 @@ msgstr "Sebagian besar sejarah perangkat lunak"
 msgid "Move {count} to Group"
 msgstr "Pindahkan {count} ke Grup"
 
-msgid "Move to Center"
-msgstr "Pindahkan ke tengah"
-
 msgid "Move to group"
 msgstr "Pindahkan ke grup"
 
@@ -10446,6 +10486,9 @@ msgstr "Browser Baru"
 
 msgid "new challengers"
 msgstr "penantang baru"
+
+msgid "New Chat"
+msgstr "Chat Baru"
 
 msgid "New cloud workspace"
 msgstr "Workspace cloud baru"
@@ -10852,6 +10895,9 @@ msgstr "Tanpa ikon"
 msgid "No icons match."
 msgstr "Tidak ada ikon yang cocok."
 
+msgid "No installed agent can be opened as a chat"
+msgstr "Tidak ada agen terpasang yang bisa dibuka sebagai chat"
+
 msgid "No Internet Connection"
 msgstr "Tidak Ada Koneksi Internet"
 
@@ -10900,6 +10946,9 @@ msgstr "Tidak ada yang cocok"
 msgid "No matching files"
 msgstr "Tidak ada berkas yang cocok"
 
+msgid "No matching MCP servers"
+msgstr "Tidak ada server MCP yang cocok"
+
 msgid "No matching models"
 msgstr "Tidak ada model yang cocok"
 
@@ -10911,6 +10960,9 @@ msgstr "Tidak ada halaman yang cocok"
 
 msgid "No matching repositories."
 msgstr "Tidak ada repositori yang cocok."
+
+msgid "No MCP servers found"
+msgstr "Tidak ada server MCP"
 
 msgid "No members yet"
 msgstr "Belum ada anggota"
@@ -11620,6 +11672,9 @@ msgstr "Buka {path} di panel file"
 
 msgid "Open a multiline prompt composer for the active terminal"
 msgstr "Buka komposer prompt multibaris untuk terminal aktif"
+
+msgid "Open a new {label} chat?"
+msgstr "Buka chat {label} baru?"
 
 msgid "Open a pane, or drag one here from the center."
 msgstr "Buka panel, atau seret panel ke sini dari tengah."
@@ -12477,6 +12532,9 @@ msgstr "Pilih folder…"
 msgid "Pick a low-risk papercut, fix it, and explain how it was verified."
 msgstr "Pilih satu gangguan kecil berisiko rendah, perbaiki, dan jelaskan cara verifikasinya."
 
+msgid "Pick a message. The chat goes back to just before it, and the message returns to the composer."
+msgstr "Pilih pesan. Chat kembali ke tepat sebelum pesan itu, dan pesan kembali ke kolom tulis."
+
 msgid "Pick a model"
 msgstr "Pilih sebuah model"
 
@@ -12915,6 +12973,10 @@ msgstr "Progres"
 msgid "Progress · Spinner"
 msgstr "Progres · Spinner"
 
+msgctxt "MCP server scope"
+msgid "project"
+msgstr "proyek"
+
 msgid "Project"
 msgstr "Proyek"
 
@@ -12947,6 +13009,9 @@ msgstr "Proyek tidak ditemukan."
 
 msgid "Project not set up on this host"
 msgstr "Proyek belum disiapkan di host ini"
+
+msgid "Project not trusted in Codex"
+msgstr "Proyek tidak dipercaya di Codex"
 
 msgid "Project ready — open it from the sidebar."
 msgstr "Proyek siap — buka dari sidebar."
@@ -13276,6 +13341,9 @@ msgstr "Baca log deployment dan build"
 
 msgid "Read it on your phone"
 msgstr "Baca di ponsel Anda"
+
+msgid "Read MCP servers again"
+msgstr "Baca ulang server MCP"
 
 msgid "Read the changelog"
 msgstr "Baca changelog"
@@ -14213,6 +14281,18 @@ msgstr "Cabut kunci API"
 msgid "Revoke key"
 msgstr "Cabut kunci"
 
+msgid "Rewind"
+msgstr "Putar balik"
+
+msgid "Rewind chat and files"
+msgstr "Putar balik chat dan file"
+
+msgid "Rewind chat only"
+msgstr "Putar balik chat saja"
+
+msgid "Rewind to this message?"
+msgstr "Putar balik ke pesan ini?"
+
 msgid "Rewrote it and published version 2."
 msgstr "Sudah ditulis ulang dan versi 2 diterbitkan."
 
@@ -14678,6 +14758,9 @@ msgstr "Cari di Linear"
 
 msgid "Search Linear…"
 msgstr "Cari di Linear…"
+
+msgid "Search MCP servers…"
+msgstr "Cari server MCP…"
 
 msgid "Search models"
 msgstr "Cari model"
@@ -16002,6 +16085,9 @@ msgstr "Mulai uji coba gratis"
 msgid "Start free. Upgrade when your team outgrows it. Enterprise plans for organizations with advanced security and compliance needs."
 msgstr "Mulai gratis. Upgrade saat tim Anda membutuhkan lebih. Paket enterprise untuk organisasi dengan kebutuhan keamanan dan kepatuhan tingkat lanjut."
 
+msgid "Start fresh"
+msgstr "Mulai dari awal"
+
 msgid "Start from a template"
 msgstr "Mulai dari templat"
 
@@ -16143,6 +16229,9 @@ msgstr "Hentikan Superset di sini untuk menghapus dari perangkat lain."
 
 msgid "Stop the agent and send this now"
 msgstr "Hentikan agen dan kirim sekarang"
+
+msgid "Stop the agent before you rewind"
+msgstr "Hentikan agen sebelum memutar balik"
 
 msgid "Stop watching"
 msgstr "Berhenti memantau"
@@ -17268,6 +17357,12 @@ msgstr "Tema"
 msgid "Themes and agents"
 msgstr "Tema dan agen"
 
+msgid "There are no messages to rewind to yet."
+msgstr "Belum ada pesan untuk diputar balik."
+
+msgid "There is no file snapshot for that message, so nothing was rewound. Choose Rewind chat only to rewind just the conversation."
+msgstr "Tidak ada snapshot file untuk pesan itu, jadi tidak ada yang diputar balik. Pilih \"Putar balik chat saja\" untuk memutar balik percakapannya saja."
+
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "Perintah ini berjalan otomatis saat workspace dibuat. <0>Baca dokumentasi kami<1/></0>"
 
@@ -17401,6 +17496,9 @@ msgstr "Instalasi GitHub ini sudah terhubung ke organisasi Superset lain. Putusk
 msgid "This host"
 msgstr "Host ini"
 
+msgid "This host can't restore files, so nothing was rewound. Choose Rewind chat only to rewind just the conversation."
+msgstr "Host ini tidak dapat memulihkan file, jadi tidak ada yang diputar balik. Pilih \"Putar balik chat saja\" untuk memutar balik percakapannya saja."
+
 msgid "This host has not reported a version yet."
 msgstr "Host ini belum melaporkan versi."
 
@@ -17442,6 +17540,9 @@ msgstr "Mac ini"
 
 msgid "This machine"
 msgstr "Mesin ini"
+
+msgid "This message and everything after it leave the chat, and the message goes back to the composer. Rewinding the files also undoes changes made since then. A snapshot of the current files is kept first."
+msgstr "Pesan ini dan semua setelahnya keluar dari chat, dan pesan kembali ke kolom tulis. Memutar balik file juga membatalkan perubahan sejak saat itu. Snapshot file saat ini disimpan lebih dulu."
 
 msgid "This Microsoft tenant is already connected by {detail}. Ask them to disconnect first."
 msgstr "Tenant Microsoft ini sudah terhubung oleh {detail}. Minta mereka memutuskannya dulu."
@@ -18478,6 +18579,10 @@ msgstr "Dipakai saat sistem Anda dalam mode gelap."
 
 msgid "Used when your system is in light mode."
 msgstr "Dipakai saat sistem Anda dalam mode terang."
+
+msgctxt "MCP server scope"
+msgid "user"
+msgstr "pengguna"
 
 msgid "User already has access to this host"
 msgstr "Pengguna sudah punya akses ke host ini"

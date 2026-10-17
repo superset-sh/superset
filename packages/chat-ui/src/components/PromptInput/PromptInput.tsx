@@ -20,6 +20,7 @@ export type {
 	ComposerMentionProvider,
 	ComposerMentionSource,
 	ComposerPanelContent,
+	ComposerPanelControls,
 	PromptInputAttachment,
 	PromptInputCommand,
 	PromptInputDictation,

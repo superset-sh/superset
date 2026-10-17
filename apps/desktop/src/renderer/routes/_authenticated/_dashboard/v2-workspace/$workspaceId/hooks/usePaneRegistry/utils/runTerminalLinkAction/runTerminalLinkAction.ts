@@ -60,7 +60,7 @@ export function runUrlLinkAction(
 	}
 	const pageSlug = parseSupersetPageUrl(url, env.NEXT_PUBLIC_WEB_URL);
 	const pullRequest = pullRequestRefFromBareUrl(url);
-	if (action === "rightPane" && deps.rightPane) {
+	if (deps.rightPane) {
 		deps.rightPane.reveal();
 		if (pageSlug) {
 			openPagePaneInStore(deps.rightPane.store, { slug: pageSlug }, "tab");

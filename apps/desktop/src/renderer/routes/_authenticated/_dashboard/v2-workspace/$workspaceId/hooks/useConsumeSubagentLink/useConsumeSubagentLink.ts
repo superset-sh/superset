@@ -1,12 +1,9 @@
-import type { WorkspaceStore } from "@superset/panes";
 import { useEffect, useRef } from "react";
 import type { SubagentLinkParams } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
-import type { StoreApi } from "zustand/vanilla";
-import type { ConsumeSearch, PaneViewerData } from "../../types";
-import { openSubagentPaneInStore } from "../../utils/openSubagentPaneInStore";
+import type { ConsumeSearch, SubagentPaneData } from "../../types";
 
 interface UseConsumeSubagentLinkArgs {
-	store: StoreApi<WorkspaceStore<PaneViewerData>>;
+	openSubagentPane: (data: SubagentPaneData) => void;
 	isLayoutReady: boolean;
 	link: SubagentLinkParams | undefined;
 	focusRequestId: string | undefined;
@@ -20,7 +17,7 @@ interface UseConsumeSubagentLinkArgs {
  * does not reopen the pane.
  */
 export function useConsumeSubagentLink({
-	store,
+	openSubagentPane,
 	isLayoutReady,
 	link,
 	focusRequestId,
@@ -32,12 +29,12 @@ export function useConsumeSubagentLink({
 		const key = `${link.terminalId}:${link.subagentId}:${focusRequestId ?? ""}`;
 		if (consumedRef.current.has(key)) return;
 		consumedRef.current.add(key);
-		openSubagentPaneInStore(store, link);
+		openSubagentPane(link);
 		consumeSearch([
 			"subagentTerminalId",
 			"subagentId",
 			"subagentAgentId",
 			"subagentType",
 		]);
-	}, [store, isLayoutReady, link, focusRequestId, consumeSearch]);
+	}, [openSubagentPane, isLayoutReady, link, focusRequestId, consumeSearch]);
 }

@@ -967,9 +967,15 @@ msgstr "{name} 是内置的，无法移除"
 msgid "serverError.plugins.marketplaceReserved"
 msgstr "{name} 是内置的，无法替换"
 
+msgid "{name} is installed"
+msgstr "{name} 已安装"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} 尚未添加"
+
+msgid "{name} plugin"
+msgstr "{name} 插件"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {请至少指定一个人员，或选择{choice}。} sender {请至少指定一个发件人，或选择{choice}。} other {请至少指定一个条目，或选择{choice}。}}"
@@ -1419,8 +1425,8 @@ msgstr "每个窗格一个 CDP 端点"
 msgid "A changelog goes out every week. Most new hires ship to users in their first few days."
 msgstr "我们每周发布一次更新日志。大多数新员工入职头几天就会向用户发布功能。"
 
-msgid "A chat can't switch to another provider partway through. Fork this conversation into a new {label} chat instead. This {currentLabel} chat stays open."
-msgstr "聊天进行中无法切换到其他提供方。请将此对话分叉到新的 {label} 聊天。当前的 {currentLabel} 聊天会保持打开。"
+msgid "A chat can't switch to another provider partway through. Start a fresh {label} chat, or fork this conversation into one. This {currentLabel} chat stays open."
+msgstr "聊天进行中无法切换到其他提供方。请开始一个新的 {label} 聊天，或将此对话分叉到新聊天中。此 {currentLabel} 聊天会保持打开。"
 
 msgid "A chat takes its name from the agent."
 msgstr "聊天的名称来自智能体。"
@@ -3552,6 +3558,9 @@ msgstr "正在检查环境…"
 msgid "Checking host…"
 msgstr "正在检查主机…"
 
+msgid "Checking MCP servers…"
+msgstr "正在检查MCP服务器…"
+
 msgid "Checking out a PR requires a project"
 msgstr "检出PR需要一个项目"
 
@@ -3624,6 +3633,9 @@ msgstr "选择智能体"
 msgid "Choose an existing repo folder"
 msgstr "选择已有的仓库文件夹"
 
+msgid "Choose an MCP server"
+msgstr "选择一个MCP服务器"
+
 msgid "Choose app"
 msgstr "选择应用"
 
@@ -3635,6 +3647,9 @@ msgstr "选择从顶栏打开更改视图的方式"
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "选择在终端中Cmd+点击文件路径时的打开方式"
+
+msgid "Choose MCP servers for this message"
+msgstr "为这条消息选择MCP服务器"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "选择要从应用内浏览器清除的内容。"
@@ -4268,6 +4283,9 @@ msgstr "配置哪些智能体出现在启动器中，以及它们的启动方式
 msgid "Configure workspace run command"
 msgstr "配置工作区运行命令"
 
+msgid "Configured for {agent}"
+msgstr "已为 {agent} 配置"
+
 msgid "Confirm before quitting"
 msgstr "退出前确认"
 
@@ -4521,9 +4539,6 @@ msgstr "右键菜单"
 
 msgid "Continue"
 msgstr "继续"
-
-msgid "Continue in a new {label} chat?"
-msgstr "在新的 {label} 聊天中继续？"
 
 msgid "Continue or fork session"
 msgstr "继续或分叉会话"
@@ -4929,6 +4944,9 @@ msgstr "无法连接到这个工作区所在的机器"
 msgid "Could not reactivate"
 msgstr "无法重新激活"
 
+msgid "Could not read MCP servers."
+msgstr "无法读取MCP服务器。"
+
 msgid "Could not read selected file"
 msgstr "无法读取所选文件"
 
@@ -5177,6 +5195,12 @@ msgstr "无法恢复“{projectName}”"
 
 msgid "Couldn't restore \"{workspaceName}\""
 msgstr "无法恢复“{workspaceName}”"
+
+msgid "Couldn't restore the files"
+msgstr "无法恢复文件"
+
+msgid "Couldn't rewind the chat"
+msgstr "无法回退聊天"
 
 msgid "Couldn't save"
 msgstr "保存失败"
@@ -6114,6 +6138,9 @@ msgstr "停用技能"
 
 msgid "Disabled"
 msgstr "已停用"
+
+msgid "Disabled in agent config"
+msgstr "已在智能体配置中停用"
 
 msgid "Disabled toggle"
 msgstr "禁用的切换控件"
@@ -7819,14 +7846,14 @@ msgstr "忘记{domain}"
 msgid "Fork args"
 msgstr "分叉参数"
 
+msgid "Fork conversation"
+msgstr "分叉对话"
+
 msgid "Fork session"
 msgstr "分叉会话"
 
 msgid "Fork session…"
 msgstr "分叉会话…"
-
-msgid "Fork to new chat"
-msgstr "分叉到新聊天"
 
 msgid "Form controls and field composition"
 msgstr "表单控件与字段组合"
@@ -8052,6 +8079,9 @@ msgstr "返回"
 
 msgid "Go back home"
 msgstr "返回首页"
+
+msgid "Go back to an earlier message and restore the files"
+msgstr "回到之前的消息并恢复文件"
 
 msgid "Go back to the previous page in history"
 msgstr "返回历史记录中的上一页"
@@ -8692,6 +8722,9 @@ msgstr "在Superset桌面应用中打开“设置 → 远程访问”，开启�
 msgid "In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers, and Asia as a whole now accounts for more users than the US."
 msgstr "不到一年时间，来自 176 个国家的超过 130,000 名开发者运行过 Superset，并创建了超过 150 万个智能体工作区。日本是仅次于美国的第二大市场，拥有超过 12,000 名开发者，而整个亚洲的用户数如今已超过美国。"
 
+msgid "In your next chat"
+msgstr "下一次聊天中"
+
 msgid "In your terminal"
 msgstr "在终端中"
 
@@ -9054,6 +9087,9 @@ msgstr "独立的分支和文件副本"
 
 msgid "Its replies go with it."
 msgstr "其回复也会一并删除。"
+
+msgid "Its tools reach the agent in your next chat."
+msgstr "它的工具会在你的下一次聊天中提供给智能体。"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "在它重启之前，其工作区和终端都不可用，请使用Superset托盘菜单 > 主机服务 > 重启。"
@@ -9684,6 +9720,10 @@ msgstr "加载中..."
 msgid "Loading…"
 msgstr "正在加载…"
 
+msgctxt "MCP server scope"
+msgid "local"
+msgstr "本地"
+
 msgid "Local"
 msgstr "本地"
 
@@ -9848,6 +9888,9 @@ msgstr "管理方案"
 msgid "Manage plan on the web"
 msgstr "在网页端管理方案"
 
+msgid "Manage plugins…"
+msgstr "管理插件…"
+
 msgid "Manage sessions"
 msgstr "管理会话"
 
@@ -9947,6 +9990,9 @@ msgstr "MCP服务器"
 msgid "MCP Server Commands"
 msgstr "MCP服务器命令"
 
+msgid "MCP servers"
+msgstr "MCP服务器"
+
 msgid "Measured over the trailing 30 days"
 msgstr "按最近 30 天计算"
 
@@ -10027,9 +10073,6 @@ msgstr "合并提交"
 #. placeholder {0}: error.message
 msgid "Merge failed: {0}"
 msgstr "合并失败：{0}"
-
-msgid "Merge into center"
-msgstr "合并到中间"
 
 msgid "Merge pull request"
 msgstr "合并拉取请求"
@@ -10278,9 +10321,6 @@ msgstr "软件史的大部分时间"
 msgid "Move {count} to Group"
 msgstr "将{count}个移动到分组"
 
-msgid "Move to Center"
-msgstr "移到中间"
-
 msgid "Move to group"
 msgstr "移动到分组"
 
@@ -10446,6 +10486,9 @@ msgstr "新建浏览器"
 
 msgid "new challengers"
 msgstr "换对手"
+
+msgid "New Chat"
+msgstr "新建聊天"
 
 msgid "New cloud workspace"
 msgstr "新建云端工作区"
@@ -10852,6 +10895,9 @@ msgstr "无图标"
 msgid "No icons match."
 msgstr "没有匹配的图标。"
 
+msgid "No installed agent can be opened as a chat"
+msgstr "没有已安装的智能体可以作为聊天打开"
+
 msgid "No Internet Connection"
 msgstr "无网络连接"
 
@@ -10900,6 +10946,9 @@ msgstr "没有匹配项"
 msgid "No matching files"
 msgstr "没有匹配的文件"
 
+msgid "No matching MCP servers"
+msgstr "没有匹配的MCP服务器"
+
 msgid "No matching models"
 msgstr "没有匹配的模型"
 
@@ -10911,6 +10960,9 @@ msgstr "没有匹配的页面"
 
 msgid "No matching repositories."
 msgstr "没有匹配的仓库。"
+
+msgid "No MCP servers found"
+msgstr "未找到MCP服务器"
 
 msgid "No members yet"
 msgstr "暂无成员"
@@ -11620,6 +11672,9 @@ msgstr "在文件面板中打开{path}"
 
 msgid "Open a multiline prompt composer for the active terminal"
 msgstr "为当前终端打开多行提示词编辑器"
+
+msgid "Open a new {label} chat?"
+msgstr "打开新的 {label} 聊天？"
 
 msgid "Open a pane, or drag one here from the center."
 msgstr "打开一个窗格，或从中间拖一个到这里。"
@@ -12477,6 +12532,9 @@ msgstr "选择文件夹…"
 msgid "Pick a low-risk papercut, fix it, and explain how it was verified."
 msgstr "挑一个低风险的小毛病，修好它，并说明是怎么验证的。"
 
+msgid "Pick a message. The chat goes back to just before it, and the message returns to the composer."
+msgstr "选择一条消息。聊天会回到这条消息之前，该消息会回到输入框。"
+
 msgid "Pick a model"
 msgstr "选择模型"
 
@@ -12915,6 +12973,10 @@ msgstr "进度"
 msgid "Progress · Spinner"
 msgstr "进度条 · 加载指示器"
 
+msgctxt "MCP server scope"
+msgid "project"
+msgstr "项目"
+
 msgid "Project"
 msgstr "项目"
 
@@ -12947,6 +13009,9 @@ msgstr "找不到该项目。"
 
 msgid "Project not set up on this host"
 msgstr "项目未在此主机上设置"
+
+msgid "Project not trusted in Codex"
+msgstr "项目在Codex中未受信任"
 
 msgid "Project ready — open it from the sidebar."
 msgstr "项目已就绪，可从侧边栏打开。"
@@ -13276,6 +13341,9 @@ msgstr "查看部署和构建日志"
 
 msgid "Read it on your phone"
 msgstr "在手机上阅读"
+
+msgid "Read MCP servers again"
+msgstr "重新读取MCP服务器"
 
 msgid "Read the changelog"
 msgstr "查看更新日志"
@@ -14213,6 +14281,18 @@ msgstr "吊销API密钥"
 msgid "Revoke key"
 msgstr "吊销密钥"
 
+msgid "Rewind"
+msgstr "回退"
+
+msgid "Rewind chat and files"
+msgstr "回退聊天和文件"
+
+msgid "Rewind chat only"
+msgstr "仅回退聊天"
+
+msgid "Rewind to this message?"
+msgstr "回退到这条消息？"
+
 msgid "Rewrote it and published version 2."
 msgstr "已重写并发布版本 2。"
 
@@ -14678,6 +14758,9 @@ msgstr "搜索Linear"
 
 msgid "Search Linear…"
 msgstr "搜索Linear…"
+
+msgid "Search MCP servers…"
+msgstr "搜索MCP服务器…"
 
 msgid "Search models"
 msgstr "搜索模型"
@@ -16002,6 +16085,9 @@ msgstr "开始免费试用"
 msgid "Start free. Upgrade when your team outgrows it. Enterprise plans for organizations with advanced security and compliance needs."
 msgstr "免费开始。团队用不够时再升级。企业方案面向有进阶安全与合规需求的组织。"
 
+msgid "Start fresh"
+msgstr "重新开始"
+
 msgid "Start from a template"
 msgstr "从模板开始"
 
@@ -16143,6 +16229,9 @@ msgstr "在此停止Superset，然后从其他设备删除。"
 
 msgid "Stop the agent and send this now"
 msgstr "停止智能体并立即发送"
+
+msgid "Stop the agent before you rewind"
+msgstr "回退前请先停止智能体"
 
 msgid "Stop watching"
 msgstr "停止关注"
@@ -17268,6 +17357,12 @@ msgstr "主题"
 msgid "Themes and agents"
 msgstr "主题与智能体"
 
+msgid "There are no messages to rewind to yet."
+msgstr "还没有可以回退到的消息。"
+
+msgid "There is no file snapshot for that message, so nothing was rewound. Choose Rewind chat only to rewind just the conversation."
+msgstr "这条消息没有文件快照，因此没有回退任何内容。若只想回退对话，请选择“仅回退聊天”。"
+
 msgid "These commands run automatically when a workspace is created. <0>Read our docs<1/></0>"
 msgstr "创建工作区时会自动运行这些命令。<0>阅读文档<1/></0>"
 
@@ -17401,6 +17496,9 @@ msgstr "这个GitHub安装已连接到另一个Superset组织。请先在那里�
 msgid "This host"
 msgstr "此主机"
 
+msgid "This host can't restore files, so nothing was rewound. Choose Rewind chat only to rewind just the conversation."
+msgstr "此主机无法恢复文件，因此没有回退任何内容。若只想回退对话，请选择“仅回退聊天”。"
+
 msgid "This host has not reported a version yet."
 msgstr "此主机尚未报告版本。"
 
@@ -17442,6 +17540,9 @@ msgstr "这台Mac"
 
 msgid "This machine"
 msgstr "本机"
+
+msgid "This message and everything after it leave the chat, and the message goes back to the composer. Rewinding the files also undoes changes made since then. A snapshot of the current files is kept first."
+msgstr "这条消息及之后的内容会从聊天中移除，该消息会回到输入框。同时回退文件会撤销此后的更改。系统会先保存当前文件的快照。"
 
 msgid "This Microsoft tenant is already connected by {detail}. Ask them to disconnect first."
 msgstr "这个Microsoft租户已被{detail}连接。请让对方先断开连接。"
@@ -18478,6 +18579,10 @@ msgstr "在系统处于深色模式时使用。"
 
 msgid "Used when your system is in light mode."
 msgstr "在系统处于浅色模式时使用。"
+
+msgctxt "MCP server scope"
+msgid "user"
+msgstr "用户"
 
 msgid "User already has access to this host"
 msgstr "该用户已拥有此主机的访问权限"

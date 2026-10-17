@@ -849,6 +849,15 @@ export const HOTKEYS_REGISTRY = {
 		}),
 		category: "Chat",
 	},
+	NEW_CHAT: {
+		key: {
+			mac: L("meta+shift+j"),
+			windows: L("ctrl+shift+alt+j"),
+			linux: L("ctrl+shift+alt+j"),
+		},
+		label: msg({ message: "New Chat" }),
+		category: "Chat",
+	},
 	CHAT_ADD_ATTACHMENT: {
 		key: {
 			mac: L("meta+u"),

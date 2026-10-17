@@ -47,6 +47,7 @@ export const FORWARDED_HOTKEYS: ReadonlySet<HotkeyId> = new Set<HotkeyId>([
 	"TOGGLE_SIDEBAR",
 	"TOGGLE_WORKSPACE_SIDEBAR",
 	"NEW_GROUP",
+	"NEW_CHAT",
 	"NEW_BROWSER",
 	"OPEN_DIFF_VIEWER",
 	"QUICK_OPEN",

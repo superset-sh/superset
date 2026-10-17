@@ -61,6 +61,7 @@ export function useV2WorkspacePaneLayout({
 			seededSnapshot: getSnapshot(seededLayout),
 			store: createWorkspaceStore<PaneViewerData>({
 				initialState: seededLayout,
+				openInTabs: slot === "rightPaneLayout",
 			}),
 		};
 	}, [collections, workspaceId, slot, selectionKey]);

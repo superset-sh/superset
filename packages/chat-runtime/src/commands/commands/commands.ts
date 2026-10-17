@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
+	deriveTimeline,
 	emptySnapshot,
 	outlineSnapshot,
 	reduceMany,
@@ -8,9 +9,11 @@ import {
 	type StoredItem,
 } from "@superset/chat/core";
 import type {
+	ApprovalRequest,
 	CancelTurnInput,
 	CloseSessionInput,
 	Cursor,
+	DurableEvent,
 	GetItemsInput,
 	GetSessionInput,
 	PromptInput,
@@ -35,11 +38,14 @@ import {
 	queuedPromptInputSchema,
 	respondToApprovalInputSchema,
 	resumeQueueInputSchema,
+	rewindFilesInputSchema,
+	rewindSessionInputSchema,
 	setConfigOptionInputSchema,
 	setModeInputSchema,
 	stopBackgroundTaskInputSchema,
 } from "@superset/chat/protocol";
 import { z } from "zod";
+import type { ChatCheckpoints, RewindFilesResult } from "../../checkpoints";
 import type { ChatDb, ChatSessionRow } from "../../db";
 import type { ChatJournal } from "../../journal";
 import type { ChatSessionStore } from "../../projection";
@@ -62,6 +68,45 @@ export const forkSessionCommandSchema = forkSessionInputSchema.extend({
 	cwd: z.string().min(1),
 });
 export type ForkSessionCommandInput = z.input<typeof forkSessionCommandSchema>;
+
+export const rewindFilesCommandSchema = rewindFilesInputSchema.extend({
+	cwd: z.string().min(1),
+});
+export type RewindFilesCommandInput = z.input<typeof rewindFilesCommandSchema>;
+
+export const rewindSessionCommandSchema = rewindSessionInputSchema.extend({
+	cwd: z.string().min(1),
+});
+export type RewindSessionCommandInput = z.input<
+	typeof rewindSessionCommandSchema
+>;
+
+/** The finished turns and items shown before `itemId`, or null when it is not there. */
+export function transcriptBefore(
+	snapshot: SessionSnapshot,
+	itemId: string,
+): DurableEvent[] | null {
+	const events: DurableEvent[] = [];
+	for (const group of deriveTimeline(snapshot)) {
+		const items = group.entries.flatMap((entry) =>
+			entry.kind === "item" ? [entry.item] : entry.items,
+		);
+		const index = items.findIndex((item) => item.id === itemId);
+		const kept = (index === -1 ? items : items.slice(0, index)).filter(
+			(item) =>
+				item.kind !== "approval_request" ||
+				(item as ApprovalRequest).status !== "pending",
+		);
+		if (kept.length > 0) {
+			if (group.turn) events.push({ type: "turn", turn: group.turn });
+			for (const item of kept) {
+				events.push({ type: "item", item, turnId: group.turnId });
+			}
+		}
+		if (index !== -1) return events;
+	}
+	return null;
+}
 
 export const listSessionsCommandSchema = listSessionsInputSchema
 	.omit({ workspaceId: true })
@@ -109,6 +154,8 @@ export type ChatCommands = {
 	forkSession(
 		input: ForkSessionCommandInput,
 	): Promise<CreateSessionResult | null>;
+	rewindFiles(input: RewindFilesCommandInput): Promise<RewindFilesResult>;
+	rewindSession(input: RewindSessionCommandInput): Promise<CreateSessionResult>;
 	getSession(input: GetSessionInput): GetSessionResult;
 	getQueue(input: GetSessionInput): GetQueueResult;
 	listSessions(input: ListSessionsCommandInput): ChatSessionListEntry[];
@@ -132,6 +179,7 @@ export type CommandsOptions = {
 	db: ChatDb;
 	sessions: ChatSessionStore;
 	live: LiveSessionRegistry;
+	checkpoints?: ChatCheckpoints;
 	dedupe: { run<T>(commandId: string, execute: () => T): T };
 	mintSessionId?: () => string;
 };
@@ -336,6 +384,69 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 				resume: { harnessSessionId: forked },
 				terminalId: live.terminalId,
 			});
+		},
+
+		async rewindFiles(input) {
+			const parsed = rewindFilesCommandSchema.parse(input);
+			if (!options.checkpoints) return { files: "unsupported" };
+			const files = await options.checkpoints.restore({
+				cwd: parsed.cwd,
+				sessionId: parsed.sessionId,
+				itemId: parsed.itemId,
+			});
+			return { files };
+		},
+
+		/**
+		 * A rewind continues in a new session: the transcript before the chosen
+		 * message is copied in, so the chat reads the same, and the agent — which
+		 * cannot be cut back — is told that conversation out of view.
+		 */
+		async rewindSession(input) {
+			const parsed = rewindSessionCommandSchema.parse(input);
+			const source = options.sessions.get(parsed.sessionId);
+			const replay = replaySession(parsed.sessionId);
+			if (!source || !replay.ok) {
+				throw new Error(`chat session ${parsed.sessionId} is not running`);
+			}
+			const seed = transcriptBefore(replay.snapshot, parsed.itemId);
+			if (!seed) {
+				throw new Error(
+					`message ${parsed.itemId} is not in chat session ${parsed.sessionId}`,
+				);
+			}
+			const created = this.createSession({
+				commandId: parsed.commandId,
+				scopeId: source.scopeId,
+				cwd: parsed.cwd,
+				harness: source.harness,
+				modeId: parsed.modeId,
+				modelId: parsed.modelId,
+				terminalId: options.live.get(parsed.sessionId)?.terminalId,
+			});
+			const live = options.live.require(created.sessionId);
+			live.seed(seed);
+			await options.checkpoints
+				?.fork?.({
+					cwd: parsed.cwd,
+					fromSessionId: parsed.sessionId,
+					toSessionId: created.sessionId,
+				})
+				.catch((error: unknown) =>
+					console.warn(
+						"[chat-runtime] could not carry checkpoints over",
+						error,
+					),
+				);
+			if (parsed.handoffPrompt) {
+				live.prompt(
+					[{ type: "text", text: parsed.handoffPrompt }],
+					`rewind-${parsed.commandId}`,
+					undefined,
+					true,
+				);
+			}
+			return created;
 		},
 
 		async closeSession(input) {

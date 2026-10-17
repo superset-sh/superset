@@ -159,7 +159,7 @@ const SortableProjectWrapper = memo(function SortableProjectWrapper({
 	);
 });
 
-export function DashboardSidebar({
+export const DashboardSidebar = memo(function DashboardSidebar({
 	isCollapsed = false,
 }: DashboardSidebarProps) {
 	const { t } = useLingui();
@@ -656,4 +656,4 @@ export function DashboardSidebar({
 			</DashboardSidebarSectionRenameProvider>
 		</DashboardSidebarSelectionProvider>
 	);
-}
+});

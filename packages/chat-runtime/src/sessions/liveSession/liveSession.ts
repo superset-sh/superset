@@ -23,6 +23,7 @@ export type LiveSessionOptions = {
 	journal: ChatJournal;
 	publish: (envelope: Envelope) => void;
 	adapter: HarnessAdapter;
+	checkpoint?: (itemId: string) => Promise<void>;
 	mintId?: () => string;
 	now?: () => number;
 };
@@ -113,6 +114,7 @@ export class LiveSession {
 		content: UserContent[],
 		clientId: string,
 		steerTurnId?: string,
+		hidden = false,
 	): PromptResult {
 		const itemId = this.mintId();
 		const seq = ++this.sent;
@@ -147,6 +149,7 @@ export class LiveSession {
 			startedAtMs: this.now(),
 			content,
 			...(queued ? { queued: true } : {}),
+			...(hidden ? { hidden: true } : {}),
 		};
 		const turnId = this.mintId();
 		if (queued) {
@@ -164,6 +167,11 @@ export class LiveSession {
 		this.appendDurable({ type: "item", item, turnId });
 		this.deliver({ item, content, turnId, seq });
 		return { itemId, queued: false };
+	}
+
+	/** Writes finished turns and items from another session's transcript into this one. */
+	seed(events: DurableEvent[]): void {
+		for (const event of events) this.appendDurable(event);
 	}
 
 	removeQueued(itemId: string): void {
@@ -342,6 +350,26 @@ export class LiveSession {
 
 	private deliver(prompt: PendingPrompt): void {
 		this.awaitingTurn = prompt;
+		const checkpoint = this.options.checkpoint;
+		if (!checkpoint) {
+			this.send(prompt);
+			return;
+		}
+		void checkpoint(prompt.item.id)
+			.catch((error: unknown) =>
+				console.warn("[chat-runtime] checkpoint failed", error),
+			)
+			.then(() => {
+				if (this.stopped || this.awaitingTurn !== prompt) return;
+				try {
+					this.send(prompt);
+				} catch (error) {
+					this.fail(error);
+				}
+			});
+	}
+
+	private send(prompt: PendingPrompt): void {
 		try {
 			this.options.adapter.prompt(prompt.content);
 		} catch (error) {

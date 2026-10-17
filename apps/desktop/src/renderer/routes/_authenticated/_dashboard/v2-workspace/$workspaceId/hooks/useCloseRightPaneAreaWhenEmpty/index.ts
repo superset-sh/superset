@@ -1,0 +1,1 @@
+export { useCloseRightPaneAreaWhenEmpty } from "./useCloseRightPaneAreaWhenEmpty";

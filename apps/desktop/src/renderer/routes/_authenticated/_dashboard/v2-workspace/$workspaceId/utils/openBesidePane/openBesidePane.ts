@@ -13,6 +13,10 @@ export function openBesidePane(
 		state.addTab({ panes: [pane] });
 		return;
 	}
+	if (state.openInTabs) {
+		state.openPane({ pane });
+		return;
+	}
 	const location = state.getPane(anchorPaneId);
 	const tab = location ? state.getTab(location.tabId) : null;
 	if (!tab) {

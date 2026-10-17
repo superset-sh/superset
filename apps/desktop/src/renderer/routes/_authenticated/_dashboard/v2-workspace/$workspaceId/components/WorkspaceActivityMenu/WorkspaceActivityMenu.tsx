@@ -35,7 +35,11 @@ import { usePRFlowState } from "../../hooks/usePRFlowState";
 import { useShipActions } from "../../hooks/useShipActions";
 import { useRightPaneLinkTarget } from "../../providers/RightPaneLinkTargetProvider";
 import { useWorkspaceGitStatus } from "../../providers/WorkspaceGitStatusProvider";
-import type { PagePaneData, PaneViewerData } from "../../types";
+import type {
+	PagePaneData,
+	PaneViewerData,
+	SubagentPaneData,
+} from "../../types";
 import {
 	BACKGROUND_TERMINAL_ATTACHMENT_DEBOUNCE_MS,
 	getAttachedTerminalIdsKey,
@@ -47,7 +51,6 @@ import { changesPillStats } from "../../utils/changesPillStats";
 import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
 import { getShipMenuActions } from "../../utils/getShipMenuActions";
 import { openPagePaneInStore } from "../../utils/openPagePaneInStore";
-import { openSubagentPaneInStore } from "../../utils/openSubagentPaneInStore";
 import { ChangesStats } from "../ChangesStats";
 import { CommitForm } from "../CommitForm";
 import { CreatePrForm } from "../CreatePrForm";
@@ -79,6 +82,7 @@ interface WorkspaceActivityMenuProps {
 	linkedStores: readonly StoreApi<WorkspaceStore<PaneViewerData>>[];
 	isLayoutReady: boolean;
 	onOpenPage: (page: PagePaneData, placement: "split" | "tab") => void;
+	onOpenSubagent: (data: SubagentPaneData) => void;
 	onCreateNewAgentSession: CreateNewAgentSession;
 	onFocusAgentTerminal: (terminalId: string) => void;
 	changes?: { isOpen: boolean; onToggle: () => void };
@@ -90,6 +94,7 @@ export function WorkspaceActivityMenu({
 	linkedStores,
 	isLayoutReady,
 	onOpenPage,
+	onOpenSubagent,
 	onCreateNewAgentSession,
 	onFocusAgentTerminal,
 	changes,
@@ -323,7 +328,7 @@ export function WorkspaceActivityMenu({
 			return;
 		}
 		const pageData = { pageId: page.id, slug: page.slug, title: page.title };
-		if (action === "rightPane" && rightPane) {
+		if (rightPane) {
 			rightPane.reveal();
 			openPagePaneInStore(rightPane.store, pageData, "tab");
 			return;
@@ -340,7 +345,7 @@ export function WorkspaceActivityMenu({
 			return;
 		}
 		if (work.subagent) {
-			openSubagentPaneInStore(store, {
+			onOpenSubagent({
 				terminalId: work.terminalId,
 				subagentId: work.subagent.id,
 				agentId: work.subagent.agentId,

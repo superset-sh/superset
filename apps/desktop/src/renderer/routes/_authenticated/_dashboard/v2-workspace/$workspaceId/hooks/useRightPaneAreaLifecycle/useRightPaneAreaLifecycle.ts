@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneViewerData } from "../../types";
+import { moveViewerPanesToRight } from "../../utils/moveViewerPanesToRight";
 
 const SIDEBAR_PANE_KINDS = new Set([
 	"files",
@@ -28,6 +29,14 @@ export function useRightPaneAreaLifecycle({
 	hasRow: boolean;
 }): void {
 	const collections = useCollections();
+
+	useEffect(() => {
+		if (!isReady || flag !== true) return;
+		const enforce = () =>
+			moveViewerPanesToRight({ center: centerStore, right: rightStore });
+		enforce();
+		return centerStore.subscribe(enforce);
+	}, [flag, centerStore, rightStore, isReady]);
 
 	useEffect(() => {
 		if (!isReady || !hasRow || flag !== false) return;

@@ -6,6 +6,7 @@ export {
 	type ComposerMentionProvider,
 	type ComposerMentionSource,
 	type ComposerPanelContent,
+	type ComposerPanelControls,
 	PromptInput,
 	type PromptInputAttachment,
 	type PromptInputCommand,

@@ -71,9 +71,9 @@ import {
 import {
 	findTerminalPaneLocation,
 	focusOrAddTerminalPane,
+	focusTerminalPane,
 } from "../../utils/focusTerminalPane";
 import { openPagePaneInStore } from "../../utils/openPagePaneInStore";
-import { openSubagentPaneInStore } from "../../utils/openSubagentPaneInStore";
 import { useAgentSessionLauncher } from "../useAgentSessionLauncher";
 import type { OpenReviewDiff } from "../useReviewCommentNavigation";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
@@ -163,6 +163,7 @@ interface UsePaneRegistryOptions {
 	launcher: TerminalLauncher;
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	linkedStores?: StoreApi<WorkspaceStore<PaneViewerData>>[];
+	onOpenSubagent: (data: SubagentPaneData) => void;
 	onSearch?: () => void;
 }
 
@@ -173,6 +174,7 @@ export function usePaneRegistry({
 	launcher,
 	store,
 	linkedStores,
+	onOpenSubagent,
 	onSearch,
 }: UsePaneRegistryOptions): PaneRegistry<PaneViewerData> {
 	const { t } = useLingui();
@@ -496,9 +498,7 @@ export function usePaneRegistry({
 									})
 								}
 								onCreateNewAgentSession={createNewAgentSession}
-								onOpenSubagent={(subagent) =>
-									openSubagentPaneInStore(ctx.store, subagent)
-								}
+								onOpenSubagent={onOpenSubagent}
 							/>
 							<AgentSurfaceToggle
 								pane={{ kind: "terminal", data }}
@@ -931,12 +931,13 @@ export function usePaneRegistry({
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
 					<SubagentPane
 						data={ctx.pane.data as SubagentPaneData}
-						onOpenParent={() =>
-							focusOrAddTerminalPane(
-								ctx.store,
-								(ctx.pane.data as SubagentPaneData).terminalId,
-							)
-						}
+						onOpenParent={() => {
+							const { terminalId } = ctx.pane.data as SubagentPaneData;
+							const focused = [store, ...(linkedStores ?? [])].some((s) =>
+								focusTerminalPane(s, terminalId),
+							);
+							if (!focused) focusOrAddTerminalPane(store, terminalId);
+						}}
 					/>
 				),
 			},
@@ -1018,6 +1019,7 @@ export function usePaneRegistry({
 			workspaceTrpcUtils,
 			t,
 			desktopUrl,
+			onOpenSubagent,
 		],
 	);
 }

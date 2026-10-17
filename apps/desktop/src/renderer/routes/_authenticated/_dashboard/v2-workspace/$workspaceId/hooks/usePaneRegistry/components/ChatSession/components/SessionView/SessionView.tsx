@@ -30,11 +30,12 @@ import {
 	type OpenLink,
 	type OpenPage,
 } from "../../providers/ChatPaneActionsProvider";
-import type { ChatForkTarget } from "../../types";
+import type { ChatForkTarget, ChatRewindRequest } from "../../types";
 import { buildChatHandoffTranscript } from "../../utils/chatHandoffTranscript";
 import { heldPromptQueue } from "../../utils/heldPromptQueue";
 import { promptHistory } from "../../utils/promptHistory";
 import { railMessages } from "../../utils/railMessages";
+import { rewindPoints, rewindTranscript } from "../../utils/rewindTimeline";
 import {
 	type AgentChoice,
 	type AgentSwitcher,
@@ -59,6 +60,7 @@ function contentText(content: UserContent[]): string {
 }
 
 export function SessionView({
+	agentId,
 	agentLabel,
 	agentSwitch,
 	canForkToWorktree,
@@ -72,6 +74,7 @@ export function SessionView({
 	preferredModelLabel,
 	onPendingPromptsSent,
 	onFork,
+	onRewind,
 	onSessionState,
 	openFile,
 	openPage,
@@ -79,6 +82,7 @@ export function SessionView({
 	workspaceId,
 }: {
 	client: SessionClient;
+	agentId?: string;
 	draftKey: string;
 	workspaceId: string;
 	headerLeft?: ReactNode;
@@ -102,6 +106,7 @@ export function SessionView({
 	 */
 	onFork?: ((target: ChatForkTarget, transcript: string) => void) | undefined;
 	canForkToWorktree?: boolean;
+	onRewind?: (request: ChatRewindRequest) => void;
 	/** Names the speaker in a handed-over transcript. */
 	agentLabel?: string;
 	/** The transcript goes with the switch: the next agent cannot load this session. */
@@ -289,6 +294,34 @@ export function SessionView({
 		},
 		[onModeChange, setMode],
 	);
+	const points = useStableList(
+		useMemo(() => rewindPoints(timeline, harness), [timeline, harness]),
+		(previous, next) =>
+			previous.itemId === next.itemId && previous.text === next.text,
+	);
+	const rewind = useMemo(
+		() =>
+			onRewind && {
+				points,
+				onPick: (point: { itemId: string; text: string }) => {
+					if (runningTurnId) {
+						toast.error(t({ message: "Stop the agent before you rewind" }));
+						return;
+					}
+					onRewind({
+						itemId: point.itemId,
+						messageText: point.text,
+						transcript: rewindTranscript(
+							timelineRef.current,
+							point.itemId,
+							snapshotRef.current,
+							agentLabel ?? "Agent",
+						),
+					});
+				},
+			},
+		[onRewind, points, runningTurnId, agentLabel, t],
+	);
 	const holdPrompt = held?.onQueue;
 	const onSend = useCallback(
 		(content: UserContent[], { steer }: { steer: boolean }) => {
@@ -405,6 +438,7 @@ export function SessionView({
 					)
 				)}
 				<Composer
+					agentId={agentId}
 					agentSwitcher={agentSwitcher}
 					availableCommands={sessionState?.availableCommands ?? NO_COMMANDS}
 					configOptions={sessionState?.configOptions ?? NO_CONFIG_OPTIONS}
@@ -419,6 +453,7 @@ export function SessionView({
 					onCancelTurn={onCancelTurn}
 					onSend={onSend}
 					promptQueue={heldQueue ?? (held ? undefined : promptQueue)}
+					rewind={held ? undefined : rewind}
 					workspaceId={workspaceId}
 				/>
 			</ComposerDropZone>

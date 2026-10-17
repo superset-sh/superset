@@ -54,7 +54,9 @@ export function deriveTimeline(
 	snapshot: Pick<SessionSnapshot, "items" | "turns">,
 ): TurnGroup[] {
 	const itemsByTurn = new Map<string, Item[]>();
+	const hiddenTurns = new Set<string>();
 	for (const stored of snapshot.items.values() as Iterable<StoredItem>) {
+		if (isHiddenPrompt(stored.item)) hiddenTurns.add(stored.turnId);
 		if (isQueuedPrompt(stored.item) || isDiscardedPrompt(stored.item)) continue;
 		const bucket = itemsByTurn.get(stored.turnId);
 		if (bucket) bucket.push(stored.item);
@@ -63,6 +65,7 @@ export function deriveTimeline(
 
 	const groups: TurnGroup[] = [];
 	for (const [turnId, items] of itemsByTurn) {
+		if (hiddenTurns.has(turnId)) continue;
 		items.sort(byStartThenId);
 		groups.push({
 			turn: snapshot.turns.get(turnId) ?? null,
@@ -107,6 +110,10 @@ function isQueuedPrompt(item: Item): item is UserMessage {
 	return item.kind === "user_message" && (item as UserMessage).queued === true;
 }
 
+function isHiddenPrompt(item: Item): boolean {
+	return item.kind === "user_message" && (item as UserMessage).hidden === true;
+}
+
 function isDiscardedPrompt(item: Item): boolean {
 	return (
 		item.kind === "user_message" && (item as UserMessage).discarded === true
@@ -118,7 +125,8 @@ export function deriveQueuedPrompts(
 ): UserMessage[] {
 	const queued: UserMessage[] = [];
 	for (const stored of snapshot.items.values()) {
-		if (isQueuedPrompt(stored.item)) queued.push(stored.item);
+		if (isQueuedPrompt(stored.item) && !isHiddenPrompt(stored.item))
+			queued.push(stored.item);
 	}
 	return queued;
 }

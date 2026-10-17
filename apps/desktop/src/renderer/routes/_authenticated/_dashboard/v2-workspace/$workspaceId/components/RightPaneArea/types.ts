@@ -5,4 +5,5 @@ export type RightPaneKind =
 	| "review"
 	| "pages-list"
 	| "browser"
+	| "desktop"
 	| "terminal";

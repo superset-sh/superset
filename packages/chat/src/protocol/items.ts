@@ -110,6 +110,8 @@ export const userMessageSchema = z.looseObject({
 	clientId: z.string().min(1).optional(),
 	queued: z.boolean().optional(),
 	discarded: z.boolean().optional(),
+	/** Sent for the agent's sake; it and the turn it starts stay out of the transcript. */
+	hidden: z.boolean().optional(),
 	content: z.array(userContentSchema),
 });
 export type UserMessage = z.infer<typeof userMessageSchema>;

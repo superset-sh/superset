@@ -210,13 +210,6 @@ export const workspaceLocalStateSchema = z.object({
 	paneLayout: paneWorkspaceStateSchema,
 	rightPaneLayout: paneWorkspaceStateSchema.optional(),
 	rightSidebarOpen: z.boolean().optional(),
-	rightPaneAreaExpansion: z
-		.object({
-			movedTabIds: z.array(z.string()),
-			centerActiveTabId: z.string().nullable(),
-			rightActiveTabId: z.string().nullable(),
-		})
-		.optional(),
 	viewedFiles: z.array(z.string()).default([]),
 	recentlyViewedFiles: z
 		.array(
