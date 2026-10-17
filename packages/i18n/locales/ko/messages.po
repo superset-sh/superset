@@ -13762,9 +13762,6 @@ msgstr "PR 링크 제거"
 msgid "Remove queued message"
 msgstr "대기 중인 메시지 삭제"
 
-msgid "Remove script"
-msgstr "스크립트 제거"
-
 msgid "Remove team member?"
 msgstr "팀 멤버를 제거할까요?"
 
@@ -14728,6 +14725,9 @@ msgstr "파일 끌어다 놓기를 지원하는 스크립트 편집기"
 
 msgid "Scriptable from the CLI"
 msgstr "CLI로 스크립트 작성 가능"
+
+msgid "Scripts bar hidden. Show it again from the + menu next to your tabs."
+msgstr "스크립트 바를 숨겼습니다. 탭 옆의 + 메뉴에서 다시 표시할 수 있습니다."
 
 msgid "Scroll Area"
 msgstr "스크롤 영역"

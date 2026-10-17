@@ -13762,9 +13762,6 @@ msgstr "Отвязать PR"
 msgid "Remove queued message"
 msgstr "Удалить сообщение из очереди"
 
-msgid "Remove script"
-msgstr "Удалить скрипт"
-
 msgid "Remove team member?"
 msgstr "Удалить участника команды?"
 
@@ -14728,6 +14725,9 @@ msgstr "Редактор скриптов с поддержкой перетас
 
 msgid "Scriptable from the CLI"
 msgstr "Управление из CLI скриптами"
+
+msgid "Scripts bar hidden. Show it again from the + menu next to your tabs."
+msgstr "Панель скриптов скрыта. Её можно снова показать через меню + рядом с вкладками."
 
 msgid "Scroll Area"
 msgstr "Область прокрутки"

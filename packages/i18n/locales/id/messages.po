@@ -13762,9 +13762,6 @@ msgstr "Hapus Tautan PR"
 msgid "Remove queued message"
 msgstr "Hapus pesan dari antrean"
 
-msgid "Remove script"
-msgstr "Hapus skrip"
-
 msgid "Remove team member?"
 msgstr "Hapus anggota tim?"
 
@@ -14728,6 +14725,9 @@ msgstr "Editor skrip dengan dukungan lepas file"
 
 msgid "Scriptable from the CLI"
 msgstr "Bisa diskrip dari CLI"
+
+msgid "Scripts bar hidden. Show it again from the + menu next to your tabs."
+msgstr "Bilah Skrip disembunyikan. Anda dapat menampilkannya lagi dari menu + di samping tab Anda."
 
 msgid "Scroll Area"
 msgstr "Scroll Area"

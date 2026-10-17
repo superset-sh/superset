@@ -13762,9 +13762,6 @@ msgstr "PR-Link entfernen"
 msgid "Remove queued message"
 msgstr "Nachricht aus der Warteschlange entfernen"
 
-msgid "Remove script"
-msgstr "Skript entfernen"
-
 msgid "Remove team member?"
 msgstr "Teammitglied entfernen?"
 
@@ -14728,6 +14725,9 @@ msgstr "Skript-Editor mit Dateiablage"
 
 msgid "Scriptable from the CLI"
 msgstr "Per CLI skriptbar"
+
+msgid "Scripts bar hidden. Show it again from the + menu next to your tabs."
+msgstr "Skriptleiste ausgeblendet. Du kannst sie über das +-Menü neben deinen Tabs wieder einblenden."
 
 msgid "Scroll Area"
 msgstr "Scroll Area"

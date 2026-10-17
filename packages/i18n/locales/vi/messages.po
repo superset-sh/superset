@@ -13762,9 +13762,6 @@ msgstr "Gỡ liên kết PR"
 msgid "Remove queued message"
 msgstr "Xóa tin nhắn trong hàng đợi"
 
-msgid "Remove script"
-msgstr "Gỡ script"
-
 msgid "Remove team member?"
 msgstr "Gỡ thành viên khỏi nhóm?"
 
@@ -14728,6 +14725,9 @@ msgstr "Trình soạn script có hỗ trợ thả tệp"
 
 msgid "Scriptable from the CLI"
 msgstr "Viết script được từ CLI"
+
+msgid "Scripts bar hidden. Show it again from the + menu next to your tabs."
+msgstr "Đã ẩn thanh script. Bạn có thể hiện lại từ menu + bên cạnh các tab."
 
 msgid "Scroll Area"
 msgstr "Scroll Area"

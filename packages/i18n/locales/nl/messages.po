@@ -13762,9 +13762,6 @@ msgstr "PR-koppeling verwijderen"
 msgid "Remove queued message"
 msgstr "Bericht uit wachtrij verwijderen"
 
-msgid "Remove script"
-msgstr "Script verwijderen"
-
 msgid "Remove team member?"
 msgstr "Teamlid verwijderen?"
 
@@ -14728,6 +14725,9 @@ msgstr "Scripteditor met ondersteuning voor het slepen van bestanden"
 
 msgid "Scriptable from the CLI"
 msgstr "Scriptbaar vanuit de CLI"
+
+msgid "Scripts bar hidden. Show it again from the + menu next to your tabs."
+msgstr "Scriptsbalk verborgen. Je kunt hem opnieuw tonen via het +-menu naast je tabbladen."
 
 msgid "Scroll Area"
 msgstr "Scroll Area"

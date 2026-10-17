@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -8,6 +8,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff, Settings } from "lucide-react";
@@ -77,6 +78,7 @@ export function V2PresetsBar({
 	showPresetsBar,
 	onToggleShowPresetsBar,
 }: V2PresetsBarProps) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const isDark = useIsDarkTheme();
 	const collections = useCollections();
@@ -220,6 +222,26 @@ export function V2PresetsBar({
 		[setBuiltinPresetHidden],
 	);
 
+	const handleShowPresetsBarChange = useCallback(
+		(checked: boolean) => {
+			onToggleShowPresetsBar(checked);
+			if (checked) return;
+			toast(
+				t({
+					message:
+						"Scripts bar hidden. Show it again from the + menu next to your tabs.",
+				}),
+				{
+					action: {
+						label: t({ message: "Undo" }),
+						onClick: () => onToggleShowPresetsBar(true),
+					},
+				},
+			);
+		},
+		[onToggleShowPresetsBar, t],
+	);
+
 	const handleExecuteBuiltinPreset = useCallback(
 		(preset: V2TerminalPresetRow) => {
 			posthog.capture("builtin_preset_launched", { presetId: preset.id });
@@ -324,7 +346,7 @@ export function V2PresetsBar({
 					<DropdownMenuCheckboxItem
 						checked={showPresetsBar}
 						onCheckedChange={(checked) =>
-							onToggleShowPresetsBar(checked === true)
+							handleShowPresetsBarChange(checked === true)
 						}
 						onSelect={(event) => event.preventDefault()}
 					>

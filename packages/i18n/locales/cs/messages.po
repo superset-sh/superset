@@ -13762,9 +13762,6 @@ msgstr "Odebrat propojení s PR"
 msgid "Remove queued message"
 msgstr "Odebrat zprávu z fronty"
 
-msgid "Remove script"
-msgstr "Odebrat skript"
-
 msgid "Remove team member?"
 msgstr "Odebrat člena týmu?"
 
@@ -14728,6 +14725,9 @@ msgstr "Editor skriptu s podporou přetažení souboru"
 
 msgid "Scriptable from the CLI"
 msgstr "Skriptovatelné z CLI"
+
+msgid "Scripts bar hidden. Show it again from the + menu next to your tabs."
+msgstr "Lišta skriptů skryta. Znovu ji zobrazíte v nabídce + vedle karet."
 
 msgid "Scroll Area"
 msgstr "Oblast posuvu"

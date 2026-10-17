@@ -13762,9 +13762,6 @@ msgstr "Rimuovi il link alla PR"
 msgid "Remove queued message"
 msgstr "Rimuovi il messaggio dalla coda"
 
-msgid "Remove script"
-msgstr "Rimuovi lo script"
-
 msgid "Remove team member?"
 msgstr "Rimuovere il membro del team?"
 
@@ -14728,6 +14725,9 @@ msgstr "Editor di script con supporto al rilascio di file"
 
 msgid "Scriptable from the CLI"
 msgstr "Automatizzabile dalla CLI"
+
+msgid "Scripts bar hidden. Show it again from the + menu next to your tabs."
+msgstr "Barra degli script nascosta. Puoi mostrarla di nuovo dal menu + accanto alle tue schede."
 
 msgid "Scroll Area"
 msgstr "Scroll Area"

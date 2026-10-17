@@ -13762,9 +13762,6 @@ msgstr "移除PR連結"
 msgid "Remove queued message"
 msgstr "移除佇列中的訊息"
 
-msgid "Remove script"
-msgstr "移除指令碼"
-
 msgid "Remove team member?"
 msgstr "移除團隊成員？"
 
@@ -14728,6 +14725,9 @@ msgstr "支援檔案拖放的指令碼編輯器"
 
 msgid "Scriptable from the CLI"
 msgstr "可透過 CLI 腳本化"
+
+msgid "Scripts bar hidden. Show it again from the + menu next to your tabs."
+msgstr "已隱藏指令碼欄。你可以從分頁旁的 + 選單重新顯示。"
 
 msgid "Scroll Area"
 msgstr "滾動區域"

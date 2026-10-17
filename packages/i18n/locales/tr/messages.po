@@ -13762,9 +13762,6 @@ msgstr "PR bağlantısını kaldır"
 msgid "Remove queued message"
 msgstr "Kuyruktaki mesajı kaldır"
 
-msgid "Remove script"
-msgstr "Betiği kaldır"
-
 msgid "Remove team member?"
 msgstr "Takım üyesi kaldırılsın mı?"
 
@@ -14728,6 +14725,9 @@ msgstr "Dosya bırakmayı destekleyen betik düzenleyici"
 
 msgid "Scriptable from the CLI"
 msgstr "CLI ile komut dosyalanabilir"
+
+msgid "Scripts bar hidden. Show it again from the + menu next to your tabs."
+msgstr "Betikler çubuğu gizlendi. Sekmelerinin yanındaki + menüsünden tekrar gösterebilirsin."
 
 msgid "Scroll Area"
 msgstr "Kaydırma alanı"

@@ -13762,9 +13762,6 @@ msgstr "PRリンクを解除"
 msgid "Remove queued message"
 msgstr "キューのメッセージを削除"
 
-msgid "Remove script"
-msgstr "スクリプトを削除"
-
 msgid "Remove team member?"
 msgstr "チームメンバーを削除しますか?"
 
@@ -14728,6 +14725,9 @@ msgstr "ファイルドロップ対応のスクリプトエディタ"
 
 msgid "Scriptable from the CLI"
 msgstr "CLIからスクリプトで操作"
+
+msgid "Scripts bar hidden. Show it again from the + menu next to your tabs."
+msgstr "スクリプトバーを非表示にしました。タブの横にある + メニューから再表示できます。"
 
 msgid "Scroll Area"
 msgstr "Scroll Area"

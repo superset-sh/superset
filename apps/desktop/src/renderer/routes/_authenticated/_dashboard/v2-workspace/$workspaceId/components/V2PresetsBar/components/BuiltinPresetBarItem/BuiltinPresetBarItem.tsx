@@ -20,7 +20,7 @@ interface BuiltinPresetBarItemProps {
 }
 
 // Built-in presets have no v2TerminalPresets row, so unlike V2PresetBarItem
-// they are not draggable (nothing to persist), not editable, and "Remove"
+// they are not draggable (nothing to persist), not editable, and "Hide"
 // persists to user preferences instead of the row's pinnedToBar.
 export function BuiltinPresetBarItem({
 	preset,
@@ -68,7 +68,7 @@ export function BuiltinPresetBarItem({
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={() => onHide(preset.id)}>
-					<Trans>Remove script</Trans>
+					<Trans>Hide from bar</Trans>
 				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>

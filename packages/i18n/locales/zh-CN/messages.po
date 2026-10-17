@@ -13762,9 +13762,6 @@ msgstr "移除PR链接"
 msgid "Remove queued message"
 msgstr "移除排队消息"
 
-msgid "Remove script"
-msgstr "移除脚本"
-
 msgid "Remove team member?"
 msgstr "移除团队成员？"
 
@@ -14728,6 +14725,9 @@ msgstr "支持文件拖放的脚本编辑器"
 
 msgid "Scriptable from the CLI"
 msgstr "可通过 CLI 脚本化"
+
+msgid "Scripts bar hidden. Show it again from the + menu next to your tabs."
+msgstr "已隐藏脚本栏。你可以从标签页旁边的 + 菜单重新显示它。"
 
 msgid "Scroll Area"
 msgstr "滚动区域"
