@@ -60,7 +60,7 @@ afterEach(() => mock.restore());
 
 test("reads repository content without a project and preserves the legacy output", async () => {
 	const exec = spyOn(gh, "execGh").mockResolvedValue(rawContent);
-	const resolve = spyOn(projects, "resolveGithubRepo");
+	const resolve = spyOn(projects, "resolveGithubBaseRepo");
 	expect(
 		await caller.getContentByRepo({
 			repoFullName: "owner/direct",
@@ -87,7 +87,7 @@ test("project and repository reads reuse the same in-flight request and mutation
 				resolve = done;
 			}),
 	);
-	spyOn(projects, "resolveGithubRepo").mockResolvedValue({
+	spyOn(projects, "resolveGithubBaseRepo").mockResolvedValue({
 		owner: "Owner",
 		name: "SharedContent",
 		repoPath: "/unused",
@@ -179,7 +179,7 @@ test("preserves gh failure codes and evicts failures so a later read can retry",
 
 test("preserves the legacy project resolver error contract", async () => {
 	const exec = spyOn(gh, "execGh").mockResolvedValue(rawContent);
-	spyOn(projects, "resolveGithubRepo").mockRejectedValue(
+	spyOn(projects, "resolveGithubBaseRepo").mockRejectedValue(
 		new TRPCError({ code: "NOT_FOUND", message: "Project not found" }),
 	);
 	await expect(

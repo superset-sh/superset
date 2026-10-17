@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure } from "../../../index";
-import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
+import { resolveGithubBaseRepo } from "../../workspace-creation/shared/project-helpers";
 import { execGh } from "../../workspace-creation/utils/exec-gh";
 
 const getContentInputSchema = z.object({
@@ -26,7 +26,7 @@ const ghIssueContentSchema = z.object({
 export const getContent = protectedProcedure
 	.input(getContentInputSchema)
 	.query(async ({ ctx, input }) => {
-		const repo = await resolveGithubRepo(ctx, input.projectId);
+		const repo = await resolveGithubBaseRepo(ctx, input.projectId);
 		try {
 			const raw = await execGh([
 				"issue",

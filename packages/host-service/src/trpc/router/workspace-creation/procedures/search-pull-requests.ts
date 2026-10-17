@@ -34,7 +34,7 @@ import {
 } from "../shared/github-search";
 import {
 	type ResolvedGithubRepo,
-	resolveGithubRepo,
+	resolveGithubBaseRepo,
 } from "../shared/project-helpers";
 import type { ExecGh } from "../utils/exec-gh";
 
@@ -989,7 +989,7 @@ export const searchPullRequests = protectedProcedure
 		const projectRepos: ProjectRepo[] = await resolveProjectRepos(
 			projectIds,
 			input.projectIds !== undefined,
-			(projectId) => resolveGithubRepo(ctx, projectId),
+			(projectId) => resolveGithubBaseRepo(ctx, projectId),
 		);
 		if (projectRepos.length === 0) {
 			return emptyPullRequestsPage(input.page ?? 1);

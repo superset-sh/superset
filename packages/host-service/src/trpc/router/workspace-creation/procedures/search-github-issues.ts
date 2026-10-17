@@ -18,7 +18,7 @@ import {
 	projectIdForSearchItem,
 	resolveProjectRepos,
 } from "../shared/github-search";
-import { resolveGithubRepo } from "../shared/project-helpers";
+import { resolveGithubBaseRepo } from "../shared/project-helpers";
 import type { ExecGh } from "../utils/exec-gh";
 
 interface IssueResult {
@@ -224,7 +224,7 @@ export const searchGitHubIssues = protectedProcedure
 		const projectRepos: ProjectRepo[] = await resolveProjectRepos(
 			projectIds,
 			input.projectIds !== undefined,
-			(projectId) => resolveGithubRepo(ctx, projectId),
+			(projectId) => resolveGithubBaseRepo(ctx, projectId),
 		);
 		const limit = input.limit ?? 30;
 		const page = input.page ?? 1;

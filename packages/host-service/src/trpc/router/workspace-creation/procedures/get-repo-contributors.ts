@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure } from "../../../index";
-import { resolveGithubRepo } from "../shared/project-helpers";
+import { resolveGithubBaseRepo } from "../shared/project-helpers";
 import { execGh } from "../utils/exec-gh";
 
 const getRepoContributorsInputSchema = z.object({
@@ -34,7 +34,7 @@ const repoContributorsCache = new Map<
 export const getRepoContributors = protectedProcedure
 	.input(getRepoContributorsInputSchema)
 	.query(async ({ ctx, input }): Promise<RepoContributor[]> => {
-		const repo = await resolveGithubRepo(ctx, input.projectId);
+		const repo = await resolveGithubBaseRepo(ctx, input.projectId);
 		const cacheKey = `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}`;
 		const cached = repoContributorsCache.get(cacheKey);
 		if (
