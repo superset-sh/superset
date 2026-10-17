@@ -3373,9 +3373,6 @@ msgstr "Annulla invito"
 msgid "Cancel plan"
 msgstr "Disdici il piano"
 
-msgid "Cancel reply"
-msgstr "Annulla risposta"
-
 msgid "Canceled"
 msgstr "Annullati"
 
@@ -13914,9 +13911,6 @@ msgstr "Rispondi"
 
 msgid "Reply to thread…"
 msgstr "Rispondi al thread…"
-
-msgid "Replying to {replyingTo}"
-msgstr "In risposta a {replyingTo}"
 
 msgid "repo"
 msgstr "repo"

@@ -3373,9 +3373,6 @@ msgstr "초대 취소"
 msgid "Cancel plan"
 msgstr "플랜 해지"
 
-msgid "Cancel reply"
-msgstr "답글 취소"
-
 msgid "Canceled"
 msgstr "취소됨"
 
@@ -13914,9 +13911,6 @@ msgstr "답글"
 
 msgid "Reply to thread…"
 msgstr "스레드에 답글…"
-
-msgid "Replying to {replyingTo}"
-msgstr "{replyingTo}에게 답글"
 
 msgid "repo"
 msgstr "리포"

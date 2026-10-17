@@ -3373,9 +3373,6 @@ msgstr "招待を取り消す"
 msgid "Cancel plan"
 msgstr "プランをキャンセル"
 
-msgid "Cancel reply"
-msgstr "返信をキャンセル"
-
 msgid "Canceled"
 msgstr "キャンセル済み"
 
@@ -13914,9 +13911,6 @@ msgstr "返信"
 
 msgid "Reply to thread…"
 msgstr "スレッドに返信…"
-
-msgid "Replying to {replyingTo}"
-msgstr "{replyingTo} に返信"
 
 msgid "repo"
 msgstr "リポジトリ"

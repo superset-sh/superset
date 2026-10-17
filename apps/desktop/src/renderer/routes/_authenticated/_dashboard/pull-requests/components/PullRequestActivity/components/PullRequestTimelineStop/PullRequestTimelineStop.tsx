@@ -11,6 +11,8 @@ interface PullRequestTimelineStopProps {
 	last: boolean;
 	/** Drops the node to the centre of a card's header instead of a 20px row. */
 	card?: boolean;
+	/** False in a narrow pane: the item stands alone, and the same tree keeps its state across the switch. */
+	rail?: boolean;
 	children: ReactNode;
 }
 
@@ -20,24 +22,32 @@ export function PullRequestTimelineStop({
 	first,
 	last,
 	card = false,
+	rail = true,
 	children,
 }: PullRequestTimelineStopProps) {
 	return (
-		<li className="flex gap-3">
-			<div aria-hidden className="flex w-5 shrink-0 flex-col items-center">
-				<span
-					className={cn(
-						"w-px shrink-0",
-						card ? "h-2" : "h-0",
-						!first && "bg-border",
-					)}
-				/>
-				<div className="flex size-5 shrink-0 items-center justify-center">
-					{node}
+		<li className={rail ? "flex gap-3" : undefined}>
+			{rail ? (
+				<div aria-hidden className="flex w-5 shrink-0 flex-col items-center">
+					<span
+						className={cn(
+							"w-px shrink-0",
+							card ? "h-2" : "h-0",
+							!first && "bg-border",
+						)}
+					/>
+					<div className="flex size-5 shrink-0 items-center justify-center">
+						{node}
+					</div>
+					{last ? null : <span className="w-px flex-1 bg-border" />}
 				</div>
-				{last ? null : <span className="w-px flex-1 bg-border" />}
-			</div>
-			<div className={cn("min-w-0 flex-1", !last && TIMELINE_GAP_CLASS_NAME)}>
+			) : null}
+			<div
+				className={cn(
+					"min-w-0 flex-1",
+					rail && !last && TIMELINE_GAP_CLASS_NAME,
+				)}
+			>
 				{children}
 			</div>
 		</li>

@@ -1,21 +1,16 @@
 import { createContext, useContext } from "react";
-import type { PullRequestActivityAuthor } from "../../utils/pullRequestAuthorLabel";
-
-/** A review-thread comment the composer will answer; the id is the REST one GitHub's reply endpoint takes. */
-export interface PullRequestReplyTarget {
-	commentId: number;
-	author: PullRequestActivityAuthor | null;
-}
-
-export type RequestPullRequestReply = (target: PullRequestReplyTarget) => void;
+import type { PullRequestCommentTarget } from "../../components/PullRequestConversationComposer";
 
 const PullRequestActivityReplyContext =
-	createContext<RequestPullRequestReply | null>(null);
+	createContext<PullRequestCommentTarget | null>(null);
 
 export const PullRequestActivityReplyProvider =
 	PullRequestActivityReplyContext.Provider;
 
-/** Null where no composer can take a reply: the cloud route, an older host. */
-export function usePullRequestActivityReply(): RequestPullRequestReply | null {
+/**
+ * Where a reply opened under a card posts. Null where nothing can take one
+ * (the cloud route, an older host); a card's Reply is then a link to GitHub.
+ */
+export function usePullRequestActivityReply(): PullRequestCommentTarget | null {
 	return useContext(PullRequestActivityReplyContext);
 }

@@ -3373,9 +3373,6 @@ msgstr "取消邀請"
 msgid "Cancel plan"
 msgstr "取消方案"
 
-msgid "Cancel reply"
-msgstr "取消回覆"
-
 msgid "Canceled"
 msgstr "已取消"
 
@@ -13914,9 +13911,6 @@ msgstr "回覆"
 
 msgid "Reply to thread…"
 msgstr "回覆討論串…"
-
-msgid "Replying to {replyingTo}"
-msgstr "回覆 {replyingTo}"
 
 msgid "repo"
 msgstr "儲存庫"

@@ -1,14 +1,19 @@
-import { Trans, useLingui } from "@lingui/react/macro";
+import { useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { useMutation } from "@tanstack/react-query";
 import { ArrowUp, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+	type Ref,
+	useEffect,
+	useImperativeHandle,
+	useRef,
+	useState,
+} from "react";
 import { FaGithub } from "react-icons/fa";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useInvalidatePullRequestDetail } from "../../hooks/usePullRequestDetail";
-import type { PullRequestReplyTarget } from "../../providers/PullRequestActivityReplyProvider";
-import { pullRequestAuthorLabel } from "../../utils/pullRequestAuthorLabel";
+import { appendQuoteToDraft } from "../../utils/quotePullRequestComment";
 
 export interface PullRequestCommentTarget {
 	projectId: string;
@@ -16,51 +21,79 @@ export interface PullRequestCommentTarget {
 	prNumber: number;
 }
 
-interface PullRequestConversationComposerProps {
-	target: PullRequestCommentTarget;
-	/** A review-thread comment to answer instead of the conversation. */
-	replyTo?: PullRequestReplyTarget | null;
-	onCancelReply?: () => void;
+export interface PullRequestConversationComposerHandle {
+	focus: () => void;
+	/** Puts the quote after what is written and the caret after the quote. */
+	quote: (quote: string) => void;
 }
 
-/** The "Leave a comment" card at the end of the Activity section. Posts as the gh user;
- *  Enter sends, Shift+Enter breaks a line (comments accept markdown). With a reply
- *  target it answers that review thread instead. */
+interface PullRequestConversationComposerProps {
+	target: PullRequestCommentTarget;
+	/** A comment of the review thread to answer (GitHub's REST id); without it the comment goes to the conversation. */
+	threadCommentId?: number;
+	/** What the box opens with: the quote a reply to a conversation comment starts from. */
+	initialBody?: string;
+	/** Set for a reply opened under a card: the box takes focus, offers Cancel, and closes once the reply posts. */
+	onClose?: () => void;
+	ref?: Ref<PullRequestConversationComposerHandle>;
+}
+
+function placeCaretAtEnd(field: HTMLTextAreaElement) {
+	field.setSelectionRange(field.value.length, field.value.length);
+	field.scrollTop = field.scrollHeight;
+}
+
+/**
+ * The comment pill of the Activity section: "Leave a comment" at its end, and
+ * the reply box that opens under a card. One line tall until the draft needs
+ * more. Posts as the gh user; Enter sends, Shift+Enter breaks a line
+ * (comments accept markdown).
+ */
 export function PullRequestConversationComposer({
 	target,
-	replyTo = null,
-	onCancelReply,
+	threadCommentId,
+	initialBody = "",
+	onClose,
+	ref,
 }: PullRequestConversationComposerProps) {
 	const { t } = useLingui();
-	// One draft per destination: choosing a thread to reply to must not carry
-	// a half-written conversation comment along, and cancelling the reply
-	// brings that comment back.
-	const [drafts, setDrafts] = useState({ conversation: "", reply: "" });
-	const body = replyTo ? drafts.reply : drafts.conversation;
-	const setBody = (text: string) =>
-		setDrafts((current) =>
-			replyTo
-				? { ...current, reply: text }
-				: { ...current, conversation: text },
-		);
+	const isReply = onClose !== undefined;
+	const [body, setBody] = useState(initialBody);
 	const fieldRef = useRef<HTMLTextAreaElement>(null);
 	// mutation.isPending updates on React's schedule, too late to stop a
 	// rapid double Enter from posting twice.
 	const submittingRef = useRef(false);
 	const invalidate = useInvalidatePullRequestDetail(target);
-	const replyCommentId = replyTo?.commentId;
 	useEffect(() => {
-		setDrafts((current) => ({ ...current, reply: "" }));
-		if (replyCommentId !== undefined) fieldRef.current?.focus();
-	}, [replyCommentId]);
+		const field = fieldRef.current;
+		if (!isReply || !field) return;
+		field.focus();
+		placeCaretAtEnd(field);
+	}, [isReply]);
+	useImperativeHandle(
+		ref,
+		() => ({
+			focus: () => fieldRef.current?.focus(),
+			quote: (quote) => {
+				setBody((current) => appendQuoteToDraft(current, quote));
+				const field = fieldRef.current;
+				if (!field) return;
+				field.focus();
+				// The draft lands on the next render; only then is there an end
+				// to put the caret at and scroll to.
+				requestAnimationFrame(() => placeCaretAtEnd(field));
+			},
+		}),
+		[],
+	);
 	const post = useMutation({
 		mutationFn: async (text: string) => {
 			const client = getHostServiceClientByUrl(target.hostUrl);
-			if (replyTo) {
+			if (threadCommentId !== undefined) {
 				await client.pullRequests.replyToThread.mutate({
 					projectId: target.projectId,
 					prNumber: target.prNumber,
-					commentId: replyTo.commentId,
+					commentId: threadCommentId,
 					body: text,
 				});
 				return;
@@ -73,12 +106,12 @@ export function PullRequestConversationComposer({
 		},
 		onSuccess: () => {
 			setBody("");
-			onCancelReply?.();
+			onClose?.();
 			void invalidate();
 		},
 		onError: (error) => {
 			toast.error(
-				replyTo
+				isReply
 					? t({ message: "Couldn't post reply" })
 					: t({ message: "Couldn't post comment" }),
 				{ description: errorMessage(error) },
@@ -96,30 +129,20 @@ export function PullRequestConversationComposer({
 			},
 		});
 	};
-	const placeholder = replyTo
+	const placeholder = isReply
 		? t({ message: "Write a reply" })
 		: t({ message: "Leave a comment" });
-	const replyingTo = replyTo ? pullRequestAuthorLabel(replyTo.author) : null;
 	return (
-		<div className="rounded-xl border border-border/60 bg-background shadow-sm">
-			{replyingTo ? (
-				<div className="flex items-center gap-2 px-3 pt-2 text-[11px] text-muted-foreground">
-					<span className="min-w-0 truncate">
-						<Trans>Replying to {replyingTo}</Trans>
-					</span>
-					<button
-						type="button"
-						aria-label={t({ message: "Cancel reply" })}
-						onClick={onCancelReply}
-						className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-					>
-						<X className="size-3" />
-					</button>
-				</div>
-			) : null}
+		<div className="flex items-end gap-2 rounded-3xl border border-border/60 bg-background py-1 pl-3 pr-1.5 shadow-sm">
+			<span
+				className="mb-1.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
+				title={t({ message: "Commenting as your GitHub account" })}
+			>
+				<FaGithub className="size-3" />
+			</span>
 			<textarea
 				ref={fieldRef}
-				rows={Math.max(3, Math.min(8, body.split("\n").length))}
+				rows={1}
 				value={body}
 				disabled={post.isPending}
 				placeholder={placeholder}
@@ -135,29 +158,33 @@ export function PullRequestConversationComposer({
 						submit();
 					}
 				}}
-				className="block w-full resize-none bg-transparent px-3 pt-3 text-sm outline-none placeholder:text-muted-foreground disabled:opacity-60"
+				className="field-sizing-content max-h-33 min-w-0 flex-1 resize-none bg-transparent py-1.5 text-sm outline-none placeholder:text-muted-foreground disabled:opacity-60"
 			/>
-			<div className="flex items-center justify-end gap-1.5 px-2 pb-2">
-				<span
-					className="mr-auto flex items-center gap-1.5 pl-1 text-[11px] text-muted-foreground"
-					title={t({ message: "Commenting as your GitHub account" })}
-				>
-					<FaGithub className="size-3" />
-				</span>
+			{onClose ? (
 				<button
 					type="button"
-					disabled={!canSubmit}
-					aria-label={
-						replyTo
-							? t({ message: "Post reply" })
-							: t({ message: "Post comment" })
-					}
-					onClick={submit}
-					className="flex size-7 shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/60 text-foreground transition-colors hover:bg-muted disabled:opacity-40"
+					aria-label={t({ message: "Cancel" })}
+					title={t({ message: "Cancel" })}
+					onClick={onClose}
+					disabled={post.isPending}
+					className="mb-0.5 flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
 				>
-					<ArrowUp strokeWidth={2.25} className="size-4" />
+					<X className="size-4" />
 				</button>
-			</div>
+			) : null}
+			<button
+				type="button"
+				disabled={!canSubmit}
+				aria-label={
+					isReply
+						? t({ message: "Post reply" })
+						: t({ message: "Post comment" })
+				}
+				onClick={submit}
+				className="mb-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity disabled:opacity-35"
+			>
+				<ArrowUp strokeWidth={2.25} className="size-4" />
+			</button>
 		</div>
 	);
 }

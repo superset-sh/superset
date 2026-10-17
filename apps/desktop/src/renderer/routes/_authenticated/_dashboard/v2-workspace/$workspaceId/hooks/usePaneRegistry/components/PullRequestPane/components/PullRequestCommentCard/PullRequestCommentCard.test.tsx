@@ -6,27 +6,40 @@ const reactActGlobal = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean };
 const previousActEnvironment = reactActGlobal.IS_REACT_ACT_ENVIRONMENT;
 reactActGlobal.IS_REACT_ACT_ENVIRONMENT = true;
 const { cleanup, fireEvent, render } = await import("@testing-library/react");
-const { QueryClient } = await import("@tanstack/react-query");
+const { QueryClient, QueryClientProvider } = await import(
+	"@tanstack/react-query"
+);
 const { workspaceTrpc } = await import("@superset/workspace-client");
 const { PullRequestCommentCard } = await import("./PullRequestCommentCard");
 
-function renderCard(
-	props: Pick<
-		PullRequestCommentCardProps,
-		"comment" | "replies" | "onOpenInDiff"
-	>,
-	requestReply: ((target: { commentId: number }) => void) | null = null,
-) {
-	return render(
-		<workspaceTrpc.Provider
-			client={workspaceTrpc.createClient({ links: [] })}
-			queryClient={new QueryClient()}
-		>
-			<PullRequestActivityReplyProvider value={requestReply}>
-				<PullRequestCommentCard workspaceId="ws" {...props} />
-			</PullRequestActivityReplyProvider>
-		</workspaceTrpc.Provider>,
+const replyTarget = {
+	projectId: "p1",
+	hostUrl: "http://host.test",
+	prNumber: 1,
+};
+
+const queryClient = new QueryClient();
+const trpcClient = workspaceTrpc.createClient({ links: [] });
+
+type CardProps = Pick<
+	PullRequestCommentCardProps,
+	"comment" | "replies" | "onOpenInDiff"
+>;
+
+function cardElement(props: CardProps, canReply = false) {
+	return (
+		<QueryClientProvider client={queryClient}>
+			<workspaceTrpc.Provider client={trpcClient} queryClient={queryClient}>
+				<PullRequestActivityReplyProvider value={canReply ? replyTarget : null}>
+					<PullRequestCommentCard workspaceId="ws" {...props} />
+				</PullRequestActivityReplyProvider>
+			</workspaceTrpc.Provider>
+		</QueryClientProvider>
 	);
+}
+
+function renderCard(props: CardProps, canReply = false) {
+	return render(cardElement(props, canReply));
 }
 afterEach(cleanup);
 afterAll(async () => {
@@ -102,6 +115,16 @@ describe("review cards", () => {
 			"deletions",
 		);
 	});
+	test("an expanded card folds again when its thread becomes resolved elsewhere", () => {
+		const resolved = { ...comment, threadId: "T1", isResolved: true };
+		const view = renderCard({ comment: resolved });
+		fireEvent.click(view.getByRole("button", { name: /Expand/ }));
+		view.rerender(cardElement({ comment: { ...resolved, isResolved: false } }));
+		expect(view.getByText(/Keep the/)).toBeTruthy();
+		view.rerender(cardElement({ comment: resolved }));
+		expect(view.queryByText(/Keep the/)).toBeNull();
+		expect(view.getByRole("button", { name: /Expand/ })).toBeTruthy();
+	});
 	test("renders the full comment body without making it a navigation button", () => {
 		const onOpenInDiff = mock(() => {});
 		const view = renderCard({ comment, onOpenInDiff });
@@ -116,32 +139,40 @@ describe("review cards", () => {
 		fireEvent.click(body);
 		expect(onOpenInDiff).not.toHaveBeenCalled();
 	});
-	test("an expanded card folds again when its thread becomes resolved elsewhere", () => {
-		const resolved = { ...comment, threadId: "T1", isResolved: true };
-		const client = workspaceTrpc.createClient({ links: [] });
-		const queryClient = new QueryClient();
-		const card = (next: typeof resolved) => (
-			<workspaceTrpc.Provider client={client} queryClient={queryClient}>
-				<PullRequestCommentCard workspaceId="ws" comment={next} />
-			</workspaceTrpc.Provider>
+	test("folding a thread keeps its open reply box and draft", () => {
+		const view = renderCard(
+			{ comment: { ...comment, threadId: "T1", isResolved: true } },
+			true,
 		);
-		const view = render(card(resolved));
 		fireEvent.click(view.getByRole("button", { name: /Expand/ }));
-		const rerender = (next: typeof resolved) => view.rerender(card(next));
-		rerender({ ...resolved, isResolved: false });
-		expect(view.getByText(/Keep the/)).toBeTruthy();
-		rerender(resolved);
-		expect(view.queryByText(/Keep the/)).toBeNull();
-		expect(view.getByRole("button", { name: /Expand/ })).toBeTruthy();
-	});
-	test("Reply hands the thread to the composer, or opens GitHub when nothing can take it", () => {
-		const requestReply = mock((_target: { commentId: number }) => {});
-		const inline = renderCard({ comment }, requestReply);
-		fireEvent.click(inline.getByRole("button", { name: "Reply" }));
-		expect(requestReply).toHaveBeenCalledWith({
-			commentId: 4242,
-			author: { login: "reviewer", avatarUrl: undefined },
+		fireEvent.click(view.getByRole("button", { name: "Reply" }));
+		fireEvent.change(view.getByRole("textbox"), {
+			target: { value: "Still relevant" },
 		});
+		fireEvent.click(view.getByRole("button", { name: /Collapse/ }));
+		expect(view.queryByText(/Keep the/)).toBeNull();
+		expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe(
+			"Still relevant",
+		);
+	});
+	test("Reply opens an empty box under the thread, or opens GitHub when nothing can take it", () => {
+		const inline = renderCard({ comment }, true);
+		expect(inline.queryByRole("textbox")).toBeNull();
+		fireEvent.click(inline.getByRole("button", { name: "Reply" }));
+		const box = inline.getByRole("textbox") as HTMLTextAreaElement;
+		const body = inline.getByText(/Keep the/);
+		expect(
+			Boolean(
+				body.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING,
+			),
+		).toBe(true);
+		expect(box.placeholder).toBe("Write a reply");
+		expect(box.value).toBe("");
+		expect(document.activeElement).toBe(box);
+		fireEvent.click(inline.getByRole("button", { name: "Reply" }));
+		expect(inline.getAllByRole("textbox")).toHaveLength(1);
+		fireEvent.click(inline.getByRole("button", { name: "Cancel" }));
+		expect(inline.queryByRole("textbox")).toBeNull();
 		inline.unmount();
 		const fallback = renderCard({ comment });
 		expect(fallback.getByRole("link", { name: "Reply" })).toHaveProperty(
