@@ -394,9 +394,6 @@
 					"client": "dynamic",
 					"authorization_url": "https://mcp.useautumn.com/mcp",
 					"scopes": [
-						"openid",
-						"email",
-						"profile",
 						"offline_access",
 						"organisation:read",
 						"customers:read",
@@ -410,18 +407,18 @@
 						"analytics:read"
 					],
 					"identity": {
-						"url": "https://api.useautumn.com/api/auth/oauth2/userinfo",
-						"method": "GET",
-						"headers": {
-							"Authorization": "Bearer ${config.access_token}"
+						"mcp": "https://mcp.useautumn.com/mcp",
+						"tool": "getCurrentOrganization",
+						"arguments": {
+							"intent": "Identify the Autumn organization this connection belongs to."
 						},
 						"account": {
-							"id": "$.sub",
-							"label": "$.email"
+							"id": "$.id",
+							"label": "$.name"
 						},
 						"user": {
-							"id": "$.sub",
-							"label": "$.name"
+							"id": "$.user.id",
+							"label": "$.user.email"
 						}
 					},
 					"bind": {
