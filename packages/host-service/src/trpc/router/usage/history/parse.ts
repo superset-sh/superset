@@ -16,6 +16,8 @@
 
 import { createReadStream } from "node:fs";
 import { basename } from "node:path";
+import { pipeline } from "node:stream";
+import * as zlib from "node:zlib";
 import type { UsageAgent } from "../types";
 import type { LogFile } from "./logs";
 
@@ -38,7 +40,7 @@ export interface UsageLogEntry {
 }
 
 export function sessionIdForFile(path: string): string {
-	return basename(path).replace(/\.jsonl$/, "");
+	return basename(path).replace(/\.jsonl(\.zst)?$/, "");
 }
 
 const SESSION_LABEL_MAX = 80;
@@ -73,9 +75,20 @@ export function toSessionLabel(text: unknown): string | null {
  * iteration, so it took the worker thread down and hung the inline retry. */
 export const MAX_LINE_LENGTH = 32 * 1024 * 1024;
 
-/** Calls `onLine` for every `\n`-terminated line of a UTF-8 file (a trailing
- * `\r` is stripped). A line longer than MAX_LINE_LENGTH is skipped and the
- * file continues at the next newline. */
+function readText(path: string): AsyncIterable<string> {
+	if (!path.endsWith(".zst")) {
+		return createReadStream(path, { encoding: "utf-8" });
+	}
+	const decompress = zlib.createZstdDecompress();
+	return pipeline(createReadStream(path), decompress, () => {}).setEncoding(
+		"utf-8",
+	);
+}
+
+/** Calls `onLine` for every `\n`-terminated line of a UTF-8 file, read
+ * through zstd when the name ends in `.zst` (a trailing `\r` is stripped). A
+ * line longer than MAX_LINE_LENGTH is skipped and the file continues at the
+ * next newline. */
 export async function forEachLine(
 	path: string,
 	onLine: (line: string) => void,
@@ -88,10 +101,7 @@ export async function forEachLine(
 		if (line.length <= MAX_LINE_LENGTH) onLine(line);
 	};
 	try {
-		const chunks = createReadStream(path, {
-			encoding: "utf-8",
-		}) as AsyncIterable<string>;
-		for await (const chunk of chunks) {
+		for await (const chunk of readText(path)) {
 			let start = 0;
 			for (
 				let end = chunk.indexOf("\n");
@@ -116,7 +126,7 @@ export async function forEachLine(
 		}
 		if (!skipping && pending) emit(pending);
 	} catch {
-		// Unreadable or vanished mid-scan — skip the file.
+		// Unreadable, corrupt, or vanished mid-scan — skip the file.
 	}
 }
 
@@ -262,7 +272,8 @@ interface CodexLine {
 	};
 }
 
-/** Parses `$CODEX_HOME/sessions/**\/*.jsonl` rollout files. */
+/** Parses `$CODEX_HOME/{sessions,archived_sessions}/**\/*.jsonl[.zst]`
+ * rollout files. */
 export async function parseCodexLogFile(
 	file: LogFile,
 	cutoffMs: number,

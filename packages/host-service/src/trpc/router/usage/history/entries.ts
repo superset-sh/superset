@@ -10,7 +10,7 @@ import { collectFxEntries } from "./fx";
 import { collectGrokEntries, grokHomes } from "./grok";
 import { collectHermesEntries } from "./hermes";
 import { hermesHomes } from "./hermes-homes";
-import { collectLogFiles, dedupeLogFiles } from "./logs";
+import { collectLogFiles, dedupeLogFiles, dedupeRolloutFiles } from "./logs";
 import { collectMuseEntries } from "./muse";
 import { collectOpencodeEntries } from "./opencode";
 import type { UsageLogEntry } from "./parse";
@@ -75,16 +75,25 @@ export async function collectUsageEntries(
 	};
 	const [claudeRoots, codexRoots] = await Promise.all([
 		resolveRoots([...claudeHomes].map((root) => join(root, "projects"))),
+		// Codex moves archived threads out of sessions/, and compresses
+		// rollouts it has not touched for a week.
 		resolveRoots(
-			codexHomes.map((codexHome) => join(codexHome.home, "sessions")),
+			codexHomes.flatMap((codexHome) => [
+				join(codexHome.home, "sessions"),
+				join(codexHome.home, "archived_sessions"),
+			]),
 		),
 	]);
 	const [claudeFileGroups, codexFileGroups] = await Promise.all([
 		Promise.all(claudeRoots.map((root) => collectLogFiles(root, days + 1))),
-		Promise.all(codexRoots.map((root) => collectLogFiles(root, days + 1))),
+		Promise.all(
+			codexRoots.map((root) =>
+				collectLogFiles(root, days + 1, { compressed: true }),
+			),
+		),
 	]);
 	const claudeFiles = dedupeLogFiles(claudeFileGroups.flat());
-	const codexFiles = dedupeLogFiles(codexFileGroups.flat());
+	const codexFiles = dedupeRolloutFiles(codexFileGroups.flat());
 
 	const entries: UsageLogEntry[] = [];
 	const claudeEntriesByMessage = new Map<string, UsageLogEntry>();

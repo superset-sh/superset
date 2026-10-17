@@ -2,7 +2,13 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { forEachLine, MAX_LINE_LENGTH } from "./parse";
+import { zstdCompressSync } from "node:zlib";
+import {
+	forEachLine,
+	MAX_LINE_LENGTH,
+	parseCodexLogFile,
+	type UsageLogEntry,
+} from "./parse";
 
 const root = mkdtempSync(join(tmpdir(), "usage-parse-"));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
@@ -61,5 +67,60 @@ describe("forEachLine", () => {
 
 	test("skips an unreadable file without throwing", async () => {
 		expect(await linesOf(join(root, "missing.jsonl"))).toEqual([]);
+	});
+
+	test("reads a .zst file through zstd, including a character split across chunks", async () => {
+		const path = join(root, "compressed.jsonl.zst");
+		const line = "€".repeat(100_000);
+		writeFileSync(path, zstdCompressSync(`${line}\nlast\n`));
+		expect(await linesOf(path)).toEqual([line, "last"]);
+	});
+
+	test("skips a corrupt .zst file without throwing", async () => {
+		const path = join(root, "corrupt.jsonl.zst");
+		writeFileSync(path, "not zstd\n");
+		expect(await linesOf(path)).toEqual([]);
+	});
+});
+
+describe("parseCodexLogFile", () => {
+	test("reads a compressed rollout under the same session id as the plain file", async () => {
+		const path = join(root, "rollout-2026-10-01T09-00-00-abc.jsonl.zst");
+		const lines = [
+			{ type: "turn_context", payload: { model: "gpt-6.1-sol", cwd: "/repo" } },
+			{
+				type: "event_msg",
+				timestamp: "2026-10-01T09:00:05.000Z",
+				payload: {
+					type: "token_count",
+					info: {
+						last_token_usage: {
+							input_tokens: 1_000,
+							cached_input_tokens: 800,
+							output_tokens: 50,
+						},
+					},
+				},
+			},
+		];
+		writeFileSync(
+			path,
+			zstdCompressSync(lines.map((line) => JSON.stringify(line)).join("\n")),
+		);
+
+		const entries: UsageLogEntry[] = [];
+		await parseCodexLogFile({ path, mtimeMs: Date.now() }, 0, entries);
+
+		expect(entries).toEqual([
+			expect.objectContaining({
+				agent: "codex",
+				model: "gpt-6.1-sol",
+				cwd: "/repo",
+				sessionId: "rollout-2026-10-01T09-00-00-abc",
+				uncachedInput: 200,
+				cachedInput: 800,
+				output: 50,
+			}),
+		]);
 	});
 });
