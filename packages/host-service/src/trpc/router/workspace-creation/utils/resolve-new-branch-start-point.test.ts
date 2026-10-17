@@ -138,7 +138,7 @@ describe("resolveNewBranchStartPoint", () => {
 		expect(git.fetch).not.toHaveBeenCalled();
 	});
 
-	test("swallows injected fetcher errors and still returns the start point", async () => {
+	test("aborts when the injected fetcher fails", async () => {
 		const git = createMockGit({
 			existingRefs: new Set(["refs/heads/main", "refs/remotes/origin/main"]),
 			upstreams: { main: { remote: "origin", remoteBranch: "main" } },
@@ -147,25 +147,32 @@ describe("resolveNewBranchStartPoint", () => {
 			throw new Error("worker pool unavailable");
 		});
 
-		const result = await resolveNewBranchStartPoint(
-			git,
-			"main",
-			fetchRemoteRef,
-		);
-
-		expect(result.kind).toBe("remote-tracking");
+		await expect(
+			resolveNewBranchStartPoint(git, "main", fetchRemoteRef),
+		).rejects.toThrow("worker pool unavailable");
 	});
 
-	test("swallows fetch errors and still returns the resolved start point", async () => {
+	test("aborts when fetching the remote-tracking base fails", async () => {
 		const git = createMockGit({
 			existingRefs: new Set(["refs/heads/main", "refs/remotes/origin/main"]),
 			upstreams: { main: { remote: "origin", remoteBranch: "main" } },
 			fetchThrows: new Error("network unreachable"),
 		});
 
-		const result = await resolveNewBranchStartPoint(git, "main");
+		await expect(resolveNewBranchStartPoint(git, "main")).rejects.toThrow(
+			"network unreachable",
+		);
+	});
 
-		expect(result.kind).toBe("remote-tracking");
-		expect(git.fetch).toHaveBeenCalled();
+	test("rejects an unknown explicit base instead of falling back to HEAD", async () => {
+		const git = createMockGit({
+			existingRefs: new Set(["refs/remotes/origin/main"]),
+			upstreams: {},
+		});
+
+		await expect(
+			resolveNewBranchStartPoint(git, "does-not-exist"),
+		).rejects.toThrow("does-not-exist");
+		expect(git.fetch).not.toHaveBeenCalled();
 	});
 });

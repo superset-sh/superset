@@ -57,17 +57,10 @@ export async function resolveNewBranchStartPoint(
 	}
 
 	if (startPoint.kind === "remote-tracking") {
-		try {
-			await fetchRemoteRef({
-				remote: startPoint.remote,
-				branch: startPoint.shortName,
-			});
-		} catch (err) {
-			console.warn(
-				`[workspaces.create] fetch ${startPoint.remoteShortName} failed:`,
-				err,
-			);
-		}
+		await fetchRemoteRef({
+			remote: startPoint.remote,
+			branch: startPoint.shortName,
+		});
 	}
 
 	return startPoint;
