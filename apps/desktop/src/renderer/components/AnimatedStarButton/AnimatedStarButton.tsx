@@ -4,7 +4,10 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { GithubStarActionState } from "renderer/hooks/useGithubStarAction";
-import { STAR_SUCCESS_ANIMATION_MS } from "renderer/hooks/useGithubStarAction";
+import {
+	isCelebratableStarTransition,
+	STAR_SUCCESS_ANIMATION_MS,
+} from "renderer/hooks/useGithubStarAction";
 import "./AnimatedStarButton.css";
 import { PlusMark } from "./components/PlusMark";
 
@@ -78,14 +81,9 @@ export function AnimatedStarButton({
 	useEffect(() => {
 		const prevState = prevStateRef.current;
 		prevStateRef.current = state;
-		// Matches useJustStarredWindow's transition condition (not just "wasn't
-		// starred before") — a cold mount that resolves straight from "loading"
-		// to "starred" (the repo was already starred before this session) isn't
-		// a fresh star and shouldn't burst confetti for it.
-		if (
-			(prevState === "not_starred" || prevState === "unknown") &&
-			state === "starred"
-		) {
+		// Same gate as useJustStarredWindow, so the confetti and the surface's
+		// visibility window can never disagree about what counts as a fresh star.
+		if (isCelebratableStarTransition(prevState, state)) {
 			setJustStarred(true);
 			if (!prefersReducedMotion) setParticles(createBurst());
 			const clearTimer = setTimeout(() => {
