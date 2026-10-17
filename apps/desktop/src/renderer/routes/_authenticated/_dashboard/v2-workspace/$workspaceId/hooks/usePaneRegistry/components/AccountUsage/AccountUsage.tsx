@@ -13,8 +13,8 @@ import { useTerminalAgentBinding } from "renderer/hooks/host-service/useTerminal
 import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { useNow } from "renderer/hooks/useNow";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { ProgressRing } from "renderer/routes/_authenticated/_dashboard/components/ProgressRing";
 import { formatResetLabel } from "renderer/utils/usage/formatResetIn";
-import { UsageProgressRing } from "./components/UsageProgressRing";
 import { getAccountUsageState } from "./utils/getAccountUsageState";
 
 interface AccountUsageProps {
@@ -103,9 +103,9 @@ export function AccountUsage({ workspaceId, terminalId }: AccountUsageProps) {
 							)}
 						>
 							{state === "ready" && tightest ? (
-								<UsageProgressRing usedPercent={tightest.usedPercent} />
+								<ProgressRing percent={tightest.usedPercent} />
 							) : state === "stale" || state === "unavailable" ? (
-								<UsageProgressRing unavailable />
+								<ProgressRing unavailable />
 							) : (
 								<Icon
 									aria-hidden

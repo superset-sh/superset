@@ -475,10 +475,11 @@ msgstr "第 {0} 个，共 {1} 个"
 msgid "{0} of {1} checks failed"
 msgstr "{1}项检查中有{0}项失败"
 
-#. placeholder {0}: summary.pending
+#. placeholder {0}: summary.passing
 #. placeholder {1}: summary.relevantChecks.length
-msgid "{0} of {1} checks running"
-msgstr "{1}项检查中有{0}项在运行"
+#. placeholder {2}: summary.pending
+msgid "{0} of {1} checks passed, {2} running"
+msgstr "{1}项检查中有{0}项已通过，{2}项在运行"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: pullRequests.length

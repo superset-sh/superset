@@ -475,10 +475,11 @@ msgstr "{0} di {1}"
 msgid "{0} of {1} checks failed"
 msgstr "{0} controlli su {1} falliti"
 
-#. placeholder {0}: summary.pending
+#. placeholder {0}: summary.passing
 #. placeholder {1}: summary.relevantChecks.length
-msgid "{0} of {1} checks running"
-msgstr "{0} controlli su {1} in esecuzione"
+#. placeholder {2}: summary.pending
+msgid "{0} of {1} checks passed, {2} running"
+msgstr "Controlli superati: {0}/{1}; in esecuzione: {2}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: pullRequests.length

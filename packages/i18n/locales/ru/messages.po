@@ -475,10 +475,11 @@ msgstr "{0} из {1}"
 msgid "{0} of {1} checks failed"
 msgstr "{0} из {1} проверок с ошибкой"
 
-#. placeholder {0}: summary.pending
+#. placeholder {0}: summary.passing
 #. placeholder {1}: summary.relevantChecks.length
-msgid "{0} of {1} checks running"
-msgstr "{0} из {1} проверок выполняется"
+#. placeholder {2}: summary.pending
+msgid "{0} of {1} checks passed, {2} running"
+msgstr "Проверки пройдены: {0} из {1}, в работе: {2}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: pullRequests.length

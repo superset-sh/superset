@@ -475,10 +475,11 @@ msgstr "{0} / {1}"
 msgid "{0} of {1} checks failed"
 msgstr "검사 {1}개 중 {0}개 실패"
 
-#. placeholder {0}: summary.pending
+#. placeholder {0}: summary.passing
 #. placeholder {1}: summary.relevantChecks.length
-msgid "{0} of {1} checks running"
-msgstr "검사 {1}개 중 {0}개 실행 중"
+#. placeholder {2}: summary.pending
+msgid "{0} of {1} checks passed, {2} running"
+msgstr "검사 {1}개 중 {0}개 통과, {2}개 실행 중"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: pullRequests.length

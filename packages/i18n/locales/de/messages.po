@@ -475,10 +475,11 @@ msgstr "{0} von {1}"
 msgid "{0} of {1} checks failed"
 msgstr "{0} von {1} Prüfungen fehlgeschlagen"
 
-#. placeholder {0}: summary.pending
+#. placeholder {0}: summary.passing
 #. placeholder {1}: summary.relevantChecks.length
-msgid "{0} of {1} checks running"
-msgstr "{0} von {1} Prüfungen laufen"
+#. placeholder {2}: summary.pending
+msgid "{0} of {1} checks passed, {2} running"
+msgstr "Prüfungen bestanden: {0}/{1}, laufend: {2}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: pullRequests.length

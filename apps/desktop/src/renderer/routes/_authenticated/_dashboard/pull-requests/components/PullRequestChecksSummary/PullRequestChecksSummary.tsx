@@ -1,6 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { LuCircleMinus } from "react-icons/lu";
+import { ProgressRing } from "renderer/routes/_authenticated/_dashboard/components/ProgressRing";
 import { CHECK_STATUS_ICONS } from "renderer/routes/_authenticated/_dashboard/utils/checkStatusIcons";
 import {
 	type PullRequestCheck,
@@ -42,7 +43,7 @@ export function PullRequestChecksSummary({
 							message: `${summary.failing} of ${summary.relevantChecks.length} checks failed`,
 						})
 					: t({
-							message: `${summary.pending} of ${summary.relevantChecks.length} checks running`,
+							message: `${summary.passing} of ${summary.relevantChecks.length} checks passed, ${summary.pending} running`,
 						});
 
 	return (
@@ -51,13 +52,14 @@ export function PullRequestChecksSummary({
 			title={label}
 			aria-label={label}
 		>
-			<Icon
-				className={cn(
-					"size-3.5",
-					summary.status === "pending" &&
-						"animate-spin motion-reduce:animate-none",
-				)}
-			/>
+			{summary.status === "pending" ? (
+				<ProgressRing
+					percent={(summary.passing / summary.relevantChecks.length) * 100}
+					className="size-3.5"
+				/>
+			) : (
+				<Icon className="size-3.5" />
+			)}
 			<span className="hidden tabular-nums @lg:inline">
 				{summary.status === "none" ? (
 					checks.length === 0 ? (
