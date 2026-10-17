@@ -22,22 +22,34 @@ import {
 } from "./managed-json-hooks";
 import { getNotifyScriptPath } from "./notify-hook";
 import {
+	getOpenCodeCliPluginDir,
 	getOpenCodeConfigDir,
 	getOpenCodePluginDir,
+	getOpenCodeV1ConfigDir,
 	resolveUserHomeDir,
 } from "./paths";
 
 export const OPENCODE_PLUGIN_FILE = "superset-notify.js";
+export const OPENCODE_CLI_PLUGIN_FILE = "tui.js";
 
 const OPENCODE_PLUGIN_SIGNATURE = "// Superset opencode plugin";
 const OPENCODE_PLUGIN_VERSION = "v11";
 export const OPENCODE_PLUGIN_MARKER = `${OPENCODE_PLUGIN_SIGNATURE} ${OPENCODE_PLUGIN_VERSION}`;
+export const OPENCODE_CLI_PLUGIN_MARKER = "// Superset opencode cli plugin v1";
 
 /**
- * Returns the environment-scoped OpenCode plugin path under Superset home.
+ * Returns the environment-scoped OpenCode V1 plugin path under Superset home.
  */
 export function getOpenCodePluginPath(): string {
 	return path.join(getOpenCodePluginDir(), OPENCODE_PLUGIN_FILE);
+}
+
+function getOpenCodeLegacyPluginPath(): string {
+	return path.join(getOpenCodeConfigDir(), "plugin", OPENCODE_PLUGIN_FILE);
+}
+
+export function getOpenCodeCliJsonPath(): string {
+	return path.join(getOpenCodeConfigDir(), "cli.json");
 }
 
 /** @see https://opencode.ai/docs/plugins */
@@ -339,16 +351,106 @@ export function buildCodexWrapperExecLine(notifyPath: string): string {
 }
 
 /**
+ * Renders the OpenCode V2 CLI plugin with the current notify script path.
+ */
+export function getOpenCodeCliPluginContent(notifyPath: string): string {
+	const template = fs.readFileSync(
+		getTemplatePath("opencode-cli-plugin.template.js"),
+		"utf-8",
+	);
+	return template
+		.replace("{{MARKER}}", OPENCODE_CLI_PLUGIN_MARKER)
+		.replace("{{NOTIFY_PATH}}", notifyPath);
+}
+
+/**
+ * Adds the CLI plugin to `cli.json` and keeps every other setting. OpenCode
+ * also writes this file, so a file it cannot parse as JSON is left alone.
+ */
+export function getOpenCodeCliJsonContent(
+	existing: string | null,
+	pluginDir: string,
+): string | null {
+	let config: Record<string, unknown> = {
+		$schema: "https://opencode.ai/v2/cli.json",
+	};
+	if (existing?.trim()) {
+		try {
+			const parsed: unknown = JSON.parse(existing);
+			if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+				return null;
+			}
+			config = parsed as Record<string, unknown>;
+		} catch {
+			return null;
+		}
+	}
+	const plugins = Array.isArray(config.plugins) ? config.plugins : [];
+	if (plugins.includes(pluginDir)) return existing;
+	return `${JSON.stringify({ ...config, plugins: [...plugins, pluginDir] }, null, 2)}\n`;
+}
+
+function ensureOpenCodeCliJson(pluginDir: string): void {
+	const cliJsonPath = getOpenCodeCliJsonPath();
+	const existing = fs.existsSync(cliJsonPath)
+		? fs.readFileSync(cliJsonPath, "utf-8")
+		: null;
+	const content = getOpenCodeCliJsonContent(existing, pluginDir);
+	if (content === null) {
+		console.warn(
+			`[agent-setup] Skipped OpenCode ${cliJsonPath}: not plain JSON`,
+		);
+		return;
+	}
+	if (content === existing) return;
+	writeFileIfChanged(cliJsonPath, content, 0o600);
+}
+
+/**
+ * OpenCode V2 tries to load every file in its config dir's `plugin/` folder
+ * and reports the V1 plugin as failed, so the V1 copy written there by older
+ * Superset versions goes away.
+ */
+function removeLegacyOpenCodePlugin(): void {
+	const legacyPath = getOpenCodeLegacyPluginPath();
+	try {
+		if (!fs.existsSync(legacyPath)) return;
+		if (
+			!fs.readFileSync(legacyPath, "utf-8").includes(OPENCODE_PLUGIN_SIGNATURE)
+		)
+			return;
+		fs.unlinkSync(legacyPath);
+		console.log("[agent-setup] Removed V1 OpenCode plugin from V2 config dir");
+	} catch (error) {
+		console.warn("[agent-setup] Failed to remove V1 OpenCode plugin:", error);
+	}
+}
+
+/**
  * Writes to environment-specific path only, NOT the global path.
  * Global path causes dev/prod conflicts when both are running.
+ * V1 reads the server plugin from its own config dir; V2 runs the CLI
+ * plugin, which `cli.json` in the V2 config dir loads.
  */
 export function createOpenCodePlugin(): void {
-	const pluginPath = getOpenCodePluginPath();
 	const notifyPath = getNotifyScriptPath();
-	const content = getOpenCodePluginContent(notifyPath);
-	const changed = writeFileIfChanged(pluginPath, content, 0o644);
+	const cliPluginDir = getOpenCodeCliPluginDir();
+	removeLegacyOpenCodePlugin();
+	fs.mkdirSync(getOpenCodePluginDir(), { recursive: true });
+	fs.mkdirSync(cliPluginDir, { recursive: true });
+	const changed = writeFileIfChanged(
+		getOpenCodePluginPath(),
+		getOpenCodePluginContent(notifyPath),
+		0o644,
+	);
+	const cliChanged = writeFileIfChanged(
+		path.join(cliPluginDir, OPENCODE_CLI_PLUGIN_FILE),
+		getOpenCodeCliPluginContent(notifyPath),
+		0o644,
+	);
+	ensureOpenCodeCliJson(cliPluginDir);
 	console.log(
-		`[agent-setup] ${changed ? "Updated" : "Verified"} OpenCode plugin`,
+		`[agent-setup] ${changed || cliChanged ? "Updated" : "Verified"} OpenCode plugin`,
 	);
 }
 
@@ -377,12 +479,27 @@ export function cleanupGlobalOpenCodePlugin(): void {
 }
 
 /**
+ * Builds the OpenCode wrapper exec block. OpenCode 0.x/1.x gets the V1 config
+ * dir; any other version, or a version it cannot read, gets the V2 one.
+ */
+export function buildOpenCodeWrapperExecLine(): string {
+	return [
+		`_superset_opencode_version="$("$REAL_BIN" --version 2>/dev/null)"`,
+		`case "\${_superset_opencode_version#"\${_superset_opencode_version%%[0-9]*}"}" in`,
+		`  0.*|1.*) export OPENCODE_CONFIG_DIR="${getOpenCodeV1ConfigDir()}" ;;`,
+		`  *) export OPENCODE_CONFIG_DIR="${getOpenCodeConfigDir()}" ;;`,
+		"esac",
+		`exec "$REAL_BIN" "$@"`,
+	].join("\n");
+}
+
+/**
  * Creates the OpenCode wrapper with an environment-scoped config directory.
  */
 export function createOpenCodeWrapper(): void {
 	const script = buildWrapperScript(
 		"opencode",
-		`export OPENCODE_CONFIG_DIR="${getOpenCodeConfigDir()}"\nexec "$REAL_BIN" "$@"`,
+		buildOpenCodeWrapperExecLine(),
 		{ agentId: "opencode" },
 	);
 	createWrapper("opencode", script);
