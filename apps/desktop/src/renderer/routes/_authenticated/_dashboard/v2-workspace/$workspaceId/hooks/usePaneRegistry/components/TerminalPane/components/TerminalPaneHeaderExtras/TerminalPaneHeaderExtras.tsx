@@ -9,6 +9,7 @@ import {
 	terminalRichInputOpenStore,
 	useTerminalRichInputOpen,
 } from "../../richInputOpenStore";
+import { ResumeAccountButton } from "./components/ResumeAccountButton";
 import { TerminalConnectionIndicator } from "./components/TerminalConnectionIndicator";
 import { TerminalIdCopyMenu } from "./components/TerminalIdCopyMenu";
 import { TerminalPageWatchChip } from "./components/TerminalPageWatchChip";
@@ -58,6 +59,11 @@ export function TerminalPaneHeaderExtras({
 
 	return (
 		<div className="flex items-center gap-1">
+			<ResumeAccountButton
+				key={`resume-account:${workspaceId}:${terminalId}`}
+				workspaceId={workspaceId}
+				terminalId={terminalId}
+			/>
 			<AccountUsage
 				key={`${workspaceId}:${terminalId}`}
 				workspaceId={workspaceId}

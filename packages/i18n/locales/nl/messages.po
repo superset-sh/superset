@@ -1952,6 +1952,12 @@ msgstr "Agentsessie gestart"
 msgid "agent settings"
 msgstr "agentinstellingen"
 
+msgid "Agent terminal with account"
+msgstr "Agentterminal met account"
+
+msgid "Agent terminal with account…"
+msgstr "Agentterminal met account…"
+
 msgid "Agent usage rankings"
 msgstr "Ranglijst van agentgebruik"
 
@@ -4907,6 +4913,9 @@ msgstr "Kan de wachtrij niet verlaten"
 msgid "Could not list directory"
 msgstr "Kan map niet uitlezen"
 
+msgid "Could not load accounts"
+msgstr "Accounts konden niet worden geladen"
+
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
 msgstr "Kan agents van {0} niet laden"
@@ -5028,6 +5037,9 @@ msgstr "Kan niet hervatten"
 msgid "Could not resume the chat"
 msgstr "Kan de chat niet hervatten"
 
+msgid "Could not resume this conversation"
+msgstr "Dit gesprek kon niet worden hervat"
+
 msgid "Could not send"
 msgstr "Versturen mislukt"
 
@@ -5042,6 +5054,9 @@ msgstr "Delen mislukt"
 
 msgid "Could not start agent"
 msgstr "Kan agent niet starten"
+
+msgid "Could not start agent terminal"
+msgstr "Agentterminal kon niet worden gestart"
 
 msgid "Could not start checkout. Please try again."
 msgstr "Kon het afrekenen niet starten. Probeer het opnieuw."
@@ -9699,6 +9714,9 @@ msgstr "Loader · Braille-spinner"
 msgid "Loading"
 msgstr "Laden"
 
+msgid "Loading accounts…"
+msgstr "Accounts laden…"
+
 msgid "Loading agent settings..."
 msgstr "Agentinstellingen laden..."
 
@@ -10794,6 +10812,9 @@ msgstr "Geen auteurs gevonden."
 
 msgid "No automations match"
 msgstr "Geen overeenkomende automatiseringen"
+
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "Geen beschikbare accounts met een abonnement. Voeg een account toe of meld je via Gebruik aan bij een account, en vernieuw daarna."
 
 msgid "No branches found"
 msgstr "Geen branches gevonden"
@@ -13882,6 +13903,9 @@ msgstr "Gesloten tabblad heropenen"
 msgid "Reopen PR"
 msgstr "PR heropenen"
 
+msgid "Reopen the saved conversation in the same workspace. No message is sent. Background work is not transferred."
+msgstr "Open het opgeslagen gesprek opnieuw in dezelfde werkruimte. Er wordt geen bericht verstuurd. Achtergrondtaken worden niet overgedragen."
+
 msgid "Reopen thread"
 msgstr "Thread heropenen"
 
@@ -14231,6 +14255,12 @@ msgstr "Resume-argumenten"
 
 msgid "Resume automation"
 msgstr "Automatisering hervatten"
+
+msgid "Resume conversation"
+msgstr "Gesprek hervatten"
+
+msgid "Resume with another account"
+msgstr "Hervatten met een ander account"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
@@ -16150,6 +16180,9 @@ msgstr "Start bij elke run een nieuwe agentsessie"
 msgid "Start a new chat"
 msgstr "Nieuwe chat starten"
 
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "Start een nieuwe terminal met een bestaande aanmelding. Andere chats en je standaardaccount blijven ongewijzigd."
+
 msgid "Start a session"
 msgstr "Sessie starten"
 
@@ -16188,6 +16221,9 @@ msgstr "Start er een met + in de tabbladbalk."
 
 msgid "Start or stop the workspace run command"
 msgstr "Het run-commando van de werkruimte starten of stoppen"
+
+msgid "Start terminal"
+msgstr "Terminal starten"
 
 msgid "Start voice mode"
 msgstr "Spraakmodus starten"
@@ -17368,6 +17404,9 @@ msgstr "Dezelfde app draait native op iPad, staand en liggend."
 msgid "The scorecard"
 msgstr "De scorekaart"
 
+msgid "The selected login changed. Choose an account again."
+msgstr "De geselecteerde aanmelding is gewijzigd. Kies opnieuw een account."
+
 msgid "The self-driving software factory"
 msgstr "De zelfrijdende softwarefabriek"
 
@@ -17491,6 +17530,9 @@ msgstr "Deze agent kan een gesprek niet afsplitsen"
 msgid "This agent can't run in a cloud workspace"
 msgstr "Deze agent kan niet in een cloudwerkruimte draaien"
 
+msgid "This agent configuration does not support account selection."
+msgstr "Deze agentconfiguratie ondersteunt geen accountselectie."
+
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Deze agent bestaat niet meer op het gekozen apparaat (de agents zijn mogelijk gereset). Runs mislukken totdat je een nieuwe kiest."
 
@@ -17542,6 +17584,12 @@ msgstr "Deze cloudwerkruimte kan niet starten"
 
 msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
 msgstr "Deze cloudwerkruimte wordt gewekt. Na inactiviteit kan dat tot 30 seconden duren."
+
+msgid "This conversation cannot be resumed with another account."
+msgstr "Dit gesprek kan niet met een ander account worden hervat."
+
+msgid "This conversation is no longer available to resume."
+msgstr "Dit gesprek is niet meer beschikbaar om te hervatten."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Hiermee wordt de opgeslagen scrollback voor herstel na herstart of crash verwijderd."
@@ -18497,6 +18545,9 @@ msgstr "Werk Superset op deze machine bij om bestanden toe te voegen"
 
 msgid "update the branch prefix"
 msgstr "de branchprefix bijwerken"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "Werk deze host bij om een account voor een nieuwe terminal te kiezen."
 
 msgid "Updated"
 msgstr "Bijgewerkt"

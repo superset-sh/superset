@@ -1952,6 +1952,12 @@ msgstr "智能体会话已开始"
 msgid "agent settings"
 msgstr "智能体设置"
 
+msgid "Agent terminal with account"
+msgstr "使用指定账户启动代理终端"
+
+msgid "Agent terminal with account…"
+msgstr "使用指定账户启动代理终端…"
+
 msgid "Agent usage rankings"
 msgstr "智能体使用量排行"
 
@@ -4907,6 +4913,9 @@ msgstr "无法移出队列"
 msgid "Could not list directory"
 msgstr "无法列出目录"
 
+msgid "Could not load accounts"
+msgstr "无法加载账户"
+
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
 msgstr "无法从{0}加载智能体"
@@ -5028,6 +5037,9 @@ msgstr "无法继续"
 msgid "Could not resume the chat"
 msgstr "无法继续聊天"
 
+msgid "Could not resume this conversation"
+msgstr "无法继续此对话"
+
 msgid "Could not send"
 msgstr "无法发送"
 
@@ -5042,6 +5054,9 @@ msgstr "无法分享"
 
 msgid "Could not start agent"
 msgstr "无法启动智能体"
+
+msgid "Could not start agent terminal"
+msgstr "无法启动代理终端"
 
 msgid "Could not start checkout. Please try again."
 msgstr "无法开始结账，请重试。"
@@ -9699,6 +9714,9 @@ msgstr "加载器 · 盲文加载动画"
 msgid "Loading"
 msgstr "加载中"
 
+msgid "Loading accounts…"
+msgstr "正在加载账户…"
+
 msgid "Loading agent settings..."
 msgstr "正在加载智能体设置..."
 
@@ -10794,6 +10812,9 @@ msgstr "未找到作者。"
 
 msgid "No automations match"
 msgstr "没有匹配的自动化"
+
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "没有可用的订阅账户。请在“用量”中添加账户或登录，然后刷新。"
 
 msgid "No branches found"
 msgstr "未找到分支"
@@ -13882,6 +13903,9 @@ msgstr "重新打开已关闭的标签页"
 msgid "Reopen PR"
 msgstr "重新打开PR"
 
+msgid "Reopen the saved conversation in the same workspace. No message is sent. Background work is not transferred."
+msgstr "在同一工作区中重新打开已保存的对话。不会发送消息，也不会转移后台任务。"
+
 msgid "Reopen thread"
 msgstr "重新打开讨论串"
 
@@ -14231,6 +14255,12 @@ msgstr "恢复参数"
 
 msgid "Resume automation"
 msgstr "恢复自动化"
+
+msgid "Resume conversation"
+msgstr "继续对话"
+
+msgid "Resume with another account"
+msgstr "使用其他账户继续"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
@@ -16150,6 +16180,9 @@ msgstr "每次运行都启动新的智能体会话"
 msgid "Start a new chat"
 msgstr "开始新的聊天"
 
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "使用现有登录启动新终端。其他聊天和默认账户保持不变。"
+
 msgid "Start a session"
 msgstr "开始一个会话"
 
@@ -16188,6 +16221,9 @@ msgstr "用标签栏中的+新建一个。"
 
 msgid "Start or stop the workspace run command"
 msgstr "启动或停止工作区运行命令"
+
+msgid "Start terminal"
+msgstr "启动终端"
 
 msgid "Start voice mode"
 msgstr "开始语音模式"
@@ -17368,6 +17404,9 @@ msgstr "同一个应用在 iPad 上原生运行，支持竖屏和横屏。"
 msgid "The scorecard"
 msgstr "评分表"
 
+msgid "The selected login changed. Choose an account again."
+msgstr "所选登录已更改。请重新选择账户。"
+
 msgid "The self-driving software factory"
 msgstr "自动驾驶的软件工厂"
 
@@ -17491,6 +17530,9 @@ msgstr "该智能体无法分叉对话"
 msgid "This agent can't run in a cloud workspace"
 msgstr "此智能体无法在云端工作区中运行"
 
+msgid "This agent configuration does not support account selection."
+msgstr "此代理配置不支持选择账户。"
+
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "所选设备上已不存在这个智能体（它的智能体可能被重置过）。在你选择新的智能体之前，运行都会失败。"
 
@@ -17542,6 +17584,12 @@ msgstr "无法启动此云端工作区"
 
 msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
 msgstr "正在唤醒此云工作区。如果它已闲置一段时间，可能需要最多 30 秒。"
+
+msgid "This conversation cannot be resumed with another account."
+msgstr "无法使用其他账户继续此对话。"
+
+msgid "This conversation is no longer available to resume."
+msgstr "此对话已无法继续。"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "这将删除用于重启/崩溃恢复的已保存回滚缓冲。"
@@ -18497,6 +18545,9 @@ msgstr "请在这台机器上更新Superset以附加文件"
 
 msgid "update the branch prefix"
 msgstr "更新分支前缀"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "请更新此主机，以便为新终端选择账户。"
 
 msgid "Updated"
 msgstr "已更新"

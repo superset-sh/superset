@@ -59,6 +59,96 @@ function seedSession(
 }
 
 describe("SqliteTerminalAgentBindingPersistence live reads", () => {
+	it("retains account selection and launch identity across a new store and resume read", () => {
+		const db = createTestDb();
+		seedSession(db, { id: "pinned", status: "active", workspaceId: "ws-1" });
+		const account = {
+			agent: "claude" as const,
+			selection: "/fixture/profile",
+			directory: "/fixture/profile",
+			credentialKind: "subscription" as const,
+			identity: "a".repeat(64),
+			email: "fixture@example.test",
+			pinned: true as const,
+		};
+		const persistence = new SqliteTerminalAgentBindingPersistence(db);
+		const original = new TerminalAgentStore(persistence);
+		original.recordEvent({
+			terminalId: "pinned",
+			workspaceId: "ws-1",
+			agentId: "claude",
+			agentSessionId: "exact-native-id",
+			launchId: "launch-one",
+			account,
+			eventType: "Attached",
+			occurredAt: 3,
+		});
+		const recovered = new TerminalAgentStore(
+			new SqliteTerminalAgentBindingPersistence(db),
+		);
+		expect(recovered.listByWorkspace("ws-1")[0]?.account).toEqual(account);
+		expect(recovered.get("pinned")?.launchId).toBe("launch-one");
+		markTerminalAgentBindingEnded(db, "pinned", "terminal-exited", 4);
+		expect(findResumeCandidateBinding(db, "ws-1", "pinned")?.account).toEqual(
+			account,
+		);
+	});
+
+	it("does not downgrade malformed saved account context to the default account", () => {
+		const db = createTestDb();
+		seedSession(db, { id: "invalid", status: "active", workspaceId: "ws-1" });
+		db.update(terminalAgentBindings)
+			.set({ accountJson: '{"pinned":true}' })
+			.where(eq(terminalAgentBindings.terminalId, "invalid"))
+			.run();
+		const store = new TerminalAgentStore(
+			new SqliteTerminalAgentBindingPersistence(db),
+		);
+		expect(store.get("invalid")?.accountInvalid).toBe(true);
+		store.recordEvent({
+			terminalId: "invalid",
+			workspaceId: "ws-1",
+			agentId: "claude",
+			eventType: "Stop",
+			occurredAt: 3,
+		});
+		expect(
+			new SqliteTerminalAgentBindingPersistence(db).load()[0]?.accountInvalid,
+		).toBe(true);
+	});
+	it("persists a positively replaced account after restoring invalid context", () => {
+		const db = createTestDb();
+		seedSession(db, { id: "replaced", status: "active", workspaceId: "ws-1" });
+		db.update(terminalAgentBindings)
+			.set({ accountJson: '{"pinned":true}' })
+			.where(eq(terminalAgentBindings.terminalId, "replaced"))
+			.run();
+		const store = new TerminalAgentStore(
+			new SqliteTerminalAgentBindingPersistence(db),
+		);
+		const account = {
+			agent: "claude" as const,
+			selection: "/fixture",
+			directory: "/fixture",
+			credentialKind: "subscription" as const,
+			identity: "alice",
+			pinned: true as const,
+		};
+		store.recordEvent({
+			terminalId: "replaced",
+			workspaceId: "ws-1",
+			agentId: "claude",
+			agentSessionId: "verified",
+			account,
+			eventType: "Attached",
+			occurredAt: 3,
+		});
+		const restored = new TerminalAgentStore(
+			new SqliteTerminalAgentBindingPersistence(db),
+		).get("replaced");
+		expect(restored?.accountInvalid).toBeUndefined();
+		expect(restored?.account).toEqual(account);
+	});
 	it("hides bindings whose session is not active or workspace-less", () => {
 		const db = createTestDb();
 		// The workspaces FK on originWorkspaceId is nullable and unenforced in

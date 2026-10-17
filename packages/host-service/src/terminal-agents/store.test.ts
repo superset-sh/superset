@@ -302,6 +302,31 @@ describe("TerminalAgentStore", () => {
 		}
 	});
 
+	it("first native identity enriches a working launch without replacing its lifecycle", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentId: "claude",
+			launchId: "one",
+			occurredAt: 100,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			agentSessionId: "native",
+			launchId: "one",
+			occurredAt: 200,
+		});
+		expect(store.get("t1")).toMatchObject({
+			lastEventType: "Start",
+			agentSessionId: "native",
+			startedAt: 100,
+		});
+	});
+
 	it("Attached with a new session id overrides the previous session's working state", () => {
 		store.recordEvent({
 			terminalId: "t1",

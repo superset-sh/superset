@@ -1952,6 +1952,12 @@ msgstr "Ajan oturumu başladı"
 msgid "agent settings"
 msgstr "ajan ayarları"
 
+msgid "Agent terminal with account"
+msgstr "Hesap seçerek ajan terminali aç"
+
+msgid "Agent terminal with account…"
+msgstr "Hesap seçerek ajan terminali aç…"
+
 msgid "Agent usage rankings"
 msgstr "Ajan kullanım sıralamaları"
 
@@ -4907,6 +4913,9 @@ msgstr "Kuyruktan çıkılamadı"
 msgid "Could not list directory"
 msgstr "Dizin listelenemedi"
 
+msgid "Could not load accounts"
+msgstr "Hesaplar yüklenemedi"
+
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
 msgstr "{0} üzerinden ajanlar yüklenemedi"
@@ -5028,6 +5037,9 @@ msgstr "Devam ettirilemedi"
 msgid "Could not resume the chat"
 msgstr "Sohbete devam edilemedi"
 
+msgid "Could not resume this conversation"
+msgstr "Bu konuşma sürdürülemedi"
+
 msgid "Could not send"
 msgstr "Gönderilemedi"
 
@@ -5042,6 +5054,9 @@ msgstr "Paylaşılamadı"
 
 msgid "Could not start agent"
 msgstr "Ajan başlatılamadı"
+
+msgid "Could not start agent terminal"
+msgstr "Ajan terminali başlatılamadı"
 
 msgid "Could not start checkout. Please try again."
 msgstr "Ödeme başlatılamadı. Lütfen tekrar deneyin."
@@ -9699,6 +9714,9 @@ msgstr "Yükleyici · Braille spinner"
 msgid "Loading"
 msgstr "Yükleniyor"
 
+msgid "Loading accounts…"
+msgstr "Hesaplar yükleniyor…"
+
 msgid "Loading agent settings..."
 msgstr "Ajan ayarları yükleniyor..."
 
@@ -10794,6 +10812,9 @@ msgstr "Yazar bulunamadı."
 
 msgid "No automations match"
 msgstr "Eşleşen otomasyon yok"
+
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "Kullanılabilir abonelik hesabı yok. Kullanım bölümünde hesap ekleyin veya oturum açın, ardından yenileyin."
 
 msgid "No branches found"
 msgstr "Dal bulunamadı"
@@ -13882,6 +13903,9 @@ msgstr "Kapatılan sekmeyi yeniden aç"
 msgid "Reopen PR"
 msgstr "PR'ı yeniden aç"
 
+msgid "Reopen the saved conversation in the same workspace. No message is sent. Background work is not transferred."
+msgstr "Kaydedilen konuşmayı aynı çalışma alanında yeniden açın. Mesaj gönderilmez. Arka plan görevleri aktarılmaz."
+
 msgid "Reopen thread"
 msgstr "Konuyu yeniden aç"
 
@@ -14231,6 +14255,12 @@ msgstr "Sürdürme argümanları"
 
 msgid "Resume automation"
 msgstr "Otomasyonu sürdür"
+
+msgid "Resume conversation"
+msgstr "Konuşmayı sürdür"
+
+msgid "Resume with another account"
+msgstr "Başka bir hesapla sürdür"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
@@ -16150,6 +16180,9 @@ msgstr "Her çalıştırmada yeni bir aracı oturumu başlat"
 msgid "Start a new chat"
 msgstr "Yeni sohbet başlat"
 
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "Mevcut bir hesapla yeni terminal başlatın. Diğer sohbetler ve varsayılan hesabınız değişmez."
+
 msgid "Start a session"
 msgstr "Bir oturum başlat"
 
@@ -16188,6 +16221,9 @@ msgstr "Sekme şeridindeki + ile bir tane başlatın."
 
 msgid "Start or stop the workspace run command"
 msgstr "Çalışma alanı çalıştırma komutunu başlat veya durdur"
+
+msgid "Start terminal"
+msgstr "Terminali başlat"
 
 msgid "Start voice mode"
 msgstr "Sesli modu başlat"
@@ -17368,6 +17404,9 @@ msgstr "Aynı uygulama iPad'de yerel olarak, dikey ve yatay modda çalışır."
 msgid "The scorecard"
 msgstr "Puan tablosu"
 
+msgid "The selected login changed. Choose an account again."
+msgstr "Seçilen hesap değişti. Yeniden bir hesap seçin."
+
 msgid "The self-driving software factory"
 msgstr "Kendi kendini süren yazılım fabrikası"
 
@@ -17491,6 +17530,9 @@ msgstr "Bu aracı bir konuşmayı çatallayamaz"
 msgid "This agent can't run in a cloud workspace"
 msgstr "Bu ajan bir bulut çalışma alanında çalışamaz"
 
+msgid "This agent configuration does not support account selection."
+msgstr "Bu ajan yapılandırması hesap seçimini desteklemiyor."
+
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Bu ajan seçili cihazda artık yok (ajanları sıfırlanmış olabilir). Yeni bir tane seçene kadar çalıştırmalar başarısız olacak."
 
@@ -17542,6 +17584,12 @@ msgstr "Bu bulut çalışma alanı başlatılamıyor"
 
 msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
 msgstr "Bu bulut çalışma alanı uyandırılıyor; bir süre kullanılmadıysa bu işlem 30 saniyeye kadar sürebilir."
+
+msgid "This conversation cannot be resumed with another account."
+msgstr "Bu konuşma başka bir hesapla sürdürülemez."
+
+msgid "This conversation is no longer available to resume."
+msgstr "Bu konuşma artık sürdürülemiyor."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Bu işlem, yeniden başlatma/çökme kurtarma için saklanan kaydırma geçmişini siler."
@@ -18497,6 +18545,9 @@ msgstr "Dosya eklemek için bu makinede Superset'i güncelleyin"
 
 msgid "update the branch prefix"
 msgstr "dal ön ekini güncelleme"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "Yeni bir terminal için hesap seçmek üzere bu sunucuyu güncelleyin."
 
 msgid "Updated"
 msgstr "Güncellendi"

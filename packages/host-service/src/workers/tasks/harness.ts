@@ -7,6 +7,11 @@ import {
 	readHarnessTranscript,
 } from "../../terminal-agents/harness-sessions/transcript.ts";
 import type { HarnessSessionRef } from "../../terminal-agents/harness-sessions/types.ts";
+import {
+	type AccountResumeHistory,
+	inspectNativeResumeHistory,
+	type NativeResumeHistoryInput,
+} from "../../terminal-agents/saved-conversations/inspect-native-history.ts";
 import { defineWorkerTask } from "../define-worker-task.ts";
 
 export const harnessTranscriptTask = defineWorkerTask<
@@ -17,4 +22,15 @@ export const harnessTranscriptTask = defineWorkerTask<
 	handler: async ({ ref, maxChars }) => readHarnessTranscript(ref, maxChars),
 });
 
-export const harnessTasks = [harnessTranscriptTask];
+export const inspectSavedConversationTask = defineWorkerTask<
+	NativeResumeHistoryInput,
+	AccountResumeHistory | null
+>({
+	type: "harness/inspectSavedConversation",
+	handler: inspectNativeResumeHistory,
+});
+
+export const harnessTasks = [
+	harnessTranscriptTask,
+	inspectSavedConversationTask,
+];

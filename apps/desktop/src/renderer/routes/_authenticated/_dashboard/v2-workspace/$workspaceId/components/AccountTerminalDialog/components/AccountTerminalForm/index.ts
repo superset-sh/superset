@@ -1,0 +1,1 @@
+export { AccountTerminalForm } from "./AccountTerminalForm";

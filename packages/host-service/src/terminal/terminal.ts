@@ -2914,6 +2914,10 @@ interface CreateTerminalSessionOptions {
 	db: HostDb;
 	eventBus?: EventBus;
 	initialCommand?: string;
+	/** Internal recovery guard, after terminal setup and before command queueing. */
+	beforeInitialCommand?: () => Promise<void>;
+	/** Synchronous authorization after the guard and final liveness check. */
+	onInitialCommandReady?: () => void;
 	cwd?: string;
 	/** Hidden sessions are process-internal and should not appear in user pickers. */
 	listed?: boolean;
@@ -2927,6 +2931,27 @@ interface CreateTerminalSessionOptions {
 	 * above a brand-new shell.
 	 */
 	restoredNotice?: boolean;
+}
+
+async function authorizeGuardedInitialCommand(
+	session: TerminalSession,
+	guard: () => Promise<void>,
+	authorize?: () => void,
+): Promise<void> {
+	const assertLive = () => {
+		if (
+			!isCurrentLiveSession(session) ||
+			session.shellReadyState === "cancelled"
+		)
+			throw new Error(
+				"The new terminal exited before the saved conversation could be resumed. Nothing was launched.",
+			);
+	};
+	await session.shellReadyPromise;
+	assertLive();
+	await guard();
+	assertLive();
+	authorize?.();
 }
 
 function resolveTerminalCwd(
@@ -3002,6 +3027,8 @@ async function createTerminalSessionUnlocked({
 	db,
 	eventBus,
 	initialCommand,
+	beforeInitialCommand,
+	onInitialCommandReady,
 	cwd: cwdOverride,
 	listed = true,
 	cols: requestedCols,
@@ -3032,7 +3059,16 @@ async function createTerminalSessionUnlocked({
 			return { kind: "SESSION_WRONG_WORKSPACE", error: mismatchError };
 
 		if (listed) existing.listed = true;
-		if (initialCommand) queueInitialCommand(existing, initialCommand);
+		if (initialCommand) {
+			if (beforeInitialCommand && !existing.initialCommandQueued) {
+				await authorizeGuardedInitialCommand(
+					existing,
+					beforeInitialCommand,
+					onInitialCommandReady,
+				);
+			}
+			queueInitialCommand(existing, initialCommand);
+		}
 		return existing;
 	}
 
@@ -3494,6 +3530,37 @@ async function createTerminalSessionUnlocked({
 			: Promise.resolve();
 
 	if (initialCommand) {
+		if (beforeInitialCommand && !session.initialCommandQueued) {
+			try {
+				await authorizeGuardedInitialCommand(
+					session,
+					beforeInitialCommand,
+					onInitialCommandReady,
+				);
+			} catch (error) {
+				// This invocation owns only a fresh, never-launched target. Existing
+				// records and adopted shells belong to the user and must survive.
+				if (
+					!record &&
+					!isAdopted &&
+					sessions.get(terminalId) === session &&
+					!session.initialCommandQueued
+				) {
+					db.update(terminalSessions)
+						.set({ disposeRequestedAt: Date.now() })
+						.where(eq(terminalSessions.id, terminalId))
+						.run();
+					// Already under this terminal's lifecycle lock: do not reacquire it.
+					const disposed = await disposeSessionUnlocked(terminalId, db);
+					if (!disposed.daemonCloseSucceeded)
+						console.warn(
+							"[terminal] refused launch target could not be closed",
+							{ terminalId },
+						);
+				}
+				throw error;
+			}
+		}
 		queueInitialCommand(session, initialCommand);
 	}
 

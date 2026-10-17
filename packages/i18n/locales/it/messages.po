@@ -1952,6 +1952,12 @@ msgstr "Sessione dell'agente avviata"
 msgid "agent settings"
 msgstr "impostazioni dell'agente"
 
+msgid "Agent terminal with account"
+msgstr "Terminale agente con account"
+
+msgid "Agent terminal with account…"
+msgstr "Terminale agente con account…"
+
 msgid "Agent usage rankings"
 msgstr "Classifiche d'uso degli agenti"
 
@@ -4907,6 +4913,9 @@ msgstr "Impossibile uscire dalla coda"
 msgid "Could not list directory"
 msgstr "Impossibile elencare la directory"
 
+msgid "Could not load accounts"
+msgstr "Impossibile caricare gli account"
+
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
 msgstr "Impossibile caricare gli agenti da {0}"
@@ -5028,6 +5037,9 @@ msgstr "Impossibile riprendere"
 msgid "Could not resume the chat"
 msgstr "Impossibile riprendere la chat"
 
+msgid "Could not resume this conversation"
+msgstr "Impossibile riprendere questa conversazione"
+
 msgid "Could not send"
 msgstr "Impossibile inviare"
 
@@ -5042,6 +5054,9 @@ msgstr "Impossibile condividere"
 
 msgid "Could not start agent"
 msgstr "Impossibile avviare l'agente"
+
+msgid "Could not start agent terminal"
+msgstr "Impossibile avviare il terminale agente"
 
 msgid "Could not start checkout. Please try again."
 msgstr "Impossibile avviare il checkout. Riprova."
@@ -9699,6 +9714,9 @@ msgstr "Loader · Braille Spinner"
 msgid "Loading"
 msgstr "Caricamento"
 
+msgid "Loading accounts…"
+msgstr "Caricamento degli account…"
+
 msgid "Loading agent settings..."
 msgstr "Caricamento delle impostazioni degli agenti..."
 
@@ -10794,6 +10812,9 @@ msgstr "Nessun autore trovato."
 
 msgid "No automations match"
 msgstr "Nessuna automazione corrisponde"
+
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "Nessun account con abbonamento disponibile. Aggiungi un account o accedi in Utilizzo, poi aggiorna."
 
 msgid "No branches found"
 msgstr "Nessun branch trovato"
@@ -13882,6 +13903,9 @@ msgstr "Riapri la scheda chiusa"
 msgid "Reopen PR"
 msgstr "Riapri la PR"
 
+msgid "Reopen the saved conversation in the same workspace. No message is sent. Background work is not transferred."
+msgstr "Riapri la conversazione salvata nello stesso spazio di lavoro. Nessun messaggio viene inviato. Le attività in background non vengono trasferite."
+
 msgid "Reopen thread"
 msgstr "Riapri il thread"
 
@@ -14231,6 +14255,12 @@ msgstr "Argomenti di ripresa"
 
 msgid "Resume automation"
 msgstr "Riprendi l'automazione"
+
+msgid "Resume conversation"
+msgstr "Riprendi conversazione"
+
+msgid "Resume with another account"
+msgstr "Riprendi con un altro account"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
@@ -16150,6 +16180,9 @@ msgstr "Avvia una nuova sessione di agente a ogni esecuzione"
 msgid "Start a new chat"
 msgstr "Avvia una nuova chat"
 
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "Avvia un nuovo terminale con un accesso esistente. Le altre chat e il tuo account predefinito rimangono invariati."
+
 msgid "Start a session"
 msgstr "Avvia una sessione"
 
@@ -16188,6 +16221,9 @@ msgstr "Avviane una con + nella barra delle schede."
 
 msgid "Start or stop the workspace run command"
 msgstr "Avvia o arresta il comando di esecuzione del workspace"
+
+msgid "Start terminal"
+msgstr "Avvia terminale"
 
 msgid "Start voice mode"
 msgstr "Avvia la modalità vocale"
@@ -17368,6 +17404,9 @@ msgstr "La stessa app funziona in modo nativo su iPad, in verticale e in orizzon
 msgid "The scorecard"
 msgstr "La scheda di valutazione"
 
+msgid "The selected login changed. Choose an account again."
+msgstr "L’accesso selezionato è cambiato. Scegli di nuovo un account."
+
 msgid "The self-driving software factory"
 msgstr "La fabbrica di software a guida autonoma"
 
@@ -17491,6 +17530,9 @@ msgstr "Questo agente non può diramare una conversazione"
 msgid "This agent can't run in a cloud workspace"
 msgstr "Questo agente non può essere eseguito in un workspace cloud"
 
+msgid "This agent configuration does not support account selection."
+msgstr "Questa configurazione dell’agente non supporta la selezione dell’account."
+
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Questo agente non esiste più sul dispositivo selezionato (i suoi agenti potrebbero essere stati reimpostati). Le esecuzioni falliranno finché non ne scegli uno nuovo."
 
@@ -17542,6 +17584,12 @@ msgstr "Impossibile avviare questo workspace cloud"
 
 msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
 msgstr "Questo workspace cloud si sta riattivando: dopo un periodo di inattività possono volerci fino a 30 secondi."
+
+msgid "This conversation cannot be resumed with another account."
+msgstr "Questa conversazione non può essere ripresa con un altro account."
+
+msgid "This conversation is no longer available to resume."
+msgstr "Questa conversazione non è più disponibile per la ripresa."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Questo elimina lo scrollback salvato usato per il ripristino dopo riavvio o crash."
@@ -18497,6 +18545,9 @@ msgstr "Aggiorna Superset su questa macchina per allegare file"
 
 msgid "update the branch prefix"
 msgstr "aggiornare il prefisso dei branch"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "Aggiorna questo host per scegliere un account per un nuovo terminale."
 
 msgid "Updated"
 msgstr "Aggiornato"

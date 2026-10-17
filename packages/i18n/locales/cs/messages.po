@@ -1952,6 +1952,12 @@ msgstr "Relace agenta spuštěna"
 msgid "agent settings"
 msgstr "nastavení agenta"
 
+msgid "Agent terminal with account"
+msgstr "Terminál agenta s výběrem účtu"
+
+msgid "Agent terminal with account…"
+msgstr "Terminál agenta s výběrem účtu…"
+
 msgid "Agent usage rankings"
 msgstr "Žebříček využití agentů"
 
@@ -4907,6 +4913,9 @@ msgstr "Nepodařilo se opustit frontu"
 msgid "Could not list directory"
 msgstr "Nepodařilo se vypsat adresář"
 
+msgid "Could not load accounts"
+msgstr "Účty se nepodařilo načíst"
+
 #. placeholder {0}: host.name
 msgid "Could not load agents from {0}"
 msgstr "Nepodařilo se načíst agenty z {0}"
@@ -5028,6 +5037,9 @@ msgstr "Pokračování se nezdařilo"
 msgid "Could not resume the chat"
 msgstr "V chatu se nepodařilo pokračovat"
 
+msgid "Could not resume this conversation"
+msgstr "Tuto konverzaci se nepodařilo obnovit"
+
 msgid "Could not send"
 msgstr "Nepodařilo se odeslat"
 
@@ -5042,6 +5054,9 @@ msgstr "Nepodařilo se sdílet"
 
 msgid "Could not start agent"
 msgstr "Nepodařilo se spustit agenta"
+
+msgid "Could not start agent terminal"
+msgstr "Terminál agenta se nepodařilo spustit"
 
 msgid "Could not start checkout. Please try again."
 msgstr "Platbu se nepodařilo zahájit. Zkuste to znovu."
@@ -9699,6 +9714,9 @@ msgstr "Loader · Braillův spinner"
 msgid "Loading"
 msgstr "Načítání"
 
+msgid "Loading accounts…"
+msgstr "Načítání účtů…"
+
 msgid "Loading agent settings..."
 msgstr "Načítám nastavení agenta..."
 
@@ -10794,6 +10812,9 @@ msgstr "Nenalezeni žádní autoři."
 
 msgid "No automations match"
 msgstr "Žádná automatizace neodpovídá"
+
+msgid "No available subscription accounts. Add or sign in to an account in Usage, then refresh."
+msgstr "Nejsou k dispozici žádné účty s předplatným. Přidejte účet nebo se přihlaste v části Využití a poté obnovte seznam."
 
 msgid "No branches found"
 msgstr "Nenalezeny žádné větve"
@@ -13882,6 +13903,9 @@ msgstr "Znovu otevřít zavřenou kartu"
 msgid "Reopen PR"
 msgstr "Znovu otevřít PR"
 
+msgid "Reopen the saved conversation in the same workspace. No message is sent. Background work is not transferred."
+msgstr "Znovu otevřít uloženou konverzaci ve stejném pracovním prostoru. Žádná zpráva se neodešle. Práce na pozadí se nepřenáší."
+
 msgid "Reopen thread"
 msgstr "Znovu otevřít vlákno"
 
@@ -14231,6 +14255,12 @@ msgstr "Argumenty pro pokračování"
 
 msgid "Resume automation"
 msgstr "Pokračovat v automatizaci"
+
+msgid "Resume conversation"
+msgstr "Obnovit konverzaci"
+
+msgid "Resume with another account"
+msgstr "Obnovit s jiným účtem"
 
 #. placeholder {0}: candidate.agentLabel
 msgid "Resuming {0}…"
@@ -16150,6 +16180,9 @@ msgstr "Při každém spuštění začít novou relaci agenta"
 msgid "Start a new chat"
 msgstr "Zahájit nový chat"
 
+msgid "Start a new terminal using an existing login. Other chats and your default account stay unchanged."
+msgstr "Spusťte nový terminál se stávajícím přihlášením. Ostatní chaty a výchozí účet zůstanou beze změny."
+
 msgid "Start a session"
 msgstr "Spustit relaci"
 
@@ -16188,6 +16221,9 @@ msgstr "Spusťte ji pomocí + v liště karet."
 
 msgid "Start or stop the workspace run command"
 msgstr "Spustit nebo zastavit spouštěcí příkaz pracovního prostoru"
+
+msgid "Start terminal"
+msgstr "Spustit terminál"
 
 msgid "Start voice mode"
 msgstr "Spustit hlasový režim"
@@ -17368,6 +17404,9 @@ msgstr "Stejná aplikace běží na iPadu nativně, na výšku i na šířku."
 msgid "The scorecard"
 msgstr "Hodnocení"
 
+msgid "The selected login changed. Choose an account again."
+msgstr "Vybrané přihlášení se změnilo. Vyberte účet znovu."
+
 msgid "The self-driving software factory"
 msgstr "Samořídící softwarová továrna"
 
@@ -17491,6 +17530,9 @@ msgstr "Tento agent neumí rozvětvit konverzaci"
 msgid "This agent can't run in a cloud workspace"
 msgstr "Tento agent nemůže běžet v cloudovém pracovním prostoru"
 
+msgid "This agent configuration does not support account selection."
+msgstr "Tato konfigurace agenta nepodporuje výběr účtu."
+
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Tento agent už na vybraném zařízení neexistuje (jeho agenti mohli být resetováni). Běhy budou selhávat, dokud nevyberete jiného."
 
@@ -17542,6 +17584,12 @@ msgstr "Tento cloudový pracovní prostor nelze spustit"
 
 msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
 msgstr "Tento cloudový workspace se probouzí, což může po nečinnosti trvat až 30 sekund."
+
+msgid "This conversation cannot be resumed with another account."
+msgstr "Tuto konverzaci nelze obnovit s jiným účtem."
+
+msgid "This conversation is no longer available to resume."
+msgstr "Tato konverzace již není k dispozici pro obnovení."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Tímto se smaže uložený scrollback používaný k obnovení po restartu nebo pádu."
@@ -18497,6 +18545,9 @@ msgstr "Aktualizujte na tomto počítači Superset, abyste mohli přikládat sou
 
 msgid "update the branch prefix"
 msgstr "aktualizovat prefix větve"
+
+msgid "Update this host to choose an account for a new terminal."
+msgstr "Aktualizujte tohoto hostitele, abyste mohli vybrat účet pro nový terminál."
 
 msgid "Updated"
 msgstr "Aktualizováno"
