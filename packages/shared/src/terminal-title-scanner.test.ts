@@ -160,6 +160,46 @@ describe("terminal title scanner", () => {
 		expect(scanForTerminalTitle(state, a).updates).toEqual([]);
 		expect(scanForTerminalTitle(state, b).updates).toEqual(["Hi 🙂!"]);
 	});
+
+	it("does not read 0x9C/0x9D inside a UTF-8 character as C1 controls", () => {
+		// 本 is E6 9C AC and ✳ is E2 9C B3: the 0x9C is a continuation byte,
+		// not a string terminator, so the title must not be cut there.
+		const state = createTerminalTitleScanState();
+
+		expect(
+			scanForTerminalTitle(state, enc.encode("\x1b]0;日本語\x07")).updates,
+		).toEqual(["日本語"]);
+		expect(
+			scanForTerminalTitle(state, enc.encode("\x1b]0;✳ Claude Code\x07"))
+				.updates,
+		).toEqual(["✳ Claude Code"]);
+		// ŝ is C5 9D: plain output text must not open an OSC that swallows
+		// the real title sequence after it.
+		expect(
+			scanForTerminalTitle(state, enc.encode("ŝ text\x1b]0;Real\x07")).updates,
+		).toEqual(["Real"]);
+	});
+
+	it("keeps a UTF-8 character split across chunks out of C1 detection", () => {
+		const state = createTerminalTitleScanState();
+		const full = enc.encode("ŝ\x1b]0;Real\x07");
+
+		expect(scanForTerminalTitle(state, full.subarray(0, 1)).updates).toEqual(
+			[],
+		);
+		expect(scanForTerminalTitle(state, full.subarray(1)).updates).toEqual([
+			"Real",
+		]);
+	});
+
+	it("still treats U+009D and U+009C encoded as UTF-8 as C1 controls", () => {
+		const state = createTerminalTitleScanState();
+
+		expect(
+			scanForTerminalTitle(state, enc.encode("\u009d2;Workspace\u009c"))
+				.updates,
+		).toEqual(["Workspace"]);
+	});
 });
 
 describe("normalizeTerminalTitle", () => {
