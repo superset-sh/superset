@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import {
-	chmodSync,
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
+	readFileSync,
 	rmSync,
 	symlinkSync,
 	writeFileSync,
@@ -14,7 +14,6 @@ import { join } from "node:path";
 import { workspaceDevAppProfileDirName } from "@superset/shared/dev-app-profile";
 import { removeDevAppProfile } from "./dev-app-profile";
 import {
-	buildTeardownCommandFromShell,
 	buildTeardownInitialCommand,
 	resolveTeardownCommand,
 } from "./teardown";
@@ -25,53 +24,41 @@ function isFishAvailable(): boolean {
 }
 
 describe("teardown initial command", () => {
-	test("uses exec instead of shell-specific exit status syntax", () => {
-		const command = buildTeardownInitialCommand(
-			"/tmp/worktree/.superset/teardown.sh",
-		);
-
-		expect(command).toBe("exec bash '/tmp/worktree/.superset/teardown.sh'");
-		expect(command).not.toContain("$?");
-	});
-
-	test("shell-command form runs via `bash -c` and avoids $?", () => {
-		const command = buildTeardownCommandFromShell(
-			"docker compose down && rm -rf .cache",
-		);
-
-		expect(command).toBe("exec bash -c 'docker compose down && rm -rf .cache'");
-		expect(command).not.toContain("$?");
-	});
-
-	test("shell-command form single-quote-escapes the command", () => {
-		expect(buildTeardownCommandFromShell("echo 'bye'")).toBe(
-			"exec bash -c 'echo '\\''bye'\\'''",
-		);
-	});
-
-	test("exits fish with the teardown script status", () => {
-		if (!isFishAvailable()) return;
-
+	function runIn(
+		shell: string,
+		teardown: string,
+	): { exitStatus: number | null; recordedStatus: string } {
 		const root = mkdtempSync(join(tmpdir(), "host-service-teardown-"));
 		const dirWithQuote = join(root, "quote's dir");
+		mkdirSync(dirWithQuote, { recursive: true });
 		const scriptPath = join(dirWithQuote, "teardown.sh");
-
+		const statusPath = join(dirWithQuote, "status");
 		try {
-			mkdirSync(dirWithQuote, { recursive: true });
-			writeFileSync(scriptPath, "#!/usr/bin/env bash\nexit 7\n", {
-				mode: 0o755,
-			});
-			chmodSync(scriptPath, 0o755);
-
-			const result = spawnSync("fish", [
+			writeFileSync(scriptPath, `#!/usr/bin/env bash\n${teardown}\n`);
+			const result = spawnSync(shell, [
 				"-c",
-				buildTeardownInitialCommand(scriptPath),
+				buildTeardownInitialCommand(["bash", scriptPath], statusPath),
 			]);
-
-			expect(result.status).toBe(7);
+			return {
+				exitStatus: result.status,
+				recordedStatus: readFileSync(statusPath, "utf8"),
+			};
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
+	}
+
+	test("records the teardown exit status in the status file", () => {
+		expect(runIn("/bin/sh", "echo 'bye'\nexit 7")).toEqual({
+			exitStatus: 0,
+			recordedStatus: "7",
+		});
+		expect(runIn("/bin/sh", "true").recordedStatus).toBe("0");
+	});
+
+	test("records the teardown exit status under fish", () => {
+		if (!isFishAvailable()) return;
+		expect(runIn("fish", "exit 7").recordedStatus).toBe("7");
 	});
 });
 
@@ -119,8 +106,7 @@ describe("resolveTeardownCommand", () => {
 			});
 
 			expect(resolved).toEqual({
-				initialCommand:
-					"exec bash -c 'docker compose down && bash teardown.sh'",
+				argv: ["bash", "-c", "docker compose down && bash teardown.sh"],
 			});
 		} finally {
 			sb.cleanup();
@@ -144,7 +130,7 @@ describe("resolveTeardownCommand", () => {
 			});
 
 			expect(resolved).toEqual({
-				initialCommand: "exec bash -c 'echo configured'",
+				argv: ["bash", "-c", "echo configured"],
 			});
 		} finally {
 			sb.cleanup();
@@ -168,7 +154,7 @@ describe("resolveTeardownCommand", () => {
 				homeDir: sb.homeDir,
 			});
 
-			expect(resolved).toEqual({ initialCommand: `exec bash '${scriptPath}'` });
+			expect(resolved).toEqual({ argv: ["bash", scriptPath] });
 		} finally {
 			sb.cleanup();
 		}
@@ -194,7 +180,7 @@ describe("resolveTeardownCommand", () => {
 			});
 
 			expect(resolved).toEqual({
-				initialCommand: `exec bash '${worktreeScript}'`,
+				argv: ["bash", worktreeScript],
 			});
 		} finally {
 			sb.cleanup();
@@ -217,7 +203,7 @@ describe("resolveTeardownCommand", () => {
 			});
 
 			expect(resolved).toEqual({
-				initialCommand: "exec bash -c 'docker compose down'",
+				argv: ["bash", "-c", "docker compose down"],
 				cwd: "apps/web",
 			});
 		} finally {

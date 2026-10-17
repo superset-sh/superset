@@ -91,7 +91,6 @@ describe("runTeardown integration", () => {
 		expect(result.status).toBe("ok");
 		expect(writes).toHaveLength(1);
 		expect(writes[0]).toStartWith("exec bash ");
-		expect(writes[0]).not.toContain("$?");
 		expect(existsSync(markerPath)).toBe(true);
 	});
 });

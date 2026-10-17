@@ -1,4 +1,8 @@
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { TEARDOWN_TIMEOUT_MS } from "@superset/shared/constants";
 import type { HostDb } from "../../db";
 import {
@@ -69,12 +73,13 @@ export async function runTeardown({
 	if (resolved === null) return { status: "skipped" };
 
 	const terminalId = randomUUID();
+	const statusPath = join(tmpdir(), `superset-teardown-${terminalId}.status`);
 
 	const session = await createTerminalSessionInternal({
 		terminalId,
 		workspaceId,
 		db,
-		initialCommand: resolved.initialCommand,
+		initialCommand: buildTeardownInitialCommand(resolved.argv, statusPath),
 		...(resolved.cwd && { cwd: resolved.cwd }),
 		listed: false,
 	});
@@ -111,18 +116,20 @@ export async function runTeardown({
 				// already disposed
 			}
 			disposeSession(terminalId, db);
+			void rm(statusPath, { force: true }).catch(() => {});
 			resolve(result);
 		};
 
 		session.pty.onExit(({ exitCode, signal }) => {
-			if (exitCode === 0 && !timedOut) {
+			const teardownExitCode = readExitStatus(statusPath);
+			if (teardownExitCode === 0 && !timedOut) {
 				settle({ status: "ok", output: tail || undefined });
 				return;
 			}
 			settle({
 				status: "failed",
-				exitCode: exitCode ?? null,
-				signal: signal ?? null,
+				exitCode: teardownExitCode ?? (exitCode || null),
+				signal: signal || null,
 				timedOut,
 				outputTail: tail,
 			});
@@ -172,31 +179,41 @@ export function resolveTeardownCommand(args: {
 	worktreePath: string;
 	/** Override $HOME for tests. */
 	homeDir?: string;
-}): { initialCommand: string; cwd?: string } | null {
+}): { argv: string[]; cwd?: string } | null {
 	const resolved = resolveScript("teardown", args);
 	if (!resolved) return null;
 
-	const initialCommand =
+	const argv =
 		resolved.kind === "commands"
-			? buildTeardownCommandFromShell(resolved.commands.join(" && "))
-			: buildTeardownInitialCommand(resolved.scriptPath);
-	return { initialCommand, ...(resolved.cwd && { cwd: resolved.cwd }) };
+			? ["bash", "-c", resolved.commands.join(" && ")]
+			: ["bash", resolved.scriptPath];
+	return { argv, ...(resolved.cwd && { cwd: resolved.cwd }) };
 }
 
-export function buildTeardownInitialCommand(scriptPath: string): string {
-	// `exec` replaces the user's login shell with the teardown process. That
-	// avoids shell-specific exit-status syntax like `$?`, which breaks in fish
-	// and leaves the hidden teardown terminal open until timeout.
-	return `exec bash ${shellSingleQuote(scriptPath)}`;
-}
+const RECORD_STATUS_SCRIPT =
+	'status=$1; shift; "$@"; printf %s "$?" > "$status"';
 
 /**
- * Build the initial command for configured `teardown` commands. The joined
- * command runs via `bash -c` so multiple `&&`-chained entries execute in one
- * shell; `exec` still replaces the login shell so the hidden PTY exits with
- * the teardown status (and avoids fish `$?` breakage), matching the script
- * form above.
+ * `exec` replaces the login shell so the hidden PTY exits with the teardown.
+ * The PTY exit code can't be trusted: an rcfile may re-host the shell under a
+ * PTY proxy (Kiro/Amazon Q) that exits 0 whatever the teardown returned, so
+ * the status goes to `statusPath` instead. Every argument is single-quoted
+ * once and the script holds no quote or backslash, so fish parses it too.
  */
-export function buildTeardownCommandFromShell(shellCommand: string): string {
-	return `exec bash -c ${shellSingleQuote(shellCommand)}`;
+export function buildTeardownInitialCommand(
+	argv: string[],
+	statusPath: string,
+): string {
+	return ["exec bash -c", RECORD_STATUS_SCRIPT, "teardown", statusPath, ...argv]
+		.map((arg, index) => (index === 0 ? arg : shellSingleQuote(arg)))
+		.join(" ");
+}
+
+function readExitStatus(statusPath: string): number | null {
+	try {
+		const status = Number.parseInt(readFileSync(statusPath, "utf8"), 10);
+		return Number.isInteger(status) ? status : null;
+	} catch {
+		return null;
+	}
 }
