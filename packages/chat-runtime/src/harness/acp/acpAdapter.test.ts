@@ -191,6 +191,11 @@ class FakeAcpAgent {
 		for (const id of this.heldSelections.splice(0)) this.respond(id, null);
 	}
 
+	releaseFirstSelection(): void {
+		const id = this.heldSelections.shift();
+		if (id !== undefined) this.respond(id, null);
+	}
+
 	lastPermissionResponse(): Record<string, unknown> | undefined {
 		return this.sent.find((f) => f.id === 9001);
 	}
@@ -2050,6 +2055,46 @@ describe("AcpAdapter on protocol v2", () => {
 				(item) => item.kind === "notice" && item.noticeKind === "error",
 			),
 		).toBe(true);
+
+		await adapter.dispose();
+	});
+
+	it("holds a prompt for a change made while it waits", async () => {
+		const agent = new FakeAcpAgent();
+		agent.holdSelections = true;
+		agent.newSessionConfigOptions = [
+			{
+				configId: "mode",
+				name: "Mode",
+				type: "select",
+				category: "mode",
+				currentValue: "default",
+				options: [
+					{ value: "default", name: "Ask for approval" },
+					{ value: "acceptEdits", name: "Approve edits" },
+					{ value: "bypassPermissions", name: "Full access" },
+				],
+			},
+		];
+		const { adapter } = startAdapter(
+			agent,
+			undefined,
+			{},
+			{ defaultModeId: "bypassPermissions" },
+		);
+		adapter.prompt([{ type: "text", text: "go" }]);
+		await flush(16);
+		adapter.setConfigOption("mode", "acceptEdits");
+		await flush(16);
+
+		const methods = () => agent.sent.map((f) => f.method);
+		agent.releaseFirstSelection();
+		await flush(16);
+		expect(methods()).not.toContain("session/prompt");
+
+		agent.releaseSelections();
+		await flush(16);
+		expect(methods()).toContain("session/prompt");
 
 		await adapter.dispose();
 	});

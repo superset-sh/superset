@@ -640,8 +640,9 @@ export class AcpAdapter implements HarnessAdapter {
 
 	/** An agent may run a prompt before it applies a mode or model it was just sent. */
 	private async selectionsApplied(): Promise<void> {
-		if (this.selectionsInFlight.size === 0) return;
-		await Promise.all(this.selectionsInFlight);
+		while (this.selectionsInFlight.size > 0) {
+			await Promise.all(this.selectionsInFlight);
+		}
 	}
 
 	setConfigOption(configId: string, value: string): void {
