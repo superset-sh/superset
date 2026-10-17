@@ -52,8 +52,22 @@ The `run` field defines commands that start your dev server or other long-runnin
 | Variable | Description |
 |----------|-------------|
 | `SUPERSET_ROOT_PATH` | Path to root repository |
-| `SUPERSET_WORKSPACE_NAME` | Current workspace name |
+| `SUPERSET_WORKSPACE_ID` | Stable ID of the current workspace |
 | `SUPERSET_WORKSPACE_PATH` | Path to the workspace worktree |
+
+`SUPERSET_WORKSPACE_NAME` is not set. Workspace names can change while setup
+runs. Use `SUPERSET_WORKSPACE_ID` to identify the workspace and
+[`superset workspaces get`](/cli/cli-reference) to look up its current details.
+For a workspace on this machine:
+
+```bash
+superset workspaces get "$SUPERSET_WORKSPACE_ID" --local --field name
+```
+
+The ID argument defaults to `$SUPERSET_WORKSPACE_ID`, so
+`superset workspaces get --local --field name` also works inside a workspace.
+A name returned by the command can still change after the query; use the ID
+for resources that need a stable identifier.
 
 ## Examples
 

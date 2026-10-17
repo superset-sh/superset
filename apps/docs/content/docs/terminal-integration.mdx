@@ -67,4 +67,11 @@ Hold `Cmd` (macOS) or `Ctrl` and click links in terminal output:
 | Variable | Description |
 |----------|-------------|
 | `SUPERSET_ROOT_PATH` | Path to root repository |
-| `SUPERSET_WORKSPACE_NAME` | Current workspace name |
+| `SUPERSET_WORKSPACE_ID` | Stable ID of the current workspace |
+| `SUPERSET_WORKSPACE_PATH` | Path to the workspace worktree |
+
+`SUPERSET_WORKSPACE_NAME` is not set. To read the current name of a workspace
+on this machine, run `superset workspaces get --local --field name`. The command
+uses `$SUPERSET_WORKSPACE_ID` when no ID is passed. See
+[Project Lifecycle Scripts](/setup-teardown-scripts#environment-variables) for
+script examples and guidance on stable identifiers.
