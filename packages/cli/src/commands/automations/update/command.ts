@@ -26,11 +26,13 @@ export default command({
 		agent: string().desc(
 			"New host agent instance id or presetId (e.g. claude, codex, superset).",
 		),
-		host: string().desc("New target host id"),
+		host: string().desc(
+			"New target host id — moves the automation. Omitting it keeps the current host",
+		),
 		local: boolean().desc("Retarget the automation to this machine"),
 		project: string().desc("New v2 project id"),
 		workspace: string().desc(
-			"New v2 workspace id. With --cloud, a cloud workspace id",
+			'New v2 workspace id to reuse every run; with --cloud, a cloud workspace id. Pass "" to clear the pin: host runs create a fresh workspace, cloud runs start from the environment',
 		),
 		cloud: boolean().desc(
 			"Run in the cloud: each run starts a cloud workspace from --environment, or reuses the one --workspace names",
@@ -116,8 +118,10 @@ export default command({
 			});
 		}
 
-		// Retargeting (--workspace or --project) re-derives targetHostId +
-		// v2ProjectId; the resource must exist on the target host.
+		// Retargeting (--workspace or --project) re-derives v2ProjectId
+		// against a concrete host; the resource must exist there. That host
+		// defaults to the automation's current one, not this machine, so an
+		// update that omits --host never moves the automation (#6522).
 		let target:
 			| { targetHostId: string; v2ProjectId: string | null }
 			| undefined;
@@ -137,10 +141,17 @@ export default command({
 					api: ctx.api,
 					organizationId,
 					environment: options.environment ?? undefined,
-					workspaceId: options.workspace ?? undefined,
+					workspaceId: options.workspace || undefined,
 					requirePlacement: !alreadyCloud,
 				})
 			).target;
+			// An empty --workspace clears a cloud pin the same way it clears
+			// a host pin (#6523): runs fall back to the automation's
+			// environment, and the server rejects the clear with a precise
+			// message when no environment remains.
+			if (options.workspace === "") {
+				cloudTarget = { ...cloudTarget, cloudWorkspaceId: null };
+			}
 		} else if (options.workspace || options.project) {
 			const organizationId = ctx.config.organizationId;
 			if (!organizationId) {
@@ -154,7 +165,8 @@ export default command({
 				userJwt: ctx.bearer,
 				api: ctx.api,
 				hostId: targetHostId,
-				workspaceId: options.workspace ?? undefined,
+				defaultHostId: current?.targetHostId ?? undefined,
+				workspaceId: options.workspace || undefined,
 				projectId: options.project ?? undefined,
 			});
 		}
@@ -178,8 +190,10 @@ export default command({
 			...(options.project !== undefined
 				? { v2ProjectId: options.project }
 				: {}),
+			// An empty --workspace is an explicit null: it clears the pin so
+			// each run creates a fresh workspace again (#6523).
 			...(options.workspace !== undefined && !cloud
-				? { v2WorkspaceId: options.workspace }
+				? { v2WorkspaceId: options.workspace || null }
 				: {}),
 			// Session mode clears both the project and any workspace pin.
 			...(options.session ? { v2ProjectId: null, v2WorkspaceId: null } : {}),
@@ -192,7 +206,18 @@ export default command({
 				: options.tag?.length
 					? { tags: options.tag }
 					: {}),
-			...target,
+			...(target
+				? {
+						v2ProjectId: target.v2ProjectId,
+						// A workspace pin is stored denormalized, so the pin's
+						// host must ride along even without --host; it is the
+						// automation's current host. A plain --project update
+						// sends a host only when --host or --local names one.
+						...(options.workspace || targetHostId !== undefined
+							? { targetHostId: target.targetHostId }
+							: {}),
+					}
+				: {}),
 			...cloudTarget,
 		});
 
