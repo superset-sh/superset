@@ -223,6 +223,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 				});
 			});
 		},
+		isLinkActivation: (event) => event.metaKey || event.ctrlKey,
 	});
 
 	xterm.unicode.activeVersion = "11";

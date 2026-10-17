@@ -360,6 +360,15 @@ export function TerminalPane({
 					event.preventDefault();
 					runUrlLinkAction(linkActionDepsRef.current, url, action);
 				},
+				isLinkActivation: (event, info) => {
+					if (info.kind === "url") {
+						return getUrlAction(event, info.url) !== null;
+					}
+					if (info.isDirectory) {
+						return folderPolicy.getIntent(event) !== null;
+					}
+					return filePolicy.getAction(event) !== null;
+				},
 				onLinkHover,
 				onLinkLeave,
 			},

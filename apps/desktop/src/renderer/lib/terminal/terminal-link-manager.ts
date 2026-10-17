@@ -41,6 +41,12 @@ export interface TerminalLinkHandlers {
 	/** Called when the mouse leaves a previously hovered link. */
 	onLinkLeave?: () => void;
 	/**
+	 * Whether a click with this event's modifiers opens the link. Used to keep
+	 * xterm's Shift+click "extend selection" from also firing on a click that
+	 * opens a link (e.g. Cmd+Shift+click → open in system browser).
+	 */
+	isLinkActivation?: (event: MouseEvent, info: LinkHoverInfo) => boolean;
+	/**
 	 * Stat callback to validate file paths exist. Called via the host service
 	 * which handles all path resolution (relative, tilde, etc.) server-side.
 	 */
@@ -64,6 +70,8 @@ export class TerminalLinkManager {
 	private _resolver: TerminalLinkResolver | null = null;
 	private _handlers: TerminalLinkHandlers | null = null;
 	private _oscLinkHandler: ILinkHandler | null = null;
+	private _hoveredLink: LinkHoverInfo | null = null;
+	private _screenElement: HTMLElement | null = null;
 
 	constructor(private readonly _terminal: XTerm) {}
 
@@ -91,9 +99,51 @@ export class TerminalLinkManager {
 		for (const d of this._disposables) d.dispose();
 		this._disposables = [];
 		this._clearOscLinkHandler();
+		this._screenElement?.removeEventListener(
+			"mousedown",
+			this._handleScreenMouseDown,
+		);
+		this._screenElement = null;
+		this._hoveredLink = null;
 		this._resolver?.clearCache();
 		this._resolver = null;
 		this._handlers = null;
+	}
+
+	/**
+	 * xterm's SelectionService listens for mousedown on the outer `.xterm`
+	 * element and turns any Shift+mousedown into "extend selection", even when
+	 * the click lands on a link. The Linkifier listens on the inner
+	 * `.xterm-screen`, so stopping propagation there keeps link activation
+	 * working while the selection is left alone. preventDefault + focus stand
+	 * in for what xterm's own mousedown handling would have done.
+	 */
+	private _handleScreenMouseDown = (event: MouseEvent): void => {
+		if (event.button !== 0 || !event.shiftKey) return;
+		const link = this._hoveredLink;
+		if (!link || !this._handlers?.isLinkActivation?.(event, link)) return;
+		event.stopPropagation();
+		event.preventDefault();
+		this._terminal.focus();
+	};
+
+	private _listenForLinkMouseDown(): void {
+		if (this._screenElement) return;
+		const screenElement =
+			this._terminal.element?.querySelector<HTMLElement>(".xterm-screen");
+		if (!screenElement) return;
+		screenElement.addEventListener("mousedown", this._handleScreenMouseDown);
+		this._screenElement = screenElement;
+	}
+
+	private _trackHover(event: MouseEvent, info: LinkHoverInfo): void {
+		this._hoveredLink = info;
+		this._handlers?.onLinkHover?.(event, info);
+	}
+
+	private _trackLeave(): void {
+		this._hoveredLink = null;
+		this._handlers?.onLinkLeave?.();
 	}
 
 	private _clearOscLinkHandler(): void {
@@ -112,13 +162,17 @@ export class TerminalLinkManager {
 		this._disposables = [];
 		this._clearOscLinkHandler();
 
+		this._hoveredLink = null;
+		this._listenForLinkMouseDown();
+
 		// Reuse resolver to preserve stat cache across re-registrations.
 		if (!this._resolver) {
 			this._resolver = new TerminalLinkResolver(handlers.stat);
 		}
 
-		const onLinkHover = handlers.onLinkHover;
-		const onLinkLeave = handlers.onLinkLeave;
+		const onLinkHover = (event: MouseEvent, info: LinkHoverInfo) =>
+			this._trackHover(event, info);
+		const onLinkLeave = () => this._trackLeave();
 
 		// 1. File path detector (highest priority)
 		const detector = new LocalLinkDetector(this._resolver);
@@ -126,16 +180,14 @@ export class TerminalLinkManager {
 			this._terminal,
 			detector,
 			handlers.onFileLinkClick,
-			onLinkHover
-				? (event, link) =>
-						onLinkHover(event, {
-							kind: "file",
-							isDirectory: link.isDirectory,
-							resolvedPath: link.resolvedPath,
-							row: link.row,
-							col: link.col,
-						})
-				: undefined,
+			(event, link) =>
+				onLinkHover(event, {
+					kind: "file",
+					isDirectory: link.isDirectory,
+					resolvedPath: link.resolvedPath,
+					row: link.row,
+					col: link.col,
+				}),
 			onLinkLeave,
 		);
 		this._disposables.push(this._terminal.registerLinkProvider(adapter));
@@ -148,9 +200,7 @@ export class TerminalLinkManager {
 				(event, uri) => {
 					onUrlClick(event, uri);
 				},
-				onLinkHover
-					? (event, uri) => onLinkHover(event, { kind: "url", url: uri })
-					: undefined,
+				(event, uri) => onLinkHover(event, { kind: "url", url: uri }),
 				onLinkLeave,
 			);
 			this._disposables.push(this._terminal.registerLinkProvider(urlProvider));
@@ -163,10 +213,8 @@ export class TerminalLinkManager {
 				activate: (event, uri) => {
 					onUrlClick(event, uri);
 				},
-				hover: onLinkHover
-					? (event, uri) => onLinkHover(event, { kind: "url", url: uri })
-					: undefined,
-				leave: onLinkLeave ? () => onLinkLeave() : undefined,
+				hover: (event, uri) => onLinkHover(event, { kind: "url", url: uri }),
+				leave: () => onLinkLeave(),
 			};
 			this._terminal.options.linkHandler = this._oscLinkHandler;
 		}
@@ -195,14 +243,12 @@ export class TerminalLinkManager {
 						colEnd: undefined,
 					});
 				},
-				onLinkHover
-					? (event, resolvedPath) =>
-							onLinkHover(event, {
-								kind: "file",
-								isDirectory: false,
-								resolvedPath,
-							})
-					: undefined,
+				(event, resolvedPath) =>
+					onLinkHover(event, {
+						kind: "file",
+						isDirectory: false,
+						resolvedPath,
+					}),
 				onLinkLeave,
 			);
 			this._disposables.push(this._terminal.registerLinkProvider(wordDetector));
