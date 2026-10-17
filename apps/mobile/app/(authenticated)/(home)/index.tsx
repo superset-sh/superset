@@ -24,7 +24,7 @@ export default function HomeIndex() {
 	// without a machine of yours behind them.
 	if (
 		hasHydrated &&
-		scope === "host" &&
+		scope !== "cloud" &&
 		hosts.isSuccess &&
 		hosts.data.length === 0
 	) {

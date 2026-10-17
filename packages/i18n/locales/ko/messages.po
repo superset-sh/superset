@@ -210,6 +210,10 @@ msgid "{0, plural, one {# result in Cloud} other {# results in Cloud}}"
 msgstr "{0, plural, one {클라우드에서 결과 #개} other {클라우드에서 결과 #개}}"
 
 #. placeholder {0}: results.length
+msgid "{0, plural, one {# result on all hosts} other {# results on all hosts}}"
+msgstr "{0, plural, one {모든 호스트에서 결과 #개} other {모든 호스트에서 결과 #개}}"
+
+#. placeholder {0}: results.length
 msgid "{0, plural, one {# result on this host} other {# results on this host}}"
 msgstr "{0, plural, one {이 호스트에서 결과 #개} other {이 호스트에서 결과 #개}}"
 
@@ -2080,6 +2084,9 @@ msgstr "모든 기능 한눈에 비교"
 
 msgid "All files exceed the maximum size."
 msgstr "모든 파일이 최대 크기를 초과합니다."
+
+msgid "All hosts"
+msgstr "모든 호스트"
 
 msgid "All in a new tab (split panes)"
 msgstr "모두 새 탭에서 (분할 패널)"
@@ -5180,6 +5187,9 @@ msgstr "실행 기록을 불러오지 못했습니다"
 
 msgid "Couldn't load this run's payload."
 msgstr "이 실행의 페이로드를 불러오지 못했습니다."
+
+msgid "Couldn't load workspaces"
+msgstr "워크스페이스를 불러오지 못했습니다"
 
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "프로필을 불러오지 못해 편집이 비활성화되었습니다."
@@ -11327,6 +11337,9 @@ msgstr "일치하는 워크스페이스가 없습니다."
 msgid "No workspaces on this host yet"
 msgstr "아직 이 호스트에 워크스페이스가 없습니다"
 
+msgid "No workspaces on your hosts yet"
+msgstr "아직 호스트에 워크스페이스가 없습니다"
+
 msgid "No workspaces yet"
 msgstr "아직 워크스페이스가 없습니다"
 
@@ -11353,6 +11366,9 @@ msgstr "없음"
 
 msgid "none (session)"
 msgstr "없음 (세션)"
+
+msgid "None of your hosts are online"
+msgstr "온라인 상태인 호스트가 없습니다"
 
 msgid "None. This is the floor."
 msgstr "없음. 여기가 바닥입니다."

@@ -210,6 +210,10 @@ msgid "{0, plural, one {# result in Cloud} other {# results in Cloud}}"
 msgstr "{0, plural, one {# hasil di Cloud} other {# hasil di Cloud}}"
 
 #. placeholder {0}: results.length
+msgid "{0, plural, one {# result on all hosts} other {# results on all hosts}}"
+msgstr "{0, plural, one {# hasil di semua host} other {# hasil di semua host}}"
+
+#. placeholder {0}: results.length
 msgid "{0, plural, one {# result on this host} other {# results on this host}}"
 msgstr "{0, plural, one {# hasil di host ini} other {# hasil di host ini}}"
 
@@ -2080,6 +2084,9 @@ msgstr "Semua fitur, berdampingan"
 
 msgid "All files exceed the maximum size."
 msgstr "Semua file melebihi ukuran maksimum."
+
+msgid "All hosts"
+msgstr "Semua host"
 
 msgid "All in a new tab (split panes)"
 msgstr "Semua di tab baru (panel terbagi)"
@@ -5180,6 +5187,9 @@ msgstr "Tidak dapat memuat run"
 
 msgid "Couldn't load this run's payload."
 msgstr "Tidak dapat memuat payload run ini."
+
+msgid "Couldn't load workspaces"
+msgstr "Tidak dapat memuat workspace"
 
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Profil Anda tidak dapat dimuat, sehingga penyuntingan dinonaktifkan."
@@ -11327,6 +11337,9 @@ msgstr "Tidak ada workspace yang cocok."
 msgid "No workspaces on this host yet"
 msgstr "Belum ada workspace di host ini"
 
+msgid "No workspaces on your hosts yet"
+msgstr "Belum ada workspace di host Anda"
+
 msgid "No workspaces yet"
 msgstr "Belum ada workspace"
 
@@ -11353,6 +11366,9 @@ msgstr "Tidak ada"
 
 msgid "none (session)"
 msgstr "tidak ada (sesi)"
+
+msgid "None of your hosts are online"
+msgstr "Tidak ada host Anda yang online"
 
 msgid "None. This is the floor."
 msgstr "Tidak ada. Ini adalah lantai dasarnya."

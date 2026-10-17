@@ -17,10 +17,10 @@ import {
 	itemFromCloudRow,
 	useCloudWorkspaceItems,
 } from "@/hooks/useCloudWorkspaceItems";
-import { useHostProjects } from "@/hooks/useHostProjects";
+import { useHostsProjects } from "@/hooks/useHostProjects";
 import {
 	type HostWorkspaceItem,
-	useHostWorkspaces,
+	useHostsWorkspaces,
 } from "@/hooks/useHostWorkspaces";
 import { useTheme } from "@/hooks/useTheme";
 import {
@@ -29,6 +29,7 @@ import {
 } from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
 import { useWorkspacesFilterStore } from "@/screens/(authenticated)/(home)/home/stores/workspacesFilterStore";
 import { useCloudFilters } from "@/screens/(authenticated)/(home)/hooks/useCloudFilters";
+import { useScopedHosts } from "@/screens/(authenticated)/(home)/hooks/useScopedHosts";
 import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
 import { useWorkspaceScope } from "@/screens/(authenticated)/(home)/hooks/useWorkspaceScope";
 import { usePinnedWorkspacesStore } from "@/screens/(authenticated)/stores/pinnedWorkspacesStore";
@@ -42,8 +43,9 @@ import { usePinnedWorkspacesStore } from "@/screens/(authenticated)/stores/pinne
  * Stack inside the sheet never activates the controller, so no cancel ✕.
  *
  * The pool mirrors the home list's scope: the selected machine's workspaces,
- * or Cloud's sandboxes — the workspace query is per-host, so other machines
- * aren't in memory to search. The count row says which pool answered.
+ * every machine's under "All hosts", or Cloud's sandboxes — the workspace
+ * query is per-host, so machines outside the scope aren't in memory to
+ * search. The count row says which pool answered.
  */
 export function SearchScreen() {
 	const { t } = useLingui();
@@ -55,28 +57,40 @@ export function SearchScreen() {
 	const [query, setQuery] = useState("");
 	const sort = useWorkspacesFilterStore((store) => store.sort);
 	const selectedHost = useSelectedHost();
-	const cloudScope = useWorkspaceScope() === "cloud";
-	const { workspaces } = useHostWorkspaces(selectedHost);
+	const scope = useWorkspaceScope();
+	const cloudScope = scope === "cloud";
+	const allHostsScope = scope === "allHosts";
+	const scopedHosts = useScopedHosts();
+	const { workspaces } = useHostsWorkspaces(scopedHosts);
 	const { items: cloudItems } = useCloudWorkspaceItems();
 	const cloudFilters = useCloudFilters();
 	const searchArchived = cloudScope && cloudFilters.status === "archived";
 	const { workspaces: archivedCloud } = useArchivedCloudWorkspaces({
 		enabled: searchArchived,
 	});
-	const { projects } = useHostProjects(selectedHost);
+	const { projectsByHost } = useHostsProjects(scopedHosts);
 	const pinnedAt = usePinnedWorkspacesStore((state) => state.pinnedAt);
 
 	// Same hosts the home list polls, so the query keys are shared and the
 	// sheet decorates from cache instead of paying its own fan-out.
 	const terminalHosts = useMemo<TerminalsHost[]>(
-		() => (cloudScope || !selectedHost ? [] : [selectedHost]),
-		[selectedHost, cloudScope],
+		() => (cloudScope ? [] : scopedHosts),
+		[scopedHosts, cloudScope],
 	);
 	const { terminalsByWorkspace } = useHostsTerminals(terminalHosts);
 
 	const projectNamesById = useMemo(
-		() => new Map(projects.map((project) => [project.id, project.name])),
-		[projects],
+		() =>
+			new Map(
+				Object.values(projectsByHost)
+					.flat()
+					.map((project) => [project.id, project.name]),
+			),
+		[projectsByHost],
+	);
+	const hostNamesById = useMemo(
+		() => new Map(scopedHosts.map((host) => [host.machineId, host.name])),
+		[scopedHosts],
 	);
 
 	const matchesQuery = useCallback(
@@ -138,7 +152,7 @@ export function SearchScreen() {
 			: workspaces.filter(
 					(workspace) =>
 						workspace.worktreeExists !== false &&
-						workspace.hostId === selectedHost?.machineId,
+						(allHostsScope || workspace.hostId === selectedHost?.machineId),
 				);
 		return pool.filter(matchesQuery).sort(byPinThenActivity);
 	}, [
@@ -148,6 +162,7 @@ export function SearchScreen() {
 		archivedCloud,
 		cloudFilters.matchesCreator,
 		workspaces,
+		allHostsScope,
 		selectedHost,
 		matchesQuery,
 		byPinThenActivity,
@@ -219,6 +234,12 @@ export function SearchScreen() {
 									one="# result in Cloud"
 									other="# results in Cloud"
 								/>
+							) : allHostsScope ? (
+								<Plural
+									value={results.length}
+									one="# result on all hosts"
+									other="# results on all hosts"
+								/>
 							) : (
 								<Plural
 									value={results.length}
@@ -232,6 +253,9 @@ export function SearchScreen() {
 				renderItem={({ item: workspace }) => {
 					const projectName = workspace.projectId
 						? projectNamesById.get(workspace.projectId)
+						: undefined;
+					const hostName = allHostsScope
+						? hostNamesById.get(workspace.hostId)
 						: undefined;
 					return (
 						<Pressable
@@ -254,9 +278,9 @@ export function SearchScreen() {
 									className="text-muted-foreground text-[11.5px]"
 									numberOfLines={1}
 								>
-									{projectName
-										? `${projectName} · ${workspace.branch}`
-										: workspace.branch}
+									{[hostName, projectName, workspace.branch]
+										.filter(Boolean)
+										.join(" · ")}
 								</Text>
 							</View>
 						</Pressable>
@@ -273,9 +297,13 @@ export function SearchScreen() {
 									? t({
 											message: "No cloud workspaces yet",
 										})
-									: t({
-											message: "No workspaces on this host yet",
-										})}
+									: allHostsScope
+										? t({
+												message: "No workspaces on your hosts yet",
+											})
+										: t({
+												message: "No workspaces on this host yet",
+											})}
 						</Text>
 					</View>
 				}

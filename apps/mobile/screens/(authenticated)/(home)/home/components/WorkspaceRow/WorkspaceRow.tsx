@@ -35,6 +35,7 @@ const MAX_SESSION_MARKS = 3;
 
 export function WorkspaceRow({
 	workspace,
+	hostName,
 	pullRequest,
 	diffStats,
 	cache,
@@ -44,6 +45,8 @@ export function WorkspaceRow({
 	onCopied,
 }: {
 	workspace: HostWorkspaceItem;
+	/** Set when the list mixes machines. */
+	hostName?: string;
 	pullRequest?: SelectGithubPullRequest;
 	diffStats: DiffStats | null;
 	cache: HostWorkspacesCacheOps;
@@ -75,6 +78,14 @@ export function WorkspaceRow({
 		(state) => workspace.id in state.pinnedAt,
 	);
 	const togglePin = usePinnedWorkspacesStore((state) => state.togglePin);
+	const subtitle = [
+		hostName,
+		// A workspace named after its branch says it twice otherwise — common
+		// now that every project shows its `main`.
+		workspace.branch === workspace.name ? null : workspace.branch,
+	]
+		.filter(Boolean)
+		.join(" · ");
 
 	return (
 		<WorkspaceRowMenu
@@ -159,22 +170,20 @@ export function WorkspaceRow({
 						{workspace.name}
 					</Text>
 					<View className="flex-row items-center gap-1">
-						{/* A workspace named after its branch says it twice otherwise —
-						    common now that every project shows its `main`. */}
-						{workspace.branch === workspace.name ? null : (
+						{subtitle ? (
 							<Text
 								className="text-muted-foreground shrink text-xs"
 								numberOfLines={1}
 							>
-								{workspace.branch}
+								{subtitle}
 							</Text>
-						)}
+						) : null}
 						{diffStats &&
 						(diffStats.additions > 0 || diffStats.deletions > 0) ? (
 							<>
-								{workspace.branch === workspace.name ? null : (
+								{subtitle ? (
 									<Text className="text-muted-foreground text-xs">•</Text>
-								)}
+								) : null}
 								<Text className="text-muted-foreground font-mono text-xs">
 									+{diffStats.additions} −{diffStats.deletions}
 								</Text>

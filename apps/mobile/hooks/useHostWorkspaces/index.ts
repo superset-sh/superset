@@ -3,7 +3,8 @@ export {
 	type HostWorkspaceItem,
 	type HostWorkspaceRow,
 	type HostWorkspacesCacheOps,
+	type HostWorkspacesStatus,
 	type UseHostWorkspacesResult,
-	useHostWorkspaces,
+	useHostsWorkspaces,
 	type WorkspacesHost,
 } from "./useHostWorkspaces";

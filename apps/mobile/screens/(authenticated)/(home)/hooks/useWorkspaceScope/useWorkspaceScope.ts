@@ -7,9 +7,9 @@ import {
 } from "@/screens/(authenticated)/(home)/home/stores/workspacesFilterStore";
 
 /**
- * Which scope the list is under: Cloud, or the selected machine. The pick is
- * the user's alone — an asleep machine still shows as itself, offline, rather
- * than quietly moving you somewhere your work isn't.
+ * Which scope the list is under: Cloud, the selected machine, or every
+ * machine. The pick is the user's alone — an asleep machine still shows as
+ * itself, offline, rather than quietly moving you somewhere your work isn't.
  *
  * An organization with no machine at all is the exception. The saved default is
  * "host", and the host scope's empty state is Connect a device, which offers no
@@ -27,15 +27,17 @@ export function useWorkspaceScope(): WorkspaceScope {
 	const scope = useWorkspacesFilterStore((store) => store.scope);
 	const cloudEnabled = useCloudScopeEnabled();
 	const { query: hosts } = useOrgHosts();
-	if (!cloudEnabled) {
-		return "host";
+	if (cloudEnabled) {
+		if (scope === "cloud") {
+			return "cloud";
+		}
+		// Only once the query has answered: an empty list while it is still
+		// pending is not an answer, and guessing Cloud would flash the wrong list.
+		if (hosts.isSuccess && hosts.data.length === 0) {
+			return "cloud";
+		}
 	}
-	if (scope === "cloud") {
-		return "cloud";
-	}
-	// Only once the query has answered: an empty list while it is still pending
-	// is not an answer, and guessing Cloud would flash the wrong list.
-	return hosts.isSuccess && hosts.data.length === 0 ? "cloud" : "host";
+	return scope === "allHosts" ? "allHosts" : "host";
 }
 
 /** Whether Cloud is offered as a scope at all. */

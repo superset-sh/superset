@@ -1,3 +1,5 @@
+import { useLingui } from "@lingui/react/macro";
+import { Layers } from "lucide-react-native";
 import { ScrollView } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import type { WorkspaceScope } from "@/screens/(authenticated)/(home)/home/stores/workspacesFilterStore";
@@ -34,7 +36,9 @@ export function ScopeBar({
 	onPressScope,
 	onPressSort,
 }: ScopeBarProps) {
+	const { t } = useLingui();
 	const cloud = scope === "cloud";
+	const allHosts = scope === "allHosts";
 	return (
 		<ScrollView
 			horizontal
@@ -42,13 +46,25 @@ export function ScopeBar({
 			showsHorizontalScrollIndicator={false}
 			contentContainerClassName="flex-row items-center gap-2 px-4 pb-2 pt-1"
 		>
-			{cloud || hostName ? (
+			{cloud || allHosts || hostName ? (
 				<Chip
-					label={cloud ? "Cloud" : (hostName ?? "")}
+					label={
+						cloud
+							? "Cloud"
+							: allHosts
+								? t({ message: "All hosts" })
+								: (hostName ?? "")
+					}
 					leading={
 						cloud ? (
 							<Icon
 								as={CloudIcon}
+								className="text-muted-foreground size-3.5"
+								strokeWidth={2}
+							/>
+						) : allHosts ? (
+							<Icon
+								as={Layers}
 								className="text-muted-foreground size-3.5"
 								strokeWidth={2}
 							/>

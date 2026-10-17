@@ -16,9 +16,9 @@ import {
 import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
 
 /**
- * One flat list of the selected machine's projects. Where the workspace runs
+ * One flat list of the scoped machines' projects. Where the workspace runs
  * is picked at the top of Home, never here — and under Cloud the composer
- * doesn't open this at all.
+ * doesn't open this at all. Under "All hosts" each row names its machine.
  */
 export function ProjectPickerScreen() {
 	const router = useRouter();
@@ -30,6 +30,9 @@ export function ProjectPickerScreen() {
 	const setTargetKey = useNewSessionPreferencesStore(
 		(state) => state.setTargetKey,
 	);
+
+	const spansHosts =
+		new Set(targets.map((target) => target.machineId)).size > 1;
 
 	const selectedKey =
 		routeParams.selectedKey ||
@@ -65,12 +68,24 @@ export function ProjectPickerScreen() {
 					size={32}
 				/>
 			)}
-			<Text
-				className="flex-1 text-sm font-medium"
-				style={{ color: theme.foreground }}
-			>
-				{target.projectName}
-			</Text>
+			<View className="flex-1">
+				<Text
+					className="text-sm font-medium"
+					style={{ color: theme.foreground }}
+					numberOfLines={1}
+				>
+					{target.projectName}
+				</Text>
+				{spansHosts ? (
+					<Text
+						className="text-xs"
+						style={{ color: theme.mutedForeground }}
+						numberOfLines={1}
+					>
+						{target.hostName}
+					</Text>
+				) : null}
+			</View>
 			{target.key === selectedKey ? (
 				<Ionicons name="checkmark-circle" size={18} color={theme.primary} />
 			) : null}

@@ -210,6 +210,10 @@ msgid "{0, plural, one {# result in Cloud} other {# results in Cloud}}"
 msgstr "{0, plural, one {# Ergebnis in der Cloud} other {# Ergebnisse in der Cloud}}"
 
 #. placeholder {0}: results.length
+msgid "{0, plural, one {# result on all hosts} other {# results on all hosts}}"
+msgstr "{0, plural, one {# Ergebnis auf allen Hosts} other {# Ergebnisse auf allen Hosts}}"
+
+#. placeholder {0}: results.length
 msgid "{0, plural, one {# result on this host} other {# results on this host}}"
 msgstr "{0, plural, one {# Ergebnis auf diesem Host} other {# Ergebnisse auf diesem Host}}"
 
@@ -2080,6 +2084,9 @@ msgstr "Alle Funktionen im Vergleich"
 
 msgid "All files exceed the maximum size."
 msgstr "Alle Dateien überschreiten die maximale Größe."
+
+msgid "All hosts"
+msgstr "Alle Hosts"
 
 msgid "All in a new tab (split panes)"
 msgstr "Alle in einem neuen Tab (geteilte Bereiche)"
@@ -5180,6 +5187,9 @@ msgstr "Ausführungen konnten nicht geladen werden"
 
 msgid "Couldn't load this run's payload."
 msgstr "Die Nutzlast dieser Ausführung konnte nicht geladen werden."
+
+msgid "Couldn't load workspaces"
+msgstr "Arbeitsbereiche konnten nicht geladen werden"
 
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Dein Profil konnte nicht geladen werden, deshalb ist das Bearbeiten deaktiviert."
@@ -11327,6 +11337,9 @@ msgstr "Keine passenden Arbeitsbereiche."
 msgid "No workspaces on this host yet"
 msgstr "Noch keine Arbeitsbereiche auf diesem Host"
 
+msgid "No workspaces on your hosts yet"
+msgstr "Noch keine Arbeitsbereiche auf deinen Hosts"
+
 msgid "No workspaces yet"
 msgstr "Noch keine Arbeitsbereiche"
 
@@ -11353,6 +11366,9 @@ msgstr "Keine"
 
 msgid "none (session)"
 msgstr "keins (Sitzung)"
+
+msgid "None of your hosts are online"
+msgstr "Keiner deiner Hosts ist online"
 
 msgid "None. This is the floor."
 msgstr "Keine. Das ist der Boden."

@@ -1,5 +1,6 @@
 import { useLingui } from "@lingui/react/macro";
 import { useRouter } from "expo-router";
+import { Layers } from "lucide-react-native";
 import { useMemo } from "react";
 import { ScrollView } from "react-native";
 import { Icon } from "@/components/ui/icon";
@@ -18,9 +19,9 @@ import { ListRow } from "@/screens/(authenticated)/components/ListRow";
 import { ListRowCheck } from "@/screens/(authenticated)/components/ListRowCheck";
 
 /**
- * Where the list looks: one of your machines, or Cloud where that is enabled.
- * Cloud leads, and carries the cloud glyph rather than a status dot — it is a
- * place, not a computer that sleeps.
+ * Where the list looks: one of your machines, all of them, or Cloud where that
+ * is enabled. Cloud leads, and carries the cloud glyph rather than a status
+ * dot — it is a place, not a computer that sleeps.
  */
 export function ScopeFilterScreen() {
 	const { t } = useLingui();
@@ -34,6 +35,9 @@ export function ScopeFilterScreen() {
 	);
 	const setScopeCloud = useWorkspacesFilterStore(
 		(store) => store.setScopeCloud,
+	);
+	const setScopeAllHosts = useWorkspacesFilterStore(
+		(store) => store.setScopeAllHosts,
 	);
 
 	const { presence } = useHostsPresence(hosts);
@@ -61,6 +65,14 @@ export function ScopeFilterScreen() {
 		router.back();
 	};
 
+	const selectAllHosts = () => {
+		setScopeAllHosts();
+		posthog.capture("filter_applied", { filter: "host", value: "all" });
+		router.back();
+	};
+
+	const showAllHosts = sortedHosts.length > 1;
+
 	return (
 		<ScrollView
 			className="bg-background flex-1"
@@ -79,6 +91,20 @@ export function ScopeFilterScreen() {
 					trailing={<ListRowCheck visible={scope === "cloud"} />}
 					onPress={selectCloud}
 					isLast={sortedHosts.length === 0}
+				/>
+			) : null}
+			{showAllHosts ? (
+				<ListRow
+					icon={
+						<Icon
+							as={Layers}
+							className="text-muted-foreground size-4"
+							strokeWidth={2}
+						/>
+					}
+					label={t({ message: "All hosts" })}
+					trailing={<ListRowCheck visible={scope === "allHosts"} />}
+					onPress={selectAllHosts}
 				/>
 			) : null}
 			{sortedHosts.map((host, index) => (

@@ -81,6 +81,8 @@ export function NewChatWidget({
 	const selectedTarget =
 		targets.find((target) => target.key === targetKey) ?? defaultTarget;
 	const isCloudTarget = selectedTarget?.kind === "cloud";
+	const spansHosts =
+		new Set(targets.map((target) => target.machineId)).size > 1;
 	const isSessionTarget = selectedTarget?.projectId === null;
 	const cloudScope = useWorkspaceScope() === "cloud";
 	const { environment: selectedEnvironment, repository: cloudRepository } =
@@ -291,7 +293,11 @@ export function NewChatWidget({
 				}
 			: {
 					id: "project",
-					label: selectedTarget?.projectName ?? t({ message: "No project" }),
+					label: selectedTarget
+						? spansHosts
+							? `${selectedTarget.projectName} · ${selectedTarget.hostName}`
+							: selectedTarget.projectName
+						: t({ message: "No project" }),
 					avatar: !isSessionTarget,
 					iconUri: selectedTarget?.projectIconUrl ?? undefined,
 				},

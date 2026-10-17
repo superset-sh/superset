@@ -5,8 +5,9 @@ import { createJSONStorage, persist } from "zustand/middleware";
 /**
  * Which project sections are shut, keyed `machineId:projectId` — collapse is
  * per host because the same project can hold different work on each machine.
- * Absent means expanded: a project you've never touched shows its workspaces
- * rather than hiding them behind a caret.
+ * All hosts keys its sections, which span machines, under
+ * `ALL_HOSTS_SECTION_SCOPE` instead. Absent means expanded: a project you've
+ * never touched shows its workspaces rather than hiding them behind a caret.
  */
 interface CollapsedProjectsStore {
 	collapsed: Record<string, true>;
@@ -19,6 +20,8 @@ interface CollapsedProjectsStore {
 		collapsed: boolean,
 	) => void;
 }
+
+export const ALL_HOSTS_SECTION_SCOPE = "allHosts";
 
 export function collapsedProjectKey(machineId: string, projectId: string) {
 	return `${machineId}:${projectId}`;

@@ -210,6 +210,10 @@ msgid "{0, plural, one {# result in Cloud} other {# results in Cloud}}"
 msgstr "{0, plural, one {# kết quả trên Cloud} other {# kết quả trên Cloud}}"
 
 #. placeholder {0}: results.length
+msgid "{0, plural, one {# result on all hosts} other {# results on all hosts}}"
+msgstr "{0, plural, one {# kết quả trên tất cả host} other {# kết quả trên tất cả host}}"
+
+#. placeholder {0}: results.length
 msgid "{0, plural, one {# result on this host} other {# results on this host}}"
 msgstr "{0, plural, one {# kết quả trên host này} other {# kết quả trên host này}}"
 
@@ -2080,6 +2084,9 @@ msgstr "Toàn bộ tính năng, đặt cạnh nhau"
 
 msgid "All files exceed the maximum size."
 msgstr "Mọi tệp đều vượt quá kích thước tối đa."
+
+msgid "All hosts"
+msgstr "Tất cả host"
 
 msgid "All in a new tab (split panes)"
 msgstr "Tất cả trong một tab mới (chia khung)"
@@ -5180,6 +5187,9 @@ msgstr "Không thể tải các lần chạy"
 
 msgid "Couldn't load this run's payload."
 msgstr "Không thể tải payload của lần chạy này."
+
+msgid "Couldn't load workspaces"
+msgstr "Không thể tải các workspace"
 
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Không tải được hồ sơ của bạn nên chức năng chỉnh sửa đã bị tắt."
@@ -11327,6 +11337,9 @@ msgstr "Không có workspace nào khớp."
 msgid "No workspaces on this host yet"
 msgstr "Chưa có workspace nào trên host này"
 
+msgid "No workspaces on your hosts yet"
+msgstr "Chưa có workspace nào trên các host của bạn"
+
 msgid "No workspaces yet"
 msgstr "Chưa có workspace nào"
 
@@ -11353,6 +11366,9 @@ msgstr "Không có"
 
 msgid "none (session)"
 msgstr "không có (phiên)"
+
+msgid "None of your hosts are online"
+msgstr "Không có host nào của bạn đang trực tuyến"
 
 msgid "None. This is the floor."
 msgstr "Không có. Đây là mức sàn."

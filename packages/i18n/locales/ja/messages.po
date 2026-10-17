@@ -210,6 +210,10 @@ msgid "{0, plural, one {# result in Cloud} other {# results in Cloud}}"
 msgstr "{0, plural, one {クラウドで#件} other {クラウドで#件}}"
 
 #. placeholder {0}: results.length
+msgid "{0, plural, one {# result on all hosts} other {# results on all hosts}}"
+msgstr "{0, plural, one {すべてのホストで#件} other {すべてのホストで#件}}"
+
+#. placeholder {0}: results.length
 msgid "{0, plural, one {# result on this host} other {# results on this host}}"
 msgstr "{0, plural, one {このホストで#件} other {このホストで#件}}"
 
@@ -2080,6 +2084,9 @@ msgstr "全機能を並べて比較"
 
 msgid "All files exceed the maximum size."
 msgstr "すべてのファイルが最大サイズを超えています。"
+
+msgid "All hosts"
+msgstr "すべてのホスト"
 
 msgid "All in a new tab (split panes)"
 msgstr "すべて新しいタブで(ペイン分割)"
@@ -5180,6 +5187,9 @@ msgstr "実行履歴を読み込めませんでした"
 
 msgid "Couldn't load this run's payload."
 msgstr "この実行のペイロードを読み込めませんでした。"
+
+msgid "Couldn't load workspaces"
+msgstr "ワークスペースを読み込めませんでした"
 
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "プロフィールを読み込めなかったため、編集は無効です。"
@@ -11327,6 +11337,9 @@ msgstr "一致するワークスペースがありません。"
 msgid "No workspaces on this host yet"
 msgstr "このホストにはまだワークスペースがありません"
 
+msgid "No workspaces on your hosts yet"
+msgstr "ホストにはまだワークスペースがありません"
+
 msgid "No workspaces yet"
 msgstr "ワークスペースはまだありません"
 
@@ -11353,6 +11366,9 @@ msgstr "なし"
 
 msgid "none (session)"
 msgstr "なし (セッション)"
+
+msgid "None of your hosts are online"
+msgstr "オンラインのホストがありません"
 
 msgid "None. This is the floor."
 msgstr "なし。ここが出発点です。"

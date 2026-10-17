@@ -210,6 +210,10 @@ msgid "{0, plural, one {# result in Cloud} other {# results in Cloud}}"
 msgstr "{0, plural, one {# результат в облаке} few {# результата в облаке} many {# результатов в облаке} other {# результата в облаке}}"
 
 #. placeholder {0}: results.length
+msgid "{0, plural, one {# result on all hosts} other {# results on all hosts}}"
+msgstr "{0, plural, one {# результат на всех хостах} few {# результата на всех хостах} many {# результатов на всех хостах} other {# результата на всех хостах}}"
+
+#. placeholder {0}: results.length
 msgid "{0, plural, one {# result on this host} other {# results on this host}}"
 msgstr "{0, plural, one {# результат на этом хосте} few {# результата на этом хосте} many {# результатов на этом хосте} other {# результата на этом хосте}}"
 
@@ -2080,6 +2084,9 @@ msgstr "Все возможности рядом"
 
 msgid "All files exceed the maximum size."
 msgstr "Все файлы превышают максимальный размер."
+
+msgid "All hosts"
+msgstr "Все хосты"
 
 msgid "All in a new tab (split panes)"
 msgstr "Все в новой вкладке (разделённые панели)"
@@ -5180,6 +5187,9 @@ msgstr "Не удалось загрузить запуски"
 
 msgid "Couldn't load this run's payload."
 msgstr "Не удалось загрузить полезную нагрузку этого запуска."
+
+msgid "Couldn't load workspaces"
+msgstr "Не удалось загрузить рабочие области"
 
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Не удалось загрузить профиль, поэтому редактирование отключено."
@@ -11327,6 +11337,9 @@ msgstr "Нет подходящих рабочих областей."
 msgid "No workspaces on this host yet"
 msgstr "На этом хосте пока нет рабочих областей"
 
+msgid "No workspaces on your hosts yet"
+msgstr "На ваших хостах пока нет рабочих областей"
+
 msgid "No workspaces yet"
 msgstr "Рабочих областей пока нет"
 
@@ -11353,6 +11366,9 @@ msgstr "Нет"
 
 msgid "none (session)"
 msgstr "нет (сессия)"
+
+msgid "None of your hosts are online"
+msgstr "Ни один из ваших хостов не в сети"
 
 msgid "None. This is the floor."
 msgstr "Нет. Это нижняя граница."

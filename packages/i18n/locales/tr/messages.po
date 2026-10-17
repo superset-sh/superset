@@ -210,6 +210,10 @@ msgid "{0, plural, one {# result in Cloud} other {# results in Cloud}}"
 msgstr "{0, plural, one {Bulutta # sonuç} other {Bulutta # sonuç}}"
 
 #. placeholder {0}: results.length
+msgid "{0, plural, one {# result on all hosts} other {# results on all hosts}}"
+msgstr "{0, plural, one {Tüm host'larda # sonuç} other {Tüm host'larda # sonuç}}"
+
+#. placeholder {0}: results.length
 msgid "{0, plural, one {# result on this host} other {# results on this host}}"
 msgstr "{0, plural, one {Bu host'ta # sonuç} other {Bu host'ta # sonuç}}"
 
@@ -2080,6 +2084,9 @@ msgstr "Tüm özellikler, yan yana"
 
 msgid "All files exceed the maximum size."
 msgstr "Tüm dosyalar en büyük boyutu aşıyor."
+
+msgid "All hosts"
+msgstr "Tüm host'lar"
 
 msgid "All in a new tab (split panes)"
 msgstr "Tümü yeni bir sekmede (bölünmüş bölmeler)"
@@ -5180,6 +5187,9 @@ msgstr "Çalıştırmalar yüklenemedi"
 
 msgid "Couldn't load this run's payload."
 msgstr "Bu çalıştırmanın yükü yüklenemedi."
+
+msgid "Couldn't load workspaces"
+msgstr "Çalışma alanları yüklenemedi"
 
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Profilin yüklenemedi, bu yüzden düzenleme devre dışı."
@@ -11327,6 +11337,9 @@ msgstr "Eşleşen çalışma alanı yok."
 msgid "No workspaces on this host yet"
 msgstr "Bu host'ta henüz çalışma alanı yok"
 
+msgid "No workspaces on your hosts yet"
+msgstr "Host'larınızda henüz çalışma alanı yok"
+
 msgid "No workspaces yet"
 msgstr "Henüz çalışma alanı yok"
 
@@ -11353,6 +11366,9 @@ msgstr "Yok"
 
 msgid "none (session)"
 msgstr "yok (oturum)"
+
+msgid "None of your hosts are online"
+msgstr "Host'larınızın hiçbiri çevrimiçi değil"
 
 msgid "None. This is the floor."
 msgstr "Yok. Bu, taban düzeydir."

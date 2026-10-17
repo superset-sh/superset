@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { type UseQueryResult, useQueries } from "@tanstack/react-query";
+import { useCallback, useMemo } from "react";
 import type { WorkspacesHost } from "@/hooks/useHostWorkspaces";
 import {
 	getHostServiceClientByUrl,
@@ -45,41 +45,73 @@ export interface UseHostProjectsResult {
 	isReady: boolean;
 }
 
+export interface UseHostsProjectsResult {
+	projectsByHost: Readonly<Record<string, HostProjectItem[]>>;
+	/** True once every host answered or failed. Gates empty states only. */
+	isReady: boolean;
+}
+
+const NO_PROJECTS: HostProjectItem[] = [];
+
 /**
- * Projects served by one host's `project.list` over the relay — projects
+ * Projects served by each host's `project.list` over the relay — projects
  * are fully local (host.db owns them; the cloud collection is retired), so
  * the host is the only source that includes local-first projects.
  */
+export function useHostsProjects(
+	hosts: WorkspacesHost[],
+): UseHostsProjectsResult {
+	// Callers rebuild host objects each render; key on the fields instead.
+	const targetsKey = hosts
+		.map((host) => `${host.organizationId}/${host.machineId}/${host.isOnline}`)
+		.join("|");
+	// biome-ignore lint/correctness/useExhaustiveDependencies: targetsKey covers hosts
+	const targets = useMemo(
+		() =>
+			hosts.map((host) => ({
+				machineId: host.machineId,
+				hostUrl: hostServiceUrl(host.organizationId, host.machineId),
+				isOnline: host.isOnline,
+			})),
+		[targetsKey],
+	);
+
+	const combine = useCallback(
+		(results: UseQueryResult<HostProjectRow[]>[]) => {
+			// A plain object, not a Map, so TanStack's deep sharing applies.
+			const projectsByHost: Record<string, HostProjectItem[]> = {};
+			let isReady = true;
+			targets.forEach(({ machineId, isOnline }, index) => {
+				const query = results[index];
+				if (!query) return;
+				projectsByHost[machineId] = (query.data ?? []).map(toHostProjectItem);
+				if (isOnline && !query.isSuccess && !query.isError) isReady = false;
+			});
+			return { projectsByHost, isReady };
+		},
+		[targets],
+	);
+
+	return useQueries({
+		queries: targets.map(({ machineId, hostUrl, isOnline }) => ({
+			queryKey: ["host-service", "projects", "list", machineId, hostUrl],
+			enabled: isOnline,
+			refetchInterval: PROJECTS_REFETCH_INTERVAL_MS,
+			networkMode: "always" as const,
+			retry: 1,
+			queryFn: () => getHostServiceClientByUrl(hostUrl).project.list.query(),
+		})),
+		combine,
+	});
+}
+
 export function useHostProjects(
 	host: WorkspacesHost | null,
 ): UseHostProjectsResult {
-	const hostUrl = host
-		? hostServiceUrl(host.organizationId, host.machineId)
-		: null;
-
-	const query = useQuery({
-		queryKey: ["host-service", "projects", "list", host?.machineId, hostUrl],
-		enabled: hostUrl !== null && (host?.isOnline ?? false),
-		refetchInterval: PROJECTS_REFETCH_INTERVAL_MS,
-		networkMode: "always" as const,
-		retry: 1,
-		queryFn: async () => {
-			if (!hostUrl) return [];
-			return getHostServiceClientByUrl(hostUrl).project.list.query();
-		},
-	});
-
-	const projects = useMemo(
-		() => (query.data ?? []).map(toHostProjectItem),
-		[query.data],
-	);
-
+	const hosts = useMemo(() => (host ? [host] : []), [host]);
+	const { projectsByHost, isReady } = useHostsProjects(hosts);
 	return {
-		projects,
-		isReady:
-			query.isSuccess ||
-			query.isError ||
-			host === null ||
-			host.isOnline === false,
+		projects: (host && projectsByHost[host.machineId]) || NO_PROJECTS,
+		isReady,
 	};
 }

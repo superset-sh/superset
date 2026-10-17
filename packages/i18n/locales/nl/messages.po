@@ -210,6 +210,10 @@ msgid "{0, plural, one {# result in Cloud} other {# results in Cloud}}"
 msgstr "{0, plural, one {# resultaat in Cloud} other {# resultaten in Cloud}}"
 
 #. placeholder {0}: results.length
+msgid "{0, plural, one {# result on all hosts} other {# results on all hosts}}"
+msgstr "{0, plural, one {# resultaat op alle hosts} other {# resultaten op alle hosts}}"
+
+#. placeholder {0}: results.length
 msgid "{0, plural, one {# result on this host} other {# results on this host}}"
 msgstr "{0, plural, one {# resultaat op deze host} other {# resultaten op deze host}}"
 
@@ -2080,6 +2084,9 @@ msgstr "Alle functies naast elkaar"
 
 msgid "All files exceed the maximum size."
 msgstr "Alle bestanden zijn groter dan de maximale grootte."
+
+msgid "All hosts"
+msgstr "Alle hosts"
 
 msgid "All in a new tab (split panes)"
 msgstr "Alles in een nieuw tabblad (gesplitste panelen)"
@@ -5180,6 +5187,9 @@ msgstr "Kan runs niet laden"
 
 msgid "Couldn't load this run's payload."
 msgstr "Kan de payload van deze run niet laden."
+
+msgid "Couldn't load workspaces"
+msgstr "Kan werkruimtes niet laden"
 
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Je profiel kon niet worden geladen, daarom is bewerken uitgeschakeld."
@@ -11327,6 +11337,9 @@ msgstr "Geen overeenkomende werkruimtes."
 msgid "No workspaces on this host yet"
 msgstr "Nog geen werkruimtes op deze host"
 
+msgid "No workspaces on your hosts yet"
+msgstr "Nog geen werkruimtes op je hosts"
+
 msgid "No workspaces yet"
 msgstr "Nog geen werkruimtes"
 
@@ -11353,6 +11366,9 @@ msgstr "Geen"
 
 msgid "none (session)"
 msgstr "geen (sessie)"
+
+msgid "None of your hosts are online"
+msgstr "Geen van je hosts is online"
 
 msgid "None. This is the floor."
 msgstr "Geen. Dit is de bodem."

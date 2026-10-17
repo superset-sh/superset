@@ -210,6 +210,10 @@ msgid "{0, plural, one {# result in Cloud} other {# results in Cloud}}"
 msgstr "{0, plural, one {雲端#個結果} other {雲端#個結果}}"
 
 #. placeholder {0}: results.length
+msgid "{0, plural, one {# result on all hosts} other {# results on all hosts}}"
+msgstr "{0, plural, one {所有主機上#個結果} other {所有主機上#個結果}}"
+
+#. placeholder {0}: results.length
 msgid "{0, plural, one {# result on this host} other {# results on this host}}"
 msgstr "{0, plural, one {此主機上#個結果} other {此主機上#個結果}}"
 
@@ -2080,6 +2084,9 @@ msgstr "所有功能逐項對比"
 
 msgid "All files exceed the maximum size."
 msgstr "所有檔案都超過了大小上限。"
+
+msgid "All hosts"
+msgstr "所有主機"
 
 msgid "All in a new tab (split panes)"
 msgstr "全部在新分頁（分屏窗格）"
@@ -5180,6 +5187,9 @@ msgstr "無法載入執行紀錄"
 
 msgid "Couldn't load this run's payload."
 msgstr "無法載入此次執行的酬載。"
+
+msgid "Couldn't load workspaces"
+msgstr "無法載入工作區"
 
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "無法載入你的個人檔案，編輯已停用。"
@@ -11327,6 +11337,9 @@ msgstr "沒有匹配的工作區。"
 msgid "No workspaces on this host yet"
 msgstr "此主機上還沒有工作區"
 
+msgid "No workspaces on your hosts yet"
+msgstr "你的主機上還沒有工作區"
+
 msgid "No workspaces yet"
 msgstr "暫無工作區"
 
@@ -11353,6 +11366,9 @@ msgstr "無"
 
 msgid "none (session)"
 msgstr "無（會話）"
+
+msgid "None of your hosts are online"
+msgstr "你的主機都不在線上"
 
 msgid "None. This is the floor."
 msgstr "沒有。這是起點。"

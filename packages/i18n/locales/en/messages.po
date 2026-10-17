@@ -210,6 +210,10 @@ msgid "{0, plural, one {# result in Cloud} other {# results in Cloud}}"
 msgstr "{0, plural, one {# result in Cloud} other {# results in Cloud}}"
 
 #. placeholder {0}: results.length
+msgid "{0, plural, one {# result on all hosts} other {# results on all hosts}}"
+msgstr "{0, plural, one {# result on all hosts} other {# results on all hosts}}"
+
+#. placeholder {0}: results.length
 msgid "{0, plural, one {# result on this host} other {# results on this host}}"
 msgstr "{0, plural, one {# result on this host} other {# results on this host}}"
 
@@ -2080,6 +2084,9 @@ msgstr "All features, side by side"
 
 msgid "All files exceed the maximum size."
 msgstr "All files exceed the maximum size."
+
+msgid "All hosts"
+msgstr "All hosts"
 
 msgid "All in a new tab (split panes)"
 msgstr "All in a new tab (split panes)"
@@ -5180,6 +5187,9 @@ msgstr "Couldn't load runs"
 
 msgid "Couldn't load this run's payload."
 msgstr "Couldn't load this run's payload."
+
+msgid "Couldn't load workspaces"
+msgstr "Couldn't load workspaces"
 
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Couldn't load your profile, so editing is disabled."
@@ -11327,6 +11337,9 @@ msgstr "No workspaces match."
 msgid "No workspaces on this host yet"
 msgstr "No workspaces on this host yet"
 
+msgid "No workspaces on your hosts yet"
+msgstr "No workspaces on your hosts yet"
+
 msgid "No workspaces yet"
 msgstr "No workspaces yet"
 
@@ -11353,6 +11366,9 @@ msgstr "None"
 
 msgid "none (session)"
 msgstr "none (session)"
+
+msgid "None of your hosts are online"
+msgstr "None of your hosts are online"
 
 msgid "None. This is the floor."
 msgstr "None. This is the floor."

@@ -7,7 +7,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 export type WorkspaceSort = "updatedAt" | "createdAt";
 
 /** Cloud is a place you scope to, not a machine you own. */
-export type WorkspaceScope = "cloud" | "host";
+export type WorkspaceScope = "cloud" | "host" | "allHosts";
 
 export type CloudStatusFilter = "active" | "archived";
 
@@ -40,6 +40,7 @@ interface WorkspacesFilterStore {
 	hasHydrated: boolean;
 	setHostFilter: (machineId: string | null) => void;
 	setScopeCloud: () => void;
+	setScopeAllHosts: () => void;
 	setSort: (sort: WorkspaceSort) => void;
 	setCloudStatus: (status: CloudStatusFilter) => void;
 	setCloudCreator: (creator: CloudCreatorFilter) => void;
@@ -59,6 +60,7 @@ export const useWorkspacesFilterStore = create<WorkspacesFilterStore>()(
 			setHostFilter: (machineId) =>
 				set({ hostFilter: machineId, scope: "host" }),
 			setScopeCloud: () => set({ scope: "cloud" }),
+			setScopeAllHosts: () => set({ scope: "allHosts" }),
 			setSort: (sort) => set({ sort }),
 			setCloudStatus: (cloudStatus) => set({ cloudStatus }),
 			setCloudCreator: (cloudCreator) => set({ cloudCreator }),

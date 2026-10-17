@@ -210,6 +210,10 @@ msgid "{0, plural, one {# result in Cloud} other {# results in Cloud}}"
 msgstr "{0, plural, one {# resultado na Nuvem} other {# resultados na Nuvem}}"
 
 #. placeholder {0}: results.length
+msgid "{0, plural, one {# result on all hosts} other {# results on all hosts}}"
+msgstr "{0, plural, one {# resultado em todos os hosts} other {# resultados em todos os hosts}}"
+
+#. placeholder {0}: results.length
 msgid "{0, plural, one {# result on this host} other {# results on this host}}"
 msgstr "{0, plural, one {# resultado neste host} other {# resultados neste host}}"
 
@@ -2080,6 +2084,9 @@ msgstr "Todos os recursos, lado a lado"
 
 msgid "All files exceed the maximum size."
 msgstr "Todos os arquivos passam do tamanho máximo."
+
+msgid "All hosts"
+msgstr "Todos os hosts"
 
 msgid "All in a new tab (split panes)"
 msgstr "Todos em uma nova aba (painéis divididos)"
@@ -5180,6 +5187,9 @@ msgstr "Não foi possível carregar as execuções"
 
 msgid "Couldn't load this run's payload."
 msgstr "Não foi possível carregar a carga útil desta execução."
+
+msgid "Couldn't load workspaces"
+msgstr "Não foi possível carregar as áreas de trabalho"
 
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Não foi possível carregar seu perfil, então a edição está desativada."
@@ -11327,6 +11337,9 @@ msgstr "Nenhuma área de trabalho corresponde."
 msgid "No workspaces on this host yet"
 msgstr "Nenhuma área de trabalho neste host ainda"
 
+msgid "No workspaces on your hosts yet"
+msgstr "Nenhuma área de trabalho nos seus hosts ainda"
+
 msgid "No workspaces yet"
 msgstr "Nenhuma área de trabalho ainda"
 
@@ -11353,6 +11366,9 @@ msgstr "Nenhum"
 
 msgid "none (session)"
 msgstr "nenhum (sessão)"
+
+msgid "None of your hosts are online"
+msgstr "Nenhum dos seus hosts está online"
 
 msgid "None. This is the floor."
 msgstr "Nenhum. Este é o piso."

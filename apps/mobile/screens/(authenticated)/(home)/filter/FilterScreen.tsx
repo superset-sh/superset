@@ -2,6 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { Stack, useRouter } from "expo-router";
+import { Layers } from "lucide-react-native";
 import { View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { useTheme } from "@/hooks/useTheme";
@@ -21,7 +22,9 @@ export function FilterScreen() {
 	const router = useRouter();
 	const theme = useTheme();
 	const selectedHost = useSelectedHost();
-	const cloud = useWorkspaceScope() === "cloud";
+	const scope = useWorkspaceScope();
+	const cloud = scope === "cloud";
+	const allHosts = scope === "allHosts";
 	const sort = useWorkspacesFilterStore((store) => store.sort);
 
 	const sortOption = SORT_OPTIONS.find((option) => option.value === sort);
@@ -43,11 +46,23 @@ export function FilterScreen() {
 				label={t({ message: "Scope" })}
 				trailing={
 					<ListRowValue
-						value={cloud ? t({ message: "Cloud" }) : (selectedHost?.name ?? "")}
+						value={
+							cloud
+								? t({ message: "Cloud" })
+								: allHosts
+									? t({ message: "All hosts" })
+									: (selectedHost?.name ?? "")
+						}
 						accessory={
 							cloud ? (
 								<Icon
 									as={CloudIcon}
+									className="text-muted-foreground size-4"
+									strokeWidth={2}
+								/>
+							) : allHosts ? (
+								<Icon
+									as={Layers}
 									className="text-muted-foreground size-4"
 									strokeWidth={2}
 								/>
