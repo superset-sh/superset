@@ -37,6 +37,7 @@ import { useWorkspaceCreates } from "renderer/stores/workspace-creates/useWorksp
 import { pullRequestReadErrorMessage } from "../../utils/combinePullRequestReadErrors";
 import { PullRequestCommentComposer } from "./components/PullRequestCommentComposer";
 import { PullRequestCommentThread } from "./components/PullRequestCommentThread";
+import { elideDirectoryChains } from "./utils/elideDirectoryChains";
 import { fetchPullRequestDiff } from "./utils/fetchPullRequestDiff";
 import { parsePullRequestPatch } from "./utils/parsePullRequestPatch";
 
@@ -764,30 +765,37 @@ export function PullRequestCodeTab({
 		[options, pathByItemId, updateComposer, canUseProject],
 	);
 
-	const treePaths = useMemo(() => files.map((f) => f.path), [files]);
-	const fileByPath = useMemo(
-		() => new Map(files.map((f) => [f.path, f])),
+	const treePathByPath = useMemo(
+		() => elideDirectoryChains(files.map((f) => f.path)),
 		[files],
+	);
+	const treePathOf = useCallback(
+		(path: string) => treePathByPath.get(path) ?? path,
+		[treePathByPath],
+	);
+	const treePaths = useMemo(
+		() => files.map((f) => treePathOf(f.path)),
+		[files, treePathOf],
+	);
+	const fileByTreePath = useMemo(
+		() => new Map(files.map((f) => [treePathOf(f.path), f])),
+		[files, treePathOf],
 	);
 	const gitStatus = useMemo(
-		() => files.map((f) => ({ path: f.path, status: f.status })),
-		[files],
-	);
-	const itemIdByPath = useMemo(
-		() => new Map(files.map((f) => [f.path, f.item.id])),
-		[files],
+		() => files.map((f) => ({ path: treePathOf(f.path), status: f.status })),
+		[files, treePathOf],
 	);
 
 	// Routed through a ref so Pierre's handler closures (resolved once at
 	// useFileTree time) always see the latest data.
 	const handlersRef = useRef({
-		onSelect(_path: string) {},
+		onSelect(_treePath: string) {},
 		renderRowDecoration(_ctx: { item: { kind: string; path: string } }) {
 			return null as { text: string } | null;
 		},
 	});
-	handlersRef.current.onSelect = (path) => {
-		const itemId = itemIdByPath.get(path);
+	handlersRef.current.onSelect = (treePath) => {
+		const itemId = fileByTreePath.get(treePath)?.item.id;
 		if (!itemId) return;
 		codeViewRef.current?.scrollTo({
 			type: "item",
@@ -798,7 +806,7 @@ export function PullRequestCodeTab({
 	};
 	handlersRef.current.renderRowDecoration = (ctx) => {
 		if (ctx.item.kind === "directory") return null;
-		const file = fileByPath.get(ctx.item.path);
+		const file = fileByTreePath.get(ctx.item.path);
 		if (!file) return null;
 		const text = formatDiffStats(file.additions, file.deletions);
 		return text ? { text } : null;
