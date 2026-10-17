@@ -46,6 +46,8 @@ interface DashboardSidebarWorkspaceItemProps {
 	 */
 	/** projectName is null for pinned project-less "session" workspaces. */
 	pinnedContext?: { projectName: string | null; projectIconUrl: string | null };
+	/** Set when the row renders inside the Snoozed section. */
+	snoozedUntil?: number;
 }
 
 export function DashboardSidebarWorkspaceItem({
@@ -58,6 +60,7 @@ export function DashboardSidebarWorkspaceItem({
 	isSelected = false,
 	onSelectionClick,
 	pinnedContext,
+	snoozedUntil,
 }: DashboardSidebarWorkspaceItemProps) {
 	const { t } = useLingui();
 	const {
@@ -89,8 +92,10 @@ export function DashboardSidebarWorkspaceItem({
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
 		handleRemovePullRequest,
+		handleSnooze,
 		handleTogglePin,
 		handleToggleUnread,
+		handleUnsnooze,
 		isActive,
 		isUnread,
 		isRenaming,
@@ -277,7 +282,10 @@ export function DashboardSidebarWorkspaceItem({
 							isLocalWorkspace={hostType === "local-device"}
 							isCloudWorkspace={isCloudWorkspace}
 							isPinned={workspace.isPinned}
+							snoozedUntil={snoozedUntil ?? null}
 							onTogglePin={handleTogglePin}
+							onSnooze={handleSnooze}
+							onUnsnooze={handleUnsnooze}
 							onCreateSection={handleCreateSection}
 							showDeleteHotkey={isActive}
 							onMoveToSection={handleMoveToSection}
@@ -397,7 +405,10 @@ export function DashboardSidebarWorkspaceItem({
 						isLocalWorkspace={hostType === "local-device"}
 						isCloudWorkspace={isCloudWorkspace}
 						isPinned={workspace.isPinned}
+						snoozedUntil={snoozedUntil ?? null}
 						onTogglePin={handleTogglePin}
+						onSnooze={handleSnooze}
+						onUnsnooze={handleUnsnooze}
 						onOpenInFinder={handleOpenInFinder}
 						showDeleteHotkey={isActive}
 						onCopyPath={handleCopyPath}

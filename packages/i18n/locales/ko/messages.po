@@ -8721,11 +8721,17 @@ msgstr "에이전트 지침 개선하기"
 msgid "Improved diff viewer"
 msgstr "차이 뷰어 개선"
 
+msgid "In 1 hour"
+msgstr "1시간 후"
+
 msgid "in 14h"
 msgstr "14시간 후"
 
 msgid "in 2d"
 msgstr "2일 후"
+
+msgid "In 3 hours"
+msgstr "3시간 후"
 
 msgid "in 3d"
 msgstr "3일 후"
@@ -10705,6 +10711,9 @@ msgstr "다음 탭"
 
 msgid "Next Tab (Second Shortcut)"
 msgstr "다음 탭(두 번째 단축키)"
+
+msgid "Next week"
+msgstr "다음 주"
 
 msgid "Next Workspace"
 msgstr "다음 워크스페이스"
@@ -15853,6 +15862,16 @@ msgstr "이 워크스페이스를 설치된 모든 것과 함께 현재 상태�
 msgid "Snooze"
 msgstr "다시 알림"
 
+msgctxt "Hide a sidebar workspace until a later time"
+msgid "Snooze"
+msgstr "미루기"
+
+msgid "Snoozed ({count})"
+msgstr "미룬 항목 ({count})"
+
+msgid "Snoozed until {wakeTime}"
+msgstr "{wakeTime}까지 미룸"
+
 msgid "so a border on two edges of the rotated square always faces outward."
 msgstr "회전된 정사각형의 두 변에 있는 테두리가 항상 바깥을 향합니다."
 
@@ -17573,6 +17592,9 @@ msgstr "이 환경에는 저장소가 없습니다. 설정에서 저장소가 �
 msgid "This environment's repositories are fixed; promote a workspace again to change them"
 msgstr "이 환경의 리포지토리는 고정되어 있습니다. 변경하려면 워크스페이스를 다시 승격하세요"
 
+msgid "This evening"
+msgstr "오늘 저녁"
+
 msgid "this file"
 msgstr "이 파일"
 
@@ -17966,6 +17988,9 @@ msgstr "세션당 토큰, 최근 30일"
 
 msgid "Tokens stay off your machine"
 msgstr "토큰은 내 머신에 남지 않습니다"
+
+msgid "Tomorrow"
+msgstr "내일"
 
 msgid "Too many dictations. Try again later."
 msgstr "받아쓰기 요청이 너무 많습니다. 나중에 다시 시도하세요."
@@ -18411,6 +18436,9 @@ msgstr "미해결"
 
 msgid "Unsaved changes"
 msgstr "저장하지 않은 변경 사항"
+
+msgid "Unsnooze"
+msgstr "미루기 해제"
 
 msgid "Unstage all"
 msgstr "스테이징 모두 해제"

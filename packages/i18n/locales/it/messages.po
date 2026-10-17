@@ -8721,11 +8721,17 @@ msgstr "Migliora le istruzioni per gli agenti"
 msgid "Improved diff viewer"
 msgstr "Visualizzatore diff migliorato"
 
+msgid "In 1 hour"
+msgstr "Tra 1 ora"
+
 msgid "in 14h"
 msgstr "tra 14h"
 
 msgid "in 2d"
 msgstr "tra 2g"
+
+msgid "In 3 hours"
+msgstr "Tra 3 ore"
 
 msgid "in 3d"
 msgstr "tra 3g"
@@ -10705,6 +10711,9 @@ msgstr "Scheda successiva"
 
 msgid "Next Tab (Second Shortcut)"
 msgstr "Scheda successiva (seconda scorciatoia)"
+
+msgid "Next week"
+msgstr "La prossima settimana"
 
 msgid "Next Workspace"
 msgstr "Workspace successivo"
@@ -15853,6 +15862,16 @@ msgstr "Crea uno snapshot di questo workspace così com’è ora, con tutto ciò
 msgid "Snooze"
 msgstr "Posticipa"
 
+msgctxt "Hide a sidebar workspace until a later time"
+msgid "Snooze"
+msgstr "Posticipa"
+
+msgid "Snoozed ({count})"
+msgstr "Posticipati ({count})"
+
+msgid "Snoozed until {wakeTime}"
+msgstr "Posticipato fino a {wakeTime}"
+
 msgid "so a border on two edges of the rotated square always faces outward."
 msgstr "così un bordo su due lati del quadrato ruotato è sempre rivolto verso l'esterno."
 
@@ -17573,6 +17592,9 @@ msgstr "Questo ambiente non ha repository. Crea un ambiente con repository nelle
 msgid "This environment's repositories are fixed; promote a workspace again to change them"
 msgstr "I repository di questo ambiente sono fissi; promuovi di nuovo un workspace per cambiarli"
 
+msgid "This evening"
+msgstr "Stasera"
+
 msgid "this file"
 msgstr "questo file"
 
@@ -17966,6 +17988,9 @@ msgstr "token per sessione, ultimi 30 giorni"
 
 msgid "Tokens stay off your machine"
 msgstr "I token non vengono salvati sulla tua macchina"
+
+msgid "Tomorrow"
+msgstr "Domani"
 
 msgid "Too many dictations. Try again later."
 msgstr "Troppe dettature. Riprova più tardi."
@@ -18411,6 +18436,9 @@ msgstr "Non risolto"
 
 msgid "Unsaved changes"
 msgstr "Modifiche non salvate"
+
+msgid "Unsnooze"
+msgstr "Annulla posticipo"
 
 msgid "Unstage all"
 msgstr "Togli tutto dallo stage"

@@ -8721,11 +8721,17 @@ msgstr "Улучшить инструкции для агентов"
 msgid "Improved diff viewer"
 msgstr "Улучшенный просмотр diff"
 
+msgid "In 1 hour"
+msgstr "Через 1 час"
+
 msgid "in 14h"
 msgstr "через 14 ч"
 
 msgid "in 2d"
 msgstr "через 2 дн."
+
+msgid "In 3 hours"
+msgstr "Через 3 часа"
 
 msgid "in 3d"
 msgstr "через 3 дн."
@@ -10705,6 +10711,9 @@ msgstr "Следующая вкладка"
 
 msgid "Next Tab (Second Shortcut)"
 msgstr "Следующая вкладка (второе сочетание)"
+
+msgid "Next week"
+msgstr "На следующей неделе"
 
 msgid "Next Workspace"
 msgstr "Следующая рабочая область"
@@ -15853,6 +15862,16 @@ msgstr "Сохраняет снимок этого рабочего простр
 msgid "Snooze"
 msgstr "Отложить"
 
+msgctxt "Hide a sidebar workspace until a later time"
+msgid "Snooze"
+msgstr "Отложить"
+
+msgid "Snoozed ({count})"
+msgstr "Отложенные ({count})"
+
+msgid "Snoozed until {wakeTime}"
+msgstr "Отложено до {wakeTime}"
+
 msgid "so a border on two edges of the rotated square always faces outward."
 msgstr "поэтому рамка на двух сторонах повёрнутого квадрата всегда смотрит наружу."
 
@@ -17573,6 +17592,9 @@ msgstr "В этом окружении нет репозиториев. Созд
 msgid "This environment's repositories are fixed; promote a workspace again to change them"
 msgstr "Репозитории этого окружения зафиксированы; чтобы изменить их, снова повысьте рабочую область"
 
+msgid "This evening"
+msgstr "Сегодня вечером"
+
 msgid "this file"
 msgstr "этот файл"
 
@@ -17966,6 +17988,9 @@ msgstr "токенов за сессию, последние 30 дней"
 
 msgid "Tokens stay off your machine"
 msgstr "Токены не хранятся на вашем компьютере"
+
+msgid "Tomorrow"
+msgstr "Завтра"
 
 msgid "Too many dictations. Try again later."
 msgstr "Слишком много диктовок. Повторите попытку позже."
@@ -18411,6 +18436,9 @@ msgstr "Не решено"
 
 msgid "Unsaved changes"
 msgstr "Несохранённые изменения"
+
+msgid "Unsnooze"
+msgstr "Вернуть"
 
 msgid "Unstage all"
 msgstr "Снять индексацию со всего"

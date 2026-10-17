@@ -8721,11 +8721,17 @@ msgstr "改進代理程式說明"
 msgid "Improved diff viewer"
 msgstr "更好的差異檢視器"
 
+msgid "In 1 hour"
+msgstr "1 小時後"
+
 msgid "in 14h"
 msgstr "14小時後"
 
 msgid "in 2d"
 msgstr "2天後"
+
+msgid "In 3 hours"
+msgstr "3 小時後"
 
 msgid "in 3d"
 msgstr "3天後"
@@ -10705,6 +10711,9 @@ msgstr "下一個分頁"
 
 msgid "Next Tab (Second Shortcut)"
 msgstr "下一個分頁（第二快捷鍵）"
+
+msgid "Next week"
+msgstr "下週"
 
 msgid "Next Workspace"
 msgstr "下一個工作區"
@@ -15853,6 +15862,16 @@ msgstr "為此工作區的目前狀態（包括其中安裝的所有內容）建
 msgid "Snooze"
 msgstr "稍後提醒"
 
+msgctxt "Hide a sidebar workspace until a later time"
+msgid "Snooze"
+msgstr "暫緩"
+
+msgid "Snoozed ({count})"
+msgstr "已暫緩 ({count})"
+
+msgid "Snoozed until {wakeTime}"
+msgstr "暫緩至 {wakeTime}"
+
 msgid "so a border on two edges of the rotated square always faces outward."
 msgstr "因此旋轉後方塊兩條邊上的邊框始終朝外。"
 
@@ -17573,6 +17592,9 @@ msgstr "此環境沒有儲存庫。請先在設定中建立包含儲存庫的環
 msgid "This environment's repositories are fixed; promote a workspace again to change them"
 msgstr "此環境的儲存庫已固定；請再次提升一個工作區以變更它們"
 
+msgid "This evening"
+msgstr "今晚"
+
 msgid "this file"
 msgstr "該檔案"
 
@@ -17966,6 +17988,9 @@ msgstr "每次會話的 Token，近 30 天"
 
 msgid "Tokens stay off your machine"
 msgstr "權杖不會留在你的裝置上"
+
+msgid "Tomorrow"
+msgstr "明天"
 
 msgid "Too many dictations. Try again later."
 msgstr "語音輸入次數過多，請稍後再試。"
@@ -18411,6 +18436,9 @@ msgstr "未解決"
 
 msgid "Unsaved changes"
 msgstr "未儲存的更改"
+
+msgid "Unsnooze"
+msgstr "取消暫緩"
 
 msgid "Unstage all"
 msgstr "全部取消暫存"

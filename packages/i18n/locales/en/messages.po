@@ -8721,11 +8721,17 @@ msgstr "Improve the agent instructions"
 msgid "Improved diff viewer"
 msgstr "Improved diff viewer"
 
+msgid "In 1 hour"
+msgstr "In 1 hour"
+
 msgid "in 14h"
 msgstr "in 14h"
 
 msgid "in 2d"
 msgstr "in 2d"
+
+msgid "In 3 hours"
+msgstr "In 3 hours"
 
 msgid "in 3d"
 msgstr "in 3d"
@@ -10705,6 +10711,9 @@ msgstr "Next Tab"
 
 msgid "Next Tab (Second Shortcut)"
 msgstr "Next Tab (Second Shortcut)"
+
+msgid "Next week"
+msgstr "Next week"
 
 msgid "Next Workspace"
 msgstr "Next Workspace"
@@ -15853,6 +15862,16 @@ msgstr "Snapshots this workspace as it is now, with everything installed in it. 
 msgid "Snooze"
 msgstr "Snooze"
 
+msgctxt "Hide a sidebar workspace until a later time"
+msgid "Snooze"
+msgstr "Snooze"
+
+msgid "Snoozed ({count})"
+msgstr "Snoozed ({count})"
+
+msgid "Snoozed until {wakeTime}"
+msgstr "Snoozed until {wakeTime}"
+
 msgid "so a border on two edges of the rotated square always faces outward."
 msgstr "so a border on two edges of the rotated square always faces outward."
 
@@ -17573,6 +17592,9 @@ msgstr "This environment has no repositories. Create an environment with reposit
 msgid "This environment's repositories are fixed; promote a workspace again to change them"
 msgstr "This environment's repositories are fixed; promote a workspace again to change them"
 
+msgid "This evening"
+msgstr "This evening"
+
 msgid "this file"
 msgstr "this file"
 
@@ -17966,6 +17988,9 @@ msgstr "tokens per session, trailing 30 days"
 
 msgid "Tokens stay off your machine"
 msgstr "Tokens stay off your machine"
+
+msgid "Tomorrow"
+msgstr "Tomorrow"
 
 msgid "Too many dictations. Try again later."
 msgstr "Too many dictations. Try again later."
@@ -18411,6 +18436,9 @@ msgstr "Unresolved"
 
 msgid "Unsaved changes"
 msgstr "Unsaved changes"
+
+msgid "Unsnooze"
+msgstr "Unsnooze"
 
 msgid "Unstage all"
 msgstr "Unstage all"

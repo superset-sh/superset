@@ -8721,11 +8721,17 @@ msgstr "De agentinstructies verbeteren"
 msgid "Improved diff viewer"
 msgstr "Verbeterde diff-viewer"
 
+msgid "In 1 hour"
+msgstr "Over 1 uur"
+
 msgid "in 14h"
 msgstr "over 14u"
 
 msgid "in 2d"
 msgstr "over 2d"
+
+msgid "In 3 hours"
+msgstr "Over 3 uur"
 
 msgid "in 3d"
 msgstr "over 3d"
@@ -10705,6 +10711,9 @@ msgstr "Volgend tabblad"
 
 msgid "Next Tab (Second Shortcut)"
 msgstr "Volgend tabblad (tweede sneltoets)"
+
+msgid "Next week"
+msgstr "Volgende week"
 
 msgid "Next Workspace"
 msgstr "Volgende werkruimte"
@@ -15853,6 +15862,16 @@ msgstr "Maakt een snapshot van deze workspace zoals die nu is, met alles wat eri
 msgid "Snooze"
 msgstr "Snoozen"
 
+msgctxt "Hide a sidebar workspace until a later time"
+msgid "Snooze"
+msgstr "Snoozen"
+
+msgid "Snoozed ({count})"
+msgstr "Gesnoozed ({count})"
+
+msgid "Snoozed until {wakeTime}"
+msgstr "Gesnoozed tot {wakeTime}"
+
 msgid "so a border on two edges of the rotated square always faces outward."
 msgstr "zodat een rand op twee zijden van het geroteerde vierkant altijd naar buiten wijst."
 
@@ -17573,6 +17592,9 @@ msgstr "Deze omgeving heeft geen repository's. Maak in Instellingen een omgeving
 msgid "This environment's repositories are fixed; promote a workspace again to change them"
 msgstr "De repositories van deze omgeving liggen vast; promoveer opnieuw een werkruimte om ze te wijzigen"
 
+msgid "This evening"
+msgstr "Vanavond"
+
 msgid "this file"
 msgstr "dit bestand"
 
@@ -17966,6 +17988,9 @@ msgstr "tokens per sessie, laatste 30 dagen"
 
 msgid "Tokens stay off your machine"
 msgstr "Tokens blijven van je machine af"
+
+msgid "Tomorrow"
+msgstr "Morgen"
 
 msgid "Too many dictations. Try again later."
 msgstr "Te veel dicteeropdrachten. Probeer het later opnieuw."
@@ -18411,6 +18436,9 @@ msgstr "Onopgelost"
 
 msgid "Unsaved changes"
 msgstr "Niet-opgeslagen wijzigingen"
+
+msgid "Unsnooze"
+msgstr "Snoozen opheffen"
 
 msgid "Unstage all"
 msgstr "Alles unstagen"

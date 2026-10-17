@@ -35,6 +35,7 @@ import type {
 	DashboardSidebarHiddenProject,
 	DashboardSidebarPinnedWorkspace,
 	DashboardSidebarProject,
+	DashboardSidebarSnoozedWorkspace,
 	DashboardSidebarWorkspace,
 } from "../../types";
 import {
@@ -47,6 +48,7 @@ import {
 	buildDashboardSidebarProjects,
 	buildDashboardSidebarSessions,
 	partitionSidebarWorkspacesByPinned,
+	partitionSidebarWorkspacesBySnoozed,
 } from "./buildDashboardSidebarProjects";
 import {
 	derivePullRequestQueryTargets,
@@ -390,6 +392,7 @@ export function useDashboardSidebarData({
 						sectionId: sidebarWorkspaces.sidebarState.sectionId,
 						isHidden: sidebarWorkspaces.sidebarState.isHidden,
 						pinnedAt: sidebarWorkspaces.sidebarState.pinnedAt,
+						snoozedUntil: sidebarWorkspaces.sidebarState.snoozedUntil,
 					})),
 			[collections],
 		);
@@ -639,6 +642,7 @@ export function useDashboardSidebarData({
 						tags: "tags" in source ? source.tags : null,
 						isHidden: localState.isHidden,
 						pinnedAt: localState.pinnedAt,
+						snoozedUntil: localState.snoozedUntil ?? null,
 					},
 				];
 			}),
@@ -810,9 +814,14 @@ export function useDashboardSidebarData({
 	// Pinned rows render only in the top-level Pinned section, so they are
 	// partitioned out before the per-project tree is built. PR polling targets
 	// derive from the pre-partition list above, so pinned rows keep PR status.
-	const { pinned: pinnedRows, unpinned: unpinnedRows } = useMemo(
-		() => partitionSidebarWorkspacesByPinned(visibleSidebarWorkspaces),
+	// Snoozed rows leave every other section, Pinned included, until they wake.
+	const { snoozed: snoozedRows, awake: awakeRows } = useMemo(
+		() => partitionSidebarWorkspacesBySnoozed(visibleSidebarWorkspaces),
 		[visibleSidebarWorkspaces],
+	);
+	const { pinned: pinnedRows, unpinned: unpinnedRows } = useMemo(
+		() => partitionSidebarWorkspacesByPinned(awakeRows),
+		[awakeRows],
 	);
 
 	// Unpinned sessions render in the top-level Sessions section; pinned
@@ -926,10 +935,40 @@ export function useDashboardSidebarData({
 	);
 	const pinnedWorkspaces = useJsonStable(decoratedPinnedWorkspaces);
 
+	const computedSnoozedWorkspaces = useMemo<
+		DashboardSidebarSnoozedWorkspace[]
+	>(() => {
+		const built = buildDashboardSidebarPinnedWorkspaces({
+			pinnedSidebarWorkspaces: snoozedRows,
+			sidebarProjects: builderProjects,
+			machineId,
+			pullRequestsByWorkspaceId,
+		});
+		const decorated = cloudLayout
+			? applyCloudSidebarPinnedRows(built, cloudRowById)
+			: built;
+		const snoozedUntilById = new Map(
+			snoozedRows.map((row) => [row.id, row.snoozedUntil ?? 0]),
+		);
+		return decorated.map((workspace) => ({
+			...workspace,
+			snoozedUntil: snoozedUntilById.get(workspace.id) ?? 0,
+		}));
+	}, [
+		builderProjects,
+		cloudLayout,
+		cloudRowById,
+		machineId,
+		pullRequestsByWorkspaceId,
+		snoozedRows,
+	]);
+	const snoozedWorkspaces = useJsonStable(computedSnoozedWorkspaces);
+
 	return {
 		groups,
 		hiddenProjects: allHiddenProjects,
 		pinnedWorkspaces,
+		snoozedWorkspaces,
 		sessionWorkspaces,
 		sessionChildren: sessions.children,
 		githubStatus,

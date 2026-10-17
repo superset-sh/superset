@@ -50,6 +50,7 @@ import { DashboardSidebarPinnedSection } from "./components/DashboardSidebarPinn
 import { DashboardSidebarProjectSection } from "./components/DashboardSidebarProjectSection";
 import { DashboardSidebarSectionRenameProvider } from "./components/DashboardSidebarSectionRenameContext";
 import { DashboardSidebarSessionsSection } from "./components/DashboardSidebarSessionsSection";
+import { DashboardSidebarSnoozedSection } from "./components/DashboardSidebarSnoozedSection";
 import { DashboardSidebarWorkspacesHeader } from "./components/DashboardSidebarWorkspacesHeader";
 import { useGettingStartedCard } from "./components/GettingStartedCard";
 import { useV2SetupScriptCard } from "./components/V2SetupScriptCard";
@@ -168,6 +169,7 @@ export function DashboardSidebar({
 		groups,
 		hiddenProjects,
 		pinnedWorkspaces,
+		snoozedWorkspaces,
 		sessionWorkspaces,
 		sessionChildren,
 		githubStatus,
@@ -355,6 +357,10 @@ export function DashboardSidebar({
 		for (const workspace of sessionWorkspaces) {
 			byId.set(workspace.id, { id: workspace.id, hostId: workspace.hostId });
 		}
+		// Snoozed rows stay subscribed so a new agent request can wake them.
+		for (const workspace of snoozedWorkspaces) {
+			byId.set(workspace.id, { id: workspace.id, hostId: workspace.hostId });
+		}
 		for (const project of orderedGroups) {
 			for (const workspace of getProjectChildrenWorkspaces(project.children)) {
 				byId.set(workspace.id, { id: workspace.id, hostId: workspace.hostId });
@@ -369,7 +375,13 @@ export function DashboardSidebar({
 			});
 		}
 		return [...byId.values()];
-	}, [pinnedWorkspaces, sessionWorkspaces, orderedGroups, cloudWorkspaces]);
+	}, [
+		pinnedWorkspaces,
+		sessionWorkspaces,
+		snoozedWorkspaces,
+		orderedGroups,
+		cloudWorkspaces,
+	]);
 
 	const { data: session } = authClient.useSession();
 	const userId = session?.user?.id ?? null;
@@ -568,6 +580,11 @@ export function DashboardSidebar({
 													))}
 												</SortableContext>
 											)}
+											<DashboardSidebarSnoozedSection
+												snoozedWorkspaces={snoozedWorkspaces}
+												isCollapsed={isCollapsed}
+												onWorkspaceHover={refreshWorkspacePullRequest}
+											/>
 											{!isCollapsed && !workspacesListCollapsed && (
 												<DashboardSidebarHiddenProjects
 													projects={hiddenProjects}

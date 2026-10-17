@@ -1,7 +1,12 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
-export type SidebarSectionKey = "cloud" | "pinned" | "sessions" | "workspaces";
+export type SidebarSectionKey =
+	| "cloud"
+	| "pinned"
+	| "sessions"
+	| "snoozed"
+	| "workspaces";
 
 export const SIDEBAR_SECTIONS_COLLAPSE_STORAGE_KEY =
 	"sidebar-workspaces-collapse";
@@ -20,6 +25,7 @@ export const useSidebarSectionsCollapseStore =
 						cloud: false,
 						pinned: false,
 						sessions: false,
+						snoozed: true,
 						workspaces: false,
 					},
 					toggle: (section) =>
@@ -43,6 +49,7 @@ export const useSidebarSectionsCollapseStore =
 									cloud: false,
 									pinned: false,
 									sessions: false,
+									snoozed: true,
 									workspaces: state.isCollapsed ?? false,
 								},
 							};
@@ -50,6 +57,15 @@ export const useSidebarSectionsCollapseStore =
 						// v1 predates the cloud section; an absent key reads as
 						// expanded, which is the default we want anyway.
 						return persisted as SidebarSectionsCollapseState;
+					},
+					merge: (persisted, current) => {
+						const stored = persisted as
+							| Partial<SidebarSectionsCollapseState>
+							| undefined;
+						return {
+							...current,
+							collapsed: { ...current.collapsed, ...stored?.collapsed },
+						};
 					},
 				},
 			),

@@ -8721,11 +8721,17 @@ msgstr "Cải thiện hướng dẫn cho agent"
 msgid "Improved diff viewer"
 msgstr "Khung xem diff cải tiến"
 
+msgid "In 1 hour"
+msgstr "Sau 1 giờ"
+
 msgid "in 14h"
 msgstr "sau 14 giờ"
 
 msgid "in 2d"
 msgstr "sau 2 ngày"
+
+msgid "In 3 hours"
+msgstr "Sau 3 giờ"
 
 msgid "in 3d"
 msgstr "sau 3 ngày"
@@ -10705,6 +10711,9 @@ msgstr "Tab kế tiếp"
 
 msgid "Next Tab (Second Shortcut)"
 msgstr "Tab kế tiếp (phím tắt thứ hai)"
+
+msgid "Next week"
+msgstr "Tuần sau"
 
 msgid "Next Workspace"
 msgstr "Workspace kế tiếp"
@@ -15853,6 +15862,16 @@ msgstr "Chụp nhanh không gian làm việc này ở trạng thái hiện tại
 msgid "Snooze"
 msgstr "Tạm hoãn"
 
+msgctxt "Hide a sidebar workspace until a later time"
+msgid "Snooze"
+msgstr "Tạm ẩn"
+
+msgid "Snoozed ({count})"
+msgstr "Đã tạm ẩn ({count})"
+
+msgid "Snoozed until {wakeTime}"
+msgstr "Tạm ẩn đến {wakeTime}"
+
 msgid "so a border on two edges of the rotated square always faces outward."
 msgstr "nên viền ở hai cạnh của hình vuông đã xoay luôn hướng ra ngoài."
 
@@ -17573,6 +17592,9 @@ msgstr "Environment này không có repository nào. Hãy tạo một environmen
 msgid "This environment's repositories are fixed; promote a workspace again to change them"
 msgstr "Các repository của environment này đã cố định; hãy promote lại một workspace để thay đổi"
 
+msgid "This evening"
+msgstr "Tối nay"
+
 msgid "this file"
 msgstr "tệp này"
 
@@ -17966,6 +17988,9 @@ msgstr "token mỗi phiên, 30 ngày gần nhất"
 
 msgid "Tokens stay off your machine"
 msgstr "Token không nằm trên máy của bạn"
+
+msgid "Tomorrow"
+msgstr "Ngày mai"
 
 msgid "Too many dictations. Try again later."
 msgstr "Quá nhiều lượt đọc chính tả. Hãy thử lại sau."
@@ -18411,6 +18436,9 @@ msgstr "Chưa giải quyết"
 
 msgid "Unsaved changes"
 msgstr "Thay đổi chưa lưu"
+
+msgid "Unsnooze"
+msgstr "Bỏ tạm ẩn"
 
 msgid "Unstage all"
 msgstr "Bỏ stage tất cả"

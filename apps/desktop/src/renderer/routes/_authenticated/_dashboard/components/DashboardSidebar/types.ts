@@ -74,6 +74,13 @@ export type DashboardSidebarPinnedWorkspace = DashboardSidebarWorkspace & {
 	projectIconUrl: string | null;
 };
 
+/** A snoozed workspace rendered in the sidebar's Snoozed section. */
+export type DashboardSidebarSnoozedWorkspace =
+	DashboardSidebarPinnedWorkspace & {
+		/** Epoch ms when the workspace returns to its usual section. */
+		snoozedUntil: number;
+	};
+
 export interface DashboardSidebarSection {
 	id: string;
 	projectId: string;

@@ -110,6 +110,7 @@ beforeEach(() => {
 			cloud: false,
 			pinned: false,
 			sessions: false,
+			snoozed: true,
 			workspaces: false,
 		},
 	});
@@ -169,6 +170,7 @@ test("reveals a collapsed Workspaces section, not just Pinned, for a pinned targ
 			cloud: false,
 			pinned: false,
 			sessions: false,
+			snoozed: true,
 			workspaces: true,
 		},
 	});

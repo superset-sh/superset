@@ -89,6 +89,24 @@ export function partitionSidebarWorkspacesByPinned<
 	return { pinned, unpinned };
 }
 
+/**
+ * Splits out rows with a wake time, sorted by soonest wake first. They render
+ * only in the Snoozed section until they wake.
+ */
+export function partitionSidebarWorkspacesBySnoozed<
+	Workspace extends { snoozedUntil: number | null },
+>(workspaces: Workspace[]): { snoozed: Workspace[]; awake: Workspace[] } {
+	const snoozed: Workspace[] = [];
+	const awake: Workspace[] = [];
+	for (const workspace of workspaces) {
+		(workspace.snoozedUntil != null ? snoozed : awake).push(workspace);
+	}
+	snoozed.sort(
+		(left, right) => (left.snoozedUntil ?? 0) - (right.snoozedUntil ?? 0),
+	);
+	return { snoozed, awake };
+}
+
 function decorateSidebarWorkspace(
 	workspace: SidebarWorkspaceInput,
 	project: Pick<SidebarProjectInput, "githubOwner" | "githubRepoName">,

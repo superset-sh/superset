@@ -8721,11 +8721,17 @@ msgstr "Ajan yönergelerini iyileştir"
 msgid "Improved diff viewer"
 msgstr "Geliştirilmiş fark görüntüleyici"
 
+msgid "In 1 hour"
+msgstr "1 saat sonra"
+
 msgid "in 14h"
 msgstr "14sa içinde"
 
 msgid "in 2d"
 msgstr "2g içinde"
+
+msgid "In 3 hours"
+msgstr "3 saat sonra"
 
 msgid "in 3d"
 msgstr "3g içinde"
@@ -10705,6 +10711,9 @@ msgstr "Sonraki sekme"
 
 msgid "Next Tab (Second Shortcut)"
 msgstr "Sonraki sekme (ikinci kısayol)"
+
+msgid "Next week"
+msgstr "Gelecek hafta"
 
 msgid "Next Workspace"
 msgstr "Sonraki çalışma alanı"
@@ -15853,6 +15862,16 @@ msgstr "Bu çalışma alanının, içine kurulan her şeyle birlikte şu anki ha
 msgid "Snooze"
 msgstr "Ertele"
 
+msgctxt "Hide a sidebar workspace until a later time"
+msgid "Snooze"
+msgstr "Ertele"
+
+msgid "Snoozed ({count})"
+msgstr "Ertelenenler ({count})"
+
+msgid "Snoozed until {wakeTime}"
+msgstr "{wakeTime} saatine kadar ertelendi"
+
 msgid "so a border on two edges of the rotated square always faces outward."
 msgstr "böylece döndürülmüş karenin iki kenarındaki çerçeve her zaman dışa bakar."
 
@@ -17573,6 +17592,9 @@ msgstr "Bu ortamda depo yok. Ayarlar'da depoları olan bir ortam oluşturun, ard
 msgid "This environment's repositories are fixed; promote a workspace again to change them"
 msgstr "Bu ortamın depoları sabittir; değiştirmek için bir çalışma alanını yeniden yükseltin"
 
+msgid "This evening"
+msgstr "Bu akşam"
+
 msgid "this file"
 msgstr "bu dosya"
 
@@ -17966,6 +17988,9 @@ msgstr "oturum başına token, son 30 gün"
 
 msgid "Tokens stay off your machine"
 msgstr "Belirteçler makinenizde saklanmaz"
+
+msgid "Tomorrow"
+msgstr "Yarın"
 
 msgid "Too many dictations. Try again later."
 msgstr "Çok fazla sesle yazma isteği. Daha sonra yeniden deneyin."
@@ -18411,6 +18436,9 @@ msgstr "Çözülmedi"
 
 msgid "Unsaved changes"
 msgstr "Kaydedilmemiş değişiklikler"
+
+msgid "Unsnooze"
+msgstr "Ertelemeyi kaldır"
 
 msgid "Unstage all"
 msgstr "Tümünü hazırlıktan çıkar"

@@ -8721,11 +8721,17 @@ msgstr "エージェント向け指示を改善"
 msgid "Improved diff viewer"
 msgstr "差分ビューアの改善"
 
+msgid "In 1 hour"
+msgstr "1時間後"
+
 msgid "in 14h"
 msgstr "14時間後"
 
 msgid "in 2d"
 msgstr "2日後"
+
+msgid "In 3 hours"
+msgstr "3時間後"
 
 msgid "in 3d"
 msgstr "3日後"
@@ -10705,6 +10711,9 @@ msgstr "次のタブ"
 
 msgid "Next Tab (Second Shortcut)"
 msgstr "次のタブ (2つ目のショートカット)"
+
+msgid "Next week"
+msgstr "来週"
 
 msgid "Next Workspace"
 msgstr "次のワークスペース"
@@ -15853,6 +15862,16 @@ msgstr "このワークスペースを、インストール済みのものも含
 msgid "Snooze"
 msgstr "スヌーズ"
 
+msgctxt "Hide a sidebar workspace until a later time"
+msgid "Snooze"
+msgstr "スヌーズ"
+
+msgid "Snoozed ({count})"
+msgstr "スヌーズ中 ({count})"
+
+msgid "Snoozed until {wakeTime}"
+msgstr "{wakeTime} までスヌーズ"
+
 msgid "so a border on two edges of the rotated square always faces outward."
 msgstr "回転した正方形の2辺の枠線が常に外側を向きます。"
 
@@ -17573,6 +17592,9 @@ msgstr "この環境にはリポジトリがありません。設定でリポジ
 msgid "This environment's repositories are fixed; promote a workspace again to change them"
 msgstr "この環境のリポジトリは固定されています。変更するにはワークスペースを再度昇格してください"
 
+msgid "This evening"
+msgstr "今晩"
+
 msgid "this file"
 msgstr "このファイル"
 
@@ -17966,6 +17988,9 @@ msgstr "直近30日のセッションあたりトークン"
 
 msgid "Tokens stay off your machine"
 msgstr "トークンはマシンに残らない"
+
+msgid "Tomorrow"
+msgstr "明日"
 
 msgid "Too many dictations. Try again later."
 msgstr "音声入力の回数が多すぎます。しばらくしてからもう一度お試しください。"
@@ -18411,6 +18436,9 @@ msgstr "未解決"
 
 msgid "Unsaved changes"
 msgstr "未保存の変更"
+
+msgid "Unsnooze"
+msgstr "スヌーズを解除"
 
 msgid "Unstage all"
 msgstr "すべてステージ解除"

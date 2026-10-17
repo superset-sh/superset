@@ -1,5 +1,6 @@
 import { useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
+import { formatDateTime } from "@superset/i18n/format";
 import { normalizeWorkspaceTags } from "@superset/shared/workspace-tags";
 import { toast } from "@superset/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -83,8 +84,12 @@ export function useDashboardSidebarWorkspaceItemActions({
 		clearManualUnread(workspaceId);
 		markWorkspaceTerminalsSeen();
 	};
-	const { createSection, moveWorkspaceToSection, setWorkspacePinned } =
-		useDashboardSidebarState();
+	const {
+		createSection,
+		moveWorkspaceToSection,
+		setWorkspacePinned,
+		setWorkspaceSnoozed,
+	} = useDashboardSidebarState();
 
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(workspaceName);
@@ -246,6 +251,26 @@ export function useDashboardSidebarWorkspaceItemActions({
 		setWorkspacePinned(workspaceId, projectId, !isPinned);
 	};
 
+	const handleSnooze = (until: number) => {
+		clearWorkspaceAttention();
+		setWorkspaceSnoozed(workspaceId, projectId, until);
+		const wakeTime = formatDateTime(until, {
+			weekday: "short",
+			hour: "numeric",
+			minute: "2-digit",
+		});
+		toast(t({ message: `Snoozed until ${wakeTime}` }), {
+			action: {
+				label: t({ message: "Undo" }),
+				onClick: () => setWorkspaceSnoozed(workspaceId, projectId, null),
+			},
+		});
+	};
+
+	const handleUnsnooze = () => {
+		setWorkspaceSnoozed(workspaceId, projectId, null);
+	};
+
 	// Clears manual + review marks locally, then forces the host's bindings
 	// to Stop — the escape hatch for a wedged working/permission dot (an
 	// interrupted agent fires no Stop hook). Live agents re-assert on their
@@ -341,8 +366,10 @@ export function useDashboardSidebarWorkspaceItemActions({
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
 		handleRemovePullRequest,
+		handleSnooze,
 		handleTogglePin,
 		handleToggleUnread,
+		handleUnsnooze,
 		isActive,
 		isRenaming,
 		isUnread,

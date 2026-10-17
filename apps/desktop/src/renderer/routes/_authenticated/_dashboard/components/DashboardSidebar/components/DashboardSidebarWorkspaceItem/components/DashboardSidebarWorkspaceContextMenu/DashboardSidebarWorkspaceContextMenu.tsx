@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro";
+import { formatDateTime } from "@superset/i18n/format";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -11,6 +12,7 @@ import {
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import {
+	LuAlarmClockOff,
 	LuArchive,
 	LuArrowRightLeft,
 	LuArrowUp,
@@ -37,6 +39,7 @@ import { useProjectTagFolderSections } from "../../../../hooks/useProjectTagFold
 import { useRunAfterMenuClose } from "../../../../hooks/useRunAfterMenuClose";
 import { useDashboardSidebarHoverActions } from "../../../../providers/DashboardSidebarHoverProvider";
 import { useDashboardSidebarWorkspacePorts } from "../../../../providers/DashboardSidebarPortsProvider";
+import { SnoozeSubmenu } from "./components/SnoozeSubmenu";
 
 interface DashboardSidebarWorkspaceContextMenuProps {
 	workspaceId: string;
@@ -53,11 +56,15 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	 */
 	isCloudWorkspace?: boolean;
 	isPinned: boolean;
+	/** Epoch ms the row wakes; null when it isn't snoozed. */
+	snoozedUntil?: number | null;
 	isUnread: boolean;
 	hasStatus: boolean;
 	hasPullRequest: boolean;
 	showDeleteHotkey?: boolean;
 	onTogglePin: () => void;
+	onSnooze: (until: number) => void;
+	onUnsnooze: () => void;
 	onCreateSection: () => void;
 	onMoveToSection: (sectionId: string | null) => void;
 	onOpenInFinder: () => void;
@@ -82,11 +89,14 @@ export function DashboardSidebarWorkspaceContextMenu({
 	isLocalWorkspace,
 	isCloudWorkspace = false,
 	isPinned,
+	snoozedUntil = null,
 	isUnread,
 	hasStatus,
 	hasPullRequest,
 	showDeleteHotkey = false,
 	onTogglePin,
+	onSnooze,
+	onUnsnooze,
 	onCreateSection,
 	onMoveToSection,
 	onOpenInFinder,
@@ -143,6 +153,21 @@ export function DashboardSidebarWorkspaceContextMenu({
 						</>
 					)}
 				</ContextMenuItem>
+				{snoozedUntil === null ? (
+					<SnoozeSubmenu onSnooze={onSnooze} />
+				) : (
+					<ContextMenuItem onSelect={onUnsnooze}>
+						<LuAlarmClockOff className="size-4 mr-2" />
+						<Trans>Unsnooze</Trans>
+						<ContextMenuShortcut>
+							{formatDateTime(snoozedUntil, {
+								weekday: "short",
+								hour: "numeric",
+								minute: "2-digit",
+							})}
+						</ContextMenuShortcut>
+					</ContextMenuItem>
+				)}
 				{onRename && (
 					<ContextMenuItem onSelect={() => runAfterClose(onRename)}>
 						<LuPencil className="size-4 mr-2" />

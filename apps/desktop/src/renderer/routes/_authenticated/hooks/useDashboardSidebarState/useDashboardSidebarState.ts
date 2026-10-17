@@ -986,6 +986,32 @@ export function useDashboardSidebarState() {
 		[collections, hostWorkspaces, tagFolderContext],
 	);
 
+	const setWorkspaceSnoozed = useCallback(
+		(
+			workspaceId: string,
+			projectId: string | null,
+			snoozedUntil: number | null,
+		) => {
+			if (!collections.v2WorkspaceLocalState.get(workspaceId)) {
+				if (snoozedUntil === null) return;
+				if (projectId !== null) {
+					ensureSidebarProjectRecord(collections, projectId);
+				}
+				ensureSidebarWorkspaceRecord(
+					collections,
+					hostWorkspaces,
+					tagFolderContext,
+					workspaceId,
+					projectId,
+				);
+			}
+			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+				draft.sidebarState.snoozedUntil = snoozedUntil;
+			});
+		},
+		[collections, hostWorkspaces, tagFolderContext],
+	);
+
 	const reorderPinnedWorkspaces = useCallback(
 		(
 			orderedPins: Array<{ workspaceId: string; projectId: string | null }>,
@@ -1081,6 +1107,7 @@ export function useDashboardSidebarState() {
 		renameSection,
 		setSectionColor,
 		setWorkspacePinned,
+		setWorkspaceSnoozed,
 		toggleProjectCollapsed,
 		toggleSectionCollapsed,
 	};
