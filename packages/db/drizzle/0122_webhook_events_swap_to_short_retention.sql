@@ -71,9 +71,9 @@ ALTER INDEX "ingest"."webhook_events_swap_received_at_idx" RENAME TO "webhook_ev
 -- Postgres names a not-null constraint after the table it was created on, so
 -- without these the table keeps "_swap_" in six constraint names and stops
 -- matching what a fresh CREATE TABLE from the schema builds.
-ALTER TABLE "ingest"."webhook_events" RENAME CONSTRAINT "webhook_events_swap_id_not_null" TO "webhook_events_id_not_null";--> statement-breakpoint
-ALTER TABLE "ingest"."webhook_events" RENAME CONSTRAINT "webhook_events_swap_provider_not_null" TO "webhook_events_provider_not_null";--> statement-breakpoint
-ALTER TABLE "ingest"."webhook_events" RENAME CONSTRAINT "webhook_events_swap_event_id_not_null" TO "webhook_events_event_id_not_null";--> statement-breakpoint
-ALTER TABLE "ingest"."webhook_events" RENAME CONSTRAINT "webhook_events_swap_status_not_null" TO "webhook_events_status_not_null";--> statement-breakpoint
-ALTER TABLE "ingest"."webhook_events" RENAME CONSTRAINT "webhook_events_swap_retry_count_not_null" TO "webhook_events_retry_count_not_null";--> statement-breakpoint
-ALTER TABLE "ingest"."webhook_events" RENAME CONSTRAINT "webhook_events_swap_received_at_not_null" TO "webhook_events_received_at_not_null";
+DO $do$ BEGIN IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'webhook_events_swap_id_not_null') THEN ALTER TABLE "ingest"."webhook_events" RENAME CONSTRAINT "webhook_events_swap_id_not_null" TO "webhook_events_id_not_null"; END IF; END $do$;--> statement-breakpoint
+DO $do$ BEGIN IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'webhook_events_swap_provider_not_null') THEN ALTER TABLE "ingest"."webhook_events" RENAME CONSTRAINT "webhook_events_swap_provider_not_null" TO "webhook_events_provider_not_null"; END IF; END $do$;--> statement-breakpoint
+DO $do$ BEGIN IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'webhook_events_swap_event_id_not_null') THEN ALTER TABLE "ingest"."webhook_events" RENAME CONSTRAINT "webhook_events_swap_event_id_not_null" TO "webhook_events_event_id_not_null"; END IF; END $do$;--> statement-breakpoint
+DO $do$ BEGIN IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'webhook_events_swap_status_not_null') THEN ALTER TABLE "ingest"."webhook_events" RENAME CONSTRAINT "webhook_events_swap_status_not_null" TO "webhook_events_status_not_null"; END IF; END $do$;--> statement-breakpoint
+DO $do$ BEGIN IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'webhook_events_swap_retry_count_not_null') THEN ALTER TABLE "ingest"."webhook_events" RENAME CONSTRAINT "webhook_events_swap_retry_count_not_null" TO "webhook_events_retry_count_not_null"; END IF; END $do$;--> statement-breakpoint
+DO $do$ BEGIN IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'webhook_events_swap_received_at_not_null') THEN ALTER TABLE "ingest"."webhook_events" RENAME CONSTRAINT "webhook_events_swap_received_at_not_null" TO "webhook_events_received_at_not_null"; END IF; END $do$;
