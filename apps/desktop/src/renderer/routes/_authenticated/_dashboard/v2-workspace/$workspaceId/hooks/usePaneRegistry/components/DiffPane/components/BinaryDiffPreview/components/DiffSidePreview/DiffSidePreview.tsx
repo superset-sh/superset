@@ -2,6 +2,7 @@ import { Trans } from "@lingui/react/macro";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { type ReactNode, useMemo } from "react";
 import { LuLoader } from "react-icons/lu";
+import { hashString } from "renderer/routes/_authenticated/_dashboard/utils/hashString";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import {
 	type ContentState,
@@ -12,7 +13,6 @@ import {
 import type { ChangesetFile } from "../../../../../../../useChangeset";
 import type { FileView } from "../../../../../FilePane/registry";
 import { createGetDiffInput } from "../../../../utils/createGetDiffInput";
-import { hashString } from "../../../../utils/hashString";
 import { createSnapshotDocument } from "../../utils/createSnapshotDocument";
 
 export type DiffSide = "old" | "new";

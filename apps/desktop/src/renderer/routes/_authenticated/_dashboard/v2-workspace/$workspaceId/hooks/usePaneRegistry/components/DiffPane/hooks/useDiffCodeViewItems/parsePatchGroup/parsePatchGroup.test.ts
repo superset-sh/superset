@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import {
-	buildPatchSegmentKey,
-	parsePatchGroup,
-	splitPatchSegments,
-} from "./parsePatchGroup";
+import { buildContentKey } from "renderer/routes/_authenticated/_dashboard/utils/buildContentKey";
+import { parsePatchGroup, splitPatchSegments } from "./parsePatchGroup";
 
 const FILE_A = [
 	"diff --git a/a.ts b/a.ts",
@@ -59,7 +56,7 @@ describe("parsePatchGroup", () => {
 
 		expect(after.byPath.get("a.ts")).toBe(before.byPath.get("a.ts"));
 		expect(after.byPath.get("a.ts")?.cacheKey).toBe(
-			`${buildPatchSegmentKey("group", FILE_A)}-0-0`,
+			`${buildContentKey("group", FILE_A)}-0-0`,
 		);
 		expect(after.byPath.get("b.ts")).not.toBe(before.byPath.get("b.ts"));
 		expect(after.byPath.get("b.ts")?.cacheKey).not.toBe(
@@ -69,8 +66,8 @@ describe("parsePatchGroup", () => {
 	});
 
 	test("the same section in two groups gets two keys", () => {
-		expect(buildPatchSegmentKey("staged", FILE_A)).not.toBe(
-			buildPatchSegmentKey("unstaged", FILE_A),
+		expect(buildContentKey("staged", FILE_A)).not.toBe(
+			buildContentKey("unstaged", FILE_A),
 		);
 	});
 });

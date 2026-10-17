@@ -3,7 +3,7 @@ import {
 	parseDiffFromFile,
 	parsePatchFiles,
 } from "@pierre/diffs";
-import { hashString } from "../../../utils/hashString";
+import { buildContentKey } from "renderer/routes/_authenticated/_dashboard/utils/buildContentKey";
 
 export interface PatchGroupFile {
 	path: string;
@@ -47,19 +47,6 @@ export function splitPatchSegments(patch: string): string[] {
 	return segments;
 }
 
-const SECOND_SEED = 0x9e3779b9;
-const SECOND_PRIME = 0x85ebca6b;
-
-/** Scoped by group: the same hunks in two categories must not share a key. */
-export function buildPatchSegmentKey(scope: string, content: string): string {
-	return [
-		scope,
-		content.length,
-		hashString(content).toString(36),
-		hashString(content, SECOND_SEED, SECOND_PRIME).toString(36),
-	].join(":");
-}
-
 export function parsePatchGroup(
 	groupKey: string,
 	result: PatchGroupResult,
@@ -77,13 +64,13 @@ export function parsePatchGroup(
 
 	if (result.kind === "patch") {
 		for (const segment of splitPatchSegments(result.patch)) {
-			const key = buildPatchSegmentKey(groupKey, segment);
+			const key = buildContentKey(groupKey, segment);
 			keep(key, () => parsePatchFiles(segment, key)[0]?.files[0]);
 		}
 	} else {
 		for (const file of result.files) {
 			const oldName = file.oldPath ?? file.path;
-			const key = buildPatchSegmentKey(
+			const key = buildContentKey(
 				groupKey,
 				[oldName, file.oldFile.contents, file.path, file.newFile.contents].join(
 					"\0",

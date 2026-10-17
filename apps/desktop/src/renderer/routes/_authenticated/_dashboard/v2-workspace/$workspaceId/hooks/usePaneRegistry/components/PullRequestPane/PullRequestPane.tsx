@@ -12,6 +12,7 @@ import {
 	type PullRequestDetailTab,
 	PullRequestDetailTabs,
 } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestDetailTabs";
+import { useRefreshPullRequest } from "renderer/routes/_authenticated/_dashboard/pull-requests/hooks/useRefreshPullRequest";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { normalizeThreadsToComments } from "../../../../components/CommentsSection/utils/normalizeThreadsToComments";
 import type { PagePaneData, PullRequestPaneData } from "../../../../types";
@@ -39,6 +40,13 @@ export function PullRequestPane({
 	const [activeTab, setActiveTab] = useState<PullRequestDetailTab>("summary");
 	const { workspace, hostUrl: workspaceHostUrl } = useWorkspace();
 	const detail = usePullRequestPaneDetail(data);
+	const { refresh, isRefreshing } = useRefreshPullRequest({
+		projectId: detail.projectId,
+		hostUrl: workspaceHostUrl,
+		prNumber: data.number,
+		repoFullName: data.repoFullName,
+		url: detail.data?.url,
+	});
 
 	// Review threads and the header's actions still go through the host that
 	// pushed the PR, so they exist only when this workspace's linked PR is
@@ -126,6 +134,8 @@ export function PullRequestPane({
 						data={detail.data}
 						isLoading={detail.isLoading}
 						showStartWorkspace={false}
+						onRefresh={refresh}
+						isRefreshing={isRefreshing}
 					/>
 				</div>
 			</div>

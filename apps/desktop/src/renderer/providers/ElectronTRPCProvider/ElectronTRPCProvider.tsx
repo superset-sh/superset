@@ -122,6 +122,7 @@ export function ElectronTRPCProvider({
 						dehydrateOptions: {
 							shouldDehydrateQuery: (query) => {
 								if (!defaultShouldDehydrateQuery(query)) return false;
+								if (query.meta?.persist === true) return true;
 								const head = query.queryKey[0];
 								if (typeof head === "string") {
 									return PERSIST_KEY_PREFIXES.has(head);

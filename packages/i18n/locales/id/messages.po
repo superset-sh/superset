@@ -13602,6 +13602,9 @@ msgstr "Segarkan issue Linear"
 msgid "Refresh metrics"
 msgstr "Segarkan metrik"
 
+msgid "Refresh pull request"
+msgstr "Segarkan pull request"
+
 msgid "Refresh pull requests"
 msgstr "Segarkan pull request"
 

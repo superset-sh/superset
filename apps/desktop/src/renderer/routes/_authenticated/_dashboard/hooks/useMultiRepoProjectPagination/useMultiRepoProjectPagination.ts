@@ -97,7 +97,6 @@ export function useMultiRepoProjectPagination<
 			shouldKeepWorkItemsPlaceholder(
 				previousQuery?.queryKey,
 				queryTarget.target.key,
-				queryTarget.target.hostUrl,
 			)
 				? previousData
 				: undefined,

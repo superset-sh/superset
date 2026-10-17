@@ -290,7 +290,7 @@ test("a legacy link with no host or repository fails instead of loading forever"
 		isReady: true,
 	};
 	const view = mountDetail(null, null);
-	await waitFor(() => expect(view.result.current.isError).toBe(true));
+	await waitFor(() => expect(view.result.current.error).not.toBeNull());
 	expect(view.result.current.isLoading).toBe(false);
 	expect(getContent).not.toHaveBeenCalled();
 	expect(getPullRequest).not.toHaveBeenCalled();

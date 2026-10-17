@@ -13602,6 +13602,9 @@ msgstr "Linear issueを更新"
 msgid "Refresh metrics"
 msgstr "メトリクスを更新"
 
+msgid "Refresh pull request"
+msgstr "プルリクエストを更新"
+
 msgid "Refresh pull requests"
 msgstr "プルリクエストを更新"
 

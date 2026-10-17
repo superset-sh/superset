@@ -13602,6 +13602,9 @@ msgstr "Obnovit Linear issues"
 msgid "Refresh metrics"
 msgstr "Obnovit metriky"
 
+msgid "Refresh pull request"
+msgstr "Obnovit pull request"
+
 msgid "Refresh pull requests"
 msgstr "Obnovit pull requesty"
 

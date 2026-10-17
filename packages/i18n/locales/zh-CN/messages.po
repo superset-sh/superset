@@ -13602,6 +13602,9 @@ msgstr "刷新Linear议题"
 msgid "Refresh metrics"
 msgstr "刷新指标"
 
+msgid "Refresh pull request"
+msgstr "刷新拉取请求"
+
 msgid "Refresh pull requests"
 msgstr "刷新拉取请求"
 

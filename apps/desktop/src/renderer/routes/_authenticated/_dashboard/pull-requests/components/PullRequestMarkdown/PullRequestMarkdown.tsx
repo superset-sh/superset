@@ -1,5 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
+import { memo, useMemo } from "react";
 import type { Components } from "react-markdown";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
 import { SafeImage } from "renderer/components/MarkdownRenderer/components";
@@ -93,19 +94,23 @@ interface PullRequestMarkdownProps {
 }
 
 /** A GitHub body as page prose: template comments gone, no inner scroller. */
-export function PullRequestMarkdown({
+export const PullRequestMarkdown = memo(function PullRequestMarkdown({
 	body,
 	className,
 	size = "page",
 }: PullRequestMarkdownProps) {
 	const { t } = useLingui();
-	const prepared = preparePullRequestMarkdown(body, {
-		note: t({ message: "Note" }),
-		tip: t({ message: "Tip" }),
-		important: t({ message: "Important" }),
-		warning: t({ message: "Warning" }),
-		caution: t({ message: "Caution" }),
-	});
+	const prepared = useMemo(
+		() =>
+			preparePullRequestMarkdown(body, {
+				note: t({ message: "Note" }),
+				tip: t({ message: "Tip" }),
+				important: t({ message: "Important" }),
+				warning: t({ message: "Warning" }),
+				caution: t({ message: "Caution" }),
+			}),
+		[body, t],
+	);
 	if (!prepared) {
 		return (
 			<p className={cn("text-sm italic text-muted-foreground", className)}>
@@ -125,4 +130,4 @@ export function PullRequestMarkdown({
 			)}
 		/>
 	);
-}
+});
