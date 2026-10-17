@@ -1,11 +1,16 @@
 {{MARKER}}
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
+
 /**
  * Superset Notification Plugin for OpenCode
  *
  * This plugin sends desktop notifications when OpenCode sessions need attention.
- * It hooks into session.status (busy/idle), session.idle, session.error, and permission.ask events.
+ * It subscribes to session lifecycle, permission, and question events.
  *
- * ROBUSTNESS FEATURES (v11):
+ * ROBUSTNESS FEATURES (v12):
  * - Session-scoped: Tracks root sessionID, ignores events from other sessions
  * - Deduplication: Only sends Start on idle→busy, Stop on busy→idle transitions
  * - Safe defaults: On error, assumes child session to avoid false positives
@@ -22,10 +27,7 @@
  *
  * @see https://github.com/sst/opencode/blob/dev/packages/app/src/context/notification.tsx
  */
-export const SupersetNotifyPlugin = async ({ $, client }) => {
-  if (globalThis.__supersetOpencodeNotifyPluginV11) return {};
-  globalThis.__supersetOpencodeNotifyPluginV11 = true;
-
+const createNotifyHooks = async ({ $, client }) => {
   // Only run inside a v2 Superset terminal session.
   if (!process?.env?.SUPERSET_TERMINAL_ID) return {};
 
@@ -82,11 +84,17 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
     if (childSessionCache.has(sessionID)) {
       return childSessionCache.get(sessionID);
     }
-    if (!client?.session?.list) return true; // Can't check, skip
+    if (!client?.session?.list && !client?.session?.get) return true; // Can't check, skip
 
     try {
-      const sessions = await client.session.list();
-      const session = sessions.data?.find((s) => s.id === sessionID);
+      let session;
+      if (client.session.list) {
+        const sessions = await client.session.list();
+        session = sessions.data?.find((s) => s.id === sessionID);
+      } else {
+        const response = await client.session.get({ sessionID });
+        session = response?.data ?? response;
+      }
       // A missing session is not proof of a root. Retry on a later event
       // instead of caching a race with session creation as a root identity.
       if (!session) return true;
@@ -257,4 +265,73 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
       }
     }),
   };
+};
+
+export const SupersetNotifyPlugin = async (input) => {
+  if (globalThis.__supersetOpencodeNotifyPluginV12Legacy) return {};
+  globalThis.__supersetOpencodeNotifyPluginV12Legacy = true;
+  return createNotifyHooks(input);
+};
+
+const releasePluginState = (state) => {
+  state.references -= 1;
+  if (state.references > 0) return;
+  state.controller.abort();
+  if (globalThis.__supersetOpencodeNotifyPluginV12 === state) {
+    delete globalThis.__supersetOpencodeNotifyPluginV12;
+  }
+};
+
+const cleanupPluginState = (state) => {
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    releasePluginState(state);
+  };
+};
+
+export default {
+  id: "superset.notify",
+  async setup(ctx) {
+    // OpenCode V2 plugins use setup() and the public event stream. Keep the
+    // named V1 entrypoint above so older OpenCode installations still work.
+    if (!process?.env?.SUPERSET_TERMINAL_ID) return;
+
+    const existingState = globalThis.__supersetOpencodeNotifyPluginV12;
+    if (existingState) {
+      existingState.references += 1;
+      return cleanupPluginState(existingState);
+    }
+
+    const controller = new AbortController();
+    const state = { references: 1, controller };
+    globalThis.__supersetOpencodeNotifyPluginV12 = state;
+    const cleanup = cleanupPluginState(state);
+    const consumeEvents = async (hooks) => {
+      for await (const event of ctx.event.subscribe({ signal: controller.signal })) {
+        await hooks.event({ event });
+      }
+    };
+
+    try {
+      const hooks = await createNotifyHooks({
+        client: ctx,
+        $: async (_parts, notifyPath, payload) => {
+          await execFileAsync("bash", [notifyPath, payload], {
+            env: { ...process.env, SUPERSET_HOOK_HARNESS: "opencode" },
+          });
+        },
+      });
+      void consumeEvents(hooks).catch((err) => {
+        if (controller.signal.aborted || process?.env?.SUPERSET_DEBUG !== "1") return;
+        console.log("[superset-plugin] Event subscription failed:", err?.message || err);
+      });
+    } catch (err) {
+      cleanup();
+      throw err;
+    }
+
+    return cleanup;
+  },
 };

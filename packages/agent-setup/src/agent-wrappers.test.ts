@@ -116,37 +116,60 @@ function requireContent(content: string | null): string {
 
 describe("agent-wrappers opencode", () => {
 	const originalTerminalId = process.env.SUPERSET_TERMINAL_ID;
-	// Written and imported once. A fresh file per test used to be the way to get
-	// a fresh module, but only the first dynamic import out of this directory
-	// ever resolved — the rest died on "Cannot find module" for a file that was
-	// definitely on disk. Nothing here needs a fresh module anyway: the plugin's
-	// re-entry guard lives on `globalThis`, not in module scope, and `beforeEach`
-	// clears it, so one cached import gives every test its own hooks.
+	const originalNotificationLog = process.env.SUPERSET_TEST_NOTIFICATION_LOG;
+	// The generated module is imported once; every plugin setup gets its own state.
 	/** The plugin hands back a map of OpenCode hooks, keyed by event name. */
 	type OpenCodeHooks = Record<
 		string,
 		(...args: unknown[]) => Promise<unknown> | unknown
 	>;
+	type OpenCodePluginContext = {
+		event: {
+			subscribe: (input: { signal: AbortSignal }) => AsyncIterable<{
+				type: string;
+				properties?: Record<string, unknown>;
+			}>;
+		};
+		session: {
+			get: (input: { sessionID: string }) => Promise<unknown>;
+		};
+	};
 	let pluginModule: Promise<{
 		SupersetNotifyPlugin: (input: unknown) => Promise<OpenCodeHooks>;
+		default: {
+			id: string;
+			setup: (ctx: OpenCodePluginContext) => Promise<undefined | (() => void)>;
+		};
 	}>;
 
 	const loadOpenCodePlugin = async () => {
 		if (!pluginModule) {
 			mkdirSync(TEST_ROOT, { recursive: true });
 			const pluginPath = path.join(TEST_ROOT, "opencode-notify.mjs");
-			writeFileSync(pluginPath, getOpenCodePluginContent("/tmp/notify.sh"));
+			const notifyPath = path.join(TEST_ROOT, "notify.sh");
+			writeFileSync(
+				notifyPath,
+				'#!/usr/bin/env bash\nprintf \'{"harness":"%s","payload":%s}\\n\' "$SUPERSET_HOOK_HARNESS" "$1" >> "$SUPERSET_TEST_NOTIFICATION_LOG"\n',
+				{ mode: 0o755 },
+			);
+			writeFileSync(pluginPath, getOpenCodePluginContent(notifyPath));
 			pluginModule = import(pathToFileURL(pluginPath).href);
 		}
 		return pluginModule;
 	};
 
 	beforeEach(() => {
-		delete (
-			globalThis as typeof globalThis & {
-				__supersetOpencodeNotifyPluginV11?: boolean;
-			}
-		).__supersetOpencodeNotifyPluginV11;
+		delete process.env.SUPERSET_TEST_NOTIFICATION_LOG;
+		const pluginGlobals = globalThis as typeof globalThis & {
+			__supersetOpencodeNotifyPluginV12Legacy?: boolean;
+			__supersetOpencodeNotifyPluginV12?: {
+				references: number;
+				controller: AbortController;
+			};
+		};
+		pluginGlobals.__supersetOpencodeNotifyPluginV12?.controller.abort();
+		delete pluginGlobals.__supersetOpencodeNotifyPluginV12Legacy;
+		delete pluginGlobals.__supersetOpencodeNotifyPluginV12;
 	});
 
 	afterEach(() => {
@@ -155,6 +178,85 @@ describe("agent-wrappers opencode", () => {
 		} else {
 			process.env.SUPERSET_TERMINAL_ID = originalTerminalId;
 		}
+		if (originalNotificationLog === undefined) {
+			delete process.env.SUPERSET_TEST_NOTIFICATION_LOG;
+		} else {
+			process.env.SUPERSET_TEST_NOTIFICATION_LOG = originalNotificationLog;
+		}
+	});
+
+	it("loads the V2 plugin definition and subscribes to lifecycle events", async () => {
+		process.env.SUPERSET_TERMINAL_ID = "terminal-1";
+		const notificationLog = path.join(TEST_ROOT, "notifications.jsonl");
+		process.env.SUPERSET_TEST_NOTIFICATION_LOG = notificationLog;
+		const { default: plugin } = await loadOpenCodePlugin();
+		expect(plugin.id).toBe("superset.notify");
+
+		const eventConsumed = Promise.withResolvers<void>();
+		let subscriptionSignal: AbortSignal | undefined;
+		const cleanup = await plugin.setup({
+			session: { get: async ({ sessionID }) => ({ id: sessionID }) },
+			event: {
+				subscribe: ({ signal }) => {
+					subscriptionSignal = signal;
+					return (async function* () {
+						yield {
+							type: "session.status",
+							properties: { sessionID: "root", status: { type: "busy" } },
+						};
+						eventConsumed.resolve();
+					})();
+				},
+			},
+		});
+
+		await eventConsumed.promise;
+		const notifications = readFileSync(notificationLog, "utf8")
+			.trim()
+			.split("\n")
+			.map((line) => JSON.parse(line));
+		expect(notifications).toEqual([
+			{
+				harness: "opencode",
+				payload: { hook_event_name: "Start", session_id: "root" },
+			},
+		]);
+
+		cleanup?.();
+		expect(subscriptionSignal?.aborted).toBe(true);
+	});
+
+	it("shares one event stream between V2 plugin instances", async () => {
+		process.env.SUPERSET_TERMINAL_ID = "terminal-1";
+		const { default: plugin } = await loadOpenCodePlugin();
+		const streamClosed = Promise.withResolvers<void>();
+		let subscriptions = 0;
+		let subscriptionSignal: AbortSignal | undefined;
+		const ctx: OpenCodePluginContext = {
+			session: { get: async ({ sessionID }) => ({ id: sessionID }) },
+			event: {
+				subscribe: ({ signal }) => {
+					subscriptions += 1;
+					subscriptionSignal = signal;
+					return (async function* () {
+						await new Promise<void>((resolve) => {
+							signal.addEventListener("abort", () => resolve(), { once: true });
+						});
+						streamClosed.resolve();
+					})();
+				},
+			},
+		};
+
+		const firstCleanup = await plugin.setup(ctx);
+		const secondCleanup = await plugin.setup(ctx);
+		expect(subscriptions).toBe(1);
+
+		firstCleanup?.();
+		expect(subscriptionSignal?.aborted).toBe(false);
+		secondCleanup?.();
+		await streamClosed.promise;
+		expect(subscriptionSignal?.aborted).toBe(true);
 	});
 
 	it("reports a session error as Failed with its error message", async () => {
