@@ -55,6 +55,18 @@ export function TabItem<TData>({
 	const { t } = useLingui();
 	const [isEditing, setIsEditing] = useState(false);
 	const [editValue, setEditValue] = useState("");
+	// A menu keeps focus trapped until its exit animation ends, so the
+	// rename has to start after the menu has closed (see the content's
+	// onCloseAutoFocus). Mounting the input during the close leaves it
+	// unfocused: typing then goes to the pane the tab selects (#8133).
+	const pendingRename = useRef(false);
+	// Chromium moves focus to <body> on a mousedown that lands on something
+	// unfocusable, and this tab's wrapper is a div - the blur happens before
+	// the menu mounts, so the element Radix captures for its own focus
+	// restoration is already <body> and a plain dismissal has nothing to hand
+	// back. Remember where the focus actually was, from the mousedown that
+	// still sees it, so the close can put it back (#8133).
+	const focusedBeforeMenu = useRef<HTMLElement | null>(null);
 	const title = useTabTitle(tab, tabs, registry);
 
 	const startEditing = () => {
@@ -119,6 +131,12 @@ export function TabItem<TData>({
 				{/* biome-ignore lint/a11y/useKeyWithClickEvents: tabs are pointer-driven; keyboard nav is out of scope here */}
 				<div
 					ref={setRef}
+					onMouseDownCapture={(event) => {
+						if (event.button !== 2) return;
+						const active = document.activeElement as HTMLElement | null;
+						focusedBeforeMenu.current =
+							active && active !== document.body ? active : null;
+					}}
 					className={cn(
 						"group relative flex h-full w-full items-center rounded-t-md transition-colors",
 						isActive
@@ -200,8 +218,41 @@ export function TabItem<TData>({
 					)}
 				</div>
 			</ContextMenuTrigger>
-			<ContextMenuContent>
-				<ContextMenuItem onSelect={startEditing}>
+			<ContextMenuContent
+				onCloseAutoFocus={(event) => {
+					// Nothing to run: this is a plain dismissal (Escape, click
+					// away), so the focus goes back where it was before the menu
+					// opened. Radix's own restoration cannot do it here - it
+					// targets the <body> the right-click already blurred to (see
+					// `focusedBeforeMenu`) - so hand it back ourselves, and only
+					// when the close actually dropped it: a click-away that
+					// landed on something focusable keeps that focus.
+					if (!pendingRename.current) {
+						const target = focusedBeforeMenu.current;
+						focusedBeforeMenu.current = null;
+						if (
+							target?.isConnected &&
+							document.activeElement === document.body
+						) {
+							event.preventDefault();
+							target.focus({ preventScroll: true });
+						}
+						return;
+					}
+					// A pending rename moves focus itself, and the menu keeps
+					// focus trapped until its exit animation ends: the rename
+					// starts once the close is over, and the menu's own focus
+					// restoration is suppressed until then (#8133).
+					event.preventDefault();
+					pendingRename.current = false;
+					startEditing();
+				}}
+			>
+				<ContextMenuItem
+					onSelect={() => {
+						pendingRename.current = true;
+					}}
+				>
 					<PencilIcon className="mr-2 size-4" />
 					<Trans>Rename</Trans>
 				</ContextMenuItem>
