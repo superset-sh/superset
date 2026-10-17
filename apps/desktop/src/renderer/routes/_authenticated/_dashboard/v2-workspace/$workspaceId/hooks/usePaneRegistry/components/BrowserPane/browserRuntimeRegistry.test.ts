@@ -295,6 +295,7 @@ describe("browserRuntimeRegistry guest lifecycle", () => {
 
 			fire(entry.webview, "did-navigate-in-page", {
 				url: "http://localhost:3000/app#tab",
+				isMainFrame: true,
 			});
 			expect(browserRuntimeRegistry.getState(paneId).currentUrl).toBe(
 				"http://localhost:3000/app#tab",
@@ -304,7 +305,51 @@ describe("browserRuntimeRegistry guest lifecycle", () => {
 		}
 	});
 
-	test("records the attempted URL of a failed main-frame load only", () => {
+	test("preserves the page URL when an iframe navigates in-page", () => {
+		const paneId = "subframe-navigation-pane";
+		const entry = createEntry(paneId);
+		const persisted: string[] = [];
+		entry.onPersist = (state) => persisted.push(state.url);
+		try {
+			fire(entry.webview, "did-navigate", { url: "http://localhost:3000/app" });
+			fire(entry.webview, "page-title-updated", { title: "App" });
+			fire(entry.webview, "did-navigate-in-page", {
+				url: "http://frame.example/embed#tab",
+				isMainFrame: false,
+			});
+			fire(entry.webview, "did-stop-loading");
+
+			expect(browserRuntimeRegistry.getState(paneId).currentUrl).toBe(
+				"http://localhost:3000/app",
+			);
+			expect(browserRuntimeRegistry.getState(paneId).pageTitle).toBe("App");
+			expect(persisted).toEqual(["http://localhost:3000/app"]);
+		} finally {
+			registryInternals.entries.delete(paneId);
+		}
+	});
+
+	test("does not replace the page with an iframe load error", () => {
+		const paneId = "subframe-failed-load-pane";
+		const entry = createEntry(paneId);
+		try {
+			fire(entry.webview, "did-start-loading");
+			const state = browserRuntimeRegistry.getState(paneId);
+			fire(entry.webview, "did-fail-load", {
+				errorCode: -102,
+				errorDescription: "ERR_CONNECTION_REFUSED",
+				validatedURL: "http://frame.example/embed",
+				isMainFrame: false,
+			});
+			expect(browserRuntimeRegistry.getState(paneId)).toBe(state);
+			expect(state.error).toBeNull();
+			expect(state.isLoading).toBe(true);
+		} finally {
+			registryInternals.entries.delete(paneId);
+		}
+	});
+
+	test("records a main-frame load error without replacing it with an iframe error", () => {
 		const paneId = "lifecycle-failed-load-pane";
 		const entry = createEntry(paneId);
 		try {
@@ -326,6 +371,7 @@ describe("browserRuntimeRegistry guest lifecycle", () => {
 			});
 			state = browserRuntimeRegistry.getState(paneId);
 			expect(state.currentUrl).toBe("http://localhost:3000/");
+			expect(state.error?.code).toBe(-102);
 		} finally {
 			registryInternals.entries.delete(paneId);
 		}
