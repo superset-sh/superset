@@ -34,6 +34,9 @@ msgstr "./"
 msgid ".sh"
 msgstr ".sh"
 
+msgid ".superset/config.json is not valid JSON. Fix it, then import again."
+msgstr ".superset/config.json không phải JSON hợp lệ. Hãy sửa rồi nhập lại."
+
 msgid "· updated {updatedAgo}"
 msgstr "· cập nhật {updatedAgo}"
 
@@ -1043,6 +1046,9 @@ msgstr "Đã đặt lại {presetLabel} về mặc định"
 msgid "{previewSize}px · {0} line height"
 msgstr "{previewSize}px · chiều cao dòng {0}"
 
+msgid "{projectName} has setup scripts from another tool. Import them?"
+msgstr "{projectName} có script thiết lập từ công cụ khác. Nhập các script đó?"
+
 msgid "{provider} logo"
 msgstr "Logo {provider}"
 
@@ -1224,6 +1230,9 @@ msgstr "+{hiddenCount} trước đó"
 msgid "+{remainingCount} more"
 msgstr "+{remainingCount} nữa"
 
+msgid "<0>.superset/config.json</0> is not valid JSON. Fix it before you import, so Superset does not overwrite it."
+msgstr "<0>.superset/config.json</0> không phải JSON hợp lệ. Hãy sửa trước khi nhập để Superset không ghi đè nó."
+
 #. placeholder {0}: paths[0]?.split("/").pop()
 msgid "<0>{0}</0> is not a git repository. Would you like to initialize one?"
 msgstr "<0>{0}</0> không phải là repository git. Bạn có muốn khởi tạo một repository không?"
@@ -1237,6 +1246,9 @@ msgstr "<0>{displayName}</0> đang yêu cầu truy cập tài khoản Superset c
 
 msgid "<0>{primaryFont}</0> is not installed on this system. Falling back to the next available font."
 msgstr "<0>{primaryFont}</0> chưa được cài trên hệ thống này. Đang dùng font khả dụng kế tiếp."
+
+msgid "<0>{unsafePathList}</0> is a symlink or leads outside this project. Superset does not write through it; replace it with a regular file or folder, then import."
+msgstr "<0>{unsafePathList}</0> là liên kết tượng trưng hoặc dẫn ra ngoài dự án này. Superset không ghi qua nó; hãy thay bằng tệp hoặc thư mục thường rồi nhập lại."
 
 #. placeholder {0}: formatNumber(rank)
 #. placeholder {1}: formatNumber(total)
@@ -5972,6 +5984,9 @@ msgstr "Người dùng đã xóa"
 msgid "Deleted workspaces, but couldn’t finish updating the sidebar"
 msgstr "Đã xóa workspace, nhưng không cập nhật xong thanh bên"
 
+msgid "Deletes <0>{currentScriptFile}</0>, which an earlier import created"
+msgstr "Xóa <0>{currentScriptFile}</0>, tệp do lần nhập trước tạo"
+
 #. placeholder {0}: account?.sourceLabel
 msgid "Deletes the {0} profile and its saved sign-in on this machine. The account itself is unaffected."
 msgstr "Xóa hồ sơ {0} và lần đăng nhập đã lưu của nó trên máy này. Bản thân tài khoản không bị ảnh hưởng."
@@ -6984,6 +6999,9 @@ msgstr "Trình soạn thảo ngoài"
 
 msgid "extra ${used} of ${limit}"
 msgstr "dùng thêm ${used} trên ${limit}"
+
+msgid "Extra command; add it as a terminal script if you need it"
+msgstr "Lệnh bổ sung; thêm nó làm script terminal nếu bạn cần"
 
 msgid "Extra high"
 msgstr "Rất cao"
@@ -8665,6 +8683,12 @@ msgstr "Nhập thất bại"
 msgid "Import failed: {message}"
 msgstr "Nhập thất bại: {message}"
 
+msgid "Import from {label}"
+msgstr "Nhập từ {label}"
+
+msgid "Import from another tool"
+msgstr "Nhập từ công cụ khác"
+
 msgid "Import from file"
 msgstr "Nhập từ tệp"
 
@@ -8676,6 +8700,9 @@ msgstr "Nhập sẽ đưa worktree sang một nhánh mới tại commit hiện t
 
 msgid "Import settings from another browser"
 msgstr "Nhập cài đặt từ trình duyệt khác"
+
+msgid "Import setup from {label}"
+msgstr "Nhập thiết lập từ {label}"
 
 msgid "import the project"
 msgstr "nhập dự án"
@@ -8695,6 +8722,10 @@ msgstr "Nhập…"
 msgid "Important"
 msgstr "Quan trọng"
 
+msgctxt "heading over the commands an import would write, below the current ones"
+msgid "Imported"
+msgstr "Sẽ nhập"
+
 #. placeholder {0}: untracked.length
 #. placeholder {1}: errors[0]
 msgid "Imported {imported} of {0} worktrees: {1}"
@@ -8705,6 +8736,9 @@ msgstr "Đã nhập {joinedMessages}"
 
 msgid "Imported from Linear"
 msgstr "Được nhập từ Linear"
+
+msgid "Imported setup from {label}"
+msgstr "Đã nhập thiết lập từ {label}"
 
 msgid "Imported to tasks"
 msgstr "Đã nhập vào tác vụ"
@@ -11231,6 +11265,9 @@ msgstr "Không có star nào trong khoảng này."
 msgid "No Stripe customer found"
 msgstr "Không tìm thấy khách hàng Stripe"
 
+msgid "No Superset setup scripts"
+msgstr "Chưa có script thiết lập Superset"
+
 msgid "no tags"
 msgstr "không có thẻ"
 
@@ -11363,6 +11400,12 @@ msgstr "Không phải tuyên bố cho 2026"
 msgid "Not a member of this organization"
 msgstr "Không phải thành viên của tổ chức này"
 
+msgid "Not a plain relative path"
+msgstr "Không phải đường dẫn tương đối đơn giản"
+
+msgid "Not a value this file accepts"
+msgstr "Không phải giá trị mà tệp này chấp nhận"
+
 msgid "Not authenticated. Please sign in."
 msgstr "Chưa xác thực. Vui lòng đăng nhập."
 
@@ -11395,6 +11438,9 @@ msgstr "Không tìm thấy"
 
 msgid "Not granted"
 msgstr "Chưa cấp"
+
+msgid "Not imported"
+msgstr "Không được nhập"
 
 msgid "Not included"
 msgstr "Không có"
@@ -11450,6 +11496,9 @@ msgstr "Không có gì ở đây."
 
 msgid "Nothing is running. Archive it and create a new one."
 msgstr "Không có gì đang chạy. Hãy lưu trữ nó và tạo cái mới."
+
+msgid "Nothing left to import"
+msgstr "Không còn gì để nhập"
 
 msgid "Nothing lives at {pathname}."
 msgstr "Không có gì ở {pathname}."
@@ -12335,6 +12384,9 @@ msgstr "Tổng quan"
 
 msgid "Overwrite file"
 msgstr "Ghi đè tệp"
+
+msgid "Overwrites <0>{currentScriptFile}</0>"
+msgstr "Ghi đè <0>{currentScriptFile}</0>"
 
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
@@ -13418,6 +13470,9 @@ msgstr "Đọc và gửi thư"
 msgid "Read deployment and build logs"
 msgstr "Đọc log deployment và build"
 
+msgid "Read from <0>{fileList}</0>"
+msgstr "Đọc từ <0>{fileList}</0>"
+
 msgid "Read it on your phone"
 msgstr "Đọc trên điện thoại"
 
@@ -13897,6 +13952,9 @@ msgstr "Thay thế"
 msgid "Replace All"
 msgstr "Thay thế tất cả"
 
+msgid "Replace and import"
+msgstr "Thay thế và nhập"
+
 msgid "Replace custom audio"
 msgstr "Thay âm thanh riêng"
 
@@ -13908,6 +13966,12 @@ msgstr "Đã thay thế {replaced} tệp trong {where}"
 
 msgid "Replaced 1 file in {where}"
 msgstr "Đã thay thế 1 tệp trong {where}"
+
+msgid "Replaces <0>{currentCwd}</0> with <1>{importedCwd}</1>"
+msgstr "Thay <0>{currentCwd}</0> bằng <1>{importedCwd}</1>"
+
+msgid "Replaces current commands"
+msgstr "Thay thế lệnh hiện tại"
 
 msgid "Reply"
 msgstr "Trả lời"
@@ -14573,6 +14637,9 @@ msgstr "Các lần chạy sẽ xuất hiện ở đây khi một tự động h�
 
 msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
 msgstr "Chạy bên trong ứng dụng Superset trên thiết bị đó, nên cập nhật nó nghĩa là cập nhật ứng dụng ở đó."
+
+msgid "Runs instead of <0>{currentScriptFile}</0>, which runs today"
+msgstr "Chạy thay cho <0>{currentScriptFile}</0>, tệp đang chạy hiện nay"
 
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "Kết quả chạy nằm trong một workspace. Xem diff, merge những gì tốt."
@@ -16481,6 +16548,12 @@ msgstr "Hệ thống thiết kế Superset"
 msgid "Superset desktop app"
 msgstr "Ứng dụng Superset cho máy tính"
 
+msgid "Superset does not set this variable"
+msgstr "Superset không đặt biến này"
+
+msgid "Superset does not write through a symlink or outside this project."
+msgstr "Superset không ghi qua liên kết tượng trưng hoặc ra ngoài dự án này."
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise là Superset dành cho đội nhóm. Hãy liên hệ để biết thêm về những gì được bao gồm và cách nó phù hợp với tổ chức của bạn."
 
@@ -16498,6 +16571,9 @@ msgstr "Superset chuyển tiếp các cổng mà workspace từ xa mở trong l�
 
 msgid "Superset has a free tier. The source code is available on GitHub under Elastic License 2.0 (ELv2), so you can inspect and self-host it subject to the license terms."
 msgstr "Superset có gói miễn phí. Mã nguồn có trên GitHub theo Elastic License 2.0 (ELv2), nên bạn có thể xem và tự host theo các điều khoản của giấy phép."
+
+msgid "Superset has no matching setting"
+msgstr "Superset không có thiết lập tương ứng"
 
 msgid "Superset hit an unexpected error. Reload to try again."
 msgstr "Superset gặp lỗi không mong muốn. Tải lại để thử lại."
@@ -16640,6 +16716,9 @@ msgstr "Superset và các lựa chọn khác"
 
 msgid "Superset works with any CLI-based coding agent, including Claude Code, OpenCode, OpenAI Codex, and more. Choose a different agent for every task without changing your workspace or review flow."
 msgstr "Superset làm việc với mọi coding agent dạng CLI, gồm Claude Code, OpenCode, OpenAI Codex và nhiều agent khác. Chọn agent khác nhau cho từng tác vụ mà không phải đổi workspace hay quy trình review."
+
+msgid "Superset writes these scripts to .superset/config.json in this project. Review them before you import."
+msgstr "Superset ghi các script này vào .superset/config.json trong dự án này. Hãy xem lại trước khi nhập."
 
 msgid "superset.sh"
 msgstr "superset.sh"
@@ -17098,6 +17177,9 @@ msgstr "Máy đó không còn khả dụng"
 msgid "That name isn't allowed."
 msgstr "Tên đó không được phép."
 
+msgid "The {label} setup file is no longer in this project."
+msgstr "Tệp thiết lập của {label} không còn trong dự án này."
+
 msgid "The 2026 bet"
 msgstr "Canh bạc 2026"
 
@@ -17373,6 +17455,9 @@ msgstr "Nhà máy phần mềm tự vận hành"
 
 msgid "The server could not be found"
 msgstr "Không tìm thấy server"
+
+msgid "The setup files from other tools are gone, or this project already uses them."
+msgstr "Các tệp thiết lập từ công cụ khác không còn nữa, hoặc dự án này đã dùng chúng."
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "Liên kết đăng nhập không đầy đủ. Vui lòng thử lại."
@@ -17723,11 +17808,20 @@ msgstr "Thao tác này xóa worktree khỏi ổ đĩa và đóng workspace."
 msgid "This replaces its label, command, arguments, prompt and resume settings, environment variables, and icon with the current bundled configuration."
 msgstr "Thao tác này thay nhãn, lệnh, tham số, cài đặt prompt và resume, biến môi trường cùng biểu tượng bằng cấu hình đi kèm hiện tại."
 
+msgid "This replaces part of your current Superset setup."
+msgstr "Thao tác này thay thế một phần thiết lập Superset hiện tại của bạn."
+
 msgid "This repository does not allow merging from here."
 msgstr "Repository này không cho phép merge từ đây."
 
 msgid "This screen doesn't exist"
 msgstr "Màn hình này không tồn tại"
+
+msgid "This script has shell blocks that do not split into separate commands, so it is saved to <0>{scriptPath}</0>:"
+msgstr "Script này có các khối shell không thể tách thành lệnh riêng, nên nó được lưu vào <0>{scriptPath}</0>:"
+
+msgid "This setup changed while the dialog was open. Review the update and import again."
+msgstr "Thiết lập này đã thay đổi trong lúc hộp thoại mở. Hãy xem lại thay đổi và nhập lại."
 
 msgid "This Slack workspace is already connected by {owner}. Ask them to disconnect first."
 msgstr "Workspace Slack này đã được {owner} kết nối. Hãy nhờ họ ngắt kết nối trước."
@@ -17966,6 +18060,9 @@ msgstr "token mỗi phiên, 30 ngày gần nhất"
 
 msgid "Tokens stay off your machine"
 msgstr "Token không nằm trên máy của bạn"
+
+msgid "Too large to import"
+msgstr "Quá lớn để nhập"
 
 msgid "Too many dictations. Try again later."
 msgstr "Quá nhiều lượt đọc chính tả. Hãy thử lại sau."
@@ -18826,6 +18923,9 @@ msgstr "Xem ghi chú phát hành"
 msgid "View releases on GitHub"
 msgstr "Xem bản phát hành trên GitHub"
 
+msgid "View scripts"
+msgstr "Xem script"
+
 msgid "View Superset repository on GitHub"
 msgstr "Xem repository Superset trên GitHub"
 
@@ -19232,6 +19332,9 @@ msgstr "Đang làm"
 msgctxt "agent status"
 msgid "Working"
 msgstr "Đang chạy"
+
+msgid "Working directory"
+msgstr "Thư mục làm việc"
 
 #. placeholder {0}: Math.floor(seconds / 60)
 #. placeholder {1}: seconds % 60

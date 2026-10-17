@@ -492,6 +492,7 @@ describe("buildV2TerminalEnv", () => {
 		cwd: "/tmp/workspace",
 		terminalId: "term-1",
 		workspaceId: "ws-1",
+		workspaceName: "fix-login",
 		workspacePath: "/tmp/workspace",
 		rootPath: "/tmp/repo",
 		supersetEnv: "production" as const,
@@ -508,6 +509,7 @@ describe("buildV2TerminalEnv", () => {
 			SUPERSET_TERMINAL_ID: "term-1",
 			SUPERSET_ORGANIZATION_ID: "org-1",
 			SUPERSET_WORKSPACE_ID: "ws-1",
+			SUPERSET_WORKSPACE_NAME: "fix-login",
 			SUPERSET_WORKSPACE_PATH: "/tmp/workspace",
 			SUPERSET_ROOT_PATH: "/tmp/repo",
 			SUPERSET_ENV: "production",
@@ -587,7 +589,7 @@ describe("buildV2TerminalEnv", () => {
 		expect(env.TERM_THEME).toBe("light");
 	});
 
-	test("drops removed v1 metadata while preserving user shell vars", () => {
+	test("drops removed v1 metadata and replaces a stale workspace name", () => {
 		const env = buildV2TerminalEnv({
 			...baseParams,
 			baseEnv: {
@@ -605,7 +607,7 @@ describe("buildV2TerminalEnv", () => {
 		expect(env.SUPERSET_TAB_ID).toBeUndefined();
 		expect(env.SUPERSET_PORT).toBeUndefined();
 		expect(env.SUPERSET_HOOK_VERSION).toBeUndefined();
-		expect(env.SUPERSET_WORKSPACE_NAME).toBeUndefined();
+		expect(env.SUPERSET_WORKSPACE_NAME).toBe("fix-login");
 		expect(env.NVM_DIR).toBe("/Users/test/.nvm");
 		expect(env.SSH_AUTH_SOCK).toBe("/tmp/ssh.sock");
 	});
@@ -636,6 +638,7 @@ describe("v2 env contract boundary", () => {
 			cwd: "/tmp/ws",
 			terminalId: "t-1",
 			workspaceId: "w-1",
+			workspaceName: "",
 			workspacePath: "/tmp/ws",
 			rootPath: "",
 			supersetEnv: "production",

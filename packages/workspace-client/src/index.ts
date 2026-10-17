@@ -36,6 +36,7 @@ export {
 	type RelaySocketOptions,
 } from "./lib/relaySocket";
 export {
+	invalidateHostServiceQuery,
 	useMaybeWorkspaceClient,
 	useWorkspaceClient,
 	useWorkspaceHostUrl,

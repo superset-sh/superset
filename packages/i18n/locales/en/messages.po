@@ -34,6 +34,9 @@ msgstr "./"
 msgid ".sh"
 msgstr ".sh"
 
+msgid ".superset/config.json is not valid JSON. Fix it, then import again."
+msgstr ".superset/config.json is not valid JSON. Fix it, then import again."
+
 msgid "· updated {updatedAgo}"
 msgstr "· updated {updatedAgo}"
 
@@ -1043,6 +1046,9 @@ msgstr "{presetLabel} reset to defaults"
 msgid "{previewSize}px · {0} line height"
 msgstr "{previewSize}px · {0} line height"
 
+msgid "{projectName} has setup scripts from another tool. Import them?"
+msgstr "{projectName} has setup scripts from another tool. Import them?"
+
 msgid "{provider} logo"
 msgstr "{provider} logo"
 
@@ -1224,6 +1230,9 @@ msgstr "+{hiddenCount} earlier"
 msgid "+{remainingCount} more"
 msgstr "+{remainingCount} more"
 
+msgid "<0>.superset/config.json</0> is not valid JSON. Fix it before you import, so Superset does not overwrite it."
+msgstr "<0>.superset/config.json</0> is not valid JSON. Fix it before you import, so Superset does not overwrite it."
+
 #. placeholder {0}: paths[0]?.split("/").pop()
 msgid "<0>{0}</0> is not a git repository. Would you like to initialize one?"
 msgstr "<0>{0}</0> is not a git repository. Would you like to initialize one?"
@@ -1237,6 +1246,9 @@ msgstr "<0>{displayName}</0> is requesting access to your Superset account"
 
 msgid "<0>{primaryFont}</0> is not installed on this system. Falling back to the next available font."
 msgstr "<0>{primaryFont}</0> is not installed on this system. Falling back to the next available font."
+
+msgid "<0>{unsafePathList}</0> is a symlink or leads outside this project. Superset does not write through it; replace it with a regular file or folder, then import."
+msgstr "<0>{unsafePathList}</0> is a symlink or leads outside this project. Superset does not write through it; replace it with a regular file or folder, then import."
 
 #. placeholder {0}: formatNumber(rank)
 #. placeholder {1}: formatNumber(total)
@@ -5972,6 +5984,9 @@ msgstr "Deleted user"
 msgid "Deleted workspaces, but couldn’t finish updating the sidebar"
 msgstr "Deleted workspaces, but couldn’t finish updating the sidebar"
 
+msgid "Deletes <0>{currentScriptFile}</0>, which an earlier import created"
+msgstr "Deletes <0>{currentScriptFile}</0>, which an earlier import created"
+
 #. placeholder {0}: account?.sourceLabel
 msgid "Deletes the {0} profile and its saved sign-in on this machine. The account itself is unaffected."
 msgstr "Deletes the {0} profile and its saved sign-in on this machine. The account itself is unaffected."
@@ -6984,6 +6999,9 @@ msgstr "External editor"
 
 msgid "extra ${used} of ${limit}"
 msgstr "extra ${used} of ${limit}"
+
+msgid "Extra command; add it as a terminal script if you need it"
+msgstr "Extra command; add it as a terminal script if you need it"
 
 msgid "Extra high"
 msgstr "Extra high"
@@ -8665,6 +8683,12 @@ msgstr "Import failed"
 msgid "Import failed: {message}"
 msgstr "Import failed: {message}"
 
+msgid "Import from {label}"
+msgstr "Import from {label}"
+
+msgid "Import from another tool"
+msgstr "Import from another tool"
+
 msgid "Import from file"
 msgstr "Import from file"
 
@@ -8676,6 +8700,9 @@ msgstr "Import puts a worktree on a new branch at its current commit, so it can 
 
 msgid "Import settings from another browser"
 msgstr "Import settings from another browser"
+
+msgid "Import setup from {label}"
+msgstr "Import setup from {label}"
 
 msgid "import the project"
 msgstr "import the project"
@@ -8695,6 +8722,10 @@ msgstr "Import…"
 msgid "Important"
 msgstr "Important"
 
+msgctxt "heading over the commands an import would write, below the current ones"
+msgid "Imported"
+msgstr "Imported"
+
 #. placeholder {0}: untracked.length
 #. placeholder {1}: errors[0]
 msgid "Imported {imported} of {0} worktrees: {1}"
@@ -8705,6 +8736,9 @@ msgstr "Imported {joinedMessages}"
 
 msgid "Imported from Linear"
 msgstr "Imported from Linear"
+
+msgid "Imported setup from {label}"
+msgstr "Imported setup from {label}"
 
 msgid "Imported to tasks"
 msgstr "Imported to tasks"
@@ -11231,6 +11265,9 @@ msgstr "No stars in this range."
 msgid "No Stripe customer found"
 msgstr "No Stripe customer found"
 
+msgid "No Superset setup scripts"
+msgstr "No Superset setup scripts"
+
 msgid "no tags"
 msgstr "no tags"
 
@@ -11363,6 +11400,12 @@ msgstr "Not a 2026 claim"
 msgid "Not a member of this organization"
 msgstr "Not a member of this organization"
 
+msgid "Not a plain relative path"
+msgstr "Not a plain relative path"
+
+msgid "Not a value this file accepts"
+msgstr "Not a value this file accepts"
+
 msgid "Not authenticated. Please sign in."
 msgstr "Not authenticated. Please sign in."
 
@@ -11395,6 +11438,9 @@ msgstr "Not found"
 
 msgid "Not granted"
 msgstr "Not granted"
+
+msgid "Not imported"
+msgstr "Not imported"
 
 msgid "Not included"
 msgstr "Not included"
@@ -11450,6 +11496,9 @@ msgstr "Nothing here."
 
 msgid "Nothing is running. Archive it and create a new one."
 msgstr "Nothing is running. Archive it and create a new one."
+
+msgid "Nothing left to import"
+msgstr "Nothing left to import"
 
 msgid "Nothing lives at {pathname}."
 msgstr "Nothing lives at {pathname}."
@@ -12335,6 +12384,9 @@ msgstr "Overview"
 
 msgid "Overwrite file"
 msgstr "Overwrite file"
+
+msgid "Overwrites <0>{currentScriptFile}</0>"
+msgstr "Overwrites <0>{currentScriptFile}</0>"
 
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
@@ -13418,6 +13470,9 @@ msgstr "Read and send mail"
 msgid "Read deployment and build logs"
 msgstr "Read deployment and build logs"
 
+msgid "Read from <0>{fileList}</0>"
+msgstr "Read from <0>{fileList}</0>"
+
 msgid "Read it on your phone"
 msgstr "Read it on your phone"
 
@@ -13897,6 +13952,9 @@ msgstr "Replace"
 msgid "Replace All"
 msgstr "Replace All"
 
+msgid "Replace and import"
+msgstr "Replace and import"
+
 msgid "Replace custom audio"
 msgstr "Replace custom audio"
 
@@ -13908,6 +13966,12 @@ msgstr "Replaced {replaced} files in {where}"
 
 msgid "Replaced 1 file in {where}"
 msgstr "Replaced 1 file in {where}"
+
+msgid "Replaces <0>{currentCwd}</0> with <1>{importedCwd}</1>"
+msgstr "Replaces <0>{currentCwd}</0> with <1>{importedCwd}</1>"
+
+msgid "Replaces current commands"
+msgstr "Replaces current commands"
 
 msgid "Reply"
 msgstr "Reply"
@@ -14573,6 +14637,9 @@ msgstr "Runs appear here once an automation fires."
 
 msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
 msgstr "Runs inside the Superset app on that device, so updating it means updating the app there."
+
+msgid "Runs instead of <0>{currentScriptFile}</0>, which runs today"
+msgstr "Runs instead of <0>{currentScriptFile}</0>, which runs today"
 
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "Runs land in a workspace. Review the diff, merge what's good."
@@ -16481,6 +16548,12 @@ msgstr "Superset Design System"
 msgid "Superset desktop app"
 msgstr "Superset desktop app"
 
+msgid "Superset does not set this variable"
+msgstr "Superset does not set this variable"
+
+msgid "Superset does not write through a symlink or outside this project."
+msgstr "Superset does not write through a symlink or outside this project."
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 
@@ -16498,6 +16571,9 @@ msgstr "Superset forwards the ports a remote workspace opens while you have it s
 
 msgid "Superset has a free tier. The source code is available on GitHub under Elastic License 2.0 (ELv2), so you can inspect and self-host it subject to the license terms."
 msgstr "Superset has a free tier. The source code is available on GitHub under Elastic License 2.0 (ELv2), so you can inspect and self-host it subject to the license terms."
+
+msgid "Superset has no matching setting"
+msgstr "Superset has no matching setting"
 
 msgid "Superset hit an unexpected error. Reload to try again."
 msgstr "Superset hit an unexpected error. Reload to try again."
@@ -16640,6 +16716,9 @@ msgstr "Superset vs the Alternatives"
 
 msgid "Superset works with any CLI-based coding agent, including Claude Code, OpenCode, OpenAI Codex, and more. Choose a different agent for every task without changing your workspace or review flow."
 msgstr "Superset works with any CLI-based coding agent, including Claude Code, OpenCode, OpenAI Codex, and more. Choose a different agent for every task without changing your workspace or review flow."
+
+msgid "Superset writes these scripts to .superset/config.json in this project. Review them before you import."
+msgstr "Superset writes these scripts to .superset/config.json in this project. Review them before you import."
 
 msgid "superset.sh"
 msgstr "superset.sh"
@@ -17098,6 +17177,9 @@ msgstr "That machine is no longer available"
 msgid "That name isn't allowed."
 msgstr "That name isn't allowed."
 
+msgid "The {label} setup file is no longer in this project."
+msgstr "The {label} setup file is no longer in this project."
+
 msgid "The 2026 bet"
 msgstr "The 2026 bet"
 
@@ -17373,6 +17455,9 @@ msgstr "The self-driving software factory"
 
 msgid "The server could not be found"
 msgstr "The server could not be found"
+
+msgid "The setup files from other tools are gone, or this project already uses them."
+msgstr "The setup files from other tools are gone, or this project already uses them."
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "The sign-in link was incomplete. Please try again."
@@ -17723,11 +17808,20 @@ msgstr "This removes the worktree from disk and closes the workspace."
 msgid "This replaces its label, command, arguments, prompt and resume settings, environment variables, and icon with the current bundled configuration."
 msgstr "This replaces its label, command, arguments, prompt and resume settings, environment variables, and icon with the current bundled configuration."
 
+msgid "This replaces part of your current Superset setup."
+msgstr "This replaces part of your current Superset setup."
+
 msgid "This repository does not allow merging from here."
 msgstr "This repository does not allow merging from here."
 
 msgid "This screen doesn't exist"
 msgstr "This screen doesn't exist"
+
+msgid "This script has shell blocks that do not split into separate commands, so it is saved to <0>{scriptPath}</0>:"
+msgstr "This script has shell blocks that do not split into separate commands, so it is saved to <0>{scriptPath}</0>:"
+
+msgid "This setup changed while the dialog was open. Review the update and import again."
+msgstr "This setup changed while the dialog was open. Review the update and import again."
 
 msgid "This Slack workspace is already connected by {owner}. Ask them to disconnect first."
 msgstr "This Slack workspace is already connected by {owner}. Ask them to disconnect first."
@@ -17966,6 +18060,9 @@ msgstr "tokens per session, trailing 30 days"
 
 msgid "Tokens stay off your machine"
 msgstr "Tokens stay off your machine"
+
+msgid "Too large to import"
+msgstr "Too large to import"
 
 msgid "Too many dictations. Try again later."
 msgstr "Too many dictations. Try again later."
@@ -18826,6 +18923,9 @@ msgstr "View release notes"
 msgid "View releases on GitHub"
 msgstr "View releases on GitHub"
 
+msgid "View scripts"
+msgstr "View scripts"
+
 msgid "View Superset repository on GitHub"
 msgstr "View Superset repository on GitHub"
 
@@ -19232,6 +19332,9 @@ msgstr "Working"
 msgctxt "agent status"
 msgid "Working"
 msgstr "Working"
+
+msgid "Working directory"
+msgstr "Working directory"
 
 #. placeholder {0}: Math.floor(seconds / 60)
 #. placeholder {1}: seconds % 60

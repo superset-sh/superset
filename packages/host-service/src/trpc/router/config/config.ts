@@ -12,6 +12,18 @@ import {
 	type SetupConfig,
 	shellSingleQuote,
 } from "../../../runtime/setup/config";
+import {
+	applySetupImport,
+	compareWithCurrentSetup,
+	findUnsafeImportPaths,
+	fingerprintSetupImport,
+	InvalidProjectConfigError,
+	inspectSetupImports,
+	isProjectConfigInvalid,
+	SETUP_IMPORT_SOURCES,
+	SetupImportConflictError,
+	UnsafeImportPathError,
+} from "../../../runtime/setup/import";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 
@@ -126,6 +138,90 @@ export const configRouter = router({
 				});
 			}
 			return { success: true as const };
+		}),
+
+	/**
+	 * Setups from other tools (Conductor, Orca, Codex, cmux, T3 Code) found in
+	 * the repo root, with what each would write, which fields it would change,
+	 * and which of those replace an existing Superset setup.
+	 */
+	getSetupImportCandidates: protectedProcedure
+		.input(projectIdInput)
+		.query(({ ctx, input }) => {
+			const project = requireProject(ctx, input.projectId);
+			return {
+				configInvalid: isProjectConfigInvalid(project.repoPath),
+				candidates: inspectSetupImports(project.repoPath).map((candidate) => ({
+					...candidate,
+					...compareWithCurrentSetup(project.repoPath, candidate),
+					fingerprint: fingerprintSetupImport(project.repoPath, candidate),
+					unsafePaths: findUnsafeImportPaths(project.repoPath, candidate),
+				})),
+			};
+		}),
+
+	/**
+	 * Re-reads the source and writes it into `.superset/`. Throws CONFLICT
+	 * when it would replace an existing field and `overwrite` is not set, or
+	 * when `fingerprint` no longer matches what the user reviewed.
+	 */
+	importSetup: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().uuid(),
+				source: z.enum(SETUP_IMPORT_SOURCES),
+				overwrite: z.boolean().optional(),
+				/** From getSetupImportCandidates; omitted by callers that show no preview. */
+				fingerprint: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const project = requireProject(ctx, input.projectId);
+			const candidate = inspectSetupImports(project.repoPath).find(
+				(entry) => entry.source === input.source,
+			);
+			if (!candidate) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `No ${input.source} setup found in ${project.repoPath}`,
+				});
+			}
+			if (
+				input.fingerprint !== undefined &&
+				input.fingerprint !==
+					fingerprintSetupImport(project.repoPath, candidate)
+			) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: "The setup changed after it was reviewed",
+				});
+			}
+			try {
+				return {
+					written: await applySetupImport({
+						repoPath: project.repoPath,
+						candidate,
+						overwrite: input.overwrite ?? false,
+					}),
+				};
+			} catch (error) {
+				if (error instanceof SetupImportConflictError) {
+					throw new TRPCError({ code: "CONFLICT", message: error.message });
+				}
+				if (error instanceof UnsafeImportPathError) {
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message: error.message,
+					});
+				}
+				if (error instanceof InvalidProjectConfigError) {
+					throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+				}
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Failed to import setup: ${error instanceof Error ? error.message : String(error)}`,
+				});
+			}
 		}),
 
 	getWorkspaceRunDefinition: protectedProcedure

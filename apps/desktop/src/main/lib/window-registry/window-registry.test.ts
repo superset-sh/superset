@@ -100,6 +100,15 @@ describe("window registry", () => {
 		expect(getFocusedOrLastWindow()).toBeNull();
 	});
 
+	test("getFocusedOrLastWindow with an org skips windows on other orgs", () => {
+		const a = makeWindow(1);
+		const b = makeWindow(2);
+		registerWindow({ window: a, orgId: "org-a", key: "key-295" });
+		registerWindow({ window: b, orgId: "org-b", key: "key-118" });
+		expect(getFocusedOrLastWindow("org-a")).toBe(a);
+		expect(getFocusedOrLastWindow("org-c")).toBeNull();
+	});
+
 	test("markFocused on unknown window does not add it", () => {
 		markFocused(42);
 		expect(getFocusedOrLastWindow()).toBeNull();

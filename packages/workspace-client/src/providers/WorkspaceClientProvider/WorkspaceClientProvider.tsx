@@ -107,6 +107,17 @@ function getWorkspaceClients(
 	return clients;
 }
 
+/** Invalidates a host-service query in every cached client for that host. */
+export function invalidateHostServiceQuery(
+	hostUrl: string,
+	path: readonly string[],
+): void {
+	for (const clients of workspaceClientsCache.values()) {
+		if (clients.hostUrl !== hostUrl) continue;
+		void clients.queryClient.invalidateQueries({ queryKey: [path] });
+	}
+}
+
 export function WorkspaceClientProvider({
 	cacheKey,
 	hostUrl,

@@ -3109,6 +3109,7 @@ async function createTerminalSessionUnlocked({
 			cwd,
 			terminalId,
 			workspaceId,
+			workspaceName: workspace.name,
 			workspacePath: workspace.worktreePath,
 			rootPath,
 			hostAgentHookUrl: getHostAgentHookUrl(),

@@ -1,0 +1,95 @@
+---
+title: Switch to Superset
+description: Switch to Superset from Conductor, Orca, cmux, T3 Code, or Codex
+---
+
+## Overview
+
+If your repository already has a setup file from another tool, Superset can turn it into [project lifecycle scripts](/setup-teardown-scripts) in one click.
+
+Superset looks for these files in the project's root checkout:
+
+| Tool | Files |
+| --- | --- |
+| Conductor | `conductor.json` |
+| Orca | `orca.yaml`, `.worktreeinclude` |
+| Codex | `.codex/environments/environment.toml` |
+| cmux | `.cmux/cmux.json`, then `cmux.json` |
+| T3 Code | `t3.json` |
+
+## Import a setup
+
+When you add a repository that has one of these files and no Superset scripts, Superset asks right away: **No Superset setup scripts**, with the project name and an offer to import the scripts from the other tool. This happens however you add it: from a folder, by cloning, or with `superset projects create` or `superset projects setup`.
+
+- **Import** opens the import dialog.
+- **Not now** closes the prompt and hides the sidebar card for that project.
+
+Superset asks once, in the Superset window you used last. If you added the repository from a terminal outside Superset, the prompt waits until you switch back.
+
+If you don't answer the prompt, the sidebar keeps showing **No Superset setup scripts** for that project. Click **Import** there.
+
+You can also import at any time from **Project settings → Project lifecycle scripts**: an **Import from Conductor** button (or **Import from another tool**, when there are several) shows while the import would change something.
+
+The import dialog shows, before anything is written:
+
+- The setup, teardown, and run commands Superset will write
+- Your current commands, for any field the import replaces
+- Every setting that is **not imported**, and why
+
+If the repository has files from more than one tool, pick the tool at the top of the dialog. The import writes `.superset/config.json` (and `.superset/<key>.sh` for long scripts, see below). Commit `.superset/` to share it with your team.
+
+<Callout type="info">
+The import never replaces an existing Superset script without asking. When a field already has commands, the dialog shows both versions and the button changes to **Replace and import**.
+</Callout>
+
+## What maps where
+
+| Superset | Conductor | Orca | Codex | cmux | T3 Code |
+| --- | --- | --- | --- | --- | --- |
+| `setup` | `scripts.setup` | `scripts.setup`, plus `worktree.sharedDirectories` and `.worktreeinclude` | `[setup] script` | The setup command (see below) | Every script with `runOnWorktreeCreate` |
+| `teardown` | `scripts.archive`, then `scripts.teardown` | `scripts.archive` | `[cleanup] script` | | |
+| `run` | `scripts.run` | First `defaultTabs` entry with a `command` | First action's `command` | | First script with the `play` icon |
+| `cwd` | | | | The setup command's `cwd` | |
+
+**Orca shared and copied paths.** Each `worktree.sharedDirectories` entry becomes a symlink to the root checkout, and each `.worktreeinclude` line becomes a copy. Both run before your setup script, and both skip a path that is missing in the root checkout or already present in the workspace. Paths must be literal and relative; globs and `..` are skipped. A symlink is not a directory to Git, so ignore a shared directory without a trailing slash (`.cache`, not `.cache/`), or it shows up as an untracked file.
+
+**cmux setup command.** cmux has no setup hook, so Superset picks the first command named `setup`, `project setup`, `workspace setup`, or `repository setup`. Failing that, it picks a command with the keyword `setup`, `init`, `initialize`, or `install` whose name or command mentions "setup".
+
+### Long scripts
+
+Superset runs each `setup`, `teardown`, and `run` entry in order, joined with `&&`. A script whose lines can run that way (one complete command per line) is imported as one entry per line, and comment lines are dropped.
+
+A script with shell blocks (`if`/`fi`, loops, functions, line continuations, heredocs, or inline comments) is saved to `.superset/setup.sh`, `.superset/teardown.sh`, or `.superset/run.sh` instead, and the config runs it:
+
+```json
+{ "setup": ["bash \"$SUPERSET_ROOT_PATH/.superset/setup.sh\""] }
+```
+
+The script runs with `bash` and `set -e`, so it stops at the first failed command, as the `&&` chain does. If a later import replaces it with plain commands, the dialog says so and the import deletes the file it wrote.
+
+## Environment variables
+
+The import rewrites the other tool's variables to Superset's. Both `$VAR` and `${VAR}` forms are rewritten.
+
+| Superset | Replaces |
+| --- | --- |
+| `SUPERSET_ROOT_PATH` | `CONDUCTOR_ROOT_PATH`, `ORCA_ROOT_PATH`, `GHOSTX_ROOT_PATH`, `T3CODE_PROJECT_ROOT` |
+| `SUPERSET_WORKSPACE_PATH` | `CONDUCTOR_WORKSPACE_PATH`, `ORCA_WORKTREE_PATH`, `T3CODE_WORKTREE_PATH` |
+| `SUPERSET_WORKSPACE_NAME` | `CONDUCTOR_WORKSPACE_NAME`, `ORCA_WORKSPACE_NAME` |
+
+Any other variable from these tools, such as `CONDUCTOR_PORT`, is kept as written and listed under **Not imported**. Replace it by hand before you run the script.
+
+## Not imported
+
+These settings have no Superset equivalent. The dialog lists each one it finds.
+
+| Setting | What to do instead |
+| --- | --- |
+| Conductor `runScriptMode`, `enterpriseDataPrivacy` | Nothing to set |
+| Orca `setupAgentStartupPolicy: wait-for-setup` | Turn on **Settings → Experimental → Wait for workspace setup before starting agents** |
+| Orca `issueCommand`, `environmentRecipes` | Nothing to set |
+| Extra Orca tabs, Codex actions, T3 Code scripts, and other cmux commands | Save each one as a [terminal script](/terminal-scripts) |
+| cmux `workspace` layouts, `confirm`, `restart` | Use [terminal scripts](/terminal-scripts) to open several panes |
+| T3 Code `async`, `previewUrl`, `runOnSettle` | Open preview URLs in the [browser](/browser) |
+
+Files larger than 256 KiB, and single fields larger than 64 KiB, are skipped.

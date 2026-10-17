@@ -4,7 +4,11 @@ import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { dialog, Menu } from "electron";
 import { menuEmitter } from "main/lib/menu-events";
-import { getOrg, setOrg } from "main/lib/window-registry/window-registry";
+import {
+	getFocusedOrLastWindow,
+	getOrg,
+	setOrg,
+} from "main/lib/window-registry/window-registry";
 import { getImageMimeType } from "shared/file-types";
 import { z } from "zod";
 import { publicProcedure, router } from "..";
@@ -55,6 +59,16 @@ export const createWindowRouter = () => {
 		/** The organization this window currently shows (per-window). */
 		getActiveOrg: publicProcedure.query(({ ctx }) => {
 			return ctx.senderWindow ? getOrg(ctx.senderWindow.id) : null;
+		}),
+
+		/** Whether the calling window is the most recently focused one on its org. */
+		isLastFocusedInOrg: publicProcedure.query(({ ctx }) => {
+			if (!ctx.senderWindow) return false;
+			const orgId = getOrg(ctx.senderWindow.id);
+			return (
+				orgId !== null &&
+				getFocusedOrLastWindow(orgId)?.id === ctx.senderWindow.id
+			);
 		}),
 
 		/** Set the organization for the calling window (window-local switch). */

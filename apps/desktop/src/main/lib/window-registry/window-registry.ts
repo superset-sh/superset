@@ -111,11 +111,12 @@ export function getAllWindows(): BrowserWindow[] {
 /**
  * The window that should receive app-level events (notification clicks, deep
  * links) when no specific window is implied. Prefers the most-recently-focused
- * live window; returns null if no live windows remain.
+ * live window, among those showing `orgId` when given; null if none remain.
  */
-export function getFocusedOrLastWindow(): BrowserWindow | null {
+export function getFocusedOrLastWindow(orgId?: string): BrowserWindow | null {
 	for (let i = focusOrder.length - 1; i >= 0; i--) {
 		const entry = registry.get(focusOrder[i]);
+		if (orgId !== undefined && entry?.orgId !== orgId) continue;
 		if (entry && !entry.window.isDestroyed()) {
 			return entry.window;
 		}

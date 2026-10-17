@@ -1,8 +1,11 @@
 import { useLingui } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 import type { SidebarCardEntry } from "renderer/components/SidebarCardSlot";
+import { useSetupImportCandidates } from "renderer/hooks/host-service/useSetupImportCandidates";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { ImportSetupDialog } from "renderer/routes/_authenticated/components/ImportSetupDialog";
 import { useNewWorkspaceDraftStore } from "renderer/stores/new-workspace-draft";
 import { useV2SetupCardDismissalsStore } from "renderer/stores/v2-setup-card-dismissals";
 import setupScriptPrompt from "./setup-script-prompt.md?raw";
@@ -34,9 +37,48 @@ export function useV2SetupScriptCard({
 		enabled: !!hostUrl && !!projectId,
 		refetchOnWindowFocus: true,
 	});
+	const [isImportOpen, setIsImportOpen] = useState(false);
+	const { candidates: importCandidates, configInvalid } =
+		useSetupImportCandidates({
+			hostUrl,
+			projectId,
+			enabled: (!!shouldShow && !isDismissed) || isImportOpen,
+		});
+	const lastImportLabelRef = useRef<string | null>(null);
+	const importCandidate = importCandidates[0];
+	useEffect(() => {
+		if (importCandidate) lastImportLabelRef.current = importCandidate.label;
+	}, [importCandidate]);
 
-	if (!hostUrl || !projectId || !projectName || isDismissed || !shouldShow) {
-		return null;
+	if (!hostUrl || !projectId || !projectName) return null;
+	// An open dialog outlives the card's eligibility so a failed import can
+	// show what changed instead of vanishing.
+	if (!isImportOpen && (isDismissed || !shouldShow)) return null;
+
+	const importLabel = importCandidate?.label ?? lastImportLabelRef.current;
+	if (importLabel && (importCandidate || isImportOpen)) {
+		return {
+			id: `setup-script-import:${projectId}`,
+			badge: t({
+				message: "Setup",
+			}),
+			title: t`No Superset setup scripts`,
+			description: t`${projectName} has setup scripts from another tool. Import them?`,
+			actionLabel: t`Import`,
+			onAction: () => setIsImportOpen(true),
+			onDismiss: () => dismiss(projectId),
+			children: (
+				<ImportSetupDialog
+					open={isImportOpen}
+					onOpenChange={setIsImportOpen}
+					hostUrl={hostUrl}
+					projectId={projectId}
+					candidates={importCandidates}
+					configInvalid={configInvalid}
+					linkToSettings
+				/>
+			),
+		};
 	}
 
 	return {

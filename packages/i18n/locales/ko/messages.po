@@ -34,6 +34,9 @@ msgstr "./"
 msgid ".sh"
 msgstr ".sh"
 
+msgid ".superset/config.json is not valid JSON. Fix it, then import again."
+msgstr ".superset/config.json이 올바른 JSON이 아닙니다. 수정한 다음 다시 가져오세요."
+
 msgid "· updated {updatedAgo}"
 msgstr "· {updatedAgo}에 업데이트"
 
@@ -1043,6 +1046,9 @@ msgstr "{presetLabel}이(가) 기본값으로 초기화되었습니다"
 msgid "{previewSize}px · {0} line height"
 msgstr "{previewSize}px · 줄 높이 {0}"
 
+msgid "{projectName} has setup scripts from another tool. Import them?"
+msgstr "{projectName}에 다른 도구의 설정 스크립트가 있습니다. 가져올까요?"
+
 msgid "{provider} logo"
 msgstr "{provider} 로고"
 
@@ -1224,6 +1230,9 @@ msgstr "이전 +{hiddenCount}개"
 msgid "+{remainingCount} more"
 msgstr "+{remainingCount}개 더"
 
+msgid "<0>.superset/config.json</0> is not valid JSON. Fix it before you import, so Superset does not overwrite it."
+msgstr "<0>.superset/config.json</0>이 올바른 JSON이 아닙니다. Superset이 덮어쓰지 않도록 가져오기 전에 수정하세요."
+
 #. placeholder {0}: paths[0]?.split("/").pop()
 msgid "<0>{0}</0> is not a git repository. Would you like to initialize one?"
 msgstr "<0>{0}</0>은(는) git 저장소가 아닙니다. 저장소를 초기화할까요?"
@@ -1237,6 +1246,9 @@ msgstr "<0>{displayName}</0>이(가) Superset 계정에 대한 접근을 요청�
 
 msgid "<0>{primaryFont}</0> is not installed on this system. Falling back to the next available font."
 msgstr "이 시스템에 <0>{primaryFont}</0>이(가) 설치되어 있지 않습니다. 사용할 수 있는 다음 글꼴로 대체합니다."
+
+msgid "<0>{unsafePathList}</0> is a symlink or leads outside this project. Superset does not write through it; replace it with a regular file or folder, then import."
+msgstr "<0>{unsafePathList}</0>은(는) 심볼릭 링크이거나 이 프로젝트 밖을 가리킵니다. Superset은 이를 통해 쓰지 않습니다. 일반 파일이나 폴더로 바꾼 다음 가져오세요."
 
 #. placeholder {0}: formatNumber(rank)
 #. placeholder {1}: formatNumber(total)
@@ -5972,6 +5984,9 @@ msgstr "삭제된 사용자"
 msgid "Deleted workspaces, but couldn’t finish updating the sidebar"
 msgstr "워크스페이스는 삭제했지만 사이드바 업데이트를 끝내지 못했습니다"
 
+msgid "Deletes <0>{currentScriptFile}</0>, which an earlier import created"
+msgstr "이전 가져오기에서 만든 <0>{currentScriptFile}</0>을(를) 삭제합니다"
+
 #. placeholder {0}: account?.sourceLabel
 msgid "Deletes the {0} profile and its saved sign-in on this machine. The account itself is unaffected."
 msgstr "이 머신에서 {0} 프로필과 저장된 로그인을 삭제합니다. 계정 자체에는 영향이 없습니다."
@@ -6984,6 +6999,9 @@ msgstr "외부 편집기"
 
 msgid "extra ${used} of ${limit}"
 msgstr "${limit} 중 추가 ${used}"
+
+msgid "Extra command; add it as a terminal script if you need it"
+msgstr "추가 명령입니다. 필요하면 터미널 스크립트로 추가하세요"
 
 msgid "Extra high"
 msgstr "매우 높음"
@@ -8665,6 +8683,12 @@ msgstr "가져오기 실패"
 msgid "Import failed: {message}"
 msgstr "가져오기 실패: {message}"
 
+msgid "Import from {label}"
+msgstr "{label}에서 가져오기"
+
+msgid "Import from another tool"
+msgstr "다른 도구에서 가져오기"
+
 msgid "Import from file"
 msgstr "파일에서 가져오기"
 
@@ -8676,6 +8700,9 @@ msgstr "가져오기는 worktree를 현재 커밋의 새 브랜치로 전환해 
 
 msgid "Import settings from another browser"
 msgstr "다른 브라우저에서 설정 가져오기"
+
+msgid "Import setup from {label}"
+msgstr "{label}에서 설정 가져오기"
 
 msgid "import the project"
 msgstr "프로젝트를 가져올"
@@ -8695,6 +8722,10 @@ msgstr "가져오기…"
 msgid "Important"
 msgstr "중요"
 
+msgctxt "heading over the commands an import would write, below the current ones"
+msgid "Imported"
+msgstr "가져올 내용"
+
 #. placeholder {0}: untracked.length
 #. placeholder {1}: errors[0]
 msgid "Imported {imported} of {0} worktrees: {1}"
@@ -8705,6 +8736,9 @@ msgstr "{joinedMessages} 가져옴"
 
 msgid "Imported from Linear"
 msgstr "Linear에서 가져옴"
+
+msgid "Imported setup from {label}"
+msgstr "{label}에서 설정을 가져왔습니다"
 
 msgid "Imported to tasks"
 msgstr "작업으로 가져왔습니다"
@@ -11231,6 +11265,9 @@ msgstr "이 기간에는 스타가 없습니다."
 msgid "No Stripe customer found"
 msgstr "Stripe 고객을 찾을 수 없습니다"
 
+msgid "No Superset setup scripts"
+msgstr "Superset 설정 스크립트 없음"
+
 msgid "no tags"
 msgstr "태그 없음"
 
@@ -11363,6 +11400,12 @@ msgstr "2026년에 대한 전망은 아님"
 msgid "Not a member of this organization"
 msgstr "이 조직의 멤버가 아닙니다"
 
+msgid "Not a plain relative path"
+msgstr "단순한 상대 경로가 아닙니다"
+
+msgid "Not a value this file accepts"
+msgstr "이 파일에서 허용하는 값이 아닙니다"
+
 msgid "Not authenticated. Please sign in."
 msgstr "인증되지 않았습니다. 로그인해 주세요."
 
@@ -11395,6 +11438,9 @@ msgstr "찾을 수 없습니다"
 
 msgid "Not granted"
 msgstr "허용 안 됨"
+
+msgid "Not imported"
+msgstr "가져오지 않은 항목"
 
 msgid "Not included"
 msgstr "미포함"
@@ -11450,6 +11496,9 @@ msgstr "아무것도 없습니다."
 
 msgid "Nothing is running. Archive it and create a new one."
 msgstr "실행 중인 것이 없습니다. 보관하고 새로 만드세요."
+
+msgid "Nothing left to import"
+msgstr "가져올 항목이 없습니다"
 
 msgid "Nothing lives at {pathname}."
 msgstr "{pathname}에는 아무것도 없습니다."
@@ -12335,6 +12384,9 @@ msgstr "개요"
 
 msgid "Overwrite file"
 msgstr "파일 덮어쓰기"
+
+msgid "Overwrites <0>{currentScriptFile}</0>"
+msgstr "<0>{currentScriptFile}</0>을(를) 덮어씁니다"
 
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
@@ -13418,6 +13470,9 @@ msgstr "메일 읽기 및 보내기"
 msgid "Read deployment and build logs"
 msgstr "배포 및 빌드 로그 확인"
 
+msgid "Read from <0>{fileList}</0>"
+msgstr "읽은 파일: <0>{fileList}</0>"
+
 msgid "Read it on your phone"
 msgstr "휴대폰으로 읽기"
 
@@ -13897,6 +13952,9 @@ msgstr "바꾸기"
 msgid "Replace All"
 msgstr "모두 바꾸기"
 
+msgid "Replace and import"
+msgstr "바꾸고 가져오기"
+
 msgid "Replace custom audio"
 msgstr "사용자 지정 오디오 교체"
 
@@ -13908,6 +13966,12 @@ msgstr "{where}에서 파일 {replaced}개를 바꿨습니다"
 
 msgid "Replaced 1 file in {where}"
 msgstr "{where}에서 파일 1개를 바꿨습니다"
+
+msgid "Replaces <0>{currentCwd}</0> with <1>{importedCwd}</1>"
+msgstr "<0>{currentCwd}</0>을(를) <1>{importedCwd}</1>(으)로 바꿉니다"
+
+msgid "Replaces current commands"
+msgstr "현재 명령 대체"
 
 msgid "Reply"
 msgstr "답글"
@@ -14573,6 +14637,9 @@ msgstr "자동화가 실행되면 여기에 표시됩니다."
 
 msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
 msgstr "해당 기기의 Superset 앱 안에서 실행되므로, 업데이트하려면 그 기기의 앱을 업데이트해야 합니다."
+
+msgid "Runs instead of <0>{currentScriptFile}</0>, which runs today"
+msgstr "현재 실행되는 <0>{currentScriptFile}</0> 대신 실행됩니다"
 
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "실행 결과는 워크스페이스에 도착합니다. 차이를 검토하고 괜찮은 것만 머지하세요."
@@ -16481,6 +16548,12 @@ msgstr "Superset 디자인 시스템"
 msgid "Superset desktop app"
 msgstr "Superset 데스크톱 앱"
 
+msgid "Superset does not set this variable"
+msgstr "Superset은 이 변수를 설정하지 않습니다"
+
+msgid "Superset does not write through a symlink or outside this project."
+msgstr "Superset은 심볼릭 링크를 통해서나 이 프로젝트 밖에는 쓰지 않습니다."
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise는 팀을 위한 Superset입니다. 어떤 기능이 포함되고 조직에 어떻게 적용할 수 있는지 문의해 주세요."
 
@@ -16498,6 +16571,9 @@ msgstr "원격 워크스페이스를 선택해 두면 Superset이 그 워크스�
 
 msgid "Superset has a free tier. The source code is available on GitHub under Elastic License 2.0 (ELv2), so you can inspect and self-host it subject to the license terms."
 msgstr "Superset에는 무료 플랜이 있습니다. 소스 코드는 Elastic License 2.0(ELv2)으로 GitHub에 공개되어 있어, 라이선스 조건에 따라 직접 확인하고 셀프 호스팅할 수 있습니다."
+
+msgid "Superset has no matching setting"
+msgstr "Superset에는 해당하는 설정이 없습니다"
 
 msgid "Superset hit an unexpected error. Reload to try again."
 msgstr "Superset에서 예기치 않은 오류가 발생했습니다. 다시 로드해 보세요."
@@ -16640,6 +16716,9 @@ msgstr "Superset과 대안 비교"
 
 msgid "Superset works with any CLI-based coding agent, including Claude Code, OpenCode, OpenAI Codex, and more. Choose a different agent for every task without changing your workspace or review flow."
 msgstr "Superset은 Claude Code, OpenCode, OpenAI Codex 등 CLI 기반 코딩 에이전트라면 무엇이든 함께 씁니다. 워크스페이스나 리뷰 흐름을 바꾸지 않고 작업마다 다른 에이전트를 고르세요."
+
+msgid "Superset writes these scripts to .superset/config.json in this project. Review them before you import."
+msgstr "Superset은 이 스크립트를 이 프로젝트의 .superset/config.json에 씁니다. 가져오기 전에 검토하세요."
 
 msgid "superset.sh"
 msgstr "superset.sh"
@@ -17098,6 +17177,9 @@ msgstr "해당 머신을 더 이상 사용할 수 없습니다"
 msgid "That name isn't allowed."
 msgstr "사용할 수 없는 이름입니다."
 
+msgid "The {label} setup file is no longer in this project."
+msgstr "{label} 설정 파일이 더 이상 이 프로젝트에 없습니다."
+
 msgid "The 2026 bet"
 msgstr "2026년의 베팅"
 
@@ -17373,6 +17455,9 @@ msgstr "자율 주행 소프트웨어 공장"
 
 msgid "The server could not be found"
 msgstr "서버를 찾을 수 없습니다"
+
+msgid "The setup files from other tools are gone, or this project already uses them."
+msgstr "다른 도구의 설정 파일이 없거나, 이 프로젝트가 이미 사용하고 있습니다."
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "로그인 링크가 완전하지 않습니다. 다시 시도해 주세요."
@@ -17723,11 +17808,20 @@ msgstr "worktree를 디스크에서 제거하고 워크스페이스를 닫습니
 msgid "This replaces its label, command, arguments, prompt and resume settings, environment variables, and icon with the current bundled configuration."
 msgstr "레이블, 명령, 인수, 프롬프트 및 재개 설정, 환경 변수, 아이콘이 현재 번들된 구성으로 바뀝니다."
 
+msgid "This replaces part of your current Superset setup."
+msgstr "현재 Superset 설정의 일부가 바뀝니다."
+
 msgid "This repository does not allow merging from here."
 msgstr "이 리포지토리는 여기에서 머지하는 것을 허용하지 않습니다."
 
 msgid "This screen doesn't exist"
 msgstr "이 화면은 존재하지 않습니다"
+
+msgid "This script has shell blocks that do not split into separate commands, so it is saved to <0>{scriptPath}</0>:"
+msgstr "이 스크립트에는 개별 명령으로 나눌 수 없는 셸 블록이 있어 <0>{scriptPath}</0>에 저장됩니다:"
+
+msgid "This setup changed while the dialog was open. Review the update and import again."
+msgstr "대화상자가 열려 있는 동안 이 설정이 변경되었습니다. 변경 내용을 확인하고 다시 가져오세요."
 
 msgid "This Slack workspace is already connected by {owner}. Ask them to disconnect first."
 msgstr "이 Slack 워크스페이스는 이미 {owner}이(가) 연결했습니다. 먼저 연결을 해제해 달라고 요청하세요."
@@ -17966,6 +18060,9 @@ msgstr "세션당 토큰, 최근 30일"
 
 msgid "Tokens stay off your machine"
 msgstr "토큰은 내 머신에 남지 않습니다"
+
+msgid "Too large to import"
+msgstr "너무 커서 가져올 수 없습니다"
 
 msgid "Too many dictations. Try again later."
 msgstr "받아쓰기 요청이 너무 많습니다. 나중에 다시 시도하세요."
@@ -18826,6 +18923,9 @@ msgstr "릴리스 노트 보기"
 msgid "View releases on GitHub"
 msgstr "GitHub에서 릴리스 보기"
 
+msgid "View scripts"
+msgstr "스크립트 보기"
+
 msgid "View Superset repository on GitHub"
 msgstr "GitHub에서 Superset 리포지토리 보기"
 
@@ -19232,6 +19332,9 @@ msgstr "작업 중"
 msgctxt "agent status"
 msgid "Working"
 msgstr "작업 중"
+
+msgid "Working directory"
+msgstr "작업 디렉터리"
 
 #. placeholder {0}: Math.floor(seconds / 60)
 #. placeholder {1}: seconds % 60

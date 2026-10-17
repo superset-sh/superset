@@ -34,6 +34,9 @@ msgstr "./"
 msgid ".sh"
 msgstr ".sh"
 
+msgid ".superset/config.json is not valid JSON. Fix it, then import again."
+msgstr ".superset/config.json geçerli bir JSON değil. Düzeltip yeniden içe aktarın."
+
 msgid "· updated {updatedAgo}"
 msgstr "· güncelleme {updatedAgo}"
 
@@ -1043,6 +1046,9 @@ msgstr "{presetLabel} varsayılanlara sıfırlandı"
 msgid "{previewSize}px · {0} line height"
 msgstr "{previewSize}px · {0} satır yüksekliği"
 
+msgid "{projectName} has setup scripts from another tool. Import them?"
+msgstr "{projectName} başka bir araçtan kurulum betiklerine sahip. İçe aktarılsın mı?"
+
 msgid "{provider} logo"
 msgstr "{provider} logosu"
 
@@ -1224,6 +1230,9 @@ msgstr "+{hiddenCount} daha önce"
 msgid "+{remainingCount} more"
 msgstr "+{remainingCount} daha"
 
+msgid "<0>.superset/config.json</0> is not valid JSON. Fix it before you import, so Superset does not overwrite it."
+msgstr "<0>.superset/config.json</0> geçerli bir JSON değil. Superset'in üzerine yazmaması için içe aktarmadan önce düzeltin."
+
 #. placeholder {0}: paths[0]?.split("/").pop()
 msgid "<0>{0}</0> is not a git repository. Would you like to initialize one?"
 msgstr "<0>{0}</0> bir git deposu değil. Bir tane başlatmak ister misiniz?"
@@ -1237,6 +1246,9 @@ msgstr "<0>{displayName}</0> Superset hesabınıza erişim istiyor"
 
 msgid "<0>{primaryFont}</0> is not installed on this system. Falling back to the next available font."
 msgstr "<0>{primaryFont}</0> bu sistemde kurulu değil. Sıradaki kullanılabilir yazı tipine geçiliyor."
+
+msgid "<0>{unsafePathList}</0> is a symlink or leads outside this project. Superset does not write through it; replace it with a regular file or folder, then import."
+msgstr "<0>{unsafePathList}</0> bir sembolik bağlantı ya da bu projenin dışına çıkıyor. Superset bunun üzerinden yazmaz; normal bir dosya veya klasörle değiştirip yeniden içe aktarın."
 
 #. placeholder {0}: formatNumber(rank)
 #. placeholder {1}: formatNumber(total)
@@ -5972,6 +5984,9 @@ msgstr "Silinmiş kullanıcı"
 msgid "Deleted workspaces, but couldn’t finish updating the sidebar"
 msgstr "Çalışma alanları silindi, ancak kenar çubuğu güncellenemedi"
 
+msgid "Deletes <0>{currentScriptFile}</0>, which an earlier import created"
+msgstr "Önceki bir içe aktarmanın oluşturduğu <0>{currentScriptFile}</0> dosyasını siler"
+
 #. placeholder {0}: account?.sourceLabel
 msgid "Deletes the {0} profile and its saved sign-in on this machine. The account itself is unaffected."
 msgstr "{0} profilini ve bu makinedeki kayıtlı oturumunu siler. Hesabın kendisi etkilenmez."
@@ -6984,6 +6999,9 @@ msgstr "Harici düzenleyici"
 
 msgid "extra ${used} of ${limit}"
 msgstr "ek ${used}/${limit}"
+
+msgid "Extra command; add it as a terminal script if you need it"
+msgstr "Ek komut; gerekirse terminal betiği olarak ekleyin"
 
 msgid "Extra high"
 msgstr "Çok yüksek"
@@ -8665,6 +8683,12 @@ msgstr "İçe aktarma başarısız"
 msgid "Import failed: {message}"
 msgstr "İçe aktarma başarısız: {message}"
 
+msgid "Import from {label}"
+msgstr "{label} içinden içe aktar"
+
+msgid "Import from another tool"
+msgstr "Başka bir araçtan içe aktar"
+
 msgid "Import from file"
 msgstr "Dosyadan içe aktar"
 
@@ -8676,6 +8700,9 @@ msgstr "İçe aktar, worktree'yi mevcut commit'inde yeni bir dala alır, böylec
 
 msgid "Import settings from another browser"
 msgstr "Ayarları başka bir tarayıcıdan içe aktar"
+
+msgid "Import setup from {label}"
+msgstr "{label} kurulumunu içe aktar"
 
 msgid "import the project"
 msgstr "projeyi içe aktarma"
@@ -8695,6 +8722,10 @@ msgstr "İçe aktar…"
 msgid "Important"
 msgstr "Önemli"
 
+msgctxt "heading over the commands an import would write, below the current ones"
+msgid "Imported"
+msgstr "İçe aktarılacak"
+
 #. placeholder {0}: untracked.length
 #. placeholder {1}: errors[0]
 msgid "Imported {imported} of {0} worktrees: {1}"
@@ -8705,6 +8736,9 @@ msgstr "İçe aktarıldı: {joinedMessages}"
 
 msgid "Imported from Linear"
 msgstr "Linear’dan içe aktarıldı"
+
+msgid "Imported setup from {label}"
+msgstr "{label} kurulumu içe aktarıldı"
 
 msgid "Imported to tasks"
 msgstr "Görevlere aktarıldı"
@@ -11231,6 +11265,9 @@ msgstr "Bu aralıkta yıldız yok."
 msgid "No Stripe customer found"
 msgstr "Stripe müşterisi bulunamadı"
 
+msgid "No Superset setup scripts"
+msgstr "Superset kurulum betiği yok"
+
 msgid "no tags"
 msgstr "etiket yok"
 
@@ -11363,6 +11400,12 @@ msgstr "2026 iddiası değil"
 msgid "Not a member of this organization"
 msgstr "Bu kuruluşun üyesi değilsiniz"
 
+msgid "Not a plain relative path"
+msgstr "Basit bir göreli yol değil"
+
+msgid "Not a value this file accepts"
+msgstr "Bu dosyanın kabul ettiği bir değer değil"
+
 msgid "Not authenticated. Please sign in."
 msgstr "Kimlik doğrulanmadı. Lütfen oturum açın."
 
@@ -11395,6 +11438,9 @@ msgstr "Bulunamadı"
 
 msgid "Not granted"
 msgstr "Verilmedi"
+
+msgid "Not imported"
+msgstr "İçe aktarılmadı"
 
 msgid "Not included"
 msgstr "Dahil değil"
@@ -11450,6 +11496,9 @@ msgstr "Burada bir şey yok."
 
 msgid "Nothing is running. Archive it and create a new one."
 msgstr "Hiçbir şey çalışmıyor. Bunu arşivleyip yeni bir tane oluşturun."
+
+msgid "Nothing left to import"
+msgstr "İçe aktarılacak bir şey kalmadı"
 
 msgid "Nothing lives at {pathname}."
 msgstr "{pathname} yolunda bir şey yok."
@@ -12335,6 +12384,9 @@ msgstr "Genel bakış"
 
 msgid "Overwrite file"
 msgstr "Dosyanın üzerine yaz"
+
+msgid "Overwrites <0>{currentScriptFile}</0>"
+msgstr "<0>{currentScriptFile}</0> dosyasının üzerine yazar"
 
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
@@ -13418,6 +13470,9 @@ msgstr "E-postaları okuyun ve gönderin"
 msgid "Read deployment and build logs"
 msgstr "Dağıtım ve derleme günlüklerini okuyun"
 
+msgid "Read from <0>{fileList}</0>"
+msgstr "Okunan dosya: <0>{fileList}</0>"
+
 msgid "Read it on your phone"
 msgstr "Telefonunuzda okuyun"
 
@@ -13897,6 +13952,9 @@ msgstr "Değiştir"
 msgid "Replace All"
 msgstr "Tümünü değiştir"
 
+msgid "Replace and import"
+msgstr "Değiştir ve içe aktar"
+
 msgid "Replace custom audio"
 msgstr "Özel sesi değiştir"
 
@@ -13908,6 +13966,12 @@ msgstr "{where} konumunda {replaced} dosya değiştirildi"
 
 msgid "Replaced 1 file in {where}"
 msgstr "{where} konumunda 1 dosya değiştirildi"
+
+msgid "Replaces <0>{currentCwd}</0> with <1>{importedCwd}</1>"
+msgstr "<0>{currentCwd}</0> yerine <1>{importedCwd}</1> kullanılır"
+
+msgid "Replaces current commands"
+msgstr "Geçerli komutları değiştirir"
 
 msgid "Reply"
 msgstr "Yanıtla"
@@ -14573,6 +14637,9 @@ msgstr "Bir otomasyon tetiklendiğinde çalıştırmalar burada görünür."
 
 msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
 msgstr "O cihazdaki Superset uygulamasının içinde çalışır; bu yüzden güncellemek, oradaki uygulamayı güncellemek demektir."
+
+msgid "Runs instead of <0>{currentScriptFile}</0>, which runs today"
+msgstr "Şu anda çalışan <0>{currentScriptFile}</0> yerine çalışır"
 
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "Çalıştırmalar bir çalışma alanına düşer. Farkı inceleyin, iyi olanı birleştirin."
@@ -16481,6 +16548,12 @@ msgstr "Superset Tasarım Sistemi"
 msgid "Superset desktop app"
 msgstr "Superset masaüstü uygulaması"
 
+msgid "Superset does not set this variable"
+msgstr "Superset bu değişkeni ayarlamaz"
+
+msgid "Superset does not write through a symlink or outside this project."
+msgstr "Superset sembolik bağlantı üzerinden veya bu projenin dışına yazmaz."
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise, takımlar için Superset'tir. Nelerin dahil olduğunu ve kuruluşunuzda nasıl işleyebileceğini öğrenmek için bize ulaşın."
 
@@ -16498,6 +16571,9 @@ msgstr "Superset, seçili olduğu sürece uzak bir çalışma alanının açtı�
 
 msgid "Superset has a free tier. The source code is available on GitHub under Elastic License 2.0 (ELv2), so you can inspect and self-host it subject to the license terms."
 msgstr "Superset'in ücretsiz bir katmanı var. Kaynak kodu GitHub'da Elastic License 2.0 (ELv2) altında mevcuttur; lisans koşulları çerçevesinde inceleyebilir ve kendi sunucunuzda barındırabilirsiniz."
+
+msgid "Superset has no matching setting"
+msgstr "Superset'te karşılık gelen bir ayar yok"
 
 msgid "Superset hit an unexpected error. Reload to try again."
 msgstr "Superset beklenmeyen bir hatayla karşılaştı. Yeniden denemek için sayfayı yeniden yükleyin."
@@ -16640,6 +16716,9 @@ msgstr "Superset ve alternatifleri"
 
 msgid "Superset works with any CLI-based coding agent, including Claude Code, OpenCode, OpenAI Codex, and more. Choose a different agent for every task without changing your workspace or review flow."
 msgstr "Superset, Claude Code, OpenCode, OpenAI Codex ve daha fazlası dahil olmak üzere CLI tabanlı her kodlama ajanıyla çalışır. Çalışma alanınızı veya inceleme akışınızı değiştirmeden her görev için farklı bir ajan seçin."
+
+msgid "Superset writes these scripts to .superset/config.json in this project. Review them before you import."
+msgstr "Superset bu betikleri bu projedeki .superset/config.json dosyasına yazar. İçe aktarmadan önce gözden geçirin."
 
 msgid "superset.sh"
 msgstr "superset.sh"
@@ -17098,6 +17177,9 @@ msgstr "O makine artık kullanılamıyor"
 msgid "That name isn't allowed."
 msgstr "Bu ada izin verilmiyor."
 
+msgid "The {label} setup file is no longer in this project."
+msgstr "{label} kurulum dosyası artık bu projede değil."
+
 msgid "The 2026 bet"
 msgstr "2026 bahsi"
 
@@ -17373,6 +17455,9 @@ msgstr "Kendi kendini süren yazılım fabrikası"
 
 msgid "The server could not be found"
 msgstr "Sunucu bulunamadı"
+
+msgid "The setup files from other tools are gone, or this project already uses them."
+msgstr "Diğer araçların kurulum dosyaları artık yok ya da bu proje onları zaten kullanıyor."
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "Oturum açma bağlantısı eksikti. Lütfen yeniden deneyin."
@@ -17723,11 +17808,20 @@ msgstr "Bu, worktree'yi diskten kaldırır ve çalışma alanını kapatır."
 msgid "This replaces its label, command, arguments, prompt and resume settings, environment variables, and icon with the current bundled configuration."
 msgstr "Bu işlem; etiketini, komutunu, argümanlarını, istem ve sürdürme ayarlarını, ortam değişkenlerini ve simgesini birlikte gelen güncel yapılandırmayla değiştirir."
 
+msgid "This replaces part of your current Superset setup."
+msgstr "Bu, geçerli Superset kurulumunuzun bir kısmını değiştirir."
+
 msgid "This repository does not allow merging from here."
 msgstr "Bu depo buradan birleştirmeye izin vermiyor."
 
 msgid "This screen doesn't exist"
 msgstr "Bu ekran mevcut değil"
+
+msgid "This script has shell blocks that do not split into separate commands, so it is saved to <0>{scriptPath}</0>:"
+msgstr "Bu betik ayrı komutlara bölünemeyen kabuk blokları içerdiği için <0>{scriptPath}</0> dosyasına kaydedilir:"
+
+msgid "This setup changed while the dialog was open. Review the update and import again."
+msgstr "İletişim kutusu açıkken bu kurulum değişti. Değişikliği gözden geçirip yeniden içe aktarın."
 
 msgid "This Slack workspace is already connected by {owner}. Ask them to disconnect first."
 msgstr "Bu Slack çalışma alanı {owner} tarafından zaten bağlanmış. Önce bağlantıyı kesmesini isteyin."
@@ -17966,6 +18060,9 @@ msgstr "oturum başına token, son 30 gün"
 
 msgid "Tokens stay off your machine"
 msgstr "Belirteçler makinenizde saklanmaz"
+
+msgid "Too large to import"
+msgstr "İçe aktarılamayacak kadar büyük"
 
 msgid "Too many dictations. Try again later."
 msgstr "Çok fazla sesle yazma isteği. Daha sonra yeniden deneyin."
@@ -18826,6 +18923,9 @@ msgstr "Sürüm notlarını görüntüle"
 msgid "View releases on GitHub"
 msgstr "Sürümleri GitHub'da görüntüle"
 
+msgid "View scripts"
+msgstr "Betikleri görüntüle"
+
 msgid "View Superset repository on GitHub"
 msgstr "Superset deposunu GitHub'da görüntüle"
 
@@ -19232,6 +19332,9 @@ msgstr "Çalışıyor"
 msgctxt "agent status"
 msgid "Working"
 msgstr "Çalışıyor"
+
+msgid "Working directory"
+msgstr "Çalışma dizini"
 
 #. placeholder {0}: Math.floor(seconds / 60)
 #. placeholder {1}: seconds % 60

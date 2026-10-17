@@ -34,6 +34,9 @@ msgstr "./"
 msgid ".sh"
 msgstr ".sh"
 
+msgid ".superset/config.json is not valid JSON. Fix it, then import again."
+msgstr ".superset/config.jsonが有効なJSONではありません。修正してから、もう一度インポートしてください。"
+
 msgid "· updated {updatedAgo}"
 msgstr "· {updatedAgo}に更新"
 
@@ -1043,6 +1046,9 @@ msgstr "{presetLabel}をデフォルトに戻しました"
 msgid "{previewSize}px · {0} line height"
 msgstr "{previewSize}px · 行の高さ {0}"
 
+msgid "{projectName} has setup scripts from another tool. Import them?"
+msgstr "{projectName} には別のツールのセットアップスクリプトがあります。インポートしますか？"
+
 msgid "{provider} logo"
 msgstr "{provider}のロゴ"
 
@@ -1224,6 +1230,9 @@ msgstr "以前の{hiddenCount}件"
 msgid "+{remainingCount} more"
 msgstr "+{remainingCount}件"
 
+msgid "<0>.superset/config.json</0> is not valid JSON. Fix it before you import, so Superset does not overwrite it."
+msgstr "<0>.superset/config.json</0>が有効なJSONではありません。Supersetが上書きしないよう、インポートする前に修正してください。"
+
 #. placeholder {0}: paths[0]?.split("/").pop()
 msgid "<0>{0}</0> is not a git repository. Would you like to initialize one?"
 msgstr "<0>{0}</0>はgitリポジトリではありません。初期化しますか?"
@@ -1237,6 +1246,9 @@ msgstr "<0>{displayName}</0>があなたのSupersetアカウントへのアク�
 
 msgid "<0>{primaryFont}</0> is not installed on this system. Falling back to the next available font."
 msgstr "<0>{primaryFont}</0>はこのシステムにインストールされていません。次に利用可能なフォントにフォールバックします。"
+
+msgid "<0>{unsafePathList}</0> is a symlink or leads outside this project. Superset does not write through it; replace it with a regular file or folder, then import."
+msgstr "<0>{unsafePathList}</0>はシンボリックリンクか、このプロジェクトの外を指しています。Supersetはそこには書き込みません。通常のファイルかフォルダに置き換えてから、インポートしてください。"
 
 #. placeholder {0}: formatNumber(rank)
 #. placeholder {1}: formatNumber(total)
@@ -5972,6 +5984,9 @@ msgstr "削除されたユーザー"
 msgid "Deleted workspaces, but couldn’t finish updating the sidebar"
 msgstr "ワークスペースは削除しましたが、サイドバーの更新を完了できませんでした"
 
+msgid "Deletes <0>{currentScriptFile}</0>, which an earlier import created"
+msgstr "以前のインポートで作成された<0>{currentScriptFile}</0>を削除します"
+
 #. placeholder {0}: account?.sourceLabel
 msgid "Deletes the {0} profile and its saved sign-in on this machine. The account itself is unaffected."
 msgstr "このマシンの{0}プロファイルと保存済みサインインを削除します。アカウント自体は影響を受けません。"
@@ -6984,6 +6999,9 @@ msgstr "外部エディタ"
 
 msgid "extra ${used} of ${limit}"
 msgstr "追加分 ${limit}中${used}"
+
+msgid "Extra command; add it as a terminal script if you need it"
+msgstr "追加のコマンドです。必要ならターミナルスクリプトとして追加してください"
 
 msgid "Extra high"
 msgstr "最高"
@@ -8665,6 +8683,12 @@ msgstr "インポートに失敗しました"
 msgid "Import failed: {message}"
 msgstr "インポートに失敗しました: {message}"
 
+msgid "Import from {label}"
+msgstr "{label}からインポート"
+
+msgid "Import from another tool"
+msgstr "他のツールからインポート"
+
 msgid "Import from file"
 msgstr "ファイルからインポート"
 
@@ -8676,6 +8700,9 @@ msgstr "インポートすると、ワークツリーを現在のコミットで
 
 msgid "Import settings from another browser"
 msgstr "別のブラウザから設定をインポート"
+
+msgid "Import setup from {label}"
+msgstr "{label}からセットアップをインポート"
 
 msgid "import the project"
 msgstr "プロジェクトをインポートする"
@@ -8695,6 +8722,10 @@ msgstr "インポート…"
 msgid "Important"
 msgstr "重要"
 
+msgctxt "heading over the commands an import would write, below the current ones"
+msgid "Imported"
+msgstr "インポートする内容"
+
 #. placeholder {0}: untracked.length
 #. placeholder {1}: errors[0]
 msgid "Imported {imported} of {0} worktrees: {1}"
@@ -8705,6 +8736,9 @@ msgstr "{joinedMessages}をインポートしました"
 
 msgid "Imported from Linear"
 msgstr "Linear からインポート"
+
+msgid "Imported setup from {label}"
+msgstr "{label}からセットアップをインポートしました"
 
 msgid "Imported to tasks"
 msgstr "タスクにインポートしました"
@@ -11231,6 +11265,9 @@ msgstr "この期間にスターはありません。"
 msgid "No Stripe customer found"
 msgstr "Stripeの顧客が見つかりません"
 
+msgid "No Superset setup scripts"
+msgstr "Superset のセットアップスクリプトがありません"
+
 msgid "no tags"
 msgstr "タグなし"
 
@@ -11363,6 +11400,12 @@ msgstr "2026年の話ではない"
 msgid "Not a member of this organization"
 msgstr "この組織のメンバーではありません"
 
+msgid "Not a plain relative path"
+msgstr "単純な相対パスではありません"
+
+msgid "Not a value this file accepts"
+msgstr "このファイルで使える値ではありません"
+
 msgid "Not authenticated. Please sign in."
 msgstr "認証されていません。サインインしてください。"
 
@@ -11395,6 +11438,9 @@ msgstr "見つかりません"
 
 msgid "Not granted"
 msgstr "未許可"
+
+msgid "Not imported"
+msgstr "インポートされない項目"
 
 msgid "Not included"
 msgstr "含まれない"
@@ -11450,6 +11496,9 @@ msgstr "何もありません。"
 
 msgid "Nothing is running. Archive it and create a new one."
 msgstr "何も実行されていません。アーカイブして新しく作成してください。"
+
+msgid "Nothing left to import"
+msgstr "インポートするものはありません"
 
 msgid "Nothing lives at {pathname}."
 msgstr "{pathname}には何もありません。"
@@ -12335,6 +12384,9 @@ msgstr "概要"
 
 msgid "Overwrite file"
 msgstr "ファイルを上書き"
+
+msgid "Overwrites <0>{currentScriptFile}</0>"
+msgstr "<0>{currentScriptFile}</0>を上書きします"
 
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
@@ -13418,6 +13470,9 @@ msgstr "メールの閲覧と送信"
 msgid "Read deployment and build logs"
 msgstr "デプロイとビルドのログを確認"
 
+msgid "Read from <0>{fileList}</0>"
+msgstr "読み込み元: <0>{fileList}</0>"
+
 msgid "Read it on your phone"
 msgstr "スマートフォンで読める"
 
@@ -13897,6 +13952,9 @@ msgstr "置き換える"
 msgid "Replace All"
 msgstr "すべて置き換える"
 
+msgid "Replace and import"
+msgstr "置き換えてインポート"
+
 msgid "Replace custom audio"
 msgstr "カスタム音声を置き換え"
 
@@ -13908,6 +13966,12 @@ msgstr "{replaced}件のファイルを{where}で置き換えました"
 
 msgid "Replaced 1 file in {where}"
 msgstr "1件のファイルを{where}で置き換えました"
+
+msgid "Replaces <0>{currentCwd}</0> with <1>{importedCwd}</1>"
+msgstr "<0>{currentCwd}</0>を<1>{importedCwd}</1>に置き換えます"
+
+msgid "Replaces current commands"
+msgstr "現在のコマンドを置き換え"
 
 msgid "Reply"
 msgstr "返信"
@@ -14573,6 +14637,9 @@ msgstr "オートメーションが起動すると、ここに実行が表示さ
 
 msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
 msgstr "そのデバイスのSupersetアプリ内で動作しているため、更新するにはそのデバイスのアプリを更新する必要があります。"
+
+msgid "Runs instead of <0>{currentScriptFile}</0>, which runs today"
+msgstr "現在実行される<0>{currentScriptFile}</0>の代わりに実行されます"
 
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "実行結果はワークスペースに入ります。差分を確認し、良いものをマージしてください。"
@@ -16481,6 +16548,12 @@ msgstr "Supersetデザインシステム"
 msgid "Superset desktop app"
 msgstr "Superset デスクトップアプリ"
 
+msgid "Superset does not set this variable"
+msgstr "Supersetはこの変数を設定しません"
+
+msgid "Superset does not write through a symlink or outside this project."
+msgstr "Supersetはシンボリックリンク経由やこのプロジェクトの外には書き込みません。"
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterpriseは、チーム向けのSupersetです。含まれる内容や組織での活用方法については、お問い合わせください。"
 
@@ -16498,6 +16571,9 @@ msgstr "リモートワークスペースを選択している間、Supersetは�
 
 msgid "Superset has a free tier. The source code is available on GitHub under Elastic License 2.0 (ELv2), so you can inspect and self-host it subject to the license terms."
 msgstr "Supersetには無料プランがあります。ソースコードはElastic License 2.0(ELv2)のもとGitHubで公開されており、ライセンス条件の範囲で内容を確認したりセルフホストしたりできます。"
+
+msgid "Superset has no matching setting"
+msgstr "Supersetに対応する設定はありません"
 
 msgid "Superset hit an unexpected error. Reload to try again."
 msgstr "Supersetで予期しないエラーが発生しました。再読み込みしてお試しください。"
@@ -16640,6 +16716,9 @@ msgstr "Supersetと他ツールの比較"
 
 msgid "Superset works with any CLI-based coding agent, including Claude Code, OpenCode, OpenAI Codex, and more. Choose a different agent for every task without changing your workspace or review flow."
 msgstr "SupersetはClaude Code、OpenCode、OpenAI Codexなど、CLIベースのコーディングエージェントであれば何でも使えます。ワークスペースやレビューの流れを変えずに、タスクごとに違うエージェントを選べます。"
+
+msgid "Superset writes these scripts to .superset/config.json in this project. Review them before you import."
+msgstr "Supersetはこれらのスクリプトをこのプロジェクトの.superset/config.jsonに書き込みます。インポートする前に内容を確認してください。"
 
 msgid "superset.sh"
 msgstr "superset.sh"
@@ -17098,6 +17177,9 @@ msgstr "そのマシンは利用できなくなりました"
 msgid "That name isn't allowed."
 msgstr "その名前は使用できません。"
 
+msgid "The {label} setup file is no longer in this project."
+msgstr "{label}のセットアップファイルはこのプロジェクトにもうありません。"
+
 msgid "The 2026 bet"
 msgstr "2026年の賭け"
 
@@ -17373,6 +17455,9 @@ msgstr "自動運転するソフトウェア工場"
 
 msgid "The server could not be found"
 msgstr "サーバーが見つかりませんでした"
+
+msgid "The setup files from other tools are gone, or this project already uses them."
+msgstr "他のツールのセットアップファイルが見つからないか、このプロジェクトはすでにそれを使っています。"
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "サインインリンクが不完全でした。もう一度お試しください。"
@@ -17723,11 +17808,20 @@ msgstr "ワークツリーをディスクから削除し、ワークスペース
 msgid "This replaces its label, command, arguments, prompt and resume settings, environment variables, and icon with the current bundled configuration."
 msgstr "ラベル、コマンド、引数、プロンプトと再開設定、環境変数、アイコンが現在のバンドル構成に置き換えられます。"
 
+msgid "This replaces part of your current Superset setup."
+msgstr "現在のSupersetのセットアップの一部が置き換わります。"
+
 msgid "This repository does not allow merging from here."
 msgstr "このリポジトリはここからのマージを許可していません。"
 
 msgid "This screen doesn't exist"
 msgstr "この画面は存在しません"
+
+msgid "This script has shell blocks that do not split into separate commands, so it is saved to <0>{scriptPath}</0>:"
+msgstr "このスクリプトには個別のコマンドに分割できないシェルブロックがあるため、<0>{scriptPath}</0>に保存されます:"
+
+msgid "This setup changed while the dialog was open. Review the update and import again."
+msgstr "ダイアログを開いている間にこのセットアップが変更されました。変更を確認して、もう一度インポートしてください。"
 
 msgid "This Slack workspace is already connected by {owner}. Ask them to disconnect first."
 msgstr "このSlackワークスペースは{owner}がすでに接続しています。先に接続を解除してもらってください。"
@@ -17966,6 +18060,9 @@ msgstr "直近30日のセッションあたりトークン"
 
 msgid "Tokens stay off your machine"
 msgstr "トークンはマシンに残らない"
+
+msgid "Too large to import"
+msgstr "大きすぎてインポートできません"
 
 msgid "Too many dictations. Try again later."
 msgstr "音声入力の回数が多すぎます。しばらくしてからもう一度お試しください。"
@@ -18826,6 +18923,9 @@ msgstr "リリースノートを見る"
 msgid "View releases on GitHub"
 msgstr "GitHubでリリースを見る"
 
+msgid "View scripts"
+msgstr "スクリプトを表示"
+
 msgid "View Superset repository on GitHub"
 msgstr "GitHubでSupersetのリポジトリを見る"
 
@@ -19232,6 +19332,9 @@ msgstr "作業中"
 msgctxt "agent status"
 msgid "Working"
 msgstr "実行中"
+
+msgid "Working directory"
+msgstr "作業ディレクトリ"
 
 #. placeholder {0}: Math.floor(seconds / 60)
 #. placeholder {1}: seconds % 60

@@ -31,6 +31,7 @@ import { DiffThemeSync } from "renderer/routes/_authenticated/components/DiffThe
 import { LeaderboardAutoPublish } from "renderer/routes/_authenticated/components/LeaderboardAutoPublish";
 import { PendingDeletionScreen } from "renderer/routes/_authenticated/components/PendingDeletionScreen";
 import { RealtimeNudges } from "renderer/routes/_authenticated/components/RealtimeNudges";
+import { SetupImportOffer } from "renderer/routes/_authenticated/components/SetupImportOffer";
 import { StarNagObserver } from "renderer/routes/_authenticated/components/StarNagObserver";
 import {
 	V1AutoMigration,
@@ -337,6 +338,7 @@ function AuthenticatedLayout() {
 											organizationId={activeOrganizationId}
 										/>
 										<V1TerminalsNotice organizationId={activeOrganizationId} />
+										<SetupImportOffer />
 									</>
 								) : (
 									<V1FlipNotice />

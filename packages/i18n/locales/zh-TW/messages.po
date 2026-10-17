@@ -34,6 +34,9 @@ msgstr "./"
 msgid ".sh"
 msgstr ".sh"
 
+msgid ".superset/config.json is not valid JSON. Fix it, then import again."
+msgstr ".superset/config.json 不是有效的 JSON。請修正後重新匯入。"
+
 msgid "· updated {updatedAgo}"
 msgstr "· 更新於{updatedAgo}"
 
@@ -1043,6 +1046,9 @@ msgstr "{presetLabel}已重置為預設值"
 msgid "{previewSize}px · {0} line height"
 msgstr "{previewSize}px · 行高{0}"
 
+msgid "{projectName} has setup scripts from another tool. Import them?"
+msgstr "{projectName} 有來自其他工具的設定指令碼。要匯入嗎？"
+
 msgid "{provider} logo"
 msgstr "{provider}標誌"
 
@@ -1224,6 +1230,9 @@ msgstr "更早的+{hiddenCount}條"
 msgid "+{remainingCount} more"
 msgstr "+{remainingCount}個"
 
+msgid "<0>.superset/config.json</0> is not valid JSON. Fix it before you import, so Superset does not overwrite it."
+msgstr "<0>.superset/config.json</0> 不是有效的 JSON。請在匯入前修正，以免 Superset 覆寫它。"
+
 #. placeholder {0}: paths[0]?.split("/").pop()
 msgid "<0>{0}</0> is not a git repository. Would you like to initialize one?"
 msgstr "<0>{0}</0>不是git儲存庫。要初始化一個嗎？"
@@ -1237,6 +1246,9 @@ msgstr "<0>{displayName}</0>請求存取你的Superset帳戶"
 
 msgid "<0>{primaryFont}</0> is not installed on this system. Falling back to the next available font."
 msgstr "此係統未安裝<0>{primaryFont}</0>。將回退到下一個可用字型。"
+
+msgid "<0>{unsafePathList}</0> is a symlink or leads outside this project. Superset does not write through it; replace it with a regular file or folder, then import."
+msgstr "<0>{unsafePathList}</0> 是符號連結或指向此專案之外。Superset 不會透過它寫入；請將其取代為一般檔案或資料夾，然後再匯入。"
 
 #. placeholder {0}: formatNumber(rank)
 #. placeholder {1}: formatNumber(total)
@@ -5972,6 +5984,9 @@ msgstr "已刪除的使用者"
 msgid "Deleted workspaces, but couldn’t finish updating the sidebar"
 msgstr "工作區已刪除，但側邊欄沒能更新完"
 
+msgid "Deletes <0>{currentScriptFile}</0>, which an earlier import created"
+msgstr "刪除先前匯入時建立的 <0>{currentScriptFile}</0>"
+
 #. placeholder {0}: account?.sourceLabel
 msgid "Deletes the {0} profile and its saved sign-in on this machine. The account itself is unaffected."
 msgstr "刪除本機上的{0}配置檔案及其已儲存的登入。帳戶本身不受影響。"
@@ -6984,6 +6999,9 @@ msgstr "外部編輯器"
 
 msgid "extra ${used} of ${limit}"
 msgstr "額外用量${used}/${limit}"
+
+msgid "Extra command; add it as a terminal script if you need it"
+msgstr "額外的指令；如有需要，請將其新增為終端指令碼"
 
 msgid "Extra high"
 msgstr "極高"
@@ -8665,6 +8683,12 @@ msgstr "匯入失敗"
 msgid "Import failed: {message}"
 msgstr "匯入失敗：{message}"
 
+msgid "Import from {label}"
+msgstr "從 {label} 匯入"
+
+msgid "Import from another tool"
+msgstr "從其他工具匯入"
+
 msgid "Import from file"
 msgstr "從檔案匯入"
 
@@ -8676,6 +8700,9 @@ msgstr "匯入會在目前的提交上為工作樹建立新分支，使其可以
 
 msgid "Import settings from another browser"
 msgstr "從其他瀏覽器匯入設定"
+
+msgid "Import setup from {label}"
+msgstr "從 {label} 匯入初始化設定"
 
 msgid "import the project"
 msgstr "匯入專案"
@@ -8695,6 +8722,10 @@ msgstr "匯入…"
 msgid "Important"
 msgstr "重要"
 
+msgctxt "heading over the commands an import would write, below the current ones"
+msgid "Imported"
+msgstr "將匯入的內容"
+
 #. placeholder {0}: untracked.length
 #. placeholder {1}: errors[0]
 msgid "Imported {imported} of {0} worktrees: {1}"
@@ -8705,6 +8736,9 @@ msgstr "已匯入{joinedMessages}"
 
 msgid "Imported from Linear"
 msgstr "從 Linear 匯入"
+
+msgid "Imported setup from {label}"
+msgstr "已從 {label} 匯入初始化設定"
 
 msgid "Imported to tasks"
 msgstr "已匯入到任務"
@@ -11231,6 +11265,9 @@ msgstr "此區間內沒有星標。"
 msgid "No Stripe customer found"
 msgstr "未找到Stripe客戶"
 
+msgid "No Superset setup scripts"
+msgstr "沒有 Superset 設定指令碼"
+
 msgid "no tags"
 msgstr "無標籤"
 
@@ -11363,6 +11400,12 @@ msgstr "不是2026年的主張"
 msgid "Not a member of this organization"
 msgstr "不是此組織的成員"
 
+msgid "Not a plain relative path"
+msgstr "不是單純的相對路徑"
+
+msgid "Not a value this file accepts"
+msgstr "不是此檔案接受的值"
+
 msgid "Not authenticated. Please sign in."
 msgstr "未通過身份驗證。請登入。"
 
@@ -11395,6 +11438,9 @@ msgstr "未找到"
 
 msgid "Not granted"
 msgstr "未授予"
+
+msgid "Not imported"
+msgstr "未匯入"
 
 msgid "Not included"
 msgstr "不包含"
@@ -11450,6 +11496,9 @@ msgstr "這裡沒有內容。"
 
 msgid "Nothing is running. Archive it and create a new one."
 msgstr "沒有任何東西在執行。封存它，再建一個。"
+
+msgid "Nothing left to import"
+msgstr "沒有可匯入的內容"
 
 msgid "Nothing lives at {pathname}."
 msgstr "{pathname}下沒有任何內容。"
@@ -12335,6 +12384,9 @@ msgstr "概覽"
 
 msgid "Overwrite file"
 msgstr "覆寫檔案"
+
+msgid "Overwrites <0>{currentScriptFile}</0>"
+msgstr "將覆寫 <0>{currentScriptFile}</0>"
 
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
@@ -13418,6 +13470,9 @@ msgstr "讀取和傳送郵件"
 msgid "Read deployment and build logs"
 msgstr "查看部署和建置日誌"
 
+msgid "Read from <0>{fileList}</0>"
+msgstr "讀取自 <0>{fileList}</0>"
+
 msgid "Read it on your phone"
 msgstr "在手機上閱讀"
 
@@ -13897,6 +13952,9 @@ msgstr "替換"
 msgid "Replace All"
 msgstr "全部替換"
 
+msgid "Replace and import"
+msgstr "取代並匯入"
+
 msgid "Replace custom audio"
 msgstr "替換自訂音訊"
 
@@ -13908,6 +13966,12 @@ msgstr "已替換{where}中的{replaced}個檔案"
 
 msgid "Replaced 1 file in {where}"
 msgstr "已替換{where}中的1個檔案"
+
+msgid "Replaces <0>{currentCwd}</0> with <1>{importedCwd}</1>"
+msgstr "將 <0>{currentCwd}</0> 取代為 <1>{importedCwd}</1>"
+
+msgid "Replaces current commands"
+msgstr "取代目前指令"
 
 msgid "Reply"
 msgstr "回覆"
@@ -14573,6 +14637,9 @@ msgstr "自動化觸發後，執行會顯示在這裡。"
 
 msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
 msgstr "在該裝置的 Superset 應用程式內執行，因此更新它就是更新該裝置上的應用程式。"
+
+msgid "Runs instead of <0>{currentScriptFile}</0>, which runs today"
+msgstr "將代替目前執行的 <0>{currentScriptFile}</0> 執行"
 
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "執行結果會落在一個工作區裡。審查差異，把合適的合併進去。"
@@ -16481,6 +16548,12 @@ msgstr "Superset設計系統"
 msgid "Superset desktop app"
 msgstr "Superset 桌面 App"
 
+msgid "Superset does not set this variable"
+msgstr "Superset 不會設定此變數"
+
+msgid "Superset does not write through a symlink or outside this project."
+msgstr "Superset 不會透過符號連結寫入，也不會寫到此專案之外。"
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise是面向團隊的Superset。聯絡我們，瞭解它包含什麼，以及如何適配你的組織。"
 
@@ -16498,6 +16571,9 @@ msgstr "當你選取某個遠端工作區時，Superset 會轉送它開啟的連
 
 msgid "Superset has a free tier. The source code is available on GitHub under Elastic License 2.0 (ELv2), so you can inspect and self-host it subject to the license terms."
 msgstr "Superset有免費版。原始碼在GitHub上以Elastic License 2.0（ELv2）提供，你可以在許可條款範圍內查閱並自行部署。"
+
+msgid "Superset has no matching setting"
+msgstr "Superset 沒有對應的設定"
 
 msgid "Superset hit an unexpected error. Reload to try again."
 msgstr "Superset遇到意外錯誤。重新載入以重試。"
@@ -16640,6 +16716,9 @@ msgstr "Superset與同類方案對比"
 
 msgid "Superset works with any CLI-based coding agent, including Claude Code, OpenCode, OpenAI Codex, and more. Choose a different agent for every task without changing your workspace or review flow."
 msgstr "Superset支援任何基於CLI的編碼代理程式，包括Claude Code、OpenCode、OpenAI Codex等。每個任務都可以換用不同的代理程式，工作區和審查流程都不用變。"
+
+msgid "Superset writes these scripts to .superset/config.json in this project. Review them before you import."
+msgstr "Superset 會將這些指令碼寫入此專案的 .superset/config.json。匯入前請先檢查。"
 
 msgid "superset.sh"
 msgstr "superset.sh"
@@ -17098,6 +17177,9 @@ msgstr "該機器已不可用"
 msgid "That name isn't allowed."
 msgstr "該名稱不被允許。"
 
+msgid "The {label} setup file is no longer in this project."
+msgstr "{label} 初始化設定檔已不在此專案中。"
+
 msgid "The 2026 bet"
 msgstr "2026年的賭注"
 
@@ -17373,6 +17455,9 @@ msgstr "自動駕駛的軟體工廠"
 
 msgid "The server could not be found"
 msgstr "找不到伺服器"
+
+msgid "The setup files from other tools are gone, or this project already uses them."
+msgstr "其他工具的初始化設定檔已不存在，或此專案已在使用它們。"
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "登入連結不完整。請重試。"
@@ -17723,11 +17808,20 @@ msgstr "這將從磁碟中移除該 worktree 並關閉工作區。"
 msgid "This replaces its label, command, arguments, prompt and resume settings, environment variables, and icon with the current bundled configuration."
 msgstr "這會用目前內建配置替換它的名稱、命令、引數、提示詞與恢復設定、環境變數和圖示。"
 
+msgid "This replaces part of your current Superset setup."
+msgstr "這會取代你目前 Superset 初始化設定的一部分。"
+
 msgid "This repository does not allow merging from here."
 msgstr "此儲存庫不允許從這裡合併。"
 
 msgid "This screen doesn't exist"
 msgstr "此頁面不存在"
+
+msgid "This script has shell blocks that do not split into separate commands, so it is saved to <0>{scriptPath}</0>:"
+msgstr "此指令碼包含無法拆分為個別指令的 shell 程式碼區塊，因此會儲存到 <0>{scriptPath}</0>："
+
+msgid "This setup changed while the dialog was open. Review the update and import again."
+msgstr "此對話框開啟期間該初始化設定已變更。請檢查更新後重新匯入。"
 
 msgid "This Slack workspace is already connected by {owner}. Ask them to disconnect first."
 msgstr "這個Slack工作區已被{owner}連線。請讓對方先斷開連線。"
@@ -17966,6 +18060,9 @@ msgstr "每次會話的 Token，近 30 天"
 
 msgid "Tokens stay off your machine"
 msgstr "權杖不會留在你的裝置上"
+
+msgid "Too large to import"
+msgstr "太大，無法匯入"
 
 msgid "Too many dictations. Try again later."
 msgstr "語音輸入次數過多，請稍後再試。"
@@ -18826,6 +18923,9 @@ msgstr "查看版本說明"
 msgid "View releases on GitHub"
 msgstr "在GitHub上檢視釋出"
 
+msgid "View scripts"
+msgstr "檢視指令碼"
+
 msgid "View Superset repository on GitHub"
 msgstr "在GitHub上檢視Superset儲存庫"
 
@@ -19232,6 +19332,9 @@ msgstr "工作中"
 msgctxt "agent status"
 msgid "Working"
 msgstr "執行中"
+
+msgid "Working directory"
+msgstr "工作目錄"
 
 #. placeholder {0}: Math.floor(seconds / 60)
 #. placeholder {1}: seconds % 60

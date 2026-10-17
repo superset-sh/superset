@@ -56,6 +56,7 @@
 		"add-agent-support",
 		"---Configuration---",
 		"setup-teardown-scripts",
+		"switch-to-superset",
 		"using-monorepos",
 		"terminal-scripts",
 		"keyboard-shortcuts",
