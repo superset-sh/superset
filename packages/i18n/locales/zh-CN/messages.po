@@ -977,9 +977,15 @@ msgstr "{name} 是内置的，无法移除"
 msgid "serverError.plugins.marketplaceReserved"
 msgstr "{name} 是内置的，无法替换"
 
+msgid "{name} is installed"
+msgstr "{name} 已安装"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} 尚未添加"
+
+msgid "{name} plugin"
+msgstr "{name} 插件"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {请至少指定一个人员，或选择{choice}。} sender {请至少指定一个发件人，或选择{choice}。} other {请至少指定一个条目，或选择{choice}。}}"
@@ -3609,6 +3615,9 @@ msgstr "正在检查环境…"
 msgid "Checking host…"
 msgstr "正在检查主机…"
 
+msgid "Checking MCP servers…"
+msgstr "正在检查MCP服务器…"
+
 msgid "Checking out a PR requires a project"
 msgstr "检出PR需要一个项目"
 
@@ -3681,6 +3690,9 @@ msgstr "选择智能体"
 msgid "Choose an existing repo folder"
 msgstr "选择已有的仓库文件夹"
 
+msgid "Choose an MCP server"
+msgstr "选择一个MCP服务器"
+
 msgid "Choose app"
 msgstr "选择应用"
 
@@ -3692,6 +3704,9 @@ msgstr "选择从顶栏打开更改视图的方式"
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "选择在终端中Cmd+点击文件路径时的打开方式"
+
+msgid "Choose MCP servers for this message"
+msgstr "为这条消息选择MCP服务器"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "选择要从应用内浏览器清除的内容。"
@@ -4324,6 +4339,9 @@ msgstr "配置哪些智能体出现在启动器中，以及它们的启动方式
 
 msgid "Configure workspace run command"
 msgstr "配置工作区运行命令"
+
+msgid "Configured for {agent}"
+msgstr "已为 {agent} 配置"
 
 msgid "Confirm before quitting"
 msgstr "退出前确认"
@@ -4982,6 +5000,9 @@ msgstr "无法连接到这个工作区所在的机器"
 
 msgid "Could not reactivate"
 msgstr "无法重新激活"
+
+msgid "Could not read MCP servers."
+msgstr "无法读取MCP服务器。"
 
 msgid "Could not read selected file"
 msgstr "无法读取所选文件"
@@ -6183,6 +6204,9 @@ msgstr "停用技能"
 
 msgid "Disabled"
 msgstr "已停用"
+
+msgid "Disabled in agent config"
+msgstr "已在智能体配置中停用"
 
 msgid "Disabled toggle"
 msgstr "禁用的切换控件"
@@ -8767,6 +8791,9 @@ msgstr "在Superset桌面应用中打开“设置 → 远程访问”，开启�
 msgid "In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers, and Asia as a whole now accounts for more users than the US."
 msgstr "不到一年时间，来自 176 个国家的超过 130,000 名开发者运行过 Superset，并创建了超过 150 万个智能体工作区。日本是仅次于美国的第二大市场，拥有超过 12,000 名开发者，而整个亚洲的用户数如今已超过美国。"
 
+msgid "In your next chat"
+msgstr "下一次聊天中"
+
 msgid "In your terminal"
 msgstr "在终端中"
 
@@ -9147,6 +9174,9 @@ msgstr "独立的分支和文件副本"
 
 msgid "Its replies go with it."
 msgstr "其回复也会一并删除。"
+
+msgid "Its tools reach the agent in your next chat."
+msgstr "它的工具会在你的下一次聊天中提供给智能体。"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "在它重启之前，其工作区和终端都不可用，请使用Superset托盘菜单 > 主机服务 > 重启。"
@@ -9789,6 +9819,10 @@ msgstr "加载中..."
 msgid "Loading…"
 msgstr "正在加载…"
 
+msgctxt "MCP server scope"
+msgid "local"
+msgstr "本地"
+
 msgid "Local"
 msgstr "本地"
 
@@ -9959,6 +9993,9 @@ msgstr "管理方案"
 msgid "Manage plan on the web"
 msgstr "在网页端管理方案"
 
+msgid "Manage plugins…"
+msgstr "管理插件…"
+
 msgid "Manage sessions"
 msgstr "管理会话"
 
@@ -10057,6 +10094,9 @@ msgstr "MCP服务器"
 
 msgid "MCP Server Commands"
 msgstr "MCP服务器命令"
+
+msgid "MCP servers"
+msgstr "MCP服务器"
 
 msgid "Measured over the trailing 30 days"
 msgstr "按最近 30 天计算"
@@ -11017,6 +11057,9 @@ msgstr "没有匹配项"
 msgid "No matching files"
 msgstr "没有匹配的文件"
 
+msgid "No matching MCP servers"
+msgstr "没有匹配的MCP服务器"
+
 msgid "No matching models"
 msgstr "没有匹配的模型"
 
@@ -11028,6 +11071,9 @@ msgstr "没有匹配的页面"
 
 msgid "No matching repositories."
 msgstr "没有匹配的仓库。"
+
+msgid "No MCP servers found"
+msgstr "未找到MCP服务器"
 
 msgid "No members yet"
 msgstr "暂无成员"
@@ -13059,6 +13105,10 @@ msgstr "进度"
 msgid "Progress · Spinner"
 msgstr "进度条 · 加载指示器"
 
+msgctxt "MCP server scope"
+msgid "project"
+msgstr "项目"
+
 msgid "Project"
 msgstr "项目"
 
@@ -13091,6 +13141,9 @@ msgstr "找不到该项目。"
 
 msgid "Project not set up on this host"
 msgstr "项目未在此主机上设置"
+
+msgid "Project not trusted in Codex"
+msgstr "项目在Codex中未受信任"
 
 msgid "Project ready — open it from the sidebar."
 msgstr "项目已就绪，可从侧边栏打开。"
@@ -13420,6 +13473,9 @@ msgstr "查看部署和构建日志"
 
 msgid "Read it on your phone"
 msgstr "在手机上阅读"
+
+msgid "Read MCP servers again"
+msgstr "重新读取MCP服务器"
 
 msgid "Read the changelog"
 msgstr "查看更新日志"
@@ -14837,6 +14893,9 @@ msgstr "搜索Linear"
 
 msgid "Search Linear…"
 msgstr "搜索Linear…"
+
+msgid "Search MCP servers…"
+msgstr "搜索MCP服务器…"
 
 msgid "Search models"
 msgstr "搜索模型"
@@ -18662,6 +18721,10 @@ msgstr "在系统处于深色模式时使用。"
 
 msgid "Used when your system is in light mode."
 msgstr "在系统处于浅色模式时使用。"
+
+msgctxt "MCP server scope"
+msgid "user"
+msgstr "用户"
 
 msgid "User already has access to this host"
 msgstr "该用户已拥有此主机的访问权限"

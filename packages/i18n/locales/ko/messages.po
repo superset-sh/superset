@@ -977,9 +977,15 @@ msgstr "{name}은(는) 기본 제공이라 제거할 수 없습니다"
 msgid "serverError.plugins.marketplaceReserved"
 msgstr "{name}은(는) 기본 제공이라 교체할 수 없습니다"
 
+msgid "{name} is installed"
+msgstr "{name}을(를) 설치했습니다"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name}이(가) 추가되지 않았습니다"
+
+msgid "{name} plugin"
+msgstr "{name} 플러그인"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {사람을 한 명 이상 지정하거나 {choice} 옵션을 선택하세요.} sender {발신자를 한 명 이상 지정하거나 {choice} 옵션을 선택하세요.} other {항목을 하나 이상 지정하거나 {choice} 옵션을 선택하세요.}}"
@@ -3609,6 +3615,9 @@ msgstr "환경 확인 중…"
 msgid "Checking host…"
 msgstr "호스트 확인하는 중…"
 
+msgid "Checking MCP servers…"
+msgstr "MCP 서버 확인 중…"
+
 msgid "Checking out a PR requires a project"
 msgstr "PR을 체크아웃하려면 프로젝트가 필요합니다"
 
@@ -3681,6 +3690,9 @@ msgstr "에이전트 선택"
 msgid "Choose an existing repo folder"
 msgstr "기존 리포지토리 폴더 선택"
 
+msgid "Choose an MCP server"
+msgstr "MCP 서버 선택"
+
 msgid "Choose app"
 msgstr "앱 선택"
 
@@ -3692,6 +3704,9 @@ msgstr "상단 바에서 변경 사항 보기를 여는 방식을 선택합니�
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "터미널에서 Cmd+클릭할 때 파일 경로를 여는 방식을 선택하세요"
+
+msgid "Choose MCP servers for this message"
+msgstr "이 메시지에 사용할 MCP 서버 선택"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "인앱 브라우저에서 삭제할 항목을 선택하세요."
@@ -4324,6 +4339,9 @@ msgstr "실행기에 표시할 에이전트와 실행 구성 방식을 설정합
 
 msgid "Configure workspace run command"
 msgstr "워크스페이스 실행 명령 구성"
+
+msgid "Configured for {agent}"
+msgstr "{agent}용으로 설정됨"
 
 msgid "Confirm before quitting"
 msgstr "종료 전 확인"
@@ -4982,6 +5000,9 @@ msgstr "이 워크스페이스의 컴퓨터에 연결할 수 없습니다"
 
 msgid "Could not reactivate"
 msgstr "다시 활성화하지 못했습니다"
+
+msgid "Could not read MCP servers."
+msgstr "MCP 서버를 읽을 수 없습니다."
 
 msgid "Could not read selected file"
 msgstr "선택한 파일을 읽을 수 없습니다"
@@ -6183,6 +6204,9 @@ msgstr "스킬 비활성화"
 
 msgid "Disabled"
 msgstr "비활성화됨"
+
+msgid "Disabled in agent config"
+msgstr "에이전트 설정에서 비활성화됨"
 
 msgid "Disabled toggle"
 msgstr "비활성화된 토글"
@@ -8767,6 +8791,9 @@ msgstr "Superset 데스크톱 앱에서 설정 → 원격 액세스을 열고 �
 msgid "In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers, and Asia as a whole now accounts for more users than the US."
 msgstr "1년이 채 되지 않아 176개국의 130,000명 이상의 개발자가 Superset을 실행했고, 150만 개 이상의 에이전트 워크스페이스를 만들었습니다. 일본은 미국 다음으로 큰 시장으로 12,000명 이상의 개발자가 사용하고 있으며, 이제 아시아 전체 사용자 수가 미국을 넘어섰습니다."
 
+msgid "In your next chat"
+msgstr "다음 채팅부터"
+
 msgid "In your terminal"
 msgstr "터미널에서"
 
@@ -9147,6 +9174,9 @@ msgstr "독립된 브랜치와 파일 사본"
 
 msgid "Its replies go with it."
 msgstr "답글도 함께 삭제됩니다."
+
+msgid "Its tools reach the agent in your next chat."
+msgstr "도구는 다음 채팅부터 에이전트가 사용할 수 있습니다."
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "다시 시작할 때까지 해당 워크스페이스와 터미널을 사용할 수 없습니다. Superset 트레이 메뉴 > 호스트 서비스 > 다시 시작을 사용하세요."
@@ -9789,6 +9819,10 @@ msgstr "불러오는 중..."
 msgid "Loading…"
 msgstr "불러오는 중…"
 
+msgctxt "MCP server scope"
+msgid "local"
+msgstr "로컬"
+
 msgid "Local"
 msgstr "로컬"
 
@@ -9959,6 +9993,9 @@ msgstr "플랜 관리"
 msgid "Manage plan on the web"
 msgstr "웹에서 플랜 관리"
 
+msgid "Manage plugins…"
+msgstr "플러그인 관리…"
+
 msgid "Manage sessions"
 msgstr "세션 관리"
 
@@ -10057,6 +10094,9 @@ msgstr "MCP 서버"
 
 msgid "MCP Server Commands"
 msgstr "MCP 서버 명령"
+
+msgid "MCP servers"
+msgstr "MCP 서버"
 
 msgid "Measured over the trailing 30 days"
 msgstr "최근 30일 기준"
@@ -11017,6 +11057,9 @@ msgstr "일치 항목 없음"
 msgid "No matching files"
 msgstr "일치하는 파일 없음"
 
+msgid "No matching MCP servers"
+msgstr "일치하는 MCP 서버 없음"
+
 msgid "No matching models"
 msgstr "일치하는 모델이 없습니다"
 
@@ -11028,6 +11071,9 @@ msgstr "일치하는 페이지가 없습니다"
 
 msgid "No matching repositories."
 msgstr "일치하는 저장소가 없습니다."
+
+msgid "No MCP servers found"
+msgstr "MCP 서버를 찾을 수 없음"
 
 msgid "No members yet"
 msgstr "아직 멤버가 없습니다"
@@ -13059,6 +13105,10 @@ msgstr "진행 상황"
 msgid "Progress · Spinner"
 msgstr "진행 표시줄 · 스피너"
 
+msgctxt "MCP server scope"
+msgid "project"
+msgstr "프로젝트"
+
 msgid "Project"
 msgstr "프로젝트"
 
@@ -13091,6 +13141,9 @@ msgstr "프로젝트를 찾을 수 없습니다."
 
 msgid "Project not set up on this host"
 msgstr "이 호스트에 프로젝트가 설정되지 않았습니다"
+
+msgid "Project not trusted in Codex"
+msgstr "Codex에서 신뢰하지 않는 프로젝트"
 
 msgid "Project ready — open it from the sidebar."
 msgstr "프로젝트 준비 완료 — 사이드바에서 열어 보세요."
@@ -13420,6 +13473,9 @@ msgstr "배포 및 빌드 로그 확인"
 
 msgid "Read it on your phone"
 msgstr "휴대폰으로 읽기"
+
+msgid "Read MCP servers again"
+msgstr "MCP 서버 다시 읽기"
 
 msgid "Read the changelog"
 msgstr "변경 로그 읽기"
@@ -14837,6 +14893,9 @@ msgstr "Linear 검색"
 
 msgid "Search Linear…"
 msgstr "Linear 검색…"
+
+msgid "Search MCP servers…"
+msgstr "MCP 서버 검색…"
 
 msgid "Search models"
 msgstr "모델 검색"
@@ -18662,6 +18721,10 @@ msgstr "시스템이 다크 모드일 때 사용합니다."
 
 msgid "Used when your system is in light mode."
 msgstr "시스템이 라이트 모드일 때 사용합니다."
+
+msgctxt "MCP server scope"
+msgid "user"
+msgstr "사용자"
 
 msgid "User already has access to this host"
 msgstr "사용자에게 이미 이 호스트에 대한 접근 권한이 있습니다"

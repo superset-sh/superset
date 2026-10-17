@@ -1,7 +1,8 @@
 import type { PromptInputCommand } from "../../types";
 
 function termScore(candidate: string, query: string): number {
-	const lowered = candidate.toLowerCase();
+	const lowered = candidate.toLowerCase().replace(/^\//, "");
+	if (lowered === query) return 3;
 	if (lowered.startsWith(query)) return 2;
 	if (lowered.includes(query)) return 1;
 	return 0;
@@ -19,7 +20,7 @@ export function rankCommands(
 	commands: PromptInputCommand[],
 	query: string,
 ): PromptInputCommand[] {
-	const trimmed = query.trim().toLowerCase();
+	const trimmed = query.trim().toLowerCase().replace(/^\//, "");
 	if (trimmed.length === 0) return commands;
 	const groupOrder = new Map<string | null, number>();
 	for (const command of commands) {

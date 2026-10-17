@@ -977,9 +977,15 @@ msgstr "{name} bawaan dan tidak dapat dihapus"
 msgid "serverError.plugins.marketplaceReserved"
 msgstr "{name} bawaan dan tidak dapat diganti"
 
+msgid "{name} is installed"
+msgstr "{name} sudah terpasang"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} belum ditambahkan"
+
+msgid "{name} plugin"
+msgstr "Plugin {name}"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {Tentukan minimal satu orang, atau pilih {choice}.} sender {Tentukan minimal satu pengirim, atau pilih {choice}.} other {Tentukan minimal satu entri, atau pilih {choice}.}}"
@@ -3609,6 +3615,9 @@ msgstr "Memeriksa environment…"
 msgid "Checking host…"
 msgstr "Memeriksa host…"
 
+msgid "Checking MCP servers…"
+msgstr "Memeriksa server MCP…"
+
 msgid "Checking out a PR requires a project"
 msgstr "Checkout PR memerlukan sebuah proyek"
 
@@ -3681,6 +3690,9 @@ msgstr "Pilih agen"
 msgid "Choose an existing repo folder"
 msgstr "Pilih folder repo yang sudah ada"
 
+msgid "Choose an MCP server"
+msgstr "Pilih server MCP"
+
 msgid "Choose app"
 msgstr "Pilih aplikasi"
 
@@ -3692,6 +3704,9 @@ msgstr "Pilih cara membuka tampilan perubahan dari bilah atas"
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "Pilih cara membuka path file saat Cmd+klik di terminal"
+
+msgid "Choose MCP servers for this message"
+msgstr "Pilih server MCP untuk pesan ini"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "Pilih apa yang ingin dibersihkan dari browser dalam aplikasi."
@@ -4324,6 +4339,9 @@ msgstr "Atur agen mana yang muncul di peluncur dan bagaimana peluncurannya disus
 
 msgid "Configure workspace run command"
 msgstr "Atur perintah run workspace"
+
+msgid "Configured for {agent}"
+msgstr "Dikonfigurasi untuk {agent}"
 
 msgid "Confirm before quitting"
 msgstr "Konfirmasi sebelum keluar"
@@ -4982,6 +5000,9 @@ msgstr "Tidak bisa menjangkau mesin workspace ini"
 
 msgid "Could not reactivate"
 msgstr "Tidak bisa mengaktifkan kembali"
+
+msgid "Could not read MCP servers."
+msgstr "Tidak bisa membaca server MCP."
 
 msgid "Could not read selected file"
 msgstr "Tidak bisa membaca file yang dipilih"
@@ -6183,6 +6204,9 @@ msgstr "Nonaktifkan skill"
 
 msgid "Disabled"
 msgstr "Nonaktif"
+
+msgid "Disabled in agent config"
+msgstr "Dinonaktifkan di konfigurasi agen"
 
 msgid "Disabled toggle"
 msgstr "Toggle nonaktif"
@@ -8767,6 +8791,9 @@ msgstr "Di aplikasi desktop Superset, buka Pengaturan → Akses Jarak Jauh dan a
 msgid "In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers, and Asia as a whole now accounts for more users than the US."
 msgstr "Dalam waktu kurang dari setahun, lebih dari 130.000 developer di 176 negara telah menjalankan Superset dan membuat lebih dari 1,5 juta workspace agen. Jepang adalah pasar terbesar kedua setelah AS, dengan lebih dari 12.000 developer, dan Asia secara keseluruhan kini memiliki lebih banyak pengguna daripada AS."
 
+msgid "In your next chat"
+msgstr "Di chat berikutnya"
+
 msgid "In your terminal"
 msgstr "Di terminal Anda"
 
@@ -9147,6 +9174,9 @@ msgstr "Branch dan salinan file tersendiri"
 
 msgid "Its replies go with it."
 msgstr "Balasannya ikut terhapus."
+
+msgid "Its tools reach the agent in your next chat."
+msgstr "Alatnya tersedia untuk agen di chat berikutnya."
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Workspace dan terminalnya tidak tersedia sampai layanan ini dimulai ulang — pakai menu tray Superset > Host Service > Restart."
@@ -9789,6 +9819,10 @@ msgstr "Memuat..."
 msgid "Loading…"
 msgstr "Memuat…"
 
+msgctxt "MCP server scope"
+msgid "local"
+msgstr "lokal"
+
 msgid "Local"
 msgstr "Lokal"
 
@@ -9959,6 +9993,9 @@ msgstr "Kelola Paket"
 msgid "Manage plan on the web"
 msgstr "Kelola paket lewat web"
 
+msgid "Manage plugins…"
+msgstr "Kelola plugin…"
+
 msgid "Manage sessions"
 msgstr "Kelola sesi"
 
@@ -10057,6 +10094,9 @@ msgstr "Server MCP"
 
 msgid "MCP Server Commands"
 msgstr "Perintah server MCP"
+
+msgid "MCP servers"
+msgstr "Server MCP"
 
 msgid "Measured over the trailing 30 days"
 msgstr "Diukur selama 30 hari terakhir"
@@ -11017,6 +11057,9 @@ msgstr "Tidak ada yang cocok"
 msgid "No matching files"
 msgstr "Tidak ada berkas yang cocok"
 
+msgid "No matching MCP servers"
+msgstr "Tidak ada server MCP yang cocok"
+
 msgid "No matching models"
 msgstr "Tidak ada model yang cocok"
 
@@ -11028,6 +11071,9 @@ msgstr "Tidak ada halaman yang cocok"
 
 msgid "No matching repositories."
 msgstr "Tidak ada repositori yang cocok."
+
+msgid "No MCP servers found"
+msgstr "Tidak ada server MCP"
 
 msgid "No members yet"
 msgstr "Belum ada anggota"
@@ -13059,6 +13105,10 @@ msgstr "Progres"
 msgid "Progress · Spinner"
 msgstr "Progres · Spinner"
 
+msgctxt "MCP server scope"
+msgid "project"
+msgstr "proyek"
+
 msgid "Project"
 msgstr "Proyek"
 
@@ -13091,6 +13141,9 @@ msgstr "Proyek tidak ditemukan."
 
 msgid "Project not set up on this host"
 msgstr "Proyek belum disiapkan di host ini"
+
+msgid "Project not trusted in Codex"
+msgstr "Proyek tidak dipercaya di Codex"
 
 msgid "Project ready — open it from the sidebar."
 msgstr "Proyek siap — buka dari sidebar."
@@ -13420,6 +13473,9 @@ msgstr "Baca log deployment dan build"
 
 msgid "Read it on your phone"
 msgstr "Baca di ponsel Anda"
+
+msgid "Read MCP servers again"
+msgstr "Baca ulang server MCP"
 
 msgid "Read the changelog"
 msgstr "Baca changelog"
@@ -14837,6 +14893,9 @@ msgstr "Cari di Linear"
 
 msgid "Search Linear…"
 msgstr "Cari di Linear…"
+
+msgid "Search MCP servers…"
+msgstr "Cari server MCP…"
 
 msgid "Search models"
 msgstr "Cari model"
@@ -18662,6 +18721,10 @@ msgstr "Dipakai saat sistem Anda dalam mode gelap."
 
 msgid "Used when your system is in light mode."
 msgstr "Dipakai saat sistem Anda dalam mode terang."
+
+msgctxt "MCP server scope"
+msgid "user"
+msgstr "pengguna"
 
 msgid "User already has access to this host"
 msgstr "Pengguna sudah punya akses ke host ini"

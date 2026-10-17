@@ -977,9 +977,15 @@ msgstr "{name} is built in and cannot be removed"
 msgid "serverError.plugins.marketplaceReserved"
 msgstr "{name} is built in and cannot be replaced"
 
+msgid "{name} is installed"
+msgstr "{name} is installed"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} is not added"
+
+msgid "{name} plugin"
+msgstr "{name} plugin"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
@@ -3609,6 +3615,9 @@ msgstr "Checking environments…"
 msgid "Checking host…"
 msgstr "Checking host…"
 
+msgid "Checking MCP servers…"
+msgstr "Checking MCP servers…"
+
 msgid "Checking out a PR requires a project"
 msgstr "Checking out a PR requires a project"
 
@@ -3681,6 +3690,9 @@ msgstr "Choose agent"
 msgid "Choose an existing repo folder"
 msgstr "Choose an existing repo folder"
 
+msgid "Choose an MCP server"
+msgstr "Choose an MCP server"
+
 msgid "Choose app"
 msgstr "Choose app"
 
@@ -3692,6 +3704,9 @@ msgstr "Choose how the Changes view opens from the top bar"
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "Choose how to open file paths when Cmd+clicking in the terminal"
+
+msgid "Choose MCP servers for this message"
+msgstr "Choose MCP servers for this message"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "Choose what to clear from the in-app browser."
@@ -4324,6 +4339,9 @@ msgstr "Configure which agents appear in launchers and how their launches are bu
 
 msgid "Configure workspace run command"
 msgstr "Configure workspace run command"
+
+msgid "Configured for {agent}"
+msgstr "Configured for {agent}"
 
 msgid "Confirm before quitting"
 msgstr "Confirm before quitting"
@@ -4982,6 +5000,9 @@ msgstr "Could not reach this workspace's machine"
 
 msgid "Could not reactivate"
 msgstr "Could not reactivate"
+
+msgid "Could not read MCP servers."
+msgstr "Could not read MCP servers."
 
 msgid "Could not read selected file"
 msgstr "Could not read selected file"
@@ -6183,6 +6204,9 @@ msgstr "Disable skill"
 
 msgid "Disabled"
 msgstr "Disabled"
+
+msgid "Disabled in agent config"
+msgstr "Disabled in agent config"
 
 msgid "Disabled toggle"
 msgstr "Disabled toggle"
@@ -8767,6 +8791,9 @@ msgstr "In the Superset desktop app, open Settings → Remote Access and turn on
 msgid "In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers, and Asia as a whole now accounts for more users than the US."
 msgstr "In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers, and Asia as a whole now accounts for more users than the US."
 
+msgid "In your next chat"
+msgstr "In your next chat"
+
 msgid "In your terminal"
 msgstr "In your terminal"
 
@@ -9147,6 +9174,9 @@ msgstr "Its own branch and copy of the files"
 
 msgid "Its replies go with it."
 msgstr "Its replies go with it."
+
+msgid "Its tools reach the agent in your next chat."
+msgstr "Its tools reach the agent in your next chat."
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
@@ -9789,6 +9819,10 @@ msgstr "Loading..."
 msgid "Loading…"
 msgstr "Loading…"
 
+msgctxt "MCP server scope"
+msgid "local"
+msgstr "local"
+
 msgid "Local"
 msgstr "Local"
 
@@ -9959,6 +9993,9 @@ msgstr "Manage Plan"
 msgid "Manage plan on the web"
 msgstr "Manage plan on the web"
 
+msgid "Manage plugins…"
+msgstr "Manage plugins…"
+
 msgid "Manage sessions"
 msgstr "Manage sessions"
 
@@ -10057,6 +10094,9 @@ msgstr "MCP Server"
 
 msgid "MCP Server Commands"
 msgstr "MCP Server Commands"
+
+msgid "MCP servers"
+msgstr "MCP servers"
 
 msgid "Measured over the trailing 30 days"
 msgstr "Measured over the trailing 30 days"
@@ -11017,6 +11057,9 @@ msgstr "No matches"
 msgid "No matching files"
 msgstr "No matching files"
 
+msgid "No matching MCP servers"
+msgstr "No matching MCP servers"
+
 msgid "No matching models"
 msgstr "No matching models"
 
@@ -11028,6 +11071,9 @@ msgstr "No matching pages"
 
 msgid "No matching repositories."
 msgstr "No matching repositories."
+
+msgid "No MCP servers found"
+msgstr "No MCP servers found"
 
 msgid "No members yet"
 msgstr "No members yet"
@@ -13059,6 +13105,10 @@ msgstr "Progress"
 msgid "Progress · Spinner"
 msgstr "Progress · Spinner"
 
+msgctxt "MCP server scope"
+msgid "project"
+msgstr "project"
+
 msgid "Project"
 msgstr "Project"
 
@@ -13091,6 +13141,9 @@ msgstr "Project not found."
 
 msgid "Project not set up on this host"
 msgstr "Project not set up on this host"
+
+msgid "Project not trusted in Codex"
+msgstr "Project not trusted in Codex"
 
 msgid "Project ready — open it from the sidebar."
 msgstr "Project ready — open it from the sidebar."
@@ -13420,6 +13473,9 @@ msgstr "Read deployment and build logs"
 
 msgid "Read it on your phone"
 msgstr "Read it on your phone"
+
+msgid "Read MCP servers again"
+msgstr "Read MCP servers again"
 
 msgid "Read the changelog"
 msgstr "Read the changelog"
@@ -14837,6 +14893,9 @@ msgstr "Search Linear"
 
 msgid "Search Linear…"
 msgstr "Search Linear…"
+
+msgid "Search MCP servers…"
+msgstr "Search MCP servers…"
 
 msgid "Search models"
 msgstr "Search models"
@@ -18662,6 +18721,10 @@ msgstr "Used when your system is in dark mode."
 
 msgid "Used when your system is in light mode."
 msgstr "Used when your system is in light mode."
+
+msgctxt "MCP server scope"
+msgid "user"
+msgstr "user"
 
 msgid "User already has access to this host"
 msgstr "User already has access to this host"

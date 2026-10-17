@@ -23,9 +23,16 @@ export type ComposerActionContext = {
 	query: string;
 };
 
+export type ComposerPanelControls = {
+	close(): void;
+};
+
 export type ComposerPanelContent = {
 	title: string;
-	render: () => ReactNode;
+	render: (controls: ComposerPanelControls) => ReactNode;
+	// Drawn without the titled frame and closed by a press outside the
+	// composer; the content owns its keyboard, including Escape.
+	bare?: boolean;
 };
 
 export type ComposerMentionEntry = {

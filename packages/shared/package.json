@@ -193,6 +193,10 @@
 			"types": "./src/desktop-notices.ts",
 			"default": "./src/desktop-notices.ts"
 		},
+		"./mcp-servers": {
+			"types": "./src/mcp-servers.ts",
+			"default": "./src/mcp-servers.ts"
+		},
 		"./media-files": {
 			"types": "./src/media-files.ts",
 			"default": "./src/media-files.ts"

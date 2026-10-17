@@ -977,9 +977,15 @@ msgstr "{name} は組み込みのため削除できません"
 msgid "serverError.plugins.marketplaceReserved"
 msgstr "{name} は組み込みのため置き換えられません"
 
+msgid "{name} is installed"
+msgstr "{name} をインストールしました"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} は追加されていません"
+
+msgid "{name} plugin"
+msgstr "{name} プラグイン"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {人を1人以上指定するか、{choice}を選択してください。} sender {送信者を1人以上指定するか、{choice}を選択してください。} other {項目を1つ以上指定するか、{choice}を選択してください。}}"
@@ -3609,6 +3615,9 @@ msgstr "環境を確認中…"
 msgid "Checking host…"
 msgstr "ホストを確認中…"
 
+msgid "Checking MCP servers…"
+msgstr "MCPサーバーを確認中…"
+
 msgid "Checking out a PR requires a project"
 msgstr "PRのチェックアウトにはプロジェクトが必要です"
 
@@ -3681,6 +3690,9 @@ msgstr "エージェントを選択"
 msgid "Choose an existing repo folder"
 msgstr "既存のリポジトリフォルダを選択"
 
+msgid "Choose an MCP server"
+msgstr "MCPサーバーを選択"
+
 msgid "Choose app"
 msgstr "アプリを選択"
 
@@ -3692,6 +3704,9 @@ msgstr "トップバーから変更ビューをどのように開くかを選択
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "ターミナルでCmd+クリックしたときのファイルパスの開き方"
+
+msgid "Choose MCP servers for this message"
+msgstr "このメッセージで使うMCPサーバーを選択"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "アプリ内ブラウザから消去する項目を選択してください。"
@@ -4324,6 +4339,9 @@ msgstr "ランチャーに表示するエージェントと起動方法を設定
 
 msgid "Configure workspace run command"
 msgstr "ワークスペースの実行コマンドを設定"
+
+msgid "Configured for {agent}"
+msgstr "{agent} 用に設定済み"
 
 msgid "Confirm before quitting"
 msgstr "終了前に確認"
@@ -4982,6 +5000,9 @@ msgstr "このワークスペースのマシンに接続できませんでした
 
 msgid "Could not reactivate"
 msgstr "再有効化できませんでした"
+
+msgid "Could not read MCP servers."
+msgstr "MCPサーバーを読み込めませんでした。"
 
 msgid "Could not read selected file"
 msgstr "選択したファイルを読み取れませんでした"
@@ -6183,6 +6204,9 @@ msgstr "スキルを無効にする"
 
 msgid "Disabled"
 msgstr "無効"
+
+msgid "Disabled in agent config"
+msgstr "エージェントの設定で無効"
 
 msgid "Disabled toggle"
 msgstr "無効なトグル"
@@ -8767,6 +8791,9 @@ msgstr "Supersetデスクトップアプリで設定 → リモートアクセ�
 msgid "In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers, and Asia as a whole now accounts for more users than the US."
 msgstr "公開から 1 年足らずで、176 か国の 13 万人以上の開発者が Superset を使い、150 万以上のエージェントワークスペースが作成されました。日本は米国に次ぐ第 2 の市場で、1 万 2,000 人以上の開発者が利用しています。また、アジア全体のユーザー数は米国を上回っています。"
 
+msgid "In your next chat"
+msgstr "次のチャットから"
+
 msgid "In your terminal"
 msgstr "ターミナルで"
 
@@ -9147,6 +9174,9 @@ msgstr "独自のブランチとファイルのコピー"
 
 msgid "Its replies go with it."
 msgstr "返信も一緒に削除されます。"
+
+msgid "Its tools reach the agent in your next chat."
+msgstr "ツールは次のチャットからエージェントで使えます。"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "再起動するまで、そのワークスペースとターミナルは利用できません — Supersetのトレイメニューから「ホストサービス」>「再起動」を実行してください。"
@@ -9789,6 +9819,10 @@ msgstr "読み込み中..."
 msgid "Loading…"
 msgstr "読み込み中…"
 
+msgctxt "MCP server scope"
+msgid "local"
+msgstr "ローカル"
+
 msgid "Local"
 msgstr "ローカル"
 
@@ -9959,6 +9993,9 @@ msgstr "プランを管理"
 msgid "Manage plan on the web"
 msgstr "プランはWebで管理"
 
+msgid "Manage plugins…"
+msgstr "プラグインを管理…"
+
 msgid "Manage sessions"
 msgstr "セッションを管理"
 
@@ -10057,6 +10094,9 @@ msgstr "MCPサーバー"
 
 msgid "MCP Server Commands"
 msgstr "MCPサーバーのコマンド"
+
+msgid "MCP servers"
+msgstr "MCPサーバー"
 
 msgid "Measured over the trailing 30 days"
 msgstr "直近30日間で計測"
@@ -11017,6 +11057,9 @@ msgstr "一致なし"
 msgid "No matching files"
 msgstr "一致するファイルはありません"
 
+msgid "No matching MCP servers"
+msgstr "一致するMCPサーバーはありません"
+
 msgid "No matching models"
 msgstr "一致するモデルがありません"
 
@@ -11028,6 +11071,9 @@ msgstr "一致するページはありません"
 
 msgid "No matching repositories."
 msgstr "一致するリポジトリがありません。"
+
+msgid "No MCP servers found"
+msgstr "MCPサーバーが見つかりません"
 
 msgid "No members yet"
 msgstr "メンバーはまだいません"
@@ -13059,6 +13105,10 @@ msgstr "進捗"
 msgid "Progress · Spinner"
 msgstr "Progress · Spinner"
 
+msgctxt "MCP server scope"
+msgid "project"
+msgstr "プロジェクト"
+
 msgid "Project"
 msgstr "プロジェクト"
 
@@ -13091,6 +13141,9 @@ msgstr "プロジェクトが見つかりません。"
 
 msgid "Project not set up on this host"
 msgstr "このホストにプロジェクトがセットアップされていません"
+
+msgid "Project not trusted in Codex"
+msgstr "Codexで信頼されていないプロジェクト"
 
 msgid "Project ready — open it from the sidebar."
 msgstr "プロジェクトの準備ができました — サイドバーから開いてください。"
@@ -13420,6 +13473,9 @@ msgstr "デプロイとビルドのログを確認"
 
 msgid "Read it on your phone"
 msgstr "スマートフォンで読める"
+
+msgid "Read MCP servers again"
+msgstr "MCPサーバーを再読み込み"
 
 msgid "Read the changelog"
 msgstr "Changelogを読む"
@@ -14837,6 +14893,9 @@ msgstr "Linearを検索"
 
 msgid "Search Linear…"
 msgstr "Linearを検索…"
+
+msgid "Search MCP servers…"
+msgstr "MCPサーバーを検索…"
 
 msgid "Search models"
 msgstr "モデルを検索"
@@ -18662,6 +18721,10 @@ msgstr "システムがダークモードのときに使用します。"
 
 msgid "Used when your system is in light mode."
 msgstr "システムがライトモードのときに使用します。"
+
+msgctxt "MCP server scope"
+msgid "user"
+msgstr "ユーザー"
 
 msgid "User already has access to this host"
 msgstr "ユーザーはすでにこのホストへのアクセス権を持っています"

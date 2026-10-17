@@ -977,9 +977,15 @@ msgstr "{name} je vestavěný a nelze jej odebrat"
 msgid "serverError.plugins.marketplaceReserved"
 msgstr "{name} je vestavěný a nelze jej nahradit"
 
+msgid "{name} is installed"
+msgstr "Plugin {name} je nainstalovaný"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} není přidán"
+
+msgid "{name} plugin"
+msgstr "Plugin {name}"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {Zadejte alespoň jednu osobu, nebo zvolte {choice}.} sender {Zadejte alespoň jednoho odesílatele, nebo zvolte {choice}.} other {Zadejte alespoň jednu položku, nebo zvolte {choice}.}}"
@@ -3609,6 +3615,9 @@ msgstr "Kontrola prostředí…"
 msgid "Checking host…"
 msgstr "Kontroluji hosta…"
 
+msgid "Checking MCP servers…"
+msgstr "Kontrolují se MCP servery…"
+
 msgid "Checking out a PR requires a project"
 msgstr "Checkout PR vyžaduje projekt"
 
@@ -3681,6 +3690,9 @@ msgstr "Vyberte agenta"
 msgid "Choose an existing repo folder"
 msgstr "Vyberte složku s existujícím repozitářem"
 
+msgid "Choose an MCP server"
+msgstr "Vyberte MCP server"
+
 msgid "Choose app"
 msgstr "Vyberte aplikaci"
 
@@ -3692,6 +3704,9 @@ msgstr "Zvolte, jak se zobrazení změn otevírá z horní lišty"
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "Zvolte, jak se otevírají cesty k souborům při Cmd+kliknutí v terminálu"
+
+msgid "Choose MCP servers for this message"
+msgstr "Vyberte MCP servery pro tuto zprávu"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "Vyberte, co se má z vestavěného prohlížeče vymazat."
@@ -4324,6 +4339,9 @@ msgstr "Nastavte, kteří agenti se zobrazují ve spouštěčích a jak se jejic
 
 msgid "Configure workspace run command"
 msgstr "Nastavit spouštěcí příkaz pracovního prostoru"
+
+msgid "Configured for {agent}"
+msgstr "Nastaveno pro {agent}"
 
 msgid "Confirm before quitting"
 msgstr "Potvrdit před ukončením"
@@ -4982,6 +5000,9 @@ msgstr "Nepodařilo se spojit s počítačem tohoto pracovního prostoru"
 
 msgid "Could not reactivate"
 msgstr "Nepodařilo se obnovit"
+
+msgid "Could not read MCP servers."
+msgstr "MCP servery se nepodařilo načíst."
 
 msgid "Could not read selected file"
 msgstr "Vybraný soubor se nepodařilo přečíst"
@@ -6183,6 +6204,9 @@ msgstr "Vypnout skill"
 
 msgid "Disabled"
 msgstr "Vypnuto"
+
+msgid "Disabled in agent config"
+msgstr "Vypnuto v konfiguraci agenta"
 
 msgid "Disabled toggle"
 msgstr "Vypnutý přepínač"
@@ -8767,6 +8791,9 @@ msgstr "V desktopové aplikaci Superset otevřete Nastavení → Vzdálený př�
 msgid "In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers, and Asia as a whole now accounts for more users than the US."
 msgstr "Za méně než rok spustilo Superset více než 130 000 vývojářů ze 176 zemí a vytvořilo přes 1,5 milionu pracovních prostorů agentů. Japonsko je po USA druhým největším trhem s více než 12 000 vývojáři a Asie jako celek má nyní více uživatelů než USA."
 
+msgid "In your next chat"
+msgstr "V příštím chatu"
+
 msgid "In your terminal"
 msgstr "Ve vašem terminálu"
 
@@ -9147,6 +9174,9 @@ msgstr "Vlastní větev a vlastní kopie souborů"
 
 msgid "Its replies go with it."
 msgstr "Smažou se i odpovědi."
+
+msgid "Its tools reach the agent in your next chat."
+msgstr "Jeho nástroje agent dostane v příštím chatu."
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Její pracovní prostory a terminály nebudou dostupné, dokud se nerestartuje — použijte nabídku Superset na liště > Host Service > Restart."
@@ -9789,6 +9819,10 @@ msgstr "Načítám..."
 msgid "Loading…"
 msgstr "Načítání…"
 
+msgctxt "MCP server scope"
+msgid "local"
+msgstr "místní"
+
 msgid "Local"
 msgstr "Lokální"
 
@@ -9959,6 +9993,9 @@ msgstr "Spravovat tarif"
 msgid "Manage plan on the web"
 msgstr "Správa tarifu na webu"
 
+msgid "Manage plugins…"
+msgstr "Spravovat pluginy…"
+
 msgid "Manage sessions"
 msgstr "Spravovat relace"
 
@@ -10057,6 +10094,9 @@ msgstr "MCP server"
 
 msgid "MCP Server Commands"
 msgstr "Příkazy MCP serveru"
+
+msgid "MCP servers"
+msgstr "MCP servery"
 
 msgid "Measured over the trailing 30 days"
 msgstr "Měřeno za posledních 30 dní"
@@ -11017,6 +11057,9 @@ msgstr "Žádné shody"
 msgid "No matching files"
 msgstr "Žádné odpovídající soubory"
 
+msgid "No matching MCP servers"
+msgstr "Žádné odpovídající MCP servery"
+
 msgid "No matching models"
 msgstr "Žádné odpovídající modely"
 
@@ -11028,6 +11071,9 @@ msgstr "Žádné odpovídající stránky"
 
 msgid "No matching repositories."
 msgstr "Žádné odpovídající repozitáře."
+
+msgid "No MCP servers found"
+msgstr "Nenalezeny žádné MCP servery"
 
 msgid "No members yet"
 msgstr "Zatím žádní členové"
@@ -13059,6 +13105,10 @@ msgstr "Průběh"
 msgid "Progress · Spinner"
 msgstr "Průběh · Spinner"
 
+msgctxt "MCP server scope"
+msgid "project"
+msgstr "projekt"
+
 msgid "Project"
 msgstr "Projekt"
 
@@ -13091,6 +13141,9 @@ msgstr "Projekt nenalezen."
 
 msgid "Project not set up on this host"
 msgstr "Projekt není na tomto hostu nastaven"
+
+msgid "Project not trusted in Codex"
+msgstr "Projekt není v Codexu důvěryhodný"
 
 msgid "Project ready — open it from the sidebar."
 msgstr "Projekt je připravený — otevřete ho v postranním panelu."
@@ -13420,6 +13473,9 @@ msgstr "Čtení logů nasazení a buildů"
 
 msgid "Read it on your phone"
 msgstr "Čtěte na telefonu"
+
+msgid "Read MCP servers again"
+msgstr "Znovu načíst MCP servery"
 
 msgid "Read the changelog"
 msgstr "Přečíst changelog"
@@ -14837,6 +14893,9 @@ msgstr "Hledat v Linearu"
 
 msgid "Search Linear…"
 msgstr "Hledat v Linearu…"
+
+msgid "Search MCP servers…"
+msgstr "Hledat MCP servery…"
 
 msgid "Search models"
 msgstr "Hledat modely"
@@ -18662,6 +18721,10 @@ msgstr "Použije se, když je systém v tmavém režimu."
 
 msgid "Used when your system is in light mode."
 msgstr "Použije se, když je systém ve světlém režimu."
+
+msgctxt "MCP server scope"
+msgid "user"
+msgstr "uživatel"
 
 msgid "User already has access to this host"
 msgstr "Uživatel už k tomuto hostu má přístup"

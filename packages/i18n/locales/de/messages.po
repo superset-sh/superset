@@ -977,9 +977,15 @@ msgstr "{name} ist integriert und kann nicht entfernt werden"
 msgid "serverError.plugins.marketplaceReserved"
 msgstr "{name} ist integriert und kann nicht ersetzt werden"
 
+msgid "{name} is installed"
+msgstr "{name} ist installiert"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} ist nicht hinzugefügt"
+
+msgid "{name} plugin"
+msgstr "Plugin {name}"
 
 msgid "{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}"
 msgstr "{noun, select, person {Gib mindestens eine Person an, oder wähle {choice}.} sender {Gib mindestens einen Absender an, oder wähle {choice}.} other {Gib mindestens einen Eintrag an, oder wähle {choice}.}}"
@@ -3609,6 +3615,9 @@ msgstr "Umgebungen werden geprüft…"
 msgid "Checking host…"
 msgstr "Host wird geprüft…"
 
+msgid "Checking MCP servers…"
+msgstr "MCP-Server werden geprüft…"
+
 msgid "Checking out a PR requires a project"
 msgstr "Zum Auschecken eines PR wird ein Projekt benötigt"
 
@@ -3681,6 +3690,9 @@ msgstr "Agent wählen"
 msgid "Choose an existing repo folder"
 msgstr "Vorhandenen Repo-Ordner wählen"
 
+msgid "Choose an MCP server"
+msgstr "Wähle einen MCP-Server"
+
 msgid "Choose app"
 msgstr "App wählen"
 
@@ -3692,6 +3704,9 @@ msgstr "Wähle, wie sich die Änderungsansicht aus der Titelleiste öffnet"
 
 msgid "Choose how to open file paths when Cmd+clicking in the terminal"
 msgstr "Lege fest, wie Dateipfade beim Cmd+Klick im Terminal geöffnet werden"
+
+msgid "Choose MCP servers for this message"
+msgstr "MCP-Server für diese Nachricht wählen"
 
 msgid "Choose what to clear from the in-app browser."
 msgstr "Wähle, was aus dem In-App-Browser gelöscht werden soll."
@@ -4324,6 +4339,9 @@ msgstr "Lege fest, welche Agenten in Startern erscheinen und wie ihre Starts geb
 
 msgid "Configure workspace run command"
 msgstr "Run-Befehl des Arbeitsbereichs konfigurieren"
+
+msgid "Configured for {agent}"
+msgstr "Für {agent} eingerichtet"
 
 msgid "Confirm before quitting"
 msgstr "Vor dem Beenden bestätigen"
@@ -4982,6 +5000,9 @@ msgstr "Der Rechner dieses Arbeitsbereichs war nicht erreichbar"
 
 msgid "Could not reactivate"
 msgstr "Reaktivierung nicht möglich"
+
+msgid "Could not read MCP servers."
+msgstr "MCP-Server konnten nicht gelesen werden."
 
 msgid "Could not read selected file"
 msgstr "Ausgewählte Datei konnte nicht gelesen werden"
@@ -6183,6 +6204,9 @@ msgstr "Skill deaktivieren"
 
 msgid "Disabled"
 msgstr "Deaktiviert"
+
+msgid "Disabled in agent config"
+msgstr "In der Agenten-Konfiguration deaktiviert"
 
 msgid "Disabled toggle"
 msgstr "Deaktivierter Schalter"
@@ -8767,6 +8791,9 @@ msgstr "Öffne in der Superset-Desktop-App Einstellungen → Fernzugriff und akt
 msgid "In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers, and Asia as a whole now accounts for more users than the US."
 msgstr "In weniger als einem Jahr haben mehr als 130.000 Entwickler in 176 Ländern Superset genutzt und über 1,5 Millionen Agent-Arbeitsbereiche erstellt. Japan ist nach den USA der zweitgrößte Markt mit über 12.000 Entwicklern, und Asien insgesamt zählt inzwischen mehr Nutzer als die USA."
 
+msgid "In your next chat"
+msgstr "Im nächsten Chat"
+
 msgid "In your terminal"
 msgstr "In deinem Terminal"
 
@@ -9147,6 +9174,9 @@ msgstr "Eigener Branch und eigene Kopie der Dateien"
 
 msgid "Its replies go with it."
 msgstr "Die Antworten werden mitgelöscht."
+
+msgid "Its tools reach the agent in your next chat."
+msgstr "Seine Tools stehen dem Agenten im nächsten Chat zur Verfügung."
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Seine Arbeitsbereiche und Terminals sind nicht verfügbar, bis er neu startet — nutze das Superset-Menü in der Menüleiste > Host Service > Restart."
@@ -9789,6 +9819,10 @@ msgstr "Wird geladen..."
 msgid "Loading…"
 msgstr "Wird geladen…"
 
+msgctxt "MCP server scope"
+msgid "local"
+msgstr "lokal"
+
 msgid "Local"
 msgstr "Lokal"
 
@@ -9959,6 +9993,9 @@ msgstr "Tarif verwalten"
 msgid "Manage plan on the web"
 msgstr "Tarif im Web verwalten"
 
+msgid "Manage plugins…"
+msgstr "Plugins verwalten…"
+
 msgid "Manage sessions"
 msgstr "Sitzungen verwalten"
 
@@ -10057,6 +10094,9 @@ msgstr "MCP-Server"
 
 msgid "MCP Server Commands"
 msgstr "MCP-Server-Befehle"
+
+msgid "MCP servers"
+msgstr "MCP-Server"
 
 msgid "Measured over the trailing 30 days"
 msgstr "Gemessen über die letzten 30 Tage"
@@ -11017,6 +11057,9 @@ msgstr "Keine Treffer"
 msgid "No matching files"
 msgstr "Keine passenden Dateien"
 
+msgid "No matching MCP servers"
+msgstr "Keine passenden MCP-Server"
+
 msgid "No matching models"
 msgstr "Keine passenden Modelle"
 
@@ -11028,6 +11071,9 @@ msgstr "Keine passenden Seiten"
 
 msgid "No matching repositories."
 msgstr "Keine passenden Repositorys."
+
+msgid "No MCP servers found"
+msgstr "Keine MCP-Server gefunden"
 
 msgid "No members yet"
 msgstr "Noch keine Mitglieder"
@@ -13059,6 +13105,10 @@ msgstr "Fortschritt"
 msgid "Progress · Spinner"
 msgstr "Fortschritt · Spinner"
 
+msgctxt "MCP server scope"
+msgid "project"
+msgstr "Projekt"
+
 msgid "Project"
 msgstr "Projekt"
 
@@ -13091,6 +13141,9 @@ msgstr "Projekt nicht gefunden."
 
 msgid "Project not set up on this host"
 msgstr "Projekt auf diesem Host nicht eingerichtet"
+
+msgid "Project not trusted in Codex"
+msgstr "Projekt in Codex nicht vertrauenswürdig"
 
 msgid "Project ready — open it from the sidebar."
 msgstr "Projekt bereit — öffne es in der Seitenleiste."
@@ -13420,6 +13473,9 @@ msgstr "Deployment- und Build-Logs lesen"
 
 msgid "Read it on your phone"
 msgstr "Lies sie auf dem Handy"
+
+msgid "Read MCP servers again"
+msgstr "MCP-Server neu lesen"
 
 msgid "Read the changelog"
 msgstr "Changelog lesen"
@@ -14837,6 +14893,9 @@ msgstr "Linear durchsuchen"
 
 msgid "Search Linear…"
 msgstr "Linear durchsuchen…"
+
+msgid "Search MCP servers…"
+msgstr "MCP-Server suchen…"
 
 msgid "Search models"
 msgstr "Modelle suchen"
@@ -18662,6 +18721,10 @@ msgstr "Wird verwendet, wenn dein System im Dunkelmodus ist."
 
 msgid "Used when your system is in light mode."
 msgstr "Wird verwendet, wenn dein System im Hellmodus ist."
+
+msgctxt "MCP server scope"
+msgid "user"
+msgstr "Benutzer"
 
 msgid "User already has access to this host"
 msgstr "Der Benutzer hat bereits Zugriff auf diesen Host"
