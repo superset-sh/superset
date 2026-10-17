@@ -1,6 +1,7 @@
 import type { Envelope } from "@superset/chat/protocol";
 import type { HarnessAdapter } from "../../harness";
 import type { ChatJournal } from "../../journal";
+import type { UnfinishedSession } from "../liveSession";
 import { LiveSession } from "../liveSession";
 
 export type HarnessFactoryOptions = {
@@ -98,6 +99,13 @@ export class LiveSessionRegistry {
 		const session = this.live.get(sessionId);
 		if (!session) throw new Error(`chat session ${sessionId} is not running`);
 		return session;
+	}
+
+	unfinished(): UnfinishedSession[] {
+		return [...this.live.values()].flatMap((session) => {
+			const unfinished = session.unfinished();
+			return unfinished ? [unfinished] : [];
+		});
 	}
 
 	async dispose(sessionId: string): Promise<void> {

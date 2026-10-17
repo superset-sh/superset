@@ -8,7 +8,10 @@ import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { organizations, settings } from "@superset/local-db";
 import { getHostId, getHostName } from "@superset/shared/host-info";
-import { HOST_INSTALL_SOURCE_ENV } from "@superset/shared/host-version";
+import {
+	HOST_CHAT_RESUME_MARKER_FILE,
+	HOST_INSTALL_SOURCE_ENV,
+} from "@superset/shared/host-version";
 import { eq } from "drizzle-orm";
 import { app, dialog } from "electron";
 import log from "electron-log/main";
@@ -475,7 +478,10 @@ export class HostServiceCoordinator extends EventEmitter {
 	}
 
 	/** Returns the pid it sent SIGTERM to, or null when it signalled nothing. */
-	stop(organizationId: string): number | null {
+	stop(
+		organizationId: string,
+		options: { resumeChats?: boolean } = {},
+	): number | null {
 		// Cancel first, and unconditionally: a respawn may be pending with no
 		// instance tracked (the crashed one was already deleted), and quitting or
 		// restarting must not let that timer resurrect a child.
@@ -495,6 +501,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		if (instance.owned) {
 			try {
 				if (instance.pid > 0) {
+					if (options.resumeChats) this.markChatResume(organizationId);
 					this.deps.killProcess(instance.pid, "SIGTERM");
 					signalledPid = instance.pid;
 					this.scheduleKillEscalation(organizationId, instance.pid);
@@ -520,13 +527,30 @@ export class HostServiceCoordinator extends EventEmitter {
 		this.deps.removeManifest(organizationId);
 	}
 
+	private markChatResume(organizationId: string): void {
+		const marker = path.join(
+			this.deps.manifestDir(organizationId),
+			HOST_CHAT_RESUME_MARKER_FILE,
+		);
+		const pending = `${marker}.${process.pid}.tmp`;
+		try {
+			fs.writeFileSync(pending, JSON.stringify({ requestedAt: Date.now() }));
+			fs.renameSync(pending, marker);
+		} catch (error) {
+			log.warn(
+				`[host-service:${organizationId}] could not mark chats to resume`,
+				error,
+			);
+		}
+	}
+
 	/** Returns the pids of the children it sent SIGTERM to. */
-	stopAll(): number[] {
+	stopAll(options: { resumeChats?: boolean } = {}): number[] {
 		this.startGeneration++;
 		this.desiredOrganizationIds.clear();
 		const signalledPids: number[] = [];
 		for (const [id] of this.instances) {
-			const pid = this.stop(id);
+			const pid = this.stop(id, options);
 			if (pid !== null) signalledPids.push(pid);
 		}
 		// A crashed instance is deleted before its respawn fires, so an org with a

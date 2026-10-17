@@ -41,7 +41,11 @@ import {
 import { sweepDevAppProfiles } from "./dev-app-profile-sweep";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
-import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
+import {
+	isInstallingUpdate,
+	isUpdateReadyToInstall,
+	setupAutoUpdater,
+} from "./lib/auto-updater";
 import { startBrowserBridge } from "./lib/browser/browser-bridge";
 import { browserManager } from "./lib/browser/browser-manager";
 import { downloadManager } from "./lib/browser/download-manager";
@@ -341,6 +345,7 @@ app.on("before-quit", async (event) => {
 
 	isQuitting = true;
 	const isUpdateInstalling = isUpdateReadyToInstall();
+	const resumeChats = isInstallingUpdate();
 	// Stopping the pty-daemons waits for host-services to exit; without this
 	// Electron exits once the windows close and cuts that wait short.
 	holdingQuitForCleanup = forceFullCleanup;
@@ -360,7 +365,8 @@ app.on("before-quit", async (event) => {
 		isDev,
 		forceFullCleanup,
 		isUpdateInstalling,
-		stopHostServices: () => getHostServiceCoordinator().stopAll(),
+		stopHostServices: () =>
+			getHostServiceCoordinator().stopAll({ resumeChats }),
 		teardownTerminalHost,
 		stopPtyDaemons,
 		disposeTerminalHostClient,

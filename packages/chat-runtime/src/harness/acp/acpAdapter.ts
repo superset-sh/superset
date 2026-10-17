@@ -918,7 +918,11 @@ export class AcpAdapter implements HarnessAdapter {
 	private async runTurn(content: UserContent[]): Promise<void> {
 		if (!this.client || !this.sessionId) return;
 		const turnId = this.mintId();
-		this.emitTurn({ id: turnId, status: "running", startedAtMs: this.now() });
+		this.emitTurn({
+			id: turnId,
+			status: "running",
+			startedAtMs: this.nextStartMs(),
+		});
 		this.emitSession({ status: "running" });
 		this.heldTurnId = turnId;
 		await this.selectionsApplied();

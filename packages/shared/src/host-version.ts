@@ -51,6 +51,8 @@ export type HostInstallSource = (typeof HOST_INSTALL_SOURCES)[number];
 /** Set by whatever spawns a host-service so it can report its install source. */
 export const HOST_INSTALL_SOURCE_ENV = "SUPERSET_HOST_INSTALL_SOURCE";
 
+export const HOST_CHAT_RESUME_MARKER_FILE = "chat-resume-after-update.json";
+
 export function parseHostInstallSource(
 	value: string | null | undefined,
 ): HostInstallSource {

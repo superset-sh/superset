@@ -2841,6 +2841,32 @@ describe("AcpAdapter on protocol v2", () => {
 		await adapter.dispose();
 	});
 
+	it("starts a prompt sent right after a replay after the replayed turns", async () => {
+		const agent = new FakeAcpAgent();
+		agent.wholeMessageReplay = true;
+		const { adapter, events } = startAdapter(agent, "sess-1");
+		await flush(40);
+		const replayed = new Set(
+			events.flatMap((e) => (e.kind === "turn" ? [e.turn.id] : [])),
+		);
+
+		adapter.prompt([{ type: "text", text: "continue" }]);
+		await flush(40);
+
+		const starts = (live: boolean) =>
+			events.flatMap((e) =>
+				e.kind === "turn" && replayed.has(e.turn.id) !== live
+					? [e.turn.startedAtMs]
+					: [],
+			);
+		expect(starts(true).length).toBeGreaterThan(0);
+		expect(Math.min(...starts(true))).toBeGreaterThan(
+			Math.max(...starts(false)),
+		);
+
+		await adapter.dispose();
+	});
+
 	it("maps a plan_update's entries", async () => {
 		const agent = new FakeAcpAgent();
 		const { adapter, events } = startAdapter(agent);

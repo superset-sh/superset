@@ -14,6 +14,7 @@ import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import path from "node:path";
+import { HOST_CHAT_RESUME_MARKER_FILE } from "@superset/shared/host-version";
 import log from "electron-log/main";
 import { HostServiceCoordinator } from "./host-service-coordinator";
 import { HOST_SERVICE_RESPAWN_MAX_ATTEMPTS } from "./host-service-respawn";
@@ -860,6 +861,37 @@ describe("HostServiceCoordinator single-flight / adoption", () => {
 		expect(killedPids).toContainEqual({ pid: 4321, signal: "SIGTERM" });
 		expect(removeManifestMock).toHaveBeenCalled();
 		expect(internals.instances.get("org-1")).toBeUndefined();
+	});
+
+	test("only a stop for an update install marks chats to resume", () => {
+		const internals = coordinator as unknown as AdoptableInternals;
+		const owned = (organizationId: string, pid: number) => {
+			fs.mkdirSync(path.join(testManifestRoot, organizationId));
+			internals.instances.set(organizationId, {
+				pid,
+				port: 55555,
+				secret: "own-secret",
+				status: "running",
+				owned: true,
+			});
+		};
+		const marker = (organizationId: string) =>
+			path.join(testManifestRoot, organizationId, HOST_CHAT_RESUME_MARKER_FILE);
+		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-resume-"));
+		try {
+			owned("org-quit", 4321);
+			coordinator.stopAll();
+			owned("org-update", 4322);
+			coordinator.stopAll({ resumeChats: true });
+
+			expect(fs.existsSync(marker("org-quit"))).toBe(false);
+			expect(
+				JSON.parse(fs.readFileSync(marker("org-update"), "utf8")).requestedAt,
+			).toBeNumber();
+		} finally {
+			fs.rmSync(testManifestRoot, { recursive: true, force: true });
+			testManifestRoot = "";
+		}
 	});
 });
 

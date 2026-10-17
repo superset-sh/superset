@@ -20,6 +20,7 @@ import {
 	createWsSink,
 	DEFAULT_MIGRATIONS_FOLDER,
 } from "@superset/chat-runtime";
+import { HOST_CHAT_RESUME_MARKER_FILE } from "@superset/shared/host-version";
 import type { Hono, MiddlewareHandler } from "hono";
 import type { HostDb } from "../db";
 import { cliFloor } from "./acpCatalogue";
@@ -28,6 +29,10 @@ import { resolveAgentCli } from "./agentCli";
 import { buildChatAgentEnv } from "./agentEnv";
 import type { ChatAgentBridge } from "./chatAgentBridge";
 import { createResolveCwd } from "./resolveCwd";
+import {
+	recordUnfinishedChats,
+	resumeUnfinishedChats,
+} from "./resumeAfterUpdate";
 
 export const CHAT_V3_TRPC_PATH = "/chat-v3/trpc";
 export const CHAT_V3_STREAM_PATH = "/chat-v3/sessions/:sessionId/stream";
@@ -104,6 +109,8 @@ function harnessRegistry(
 export type ChatV3Mount = {
 	runtime(): ChatRuntime;
 	closeScope(scopeId: string): Promise<void>;
+	recordUnfinished(): void;
+	resumeAfterUpdate(): void;
 	dispose(): Promise<void>;
 };
 
@@ -118,6 +125,10 @@ export function createChatV3Mount(options: {
 	onSessionChanged?: (change: ChatSessionChange) => void;
 }): ChatV3Mount {
 	let built: ChatRuntime | null = null;
+	const markerPath = join(
+		dirname(options.dbPath),
+		HOST_CHAT_RESUME_MARKER_FILE,
+	);
 
 	const runtime = (): ChatRuntime => {
 		if (built) return built;
@@ -135,6 +146,18 @@ export function createChatV3Mount(options: {
 		runtime,
 		closeScope: async (scopeId) => {
 			await built?.commands.closeScope(scopeId);
+		},
+		resumeAfterUpdate: () =>
+			resumeUnfinishedChats({
+				markerPath,
+				runtime,
+				resolveCwd: createResolveCwd(options.db),
+			}),
+		recordUnfinished: () => {
+			if (!built || !recordUnfinishedChats(built, markerPath)) return;
+			built.live.disposeAll().catch((error: unknown) => {
+				console.warn("[chat-v3] could not stop chats for the update", error);
+			});
 		},
 		dispose: async () => {
 			const current = built;

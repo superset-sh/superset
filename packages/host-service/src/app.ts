@@ -123,6 +123,7 @@ export interface CreateAppResult {
 	 */
 	launchSandboxAgent: () => Promise<void>;
 	resumeCrashedAgents: () => Promise<void>;
+	recordUnfinishedChats: () => void;
 	terminalAgentStore: TerminalAgentStore;
 	dispose: () => Promise<void>;
 }
@@ -346,6 +347,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				occurredAt,
 			}),
 	});
+	try {
+		chatV3.resumeAfterUpdate();
+	} catch (error) {
+		console.warn("[host-service] chat resume after update failed:", error);
+	}
 
 	// Startup sweeps run in the background so they don't block server
 	// startup.
@@ -631,6 +637,16 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		eventBus,
 		launchSandboxAgent,
 		resumeCrashedAgents,
+		recordUnfinishedChats: () => {
+			try {
+				chatV3.recordUnfinished();
+			} catch (error) {
+				console.warn(
+					"[host-service] could not record unfinished chats:",
+					error,
+				);
+			}
+		},
 		terminalAgentStore,
 		dispose,
 	};

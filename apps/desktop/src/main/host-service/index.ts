@@ -59,6 +59,9 @@ async function main(): Promise<void> {
 	const disposeRef: { current: (() => Promise<void>) | null } = {
 		current: null,
 	};
+	const recordUnfinishedChatsRef: { current: (() => void) | null } = {
+		current: null,
+	};
 	let manifestReclaimTimer: NodeJS.Timeout | null = null;
 	const shutdown = createShutdown({
 		getServer: () => serverRef.current,
@@ -70,7 +73,10 @@ async function main(): Promise<void> {
 		hardExit: () => process.kill(process.pid, "SIGKILL"),
 	});
 
-	process.on("SIGTERM", () => shutdown("SIGTERM"));
+	process.on("SIGTERM", () => {
+		recordUnfinishedChatsRef.current?.();
+		shutdown("SIGTERM");
+	});
 	process.on("SIGINT", () => shutdown("SIGINT"));
 
 	// Self-exit if our Electron parent dies without sending SIGTERM
@@ -102,25 +108,27 @@ async function main(): Promise<void> {
 		apiUrl: env.SUPERSET_API_URL,
 	});
 
-	const { app, injectWebSocket, api, db, dispose } = createApp({
-		config: {
-			organizationId: env.ORGANIZATION_ID,
-			dbPath: env.HOST_DB_PATH,
-			cloudApiUrl: env.SUPERSET_API_URL,
-			migrationsFolder: env.HOST_MIGRATIONS_FOLDER,
-			allowedOrigins: [
-				`http://localhost:${env.DESKTOP_VITE_PORT}`,
-				`http://127.0.0.1:${env.DESKTOP_VITE_PORT}`,
-			],
-			browserBridge: resolveBrowserBridgeFromEnv(env),
-		},
-		providers: {
-			auth: authProvider,
-			hostAuth: new PskHostAuthProvider(env.HOST_SERVICE_SECRET),
-			credentials: new LocalGitCredentialProvider(),
-		},
-	});
+	const { app, injectWebSocket, api, db, dispose, recordUnfinishedChats } =
+		createApp({
+			config: {
+				organizationId: env.ORGANIZATION_ID,
+				dbPath: env.HOST_DB_PATH,
+				cloudApiUrl: env.SUPERSET_API_URL,
+				migrationsFolder: env.HOST_MIGRATIONS_FOLDER,
+				allowedOrigins: [
+					`http://localhost:${env.DESKTOP_VITE_PORT}`,
+					`http://127.0.0.1:${env.DESKTOP_VITE_PORT}`,
+				],
+				browserBridge: resolveBrowserBridgeFromEnv(env),
+			},
+			providers: {
+				auth: authProvider,
+				hostAuth: new PskHostAuthProvider(env.HOST_SERVICE_SECRET),
+				credentials: new LocalGitCredentialProvider(),
+			},
+		});
 	disposeRef.current = dispose;
+	recordUnfinishedChatsRef.current = recordUnfinishedChats;
 
 	const startedAt = Date.now();
 	const server = serve(
