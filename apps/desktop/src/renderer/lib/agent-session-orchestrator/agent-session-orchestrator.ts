@@ -12,6 +12,7 @@ import type {
 	AgentSessionLaunchContext,
 	QueueAgentSessionLaunchInput,
 } from "./types";
+import { useWorkspacesStore } from "renderer/stores/workspaces";
 
 const inFlightByIdempotency = new Map<string, Promise<AgentLaunchResult>>();
 const settledByIdempotency = new Map<string, AgentLaunchResult>();
@@ -139,6 +140,7 @@ export async function launchAgentSession(
 				status: result.status,
 				latencyMs: Date.now() - startedAt,
 			});
+			useWorkspacesStore.getState().refreshWorkspace(request.workspaceId);
 			return result;
 		} catch (error) {
 			const executionContext: AgentSessionLaunchContext = {
