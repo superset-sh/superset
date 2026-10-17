@@ -61,6 +61,9 @@ export type TerminalLifecycleMessage =
 			exitCode: number;
 			signal: number;
 	  })
+	| (TerminalLifecycleBase & {
+			eventType: "command-finished";
+	  })
 	/**
 	 * The agent session that was running in `terminalId` now lives in
 	 * `resumedTerminalId`. Panes still pointed at the dead terminal follow

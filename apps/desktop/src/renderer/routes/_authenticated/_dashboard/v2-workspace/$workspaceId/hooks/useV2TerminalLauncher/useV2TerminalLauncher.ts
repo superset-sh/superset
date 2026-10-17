@@ -21,6 +21,7 @@ interface CreateOptions {
 	terminalId?: string;
 	command?: string;
 	cwd?: string;
+	trackCommandCompletion?: boolean;
 }
 
 export interface TerminalLauncher {
@@ -65,6 +66,7 @@ export function useV2TerminalLauncher(): TerminalLauncher {
 					colors: terminalQueryColors(appearance.theme),
 					initialCommand: options?.command,
 					cwd: options?.cwd,
+					trackCommandCompletion: options?.trackCommandCompletion,
 				},
 				{ signal: AbortSignal.timeout(CREATE_SESSION_TIMEOUT_MS) },
 			);

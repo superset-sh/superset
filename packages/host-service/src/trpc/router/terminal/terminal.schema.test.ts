@@ -39,5 +39,14 @@ describe("createSessionInputSchema.initialCommand", () => {
 	test("stays optional", () => {
 		const parsed = createSessionInputSchema.parse({ workspaceId: "ws-1" });
 		expect(parsed.initialCommand).toBeUndefined();
+		expect(parsed.trackCommandCompletion).toBe(false);
+	});
+
+	test("accepts command completion tracking", () => {
+		const parsed = createSessionInputSchema.parse({
+			workspaceId: "ws-1",
+			trackCommandCompletion: true,
+		});
+		expect(parsed.trackCommandCompletion).toBe(true);
 	});
 });
