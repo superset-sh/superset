@@ -6,6 +6,7 @@ import type { SearchPatchEvent } from "./search";
 import {
 	invalidateAllSearchIndexes,
 	patchSearchIndexesForRoot,
+	searchContent,
 	searchFiles,
 } from "./search";
 
@@ -240,5 +241,27 @@ describe("searchFiles", () => {
 		expect(paths).toContain(flatPath);
 		expect(paths).toContain(nestedPath);
 		expect(paths).toHaveLength(2);
+	});
+});
+
+describe("searchContent", () => {
+	it("passes a dash-prefixed query to ripgrep as a pattern, not as flags", async () => {
+		const rootPath = await createTempRoot();
+		await fs.writeFile(path.join(rootPath, "a.css"), "a { -webkit-x: 1 }\n");
+		let seenArgs: string[] = [];
+
+		await searchContent({
+			rootPath,
+			query: "--pre=/bin/sh",
+			runRipgrep: async (args) => {
+				seenArgs = args;
+				return { stdout: "" };
+			},
+		});
+
+		const patternIndex = seenArgs.indexOf("--pre=/bin/sh");
+		expect(patternIndex).toBeGreaterThan(0);
+		expect(seenArgs[patternIndex - 1]).toEqual("-e");
+		expect(seenArgs.slice(patternIndex + 1)).toEqual(["--", "."]);
 	});
 });

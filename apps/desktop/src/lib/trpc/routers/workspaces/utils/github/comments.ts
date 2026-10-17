@@ -298,7 +298,8 @@ export async function resolveReviewThread({
 
 	const { stdout } = await execWithShellEnv(
 		"gh",
-		["api", "graphql", "-f", `query=${mutation}`, "-F", `threadId=${threadId}`],
+		// -f sends the id verbatim; -F would read a file for a value starting with "@".
+		["api", "graphql", "-f", `query=${mutation}`, "-f", `threadId=${threadId}`],
 		{ cwd: worktreePath },
 	);
 

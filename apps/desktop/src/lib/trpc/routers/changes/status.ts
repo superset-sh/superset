@@ -5,6 +5,7 @@ import { publicProcedure, router } from "../..";
 import { pathExistsCached } from "../utils/path-exists-cache";
 import { NotGitRepoError } from "../workspaces/utils/git";
 import { GitEnvironmentError } from "../workspaces/utils/git-errors";
+import { gitRevisionSchema } from "./security/git-revision";
 import { assertRegisteredWorktree } from "./security/path-validation";
 import { getPersistedWorktreeBaseBranch } from "./utils/effective-base-branch";
 import {
@@ -110,7 +111,7 @@ export const createStatusRouter = () => {
 			.input(
 				z.object({
 					worktreePath: z.string(),
-					commitHash: z.string(),
+					commitHash: gitRevisionSchema,
 				}),
 			)
 			.query(async ({ input }): Promise<ChangedFile[]> => {
