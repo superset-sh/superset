@@ -75,6 +75,7 @@ export async function pollHealthCheck(
 	// crash-on-startup would stall the caller for the full (now generous)
 	// timeout instead of failing fast.
 	shouldAbort?: () => boolean,
+	expectedPid?: number,
 ): Promise<boolean> {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
@@ -86,7 +87,13 @@ export async function pollHealthCheck(
 				signal: controller.signal,
 				headers: { Authorization: `Bearer ${secret}` },
 			});
-			if (res.ok) return true;
+			if (res.ok) {
+				if (expectedPid === undefined) return true;
+				const body = (await res.json().catch(() => null)) as {
+					result?: { data?: { json?: { pid?: number } } };
+				} | null;
+				return body?.result?.data?.json?.pid === expectedPid;
+			}
 		} catch {
 			// Not ready yet
 		} finally {

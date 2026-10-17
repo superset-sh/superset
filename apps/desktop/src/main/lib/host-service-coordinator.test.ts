@@ -623,9 +623,42 @@ describe("HostServiceCoordinator single-flight / adoption", () => {
 		expect(spawnMock).not.toHaveBeenCalled();
 		expect(conn.port).toBe(55555);
 		expect(conn.secret).toBe("manifest-secret");
+		expect(pollHealthCheckMock).toHaveBeenCalledWith(
+			"http://127.0.0.1:55555",
+			"manifest-secret",
+			expect.any(Number),
+			expect.any(Function),
+			4321,
+		);
 
 		const internals = coordinator as unknown as AdoptableInternals;
 		expect(internals.instances.get("org-1")?.owned).toBe(false);
+	});
+
+	test("spawns when a dead manifest pid leaves a port answering health", async () => {
+		manifestStore.current = baseManifest(4321, "http://127.0.0.1:55555");
+		isProcessAliveMock.mockImplementation(() => false);
+
+		const conn = await coordinator.start("org-1", spawnConfig);
+
+		expect(conn.port).toBe(60000);
+		expect(conn.secret).toBe("fresh-secret");
+		expect(killedPids).toHaveLength(0);
+		expect(pollHealthCheckMock).not.toHaveBeenCalled();
+	});
+
+	test("spawns when the manifest holder exits during its health probe", async () => {
+		manifestStore.current = baseManifest(4321, "http://127.0.0.1:55555");
+		pollHealthCheckMock.mockImplementationOnce(async () => {
+			isProcessAliveMock.mockImplementation(() => false);
+			return true;
+		});
+
+		const conn = await coordinator.start("org-1", spawnConfig);
+
+		expect(conn.port).toBe(60000);
+		expect(conn.secret).toBe("fresh-secret");
+		expect(killedPids).toHaveLength(0);
 	});
 
 	test("spawns when the manifest health-check fails", async () => {

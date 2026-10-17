@@ -848,7 +848,7 @@ export class HostServiceCoordinator extends EventEmitter {
 	): Promise<Connection | null> {
 		if (!isStartAllowed()) throw new Error("Host service start cancelled");
 		const manifest = this.deps.readManifest(organizationId);
-		if (!manifest) return null;
+		if (!manifest || !this.deps.isProcessAlive(manifest.pid)) return null;
 
 		let port: number;
 		try {
@@ -862,8 +862,10 @@ export class HostServiceCoordinator extends EventEmitter {
 			manifest.endpoint,
 			manifest.authToken,
 			ADOPT_HEALTH_TIMEOUT_MS,
+			() => !isStartAllowed() || !this.deps.isProcessAlive(manifest.pid),
+			manifest.pid,
 		);
-		if (!healthy) return null;
+		if (!healthy || !this.deps.isProcessAlive(manifest.pid)) return null;
 		if (!isStartAllowed()) throw new Error("Host service start cancelled");
 
 		const previous = this.instances.get(organizationId);
