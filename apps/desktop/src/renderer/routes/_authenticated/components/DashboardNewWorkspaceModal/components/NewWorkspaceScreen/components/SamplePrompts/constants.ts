@@ -1,5 +1,6 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 
 export interface SamplePrompt {
 	id: string;
@@ -25,7 +26,7 @@ export const SAMPLE_PROMPTS: Record<string, SamplePrompt> = {
 			message:
 				"Write setup and teardown scripts so every new workspace starts ready to run.",
 		}),
-		prompt: `Set up this repository to work well with Superset workspaces. Read https://docs.superset.sh/setup-teardown-scripts and create a .superset/config.json with: setup commands that install dependencies and copy untracked files (like .env) from "$SUPERSET_ROOT_PATH" into new workspaces, teardown commands that stop anything setup starts, and a run command that launches the dev server. If parallel workspaces would collide on dev-server ports, make the scripts pick a free port per workspace (see https://docs.superset.sh/ports). When you're done, summarize what you configured and how to use it.`,
+		prompt: `Set up this repository to work well with Superset workspaces. Read ${CANONICAL_URLS.DOCS}/setup-teardown-scripts and create a .superset/config.json with: setup commands that install dependencies and copy untracked files (like .env) from "$SUPERSET_ROOT_PATH" into new workspaces, teardown commands that stop anything setup starts, and a run command that launches the dev server. If parallel workspaces would collide on dev-server ports, make the scripts pick a free port per workspace (see ${CANONICAL_URLS.DOCS}/ports). When you're done, summarize what you configured and how to use it.`,
 	},
 	"explain-repo": {
 		id: "explain-repo",
@@ -95,8 +96,7 @@ export const SAMPLE_PROMPTS: Record<string, SamplePrompt> = {
 			message:
 				"Learn the workflow that fits this repo — parallel workspaces and agent setup.",
 		}),
-		prompt:
-			"Read https://docs.superset.sh and figure out how I should be using Superset for this specific repository. Cover how to run several workspaces in parallel without them colliding, what belongs in .superset/config.json, and which agent settings suit this codebase. Be concrete about this repo rather than generic, and end with the two or three changes worth making first.",
+		prompt: `Read ${CANONICAL_URLS.DOCS} and figure out how I should be using Superset for this specific repository. Cover how to run several workspaces in parallel without them colliding, what belongs in .superset/config.json, and which agent settings suit this codebase. Be concrete about this repo rather than generic, and end with the two or three changes worth making first.`,
 	},
 };
 

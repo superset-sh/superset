@@ -19,3 +19,20 @@ test("hasAdminAccess needs a verified company email outside local development", 
 		),
 	).toBe(false);
 });
+
+test("hasAdminAccess keeps @superset.sh staff after the root domain changes", () => {
+	const script = `
+		const { hasAdminAccess } = await import("./admin-access.ts");
+		console.log(JSON.stringify([
+			hasAdminAccess({ email: "kiet@superset.sh", emailVerified: true }, "production"),
+			hasAdminAccess({ email: "kiet@example.org", emailVerified: true }, "production"),
+			hasAdminAccess({ email: "kiet@other.com", emailVerified: true }, "production"),
+		]));
+	`;
+	const result = Bun.spawnSync(["bun", "-e", script], {
+		cwd: import.meta.dir,
+		env: { ...process.env, NEXT_PUBLIC_ROOT_DOMAIN: "example.org" },
+	});
+	if (result.exitCode !== 0) throw new Error(result.stderr.toString());
+	expect(JSON.parse(result.stdout.toString())).toEqual([true, true, false]);
+});

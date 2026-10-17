@@ -1,4 +1,4 @@
-import { COMPANY } from "@superset/shared/constants";
+import { isStaffEmail } from "@superset/shared/constants";
 
 /**
  * Preview deployments allow email/password sign-up without verification, so
@@ -9,6 +9,6 @@ export function hasAdminAccess(
 	user: { email: string; emailVerified: boolean },
 	nodeEnv = process.env.NODE_ENV,
 ): boolean {
-	if (!user.email.endsWith(COMPANY.EMAIL_DOMAIN)) return false;
+	if (!isStaffEmail(user.email)) return false;
 	return user.emailVerified || nodeEnv === "development";
 }

@@ -6,8 +6,10 @@ import {
 	deriveCookieKey,
 	type ImportedCookie,
 	importCookies,
+	isProtectedCookieHost,
 	mapCookieRow,
 	mapCookieRows,
+	PROTECTED_COOKIE_DOMAINS,
 	safeStorageServiceFor,
 } from "./chrome-cookie-import";
 
@@ -33,6 +35,38 @@ function encryptV10(
 }
 
 const KEY = deriveCookieKey("test-password");
+
+describe("isProtectedCookieHost", () => {
+	it("protects the production domain by default", () => {
+		expect(PROTECTED_COOKIE_DOMAINS).toEqual(["superset.sh"]);
+		expect(isProtectedCookieHost("superset.sh")).toBe(true);
+		expect(isProtectedCookieHost(".app.superset.sh")).toBe(true);
+		expect(isProtectedCookieHost("notsuperset.sh")).toBe(false);
+	});
+
+	it("protects both the configured and the legacy domain after a change", () => {
+		const domains = ["example.org", "superset.sh"];
+		for (const host of [
+			"example.org",
+			".example.org",
+			"app.example.org",
+			".superset.sh",
+			"api.superset.sh",
+		]) {
+			expect(isProtectedCookieHost(host, domains)).toBe(true);
+		}
+		expect(isProtectedCookieHost("notexample.org", domains)).toBe(false);
+		expect(isProtectedCookieHost("example.com", domains)).toBe(false);
+	});
+
+	it("compares hosts and configured domains case-insensitively", () => {
+		const domains = ["Example.ORG"];
+		expect(isProtectedCookieHost("example.org", domains)).toBe(true);
+		expect(isProtectedCookieHost(".APP.example.org", domains)).toBe(true);
+		expect(isProtectedCookieHost("App.Example.Org", domains)).toBe(true);
+		expect(isProtectedCookieHost("notexample.org", domains)).toBe(false);
+	});
+});
 
 describe("safeStorageServiceFor", () => {
 	it("maps browser keys to their Keychain service names", () => {

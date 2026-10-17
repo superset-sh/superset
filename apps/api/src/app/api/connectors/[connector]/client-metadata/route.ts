@@ -1,4 +1,5 @@
 import { getConnector } from "@superset/shared/connectors";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import { clientMetadataUrl, redirectUriFor } from "@superset/trpc/connectors";
 
 export async function GET(
@@ -14,7 +15,7 @@ export async function GET(
 		{
 			client_id: clientMetadataUrl(slug),
 			client_name: "Superset",
-			client_uri: "https://superset.sh",
+			client_uri: CANONICAL_URLS.MARKETING,
 			redirect_uris: [redirectUriFor(slug)],
 			grant_types: ["authorization_code", "refresh_token"],
 			response_types: ["code"],

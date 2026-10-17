@@ -1539,6 +1539,9 @@ msgstr "Aa"
 msgid "About"
 msgstr "Giới thiệu"
 
+msgid "About {displayName}"
+msgstr "Giới thiệu về {displayName}"
+
 msgid "About Superset"
 msgstr "Về Superset"
 
@@ -8288,6 +8291,9 @@ msgstr "Ẩn cho đến khi bạn tham gia"
 msgid "Hide"
 msgstr "Ẩn"
 
+msgid "Hide {displayName}"
+msgstr "Ẩn {displayName}"
+
 msgid "Hide checks"
 msgstr "Ẩn check"
 
@@ -13339,6 +13345,9 @@ msgstr "Nhỏ"
 
 msgid "Quit"
 msgstr "Thoát"
+
+msgid "Quit {displayName}"
+msgstr "Thoát {displayName}"
 
 msgid "Quit Completely"
 msgstr "Thoát hẳn"

@@ -16,7 +16,7 @@ const otherPublicRoutes = [
 
 const publicRoutes = [...authPageRoutes, ...otherPublicRoutes] as const;
 
-/** Routes only visible to signed-in company accounts (COMPANY.EMAIL_DOMAIN). */
+/** Routes only visible to signed-in company accounts (STAFF_EMAIL_DOMAINS). */
 const internalRoutes = ["/design"] as const;
 
 function matchesRouteOrChild(pathname: string, route: string): boolean {

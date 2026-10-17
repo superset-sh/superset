@@ -1539,6 +1539,9 @@ msgstr "Aa"
 msgid "About"
 msgstr "About"
 
+msgid "About {displayName}"
+msgstr "About {displayName}"
+
 msgid "About Superset"
 msgstr "About Superset"
 
@@ -8288,6 +8291,9 @@ msgstr "Hidden until you join"
 msgid "Hide"
 msgstr "Hide"
 
+msgid "Hide {displayName}"
+msgstr "Hide {displayName}"
+
 msgid "Hide checks"
 msgstr "Hide checks"
 
@@ -13339,6 +13345,9 @@ msgstr "Quiet"
 
 msgid "Quit"
 msgstr "Quit"
+
+msgid "Quit {displayName}"
+msgstr "Quit {displayName}"
 
 msgid "Quit Completely"
 msgstr "Quit Completely"

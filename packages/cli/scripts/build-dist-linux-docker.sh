@@ -39,6 +39,7 @@ docker run --rm --platform "$PLATFORM" \
   -e RELAY_URL="${RELAY_URL:-https://relay.superset.sh}" \
   -e SUPERSET_API_URL="${SUPERSET_API_URL:-https://api.superset.sh}" \
   -e SUPERSET_WEB_URL="${SUPERSET_WEB_URL:-https://app.superset.sh}" \
+  -e NEXT_PUBLIC_ROOT_DOMAIN="${NEXT_PUBLIC_ROOT_DOMAIN:-}" \
   "oven/bun:${BUN_VERSION}" bash -euxc '
     apt-get update -qq
     apt-get install -y --no-install-recommends \

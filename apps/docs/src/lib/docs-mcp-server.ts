@@ -1,8 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import { z } from "zod";
 import { getLLMText, source } from "@/lib/source";
 
-export const DOCS_BASE_URL = "https://docs.superset.sh";
+export const DOCS_BASE_URL = CANONICAL_URLS.DOCS;
 export const DOCS_MCP_NAME = "superset-docs";
 export const DOCS_MCP_VERSION = "1.1.0";
 
@@ -25,8 +26,7 @@ export function createDocsMcpServer(): McpServer {
 	const server = new McpServer(
 		{ name: DOCS_MCP_NAME, version: DOCS_MCP_VERSION },
 		{
-			instructions:
-				"Read-only access to the Superset documentation (docs.superset.sh). Superset runs parallel AI coding agents in isolated Git worktrees. Call docs_search to find pages by keyword, then docs_read to fetch a page as markdown; every page is also exposed as a resource whose URI is its canonical URL. No authentication required; nothing here mutates state. To act on a Superset account (workspaces, agents, tasks), use the product MCP server at https://api.superset.sh/mcp instead.",
+			instructions: `Read-only access to the Superset documentation (${new URL(DOCS_BASE_URL).host}). Superset runs parallel AI coding agents in isolated Git worktrees. Call docs_search to find pages by keyword, then docs_read to fetch a page as markdown; every page is also exposed as a resource whose URI is its canonical URL. No authentication required; nothing here mutates state. To act on a Superset account (workspaces, agents, tasks), use the product MCP server at ${CANONICAL_URLS.API}/mcp instead.`,
 		},
 	);
 

@@ -109,6 +109,10 @@
 			"types": "./src/agent-status.ts",
 			"default": "./src/agent-status.ts"
 		},
+		"./app-identity": {
+			"types": "./src/app-identity.ts",
+			"default": "./src/app-identity.ts"
+		},
 		"./constants": {
 			"types": "./src/constants.ts",
 			"default": "./src/constants.ts"

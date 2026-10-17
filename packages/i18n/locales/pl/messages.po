@@ -1539,6 +1539,9 @@ msgstr "Aa"
 msgid "About"
 msgstr "O nas"
 
+msgid "About {displayName}"
+msgstr "{displayName} – informacje"
+
 msgid "About Superset"
 msgstr "O Superset"
 
@@ -8288,6 +8291,9 @@ msgstr "Ukryta do czasu dołączenia"
 msgid "Hide"
 msgstr "Ukryj"
 
+msgid "Hide {displayName}"
+msgstr "Ukryj {displayName}"
+
 msgid "Hide checks"
 msgstr "Ukryj kontrole"
 
@@ -13339,6 +13345,9 @@ msgstr "Cicha"
 
 msgid "Quit"
 msgstr "Zakończ"
+
+msgid "Quit {displayName}"
+msgstr "Zakończ {displayName}"
 
 msgid "Quit Completely"
 msgstr "Zakończ całkowicie"

@@ -1,8 +1,8 @@
 import { Heading, Section, Text } from "@react-email/components";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import { Button, EmailLayout } from "../../../components";
 
-const DOWNLOAD_URL =
-	"https://superset.sh/download?utm_source=email&utm_medium=transactional&utm_campaign=mobile-download-link";
+const DOWNLOAD_URL = `${CANONICAL_URLS.MARKETING}/download?utm_source=email&utm_medium=transactional&utm_campaign=mobile-download-link`;
 
 interface DownloadLinkEmailProps {
 	recipientEmail?: string;

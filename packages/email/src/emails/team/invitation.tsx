@@ -1,4 +1,5 @@
 import { Heading, Link, Section, Text } from "@react-email/components";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import { differenceInDays } from "date-fns";
 import { Button, EmailLayout } from "../../components";
 
@@ -15,7 +16,7 @@ interface OrganizationInvitationEmailProps {
 export function OrganizationInvitationEmail({
 	organizationName = "Acme Inc",
 	inviterName = "John Smith",
-	inviteLink = "https://app.superset.sh/accept-invitation/123?token=abc",
+	inviteLink = `${CANONICAL_URLS.APP}/accept-invitation/123?token=abc`,
 	role = "member",
 	inviteeName = "Satya Patel",
 	inviterEmail = "john@acme.com",

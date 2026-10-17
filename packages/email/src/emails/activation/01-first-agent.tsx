@@ -1,4 +1,5 @@
 import { Heading, Section, Text } from "@react-email/components";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import { Button, EmailLayout } from "../../components";
 
 const utm =
@@ -50,7 +51,7 @@ export function ActivationNudge1({
 			</Text>
 
 			<Section>
-				<Button href={`https://superset.sh/download${utm}`}>
+				<Button href={`${CANONICAL_URLS.MARKETING}/download${utm}`}>
 					Get the desktop app
 				</Button>
 			</Section>

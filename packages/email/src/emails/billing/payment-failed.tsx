@@ -1,4 +1,5 @@
 import { Heading, Link, Section, Text } from "@react-email/components";
+import { COMPANY } from "@superset/shared/constants";
 import { format } from "date-fns";
 import { Button, EmailLayout } from "../../components";
 
@@ -76,10 +77,7 @@ export function PaymentFailedEmail({
 
 			<Text className="text-[13px] leading-5 text-muted m-0">
 				Need help?{" "}
-				<Link
-					href="mailto:support@superset.sh"
-					className="text-muted underline"
-				>
+				<Link href={COMPANY.MAIL_TO} className="text-muted underline">
 					Contact our support team
 				</Link>{" "}
 				and we'll get you sorted out.

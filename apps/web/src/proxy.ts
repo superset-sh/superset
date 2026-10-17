@@ -1,5 +1,5 @@
 import { auth } from "@superset/auth/server";
-import { COMPANY } from "@superset/shared/constants";
+import { isStaffEmail } from "@superset/shared/constants";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -67,7 +67,7 @@ export default async function proxy(req: NextRequest) {
 	if (
 		session &&
 		isInternalRoute(pathname) &&
-		!session.user.email.endsWith(COMPANY.EMAIL_DOMAIN)
+		!isStaffEmail(session.user.email)
 	) {
 		return NextResponse.redirect(new URL("/", req.url));
 	}

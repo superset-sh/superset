@@ -1539,6 +1539,9 @@ msgstr "Aa"
 msgid "About"
 msgstr "关于"
 
+msgid "About {displayName}"
+msgstr "关于 {displayName}"
+
 msgid "About Superset"
 msgstr "关于Superset"
 
@@ -8288,6 +8291,9 @@ msgstr "加入后才会显示"
 msgid "Hide"
 msgstr "隐藏"
 
+msgid "Hide {displayName}"
+msgstr "隐藏 {displayName}"
+
 msgid "Hide checks"
 msgstr "隐藏检查"
 
@@ -13339,6 +13345,9 @@ msgstr "轻"
 
 msgid "Quit"
 msgstr "退出"
+
+msgid "Quit {displayName}"
+msgstr "退出 {displayName}"
 
 msgid "Quit Completely"
 msgstr "完全退出"

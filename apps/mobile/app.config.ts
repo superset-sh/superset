@@ -1,6 +1,6 @@
 import path from "node:path";
 import { SUPPORTED_LOCALES } from "@superset/i18n/locales";
-import { IOS_APP } from "@superset/shared/constants";
+import { IOS_APP, readRootDomain } from "@superset/shared/app-identity";
 import { config } from "dotenv";
 import type { ConfigContext } from "expo/config";
 import { withIosAccentColor } from "./config-plugins/withIosAccentColor";
@@ -18,7 +18,7 @@ if (process.env.MOBILE_EAS_BUILD !== "1") {
 }
 
 const webUrl = new URL(
-	process.env.EXPO_PUBLIC_WEB_URL || "https://app.superset.sh",
+	process.env.EXPO_PUBLIC_WEB_URL || `https://app.${readRootDomain()}`,
 );
 const associatedDomains =
 	webUrl.protocol === "https:" ? [`applinks:${webUrl.hostname}`] : undefined;

@@ -1,4 +1,5 @@
 import { msg } from "@lingui/core/macro";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import { BookOpenIcon, HistoryIcon, SettingsIcon } from "lucide-react";
 import { LuLayers } from "react-icons/lu";
 import type { Command, CommandProvider } from "../../core/types";
@@ -48,7 +49,7 @@ export const navigationProvider: CommandProvider = {
 				icon: BookOpenIcon,
 				keywords: ["docs", "help"],
 				run: () => {
-					window.open("https://docs.superset.sh", "_blank", "noreferrer");
+					window.open(CANONICAL_URLS.DOCS, "_blank", "noreferrer");
 				},
 			},
 		];

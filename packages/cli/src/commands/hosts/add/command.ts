@@ -6,6 +6,7 @@ import {
 	string,
 	wrapText,
 } from "@superset/cli-framework";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import { getHostId, hostIdFromMachineId } from "@superset/shared/host-info";
 import { type ApiClient, createApiClient } from "../../../lib/api-client";
 import { command } from "../../../lib/command";
@@ -36,7 +37,7 @@ import {
 } from "../../../lib/ssh-host-setup/service";
 import { SshSession } from "../../../lib/ssh-host-setup/ssh-session";
 
-const INSTALL_URL = "https://superset.sh/cli/install.sh";
+const INSTALL_URL = `${CANONICAL_URLS.MARKETING}/cli/install.sh`;
 const ONLINE_TIMEOUT_MS = 120_000;
 
 async function confirmStep(message: string, yes: boolean): Promise<boolean> {

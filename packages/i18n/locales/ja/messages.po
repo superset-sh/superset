@@ -1539,6 +1539,9 @@ msgstr "Aa"
 msgid "About"
 msgstr "会社概要"
 
+msgid "About {displayName}"
+msgstr "{displayName}について"
+
 msgid "About Superset"
 msgstr "Supersetについて"
 
@@ -8288,6 +8291,9 @@ msgstr "参加するまで非表示"
 msgid "Hide"
 msgstr "隠す"
 
+msgid "Hide {displayName}"
+msgstr "{displayName}を非表示"
+
 msgid "Hide checks"
 msgstr "チェックを隠す"
 
@@ -13339,6 +13345,9 @@ msgstr "静か"
 
 msgid "Quit"
 msgstr "終了"
+
+msgid "Quit {displayName}"
+msgstr "{displayName}を終了"
 
 msgid "Quit Completely"
 msgstr "完全に終了"

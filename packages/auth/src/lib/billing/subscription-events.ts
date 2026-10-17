@@ -3,6 +3,7 @@ import { githubInstallations } from "@superset/db/schema";
 import * as authSchema from "@superset/db/schema/auth";
 import { SubscriptionCancelledEmail } from "@superset/email/emails/billing/subscription-cancelled";
 import { SubscriptionStartedEmail } from "@superset/email/emails/billing/subscription-started";
+import { NOREPLY_FROM } from "@superset/email/sender";
 import { Client } from "@upstash/qstash";
 import { eq } from "drizzle-orm";
 import type Stripe from "stripe";
@@ -116,7 +117,7 @@ export async function notifySubscriptionStarted({
 
 	await resend.batch.send(
 		owners.map((owner) => ({
-			from: "Superset <noreply@superset.sh>",
+			from: NOREPLY_FROM,
 			to: owner.email,
 			subject: `Welcome to Superset ${planName}!`,
 			react: SubscriptionStartedEmail({
@@ -227,7 +228,7 @@ export async function notifySubscriptionCanceled({
 
 	await resend.batch.send(
 		recipients.map((recipient) => ({
-			from: "Superset <noreply@superset.sh>",
+			from: NOREPLY_FROM,
 			to: recipient.email,
 			subject: dueToPaymentFailure
 				? `Your ${subscription.plan} subscription ended`

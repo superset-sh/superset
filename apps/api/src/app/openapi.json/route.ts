@@ -1,6 +1,8 @@
-const API_URL = "https://api.superset.sh";
-const MARKETING_URL = "https://superset.sh";
-const DOCS_URL = "https://docs.superset.sh";
+import { CANONICAL_URLS, COMPANY } from "@superset/shared/constants";
+
+const API_URL = CANONICAL_URLS.API;
+const MARKETING_URL = CANONICAL_URLS.MARKETING;
+const DOCS_URL = CANONICAL_URLS.DOCS;
 
 const ERROR_SCHEMA = {
 	type: "object",
@@ -114,7 +116,7 @@ const SPEC = {
 		version: "1.0.0",
 		summary: "Programmatic access to Superset's agent-orchestration platform.",
 		description: [
-			"Superset (https://superset.sh) runs parallel AI coding agents in isolated Git worktrees.",
+			`Superset (${MARKETING_URL}) runs parallel AI coding agents in isolated Git worktrees.`,
 			"",
 			"The primary programmatic surface is the **MCP server** (Model Context Protocol, JSON-RPC 2.0 over Streamable HTTP) at `/mcp` (legacy alias: `/api/v2/agent/mcp`). It exposes tools for tasks, workspaces, coding-agent sessions, terminals, automations, hosts, projects, and organization members. The tool catalog with input schemas is published at `" +
 				`${API_URL}/.well-known/mcp/server-card.json` +
@@ -126,7 +128,7 @@ const SPEC = {
 		].join("\n"),
 		contact: {
 			name: "Superset support",
-			email: "support@superset.sh",
+			email: COMPANY.SUPPORT_EMAIL,
 			url: `${MARKETING_URL}/contact`,
 		},
 		termsOfService: `${MARKETING_URL}/terms`,

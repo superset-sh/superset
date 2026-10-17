@@ -1,6 +1,7 @@
 import { db } from "@superset/db/client";
 import { pluginOauthClients } from "@superset/db/schema";
 import type { ConnectorMethod } from "@superset/shared/connectors";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import { and, eq, isNotNull, lte } from "drizzle-orm";
 import { env } from "../../env";
 import { decryptOptional, encryptOptional } from "../../router/plugins/crypto";
@@ -111,7 +112,7 @@ async function register(
 			},
 			body: JSON.stringify({
 				client_name: "Superset",
-				client_uri: "https://superset.sh",
+				client_uri: CANONICAL_URLS.MARKETING,
 				redirect_uris: [redirectUri],
 				grant_types: pickGrantTypes(server.metadata.grant_types_supported),
 				response_types: ["code"],

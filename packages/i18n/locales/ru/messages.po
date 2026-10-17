@@ -1539,6 +1539,9 @@ msgstr "Aa"
 msgid "About"
 msgstr "О нас"
 
+msgid "About {displayName}"
+msgstr "О программе {displayName}"
+
 msgid "About Superset"
 msgstr "О Superset"
 
@@ -8288,6 +8291,9 @@ msgstr "Скрыто, пока вы не присоединитесь"
 msgid "Hide"
 msgstr "Скрыть"
 
+msgid "Hide {displayName}"
+msgstr "Скрыть {displayName}"
+
 msgid "Hide checks"
 msgstr "Скрыть проверки"
 
@@ -13339,6 +13345,9 @@ msgstr "Тихо"
 
 msgid "Quit"
 msgstr "Выйти"
+
+msgid "Quit {displayName}"
+msgstr "Завершить {displayName}"
 
 msgid "Quit Completely"
 msgstr "Выйти полностью"

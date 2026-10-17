@@ -21,7 +21,7 @@ export function defineEnv(
 	value: string | undefined,
 	fallback?: string,
 ): string {
-	return JSON.stringify(value ?? fallback);
+	return JSON.stringify(fallback === undefined ? value : value || fallback);
 }
 
 const RESOURCES_TO_COPY = [

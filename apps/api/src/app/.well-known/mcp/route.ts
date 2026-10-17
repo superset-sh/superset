@@ -1,3 +1,4 @@
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import { getRequestOrigin } from "@/lib/oauth-metadata";
 
 export function GET(request: Request): Response {
@@ -17,13 +18,13 @@ export function GET(request: Request): Response {
 						type: "oauth2",
 						resourceMetadataUrl: `${origin}/.well-known/oauth-protected-resource`,
 					},
-					documentation: "https://docs.superset.sh/mcp-server",
+					documentation: `${CANONICAL_URLS.DOCS}/mcp-server`,
 				},
 				{
 					name: "superset-docs",
 					description:
 						"Superset documentation over MCP — search and read docs pages.",
-					url: "https://docs.superset.sh/mcp",
+					url: `${CANONICAL_URLS.DOCS}/mcp`,
 					transport: "streamable-http",
 					authentication: { type: "none" },
 				},

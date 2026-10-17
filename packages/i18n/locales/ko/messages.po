@@ -1539,6 +1539,9 @@ msgstr "Aa"
 msgid "About"
 msgstr "회사 소개"
 
+msgid "About {displayName}"
+msgstr "{displayName}에 관하여"
+
 msgid "About Superset"
 msgstr "Superset 소개"
 
@@ -8288,6 +8291,9 @@ msgstr "참여 전까지 숨김"
 msgid "Hide"
 msgstr "숨기기"
 
+msgid "Hide {displayName}"
+msgstr "{displayName} 가리기"
+
 msgid "Hide checks"
 msgstr "검사 숨기기"
 
@@ -13339,6 +13345,9 @@ msgstr "조용함"
 
 msgid "Quit"
 msgstr "종료"
+
+msgid "Quit {displayName}"
+msgstr "{displayName} 종료"
 
 msgid "Quit Completely"
 msgstr "완전히 종료"

@@ -1,7 +1,10 @@
 import type { auth, Session } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { members } from "@superset/db/schema";
-import { COMPANY, ORGANIZATION_HEADER } from "@superset/shared/constants";
+import {
+	ORGANIZATION_HEADER,
+	STAFF_EMAIL_DOMAINS,
+} from "@superset/shared/constants";
 import { initTRPC, TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import superjson from "superjson";
@@ -344,7 +347,7 @@ export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
 	if (!hasAdminAccess(ctx.session.user)) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: `Admin access requires a verified ${COMPANY.EMAIL_DOMAIN} email.`,
+			message: `Admin access requires a verified ${STAFF_EMAIL_DOMAINS.join(" or ")} email.`,
 		});
 	}
 

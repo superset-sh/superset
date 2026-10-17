@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro";
+import { COMPANY } from "@superset/shared/constants";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
 import { useState } from "react";
@@ -14,9 +15,6 @@ import { DevSignInOptions } from "./components/DevSignInOptions";
 import { EmailSignInLink } from "./components/EmailSignInLink";
 import type { SocialProvider } from "./components/SocialButton";
 import { SocialButton } from "./components/SocialButton";
-
-const TERMS_URL = "https://superset.sh/terms";
-const PRIVACY_URL = "https://superset.sh/privacy";
 
 export function SignInScreen() {
 	const [error, setError] = useState<string | null>(null);
@@ -128,14 +126,14 @@ export function SignInScreen() {
 					By signing in, you agree to our{"\n"}
 					<Text
 						className="text-xs text-muted-foreground underline"
-						onPress={() => openUrl(TERMS_URL)}
+						onPress={() => openUrl(COMPANY.TERMS_URL)}
 					>
 						Terms of Service
 					</Text>{" "}
 					and{" "}
 					<Text
 						className="text-xs text-muted-foreground underline"
-						onPress={() => openUrl(PRIVACY_URL)}
+						onPress={() => openUrl(COMPANY.PRIVACY_URL)}
 					>
 						Privacy Policy
 					</Text>

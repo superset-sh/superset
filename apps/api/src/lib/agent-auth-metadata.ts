@@ -1,4 +1,5 @@
 import type { oauthProviderAuthServerMetadata } from "@better-auth/oauth-provider";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 
 type MetadataHandler = ReturnType<typeof oauthProviderAuthServerMetadata>;
 
@@ -27,7 +28,7 @@ export function withAgentAuthMetadata(handler: MetadataHandler) {
 				: undefined;
 
 		metadata.agent_auth = {
-			skill: "https://superset.sh/auth.md",
+			skill: `${CANONICAL_URLS.MARKETING}/auth.md`,
 			...(registerUri ? { register_uri: registerUri } : {}),
 			...(revocationUri ? { revocation_uri: revocationUri } : {}),
 			identity_types_supported: ["anonymous"],

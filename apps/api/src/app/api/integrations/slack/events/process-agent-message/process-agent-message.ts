@@ -2,6 +2,7 @@ import { billingUsesAutumn } from "@superset/auth/autumn";
 import { organizationPlanFromAutumn } from "@superset/auth/billing";
 import { db } from "@superset/db/client";
 import { subscriptions } from "@superset/db/schema";
+import { CANONICAL_URLS } from "@superset/shared/constants";
 import {
 	accountConnection,
 	connectionBotToken,
@@ -177,7 +178,7 @@ export async function processAgentMessage({
 						{
 							type: "button",
 							text: { type: "plain_text", text: "Upgrade to Pro", emoji: true },
-							url: "https://app.superset.sh/settings/billing",
+							url: `${CANONICAL_URLS.APP}/settings/billing`,
 							style: "primary",
 						},
 					],

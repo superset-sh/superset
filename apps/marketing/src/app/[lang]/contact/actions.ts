@@ -2,8 +2,10 @@
 
 import { msg } from "@lingui/core/macro";
 import { ContactInquiryEmail } from "@superset/email/emails/internal/contact-inquiry";
+import { NOREPLY_FROM } from "@superset/email/sender";
 import { isSupportedLocale } from "@superset/i18n/locales";
 import { getI18nInstance, preloadServerLocale } from "@superset/i18n/server";
+import { COMPANY } from "@superset/shared/constants";
 import { Resend } from "resend";
 import { z } from "zod";
 import { env } from "@/env";
@@ -107,8 +109,8 @@ export async function submitContactInquiry(
 		}
 
 		const { error } = await resend.emails.send({
-			from: "Superset <noreply@superset.sh>",
-			to: "support@superset.sh",
+			from: NOREPLY_FROM,
+			to: COMPANY.SUPPORT_EMAIL,
 			// CC the submitter so they keep a copy and stay on the reply thread.
 			cc: sanitizedEmail,
 			replyTo: sanitizedEmail,
