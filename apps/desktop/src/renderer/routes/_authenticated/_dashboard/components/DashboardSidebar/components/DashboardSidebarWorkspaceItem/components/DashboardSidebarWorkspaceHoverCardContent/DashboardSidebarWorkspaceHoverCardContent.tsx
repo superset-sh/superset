@@ -2,7 +2,7 @@ import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { formatDistanceToNow } from "date-fns";
-import { FaGithub } from "react-icons/fa";
+import { FaGithub, FaGitlab } from "react-icons/fa";
 import {
 	LuExternalLink,
 	LuGlobe,
@@ -11,6 +11,7 @@ import {
 } from "react-icons/lu";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import type { DashboardSidebarWorkspace } from "../../../../types";
 import { ChecksList } from "./components/ChecksList";
 import { ChecksSummary } from "./components/ChecksSummary";
@@ -47,6 +48,8 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 		openPRDisplay.length === 1 && openPRDisplay[0] === "Unassigned"
 	);
 	const hasCustomAlias = !!name && name !== branch;
+	const isGitLab =
+		!!pullRequest && !!pullRequestRefFromUrl(pullRequest.url)?.host;
 
 	const previewButton = previewUrl ? (
 		<Button
@@ -196,8 +199,16 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 						asChild
 					>
 						<a href={pullRequest.url} target="_blank" rel="noopener noreferrer">
-							<FaGithub className="size-3" />
-							<Trans>View on GitHub</Trans>
+							{isGitLab ? (
+								<FaGitlab className="size-3" />
+							) : (
+								<FaGithub className="size-3" />
+							)}
+							{isGitLab ? (
+								<Trans>Open in GitLab</Trans>
+							) : (
+								<Trans>View on GitHub</Trans>
+							)}
 							{hasOpenPRShortcut && (
 								<KbdGroup className="ml-auto">
 									{openPRDisplay.map((key) => (

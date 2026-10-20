@@ -29,6 +29,7 @@ describe("review comment navigation", () => {
 		const onOpen = mock(() => {});
 		const view = render(
 			<CommentRow
+				provider="github"
 				comment={{ ...comment, diffSide }}
 				copiedActionKey={null}
 				onCopy={() => {}}
@@ -53,6 +54,7 @@ describe("review comment navigation", () => {
 		const onOpen = mock(() => {});
 		const view = render(
 			<CommentRow
+				provider="github"
 				comment={{
 					...comment,
 					kind: "conversation",

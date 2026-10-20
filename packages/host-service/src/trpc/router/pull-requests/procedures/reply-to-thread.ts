@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { protectedProcedure } from "../../../index";
+import { replyToGitLabReviewComment } from "../../git/utils/gitlab-discussions";
 import { replyToReviewComment } from "../../git/utils/reply-to-review-comment";
-import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
+import { resolvePullRequestRepository } from "../resolve-repository";
 
 const replyToThreadInputSchema = z.object({
 	projectId: z.string(),
@@ -19,7 +20,17 @@ const replyToThreadInputSchema = z.object({
 export const replyToThread = protectedProcedure
 	.input(replyToThreadInputSchema)
 	.mutation(async ({ ctx, input }) => {
-		const repo = await resolveGithubRepo(ctx, input.projectId);
+		const repo = await resolvePullRequestRepository(ctx, input.projectId);
+		if (repo.provider === "gitlab") {
+			return replyToGitLabReviewComment(
+				ctx.execGlab,
+				repo,
+				input.prNumber,
+				input.commentId,
+				input.body,
+				repo.repoPath,
+			);
+		}
 		const octokit = await ctx.github();
 		return replyToReviewComment(octokit, {
 			owner: repo.owner,
