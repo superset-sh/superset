@@ -8,7 +8,7 @@ import { gitPrHeadBaseTask } from "../../../../workers/tasks/git";
 import { protectedProcedure } from "../../../index";
 import { resolveWorktreePath } from "../../git/utils/resolve-worktree";
 import { actionRejectionError } from "../../github/github";
-import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
+import { resolvePullRequestRepository } from "../resolve-repository";
 
 const createInputSchema = z.object({
 	workspaceId: z.string(),
@@ -68,24 +68,51 @@ export const createForWorkspace = protectedProcedure
 			});
 		}
 
-		const repo = await resolveGithubRepo(ctx, workspace.projectId);
-		const octokit = await ctx.github();
+		const repo = await resolvePullRequestRepository(ctx, workspace.projectId);
 		let created: { number: number; html_url: string };
 		try {
-			const { data } = await octokit.pulls.create({
-				owner: repo.owner,
-				repo: repo.name,
-				title: input.title,
-				head,
-				base,
-				draft: input.draft,
-				...(input.body ? { body: input.body } : {}),
-			});
-			created = data;
+			if (repo.provider === "gitlab") {
+				const raw = await ctx.execGlab(
+					[
+						"api",
+						"--method",
+						"POST",
+						`projects/${encodeURIComponent(`${repo.owner}/${repo.name}`)}/merge_requests`,
+						"-f",
+						`source_branch=${head}`,
+						"-f",
+						`target_branch=${base}`,
+						"-f",
+						`title=${input.draft ? `Draft: ${input.title}` : input.title}`,
+						"-f",
+						`description=${input.body ?? ""}`,
+					],
+					{ cwd: repo.repoPath, hostname: repo.host },
+				);
+				const data = z
+					.object({
+						iid: z.number().int().positive(),
+						web_url: z.string().url(),
+					})
+					.parse(raw);
+				created = { number: data.iid, html_url: data.web_url };
+			} else {
+				const octokit = await ctx.github();
+				const { data } = await octokit.pulls.create({
+					owner: repo.owner,
+					repo: repo.name,
+					title: input.title,
+					head,
+					base,
+					draft: input.draft,
+					...(input.body ? { body: input.body } : {}),
+				});
+				created = data;
+			}
 		} catch (error) {
 			throw actionRejectionError(
 				error,
-				"GitHub refused to create the pull request.",
+				`${repo.provider === "gitlab" ? "GitLab" : "GitHub"} refused to create the pull request.`,
 			);
 		}
 		// The PR exists at this point — a refresh hiccup (rate limit, transient

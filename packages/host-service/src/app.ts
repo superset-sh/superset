@@ -67,6 +67,10 @@ import {
 	execGh as defaultExecGh,
 	type ExecGh,
 } from "./trpc/router/workspace-creation/utils/exec-gh";
+import {
+	execGlab as defaultExecGlab,
+	type ExecGlab,
+} from "./trpc/router/workspace-creation/utils/exec-glab";
 import type {
 	ApiClient,
 	BrowserBridgeConfig,
@@ -108,6 +112,7 @@ export interface CreateAppOptions {
 	api?: ApiClient;
 	github?: () => Promise<Octokit>;
 	execGh?: ExecGh;
+	execGlab?: ExecGlab;
 }
 
 export interface CreateAppResult {
@@ -160,6 +165,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			return new Octokit({ auth: token });
 		});
 	const execGh: ExecGh = options.execGh ?? defaultExecGh;
+	const execGlab: ExecGlab = options.execGlab ?? defaultExecGlab;
 
 	const filesystem = new WorkspaceFilesystemManager({ db });
 	// GitWatcher is the single source of truth for `.git/` and worktree fs
@@ -180,6 +186,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	const pullRequestRuntime = new PullRequestRuntimeManager({
 		db,
 		execGh,
+		execGlab,
 		git,
 		github,
 		gitWatcher,
@@ -388,6 +395,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			credentials: providers.credentials,
 			github,
 			execGh,
+			execGlab,
 			api,
 			db,
 			runtime,
@@ -509,6 +517,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 					credentials: providers.credentials,
 					github,
 					execGh,
+					execGlab,
 					api,
 					db,
 					runtime,
@@ -591,6 +600,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				credentials: providers.credentials,
 				github,
 				execGh,
+				execGlab,
 				api,
 				db,
 				runtime,
@@ -611,6 +621,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			credentials: providers.credentials,
 			github,
 			execGh,
+			execGlab,
 			api,
 			db,
 			runtime,

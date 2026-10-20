@@ -1,5 +1,8 @@
 import type { Octokit, RestEndpointMethodTypes } from "@octokit/rest";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { projects } from "../../../../db/schema";
 import {
 	isGithubNotFoundError,
 	isGithubRateLimitError,
@@ -13,6 +16,7 @@ import type {
 	ChecksStatus,
 	PullRequestCheck,
 } from "../../../../runtime/pull-requests/utils/pull-request-mappers";
+import type { HostServiceContext } from "../../../../types";
 import { protectedProcedure } from "../../../index";
 import {
 	normalizePullRequestChecks,
@@ -37,8 +41,11 @@ import {
 	resolveGithubRepo,
 } from "../shared/project-helpers";
 import type { ExecGh } from "../utils/exec-gh";
+import { searchGitLabPullRequests } from "./search-gitlab-pull-requests";
 
 interface PullRequestResult {
+	repoProvider?: "github" | "gitlab";
+	authorAvatarUrl?: string | null;
 	projectId: string;
 	prNumber: number;
 	title: string;
@@ -64,12 +71,12 @@ export interface PullRequestsPage {
 	repoMismatch?: string;
 }
 
-const githubAuthorSchema = z
+const authorSchema = z
 	.string()
 	.trim()
 	.regex(
-		/^@?(?!.*--)[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?(?:\[bot\])?$/i,
-		"Author must be a valid GitHub username",
+		/^@?(?!.*--)[a-z\d](?:[a-z\d_.-]{0,253}[a-z\d])?(?:\[bot\])?$/i,
+		"Author must be a valid username",
 	)
 	.transform((author) => author.replace(/^@/, ""));
 
@@ -133,7 +140,7 @@ const searchPullRequestsInputSchema = githubSearchInputSchema
 		author: z
 			.string()
 			.transform((value) => value.split(","))
-			.pipe(z.array(githubAuthorSchema).min(1).max(20))
+			.pipe(z.array(authorSchema).min(1).max(20))
 			.optional(),
 		review: pullRequestReviewFilterSchema.optional(),
 		// mergedOnly always wins over includeClosed — see the qualifiers
@@ -982,270 +989,344 @@ async function enrichPageWithChecks(
 	}));
 }
 
+export type SearchPullRequestsInput = z.infer<
+	typeof searchPullRequestsInputSchema
+>;
+
+const searchGitHubPullRequests = async ({
+	ctx,
+	input,
+}: {
+	ctx: HostServiceContext;
+	input: SearchPullRequestsInput;
+}): Promise<PullRequestsPage> => {
+	if (
+		input.author?.some(
+			(author) =>
+				!/^(?!.*--)[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?(?:\[bot\])?$/i.test(
+					author,
+				),
+		)
+	) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Author must be a valid GitHub username",
+		});
+	}
+	const projectIds = input.projectIds ?? [input.projectId];
+	const projectRepos: ProjectRepo[] = await resolveProjectRepos(
+		projectIds,
+		input.projectIds !== undefined,
+		(projectId) => resolveGithubRepo(ctx, projectId),
+	);
+	if (projectRepos.length === 0) {
+		return emptyPullRequestsPage(input.page ?? 1);
+	}
+	const limit = input.limit ?? 30;
+	const page = input.page ?? 1;
+
+	const raw = input.query?.trim() ?? "";
+	const normalizedTargets = projectRepos.map((projectRepo) => ({
+		projectRepo,
+		normalized: normalizeGitHubQuery(raw, projectRepo.repo, "pull"),
+	}));
+	const directEntries = normalizedTargets.filter(
+		({ normalized }) => normalized.isDirectLookup,
+	);
+	const directTargets = directEntries.map(({ projectRepo }) => projectRepo);
+
+	// A same-kind GitHub URL either direct-matches a repo or mismatches
+	// it, so no direct target + any mismatch ⇒ every repo mismatched.
+	if (
+		directTargets.length === 0 &&
+		normalizedTargets.some(({ normalized }) => normalized.repoMismatch)
+	) {
+		return {
+			pullRequests: [],
+			totalCount: 0,
+			hasNextPage: false,
+			page,
+			repoMismatch: formatRepoList(projectRepos),
+		};
+	}
+
+	const lookupNumber = directEntries[0]
+		? Number.parseInt(directEntries[0].normalized.query, 10)
+		: null;
+
+	const effectiveQuery = [
+		normalizedTargets[0]?.normalized.query ?? "",
+		input.author?.map((author) => `author:${author}`).join(" ") ?? "",
+		input.review ? REVIEW_QUERY_BY_FILTER[input.review] : "",
+		input.viewerRelationship
+			? VIEWER_RELATIONSHIP_QUALIFIERS[input.viewerRelationship]
+			: "",
+	]
+		.filter(Boolean)
+		.join(" ");
+	const qualifiers = [
+		"is:pr",
+		input.mergedOnly ? "is:merged" : input.includeClosed ? "" : "is:open",
+		effectiveQuery,
+	]
+		.filter(Boolean)
+		.join(" ");
+
+	// gh-first uses the user's local `gh auth login`; falls back to
+	// Octokit when gh is missing, unauthed, or errors.
+	try {
+		if (lookupNumber !== null) {
+			const single = directTargets.length === 1 ? directTargets[0] : null;
+			if (single) {
+				const pullRequest = await ghDirectLookupRow(
+					ctx.execGh,
+					single,
+					lookupNumber,
+					input.author,
+					input.review,
+					input.mergedOnly,
+					input.viewerRelationship,
+				);
+				if (!pullRequest) return emptyPullRequestsPage(page);
+				return {
+					pullRequests: [pullRequest],
+					totalCount: 1,
+					hasNextPage: false,
+					page,
+				};
+			}
+			// Bare `#N` fans out one `gh pr view` per repo — core quota,
+			// not search quota. Repos without that number just miss.
+			const settled = await Promise.allSettled(
+				directTargets.map((target) =>
+					ghDirectLookupRow(
+						ctx.execGh,
+						target,
+						lookupNumber,
+						input.author,
+						input.review,
+						input.mergedOnly,
+						input.viewerRelationship,
+					),
+				),
+			);
+			const found: PullRequestResult[] = [];
+			for (const result of settled) {
+				if (result.status === "fulfilled") {
+					if (result.value) found.push(result.value);
+				} else if (!isGithubNotFoundError(result.reason)) {
+					throw result.reason;
+				}
+			}
+			return {
+				pullRequests: mergeByUpdatedAtDesc([found]),
+				totalCount: found.length,
+				hasNextPage: false,
+				page,
+			};
+		}
+
+		const chunks = chunkProjectRepos(projectRepos, qualifiers);
+		const chunkResults = await Promise.all(
+			chunks.map((chunk) =>
+				ghApiSearchPullRequests(ctx.execGh, chunk, qualifiers, page, limit),
+			),
+		);
+		const merged = mergeByUpdatedAtDesc(
+			chunkResults.map((result) => result.items),
+		);
+		let pullRequests = merged;
+		try {
+			pullRequests = await enrichPageWithChecks(
+				merged,
+				projectRepos,
+				(repo, numbers) => ghGetPullRequestChecks(ctx.execGh, repo, numbers),
+			);
+		} catch (checksError) {
+			console.warn(
+				"[workspaceCreation.searchPullRequests] failed to enrich checks",
+				checksError,
+			);
+		}
+		return {
+			pullRequests,
+			totalCount: chunkResults.reduce(
+				(sum, result) => sum + result.totalCount,
+				0,
+			),
+			hasNextPage: chunkResults.some((result) => result.hasNextPage),
+			page,
+		};
+	} catch (ghErr) {
+		// A rate-limited gh call surfaces as-is — falling back to Octokit
+		// would retry against the same user's quota.
+		if (isGithubRateLimitError(ghErr)) throw githubRateLimitError(ghErr);
+		console.warn(
+			"[workspaceCreation.searchPullRequests] gh path failed; falling back to Octokit",
+			ghErr,
+		);
+	}
+
+	const octokit = await ctx.github();
+
+	try {
+		if (lookupNumber !== null) {
+			const single = directTargets.length === 1 ? directTargets[0] : null;
+			if (single) {
+				const pullRequest = await octokitDirectLookupRow(
+					octokit,
+					single,
+					lookupNumber,
+					input.author,
+					input.review,
+					input.mergedOnly,
+					input.viewerRelationship,
+				);
+				if (!pullRequest) return emptyPullRequestsPage(page);
+				return {
+					pullRequests: [pullRequest],
+					totalCount: 1,
+					hasNextPage: false,
+					page,
+				};
+			}
+			const settled = await Promise.allSettled(
+				directTargets.map((target) =>
+					octokitDirectLookupRow(
+						octokit,
+						target,
+						lookupNumber,
+						input.author,
+						input.review,
+						input.mergedOnly,
+						input.viewerRelationship,
+					),
+				),
+			);
+			const found: PullRequestResult[] = [];
+			for (const result of settled) {
+				if (result.status === "fulfilled") {
+					if (result.value) found.push(result.value);
+				} else if (!isGithubNotFoundError(result.reason)) {
+					throw result.reason;
+				}
+			}
+			return {
+				pullRequests: mergeByUpdatedAtDesc([found]),
+				totalCount: found.length,
+				hasNextPage: false,
+				page,
+			};
+		}
+
+		const chunks = chunkProjectRepos(projectRepos, qualifiers);
+		// One chunk failing (a repo this token cannot see, a timed-out
+		// request) must not blank the repos that answered — this is the
+		// last resort, so throwing here empties the whole list.
+		const { results: chunkResults, failures } = collectChunkResults(
+			await Promise.allSettled(
+				chunks.map((chunk) =>
+					octokitSearchPullRequests(octokit, chunk, qualifiers, page, limit),
+				),
+			),
+		);
+		if (failures.length > 0) {
+			console.warn(
+				`[workspaceCreation.searchPullRequests] ${failures.length} of ${chunks.length} search chunks failed; returning the rest`,
+				failures,
+			);
+		}
+		const merged = mergeByUpdatedAtDesc(
+			chunkResults.map((result) => result.items),
+		);
+		let pullRequests = merged;
+		try {
+			pullRequests = await enrichPageWithChecks(
+				merged,
+				projectRepos,
+				(repo, numbers) =>
+					getPullRequestChecksViaGraphql(
+						(checksQuery, variables) => octokit.graphql(checksQuery, variables),
+						repo,
+						numbers,
+					),
+			);
+		} catch (checksError) {
+			console.warn(
+				"[workspaceCreation.searchPullRequests] failed to enrich checks via Octokit",
+				checksError,
+			);
+		}
+		return {
+			pullRequests,
+			totalCount: chunkResults.reduce(
+				(sum, result) => sum + result.totalCount,
+				0,
+			),
+			hasNextPage: chunkResults.some((result) => result.hasNextPage),
+			page,
+		};
+	} catch (err) {
+		// Both gh and Octokit failed — rethrow so the renderer's toast
+		// fires instead of the dropdown silently rendering "no results".
+		console.warn(
+			"[workspaceCreation.searchPullRequests] octokit fallback failed",
+			err,
+		);
+		throw githubRequestError(err, ctx.credentials);
+	}
+};
+
 export const searchPullRequests = protectedProcedure
 	.input(searchPullRequestsInputSchema)
 	.query(async ({ ctx, input }): Promise<PullRequestsPage> => {
-		const projectIds = input.projectIds ?? [input.projectId];
-		const projectRepos: ProjectRepo[] = await resolveProjectRepos(
-			projectIds,
-			input.projectIds !== undefined,
-			(projectId) => resolveGithubRepo(ctx, projectId),
+		const ids = [...new Set(input.projectIds ?? [input.projectId])];
+		const gitlabIds = ids.filter(
+			(id) =>
+				ctx.db.query.projects.findFirst({ where: eq(projects.id, id) }).sync()
+					?.repoProvider === "gitlab",
 		);
-		if (projectRepos.length === 0) {
-			return emptyPullRequestsPage(input.page ?? 1);
-		}
-		const limit = input.limit ?? 30;
-		const page = input.page ?? 1;
-
-		const raw = input.query?.trim() ?? "";
-		const normalizedTargets = projectRepos.map((projectRepo) => ({
-			projectRepo,
-			normalized: normalizeGitHubQuery(raw, projectRepo.repo, "pull"),
-		}));
-		const directEntries = normalizedTargets.filter(
-			({ normalized }) => normalized.isDirectLookup,
+		if (!gitlabIds.length) return searchGitHubPullRequests({ ctx, input });
+		const githubIds = ids.filter((id) => !gitlabIds.includes(id));
+		const searches = gitlabIds.map((projectId) =>
+			searchGitLabPullRequests(ctx, { ...input, projectId }),
 		);
-		const directTargets = directEntries.map(({ projectRepo }) => projectRepo);
-
-		// A same-kind GitHub URL either direct-matches a repo or mismatches
-		// it, so no direct target + any mismatch ⇒ every repo mismatched.
-		if (
-			directTargets.length === 0 &&
-			normalizedTargets.some(({ normalized }) => normalized.repoMismatch)
-		) {
-			return {
-				pullRequests: [],
-				totalCount: 0,
-				hasNextPage: false,
-				page,
-				repoMismatch: formatRepoList(projectRepos),
-			};
-		}
-
-		const lookupNumber = directEntries[0]
-			? Number.parseInt(directEntries[0].normalized.query, 10)
-			: null;
-
-		const effectiveQuery = [
-			normalizedTargets[0]?.normalized.query ?? "",
-			input.author?.map((author) => `author:${author}`).join(" ") ?? "",
-			input.review ? REVIEW_QUERY_BY_FILTER[input.review] : "",
-			input.viewerRelationship
-				? VIEWER_RELATIONSHIP_QUALIFIERS[input.viewerRelationship]
-				: "",
-		]
-			.filter(Boolean)
-			.join(" ");
-		const qualifiers = [
-			"is:pr",
-			input.mergedOnly ? "is:merged" : input.includeClosed ? "" : "is:open",
-			effectiveQuery,
-		]
-			.filter(Boolean)
-			.join(" ");
-
-		// gh-first uses the user's local `gh auth login`; falls back to
-		// Octokit when gh is missing, unauthed, or errors.
-		try {
-			if (lookupNumber !== null) {
-				const single = directTargets.length === 1 ? directTargets[0] : null;
-				if (single) {
-					const pullRequest = await ghDirectLookupRow(
-						ctx.execGh,
-						single,
-						lookupNumber,
-						input.author,
-						input.review,
-						input.mergedOnly,
-						input.viewerRelationship,
-					);
-					if (!pullRequest) return emptyPullRequestsPage(page);
-					return {
-						pullRequests: [pullRequest],
-						totalCount: 1,
-						hasNextPage: false,
-						page,
-					};
-				}
-				// Bare `#N` fans out one `gh pr view` per repo — core quota,
-				// not search quota. Repos without that number just miss.
-				const settled = await Promise.allSettled(
-					directTargets.map((target) =>
-						ghDirectLookupRow(
-							ctx.execGh,
-							target,
-							lookupNumber,
-							input.author,
-							input.review,
-							input.mergedOnly,
-							input.viewerRelationship,
-						),
-					),
-				);
-				const found: PullRequestResult[] = [];
-				for (const result of settled) {
-					if (result.status === "fulfilled") {
-						if (result.value) found.push(result.value);
-					} else if (!isGithubNotFoundError(result.reason)) {
-						throw result.reason;
-					}
-				}
-				return {
-					pullRequests: mergeByUpdatedAtDesc([found]),
-					totalCount: found.length,
-					hasNextPage: false,
-					page,
-				};
-			}
-
-			const chunks = chunkProjectRepos(projectRepos, qualifiers);
-			const chunkResults = await Promise.all(
-				chunks.map((chunk) =>
-					ghApiSearchPullRequests(ctx.execGh, chunk, qualifiers, page, limit),
-				),
+		const githubProjectId = githubIds[0];
+		if (githubProjectId)
+			searches.push(
+				searchGitHubPullRequests({
+					ctx,
+					input: {
+						...input,
+						projectId: githubProjectId,
+						projectIds: githubIds,
+					},
+				}),
 			);
-			const merged = mergeByUpdatedAtDesc(
-				chunkResults.map((result) => result.items),
-			);
-			let pullRequests = merged;
-			try {
-				pullRequests = await enrichPageWithChecks(
-					merged,
-					projectRepos,
-					(repo, numbers) => ghGetPullRequestChecks(ctx.execGh, repo, numbers),
-				);
-			} catch (checksError) {
-				console.warn(
-					"[workspaceCreation.searchPullRequests] failed to enrich checks",
-					checksError,
-				);
-			}
-			return {
-				pullRequests,
-				totalCount: chunkResults.reduce(
-					(sum, result) => sum + result.totalCount,
-					0,
-				),
-				hasNextPage: chunkResults.some((result) => result.hasNextPage),
-				page,
-			};
-		} catch (ghErr) {
-			// A rate-limited gh call surfaces as-is — falling back to Octokit
-			// would retry against the same user's quota.
-			if (isGithubRateLimitError(ghErr)) throw githubRateLimitError(ghErr);
+		const { results, failures } = collectChunkResults(
+			await Promise.allSettled(searches),
+		);
+		if (failures.length)
 			console.warn(
-				"[workspaceCreation.searchPullRequests] gh path failed; falling back to Octokit",
-				ghErr,
+				"[workspaceCreation.searchPullRequests] Some repositories failed",
+				failures,
 			);
-		}
-
-		const octokit = await ctx.github();
-
-		try {
-			if (lookupNumber !== null) {
-				const single = directTargets.length === 1 ? directTargets[0] : null;
-				if (single) {
-					const pullRequest = await octokitDirectLookupRow(
-						octokit,
-						single,
-						lookupNumber,
-						input.author,
-						input.review,
-						input.mergedOnly,
-						input.viewerRelationship,
-					);
-					if (!pullRequest) return emptyPullRequestsPage(page);
-					return {
-						pullRequests: [pullRequest],
-						totalCount: 1,
-						hasNextPage: false,
-						page,
-					};
-				}
-				const settled = await Promise.allSettled(
-					directTargets.map((target) =>
-						octokitDirectLookupRow(
-							octokit,
-							target,
-							lookupNumber,
-							input.author,
-							input.review,
-							input.mergedOnly,
-							input.viewerRelationship,
-						),
-					),
-				);
-				const found: PullRequestResult[] = [];
-				for (const result of settled) {
-					if (result.status === "fulfilled") {
-						if (result.value) found.push(result.value);
-					} else if (!isGithubNotFoundError(result.reason)) {
-						throw result.reason;
+		return {
+			pullRequests: mergeByUpdatedAtDesc(
+				results.map((result) => result.pullRequests),
+			),
+			totalCount: results.reduce(
+				(count, result) => count + result.totalCount,
+				0,
+			),
+			hasNextPage: results.some((result) => result.hasNextPage),
+			page: input.page ?? 1,
+			...(results.every((result) => result.repoMismatch)
+				? {
+						repoMismatch: results
+							.map((result) => result.repoMismatch)
+							.join(", "),
 					}
-				}
-				return {
-					pullRequests: mergeByUpdatedAtDesc([found]),
-					totalCount: found.length,
-					hasNextPage: false,
-					page,
-				};
-			}
-
-			const chunks = chunkProjectRepos(projectRepos, qualifiers);
-			// One chunk failing (a repo this token cannot see, a timed-out
-			// request) must not blank the repos that answered — this is the
-			// last resort, so throwing here empties the whole list.
-			const { results: chunkResults, failures } = collectChunkResults(
-				await Promise.allSettled(
-					chunks.map((chunk) =>
-						octokitSearchPullRequests(octokit, chunk, qualifiers, page, limit),
-					),
-				),
-			);
-			if (failures.length > 0) {
-				console.warn(
-					`[workspaceCreation.searchPullRequests] ${failures.length} of ${chunks.length} search chunks failed; returning the rest`,
-					failures,
-				);
-			}
-			const merged = mergeByUpdatedAtDesc(
-				chunkResults.map((result) => result.items),
-			);
-			let pullRequests = merged;
-			try {
-				pullRequests = await enrichPageWithChecks(
-					merged,
-					projectRepos,
-					(repo, numbers) =>
-						getPullRequestChecksViaGraphql(
-							(checksQuery, variables) =>
-								octokit.graphql(checksQuery, variables),
-							repo,
-							numbers,
-						),
-				);
-			} catch (checksError) {
-				console.warn(
-					"[workspaceCreation.searchPullRequests] failed to enrich checks via Octokit",
-					checksError,
-				);
-			}
-			return {
-				pullRequests,
-				totalCount: chunkResults.reduce(
-					(sum, result) => sum + result.totalCount,
-					0,
-				),
-				hasNextPage: chunkResults.some((result) => result.hasNextPage),
-				page,
-			};
-		} catch (err) {
-			// Both gh and Octokit failed — rethrow so the renderer's toast
-			// fires instead of the dropdown silently rendering "no results".
-			console.warn(
-				"[workspaceCreation.searchPullRequests] octokit fallback failed",
-				err,
-			);
-			throw githubRequestError(err, ctx.credentials);
-		}
+				: {}),
+		};
 	});

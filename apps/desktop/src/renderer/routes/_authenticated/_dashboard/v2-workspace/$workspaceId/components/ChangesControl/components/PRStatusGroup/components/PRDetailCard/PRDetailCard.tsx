@@ -29,6 +29,7 @@ export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 	const { formatRelativeTime } = useFormat();
 
 	const { t } = useLingui();
+	const providerName = pr.repoProvider === "gitlab" ? "GitLab" : "GitHub";
 	const stateLabel = pr.isDraft
 		? t({ message: "Draft" })
 		: pr.state === "merged"
@@ -96,7 +97,7 @@ export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 				className="group flex items-center justify-between border-t border-border/60 px-3 py-2 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 			>
 				<span>
-					<Trans>View on GitHub</Trans>
+					<Trans>View on {providerName}</Trans>
 				</span>
 				<LuArrowUpRight
 					aria-hidden="true"
