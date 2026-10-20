@@ -13590,6 +13590,9 @@ msgstr "重新整理Linear議題"
 msgid "Refresh metrics"
 msgstr "重新整理指標"
 
+msgid "Refresh pull request"
+msgstr "重新整理拉取請求"
+
 msgid "Refresh pull requests"
 msgstr "重新整理拉取請求"
 

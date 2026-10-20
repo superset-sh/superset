@@ -36,6 +36,9 @@ mock.module(
 	`${root}/v2-workspace/$workspaceId/hooks/useReviewCommentNavigation`,
 	() => ({ useReviewCommentNavigation: () => mock() }),
 );
+mock.module(`${root}/pull-requests/hooks/useRefreshPullRequest`, () => ({
+	useRefreshPullRequest: () => ({ refresh: () => {}, isRefreshing: false }),
+}));
 mock.module(`${root}/pull-requests/components/PullRequestActions`, () => ({
 	PullRequestActions: () => null,
 }));

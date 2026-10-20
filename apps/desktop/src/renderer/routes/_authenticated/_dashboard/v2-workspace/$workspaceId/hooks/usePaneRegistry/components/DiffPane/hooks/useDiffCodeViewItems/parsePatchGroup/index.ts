@@ -1,5 +1,4 @@
 export {
-	buildPatchSegmentKey,
 	type ParsedPatchGroup,
 	type PatchGroupFile,
 	type PatchGroupResult,

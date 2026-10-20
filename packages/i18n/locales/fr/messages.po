@@ -13590,6 +13590,9 @@ msgstr "Actualiser les issues Linear"
 msgid "Refresh metrics"
 msgstr "Actualiser les métriques"
 
+msgid "Refresh pull request"
+msgstr "Actualiser la pull request"
+
 msgid "Refresh pull requests"
 msgstr "Actualiser les pull requests"
 

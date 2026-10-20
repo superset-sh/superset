@@ -13590,6 +13590,9 @@ msgstr "Linear 이슈 새로 고침"
 msgid "Refresh metrics"
 msgstr "지표 새로 고침"
 
+msgid "Refresh pull request"
+msgstr "풀 리퀘스트 새로 고침"
+
 msgid "Refresh pull requests"
 msgstr "풀 리퀘스트 새로 고침"
 

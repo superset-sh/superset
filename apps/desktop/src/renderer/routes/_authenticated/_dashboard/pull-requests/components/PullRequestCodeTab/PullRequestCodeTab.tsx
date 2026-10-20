@@ -28,6 +28,7 @@ import {
 } from "renderer/lib/pierreTree";
 import type { AgentTarget } from "renderer/routes/_authenticated/_dashboard/components/AgentSessionPicker";
 import { WorkItemDetailState } from "renderer/routes/_authenticated/_dashboard/components/WorkItemDetailState";
+import { buildContentKey } from "renderer/routes/_authenticated/_dashboard/utils/buildContentKey";
 import { useDiffCardCodeViewTheme } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/DiffPane/hooks/useDiffCodeViewTheme";
 import { DiffFileCollapseButton } from "renderer/screens/main/components/DiffFileCollapseButton";
 import { DiffFileHeaderName } from "renderer/screens/main/components/DiffFileHeaderName";
@@ -38,7 +39,12 @@ import { pullRequestReadErrorMessage } from "../../utils/combinePullRequestReadE
 import { PullRequestCommentComposer } from "./components/PullRequestCommentComposer";
 import { PullRequestCommentThread } from "./components/PullRequestCommentThread";
 import { fetchPullRequestDiff } from "./utils/fetchPullRequestDiff";
+import { getFileItemVersion } from "./utils/getFileItemVersion";
 import { parsePullRequestPatch } from "./utils/parsePullRequestPatch";
+import {
+	pullRequestDiffQueryKey,
+	pullRequestThreadsQueryKey,
+} from "./utils/pullRequestCodeTabQueryKeys";
 
 interface PullRequestCodeTabProps {
 	projectId: string | null;
@@ -137,6 +143,7 @@ const CHANGE_TYPE_TO_PIERRE_STATUS: Record<string, PierreGitStatus> = {
 
 interface ParsedFileDiff {
 	item: CodeViewItem<PrAnnotationMetadata>;
+	contentKey: string;
 	path: string;
 	status: PierreGitStatus;
 	additions: number;
@@ -154,8 +161,16 @@ function parseFileDiffs(diff: PullRequestDiff): ParsedFileDiff[] {
 			additions += hunk.additionLines;
 			deletions += hunk.deletionLines;
 		}
+		const contentKey = buildContentKey(fileDiff.name, JSON.stringify(fileDiff));
 		return {
-			item: { id: `${fileDiff.name}-${index}`, type: "diff", fileDiff },
+			item: {
+				id: `${fileDiff.name}-${index}`,
+				type: "diff",
+				// Pierre keys its render cache on cacheKey and falls back to the
+				// file name, which would keep showing a file's old content.
+				fileDiff: { ...fileDiff, cacheKey: contentKey },
+			},
+			contentKey,
 			path: fileDiff.name,
 			status: CHANGE_TYPE_TO_PIERRE_STATUS[fileDiff.type] ?? "modified",
 			additions,
@@ -219,30 +234,7 @@ export function PullRequestCodeTab({
 			containerWidth < NARROW_PANE_WIDTH_HIDE_TREE_THRESHOLD);
 	const [treeWidth, setTreeWidth] = useState(DEFAULT_TREE_WIDTH);
 	const [isResizingTree, setIsResizingTree] = useState(false);
-	const [composer, setComposer] = useState<ComposerState | null>(null);
-	// Pierre's controlled `items` prop skips reprocessing an item whose
-	// `version` is unchanged from what it last saw (see the version comment
-	// on `items` below) — composer open/close/move doesn't touch
-	// threadsUpdatedAt, so without this the annotation update goes stale:
-	// the composer can silently fail to open, or fail to disappear on
-	// cancel/Escape, whenever a thread hasn't also refetched in between.
-	// Scoped to just the file(s) losing or gaining the composer annotation
-	// (not every file in the diff) so a transition doesn't force Pierre to
-	// reprocess the whole PR. Both refs are written synchronously inside
-	// the event handler, before setComposer, so `items` sees the update on
-	// the very next render — no lag.
-	const composerVersionRef = useRef(0);
-	const composerAffectedPathsRef = useRef<ReadonlySet<string>>(new Set());
-	const updateComposer = useCallback((next: ComposerState | null) => {
-		composerVersionRef.current += 1;
-		setComposer((prev) => {
-			const affected = new Set<string>();
-			if (prev) affected.add(prev.path);
-			if (next) affected.add(next.path);
-			composerAffectedPathsRef.current = affected;
-			return next;
-		});
-	}, []);
+	const [composer, updateComposer] = useState<ComposerState | null>(null);
 	// Cancel/Escape/successful-submit close, as opposed to updateComposer(null)
 	// from onLineSelectionEnd's !range branch — there Pierre has *already*
 	// cleared its own selection (that's what produced the null range), so
@@ -251,23 +243,13 @@ export function PullRequestCodeTab({
 	const closeComposer = useCallback(() => {
 		updateComposer(null);
 		codeViewRef.current?.clearSelectedLines();
-	}, [updateComposer]);
+	}, []);
 	// Per-file collapse — Pierre's CodeViewDiffItem has a native `collapsed`
-	// field it uses to hide a file's body while keeping its header rendered,
-	// so this only needs to track *which* items are collapsed and bump their
-	// version (same reasoning as composerVersionRef above: Pierre skips an
-	// item whose version didn't change, and toggling collapsed doesn't touch
-	// threadsUpdatedAt on its own).
+	// field it uses to hide a file's body while keeping its header rendered.
 	const [collapsedFileIds, setCollapsedFileIds] = useState<ReadonlySet<string>>(
 		new Set(),
 	);
-	const collapseVersionRef = useRef(0);
-	// A single id for a per-file toggle, every id for collapse/expand-all —
-	// either way, every item this set names gets the version bump below.
-	const collapseAffectedIdsRef = useRef<ReadonlySet<string>>(new Set());
 	const toggleFileCollapsed = useCallback((itemId: string) => {
-		collapseVersionRef.current += 1;
-		collapseAffectedIdsRef.current = new Set([itemId]);
 		setCollapsedFileIds((prev) => {
 			const next = new Set(prev);
 			if (next.has(itemId)) next.delete(itemId);
@@ -277,8 +259,6 @@ export function PullRequestCodeTab({
 	}, []);
 	const setAllFilesCollapsed = useCallback(
 		(collapsed: boolean, allItemIds: readonly string[]) => {
-			collapseVersionRef.current += 1;
-			collapseAffectedIdsRef.current = new Set(allItemIds);
 			setCollapsedFileIds(collapsed ? new Set(allItemIds) : new Set());
 		},
 		[],
@@ -289,14 +269,13 @@ export function PullRequestCodeTab({
 	const canUseProject = !!projectId && !!hostUrl;
 
 	const { data, isLoading, error, refetch } = useQuery({
-		queryKey: [
-			"pull-request-diff",
+		queryKey: pullRequestDiffQueryKey({
 			organizationId,
 			repoFullName,
 			projectId,
 			hostUrl,
 			prNumber,
-		],
+		}),
 		queryFn: () =>
 			fetchPullRequestDiff({
 				projectId,
@@ -309,12 +288,11 @@ export function PullRequestCodeTab({
 		gcTime: 10 * 60_000,
 	});
 
-	const threadsQueryKey = [
-		"pull-request-threads",
+	const threadsQueryKey = pullRequestThreadsQueryKey({
 		projectId,
 		hostUrl,
 		prNumber,
-	];
+	});
 	const { data: threadsData, dataUpdatedAt: threadsUpdatedAt } = useQuery({
 		queryKey: threadsQueryKey,
 		enabled: canUseProject,
@@ -626,44 +604,21 @@ export function PullRequestCodeTab({
 					composerAnnotation && composer?.path === f.path
 						? [...threadAnnotations, composerAnnotation]
 						: threadAnnotations;
-				const isVersionAffected =
-					composerAffectedPathsRef.current.has(f.path) ||
-					collapseAffectedIdsRef.current.has(f.item.id);
+				const collapsed = collapsedFileIds.has(f.item.id);
 				return {
 					...f.item,
 					annotations: annotations.length > 0 ? annotations : undefined,
-					collapsed: collapsedFileIds.has(f.item.id),
-					// Pierre's controlled `items` prop diffs items by id and, per
-					// its own docs ("bump the version when also changing the
-					// value"), needs an explicit version bump to know an
-					// already-rendered item's content changed — otherwise a
-					// same-id item with new annotations (a reply landing, a
-					// resolve toggling, a composer opening/closing) or a
-					// collapsed toggle can go stale in the live view even though
-					// the query cache/state is correct. Only the file(s) actually
-					// affected get the extra bump, so a transition elsewhere
-					// doesn't force Pierre to reprocess every file in the diff.
-					version: isVersionAffected
-						? threadsUpdatedAt +
-							composerVersionRef.current +
-							collapseVersionRef.current
-						: threadsUpdatedAt,
+					collapsed,
+					// Pierre redraws an item only when its version changes, so the
+					// version must cover everything the item shows.
+					version: getFileItemVersion({
+						contentKey: f.contentKey,
+						annotations,
+						collapsed,
+					}),
 				};
 			}),
-		// composerVersionRef.current, composerAffectedPathsRef.current,
-		// collapseVersionRef.current, and collapseAffectedIdsRef.current are
-		// read directly, not listed as dependencies — all are written
-		// synchronously in their respective update callbacks before the
-		// state setter, so they're already current by the time this
-		// recomputes off the `composer`/`collapsedFileIds` change below.
-		[
-			files,
-			annotationsByPath,
-			composer,
-			composerAnnotation,
-			threadsUpdatedAt,
-			collapsedFileIds,
-		],
+		[files, annotationsByPath, composer, composerAnnotation, collapsedFileIds],
 	);
 	// Flattened in diff order (file order, then line number within a file)
 	// so next/prev walks the pane top-to-bottom instead of thread-creation
@@ -761,7 +716,7 @@ export function PullRequestCodeTab({
 					updateComposer({ itemId: context.item.id, path, range });
 				},
 			}) as CodeViewOptions<PrAnnotationMetadata>,
-		[options, pathByItemId, updateComposer, canUseProject],
+		[options, pathByItemId, canUseProject],
 	);
 
 	const treePaths = useMemo(() => files.map((f) => f.path), [files]);

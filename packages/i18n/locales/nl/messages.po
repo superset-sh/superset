@@ -13590,6 +13590,9 @@ msgstr "Linear-issues vernieuwen"
 msgid "Refresh metrics"
 msgstr "Statistieken vernieuwen"
 
+msgid "Refresh pull request"
+msgstr "Pull request vernieuwen"
+
 msgid "Refresh pull requests"
 msgstr "Pull requests vernieuwen"
 

@@ -68,7 +68,7 @@ interface PullRequestDetailKey {
 	prNumber: number | null;
 }
 
-function pullRequestDetailQueryKey({
+export function pullRequestDetailQueryKey({
 	projectId,
 	hostUrl,
 	prNumber,
@@ -139,7 +139,9 @@ export function usePullRequestDetail({
 		gcTime: 10 * 60_000,
 	});
 	return {
-		...query,
+		data: query.data,
+		error: query.error,
+		refetch: query.refetch,
 		...target,
 		repoFullName:
 			repoFullName ?? query.data?.repoFullName ?? target.repoFullName,

@@ -11,6 +11,7 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestDetailTabs";
 import { PullRequestListToggle } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestListToggle";
 import { usePullRequestDetail } from "renderer/routes/_authenticated/_dashboard/pull-requests/hooks/usePullRequestDetail";
+import { useRefreshPullRequest } from "renderer/routes/_authenticated/_dashboard/pull-requests/hooks/useRefreshPullRequest";
 import { parsePositiveIntegerParam } from "renderer/routes/_authenticated/_dashboard/utils/parsePositiveIntegerParam";
 import { Route as PullRequestsLayoutRoute } from "../layout";
 
@@ -40,6 +41,13 @@ function PullRequestDetailPage() {
 		hostUrl,
 		prNumber,
 		repoFullName: search.repo,
+	});
+	const { refresh, isRefreshing } = useRefreshPullRequest({
+		projectId: detail.projectId,
+		hostUrl,
+		prNumber,
+		repoFullName: detail.repoFullName,
+		url: detail.data?.url,
 	});
 	const data = detail.data ?? null;
 	const diffStat =
@@ -80,6 +88,8 @@ function PullRequestDetailPage() {
 						prNumber={prNumber}
 						data={detail.data}
 						isLoading={detail.isLoading}
+						onRefresh={refresh}
+						isRefreshing={isRefreshing}
 					/>
 				</div>
 			</PageHeader>
