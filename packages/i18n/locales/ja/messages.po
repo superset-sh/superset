@@ -9673,6 +9673,9 @@ msgstr "エージェント設定を読み込み中..."
 msgid "Loading and in-flight activity indicators"
 msgstr "読み込みと実行中の活動を示すインジケーター"
 
+msgid "Loading branches..."
+msgstr "ブランチを読み込み中..."
+
 msgid "Loading changes..."
 msgstr "変更を読み込み中..."
 
@@ -12110,6 +12113,9 @@ msgstr "この実行のワークスペースを開く"
 
 msgid "Open workspace"
 msgstr "ワークスペースを開く"
+
+msgid "Open workspace on <0>{typedBranch}</0>"
+msgstr "<0>{typedBranch}</0> でワークスペースを開く"
 
 msgid "Open your app."
 msgstr "アプリを開きます。"

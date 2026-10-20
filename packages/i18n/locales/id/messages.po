@@ -9673,6 +9673,9 @@ msgstr "Memuat pengaturan agen..."
 msgid "Loading and in-flight activity indicators"
 msgstr "Indikator pemuatan dan aktivitas yang sedang berjalan"
 
+msgid "Loading branches..."
+msgstr "Memuat branch..."
+
 msgid "Loading changes..."
 msgstr "Memuat perubahan..."
 
@@ -12110,6 +12113,9 @@ msgstr "Buka workspace run ini"
 
 msgid "Open workspace"
 msgstr "Buka workspace"
+
+msgid "Open workspace on <0>{typedBranch}</0>"
+msgstr "Buka workspace di <0>{typedBranch}</0>"
 
 msgid "Open your app."
 msgstr "Buka aplikasi Anda."

@@ -9673,6 +9673,9 @@ msgstr "에이전트 설정을 불러오는 중..."
 msgid "Loading and in-flight activity indicators"
 msgstr "로딩 및 진행 중 활동 표시기"
 
+msgid "Loading branches..."
+msgstr "브랜치 불러오는 중..."
+
 msgid "Loading changes..."
 msgstr "변경 사항을 불러오는 중..."
 
@@ -12110,6 +12113,9 @@ msgstr "이 실행의 워크스페이스 열기"
 
 msgid "Open workspace"
 msgstr "워크스페이스 열기"
+
+msgid "Open workspace on <0>{typedBranch}</0>"
+msgstr "<0>{typedBranch}</0>에서 워크스페이스 열기"
 
 msgid "Open your app."
 msgstr "앱을 여세요."

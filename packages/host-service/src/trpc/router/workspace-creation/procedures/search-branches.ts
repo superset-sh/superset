@@ -45,11 +45,9 @@ export const searchBranches = protectedProcedure
 		// on every keystroke when the client tags first-page requests.
 		if (input.refresh && shouldRefetchRemote(input.projectId)) {
 			markRefetchRemote(input.projectId);
-			try {
-				await git.fetch(["--prune", "--quiet", "--no-tags"]);
-			} catch {
-				// offline — proceed with cached refs
-			}
+			void git.fetch(["--prune", "--quiet", "--no-tags"]).catch(() => {
+				// offline — keep serving cached refs
+			});
 		}
 
 		const defaultBranch = await resolveDefaultBranchName(git);

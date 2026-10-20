@@ -9673,6 +9673,9 @@ msgstr "Carregando as configurações do agente..."
 msgid "Loading and in-flight activity indicators"
 msgstr "Indicadores de carregamento e de atividade em andamento"
 
+msgid "Loading branches..."
+msgstr "Carregando branches..."
+
 msgid "Loading changes..."
 msgstr "Carregando as alterações..."
 
@@ -12110,6 +12113,9 @@ msgstr "Abrir a área de trabalho desta execução"
 
 msgid "Open workspace"
 msgstr "Abrir área de trabalho"
+
+msgid "Open workspace on <0>{typedBranch}</0>"
+msgstr "Abrir área de trabalho em <0>{typedBranch}</0>"
 
 msgid "Open your app."
 msgstr "Abra seu app."

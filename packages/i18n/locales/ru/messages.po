@@ -9673,6 +9673,9 @@ msgstr "Загрузка настроек агента..."
 msgid "Loading and in-flight activity indicators"
 msgstr "Индикаторы загрузки и текущей активности"
 
+msgid "Loading branches..."
+msgstr "Загружаем ветки..."
+
 msgid "Loading changes..."
 msgstr "Загрузка изменений..."
 
@@ -12110,6 +12113,9 @@ msgstr "Открыть рабочую область этого запуска"
 
 msgid "Open workspace"
 msgstr "Открыть рабочую область"
+
+msgid "Open workspace on <0>{typedBranch}</0>"
+msgstr "Открыть рабочую область на ветке <0>{typedBranch}</0>"
 
 msgid "Open your app."
 msgstr "Откройте приложение."

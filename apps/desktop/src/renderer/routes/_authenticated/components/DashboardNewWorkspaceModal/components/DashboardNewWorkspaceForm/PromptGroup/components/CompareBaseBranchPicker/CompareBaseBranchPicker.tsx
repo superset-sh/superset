@@ -24,8 +24,11 @@ import {
 	type OpenWorkspaceTarget,
 	toOpenWorkspaceTarget,
 } from "./openWorkspaceTarget";
+import { isValidBranchName } from "./utils/isValidBranchName";
 
 const MOD_KEY = PLATFORM === "mac" ? "⌘" : "Ctrl";
+// cmdk row value for the typed-name row; can't collide with a git ref name.
+const TYPED_BRANCH_VALUE = "\u0000typed-branch";
 
 interface CompareBaseBranchPickerProps {
 	effectiveCompareBaseBranch: string | null;
@@ -53,6 +56,7 @@ interface CompareBaseBranchPickerProps {
 	// worktree, and fresh-create. Worktree rows must carry their path so stale
 	// branch labels do not make the server create a new managed worktree.
 	onOpenWorkspace: (target: OpenWorkspaceTarget) => void;
+	canOpenTypedBranch?: boolean;
 }
 
 export function CompareBaseBranchPicker({
@@ -75,6 +79,7 @@ export function CompareBaseBranchPicker({
 	onLoadMore,
 	onSelectCompareBaseBranch,
 	onOpenWorkspace,
+	canOpenTypedBranch = true,
 }: CompareBaseBranchPickerProps) {
 	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
@@ -129,13 +134,20 @@ export function CompareBaseBranchPicker({
 		return branchesFailure;
 	}
 
+	const typedBranch = branchSearch.trim();
+	const showTypedBranchRow =
+		canOpenTypedBranch &&
+		isValidBranchName(typedBranch) &&
+		!branches.some((branch) => branch.name === typedBranch);
+	const openTypedBranch = () => {
+		onOpenWorkspace({ branchName: typedBranch });
+		handleOpenChange(false);
+	};
+
 	return (
 		<Popover open={open} onOpenChange={handleOpenChange}>
 			<PopoverTrigger asChild>
-				<FormPickerTrigger
-					disabled={isBranchesLoading && branches.length === 0}
-					className="max-w-full"
-				>
+				<FormPickerTrigger className="max-w-full">
 					<GoGitBranch className="size-3 shrink-0" />
 					{isBranchesLoading && branches.length === 0 ? (
 						<span className="h-2.5 w-14 rounded-sm bg-muted-foreground/15 animate-pulse" />
@@ -161,8 +173,19 @@ export function CompareBaseBranchPicker({
 					value={selectedValue}
 					onValueChange={setSelectedValue}
 					onKeyDown={(e) => {
+						if (e.nativeEvent.isComposing) return;
 						// cmdk leaves focus on the input, so the per-row button is
 						// pointer-only — Mod+Enter is the keyboard path to it.
+						if (
+							e.key === "Enter" &&
+							showTypedBranchRow &&
+							selectedValue === TYPED_BRANCH_VALUE
+						) {
+							e.preventDefault();
+							e.stopPropagation();
+							if (e.metaKey || e.ctrlKey) openTypedBranch();
+							return;
+						}
 						if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
 							const selectedBranch = branches.find(
 								(branch) => branch.name === selectedValue,
@@ -197,9 +220,15 @@ export function CompareBaseBranchPicker({
 						</TabsList>
 					</Tabs>
 					<CommandList className="max-h-[420px]">
+						{isBranchesLoading && branches.length === 0 && (
+							<div className="py-2 text-center text-[11px] text-muted-foreground/60">
+								<Trans>Loading branches...</Trans>
+							</div>
+						)}
 						{!isBranchesLoading &&
 							!isBranchesError &&
-							branches.length === 0 && (
+							branches.length === 0 &&
+							!showTypedBranchRow && (
 								<CommandEmpty>
 									<Trans>No branches found</Trans>
 								</CommandEmpty>
@@ -287,6 +316,24 @@ export function CompareBaseBranchPicker({
 								</CommandItem>
 							);
 						})}
+						{showTypedBranchRow && (
+							<CommandItem
+								value={TYPED_BRANCH_VALUE}
+								onSelect={openTypedBranch}
+								className="items-center gap-3 rounded-md px-2.5 py-2"
+							>
+								<GoGitBranch className="size-4 shrink-0 text-muted-foreground" />
+								<span className="min-w-0 flex-1 truncate text-sm">
+									<Trans>
+										Open workspace on{" "}
+										<span className="font-mono">{typedBranch}</span>
+									</Trans>
+								</span>
+								<span className="ml-2 shrink-0 text-[10px] text-muted-foreground opacity-70">
+									{MOD_KEY}↵
+								</span>
+							</CommandItem>
+						)}
 						{isBranchesError ? (
 							<div className="flex justify-center py-2">{branchesFailure}</div>
 						) : (

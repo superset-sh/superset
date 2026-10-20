@@ -252,3 +252,101 @@ describe("CompareBaseBranchPicker load failures", () => {
 		expect((retry as HTMLButtonElement).disabled).toBe(true);
 	});
 });
+
+describe("CompareBaseBranchPicker typed branch", () => {
+	const main = {
+		name: "main",
+		lastCommitDate: 0,
+		isLocal: true,
+		isRemote: false,
+		recency: null,
+		worktreePath: null,
+		hasWorkspace: false,
+		isCheckedOut: false,
+	};
+
+	test("opens while the first page is loading", async () => {
+		const page = renderPicker({ isBranchesLoading: true });
+		await act(async () => {
+			fireEvent.click(page.getByRole("button"));
+		});
+		expect(page.getByText("Loading branches...")).toBeTruthy();
+	});
+
+	test("opens a typed name that is not in the loaded list, after the matches", async () => {
+		const onOpenWorkspace = mock(() => {});
+		const page = renderPicker({
+			effectiveCompareBaseBranch: "main",
+			branches: [main],
+			branchSearch: " feat/pasted ",
+			onOpenWorkspace,
+		});
+		await act(async () => {
+			fireEvent.click(page.getByRole("button", { name: "main" }));
+		});
+		const options = page.getAllByRole("option");
+		expect(options.at(-1)?.textContent).toContain(
+			"Open workspace on feat/pasted",
+		);
+		await act(async () => {
+			fireEvent.click(options.at(-1) as HTMLElement);
+		});
+		expect(onOpenWorkspace).toHaveBeenCalledWith({ branchName: "feat/pasted" });
+	});
+
+	test("opens a typed branch with Mod+Enter but not plain Enter", async () => {
+		const onOpenWorkspace = mock(() => {});
+		const page = renderPicker({
+			effectiveCompareBaseBranch: "main",
+			branchSearch: "feat/pasted",
+			onOpenWorkspace,
+		});
+		await act(async () => {
+			fireEvent.click(page.getByRole("button", { name: "main" }));
+		});
+		const input = page.getByRole("combobox");
+		await act(async () => {
+			fireEvent.keyDown(input, { key: "Enter" });
+		});
+		expect(onOpenWorkspace).not.toHaveBeenCalled();
+		await act(async () => {
+			fireEvent.keyDown(input, { key: "Enter", metaKey: true });
+		});
+		expect(onOpenWorkspace).toHaveBeenCalledWith({ branchName: "feat/pasted" });
+	});
+
+	test("offers no typed row where typed branches can't be opened", async () => {
+		const page = renderPicker({
+			effectiveCompareBaseBranch: "main",
+			branchSearch: "feat/pasted",
+			canOpenTypedBranch: false,
+		});
+		await act(async () => {
+			fireEvent.click(page.getByRole("button", { name: "main" }));
+		});
+		expect(page.queryByText(/Open workspace on/)).toBeNull();
+	});
+
+	test("offers no typed row for a name git would reject", async () => {
+		const page = renderPicker({
+			effectiveCompareBaseBranch: "main",
+			branchSearch: "not a branch",
+		});
+		await act(async () => {
+			fireEvent.click(page.getByRole("button", { name: "main" }));
+		});
+		expect(page.queryByText(/Open workspace on/)).toBeNull();
+	});
+
+	test("offers no typed row for a name that is already loaded", async () => {
+		const page = renderPicker({
+			effectiveCompareBaseBranch: "main",
+			branches: [main],
+			branchSearch: "main",
+		});
+		await act(async () => {
+			fireEvent.click(page.getByRole("button", { name: "main" }));
+		});
+		expect(page.queryByText(/Open workspace on/)).toBeNull();
+	});
+});

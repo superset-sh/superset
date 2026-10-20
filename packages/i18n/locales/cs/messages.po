@@ -9673,6 +9673,9 @@ msgstr "Načítám nastavení agenta..."
 msgid "Loading and in-flight activity indicators"
 msgstr "Indikátory načítání a probíhající aktivity"
 
+msgid "Loading branches..."
+msgstr "Načítám větve..."
+
 msgid "Loading changes..."
 msgstr "Načítám změny..."
 
@@ -12110,6 +12113,9 @@ msgstr "Otevřít pracovní prostor tohoto běhu"
 
 msgid "Open workspace"
 msgstr "Otevřít pracovní prostor"
+
+msgid "Open workspace on <0>{typedBranch}</0>"
+msgstr "Otevřít pracovní prostor na větvi <0>{typedBranch}</0>"
 
 msgid "Open your app."
 msgstr "Otevřete aplikaci."

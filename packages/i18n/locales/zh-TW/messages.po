@@ -9673,6 +9673,9 @@ msgstr "正在載入代理程式設定..."
 msgid "Loading and in-flight activity indicators"
 msgstr "載入狀態與進行中活動的指示器"
 
+msgid "Loading branches..."
+msgstr "正在載入分支..."
+
 msgid "Loading changes..."
 msgstr "正在載入更改..."
 
@@ -12110,6 +12113,9 @@ msgstr "開啟此次執行的工作區"
 
 msgid "Open workspace"
 msgstr "開啟工作區"
+
+msgid "Open workspace on <0>{typedBranch}</0>"
+msgstr "在 <0>{typedBranch}</0> 上開啟工作區"
 
 msgid "Open your app."
 msgstr "開啟你的應用程式。"

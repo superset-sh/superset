@@ -9673,6 +9673,9 @@ msgstr "正在加载智能体设置..."
 msgid "Loading and in-flight activity indicators"
 msgstr "加载状态与进行中活动的指示器"
 
+msgid "Loading branches..."
+msgstr "正在加载分支..."
+
 msgid "Loading changes..."
 msgstr "正在加载更改..."
 
@@ -12110,6 +12113,9 @@ msgstr "打开此次运行的工作区"
 
 msgid "Open workspace"
 msgstr "打开工作区"
+
+msgid "Open workspace on <0>{typedBranch}</0>"
+msgstr "在 <0>{typedBranch}</0> 上打开工作区"
 
 msgid "Open your app."
 msgstr "打开你的应用。"

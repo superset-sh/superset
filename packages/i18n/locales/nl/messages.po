@@ -9673,6 +9673,9 @@ msgstr "Agentinstellingen laden..."
 msgid "Loading and in-flight activity indicators"
 msgstr "Laad- en activiteitsindicatoren"
 
+msgid "Loading branches..."
+msgstr "Branches laden..."
+
 msgid "Loading changes..."
 msgstr "Wijzigingen laden..."
 
@@ -12110,6 +12113,9 @@ msgstr "Werkruimte van deze run openen"
 
 msgid "Open workspace"
 msgstr "Werkruimte openen"
+
+msgid "Open workspace on <0>{typedBranch}</0>"
+msgstr "Werkruimte openen op <0>{typedBranch}</0>"
 
 msgid "Open your app."
 msgstr "Open je app."
