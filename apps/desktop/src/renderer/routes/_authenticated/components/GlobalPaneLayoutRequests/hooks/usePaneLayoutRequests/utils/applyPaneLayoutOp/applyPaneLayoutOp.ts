@@ -166,7 +166,15 @@ export function applyPaneLayoutOp(
 						data: {
 							filePath: op.filePath,
 							mode: "editor",
-							...(op.line ? { pendingPosition: { line: op.line, column: op.column } } : {}),
+							...(op.line || op.column
+								? {
+										pendingPosition: {
+											line: op.line ?? 1,
+											column: op.column,
+										},
+										viewId: "code",
+									}
+								: {}),
 						},
 					},
 				}),

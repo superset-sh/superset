@@ -127,6 +127,24 @@ describe("applyPaneLayoutOp", () => {
 		});
 	});
 
+	test("openFile defaults a column-only request to line one and code view", () => {
+		const { state } = applyPaneLayoutOp(
+			fixture(),
+			{
+				type: "openFile",
+				paneId: "b",
+				direction: "right",
+				filePath: "/repo/README.md",
+				column: 4,
+			},
+			() => "file-pane",
+		);
+		expect(state.tabs[0]?.panes["file-pane"]?.data).toMatchObject({
+			pendingPosition: { line: 1, column: 4 },
+			viewId: "code",
+		});
+	});
+
 	test("resize gives the pane its ratio whichever side of the split it is on", () => {
 		const second = applyPaneLayoutOp(fixture(), {
 			type: "resize",
