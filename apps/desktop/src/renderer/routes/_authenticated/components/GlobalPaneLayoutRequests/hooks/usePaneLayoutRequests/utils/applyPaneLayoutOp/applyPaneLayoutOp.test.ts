@@ -102,6 +102,31 @@ describe("applyPaneLayoutOp", () => {
 		expect(tab?.activePaneId).toBe("a");
 	});
 
+	test("openFile puts an editor pane beside the requested pane", () => {
+		const { state, paneId, tabId } = applyPaneLayoutOp(
+			fixture(),
+			{
+				type: "openFile",
+				paneId: "b",
+				direction: "right",
+				filePath: "/repo/src/example.ts",
+				line: 12,
+				column: 4,
+			},
+			() => "file-pane",
+		);
+		expect(tabId).toBe("tab-1");
+		expect(paneId).toBe("file-pane");
+		expect(state.tabs[0]?.panes["file-pane"]).toMatchObject({
+			kind: "file",
+			data: {
+				filePath: "/repo/src/example.ts",
+				mode: "editor",
+				pendingPosition: { line: 12, column: 4 },
+			},
+		});
+	});
+
 	test("resize gives the pane its ratio whichever side of the split it is on", () => {
 		const second = applyPaneLayoutOp(fixture(), {
 			type: "resize",
