@@ -30,7 +30,11 @@ describe("pending file position", () => {
 		});
 		rerender({ ...props, isActive: false });
 		rerender({ ...props, isReady: true, isActive: false });
-		expect(props.editorRef.current.revealPosition).toHaveBeenCalledWith(240, 7);
+		expect(props.editorRef.current.revealPosition).toHaveBeenCalledWith(
+			240,
+			7,
+			false,
+		);
 		expect(props.onPositionRevealed).toHaveBeenCalledTimes(1);
 		rerender({ ...props, isReady: true, isActive: true });
 		expect(props.editorRef.current.revealPosition).toHaveBeenCalledTimes(1);
@@ -46,7 +50,11 @@ describe("pending file position", () => {
 		expect(props.editorRef.current.revealPosition).not.toHaveBeenCalled();
 		rerender({ ...latest, isReady: true });
 		expect(props.editorRef.current.revealPosition).toHaveBeenCalledTimes(1);
-		expect(props.editorRef.current.revealPosition).toHaveBeenCalledWith(400, 3);
+		expect(props.editorRef.current.revealPosition).toHaveBeenCalledWith(
+			400,
+			3,
+			true,
+		);
 	});
 	it("does not replay consumed requests when switching panes", () => {
 		const props = { ...options(), isReady: true };

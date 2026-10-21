@@ -39,6 +39,11 @@ describe("file position reveal", () => {
 		adapter.revealPosition(2);
 		expect(view.state.selection.main.head).toBe(6);
 	});
+	it("reveals without focusing when requested", () => {
+		const { view, adapter } = makeEditor("first");
+		adapter.revealPosition(1, 1, false);
+		expect(view.focus).not.toHaveBeenCalled();
+	});
 	it("unfolds the region containing the requested position", () => {
 		const { view, adapter } = makeEditor("start\nhidden line\nend");
 		view.dispatch({ effects: foldEffect.of({ from: 5, to: 17 }) });

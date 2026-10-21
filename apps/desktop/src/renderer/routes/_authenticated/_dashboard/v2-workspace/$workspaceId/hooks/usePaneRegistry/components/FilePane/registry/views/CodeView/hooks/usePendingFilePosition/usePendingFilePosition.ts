@@ -13,6 +13,7 @@ interface PendingFilePositionOptions {
 export function usePendingFilePosition({
 	editorRef,
 	isReady,
+	isActive,
 	pendingPosition,
 	onPositionRevealed,
 }: PendingFilePositionOptions) {
@@ -21,6 +22,7 @@ export function usePendingFilePosition({
 		editorRef.current.revealPosition(
 			pendingPosition.line,
 			pendingPosition.column,
+			isActive,
 		);
 		onPositionRevealed?.();
 	}, [editorRef, isReady, pendingPosition, onPositionRevealed]);

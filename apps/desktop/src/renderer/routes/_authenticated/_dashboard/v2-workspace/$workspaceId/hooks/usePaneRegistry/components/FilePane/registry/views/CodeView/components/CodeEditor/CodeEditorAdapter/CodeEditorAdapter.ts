@@ -13,7 +13,7 @@ export interface CodeEditorAdapter {
 	focus(): void;
 	getValue(): string;
 	setValue(value: string): void;
-	revealPosition(line: number, column?: number): void;
+	revealPosition(line: number, column?: number, focus?: boolean): void;
 	getSelectionLines(): EditorSelectionLines | null;
 	selectAll(): void;
 	cut(): void;
@@ -36,7 +36,7 @@ export function createCodeMirrorAdapter(view: EditorView): CodeEditorAdapter {
 		setValue(value) {
 			view.dispatch(replaceEditorDocument(view.state, value));
 		},
-		revealPosition(line, column = 1) {
+		revealPosition(line, column = 1, focus = true) {
 			const safeLine = Math.max(1, Math.min(line, view.state.doc.lines));
 			const lineInfo = view.state.doc.line(safeLine);
 			const offset = Math.min(column - 1, lineInfo.length);
@@ -46,7 +46,7 @@ export function createCodeMirrorAdapter(view: EditorView): CodeEditorAdapter {
 				selection: EditorSelection.cursor(anchor),
 				scrollIntoView: true,
 			});
-			view.focus();
+			if (focus) view.focus();
 		},
 		getSelectionLines() {
 			const selection = view.state.selection.main;
