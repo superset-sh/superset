@@ -682,6 +682,36 @@ describe("LiveSession", () => {
 		await runtime.dispose();
 	});
 
+	test("updateQueuedPrompt rewrites a queued prompt without losing its place", async () => {
+		const { runtime, sessionId } = startSession(GATED_THEN_QUICK);
+		sendPrompt(runtime, sessionId, "first");
+		await waitForApproval(runtime, sessionId);
+		const second = sendPrompt(runtime, sessionId, "second");
+		const third = sendPrompt(runtime, sessionId, "third");
+
+		runtime.commands.updateQueuedPrompt({
+			commandId: randomUUID(),
+			sessionId,
+			itemId: second.itemId,
+			content: [{ type: "text", text: "second, revised" }],
+		});
+
+		const snapshot = reduceMany(
+			emptySnapshot(),
+			journalEnvelopes(runtime, sessionId),
+		);
+		expect(snapshot.items.get(second.itemId)?.item).toMatchObject({
+			queued: true,
+			content: [{ type: "text", text: "second, revised" }],
+		});
+		expect(deriveQueuedPrompts(snapshot).map((item) => item.id)).toEqual([
+			second.itemId,
+			third.itemId,
+		]);
+		expect(runtime.sessions.get(sessionId)?.queuedCount).toBe(2);
+		await runtime.dispose();
+	});
+
 	test("steerQueuedPrompt interrupts the turn and delivers that prompt next", async () => {
 		const { runtime, sessionId } = startSession(GATED_THEN_QUICK);
 		sendPrompt(runtime, sessionId, "first");

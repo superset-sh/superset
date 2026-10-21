@@ -59,6 +59,7 @@ export type SessionClient = {
 	prompt(options: PromptOptions): Promise<ChatRouterOutputs["prompt"]>;
 	removeQueuedPrompt(itemId: string): Promise<void>;
 	steerQueuedPrompt(itemId: string): Promise<void>;
+	updateQueuedPrompt(itemId: string, content: UserContent[]): Promise<void>;
 	resumeQueue(): Promise<void>;
 	cancelTurn(turnId: string, options?: { pauseQueue?: boolean }): Promise<void>;
 	stopBackgroundTask(taskId: string): Promise<boolean>;
@@ -115,6 +116,15 @@ export function createSessionClient(
 				commandId: mintId(),
 				sessionId,
 				itemId,
+			});
+		},
+
+		updateQueuedPrompt: async (itemId, content) => {
+			await options.transport.updateQueuedPrompt({
+				commandId: mintId(),
+				sessionId,
+				itemId,
+				content,
 			});
 		},
 

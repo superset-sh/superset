@@ -1,5 +1,4 @@
 import { useLingui } from "@lingui/react/macro";
-import { appendPastedText } from "@superset/chat/core";
 import type {
 	AvailableCommand,
 	SessionConfigOption,
@@ -8,6 +7,7 @@ import type {
 } from "@superset/chat/protocol";
 import type {
 	ComposerChip,
+	ComposerDraft,
 	ComposerMentionEntry,
 	ComposerMentionProvider,
 	PromptInputCommand,
@@ -16,7 +16,7 @@ import type {
 } from "@superset/chat-ui/PromptInput";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
-import { workspaceTrpc } from "@superset/workspace-client";
+import { useWorkspaceClient, workspaceTrpc } from "@superset/workspace-client";
 import {
 	memo,
 	type KeyboardEvent as ReactKeyboardEvent,
@@ -28,24 +28,25 @@ import {
 	useMemo,
 	useRef,
 } from "react";
-import { env } from "renderer/env.renderer";
 import { useHotkey } from "renderer/hotkeys";
-import { cloudTrpc } from "renderer/lib/cloud-trpc";
-import { pagesListInput } from "renderer/routes/_authenticated/_dashboard/utils/pagesListInput";
+import { FileIcon, getFileIcon } from "renderer/lib/fileIcons";
 import { AgentComposer } from "renderer/routes/_authenticated/components/AgentComposer";
+import {
+	type AgentSwitcher,
+	ModelPicker,
+} from "renderer/routes/_authenticated/components/AgentComposer/components/ModelPicker";
+import {
+	ModePicker,
+	type SessionMode,
+} from "renderer/routes/_authenticated/components/AgentComposer/components/ModePicker";
+import { useFooterTier } from "renderer/routes/_authenticated/components/AgentComposer/hooks/useFooterTier";
+import { useGitHubMentionProviders } from "renderer/routes/_authenticated/components/AgentComposer/hooks/useGitHubMentionProviders";
 import { CHAT_COLUMN_CLASSNAME, CHAT_GUTTER_CLASSNAME } from "../../constants";
 import { commandChip, LEADING_COMMAND } from "../../utils/commandChip";
 import { mcpContextLine } from "../../utils/mcpServerChips";
 import { elementsForChips } from "../../utils/messageElements";
-import { type AgentSwitcher, ModelPicker } from "./components/ModelPicker";
-import { ModePicker, type SessionMode } from "./components/ModePicker";
 import { QueuedPrompts } from "./components/QueuedPrompts";
-import { useAttachmentPreview } from "./hooks/useAttachmentPreview";
-import {
-	takeRecoveredDraftText,
-	useComposerDraft,
-} from "./hooks/useComposerDraft";
-import { useFooterTier } from "./hooks/useFooterTier";
+import { takeRecoveredDraft, useComposerDraft } from "./hooks/useComposerDraft";
 import { useMcpServerPicker } from "./hooks/useMcpServerPicker";
 import { useQueueActions } from "./hooks/useQueueActions";
 import { useUploadAttachments } from "./hooks/useUploadAttachments";
@@ -54,7 +55,7 @@ export type ComposerProps = {
 	workspaceId: string;
 	presetId?: string;
 	draftKey: string;
-	inputRef?: Ref<Pick<PromptInputHandle, "appendText" | "focus">>;
+	inputRef?: Ref<Pick<PromptInputHandle, "restoreDraft" | "focus">>;
 	availableCommands: AvailableCommand[];
 	configOptions?: SessionConfigOption[];
 	onSetConfigOption?: (configId: string, value: string) => unknown;
@@ -62,7 +63,11 @@ export type ComposerProps = {
 	modes?: SessionMode[];
 	currentModeId?: string;
 	onSetMode?: (modeId: string) => void;
-	onSend: (content: UserContent[], options: { steer: boolean }) => unknown;
+	// `draft` is what the composer held, for the host to hand back if the send fails.
+	onSend: (
+		content: UserContent[],
+		options: { steer: boolean; draft: ComposerDraft },
+	) => unknown;
 	history?: string[];
 	isActive?: boolean;
 	placeholder?: string;
@@ -75,6 +80,7 @@ export type ComposerProps = {
 		remove: (itemId: string) => Promise<void>;
 		resume: () => Promise<void>;
 		steer: (itemId: string) => Promise<void>;
+		update: (itemId: string, content: UserContent[]) => Promise<void>;
 	};
 };
 
@@ -126,17 +132,29 @@ export const Composer = memo(function Composer({
 }: ComposerProps) {
 	const { t } = useLingui();
 	const trpcUtils = workspaceTrpc.useUtils();
-	const cloudUtils = cloudTrpc.useUtils();
+	const { hostUrl } = useWorkspaceClient();
+	const { data: workspace } = workspaceTrpc.workspace.get.useQuery({
+		id: workspaceId,
+	});
+	const githubProviders = useGitHubMentionProviders(
+		useMemo(
+			() =>
+				workspace?.projectId && hostUrl
+					? { projectId: workspace.projectId, hostUrl }
+					: null,
+			[workspace?.projectId, hostUrl],
+		),
+	);
 	const uploadAttachments = useUploadAttachments(workspaceId);
-	const attachmentPreview = useAttachmentPreview();
-	const { storedDraft, onChange, clearDraft } = useComposerDraft(draftKey);
+	const { storedDraft, onDraftChange, clearDraft } = useComposerDraft(draftKey);
 	const promptInputRef = useRef<PromptInputHandle>(null);
-	const queueActions = useQueueActions(promptQueue, promptInputRef);
+	const queueActions = useQueueActions(promptQueue);
 	const mcpPicker = useMcpServerPicker({ workspaceId, presetId });
 	useImperativeHandle(
 		inputRef,
 		() => ({
-			appendText: (text: string) => promptInputRef.current?.appendText(text),
+			restoreDraft: (draft: ComposerDraft) =>
+				promptInputRef.current?.restoreDraft(draft),
 			focus: () => promptInputRef.current?.focus(),
 		}),
 		[],
@@ -144,8 +162,8 @@ export const Composer = memo(function Composer({
 	const rootRef = useRef<HTMLDivElement>(null);
 	const footerTier = useFooterTier(rootRef);
 	useEffect(() => {
-		const recovered = takeRecoveredDraftText(draftKey);
-		if (recovered) promptInputRef.current?.appendText(recovered);
+		const recovered = takeRecoveredDraft(draftKey);
+		if (recovered) promptInputRef.current?.restoreDraft(recovered);
 	}, [draftKey]);
 	useLayoutEffect(() => {
 		const handoff = focusHandoff;
@@ -204,39 +222,19 @@ export const Composer = memo(function Composer({
 					id: match.absolutePath,
 					label: match.name,
 					description: match.relativePath,
+					icon: <FileIcon className="size-4" fileName={match.name} />,
 					// The agent reads the path itself, so a mention is the path.
 					select: (ctx) =>
 						ctx.insertChip({
 							label: match.name,
 							serialized: match.relativePath,
+							iconUrl: getFileIcon(match.name, false).src,
 							data: { elementKind: "file_mention" },
 						}),
 				}),
 			);
 		},
 		[trpcUtils, workspaceId],
-	);
-
-	const searchPages = useCallback(
-		async (query: string) => {
-			const { items } = await cloudUtils.page.listPaginated.fetch(
-				pagesListInput({ search: query || undefined, limit: 20 }),
-			);
-			return items.map((page): ComposerMentionEntry => {
-				const url = new URL(
-					`/page/${encodeURIComponent(page.slug)}`,
-					env.NEXT_PUBLIC_WEB_URL,
-				).toString();
-				return {
-					id: page.id,
-					label: page.title,
-					description: page.slug,
-					select: (ctx) =>
-						ctx.insertChip({ label: page.title, serialized: url }),
-				};
-			});
-		},
-		[cloudUtils],
 	);
 
 	const mentionProviders = useMemo<ComposerMentionProvider[]>(
@@ -251,18 +249,9 @@ export const Composer = memo(function Composer({
 					emptyState: t({ message: "No matching files" }),
 				},
 			},
-			{
-				id: "pages",
-				title: t({ message: "Pages" }),
-				priority: 2,
-				source: {
-					kind: "search",
-					search: searchPages,
-					emptyState: t({ message: "No matching pages" }),
-				},
-			},
+			...githubProviders,
 		],
-		[searchFiles, searchPages, t],
+		[githubProviders, searchFiles, t],
 	);
 
 	const mcpCommand = mcpPicker.command;
@@ -287,12 +276,12 @@ export const Composer = memo(function Composer({
 			text: string,
 			files: File[],
 			mentions: ComposerChip[],
-			pastedTexts: string[],
 			steer: boolean,
+			draft: ComposerDraft,
 		) => {
 			const tags = await uploadAttachments(files);
 			if (!tags) {
-				promptInputRef.current?.appendText(appendPastedText(text, pastedTexts));
+				promptInputRef.current?.restoreDraft(draft);
 				return;
 			}
 			const message = text.trim();
@@ -304,17 +293,14 @@ export const Composer = memo(function Composer({
 				[
 					{
 						type: "text",
-						text: appendPastedText(
-							[message, ...tags].filter(Boolean).join("\n"),
-							pastedTexts,
-						),
+						text: [message, ...tags].filter(Boolean).join("\n"),
 						...(elements.length > 0 ? { elements } : {}),
 					},
 					...(mcpContext
 						? [{ type: "text" as const, text: mcpContext, hidden: true }]
 						: []),
 				],
-				{ steer },
+				{ steer, draft },
 			);
 			clearDraft();
 		},
@@ -322,18 +308,8 @@ export const Composer = memo(function Composer({
 	);
 
 	const handleSubmit = useCallback(
-		({
-			text,
-			files,
-			mentions,
-			pastedTexts,
-			steer,
-		}: PromptInputSubmitPayload) => {
-			if (
-				disabled ||
-				(text.trim() === "" && files.length === 0 && pastedTexts.length === 0)
-			)
-				return;
+		({ text, files, mentions, steer, draft }: PromptInputSubmitPayload) => {
+			if (disabled || (text.trim() === "" && files.length === 0)) return false;
 			const name = LEADING_COMMAND.exec(text.trim())?.[1];
 			const input = promptInputRef.current;
 			if (text.trim() === "/mcp" && mcpPicker.command && input) {
@@ -355,7 +331,7 @@ export const Composer = memo(function Composer({
 				toast.error(t({ message: `Unknown command /${name}` }));
 				return false;
 			}
-			return send(text, files, mentions, pastedTexts, steer);
+			return send(text, files, mentions, steer, draft);
 		},
 		[availableCommands, disabled, send, t, mcpPicker],
 	);
@@ -398,16 +374,12 @@ export const Composer = memo(function Composer({
 			)}
 			<AgentComposer
 				className={CHAT_COLUMN_CLASSNAME}
-				clearOnSubmit={!disabled}
-				collapseLargePastes
 				commands={commands}
-				defaultValue={storedDraft}
-				findChips={mcpPicker.findChips}
+				draft={storedDraft}
 				history={history}
 				key={draftKey}
 				mentionProviders={mentionProviders}
-				onAttachmentClick={attachmentPreview.onAttachmentClick}
-				onChange={onChange}
+				onDraftChange={onDraftChange}
 				onStop={onCancelTurn ?? undefined}
 				onSubmit={handleSubmit}
 				ref={promptInputRef}
@@ -416,7 +388,6 @@ export const Composer = memo(function Composer({
 					t({ message: "Ask the agent, @mention files, run /commands" })
 				}
 				status={onCancelTurn ? "streaming" : "ready"}
-				submitWhileStreaming={promptQueue !== undefined}
 				toolbar={
 					modes && onSetMode ? (
 						<ModePicker
@@ -439,7 +410,6 @@ export const Composer = memo(function Composer({
 					) : undefined
 				}
 			/>
-			{attachmentPreview.overlay}
 			{mcpPicker.dialog}
 		</div>
 	);

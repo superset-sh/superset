@@ -2,7 +2,6 @@ import { useLingui } from "@lingui/react/macro";
 import type {
 	ComposerActionContext,
 	ComposerChip,
-	ComposerChipMatch,
 	PromptInputCommand,
 } from "@superset/chat-ui/PromptInput";
 import { workspaceTrpc } from "@superset/workspace-client";
@@ -16,26 +15,16 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { ConnectConnectorDialog } from "renderer/components/ConnectorSection";
 import { PluginIcon } from "renderer/components/PluginIcon";
-import { usePluginCatalog } from "renderer/hooks/usePluginCatalog";
 import { useInstallAfterConnect } from "renderer/routes/_authenticated/_dashboard/hooks/useInstallAfterConnect";
 import { usePluginMutations } from "renderer/routes/_authenticated/_dashboard/hooks/usePluginMutations";
-import {
-	findMcpServerTokens,
-	mcpServerChip,
-	mcpServerToken,
-	resolveMcpServerName,
-} from "../../../../utils/mcpServerChips";
+import { resolveMcpServerName } from "../../../../utils/mcpServerChips";
 import { McpServerPicker } from "../../components/McpServerPicker";
 import type { McpPickerActionRow } from "../../components/McpServerPicker/utils/mcpPickerRows";
-import { mcpPickerPlugins } from "../../utils/mcpPickerPlugins";
-import { mcpServerIconUrl } from "../../utils/mcpServerIconUrl";
 
 type McpServerPickerControls = {
 	command: PromptInputCommand | null;
-	findChips: (text: string) => ComposerChipMatch[];
 	serverNameOf: (chip: ComposerChip) => string | null;
 	dialog: ReactNode;
 	open: RefObject<(ctx: ComposerActionContext) => void>;
@@ -50,7 +39,6 @@ export function useMcpServerPicker({
 }): McpServerPickerControls {
 	const { t } = useLingui();
 	const navigate = useNavigate();
-	const isDark = useIsDarkTheme();
 	const utils = workspaceTrpc.useUtils();
 	const { install } = usePluginMutations();
 	const installAfterConnect = useInstallAfterConnect();
@@ -60,8 +48,6 @@ export function useMcpServerPicker({
 	}).data;
 	const pickerAgent = listed?.supported === true ? presetId : undefined;
 	const cached = listed?.servers;
-	const { plugins: catalog } = usePluginCatalog();
-	const plugins = useMemo(() => mcpPickerPlugins(catalog), [catalog]);
 	const [connecting, setConnecting] = useState<{
 		plugin: string;
 		connector: string;
@@ -148,36 +134,6 @@ export function useMcpServerPicker({
 		[pickerAgent, t],
 	);
 
-	const findChips = useCallback(
-		(text: string): ComposerChipMatch[] =>
-			findMcpServerTokens(text).map(({ start, end, token, name }) => {
-				const server = cached?.find(
-					(candidate) =>
-						candidate.agent === presetId &&
-						mcpServerToken(candidate, cached) === token,
-				);
-				return {
-					start,
-					end,
-					chip: mcpServerChip(
-						server?.name ?? name,
-						token,
-						server
-							? mcpServerIconUrl(
-									server.agent,
-									plugins.find(
-										(plugin) =>
-											plugin.installed && plugin.servers.includes(server.name),
-									)?.name,
-									isDark,
-								)
-							: undefined,
-					),
-				};
-			}),
-		[presetId, cached, plugins, isDark],
-	);
-
 	const dialog = (
 		<ConnectConnectorDialog
 			slug={connecting?.connector ?? null}
@@ -208,5 +164,5 @@ export function useMcpServerPicker({
 		[cached, presetId],
 	);
 
-	return { command, findChips, serverNameOf, dialog, open: openRef };
+	return { command, serverNameOf, dialog, open: openRef };
 }

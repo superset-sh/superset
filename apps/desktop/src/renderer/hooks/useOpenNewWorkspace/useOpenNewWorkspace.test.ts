@@ -37,7 +37,7 @@ test.each([
 	useNewWorkspaceDraftStore.getState().updateDraft({
 		hostId,
 		selectedProjectId: "old-project",
-		prompt: "Keep my prompt",
+		promptDraft: [{ type: "text", text: "Keep my prompt" }],
 		checkout: "local",
 	});
 	openNewWorkspaceForLocalProject(v2, "new-project");
@@ -51,7 +51,7 @@ test.each([
 		hostId: "this-machine",
 		selectedProjectId: "new-project",
 		isSession: false,
-		prompt: "Keep my prompt",
+		promptDraft: [{ type: "text", text: "Keep my prompt" }],
 		checkout: "local",
 	});
 	useNewWorkspaceDraftStore.getState().updateDraft({ hostId: "cloud" });

@@ -1,7 +1,6 @@
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { create } from "zustand";
-import { useShallow } from "zustand/react/shallow";
 
 export type UploadState =
 	| { kind: "pending" }
@@ -30,23 +29,18 @@ const promiseMap = new Map<string, Map<string, Promise<UploadState>>>();
  */
 export const CLOUD_UPLOAD_TARGET = "cloud";
 
-async function fetchBlob(url: string): Promise<Blob> {
-	return await (await fetch(url)).blob();
-}
-
-async function uploadToCloud(file: StartUploadInput): Promise<string> {
-	const blob = await fetchBlob(file.url);
+async function uploadToCloud(file: File): Promise<string> {
 	const { fileId, upload } = await apiTrpcClient.attachment.createUpload.mutate(
 		{
-			name: file.filename ?? "attachment",
-			contentType: file.mediaType,
-			sizeBytes: blob.size,
+			name: file.name || "attachment",
+			contentType: file.type,
+			sizeBytes: file.size,
 		},
 	);
 	const response = await fetch(upload.url, {
 		method: "PUT",
 		headers: upload.headers,
-		body: blob,
+		body: file,
 	});
 	if (!response.ok) {
 		throw new Error(`Upload failed (${response.status})`);
@@ -54,16 +48,9 @@ async function uploadToCloud(file: StartUploadInput): Promise<string> {
 	return fileId;
 }
 
-async function fetchBase64(url: string): Promise<string> {
-	if (url.startsWith("data:")) {
-		const commaIndex = url.indexOf(",");
-		if (commaIndex === -1) return "";
-		return url.slice(commaIndex + 1);
-	}
-	const response = await fetch(url);
-	const buffer = await response.arrayBuffer();
+async function toBase64(file: File): Promise<string> {
+	const bytes = new Uint8Array(await file.arrayBuffer());
 	let binary = "";
-	const bytes = new Uint8Array(buffer);
 	for (let i = 0; i < bytes.length; i += 1) {
 		binary += String.fromCharCode(bytes[i]);
 	}
@@ -81,16 +68,13 @@ function setEntry(fileId: string, hostUrl: string, state: UploadState): void {
 
 export interface StartUploadInput {
 	id: string;
-	url: string;
-	mediaType: string;
-	filename?: string;
+	file: File;
 }
 
 /**
  * Idempotent: if an upload for `(hostUrl, file.id)` is already in flight or
- * settled, this is a no-op. The store only persists the upload status —
- * filename/mediaType live in the prompt-input library and are joined at
- * read time by the hook.
+ * settled, this is a no-op. The store only persists the upload status; the
+ * composer keeps the file itself.
  */
 export function startUpload(hostUrl: string, file: StartUploadInput): void {
 	let byHost = promiseMap.get(file.id);
@@ -106,14 +90,14 @@ export function startUpload(hostUrl: string, file: StartUploadInput): void {
 		try {
 			const attachmentId =
 				hostUrl === CLOUD_UPLOAD_TARGET
-					? await uploadToCloud(file)
+					? await uploadToCloud(file.file)
 					: (
 							await getHostServiceClientByUrl(
 								hostUrl,
 							).attachments.upload.mutate({
-								data: { kind: "base64", data: await fetchBase64(file.url) },
-								mediaType: file.mediaType,
-								originalFilename: file.filename,
+								data: { kind: "base64", data: await toBase64(file.file) },
+								mediaType: file.file.type,
+								originalFilename: file.file.name || undefined,
 							})
 						).attachmentId;
 			const next: UploadState = {
@@ -163,46 +147,12 @@ export async function awaitUploads(
 	return { readyIds, failures };
 }
 
-/**
- * Subscribes to the upload status of a single `(fileId, hostUrl)` slice.
- * Each pill subscribes to its own slot, so unrelated upload state changes
- * don't trigger re-renders elsewhere in the modal.
- */
 export function readyAttachmentId(
 	fileId: string,
 	hostUrl: string,
 ): string | null {
 	const entry = useAttachmentUploadsStore.getState().entries[fileId]?.[hostUrl];
 	return entry?.kind === "ready" ? entry.attachmentId : null;
-}
-
-export function useUploadStateFor(
-	fileId: string,
-	hostUrl: string | null,
-): UploadState | null {
-	return useAttachmentUploadsStore((s) => {
-		if (!hostUrl) return null;
-		return s.entries[fileId]?.[hostUrl] ?? null;
-	});
-}
-
-/**
- * Returns the file ids that have an upload entry under `hostUrl` — i.e. the
- * files attached *while* on that host. Used to filter the prompt-input
- * library's flat file list down to a per-host view: switching hosts hides
- * other hosts' files without revoking their blob URLs or upload state.
- */
-export function useFileIdsForHost(hostUrl: string | null): string[] {
-	return useAttachmentUploadsStore(
-		useShallow((s) => {
-			if (!hostUrl) return [];
-			const ids: string[] = [];
-			for (const [fileId, byHost] of Object.entries(s.entries)) {
-				if (byHost[hostUrl]) ids.push(fileId);
-			}
-			return ids;
-		}),
-	);
 }
 
 /**

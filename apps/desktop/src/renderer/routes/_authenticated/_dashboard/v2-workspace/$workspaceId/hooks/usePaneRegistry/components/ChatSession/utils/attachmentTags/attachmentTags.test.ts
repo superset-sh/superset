@@ -1,6 +1,17 @@
 import { describe, expect, it } from "bun:test";
-import { appendPastedText } from "@superset/chat/core";
 import { formatAttachmentTag, parseAttachmentTags } from "./attachmentTags";
+
+/** The trailing-block format older builds sent; parsing it still has to work. */
+function legacyPastedMessage(
+	prompt: string,
+	pastes: readonly string[],
+): string {
+	const blocks = pastes.map(
+		(paste) =>
+			`<pasted_text lines="${paste.split("\n").length}">\n${paste}\n</pasted_text>`,
+	);
+	return [prompt, ...blocks].filter(Boolean).join("\n\n");
+}
 
 describe("attachmentTags", () => {
 	it("round-trips tags appended to a message and strips them from the text", () => {
@@ -46,7 +57,7 @@ describe("attachmentTags", () => {
 			type: "image/png",
 		});
 		const paste = `log line\n${tag}`;
-		const message = appendPastedText(`look\n${tag}`, [paste]);
+		const message = legacyPastedMessage(`look\n${tag}`, [paste]);
 
 		expect(parseAttachmentTags(message)).toEqual({
 			text: "look",

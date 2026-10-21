@@ -10,12 +10,6 @@ export type ComposerChip = {
 	data?: unknown;
 };
 
-export type ComposerChipMatch = {
-	start: number;
-	end: number;
-	chip: ComposerChip;
-};
-
 export type ComposerActionContext = {
 	insertChip(chip: ComposerChip): void;
 	attachFiles(): void;
@@ -88,15 +82,27 @@ export type PromptInputAttachment = {
 	file: File;
 	// Object URL for image attachments; owned and revoked by the composer.
 	previewUrl?: string;
+	// A large paste held as a text file; "Show in text field" puts it back.
+	pastedText?: string;
+};
+
+export type ComposerDraftSegment =
+	| { type: "text"; text: string }
+	| { type: "chip"; chip: ComposerChip };
+
+/** Everything the editor holds, losslessly: what a host persists or hands back after a failed send. */
+export type ComposerDraft = {
+	segments: ComposerDraftSegment[];
+	attachments: PromptInputAttachment[];
 };
 
 export type PromptInputSubmitPayload = {
 	text: string;
 	files: File[];
 	mentions: ComposerChip[];
-	// Large pastes held as cards, in paste order.
-	pastedTexts: string[];
 	steer: boolean;
+	// What was sent, for `restoreDraft` when the send fails later.
+	draft: ComposerDraft;
 };
 
 export type PromptInputDictationError = {
@@ -121,7 +127,8 @@ export type PromptInputDictation = {
 };
 
 export type PromptInputHandle = {
-	appendText(text: string): void;
+	/** Appends a draft to whatever is in the editor, attachments included. */
+	restoreDraft(draft: ComposerDraft): void;
 	insertChip(chip: ComposerChip): void;
 	openFileDialog(): void;
 	openPanel(panel: ComposerPanelContent): void;
@@ -133,43 +140,30 @@ export type PromptInputProps = {
 	placeholder?: string;
 	mentionProviders: ComposerMentionProvider[];
 	commands: PromptInputCommand[];
+	// While streaming, a submit queues behind the running turn and ⌘↩ steers it.
 	status?: "ready" | "streaming";
-	submitWhileStreaming?: boolean;
-	placement?: "top" | "bottom";
 	// Enables the mic button; the app owns speech-to-text.
 	dictation?: PromptInputDictation;
 	toolbar?: ReactNode;
 	toolbarEnd?: ReactNode;
-	// Text to open with, read once on mount. A host that persists drafts hands
-	// back what it stored; the composer owns the editor state from then on.
-	defaultValue?: string;
-	// Plain text of the composer as it is typed, for persisting a draft. With
-	// collapseLargePastes, pasted cards follow as trailing pasted_text blocks,
-	// and defaultValue and appendText turn such blocks back into cards.
-	onChange?: (text: string) => void;
-	// A paste of 25+ lines or 4,000+ chars becomes a card instead of text.
-	collapseLargePastes?: boolean;
-	// Spans of a stored draft that were chips before it was serialized, so
-	// they come back as chips. Runs on the draft as read, never on typing.
-	findChips?: (text: string) => ComposerChipMatch[];
+	// Read once on mount; the composer owns the editor state from then on.
+	draft?: ComposerDraft;
+	onDraftChange?: (draft: ComposerDraft) => void;
 	/** Returning `false` keeps the draft in the editor. */
 	onSubmit?: (
 		payload: PromptInputSubmitPayload,
 	) => false | void | Promise<void>;
 	onStop?: () => void;
-	header?: ReactNode;
-	onAddFiles?: (files: File[]) => void;
 	allowEmptySubmit?: boolean;
-	clearOnSubmit?: boolean;
-	hideSubmit?: boolean;
+	disabled?: boolean;
+	// The host is still handling the last submit: the button spins and nothing sends.
+	pending?: boolean;
 	autoFocus?: boolean;
-	onMentionHighlight?: (entry: ComposerMentionEntry | null) => void;
 	/** The clicked pill, and every pending attachment in order. */
 	onAttachmentClick?: (
 		attachment: PromptInputAttachment,
 		attachments: readonly PromptInputAttachment[],
 	) => void;
-	onChipClick?: (chip: ComposerChip) => void;
 	history?: string[];
 	className?: string;
 };

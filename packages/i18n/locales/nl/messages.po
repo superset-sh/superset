@@ -209,9 +209,7 @@ msgstr "{0, plural, one {# resultaat in Cloud} other {# resultaten in Cloud}}"
 msgid "{0, plural, one {# result on this host} other {# results on this host}}"
 msgstr "{0, plural, one {# resultaat op deze host} other {# resultaten op deze host}}"
 
-#. placeholder {0}: pullRequests.length
 #. placeholder {0}: results.length
-#. placeholder {0}: searchResults.length
 msgid "{0, plural, one {# result} other {# results}}"
 msgstr "{0, plural, one {# resultaat} other {# resultaten}}"
 
@@ -954,9 +952,6 @@ msgstr "{minutes} min {rest} s"
 msgid "{minutes}m ago"
 msgstr "{minutes}m geleden"
 
-msgid "{modKey}↵ to create"
-msgstr "{modKey}↵ om aan te maken"
-
 msgid "{monthlyPrice} per user/mo billed monthly, or {yearlyPrice} billed yearly. Cloud workspaces, mobile, priority support."
 msgstr "{monthlyPrice} per gebruiker/mnd bij maandelijkse facturering, of {yearlyPrice} bij jaarlijkse facturering. Cloudwerkruimtes, mobiel, prioritaire support."
 
@@ -1693,9 +1688,6 @@ msgstr "Verbind nog een account, of verbreek er een die je niet meer gebruikt."
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "Voeg elke machine toe als host. Werkruimtes blijven draaien als je laptop slaapt, en je kunt overal vandaan bijchecken."
 
-msgid "Add attachment"
-msgstr "Bijlage toevoegen"
-
 msgid "Add Attachment"
 msgstr "Bijlage toevoegen"
 
@@ -1979,9 +1971,6 @@ msgstr "AI · Gesprek"
 
 msgid "AI · Status"
 msgstr "AI · Status"
-
-msgid "AI authentication failed. Please check your AI settings."
-msgstr "AI-authenticatie mislukt. Controleer je AI-instellingen."
 
 msgid "Alert"
 msgstr "Alert"
@@ -2616,9 +2605,6 @@ msgstr "Toegewezen"
 msgid "Assigned to me"
 msgstr "Aan mij toegewezen"
 
-msgid "Assigned to you"
-msgstr "Aan jou toegewezen"
-
 msgid "Assignee"
 msgstr "Toegewezen persoon"
 
@@ -2750,9 +2736,6 @@ msgstr "Automatisch volgt je systeemtaal. Je kunt dit later wijzigen in Instelli
 
 msgid "Auto Save"
 msgstr "Automatisch opslaan"
-
-msgid "auto-generated"
-msgstr "automatisch gegenereerd"
 
 msgid "Auto-run command"
 msgstr "Commando automatisch uitvoeren"
@@ -2945,7 +2928,6 @@ msgstr "Basismap voor nieuwe worktrees op {selectedHostName}."
 msgid "Base URL"
 msgstr "Basis-URL"
 
-#. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
 msgid "based off PR #{0}"
 msgstr "gebaseerd op PR #{0}"
@@ -3077,12 +3059,6 @@ msgstr "Afsplitsen in een nieuwe worktree"
 
 msgid "Branch in this workspace"
 msgstr "Afsplitsen in deze workspace"
-
-msgid "branch name"
-msgstr "branchnaam"
-
-msgid "Branch name"
-msgstr "Branchnaam"
 
 msgid "Branch name copied"
 msgstr "Branchnaam gekopieerd"
@@ -4439,9 +4415,6 @@ msgstr "Koppel je GitHub-repository's en synchroniseer pull requests. Volg CI-st
 msgid "Connect your Linear account before tracking tasks in Linear."
 msgstr "Koppel je Linear-account voordat je taken in Linear bijhoudt."
 
-msgid "Connect your Linear account in Settings → Integrations to link Linear issues."
-msgstr "Koppel je Linear-account in Instellingen → Integraties om Linear-issues te koppelen."
-
 msgid "Connect your Linear account to browse, update and start work on Linear issues from Superset."
 msgstr "Koppel je Linear-account om Linear-issues vanuit Superset te bekijken, bij te werken en eraan te beginnen."
 
@@ -5183,14 +5156,8 @@ msgstr "Kan contributors niet laden — typ in plaats daarvan een gebruikersnaam
 msgid "Couldn't load earlier messages. Retry"
 msgstr "Eerdere berichten konden niet worden geladen. Opnieuw proberen"
 
-msgid "Couldn't load issues: {msg}"
-msgstr "Kan issues niet laden: {msg}"
-
 msgid "Couldn't load pages"
 msgstr "Kan pagina's niet laden"
-
-msgid "Couldn't load pull requests: {msg}"
-msgstr "Kan pull requests niet laden: {msg}"
 
 msgid "Couldn't load review comments"
 msgstr "Kan reviewopmerkingen niet laden"
@@ -5368,9 +5335,6 @@ msgstr "Maak een nieuw project door een repository of lokaal pad te klonen."
 
 msgid "Create a new task from the desktop tasks view."
 msgstr "Maak een nieuwe taak vanuit de takenweergave op de desktop."
-
-msgid "Create a new workspace"
-msgstr "Een nieuwe werkruimte aanmaken"
 
 msgid "Create a project to group tasks and cloud workspaces."
 msgstr "Maak een project om taken en cloudwerkruimtes te groeperen."
@@ -5586,10 +5550,6 @@ msgstr "Sandbox wordt aangemaakt"
 
 msgid "Creating workspace"
 msgstr "Werkruimte aanmaken"
-
-#. placeholder {0}: linkedPR.prNumber
-msgid "Creating workspace from PR #{0}..."
-msgstr "Werkruimte aanmaken vanuit PR #{0}..."
 
 msgid "Creating workspace: {name}"
 msgstr "Werkruimte aanmaken: {name}"
@@ -6596,8 +6556,8 @@ msgstr "Naam bewerken"
 msgid "Edit on GitHub"
 msgstr "Bewerken op GitHub"
 
-msgid "Edit prefix"
-msgstr "Prefix bewerken"
+msgid "Edit queued message"
+msgstr "Bericht in wachtrij bewerken"
 
 msgid "Edit Run Script"
 msgstr "Run-script bewerken"
@@ -6969,9 +6929,6 @@ msgstr "Verkennen"
 msgid "Extended thinking: {activeLabel}"
 msgstr "Uitgebreid nadenken: {activeLabel}"
 
-msgid "external"
-msgstr "extern"
-
 msgid "External Application"
 msgstr "Externe applicatie"
 
@@ -7138,9 +7095,6 @@ msgstr "Aanmaken van thread mislukt"
 msgid "Failed to create workspace"
 msgstr "Aanmaken van werkruimte mislukt"
 
-msgid "Failed to create workspace from PR"
-msgstr "Aanmaken van werkruimte vanuit PR mislukt"
-
 msgid "Failed to delete"
 msgstr "Verwijderen mislukt"
 
@@ -7259,17 +7213,8 @@ msgstr "Openen van nieuw venster mislukt: {0}"
 msgid "Failed to open new window: {message}"
 msgstr "Openen van nieuw venster mislukt: {message}"
 
-msgid "Failed to open project"
-msgstr "Openen van project mislukt"
-
-msgid "Failed to open task"
-msgstr "Openen van taak mislukt"
-
 msgid "Failed to open the billing portal"
 msgstr "Openen van het facturatieportaal mislukt"
-
-msgid "Failed to open worktree"
-msgstr "Openen van worktree mislukt"
 
 #. placeholder {0}: error.message
 msgid "Failed to open: {0}"
@@ -7277,12 +7222,6 @@ msgstr "Openen mislukt: {0}"
 
 msgid "Failed to post reply"
 msgstr "Antwoord plaatsen mislukt"
-
-msgid "Failed to prepare agent launch"
-msgstr "Voorbereiden van agentstart mislukt"
-
-msgid "Failed to process attachments"
-msgstr "Verwerken van bijlagen mislukt"
 
 msgid "Failed to push branch"
 msgstr "Pushen van branch mislukt"
@@ -9596,6 +9535,9 @@ msgstr "Linear-integratie"
 msgid "Linear is limiting requests. Try again in a few minutes."
 msgstr "Linear beperkt het aantal verzoeken. Probeer het over een paar minuten opnieuw."
 
+msgid "Linear issues"
+msgstr "Linear-issues"
+
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
 #. placeholder {1}: m.endLine
@@ -9605,9 +9547,6 @@ msgstr "Regels {0}–{1}"
 
 msgid "Link"
 msgstr "Link"
-
-msgid "Link ↵"
-msgstr "Koppelen ↵"
 
 msgid "Link a GitHub repository on the project first to enable cloning."
 msgstr "Koppel eerst een GitHub-repository aan het project om te kunnen klonen."
@@ -9620,15 +9559,6 @@ msgstr "link gekopieerd"
 
 msgid "Link copied"
 msgstr "Link gekopieerd"
-
-msgid "Link GitHub issue"
-msgstr "GitHub-issue koppelen"
-
-msgid "Link Linear issue"
-msgstr "Linear-issue koppelen"
-
-msgid "Link pull request"
-msgstr "Pull request koppelen"
 
 msgid "Link task"
 msgstr "Taak koppelen"
@@ -9762,9 +9692,6 @@ msgstr "Groepen laden…"
 msgid "Loading issue…"
 msgstr "Issue laden…"
 
-msgid "Loading issues..."
-msgstr "Issues laden..."
-
 msgid "Loading issues…"
 msgstr "Issues laden…"
 
@@ -9785,9 +9712,6 @@ msgstr "Projecten laden…"
 
 msgid "Loading pull request…"
 msgstr "Pull request laden…"
-
-msgid "Loading pull requests..."
-msgstr "Pull requests laden..."
 
 msgid "Loading pull requests…"
 msgstr "Pull requests laden…"
@@ -10306,6 +10230,9 @@ msgstr "Mobiele app"
 
 msgid "Mobile App"
 msgstr "Mobiele app"
+
+msgid "Mode"
+msgstr "Modus"
 
 msgid "model"
 msgstr "model"
@@ -11061,6 +10988,12 @@ msgstr "Geen overeenkomsten"
 msgid "No matching files"
 msgstr "Geen overeenkomende bestanden"
 
+msgid "No matching issues"
+msgstr "Geen overeenkomende issues"
+
+msgid "No matching Linear issues"
+msgstr "Geen overeenkomende Linear-issues"
+
 msgid "No matching MCP servers"
 msgstr "Geen overeenkomende MCP-servers"
 
@@ -11073,8 +11006,14 @@ msgstr "Geen overeenkomende leden in de organisatie."
 msgid "No matching pages"
 msgstr "Geen overeenkomende pagina's"
 
+msgid "No matching pull requests"
+msgstr "Geen overeenkomende pull requests"
+
 msgid "No matching repositories."
 msgstr "Geen overeenkomende repository's."
+
+msgid "No matching tasks"
+msgstr "Geen overeenkomende taken"
 
 msgid "No MCP servers found"
 msgstr "Geen MCP-servers gevonden"
@@ -11103,14 +11042,8 @@ msgstr "Geen naam bekend"
 msgid "No one in {organizationName} matches. Type a full email to invite someone new."
 msgstr "Niemand in {organizationName} komt overeen. Typ een volledig e-mailadres om iemand nieuw uit te nodigen."
 
-msgid "No open issues found."
-msgstr "Geen open issues gevonden."
-
 msgid "No open issues."
 msgstr "Geen open issues."
-
-msgid "No open pull requests found."
-msgstr "Geen open pull requests gevonden."
 
 msgid "No open pull requests."
 msgstr "Geen open pull requests."
@@ -12030,9 +11963,6 @@ msgstr "Issue openen in GitHub"
 msgid "Open issue in Linear"
 msgstr "Issue openen in Linear"
 
-msgid "Open issues"
-msgstr "Open issues"
-
 msgid "Open leaderboard"
 msgstr "Ranglijst openen"
 
@@ -12083,9 +12013,6 @@ msgstr "Project openen"
 msgid "Open Projects"
 msgstr "Projecten openen"
 
-msgid "Open PRs"
-msgstr "Open PR's"
-
 msgid "Open pull request"
 msgstr "Pull request openen"
 
@@ -12102,9 +12029,6 @@ msgstr "Pull request #{number} openen"
 
 msgid "Open pull request options"
 msgstr "Pull request-opties openen"
-
-msgid "Open pull requests"
-msgstr "Open pull requests"
 
 msgid "Open recent"
 msgstr "Recent openen"
@@ -12132,9 +12056,6 @@ msgstr "Open Superset op die computer"
 
 msgid "Open System Settings"
 msgstr "Systeeminstellingen openen"
-
-msgid "Open task {title}"
-msgstr "Taak {title} openen"
 
 msgid "Open Terminal"
 msgstr "Terminal openen"
@@ -12219,9 +12140,6 @@ msgstr "Mappen openen"
 
 msgid "Opening pages"
 msgstr "Pagina's openen"
-
-msgid "Opening worktree..."
-msgstr "Worktree openen..."
 
 msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
 msgstr "Opent een cloudwerkruimte waarin een agent installeert wat het project nodig heeft en zijn .superset/config.json schrijft"
@@ -12924,9 +12842,6 @@ msgstr "PR-URL"
 msgid "PR URL must match {repoMismatch}."
 msgstr "PR-URL moet overeenkomen met {repoMismatch}."
 
-msgid "PR URL must match {selectedRepositoryLabel}."
-msgstr "PR-URL moet overeenkomen met {selectedRepositoryLabel}."
-
 msgid "Prediction progress"
 msgstr "Voortgang van de voorspelling"
 
@@ -13367,6 +13282,9 @@ msgstr "Vragen"
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "Vragen, feedback, support of iets anders. Stuur een bericht, dan sturen we het door naar de juiste persoon."
 
+msgid "Queue message"
+msgstr "Bericht in wachtrij zetten"
+
 msgid "Queue paused"
 msgstr "Wachtrij gepauzeerd"
 
@@ -13375,6 +13293,9 @@ msgstr "Wachtrij gepauzeerd omdat je hebt onderbroken"
 
 msgid "Queue work for agents"
 msgstr "Werk in de wachtrij zetten voor agents"
+
+msgid "Queue; ⌘↩ to steer the running turn"
+msgstr "In wachtrij; ⌘↩ om de lopende beurt bij te sturen"
 
 msgid "Queued"
 msgstr "In wachtrij"
@@ -13586,17 +13507,8 @@ msgstr "Recente apps"
 msgid "Recent invoices"
 msgstr "Recente facturen"
 
-msgid "Recent issues"
-msgstr "Recente issues"
-
 msgid "Recent prompts"
 msgstr "Recente prompts"
-
-msgid "Recent PRs"
-msgstr "Recente PR's"
-
-msgid "Recent pull requests"
-msgstr "Recente pull requests"
 
 msgid "Recently deleted"
 msgstr "Onlangs verwijderd"
@@ -13814,12 +13726,6 @@ msgstr "Icoon verwijderen"
 
 msgid "Remove image"
 msgstr "Afbeelding verwijderen"
-
-msgid "Remove linked issue"
-msgstr "Gekoppelde issue verwijderen"
-
-msgid "Remove linked PR"
-msgstr "Gekoppelde PR verwijderen"
 
 msgid "Remove member"
 msgstr "Lid verwijderen"
@@ -14583,9 +14489,6 @@ msgstr "Draai volgens schema of bij gebeurtenissen, op aanvraag, pauzeer, hervat
 msgid "Run script"
 msgstr "Script uitvoeren"
 
-msgid "Run setup script"
-msgstr "Setup-script uitvoeren"
-
 msgid "Run setup script in each imported workspace"
 msgstr "Setup-script uitvoeren in elke geïmporteerde werkruimte"
 
@@ -14901,9 +14804,6 @@ msgstr "Geschiedenis doorzoeken"
 msgid "Search in {frameTitle}…"
 msgstr "Zoeken in {frameTitle}…"
 
-msgid "Search issues..."
-msgstr "Issues zoeken..."
-
 msgid "Search labels..."
 msgstr "Labels zoeken..."
 
@@ -14945,9 +14845,6 @@ msgstr "Projecten zoeken…"
 
 msgid "Search pull requests"
 msgstr "Pull requests zoeken"
-
-msgid "Search pull requests..."
-msgstr "Pull requests zoeken..."
 
 msgid "Search pull requests…"
 msgstr "Pull requests zoeken…"
@@ -15008,12 +14905,6 @@ msgstr "Gezocht naar tooltip-overrides"
 
 msgid "Searching for Kbd usages"
 msgstr "Zoeken naar Kbd-gebruik"
-
-msgid "Searching..."
-msgstr "Zoeken..."
-
-msgid "Searching…"
-msgstr "Zoeken…"
 
 msgid "Secondary"
 msgstr "Secundair"
@@ -15566,9 +15457,6 @@ msgstr "Toon randen"
 
 msgid "Show checks"
 msgstr "Checks tonen"
-
-msgid "Show closed"
-msgstr "Gesloten tonen"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Toon CPU- en geheugengebruik in de bovenbalk"
@@ -18798,12 +18686,6 @@ msgstr "gebruiker@voorbeeld.com"
 msgid "user@host, ssh://user@host:2222, or an ssh config alias"
 msgstr "gebruiker@host, ssh://gebruiker@host:2222 of een alias uit je ssh-configuratie"
 
-msgid "Using random branch name (AI generation timed out)"
-msgstr "Willekeurige branchnaam gebruikt (AI-generatie duurde te lang)"
-
-msgid "Using random branch name (AI generation unavailable)"
-msgstr "Willekeurige branchnaam gebruikt (AI-generatie niet beschikbaar)"
-
 msgid "v2ProjectId does not match the workspace's project"
 msgstr "v2ProjectId komt niet overeen met het project van de werkruimte"
 
@@ -19406,9 +19288,6 @@ msgstr "Werkruimte gearchiveerd"
 msgid "Workspace created"
 msgstr "Werkruimte aangemaakt"
 
-msgid "Workspace created from PR"
-msgstr "Werkruimte aangemaakt vanuit PR"
-
 msgid "Workspace details"
 msgstr "Werkruimtedetails"
 
@@ -19423,9 +19302,6 @@ msgstr "Werkruimteweergave"
 
 msgid "Workspace name"
 msgstr "Naam van de workspace"
-
-msgid "Workspace name (optional)"
-msgstr "Naam werkruimte (optioneel)"
 
 msgid "Workspace not found"
 msgstr "Werkruimte niet gevonden"
@@ -19495,9 +19371,6 @@ msgstr "Worktree ontbreekt"
 
 msgid "Worktree on this device"
 msgstr "Worktree op dit apparaat"
-
-msgid "Worktree opened"
-msgstr "Worktree geopend"
 
 msgid "Worktree out of sync"
 msgstr "Worktree niet in sync"

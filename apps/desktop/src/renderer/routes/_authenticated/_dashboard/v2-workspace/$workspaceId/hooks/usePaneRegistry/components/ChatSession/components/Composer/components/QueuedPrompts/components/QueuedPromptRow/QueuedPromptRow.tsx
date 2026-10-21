@@ -27,13 +27,18 @@ import { parseAttachmentTags } from "../../../../../../utils/attachmentTags";
 export function QueuedPromptRow({
 	prompt,
 	actionable,
+	editing,
 	onEdit,
+	onEditEnd,
 	onRemove,
 	onSteer,
 }: {
 	prompt: UserMessage;
 	actionable: boolean;
-	onEdit: (prompt: UserMessage) => void;
+	editing: boolean;
+	onEdit: () => void;
+	/** `null` when the edit was abandoned or left the text unchanged. */
+	onEditEnd: (text: string | null) => void;
 	onRemove: (id: string) => void;
 	onSteer: (id: string) => void;
 }) {
@@ -52,6 +57,13 @@ export function QueuedPromptRow({
 	const label =
 		text ||
 		(pastedTexts[0] ? firstLine(pastedTexts[0]) : attachmentNames.join(", "));
+	const finishEdit = (next: string | null) => {
+		if (!editing) return;
+		const trimmed = next?.trim() ?? "";
+		onEditEnd(
+			next !== null && trimmed !== "" && trimmed !== text ? next : null,
+		);
+	};
 
 	return (
 		<QueueItem
@@ -61,9 +73,31 @@ export function QueuedPromptRow({
 			tabIndex={actionable ? -1 : undefined}
 		>
 			<ListEnd className="size-4 shrink-0 text-muted-foreground" />
-			<QueueItemContent className="min-w-0 truncate text-foreground">
-				{label}
-			</QueueItemContent>
+			{editing ? (
+				<textarea
+					aria-label={t({ message: "Edit queued message" })}
+					// biome-ignore lint/a11y/noAutofocus: the user just asked to edit this row
+					autoFocus
+					className="field-sizing-content min-w-0 flex-1 resize-none bg-transparent py-0.5 text-foreground outline-none"
+					defaultValue={text}
+					onBlur={(event) => finishEdit(event.currentTarget.value)}
+					onKeyDown={(event) => {
+						event.stopPropagation();
+						if (event.key === "Enter" && !event.shiftKey) {
+							event.preventDefault();
+							finishEdit(event.currentTarget.value);
+						} else if (event.key === "Escape") {
+							event.preventDefault();
+							finishEdit(null);
+						}
+					}}
+					rows={1}
+				/>
+			) : (
+				<QueueItemContent className="min-w-0 truncate text-foreground">
+					{label}
+				</QueueItemContent>
+			)}
 			{pastedTexts.map((pasted, index) => {
 				const lines = countLines(pasted);
 				return (
@@ -79,7 +113,7 @@ export function QueuedPromptRow({
 					</span>
 				);
 			})}
-			{actionable && (
+			{actionable && !editing && (
 				<QueueItemActions className="shrink-0 items-center">
 					<Tooltip>
 						<TooltipTrigger asChild>
@@ -112,10 +146,7 @@ export function QueuedPromptRow({
 							</QueueItemAction>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
-							<DropdownMenuItem
-								disabled={attachmentNames.length > 0}
-								onSelect={() => onEdit(prompt)}
-							>
+							<DropdownMenuItem onSelect={onEdit}>
 								<Trans>Edit</Trans>
 							</DropdownMenuItem>
 						</DropdownMenuContent>

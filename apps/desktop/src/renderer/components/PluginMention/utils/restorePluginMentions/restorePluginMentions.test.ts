@@ -6,7 +6,7 @@ const { default: Text } = await import("@tiptap/extension-text");
 const { default: Code } = await import("@tiptap/extension-code");
 const { default: CodeBlock } = await import("@tiptap/extension-code-block");
 const { FileMentionNode } = await import(
-	"renderer/components/TiptapPromptEditor/FileMentionNode"
+	"renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/components/TerminalRichInput/components/TiptapPromptEditor/FileMentionNode"
 );
 const { PluginMentionNode } = await import("../../PluginMentionNode");
 const { restorePluginMentions } = await import("./restorePluginMentions");

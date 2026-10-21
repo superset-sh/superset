@@ -209,9 +209,7 @@ msgstr "{0, plural, one {클라우드에서 결과 #개} other {클라우드에�
 msgid "{0, plural, one {# result on this host} other {# results on this host}}"
 msgstr "{0, plural, one {이 호스트에서 결과 #개} other {이 호스트에서 결과 #개}}"
 
-#. placeholder {0}: pullRequests.length
 #. placeholder {0}: results.length
-#. placeholder {0}: searchResults.length
 msgid "{0, plural, one {# result} other {# results}}"
 msgstr "{0, plural, one {결과 #개} other {결과 #개}}"
 
@@ -954,9 +952,6 @@ msgstr "{minutes}분 {rest}초"
 msgid "{minutes}m ago"
 msgstr "{minutes}분 전"
 
-msgid "{modKey}↵ to create"
-msgstr "{modKey}↵로 만들기"
-
 msgid "{monthlyPrice} per user/mo billed monthly, or {yearlyPrice} billed yearly. Cloud workspaces, mobile, priority support."
 msgstr "월간 결제 시 사용자당 월 {monthlyPrice}, 연간 결제 시 {yearlyPrice}. 클라우드 워크스페이스, 모바일, 우선 지원이 포함됩니다."
 
@@ -1693,9 +1688,6 @@ msgstr "다른 계정을 연결하거나 더 이상 쓰지 않는 계정을 해�
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "어떤 머신이든 호스트로 추가하세요. 노트북이 잠자기에 들어가도 워크스페이스는 계속 돌고, 어디서든 확인할 수 있습니다."
 
-msgid "Add attachment"
-msgstr "첨부 추가"
-
 msgid "Add Attachment"
 msgstr "첨부 파일 추가"
 
@@ -1979,9 +1971,6 @@ msgstr "AI · 대화"
 
 msgid "AI · Status"
 msgstr "AI · 상태"
-
-msgid "AI authentication failed. Please check your AI settings."
-msgstr "AI 인증에 실패했습니다. AI 설정을 확인해 주세요."
 
 msgid "Alert"
 msgstr "경고"
@@ -2616,9 +2605,6 @@ msgstr "할당됨"
 msgid "Assigned to me"
 msgstr "나에게 할당됨"
 
-msgid "Assigned to you"
-msgstr "나에게 할당됨"
-
 msgid "Assignee"
 msgstr "담당자"
 
@@ -2750,9 +2736,6 @@ msgstr "자동은 시스템 언어를 따릅니다. 나중에 설정에서 변�
 
 msgid "Auto Save"
 msgstr "자동 저장"
-
-msgid "auto-generated"
-msgstr "자동 생성"
 
 msgid "Auto-run command"
 msgstr "명령 자동 실행"
@@ -2945,7 +2928,6 @@ msgstr "{selectedHostName}에서 새 worktree를 만들 기본 디렉터리입�
 msgid "Base URL"
 msgstr "기본 URL"
 
-#. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
 msgid "based off PR #{0}"
 msgstr "PR #{0} 기반"
@@ -3077,12 +3059,6 @@ msgstr "새 worktree에서 분기"
 
 msgid "Branch in this workspace"
 msgstr "이 워크스페이스에서 분기"
-
-msgid "branch name"
-msgstr "브랜치 이름"
-
-msgid "Branch name"
-msgstr "브랜치 이름"
 
 msgid "Branch name copied"
 msgstr "브랜치 이름 복사됨"
@@ -4439,9 +4415,6 @@ msgstr "GitHub 리포지토리를 연결하고 풀 리퀘스트를 동기화하�
 msgid "Connect your Linear account before tracking tasks in Linear."
 msgstr "Linear에서 작업을 관리하려면 먼저 Linear 계정을 연결하세요."
 
-msgid "Connect your Linear account in Settings → Integrations to link Linear issues."
-msgstr "Linear 이슈를 연결하려면 설정 → 연동에서 Linear 계정을 연결하세요."
-
 msgid "Connect your Linear account to browse, update and start work on Linear issues from Superset."
 msgstr "Linear 계정을 연결하면 Superset에서 Linear 이슈를 탐색하고, 업데이트하고, 작업을 시작할 수 있습니다."
 
@@ -5183,14 +5156,8 @@ msgstr "기여자를 불러오지 못했습니다 — 대신 사용자 이름을
 msgid "Couldn't load earlier messages. Retry"
 msgstr "이전 메시지를 불러올 수 없습니다. 다시 시도"
 
-msgid "Couldn't load issues: {msg}"
-msgstr "이슈를 불러오지 못했습니다: {msg}"
-
 msgid "Couldn't load pages"
 msgstr "페이지를 불러올 수 없습니다"
-
-msgid "Couldn't load pull requests: {msg}"
-msgstr "풀 리퀘스트를 불러오지 못했습니다: {msg}"
 
 msgid "Couldn't load review comments"
 msgstr "리뷰 코멘트를 불러오지 못했습니다"
@@ -5368,9 +5335,6 @@ msgstr "리포지토리나 로컬 경로를 클론해 새 프로젝트를 만듭
 
 msgid "Create a new task from the desktop tasks view."
 msgstr "데스크톱 작업 화면에서 새 작업을 만듭니다."
-
-msgid "Create a new workspace"
-msgstr "새 워크스페이스를 만듭니다"
 
 msgid "Create a project to group tasks and cloud workspaces."
 msgstr "작업과 클라우드 워크스페이스를 묶는 프로젝트를 만드세요."
@@ -5586,10 +5550,6 @@ msgstr "샌드박스 생성 중"
 
 msgid "Creating workspace"
 msgstr "워크스페이스 만드는 중"
-
-#. placeholder {0}: linkedPR.prNumber
-msgid "Creating workspace from PR #{0}..."
-msgstr "PR #{0}에서 워크스페이스를 만드는 중..."
 
 msgid "Creating workspace: {name}"
 msgstr "워크스페이스 만드는 중: {name}"
@@ -6596,8 +6556,8 @@ msgstr "이름 수정"
 msgid "Edit on GitHub"
 msgstr "GitHub에서 편집"
 
-msgid "Edit prefix"
-msgstr "접두사 편집"
+msgid "Edit queued message"
+msgstr "대기 중인 메시지 편집"
 
 msgid "Edit Run Script"
 msgstr "실행 스크립트 편집"
@@ -6969,9 +6929,6 @@ msgstr "검토 중"
 msgid "Extended thinking: {activeLabel}"
 msgstr "확장 사고: {activeLabel}"
 
-msgid "external"
-msgstr "외부"
-
 msgid "External Application"
 msgstr "외부 애플리케이션"
 
@@ -7138,9 +7095,6 @@ msgstr "스레드를 만들지 못했습니다"
 msgid "Failed to create workspace"
 msgstr "워크스페이스를 만들지 못했습니다"
 
-msgid "Failed to create workspace from PR"
-msgstr "PR에서 워크스페이스를 만들지 못했습니다"
-
 msgid "Failed to delete"
 msgstr "삭제하지 못했습니다"
 
@@ -7259,17 +7213,8 @@ msgstr "새 창을 열지 못했습니다: {0}"
 msgid "Failed to open new window: {message}"
 msgstr "새 창을 열지 못했습니다: {message}"
 
-msgid "Failed to open project"
-msgstr "프로젝트를 열지 못했습니다"
-
-msgid "Failed to open task"
-msgstr "작업을 열지 못했습니다"
-
 msgid "Failed to open the billing portal"
 msgstr "결제 포털을 열지 못했습니다"
-
-msgid "Failed to open worktree"
-msgstr "worktree를 열지 못했습니다"
 
 #. placeholder {0}: error.message
 msgid "Failed to open: {0}"
@@ -7277,12 +7222,6 @@ msgstr "열지 못했습니다: {0}"
 
 msgid "Failed to post reply"
 msgstr "답글을 게시하지 못했습니다"
-
-msgid "Failed to prepare agent launch"
-msgstr "에이전트 실행 준비에 실패했습니다"
-
-msgid "Failed to process attachments"
-msgstr "첨부 파일을 처리하지 못했습니다"
 
 msgid "Failed to push branch"
 msgstr "브랜치를 푸시하지 못했습니다"
@@ -9596,6 +9535,9 @@ msgstr "Linear 연동"
 msgid "Linear is limiting requests. Try again in a few minutes."
 msgstr "Linear가 요청을 제한하고 있습니다. 몇 분 후 다시 시도하세요."
 
+msgid "Linear issues"
+msgstr "Linear 이슈"
+
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
 #. placeholder {1}: m.endLine
@@ -9605,9 +9547,6 @@ msgstr "{0}–{1}번 줄"
 
 msgid "Link"
 msgstr "링크"
-
-msgid "Link ↵"
-msgstr "연결 ↵"
 
 msgid "Link a GitHub repository on the project first to enable cloning."
 msgstr "클론하려면 먼저 프로젝트에 GitHub 리포지토리를 연결하세요."
@@ -9620,15 +9559,6 @@ msgstr "링크를 복사했습니다"
 
 msgid "Link copied"
 msgstr "링크 복사됨"
-
-msgid "Link GitHub issue"
-msgstr "GitHub 이슈 연결"
-
-msgid "Link Linear issue"
-msgstr "Linear 이슈 연결"
-
-msgid "Link pull request"
-msgstr "풀 리퀘스트 연결"
 
 msgid "Link task"
 msgstr "작업 연결"
@@ -9762,9 +9692,6 @@ msgstr "그룹 불러오는 중…"
 msgid "Loading issue…"
 msgstr "이슈 불러오는 중…"
 
-msgid "Loading issues..."
-msgstr "이슈를 불러오는 중..."
-
 msgid "Loading issues…"
 msgstr "이슈 불러오는 중…"
 
@@ -9785,9 +9712,6 @@ msgstr "프로젝트 불러오는 중…"
 
 msgid "Loading pull request…"
 msgstr "풀 리퀘스트 불러오는 중…"
-
-msgid "Loading pull requests..."
-msgstr "풀 리퀘스트 불러오는 중..."
 
 msgid "Loading pull requests…"
 msgstr "풀 리퀘스트 불러오는 중…"
@@ -10306,6 +10230,9 @@ msgstr "모바일 앱"
 
 msgid "Mobile App"
 msgstr "모바일 앱"
+
+msgid "Mode"
+msgstr "모드"
 
 msgid "model"
 msgstr "모델"
@@ -11061,6 +10988,12 @@ msgstr "일치 항목 없음"
 msgid "No matching files"
 msgstr "일치하는 파일 없음"
 
+msgid "No matching issues"
+msgstr "일치하는 이슈가 없습니다"
+
+msgid "No matching Linear issues"
+msgstr "일치하는 Linear 이슈가 없습니다"
+
 msgid "No matching MCP servers"
 msgstr "일치하는 MCP 서버 없음"
 
@@ -11073,8 +11006,14 @@ msgstr "일치하는 조직 멤버가 없습니다."
 msgid "No matching pages"
 msgstr "일치하는 페이지가 없습니다"
 
+msgid "No matching pull requests"
+msgstr "일치하는 풀 리퀘스트가 없습니다"
+
 msgid "No matching repositories."
 msgstr "일치하는 저장소가 없습니다."
+
+msgid "No matching tasks"
+msgstr "일치하는 작업이 없습니다"
 
 msgid "No MCP servers found"
 msgstr "MCP 서버를 찾을 수 없음"
@@ -11103,14 +11042,8 @@ msgstr "등록된 이름 없음"
 msgid "No one in {organizationName} matches. Type a full email to invite someone new."
 msgstr "{organizationName}에 일치하는 사람이 없습니다. 새로운 사람을 초대하려면 전체 이메일 주소를 입력하세요."
 
-msgid "No open issues found."
-msgstr "열린 이슈를 찾을 수 없습니다."
-
 msgid "No open issues."
 msgstr "열린 이슈가 없습니다."
-
-msgid "No open pull requests found."
-msgstr "열린 풀 리퀘스트를 찾을 수 없습니다."
 
 msgid "No open pull requests."
 msgstr "열린 풀 리퀘스트가 없습니다."
@@ -12030,9 +11963,6 @@ msgstr "GitHub에서 이슈 열기"
 msgid "Open issue in Linear"
 msgstr "Linear에서 이슈 열기"
 
-msgid "Open issues"
-msgstr "열린 이슈"
-
 msgid "Open leaderboard"
 msgstr "리더보드 열기"
 
@@ -12083,9 +12013,6 @@ msgstr "프로젝트 열기"
 msgid "Open Projects"
 msgstr "프로젝트 열기"
 
-msgid "Open PRs"
-msgstr "열린 PR"
-
 msgid "Open pull request"
 msgstr "풀 리퀘스트 열기"
 
@@ -12102,9 +12029,6 @@ msgstr "풀 리퀘스트 #{number} 열기"
 
 msgid "Open pull request options"
 msgstr "풀 리퀘스트 옵션 열기"
-
-msgid "Open pull requests"
-msgstr "열린 풀 리퀘스트"
 
 msgid "Open recent"
 msgstr "최근 항목 열기"
@@ -12132,9 +12056,6 @@ msgstr "해당 컴퓨터에서 Superset 열기"
 
 msgid "Open System Settings"
 msgstr "시스템 설정 열기"
-
-msgid "Open task {title}"
-msgstr "{title} 작업 열기"
 
 msgid "Open Terminal"
 msgstr "터미널 열기"
@@ -12219,9 +12140,6 @@ msgstr "폴더 열기"
 
 msgid "Opening pages"
 msgstr "페이지 열기"
-
-msgid "Opening worktree..."
-msgstr "worktree를 여는 중..."
 
 msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
 msgstr "에이전트가 프로젝트에 필요한 것을 설치하고 .superset/config.json을 작성하는 클라우드 워크스페이스를 엽니다"
@@ -12924,9 +12842,6 @@ msgstr "PR URL"
 msgid "PR URL must match {repoMismatch}."
 msgstr "PR URL이 {repoMismatch}과(와) 일치해야 합니다."
 
-msgid "PR URL must match {selectedRepositoryLabel}."
-msgstr "PR URL이 {selectedRepositoryLabel}과(와) 일치해야 합니다."
-
 msgid "Prediction progress"
 msgstr "예측 진행 상황"
 
@@ -13367,6 +13282,9 @@ msgstr "자주 묻는 질문"
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "질문, 피드백, 지원 등 무엇이든 좋습니다. 메시지를 보내 주시면 담당자에게 전달하겠습니다."
 
+msgid "Queue message"
+msgstr "메시지 대기열에 추가"
+
 msgid "Queue paused"
 msgstr "대기열 일시 중지됨"
 
@@ -13375,6 +13293,9 @@ msgstr "중단했기 때문에 대기열이 일시 중지되었습니다"
 
 msgid "Queue work for agents"
 msgstr "에이전트 작업 대기열에 추가"
+
+msgid "Queue; ⌘↩ to steer the running turn"
+msgstr "대기열에 추가; ⌘↩로 진행 중인 턴 방향 전환"
 
 msgid "Queued"
 msgstr "대기열"
@@ -13586,17 +13507,8 @@ msgstr "최근 앱"
 msgid "Recent invoices"
 msgstr "최근 청구서"
 
-msgid "Recent issues"
-msgstr "최근 이슈"
-
 msgid "Recent prompts"
 msgstr "최근 프롬프트"
-
-msgid "Recent PRs"
-msgstr "최근 PR"
-
-msgid "Recent pull requests"
-msgstr "최근 풀 리퀘스트"
 
 msgid "Recently deleted"
 msgstr "최근 삭제됨"
@@ -13814,12 +13726,6 @@ msgstr "아이콘 제거"
 
 msgid "Remove image"
 msgstr "이미지 제거"
-
-msgid "Remove linked issue"
-msgstr "연결된 이슈 제거"
-
-msgid "Remove linked PR"
-msgstr "연결된 PR 제거"
 
 msgid "Remove member"
 msgstr "멤버 제거"
@@ -14583,9 +14489,6 @@ msgstr "일정이나 이벤트로 실행, 필요할 때 실행, 일시 중지, �
 msgid "Run script"
 msgstr "스크립트 실행"
 
-msgid "Run setup script"
-msgstr "설정 스크립트 실행"
-
 msgid "Run setup script in each imported workspace"
 msgstr "가져온 각 워크스페이스에서 설정 스크립트 실행"
 
@@ -14901,9 +14804,6 @@ msgstr "기록 검색"
 msgid "Search in {frameTitle}…"
 msgstr "{frameTitle}에서 검색…"
 
-msgid "Search issues..."
-msgstr "이슈 검색..."
-
 msgid "Search labels..."
 msgstr "레이블 검색..."
 
@@ -14945,9 +14845,6 @@ msgstr "프로젝트 검색…"
 
 msgid "Search pull requests"
 msgstr "풀 리퀘스트 검색"
-
-msgid "Search pull requests..."
-msgstr "풀 리퀘스트 검색..."
 
 msgid "Search pull requests…"
 msgstr "풀 리퀘스트 검색…"
@@ -15008,12 +14905,6 @@ msgstr "툴팁 재정의를 검색함"
 
 msgid "Searching for Kbd usages"
 msgstr "Kbd 사용처를 검색하는 중"
-
-msgid "Searching..."
-msgstr "검색 중..."
-
-msgid "Searching…"
-msgstr "검색 중…"
 
 msgid "Secondary"
 msgstr "보조"
@@ -15566,9 +15457,6 @@ msgstr "테두리 표시"
 
 msgid "Show checks"
 msgstr "검사 표시"
-
-msgid "Show closed"
-msgstr "닫힌 항목 표시"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "상단 바에 CPU와 메모리 사용량을 표시합니다"
@@ -18798,12 +18686,6 @@ msgstr "user@example.com"
 msgid "user@host, ssh://user@host:2222, or an ssh config alias"
 msgstr "user@host, ssh://user@host:2222 또는 ssh 설정 별칭"
 
-msgid "Using random branch name (AI generation timed out)"
-msgstr "임의의 브랜치 이름을 사용합니다 (AI 생성 시간 초과)"
-
-msgid "Using random branch name (AI generation unavailable)"
-msgstr "임의의 브랜치 이름을 사용합니다 (AI 생성 사용 불가)"
-
 msgid "v2ProjectId does not match the workspace's project"
 msgstr "v2ProjectId가 워크스페이스의 프로젝트와 일치하지 않습니다"
 
@@ -19406,9 +19288,6 @@ msgstr "워크스페이스를 보관했습니다"
 msgid "Workspace created"
 msgstr "워크스페이스를 만들었습니다"
 
-msgid "Workspace created from PR"
-msgstr "PR에서 워크스페이스를 만들었습니다"
-
 msgid "Workspace details"
 msgstr "워크스페이스 세부 정보"
 
@@ -19423,9 +19302,6 @@ msgstr "워크스페이스 레이아웃"
 
 msgid "Workspace name"
 msgstr "워크스페이스 이름"
-
-msgid "Workspace name (optional)"
-msgstr "워크스페이스 이름 (선택)"
 
 msgid "Workspace not found"
 msgstr "워크스페이스를 찾을 수 없음"
@@ -19495,9 +19371,6 @@ msgstr "worktree 없음"
 
 msgid "Worktree on this device"
 msgstr "이 기기의 worktree"
-
-msgid "Worktree opened"
-msgstr "worktree를 열었습니다"
 
 msgid "Worktree out of sync"
 msgstr "worktree가 동기화되지 않음"

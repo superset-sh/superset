@@ -209,9 +209,7 @@ msgstr "{0, plural, one {雲端#個結果} other {雲端#個結果}}"
 msgid "{0, plural, one {# result on this host} other {# results on this host}}"
 msgstr "{0, plural, one {此主機上#個結果} other {此主機上#個結果}}"
 
-#. placeholder {0}: pullRequests.length
 #. placeholder {0}: results.length
-#. placeholder {0}: searchResults.length
 msgid "{0, plural, one {# result} other {# results}}"
 msgstr "{0, plural, one {#個結果} other {#個結果}}"
 
@@ -954,9 +952,6 @@ msgstr "{minutes} 分 {rest} 秒"
 msgid "{minutes}m ago"
 msgstr "{minutes}分鐘前"
 
-msgid "{modKey}↵ to create"
-msgstr "{modKey}↵建立"
-
 msgid "{monthlyPrice} per user/mo billed monthly, or {yearlyPrice} billed yearly. Cloud workspaces, mobile, priority support."
 msgstr "按月計費每使用者每月 {monthlyPrice}，按年計費為 {yearlyPrice}。包含雲端工作區、行動版和優先支援。"
 
@@ -1693,9 +1688,6 @@ msgstr "連接其他帳號，或中斷不再使用的帳號。"
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "把任意機器新增為主機。筆記本休眠時工作區照常執行，你在哪兒都能檢視進展。"
 
-msgid "Add attachment"
-msgstr "新增附件"
-
 msgid "Add Attachment"
 msgstr "新增附件"
 
@@ -1979,9 +1971,6 @@ msgstr "AI · 對話"
 
 msgid "AI · Status"
 msgstr "AI · 狀態"
-
-msgid "AI authentication failed. Please check your AI settings."
-msgstr "AI認證失敗。請檢查你的AI設定。"
 
 msgid "Alert"
 msgstr "警告"
@@ -2616,9 +2605,6 @@ msgstr "已指派"
 msgid "Assigned to me"
 msgstr "指派給我"
 
-msgid "Assigned to you"
-msgstr "指派給你"
-
 msgid "Assignee"
 msgstr "負責人"
 
@@ -2750,9 +2736,6 @@ msgstr "自動模式會跟隨你的系統語言。之後可以在設定中更改
 
 msgid "Auto Save"
 msgstr "自動儲存"
-
-msgid "auto-generated"
-msgstr "自動生成"
 
 msgid "Auto-run command"
 msgstr "自動執行命令"
@@ -2945,7 +2928,6 @@ msgstr "{selectedHostName}上新建worktree的基準目錄。"
 msgid "Base URL"
 msgstr "基礎URL"
 
-#. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
 msgid "based off PR #{0}"
 msgstr "基於PR #{0}"
@@ -3077,12 +3059,6 @@ msgstr "在新的 worktree 中分叉"
 
 msgid "Branch in this workspace"
 msgstr "在此工作區分叉"
-
-msgid "branch name"
-msgstr "分支名稱"
-
-msgid "Branch name"
-msgstr "分支名稱"
 
 msgid "Branch name copied"
 msgstr "已複製分支名"
@@ -4439,9 +4415,6 @@ msgstr "連線你的GitHub儲存庫並同步拉取請求。追蹤整個團隊的
 msgid "Connect your Linear account before tracking tasks in Linear."
 msgstr "請先連接你的 Linear 帳戶，再於 Linear 中管理任務。"
 
-msgid "Connect your Linear account in Settings → Integrations to link Linear issues."
-msgstr "請在 設定 → 整合 中連結你的Linear帳號，以連結Linear議題。"
-
 msgid "Connect your Linear account to browse, update and start work on Linear issues from Superset."
 msgstr "連結你的Linear帳號後，即可在Superset中瀏覽、更新Linear議題並開始工作。"
 
@@ -5183,14 +5156,8 @@ msgstr "無法載入貢獻者，請直接輸入使用者名稱。"
 msgid "Couldn't load earlier messages. Retry"
 msgstr "無法載入較早的訊息。重試"
 
-msgid "Couldn't load issues: {msg}"
-msgstr "無法載入議題：{msg}"
-
 msgid "Couldn't load pages"
 msgstr "無法載入頁面"
-
-msgid "Couldn't load pull requests: {msg}"
-msgstr "無法載入拉取請求：{msg}"
 
 msgid "Couldn't load review comments"
 msgstr "無法載入審查評論"
@@ -5368,9 +5335,6 @@ msgstr "通過克隆儲存庫或本地路徑來建立新專案。"
 
 msgid "Create a new task from the desktop tasks view."
 msgstr "在桌面端任務檢視中建立新任務。"
-
-msgid "Create a new workspace"
-msgstr "建立新工作區"
 
 msgid "Create a project to group tasks and cloud workspaces."
 msgstr "建立專案，將任務與雲端工作區歸在一起。"
@@ -5586,10 +5550,6 @@ msgstr "正在建立沙箱"
 
 msgid "Creating workspace"
 msgstr "正在建立工作區"
-
-#. placeholder {0}: linkedPR.prNumber
-msgid "Creating workspace from PR #{0}..."
-msgstr "正在從PR #{0}建立工作區..."
 
 msgid "Creating workspace: {name}"
 msgstr "正在建立工作區：{name}"
@@ -6596,8 +6556,8 @@ msgstr "編輯名稱"
 msgid "Edit on GitHub"
 msgstr "在GitHub上編輯"
 
-msgid "Edit prefix"
-msgstr "編輯字首"
+msgid "Edit queued message"
+msgstr "編輯佇列中的訊息"
 
 msgid "Edit Run Script"
 msgstr "編輯執行指令碼"
@@ -6969,9 +6929,6 @@ msgstr "探索中"
 msgid "Extended thinking: {activeLabel}"
 msgstr "擴充套件思考：{activeLabel}"
 
-msgid "external"
-msgstr "外部"
-
 msgid "External Application"
 msgstr "外部應用"
 
@@ -7138,9 +7095,6 @@ msgstr "建立討論串失敗"
 msgid "Failed to create workspace"
 msgstr "建立工作區失敗"
 
-msgid "Failed to create workspace from PR"
-msgstr "從PR建立工作區失敗"
-
 msgid "Failed to delete"
 msgstr "刪除失敗"
 
@@ -7259,17 +7213,8 @@ msgstr "開啟新視窗失敗：{0}"
 msgid "Failed to open new window: {message}"
 msgstr "開啟新視窗失敗：{message}"
 
-msgid "Failed to open project"
-msgstr "開啟專案失敗"
-
-msgid "Failed to open task"
-msgstr "開啟任務失敗"
-
 msgid "Failed to open the billing portal"
 msgstr "開啟帳單門戶失敗"
-
-msgid "Failed to open worktree"
-msgstr "開啟worktree失敗"
 
 #. placeholder {0}: error.message
 msgid "Failed to open: {0}"
@@ -7277,12 +7222,6 @@ msgstr "開啟失敗：{0}"
 
 msgid "Failed to post reply"
 msgstr "回覆張貼失敗"
-
-msgid "Failed to prepare agent launch"
-msgstr "準備啟動代理程式失敗"
-
-msgid "Failed to process attachments"
-msgstr "處理附件失敗"
 
 msgid "Failed to push branch"
 msgstr "推送分支失敗"
@@ -9596,6 +9535,9 @@ msgstr "Linear整合"
 msgid "Linear is limiting requests. Try again in a few minutes."
 msgstr "Linear正在限制請求，請幾分鐘後再試。"
 
+msgid "Linear issues"
+msgstr "Linear議題"
+
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
 #. placeholder {1}: m.endLine
@@ -9605,9 +9547,6 @@ msgstr "第{0}–{1}行"
 
 msgid "Link"
 msgstr "連結"
-
-msgid "Link ↵"
-msgstr "關聯 ↵"
 
 msgid "Link a GitHub repository on the project first to enable cloning."
 msgstr "請先為專案關聯GitHub儲存庫才能克隆。"
@@ -9620,15 +9559,6 @@ msgstr "連結已複製"
 
 msgid "Link copied"
 msgstr "連結已複製"
-
-msgid "Link GitHub issue"
-msgstr "關聯GitHub議題"
-
-msgid "Link Linear issue"
-msgstr "連結Linear議題"
-
-msgid "Link pull request"
-msgstr "關聯拉取請求"
 
 msgid "Link task"
 msgstr "關聯任務"
@@ -9762,9 +9692,6 @@ msgstr "正在載入群組…"
 msgid "Loading issue…"
 msgstr "正在載入議題…"
 
-msgid "Loading issues..."
-msgstr "正在載入議題..."
-
 msgid "Loading issues…"
 msgstr "正在載入議題…"
 
@@ -9785,9 +9712,6 @@ msgstr "正在載入專案…"
 
 msgid "Loading pull request…"
 msgstr "正在載入拉取請求…"
-
-msgid "Loading pull requests..."
-msgstr "正在載入拉取請求..."
 
 msgid "Loading pull requests…"
 msgstr "正在載入拉取請求…"
@@ -10306,6 +10230,9 @@ msgstr "行動應用程式"
 
 msgid "Mobile App"
 msgstr "行動應用程式"
+
+msgid "Mode"
+msgstr "模式"
 
 msgid "model"
 msgstr "模型"
@@ -11061,6 +10988,12 @@ msgstr "沒有匹配項"
 msgid "No matching files"
 msgstr "沒有符合的檔案"
 
+msgid "No matching issues"
+msgstr "沒有符合的議題"
+
+msgid "No matching Linear issues"
+msgstr "沒有符合的Linear議題"
+
 msgid "No matching MCP servers"
 msgstr "沒有符合的MCP伺服器"
 
@@ -11073,8 +11006,14 @@ msgstr "沒有匹配的組織成員。"
 msgid "No matching pages"
 msgstr "沒有符合的頁面"
 
+msgid "No matching pull requests"
+msgstr "沒有符合的拉取請求"
+
 msgid "No matching repositories."
 msgstr "沒有相符的儲存庫。"
+
+msgid "No matching tasks"
+msgstr "沒有符合的任務"
 
 msgid "No MCP servers found"
 msgstr "找不到MCP伺服器"
@@ -11103,14 +11042,8 @@ msgstr "未登記姓名"
 msgid "No one in {organizationName} matches. Type a full email to invite someone new."
 msgstr "{organizationName} 中沒有相符的人。輸入完整電子郵件地址即可邀請新成員。"
 
-msgid "No open issues found."
-msgstr "未找到開啟的議題。"
-
 msgid "No open issues."
 msgstr "沒有開啟的議題。"
-
-msgid "No open pull requests found."
-msgstr "未找到開啟的拉取請求。"
 
 msgid "No open pull requests."
 msgstr "沒有開啟的拉取請求。"
@@ -12030,9 +11963,6 @@ msgstr "在GitHub中開啟議題"
 msgid "Open issue in Linear"
 msgstr "在Linear中開啟議題"
 
-msgid "Open issues"
-msgstr "開啟的議題"
-
 msgid "Open leaderboard"
 msgstr "開啟排行榜"
 
@@ -12083,9 +12013,6 @@ msgstr "開啟專案"
 msgid "Open Projects"
 msgstr "開啟專案"
 
-msgid "Open PRs"
-msgstr "開啟的PR"
-
 msgid "Open pull request"
 msgstr "開啟拉取請求"
 
@@ -12102,9 +12029,6 @@ msgstr "開啟拉取請求#{number}"
 
 msgid "Open pull request options"
 msgstr "開啟拉取請求選項"
-
-msgid "Open pull requests"
-msgstr "開啟的拉取請求"
 
 msgid "Open recent"
 msgstr "開啟最近使用"
@@ -12132,9 +12056,6 @@ msgstr "在那台電腦上開啟Superset"
 
 msgid "Open System Settings"
 msgstr "開啟系統設定"
-
-msgid "Open task {title}"
-msgstr "開啟任務{title}"
 
 msgid "Open Terminal"
 msgstr "開啟終端"
@@ -12219,9 +12140,6 @@ msgstr "開啟資料夾"
 
 msgid "Opening pages"
 msgstr "開啟頁面"
-
-msgid "Opening worktree..."
-msgstr "正在開啟worktree..."
 
 msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
 msgstr "開啟雲端工作區，由代理安裝專案所需內容並寫入其 .superset/config.json"
@@ -12924,9 +12842,6 @@ msgstr "PR連結"
 msgid "PR URL must match {repoMismatch}."
 msgstr "PR的URL必須匹配{repoMismatch}。"
 
-msgid "PR URL must match {selectedRepositoryLabel}."
-msgstr "PR的URL必須匹配{selectedRepositoryLabel}。"
-
 msgid "Prediction progress"
 msgstr "預測閱讀進度"
 
@@ -13367,6 +13282,9 @@ msgstr "常見問題"
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "問題、回饋、支援，或者別的什麼都行。寫給我們，我們會轉給合適的人。"
 
+msgid "Queue message"
+msgstr "將訊息加入佇列"
+
 msgid "Queue paused"
 msgstr "佇列已暫停"
 
@@ -13375,6 +13293,9 @@ msgstr "由於你中斷了操作，佇列已暫停"
 
 msgid "Queue work for agents"
 msgstr "為代理程式排隊安排工作"
+
+msgid "Queue; ⌘↩ to steer the running turn"
+msgstr "加入佇列；按⌘↩引導目前回合"
 
 msgid "Queued"
 msgstr "排隊中"
@@ -13586,17 +13507,8 @@ msgstr "最近使用的 App"
 msgid "Recent invoices"
 msgstr "最近的帳單"
 
-msgid "Recent issues"
-msgstr "最近的議題"
-
 msgid "Recent prompts"
 msgstr "最近的提示詞"
-
-msgid "Recent PRs"
-msgstr "最近的PR"
-
-msgid "Recent pull requests"
-msgstr "最近的拉取請求"
 
 msgid "Recently deleted"
 msgstr "最近刪除"
@@ -13814,12 +13726,6 @@ msgstr "移除圖示"
 
 msgid "Remove image"
 msgstr "移除圖片"
-
-msgid "Remove linked issue"
-msgstr "移除關聯的議題"
-
-msgid "Remove linked PR"
-msgstr "移除關聯的PR"
 
 msgid "Remove member"
 msgstr "移除成員"
@@ -14583,9 +14489,6 @@ msgstr "依計劃或事件執行、隨需執行、暫停、恢復並查看日誌
 msgid "Run script"
 msgstr "執行指令碼"
 
-msgid "Run setup script"
-msgstr "執行設定指令碼"
-
 msgid "Run setup script in each imported workspace"
 msgstr "在每個匯入的工作區中執行初始化指令碼"
 
@@ -14901,9 +14804,6 @@ msgstr "搜尋歷史"
 msgid "Search in {frameTitle}…"
 msgstr "在{frameTitle}中搜尋…"
 
-msgid "Search issues..."
-msgstr "搜尋議題..."
-
 msgid "Search labels..."
 msgstr "搜尋標籤..."
 
@@ -14945,9 +14845,6 @@ msgstr "搜尋專案…"
 
 msgid "Search pull requests"
 msgstr "搜尋拉取請求"
-
-msgid "Search pull requests..."
-msgstr "搜尋拉取請求..."
 
 msgid "Search pull requests…"
 msgstr "搜尋拉取請求…"
@@ -15008,12 +14905,6 @@ msgstr "搜尋了tooltip的樣式覆蓋"
 
 msgid "Searching for Kbd usages"
 msgstr "正在搜尋Kbd的使用處"
-
-msgid "Searching..."
-msgstr "正在搜尋..."
-
-msgid "Searching…"
-msgstr "搜尋中…"
 
 msgid "Secondary"
 msgstr "次要"
@@ -15566,9 +15457,6 @@ msgstr "顯示邊框"
 
 msgid "Show checks"
 msgstr "顯示檢查"
-
-msgid "Show closed"
-msgstr "顯示已關閉"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "在頂欄顯示CPU和記憶體用量"
@@ -18798,12 +18686,6 @@ msgstr "user@example.com"
 msgid "user@host, ssh://user@host:2222, or an ssh config alias"
 msgstr "user@host、ssh://user@host:2222 或 ssh 設定中的別名"
 
-msgid "Using random branch name (AI generation timed out)"
-msgstr "使用隨機分支名（AI生成逾時）"
-
-msgid "Using random branch name (AI generation unavailable)"
-msgstr "使用隨機分支名（AI生成不可用）"
-
 msgid "v2ProjectId does not match the workspace's project"
 msgstr "v2ProjectId與該工作區的專案不匹配"
 
@@ -19406,9 +19288,6 @@ msgstr "工作區已歸檔"
 msgid "Workspace created"
 msgstr "工作區已建立"
 
-msgid "Workspace created from PR"
-msgstr "已從PR建立工作區"
-
 msgid "Workspace details"
 msgstr "工作區詳細資料"
 
@@ -19423,9 +19302,6 @@ msgstr "工作區佈局"
 
 msgid "Workspace name"
 msgstr "工作區名稱"
-
-msgid "Workspace name (optional)"
-msgstr "工作區名稱（可選）"
 
 msgid "Workspace not found"
 msgstr "未找到工作區"
@@ -19495,9 +19371,6 @@ msgstr "worktree缺失"
 
 msgid "Worktree on this device"
 msgstr "此裝置上的 worktree"
-
-msgid "Worktree opened"
-msgstr "worktree已開啟"
 
 msgid "Worktree out of sync"
 msgstr "worktree不同步"

@@ -209,9 +209,7 @@ msgstr "{0, plural, one {# risultato nel Cloud} other {# risultati nel Cloud}}"
 msgid "{0, plural, one {# result on this host} other {# results on this host}}"
 msgstr "{0, plural, one {# risultato su questo host} other {# risultati su questo host}}"
 
-#. placeholder {0}: pullRequests.length
 #. placeholder {0}: results.length
-#. placeholder {0}: searchResults.length
 msgid "{0, plural, one {# result} other {# results}}"
 msgstr "{0, plural, one {# risultato} other {# risultati}}"
 
@@ -954,9 +952,6 @@ msgstr "{minutes} min {rest} s"
 msgid "{minutes}m ago"
 msgstr "{minutes}m fa"
 
-msgid "{modKey}↵ to create"
-msgstr "{modKey}↵ per creare"
-
 msgid "{monthlyPrice} per user/mo billed monthly, or {yearlyPrice} billed yearly. Cloud workspaces, mobile, priority support."
 msgstr "{monthlyPrice} per utente/mese con fatturazione mensile, o {yearlyPrice} con fatturazione annuale. Workspace cloud, mobile, supporto prioritario."
 
@@ -1693,9 +1688,6 @@ msgstr "Collega un altro account o scollega quello che non usi più."
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "Aggiungi qualsiasi macchina come host. I workspace continuano a girare quando il tuo portatile va in stop e puoi controllarli da dove sei."
 
-msgid "Add attachment"
-msgstr "Aggiungi un allegato"
-
 msgid "Add Attachment"
 msgstr "Aggiungi allegato"
 
@@ -1979,9 +1971,6 @@ msgstr "AI · Conversazione"
 
 msgid "AI · Status"
 msgstr "AI · Stato"
-
-msgid "AI authentication failed. Please check your AI settings."
-msgstr "Autenticazione AI non riuscita. Controlla le impostazioni AI."
 
 msgid "Alert"
 msgstr "Alert"
@@ -2616,9 +2605,6 @@ msgstr "Assegnata"
 msgid "Assigned to me"
 msgstr "Assegnate a me"
 
-msgid "Assigned to you"
-msgstr "Assegnate a te"
-
 msgid "Assignee"
 msgstr "Assegnatario"
 
@@ -2750,9 +2736,6 @@ msgstr "Auto segue la lingua del sistema. Puoi cambiarla in seguito nelle Impost
 
 msgid "Auto Save"
 msgstr "Salvataggio automatico"
-
-msgid "auto-generated"
-msgstr "generato automaticamente"
 
 msgid "Auto-run command"
 msgstr "Comando da eseguire automaticamente"
@@ -2945,7 +2928,6 @@ msgstr "Directory di base per i nuovi worktree su {selectedHostName}."
 msgid "Base URL"
 msgstr "URL di base"
 
-#. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
 msgid "based off PR #{0}"
 msgstr "basato sulla PR #{0}"
@@ -3077,12 +3059,6 @@ msgstr "Dirama in un nuovo worktree"
 
 msgid "Branch in this workspace"
 msgstr "Dirama in questo workspace"
-
-msgid "branch name"
-msgstr "nome del branch"
-
-msgid "Branch name"
-msgstr "Nome del branch"
 
 msgid "Branch name copied"
 msgstr "Nome del branch copiato"
@@ -4439,9 +4415,6 @@ msgstr "Collega i tuoi repository GitHub e sincronizza le pull request. Tieni tr
 msgid "Connect your Linear account before tracking tasks in Linear."
 msgstr "Collega il tuo account Linear prima di gestire le attività in Linear."
 
-msgid "Connect your Linear account in Settings → Integrations to link Linear issues."
-msgstr "Collega il tuo account Linear in Impostazioni → Integrazioni per collegare le issue Linear."
-
 msgid "Connect your Linear account to browse, update and start work on Linear issues from Superset."
 msgstr "Collega il tuo account Linear per sfogliare, aggiornare e iniziare a lavorare sulle issue Linear da Superset."
 
@@ -5183,14 +5156,8 @@ msgstr "Impossibile caricare i contributori — digita invece un nome utente."
 msgid "Couldn't load earlier messages. Retry"
 msgstr "Impossibile caricare i messaggi precedenti. Riprova"
 
-msgid "Couldn't load issues: {msg}"
-msgstr "Impossibile caricare le issue: {msg}"
-
 msgid "Couldn't load pages"
 msgstr "Impossibile caricare le pagine"
-
-msgid "Couldn't load pull requests: {msg}"
-msgstr "Impossibile caricare le pull request: {msg}"
 
 msgid "Couldn't load review comments"
 msgstr "Impossibile caricare i commenti di revisione"
@@ -5368,9 +5335,6 @@ msgstr "Crea un nuovo progetto clonando un repository o un percorso locale."
 
 msgid "Create a new task from the desktop tasks view."
 msgstr "Crea un nuovo task dalla vista task del desktop."
-
-msgid "Create a new workspace"
-msgstr "Crea un nuovo workspace"
 
 msgid "Create a project to group tasks and cloud workspaces."
 msgstr "Crea un progetto per raggruppare attività e spazi di lavoro cloud."
@@ -5586,10 +5550,6 @@ msgstr "Creazione della sandbox"
 
 msgid "Creating workspace"
 msgstr "Creazione del workspace"
-
-#. placeholder {0}: linkedPR.prNumber
-msgid "Creating workspace from PR #{0}..."
-msgstr "Creazione del workspace dalla PR #{0}..."
 
 msgid "Creating workspace: {name}"
 msgstr "Creazione del workspace: {name}"
@@ -6596,8 +6556,8 @@ msgstr "Modifica il nome"
 msgid "Edit on GitHub"
 msgstr "Modifica su GitHub"
 
-msgid "Edit prefix"
-msgstr "Modifica il prefisso"
+msgid "Edit queued message"
+msgstr "Modifica il messaggio in coda"
 
 msgid "Edit Run Script"
 msgstr "Modifica lo script di esecuzione"
@@ -6969,9 +6929,6 @@ msgstr "In esplorazione"
 msgid "Extended thinking: {activeLabel}"
 msgstr "Ragionamento esteso: {activeLabel}"
 
-msgid "external"
-msgstr "esterno"
-
 msgid "External Application"
 msgstr "Applicazione esterna"
 
@@ -7138,9 +7095,6 @@ msgstr "Creazione del thread non riuscita"
 msgid "Failed to create workspace"
 msgstr "Creazione del workspace non riuscita"
 
-msgid "Failed to create workspace from PR"
-msgstr "Creazione del workspace dalla PR non riuscita"
-
 msgid "Failed to delete"
 msgstr "Eliminazione non riuscita"
 
@@ -7259,17 +7213,8 @@ msgstr "Apertura della nuova finestra non riuscita: {0}"
 msgid "Failed to open new window: {message}"
 msgstr "Apertura della nuova finestra non riuscita: {message}"
 
-msgid "Failed to open project"
-msgstr "Apertura del progetto non riuscita"
-
-msgid "Failed to open task"
-msgstr "Apertura del task non riuscita"
-
 msgid "Failed to open the billing portal"
 msgstr "Apertura del portale di fatturazione non riuscita"
-
-msgid "Failed to open worktree"
-msgstr "Apertura del worktree non riuscita"
 
 #. placeholder {0}: error.message
 msgid "Failed to open: {0}"
@@ -7277,12 +7222,6 @@ msgstr "Apertura non riuscita: {0}"
 
 msgid "Failed to post reply"
 msgstr "Impossibile pubblicare la risposta"
-
-msgid "Failed to prepare agent launch"
-msgstr "Preparazione dell'avvio dell'agente non riuscita"
-
-msgid "Failed to process attachments"
-msgstr "Elaborazione degli allegati non riuscita"
 
 msgid "Failed to push branch"
 msgstr "Push del branch non riuscito"
@@ -9596,6 +9535,9 @@ msgstr "Integrazione Linear"
 msgid "Linear is limiting requests. Try again in a few minutes."
 msgstr "Linear sta limitando le richieste. Riprova tra qualche minuto."
 
+msgid "Linear issues"
+msgstr "Issue Linear"
+
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
 #. placeholder {1}: m.endLine
@@ -9605,9 +9547,6 @@ msgstr "Righe {0}–{1}"
 
 msgid "Link"
 msgstr "Link"
-
-msgid "Link ↵"
-msgstr "Collega ↵"
 
 msgid "Link a GitHub repository on the project first to enable cloning."
 msgstr "Collega prima un repository GitHub al progetto per abilitare la clonazione."
@@ -9620,15 +9559,6 @@ msgstr "link copiato"
 
 msgid "Link copied"
 msgstr "Link copiato"
-
-msgid "Link GitHub issue"
-msgstr "Collega una issue GitHub"
-
-msgid "Link Linear issue"
-msgstr "Collega issue Linear"
-
-msgid "Link pull request"
-msgstr "Collega una pull request"
 
 msgid "Link task"
 msgstr "Collega un task"
@@ -9762,9 +9692,6 @@ msgstr "Caricamento dei gruppi…"
 msgid "Loading issue…"
 msgstr "Caricamento della issue…"
 
-msgid "Loading issues..."
-msgstr "Caricamento delle issue..."
-
 msgid "Loading issues…"
 msgstr "Caricamento delle issue…"
 
@@ -9785,9 +9712,6 @@ msgstr "Caricamento dei progetti…"
 
 msgid "Loading pull request…"
 msgstr "Caricamento della pull request…"
-
-msgid "Loading pull requests..."
-msgstr "Caricamento delle pull request..."
 
 msgid "Loading pull requests…"
 msgstr "Caricamento delle pull request…"
@@ -10306,6 +10230,9 @@ msgstr "App mobile"
 
 msgid "Mobile App"
 msgstr "App mobile"
+
+msgid "Mode"
+msgstr "Modalità"
 
 msgid "model"
 msgstr "modello"
@@ -11061,6 +10988,12 @@ msgstr "Nessuna corrispondenza"
 msgid "No matching files"
 msgstr "Nessun file corrispondente"
 
+msgid "No matching issues"
+msgstr "Nessuna issue corrispondente"
+
+msgid "No matching Linear issues"
+msgstr "Nessuna issue Linear corrispondente"
+
 msgid "No matching MCP servers"
 msgstr "Nessun server MCP corrispondente"
 
@@ -11073,8 +11006,14 @@ msgstr "Nessun membro dell'organizzazione corrispondente."
 msgid "No matching pages"
 msgstr "Nessuna pagina corrispondente"
 
+msgid "No matching pull requests"
+msgstr "Nessuna pull request corrispondente"
+
 msgid "No matching repositories."
 msgstr "Nessun repository corrispondente."
+
+msgid "No matching tasks"
+msgstr "Nessun task corrispondente"
 
 msgid "No MCP servers found"
 msgstr "Nessun server MCP trovato"
@@ -11103,14 +11042,8 @@ msgstr "Nessun nome registrato"
 msgid "No one in {organizationName} matches. Type a full email to invite someone new."
 msgstr "Nessuno in {organizationName} corrisponde. Inserisci un indirizzo email completo per invitare qualcuno di nuovo."
 
-msgid "No open issues found."
-msgstr "Nessuna issue aperta trovata."
-
 msgid "No open issues."
 msgstr "Nessuna issue aperta."
-
-msgid "No open pull requests found."
-msgstr "Nessuna pull request aperta trovata."
 
 msgid "No open pull requests."
 msgstr "Nessuna pull request aperta."
@@ -12030,9 +11963,6 @@ msgstr "Apri la issue in GitHub"
 msgid "Open issue in Linear"
 msgstr "Apri l'issue in Linear"
 
-msgid "Open issues"
-msgstr "Issue aperte"
-
 msgid "Open leaderboard"
 msgstr "Apri la classifica"
 
@@ -12083,9 +12013,6 @@ msgstr "Apri progetto"
 msgid "Open Projects"
 msgstr "Apri Progetti"
 
-msgid "Open PRs"
-msgstr "PR aperte"
-
 msgid "Open pull request"
 msgstr "Apri la pull request"
 
@@ -12102,9 +12029,6 @@ msgstr "Apri la pull request #{number}"
 
 msgid "Open pull request options"
 msgstr "Apri le opzioni della pull request"
-
-msgid "Open pull requests"
-msgstr "Pull request aperte"
 
 msgid "Open recent"
 msgstr "Apri recenti"
@@ -12132,9 +12056,6 @@ msgstr "Apri Superset su quel computer"
 
 msgid "Open System Settings"
 msgstr "Apri Impostazioni di Sistema"
-
-msgid "Open task {title}"
-msgstr "Apri il task {title}"
 
 msgid "Open Terminal"
 msgstr "Apri il terminale"
@@ -12219,9 +12140,6 @@ msgstr "Apertura delle cartelle"
 
 msgid "Opening pages"
 msgstr "Apertura delle pagine"
-
-msgid "Opening worktree..."
-msgstr "Apertura del worktree..."
 
 msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
 msgstr "Apre un workspace cloud in cui un agente installa ciò di cui il progetto ha bisogno e scrive il suo .superset/config.json"
@@ -12924,9 +12842,6 @@ msgstr "URL della PR"
 msgid "PR URL must match {repoMismatch}."
 msgstr "L'URL della PR deve corrispondere a {repoMismatch}."
 
-msgid "PR URL must match {selectedRepositoryLabel}."
-msgstr "L'URL della PR deve corrispondere a {selectedRepositoryLabel}."
-
 msgid "Prediction progress"
 msgstr "Avanzamento della previsione"
 
@@ -13367,6 +13282,9 @@ msgstr "Domande"
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "Domande, feedback, supporto o altro. Mandaci un messaggio e lo inoltreremo alla persona giusta."
 
+msgid "Queue message"
+msgstr "Metti il messaggio in coda"
+
 msgid "Queue paused"
 msgstr "Coda in pausa"
 
@@ -13375,6 +13293,9 @@ msgstr "Coda in pausa perché hai interrotto"
 
 msgid "Queue work for agents"
 msgstr "Metti in coda il lavoro per gli agenti"
+
+msgid "Queue; ⌘↩ to steer the running turn"
+msgstr "In coda; ⌘↩ per interrompere e inviare nel turno in corso"
 
 msgid "Queued"
 msgstr "In coda"
@@ -13586,17 +13507,8 @@ msgstr "App recenti"
 msgid "Recent invoices"
 msgstr "Fatture recenti"
 
-msgid "Recent issues"
-msgstr "Issue recenti"
-
 msgid "Recent prompts"
 msgstr "Prompt recenti"
-
-msgid "Recent PRs"
-msgstr "PR recenti"
-
-msgid "Recent pull requests"
-msgstr "Pull request recenti"
 
 msgid "Recently deleted"
 msgstr "Eliminati di recente"
@@ -13814,12 +13726,6 @@ msgstr "Rimuovi l'icona"
 
 msgid "Remove image"
 msgstr "Rimuovi immagine"
-
-msgid "Remove linked issue"
-msgstr "Rimuovi la issue collegata"
-
-msgid "Remove linked PR"
-msgstr "Rimuovi la PR collegata"
 
 msgid "Remove member"
 msgstr "Rimuovi il membro"
@@ -14583,9 +14489,6 @@ msgstr "Esegui secondo una pianificazione o con eventi, su richiesta, metti in p
 msgid "Run script"
 msgstr "Esegui lo script"
 
-msgid "Run setup script"
-msgstr "Esegui lo script di setup"
-
 msgid "Run setup script in each imported workspace"
 msgstr "Esegui lo script di setup in ogni workspace importato"
 
@@ -14901,9 +14804,6 @@ msgstr "Cerca nella cronologia"
 msgid "Search in {frameTitle}…"
 msgstr "Cerca in {frameTitle}…"
 
-msgid "Search issues..."
-msgstr "Cerca nelle issue..."
-
 msgid "Search labels..."
 msgstr "Cerca etichette..."
 
@@ -14945,9 +14845,6 @@ msgstr "Cerca progetti…"
 
 msgid "Search pull requests"
 msgstr "Cerca pull request"
-
-msgid "Search pull requests..."
-msgstr "Cerca nelle pull request..."
 
 msgid "Search pull requests…"
 msgstr "Cerca pull request…"
@@ -15008,12 +14905,6 @@ msgstr "Ricerca delle sostituzioni dei tooltip"
 
 msgid "Searching for Kbd usages"
 msgstr "Ricerca degli usi di Kbd"
-
-msgid "Searching..."
-msgstr "Ricerca..."
-
-msgid "Searching…"
-msgstr "Ricerca in corso…"
 
 msgid "Secondary"
 msgstr "Secondario"
@@ -15566,9 +15457,6 @@ msgstr "Mostra bordi"
 
 msgid "Show checks"
 msgstr "Mostra i controlli"
-
-msgid "Show closed"
-msgstr "Mostra chiuse"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Mostra l'uso di CPU e memoria nella barra superiore"
@@ -18798,12 +18686,6 @@ msgstr "user@example.com"
 msgid "user@host, ssh://user@host:2222, or an ssh config alias"
 msgstr "utente@host, ssh://utente@host:2222 o un alias della configurazione ssh"
 
-msgid "Using random branch name (AI generation timed out)"
-msgstr "Uso di un nome di branch casuale (generazione AI scaduta)"
-
-msgid "Using random branch name (AI generation unavailable)"
-msgstr "Uso di un nome di branch casuale (generazione AI non disponibile)"
-
 msgid "v2ProjectId does not match the workspace's project"
 msgstr "v2ProjectId non corrisponde al progetto del workspace"
 
@@ -19406,9 +19288,6 @@ msgstr "Workspace archiviato"
 msgid "Workspace created"
 msgstr "Workspace creato"
 
-msgid "Workspace created from PR"
-msgstr "Workspace creato dalla PR"
-
 msgid "Workspace details"
 msgstr "Dettagli del workspace"
 
@@ -19423,9 +19302,6 @@ msgstr "Layout dei workspace"
 
 msgid "Workspace name"
 msgstr "Nome dello spazio di lavoro"
-
-msgid "Workspace name (optional)"
-msgstr "Nome del workspace (facoltativo)"
 
 msgid "Workspace not found"
 msgstr "Workspace non trovato"
@@ -19495,9 +19371,6 @@ msgstr "Worktree mancante"
 
 msgid "Worktree on this device"
 msgstr "Worktree su questo dispositivo"
-
-msgid "Worktree opened"
-msgstr "Worktree aperto"
 
 msgid "Worktree out of sync"
 msgstr "Worktree non sincronizzato"

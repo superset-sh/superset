@@ -209,9 +209,7 @@ msgstr "{0, plural, one {クラウドで#件} other {クラウドで#件}}"
 msgid "{0, plural, one {# result on this host} other {# results on this host}}"
 msgstr "{0, plural, one {このホストで#件} other {このホストで#件}}"
 
-#. placeholder {0}: pullRequests.length
 #. placeholder {0}: results.length
-#. placeholder {0}: searchResults.length
 msgid "{0, plural, one {# result} other {# results}}"
 msgstr "{0, plural, one {#件の結果} other {#件の結果}}"
 
@@ -954,9 +952,6 @@ msgstr "{minutes}分{rest}秒"
 msgid "{minutes}m ago"
 msgstr "{minutes}分前"
 
-msgid "{modKey}↵ to create"
-msgstr "{modKey}↵で作成"
-
 msgid "{monthlyPrice} per user/mo billed monthly, or {yearlyPrice} billed yearly. Cloud workspaces, mobile, priority support."
 msgstr "1ユーザーあたり月額{monthlyPrice}（月払い）、または{yearlyPrice}（年払い）。クラウドワークスペース、モバイル、優先サポート。"
 
@@ -1693,9 +1688,6 @@ msgstr "別のアカウントを接続するか、使わなくなったものを
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "どんなマシンでもホストとして追加できます。ノートPCがスリープしてもワークスペースは動き続け、どこからでも様子を確認できます。"
 
-msgid "Add attachment"
-msgstr "添付ファイルを追加"
-
 msgid "Add Attachment"
 msgstr "添付ファイルを追加"
 
@@ -1979,9 +1971,6 @@ msgstr "AI · 会話"
 
 msgid "AI · Status"
 msgstr "AI · ステータス"
-
-msgid "AI authentication failed. Please check your AI settings."
-msgstr "AIの認証に失敗しました。AI設定を確認してください。"
 
 msgid "Alert"
 msgstr "Alert"
@@ -2616,9 +2605,6 @@ msgstr "割り当て"
 msgid "Assigned to me"
 msgstr "自分に割り当て"
 
-msgid "Assigned to you"
-msgstr "あなたに割り当て"
-
 msgid "Assignee"
 msgstr "担当者"
 
@@ -2750,9 +2736,6 @@ msgstr "自動ではシステムの言語に従います。後から設定で変
 
 msgid "Auto Save"
 msgstr "自動保存"
-
-msgid "auto-generated"
-msgstr "自動生成"
 
 msgid "Auto-run command"
 msgstr "コマンドを自動実行"
@@ -2945,7 +2928,6 @@ msgstr "{selectedHostName}の新規ワークツリーのベースディレクト
 msgid "Base URL"
 msgstr "ベースURL"
 
-#. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
 msgid "based off PR #{0}"
 msgstr "PR #{0} をベースに"
@@ -3077,12 +3059,6 @@ msgstr "新しい worktree で分岐"
 
 msgid "Branch in this workspace"
 msgstr "このワークスペースで分岐"
-
-msgid "branch name"
-msgstr "ブランチ名"
-
-msgid "Branch name"
-msgstr "ブランチ名"
 
 msgid "Branch name copied"
 msgstr "ブランチ名をコピーしました"
@@ -4439,9 +4415,6 @@ msgstr "GitHubリポジトリを接続してプルリクエストを同期しま
 msgid "Connect your Linear account before tracking tasks in Linear."
 msgstr "タスクを Linear で管理する前に、Linear アカウントを接続してください。"
 
-msgid "Connect your Linear account in Settings → Integrations to link Linear issues."
-msgstr "Linear issueをリンクするには、設定 → 連携でLinearアカウントを接続してください。"
-
 msgid "Connect your Linear account to browse, update and start work on Linear issues from Superset."
 msgstr "Linearアカウントを接続すると、SupersetからLinear issueの閲覧・更新・作業開始ができます。"
 
@@ -5183,14 +5156,8 @@ msgstr "コントリビューターを読み込めませんでした — ユー�
 msgid "Couldn't load earlier messages. Retry"
 msgstr "以前のメッセージを読み込めませんでした。再試行"
 
-msgid "Couldn't load issues: {msg}"
-msgstr "Issueを読み込めませんでした: {msg}"
-
 msgid "Couldn't load pages"
 msgstr "ページを読み込めませんでした"
-
-msgid "Couldn't load pull requests: {msg}"
-msgstr "プルリクエストを読み込めませんでした: {msg}"
 
 msgid "Couldn't load review comments"
 msgstr "レビューコメントを読み込めませんでした"
@@ -5368,9 +5335,6 @@ msgstr "リポジトリまたはローカルパスをクローンして新しい
 
 msgid "Create a new task from the desktop tasks view."
 msgstr "デスクトップのタスクビューから新しいタスクを作成します。"
-
-msgid "Create a new workspace"
-msgstr "新しいワークスペースを作成"
 
 msgid "Create a project to group tasks and cloud workspaces."
 msgstr "タスクとクラウドワークスペースをまとめるプロジェクトを作成します。"
@@ -5586,10 +5550,6 @@ msgstr "サンドボックスを作成中"
 
 msgid "Creating workspace"
 msgstr "ワークスペースを作成中"
-
-#. placeholder {0}: linkedPR.prNumber
-msgid "Creating workspace from PR #{0}..."
-msgstr "PR #{0}からワークスペースを作成中..."
 
 msgid "Creating workspace: {name}"
 msgstr "ワークスペースを作成中: {name}"
@@ -6596,8 +6556,8 @@ msgstr "名前を編集"
 msgid "Edit on GitHub"
 msgstr "GitHubで編集"
 
-msgid "Edit prefix"
-msgstr "プレフィックスを編集"
+msgid "Edit queued message"
+msgstr "キューのメッセージを編集"
 
 msgid "Edit Run Script"
 msgstr "実行スクリプトを編集"
@@ -6969,9 +6929,6 @@ msgstr "検討中"
 msgid "Extended thinking: {activeLabel}"
 msgstr "拡張思考: {activeLabel}"
 
-msgid "external"
-msgstr "外部"
-
 msgid "External Application"
 msgstr "外部アプリケーション"
 
@@ -7138,9 +7095,6 @@ msgstr "スレッドの作成に失敗しました"
 msgid "Failed to create workspace"
 msgstr "ワークスペースを作成できませんでした"
 
-msgid "Failed to create workspace from PR"
-msgstr "PRからワークスペースを作成できませんでした"
-
 msgid "Failed to delete"
 msgstr "削除に失敗しました"
 
@@ -7259,17 +7213,8 @@ msgstr "新規ウィンドウを開けませんでした: {0}"
 msgid "Failed to open new window: {message}"
 msgstr "新規ウィンドウを開けませんでした: {message}"
 
-msgid "Failed to open project"
-msgstr "プロジェクトを開けませんでした"
-
-msgid "Failed to open task"
-msgstr "タスクを開けませんでした"
-
 msgid "Failed to open the billing portal"
 msgstr "請求ポータルを開けませんでした"
-
-msgid "Failed to open worktree"
-msgstr "ワークツリーを開けませんでした"
 
 #. placeholder {0}: error.message
 msgid "Failed to open: {0}"
@@ -7277,12 +7222,6 @@ msgstr "開けませんでした: {0}"
 
 msgid "Failed to post reply"
 msgstr "返信の投稿に失敗しました"
-
-msgid "Failed to prepare agent launch"
-msgstr "エージェントの起動準備に失敗しました"
-
-msgid "Failed to process attachments"
-msgstr "添付ファイルを処理できませんでした"
 
 msgid "Failed to push branch"
 msgstr "ブランチをプッシュできませんでした"
@@ -9596,6 +9535,9 @@ msgstr "Linear連携"
 msgid "Linear is limiting requests. Try again in a few minutes."
 msgstr "Linearがリクエストを制限しています。数分後にもう一度お試しください。"
 
+msgid "Linear issues"
+msgstr "Linear issue"
+
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
 #. placeholder {1}: m.endLine
@@ -9605,9 +9547,6 @@ msgstr "{0}–{1}行目"
 
 msgid "Link"
 msgstr "リンク"
-
-msgid "Link ↵"
-msgstr "リンク ↵"
 
 msgid "Link a GitHub repository on the project first to enable cloning."
 msgstr "クローンを有効にするには、先にプロジェクトにGitHubリポジトリをリンクしてください。"
@@ -9620,15 +9559,6 @@ msgstr "リンクをコピーしました"
 
 msgid "Link copied"
 msgstr "リンクをコピーしました"
-
-msgid "Link GitHub issue"
-msgstr "GitHub issueをリンク"
-
-msgid "Link Linear issue"
-msgstr "Linear issueをリンク"
-
-msgid "Link pull request"
-msgstr "プルリクエストをリンク"
 
 msgid "Link task"
 msgstr "タスクをリンク"
@@ -9762,9 +9692,6 @@ msgstr "グループを読み込み中…"
 msgid "Loading issue…"
 msgstr "Issueを読み込み中…"
 
-msgid "Loading issues..."
-msgstr "Issueを読み込み中..."
-
 msgid "Loading issues…"
 msgstr "Issueを読み込み中…"
 
@@ -9785,9 +9712,6 @@ msgstr "プロジェクトを読み込み中…"
 
 msgid "Loading pull request…"
 msgstr "プルリクエストを読み込み中…"
-
-msgid "Loading pull requests..."
-msgstr "プルリクエストを読み込み中..."
 
 msgid "Loading pull requests…"
 msgstr "プルリクエストを読み込み中…"
@@ -10306,6 +10230,9 @@ msgstr "モバイルアプリ"
 
 msgid "Mobile App"
 msgstr "モバイルアプリ"
+
+msgid "Mode"
+msgstr "モード"
 
 msgid "model"
 msgstr "モデル"
@@ -11061,6 +10988,12 @@ msgstr "一致なし"
 msgid "No matching files"
 msgstr "一致するファイルはありません"
 
+msgid "No matching issues"
+msgstr "一致するissueはありません"
+
+msgid "No matching Linear issues"
+msgstr "一致するLinear issueはありません"
+
 msgid "No matching MCP servers"
 msgstr "一致するMCPサーバーはありません"
 
@@ -11073,8 +11006,14 @@ msgstr "一致する組織メンバーがいません。"
 msgid "No matching pages"
 msgstr "一致するページはありません"
 
+msgid "No matching pull requests"
+msgstr "一致するプルリクエストはありません"
+
 msgid "No matching repositories."
 msgstr "一致するリポジトリがありません。"
+
+msgid "No matching tasks"
+msgstr "一致するタスクはありません"
 
 msgid "No MCP servers found"
 msgstr "MCPサーバーが見つかりません"
@@ -11103,14 +11042,8 @@ msgstr "登録された名前はありません"
 msgid "No one in {organizationName} matches. Type a full email to invite someone new."
 msgstr "{organizationName}に一致するユーザーはいません。新しいユーザーを招待するには、メールアドレスをすべて入力してください。"
 
-msgid "No open issues found."
-msgstr "オープンなIssueが見つかりません。"
-
 msgid "No open issues."
 msgstr "オープンなissueはありません。"
-
-msgid "No open pull requests found."
-msgstr "オープンなプルリクエストが見つかりません。"
 
 msgid "No open pull requests."
 msgstr "オープンなプルリクエストはありません。"
@@ -12030,9 +11963,6 @@ msgstr "GitHubでissueを開く"
 msgid "Open issue in Linear"
 msgstr "Linearでissueを開く"
 
-msgid "Open issues"
-msgstr "オープンなIssue"
-
 msgid "Open leaderboard"
 msgstr "リーダーボードを開く"
 
@@ -12083,9 +12013,6 @@ msgstr "プロジェクトを開く"
 msgid "Open Projects"
 msgstr "プロジェクトを開く"
 
-msgid "Open PRs"
-msgstr "オープンなPR"
-
 msgid "Open pull request"
 msgstr "プルリクエストを開く"
 
@@ -12102,9 +12029,6 @@ msgstr "プルリクエスト#{number}を開く"
 
 msgid "Open pull request options"
 msgstr "プルリクエストのオプションを開く"
-
-msgid "Open pull requests"
-msgstr "オープンなプルリクエスト"
 
 msgid "Open recent"
 msgstr "最近使った項目を開く"
@@ -12132,9 +12056,6 @@ msgstr "そのコンピュータでSupersetを開く"
 
 msgid "Open System Settings"
 msgstr "システム設定を開く"
-
-msgid "Open task {title}"
-msgstr "タスク{title}を開く"
 
 msgid "Open Terminal"
 msgstr "ターミナルを開く"
@@ -12219,9 +12140,6 @@ msgstr "フォルダーを開く"
 
 msgid "Opening pages"
 msgstr "ページを開く"
-
-msgid "Opening worktree..."
-msgstr "ワークツリーを開いています..."
 
 msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
 msgstr "クラウドワークスペースを開き、エージェントがプロジェクトに必要なものをインストールして .superset/config.json を書き込みます"
@@ -12924,9 +12842,6 @@ msgstr "PRのURL"
 msgid "PR URL must match {repoMismatch}."
 msgstr "PRのURLは{repoMismatch}と一致する必要があります。"
 
-msgid "PR URL must match {selectedRepositoryLabel}."
-msgstr "PRのURLは{selectedRepositoryLabel}と一致する必要があります。"
-
 msgid "Prediction progress"
 msgstr "予測の進捗"
 
@@ -13367,6 +13282,9 @@ msgstr "よくある質問"
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "ご質問、フィードバック、サポート、その他何でも。メッセージをお送りいただければ、適切な担当者にお繋ぎします。"
 
+msgid "Queue message"
+msgstr "メッセージをキューに追加"
+
 msgid "Queue paused"
 msgstr "キューは一時停止中"
 
@@ -13375,6 +13293,9 @@ msgstr "中断したためキューを一時停止しました"
 
 msgid "Queue work for agents"
 msgstr "エージェントの作業をキューに入れる"
+
+msgid "Queue; ⌘↩ to steer the running turn"
+msgstr "キューに追加。⌘↩で実行中のターンを軌道修正"
 
 msgid "Queued"
 msgstr "待機中"
@@ -13586,17 +13507,8 @@ msgstr "最近使ったアプリ"
 msgid "Recent invoices"
 msgstr "最近の請求書"
 
-msgid "Recent issues"
-msgstr "最近のIssue"
-
 msgid "Recent prompts"
 msgstr "最近のプロンプト"
-
-msgid "Recent PRs"
-msgstr "最近のPR"
-
-msgid "Recent pull requests"
-msgstr "最近のプルリクエスト"
 
 msgid "Recently deleted"
 msgstr "最近削除した項目"
@@ -13814,12 +13726,6 @@ msgstr "アイコンを削除"
 
 msgid "Remove image"
 msgstr "画像を削除"
-
-msgid "Remove linked issue"
-msgstr "リンクされたIssueを削除"
-
-msgid "Remove linked PR"
-msgstr "リンクされたPRを削除"
 
 msgid "Remove member"
 msgstr "メンバーを削除"
@@ -14583,9 +14489,6 @@ msgstr "スケジュールやイベントで実行、オンデマンド実行、
 msgid "Run script"
 msgstr "スクリプトを実行"
 
-msgid "Run setup script"
-msgstr "セットアップスクリプトを実行"
-
 msgid "Run setup script in each imported workspace"
 msgstr "インポートした各ワークスペースでセットアップスクリプトを実行"
 
@@ -14901,9 +14804,6 @@ msgstr "履歴を検索"
 msgid "Search in {frameTitle}…"
 msgstr "{frameTitle}内を検索…"
 
-msgid "Search issues..."
-msgstr "Issueを検索..."
-
 msgid "Search labels..."
 msgstr "ラベルを検索..."
 
@@ -14945,9 +14845,6 @@ msgstr "プロジェクトを検索…"
 
 msgid "Search pull requests"
 msgstr "プルリクエストを検索"
-
-msgid "Search pull requests..."
-msgstr "プルリクエストを検索..."
 
 msgid "Search pull requests…"
 msgstr "プルリクエストを検索…"
@@ -15008,12 +14905,6 @@ msgstr "tooltipのオーバーライドを検索"
 
 msgid "Searching for Kbd usages"
 msgstr "Kbdの使用箇所を検索中"
-
-msgid "Searching..."
-msgstr "検索中..."
-
-msgid "Searching…"
-msgstr "検索中…"
 
 msgid "Secondary"
 msgstr "Secondary"
@@ -15566,9 +15457,6 @@ msgstr "境界線を表示"
 
 msgid "Show checks"
 msgstr "チェックを表示"
-
-msgid "Show closed"
-msgstr "クローズ済みも表示"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "トップバーにCPUとメモリ使用量を表示"
@@ -18798,12 +18686,6 @@ msgstr "user@example.com"
 msgid "user@host, ssh://user@host:2222, or an ssh config alias"
 msgstr "user@host、ssh://user@host:2222、または ssh config のエイリアス"
 
-msgid "Using random branch name (AI generation timed out)"
-msgstr "ランダムなブランチ名を使用します(AI生成がタイムアウトしました)"
-
-msgid "Using random branch name (AI generation unavailable)"
-msgstr "ランダムなブランチ名を使用します(AI生成を利用できません)"
-
 msgid "v2ProjectId does not match the workspace's project"
 msgstr "v2ProjectIdがワークスペースのプロジェクトと一致しません"
 
@@ -19406,9 +19288,6 @@ msgstr "ワークスペースをアーカイブしました"
 msgid "Workspace created"
 msgstr "ワークスペースを作成しました"
 
-msgid "Workspace created from PR"
-msgstr "PRからワークスペースを作成しました"
-
 msgid "Workspace details"
 msgstr "ワークスペースの詳細"
 
@@ -19423,9 +19302,6 @@ msgstr "ワークスペースのレイアウト"
 
 msgid "Workspace name"
 msgstr "ワークスペース名"
-
-msgid "Workspace name (optional)"
-msgstr "ワークスペース名(任意)"
 
 msgid "Workspace not found"
 msgstr "ワークスペースが見つかりません"
@@ -19495,9 +19371,6 @@ msgstr "ワークツリーが見つかりません"
 
 msgid "Worktree on this device"
 msgstr "このデバイス上のワークツリー"
-
-msgid "Worktree opened"
-msgstr "ワークツリーを開きました"
 
 msgid "Worktree out of sync"
 msgstr "ワークツリーが同期していません"

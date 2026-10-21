@@ -1,1 +1,0 @@
-export { LinearIssueLinkCommand } from "./LinearIssueLinkCommand";

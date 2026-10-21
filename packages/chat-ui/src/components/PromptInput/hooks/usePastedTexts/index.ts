@@ -1,1 +1,0 @@
-export { usePastedTexts } from "./usePastedTexts";

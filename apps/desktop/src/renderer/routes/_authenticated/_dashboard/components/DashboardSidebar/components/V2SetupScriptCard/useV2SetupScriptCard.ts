@@ -65,7 +65,9 @@ export function useV2SetupScriptCard({
 		onAction: () => {
 			const draftStore = useNewWorkspaceDraftStore.getState();
 			draftStore.resetDraft();
-			draftStore.updateDraft({ prompt: setupScriptPrompt });
+			draftStore.updateDraft({
+				promptDraft: [{ type: "text", text: setupScriptPrompt }],
+			});
 			openNewWorkspace(projectId);
 		},
 		onDismiss: () => dismiss(projectId),

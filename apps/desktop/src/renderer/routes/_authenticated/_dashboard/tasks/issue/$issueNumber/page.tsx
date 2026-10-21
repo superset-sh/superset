@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { GoIssueClosed, GoIssueOpened } from "react-icons/go";
+import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
@@ -13,6 +14,10 @@ import { WorkItemDetailHeader } from "renderer/routes/_authenticated/_dashboard/
 import { WorkItemDetailState } from "renderer/routes/_authenticated/_dashboard/components/WorkItemDetailState";
 import { useProjectHost } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectHost";
 import { parsePositiveIntegerParam } from "renderer/routes/_authenticated/_dashboard/utils/parsePositiveIntegerParam";
+import {
+	linkedContextSeed,
+	linkedIssueChip,
+} from "renderer/routes/_authenticated/components/AgentComposer/utils/linkedContextChips";
 import {
 	type LinkedIssue,
 	useNewWorkspaceDraftStore,
@@ -28,6 +33,7 @@ export const Route = createFileRoute(
 });
 
 function IssueDetailPage() {
+	const isDark = useIsDarkTheme();
 	const { t } = useLingui();
 	const { issueNumber: issueNumberRaw } = Route.useParams();
 	const issueNumber = parsePositiveIntegerParam(issueNumberRaw);
@@ -85,7 +91,7 @@ function IssueDetailPage() {
 	const handleAddToWorkspace = () => {
 		if (!projectId || !hostId || !data) return;
 		const linkedIssue: LinkedIssue = {
-			slug: `gh-${data.number}`,
+			slug: `#${data.number}`,
 			title: data.title,
 			source: "github",
 			url: data.url,
@@ -94,7 +100,10 @@ function IssueDetailPage() {
 		};
 		resetDraft();
 		selectProject(projectId);
-		updateDraft({ hostId, linkedIssues: [linkedIssue] });
+		updateDraft({
+			hostId,
+			promptDraft: linkedContextSeed([linkedIssueChip(linkedIssue, isDark)]),
+		});
 		openNewWorkspace(projectId);
 	};
 

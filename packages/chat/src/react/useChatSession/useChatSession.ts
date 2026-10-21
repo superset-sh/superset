@@ -160,6 +160,7 @@ export type ChatSession = {
 	loadOlder(): Promise<boolean>;
 	removeQueuedPrompt(itemId: string): Promise<void>;
 	steerQueuedPrompt(itemId: string): Promise<void>;
+	updateQueuedPrompt(itemId: string, content: UserContent[]): Promise<void>;
 	resumeQueue(): Promise<void>;
 	cancelTurn(turnId: string, options?: { pauseQueue?: boolean }): Promise<void>;
 	stopBackgroundTask(taskId: string): Promise<boolean>;
@@ -539,6 +540,11 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 		(itemId: string) => client.steerQueuedPrompt(itemId),
 		[client],
 	);
+	const updateQueuedPrompt = useCallback(
+		(itemId: string, content: UserContent[]) =>
+			client.updateQueuedPrompt(itemId, content),
+		[client],
+	);
 
 	const resumeQueue = useCallback(() => client.resumeQueue(), [client]);
 
@@ -581,6 +587,7 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 		loadOlder,
 		removeQueuedPrompt,
 		steerQueuedPrompt,
+		updateQueuedPrompt,
 		resumeQueue,
 		cancelTurn,
 		stopBackgroundTask,

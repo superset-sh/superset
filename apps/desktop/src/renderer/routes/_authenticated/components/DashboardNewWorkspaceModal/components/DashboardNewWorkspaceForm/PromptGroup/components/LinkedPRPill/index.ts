@@ -1,1 +1,0 @@
-export { LinkedPRPill } from "./LinkedPRPill";

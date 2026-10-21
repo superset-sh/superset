@@ -4,6 +4,7 @@ import {
 	deriveQueuedPrompts,
 	runningTurnId as findRunningTurnId,
 	launchConfigSelections,
+	type OutboxEntry,
 	userMessageText,
 } from "@superset/chat/core";
 import type {
@@ -20,7 +21,10 @@ import {
 } from "@superset/chat/react";
 import { ComposerDropZone } from "@superset/chat-ui/ComposerDropZone";
 import { MessageScroller } from "@superset/chat-ui/MessageScroller";
-import type { PromptInputHandle } from "@superset/chat-ui/PromptInput";
+import type {
+	ComposerDraft,
+	PromptInputHandle,
+} from "@superset/chat-ui/PromptInput";
 import { ChatHistorySidebarScroller } from "@superset/ui/chat-history-sidebar";
 import { toast } from "@superset/ui/sonner";
 import type { ReactNode } from "react";
@@ -130,24 +134,38 @@ export function SessionView({
 	const { t } = useLingui();
 	const session = useChatSession({ client });
 	const composerRef =
-		useRef<Pick<PromptInputHandle, "appendText" | "focus">>(null);
+		useRef<Pick<PromptInputHandle, "restoreDraft" | "focus">>(null);
 	const { outbox, discardPrompt } = session;
+	// What each outbox entry was composed from, so a failed send comes back
+	// whole; an entry from before this view mounted falls back to its text.
+	const sentDrafts = useRef(new Map<string, ComposerDraft>());
+	const draftOf = useCallback(
+		(entry: OutboxEntry): ComposerDraft =>
+			sentDrafts.current.get(entry.clientId) ?? {
+				segments: [{ type: "text", text: contentText(entry.content) }],
+				attachments: [],
+			},
+		[],
+	);
 	useEffect(() => {
-		const failed = outbox.filter(
-			(entry) =>
-				entry.state === "failed" &&
-				entry.content.every((part) => part.type === "text"),
-		);
+		const failed = outbox.filter((entry) => entry.state === "failed");
 		if (failed.length === 0) return;
 		for (const entry of failed) {
 			discardPrompt(entry.clientId);
-			composerRef.current?.appendText(contentText(entry.content));
+			composerRef.current?.restoreDraft(draftOf(entry));
+			sentDrafts.current.delete(entry.clientId);
 		}
 		composerRef.current?.focus();
 		toast.error(
 			t({ message: "Couldn't send your message. It's back in the composer." }),
 		);
-	}, [outbox, discardPrompt, t]);
+	}, [outbox, discardPrompt, draftOf, t]);
+	useEffect(() => {
+		const live = new Set(outbox.map((entry) => entry.clientId));
+		for (const clientId of sentDrafts.current.keys()) {
+			if (!live.has(clientId)) sentDrafts.current.delete(clientId);
+		}
+	}, [outbox]);
 	const outboxRef = useRef(outbox);
 	outboxRef.current = outbox;
 	useEffect(
@@ -158,11 +176,10 @@ export function SessionView({
 						entry.state === "failed" ||
 						(entry.state === "queued" && entry.attempts === 0),
 				)
-				.map((entry) => contentText(entry.content))
-				.filter(Boolean);
+				.map(draftOf);
 			if (unsent.length > 0) prependToDraft(draftKey, unsent);
 		},
-		[draftKey],
+		[draftKey, draftOf],
 	);
 	const timeline = useTimeline(session.snapshot);
 	const rail = useStableList(
@@ -332,7 +349,10 @@ export function SessionView({
 	);
 	const holdPrompt = held?.onQueue;
 	const onSend = useCallback(
-		(content: UserContent[], { steer }: { steer: boolean }) => {
+		(
+			content: UserContent[],
+			{ steer, draft }: { steer: boolean; draft: ComposerDraft },
+		) => {
 			onUserPrompt?.();
 			if (holdPrompt) return holdPrompt(content);
 			const pending = loaded ? approvals : [];
@@ -343,7 +363,7 @@ export function SessionView({
 					: null;
 			if (question && answer) {
 				return respondToApproval(question.id, answer).catch(() => {
-					composerRef.current?.appendText(contentText(content));
+					composerRef.current?.restoreDraft(draft);
 					composerRef.current?.focus();
 					toast.error(
 						t({
@@ -356,12 +376,14 @@ export function SessionView({
 				void respondToApproval(approval.id, { type: "cancel" });
 			}
 			const steerTurn = steer || pending.length > 0;
-			return sendPrompt(
+			const entry = sendPrompt(
 				content,
 				steerTurn && runningTurnId
 					? { expectedTurnId: runningTurnId }
 					: undefined,
 			);
+			sentDrafts.current.set(entry.clientId, draft);
+			return entry;
 		},
 		[
 			holdPrompt,
@@ -390,6 +412,7 @@ export function SessionView({
 			remove: session.removeQueuedPrompt,
 			resume: session.resumeQueue,
 			steer: session.steerQueuedPrompt,
+			update: session.updateQueuedPrompt,
 		}),
 		[
 			queuedPrompts,
@@ -398,6 +421,7 @@ export function SessionView({
 			session.removeQueuedPrompt,
 			session.resumeQueue,
 			session.steerQueuedPrompt,
+			session.updateQueuedPrompt,
 		],
 	);
 

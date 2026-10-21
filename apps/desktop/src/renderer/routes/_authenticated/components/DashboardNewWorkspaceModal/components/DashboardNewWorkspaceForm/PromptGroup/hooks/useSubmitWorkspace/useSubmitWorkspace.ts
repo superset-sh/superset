@@ -1,15 +1,17 @@
 import { useLingui } from "@lingui/react/macro";
 import { acpHarnessForPreset } from "@superset/chat/core";
+import { draftText } from "@superset/chat-ui/PromptInput";
 import { errorMessage } from "@superset/i18n/errors";
 import { isCloudUsageRefusal } from "@superset/shared/billing";
 import { startableCloudEnvironments } from "@superset/shared/cloud-environments";
 import { CLOUD_HOST_ID } from "@superset/shared/host-routing";
 import { toast } from "@superset/ui/sonner";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useAwaitAcpChatEnabled } from "renderer/hooks/useAcpChatEnabled";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { cloudTrpc, cloudTrpcClient } from "renderer/lib/cloud-trpc";
+import { draftLinkedContext } from "renderer/routes/_authenticated/components/AgentComposer/utils/linkedContextChips";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { NewWorkspacePromptContextApi } from "renderer/stores/new-workspace-prompt-context";
 import { usePromptHistoryStore } from "renderer/stores/prompt-history";
@@ -50,6 +52,11 @@ export function useSubmitWorkspace(
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
 	const { closeAndResetDraft, draft } = useDashboardNewWorkspaceDraft();
+	const prompt = draftText(draft.promptDraft);
+	const { issues: linkedIssues, pr: linkedPR } = useMemo(
+		() => draftLinkedContext(draft.promptDraft),
+		[draft.promptDraft],
+	);
 	const { submit } = useWorkspaceCreates();
 	const { machineId } = useLocalHostService();
 	const activeOrganizationId = useActiveOrganizationId();
@@ -82,7 +89,7 @@ export function useSubmitWorkspace(
 			);
 			return;
 		}
-		if (isSession && draft.linkedPR !== null) {
+		if (isSession && linkedPR !== null) {
 			toast.error(
 				t({
 					message: "Checking out a PR requires a project",
@@ -166,14 +173,12 @@ export function useSubmitWorkspace(
 				// sandbox resolves and pulls once it is up.
 				const wantCloudAgent =
 					selectedAgent !== "none" &&
-					(!!draft.prompt.trim() ||
-						draft.linkedPR !== null ||
-						draft.linkedIssues.length > 0);
+					(!!prompt.trim() || linkedPR !== null || linkedIssues.length > 0);
 				const cloudPrompt = wantCloudAgent
 					? await promptContext.build({
-							userPrompt: draft.prompt,
-							linkedPR: draft.linkedPR,
-							linkedIssues: draft.linkedIssues,
+							userPrompt: prompt,
+							linkedPR: linkedPR,
+							linkedIssues: linkedIssues,
 							timeoutMs: 2000,
 						})
 					: null;
@@ -185,10 +190,9 @@ export function useSubmitWorkspace(
 					name: workspaceName ?? undefined,
 					// Linked PR and issue bodies can push this past the create input's
 					// 20,000-character cap.
-					prompt:
-						(cloudPrompt ?? draft.prompt).trim().slice(0, 20_000) || undefined,
-					typedPrompt: draft.prompt.trim().slice(0, 20_000) || undefined,
-					taskIds: draft.linkedIssues
+					prompt: (cloudPrompt ?? prompt).trim().slice(0, 20_000) || undefined,
+					typedPrompt: prompt.trim().slice(0, 20_000) || undefined,
+					taskIds: linkedIssues
 						.flatMap((issue) =>
 							issue.source === "internal" && issue.taskId ? [issue.taskId] : [],
 						)
@@ -258,26 +262,26 @@ export function useSubmitWorkspace(
 			return;
 		}
 
-		const isPrCheckout = draft.linkedPR !== null;
+		const isPrCheckout = linkedPR !== null;
 		// A PR always needs its own worktree; otherwise the picker decides.
 		const isLocalCheckout = !isPrCheckout && draft.checkout === "local";
 
-		const linkedTaskId = draft.linkedIssues.find(
+		const linkedTaskId = linkedIssues.find(
 			(issue) => issue.source === "internal" && issue.taskId,
 		)?.taskId;
 
 		const hasAnyContext =
-			!!draft.prompt.trim() ||
-			draft.linkedPR !== null ||
-			draft.linkedIssues.length > 0 ||
+			!!prompt.trim() ||
+			linkedPR !== null ||
+			linkedIssues.length > 0 ||
 			attachmentIds.length > 0;
 		const wantAgent = selectedAgent !== "none" && hasAnyContext;
 
 		const finalPrompt = wantAgent
 			? await promptContext.build({
-					userPrompt: draft.prompt,
-					linkedPR: draft.linkedPR,
-					linkedIssues: draft.linkedIssues,
+					userPrompt: prompt,
+					linkedPR: linkedPR,
+					linkedIssues: linkedIssues,
 					timeoutMs: 2000,
 				})
 			: null;
@@ -306,10 +310,10 @@ export function useSubmitWorkspace(
 		// seeds the branch slug; otherwise the server creates with a
 		// friendly random and AI-renames once names arrive.
 		const prName = isPrCheckout
-			? draft.linkedPR?.title || `PR #${draft.linkedPR?.prNumber}`
+			? linkedPR?.title || `PR #${linkedPR?.prNumber}`
 			: undefined;
 
-		const trimmedPrompt = draft.prompt.trim();
+		const trimmedPrompt = prompt.trim();
 		const namingPrompt = openAsChat
 			? (finalPrompt ?? trimmedPrompt).trim().slice(0, 20_000) || undefined
 			: !wantAgent && trimmedPrompt
@@ -348,7 +352,7 @@ export function useSubmitWorkspace(
 							draft.branchNameFromProvider
 								? true
 								: undefined,
-						pr: isPrCheckout ? draft.linkedPR?.prNumber : undefined,
+						pr: isPrCheckout ? linkedPR?.prNumber : undefined,
 						baseBranch: draft.baseBranch ?? undefined,
 						taskId: linkedTaskId,
 						agents,
@@ -403,6 +407,9 @@ export function useSubmitWorkspace(
 		closeAndResetDraft,
 		createCloudWorkspace,
 		draft,
+		prompt,
+		linkedIssues,
+		linkedPR,
 		isSession,
 		matchRoute,
 		machineId,

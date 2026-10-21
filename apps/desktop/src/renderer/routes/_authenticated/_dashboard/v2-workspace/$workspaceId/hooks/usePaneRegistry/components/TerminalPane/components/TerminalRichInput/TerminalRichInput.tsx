@@ -15,7 +15,6 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import type { FileUIPart } from "ai";
 import { ArrowUpIcon } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
-import { TiptapPromptEditor } from "renderer/components/TiptapPromptEditor";
 import { useSendToTerminalAgent } from "renderer/hooks/host-service/useSendToTerminalAgent";
 import { usePluginMentionOptions } from "renderer/hooks/usePluginMentionOptions";
 import { useHotkeyDisplay } from "renderer/hotkeys";
@@ -26,6 +25,7 @@ import {
 	uploadPastedFiles,
 } from "../../../../utils/uploadPastedFiles";
 import { TerminalPaneIcon } from "../TerminalPaneIcon";
+import { TiptapPromptEditor } from "./components/TiptapPromptEditor";
 import { prepareTerminalSubmission } from "./prepareTerminalSubmission";
 
 /**

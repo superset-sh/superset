@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { GoIssueClosed, GoIssueOpened } from "react-icons/go";
 import { HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
 import { LuMinus, LuPlus, LuRefreshCw } from "react-icons/lu";
+import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -14,6 +15,10 @@ import { serializeProjectFilters } from "renderer/routes/_authenticated/_dashboa
 import type { ProjectQueryTarget } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
 import { useWorkItemsList } from "renderer/routes/_authenticated/_dashboard/hooks/useWorkItemsList";
 import { GitHubAuthorAvatar } from "renderer/routes/_authenticated/_dashboard/tasks/components/GitHubAuthorAvatar";
+import {
+	linkedContextSeed,
+	linkedIssueChip,
+} from "renderer/routes/_authenticated/components/AgentComposer/utils/linkedContextChips";
 import {
 	type LinkedIssue,
 	useNewWorkspaceDraftStore,
@@ -53,6 +58,7 @@ export function GitHubIssuesContent({
 	onCollapse,
 	onSelectionChange,
 }: GitHubIssuesContentProps) {
+	const isDark = useIsDarkTheme();
 	const { t } = useLingui();
 	const [selectedIssues, setSelectedIssues] = useState<
 		Map<string, SelectedIssue>
@@ -144,7 +150,7 @@ export function GitHubIssuesContent({
 
 	const handleAddToWorkspace = (issue: (typeof issues)[number]) => {
 		const linkedIssue: LinkedIssue = {
-			slug: `gh-${issue.issueNumber}`,
+			slug: `#${issue.issueNumber}`,
 			title: issue.title,
 			source: "github",
 			url: issue.url,
@@ -153,7 +159,10 @@ export function GitHubIssuesContent({
 		};
 		resetDraft();
 		selectProject(issue.projectId);
-		updateDraft({ hostId: issue.hostId, linkedIssues: [linkedIssue] });
+		updateDraft({
+			hostId: issue.hostId,
+			promptDraft: linkedContextSeed([linkedIssueChip(linkedIssue, isDark)]),
+		});
 		openNewWorkspace(issue.projectId);
 	};
 

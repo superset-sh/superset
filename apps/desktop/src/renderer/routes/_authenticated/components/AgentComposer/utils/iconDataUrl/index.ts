@@ -1,0 +1,1 @@
+export { iconDataUrl } from "./iconDataUrl";

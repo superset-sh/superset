@@ -19,5 +19,6 @@ export function heldPromptQueue(queued: UserContent[][]) {
 		remove: NOTHING,
 		resume: NOTHING,
 		steer: NOTHING,
+		update: NOTHING,
 	};
 }

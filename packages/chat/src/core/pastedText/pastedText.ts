@@ -1,5 +1,4 @@
-export const PASTED_TEXT_MIN_LINES = 25;
-export const PASTED_TEXT_MIN_CHARS = 4000;
+export const PASTED_TEXT_MIN_CHARS = 5000;
 
 const OPEN_TAG = /^<pasted_text lines="(\d+)">$/;
 const CLOSE_TAG = "</pasted_text>";
@@ -22,29 +21,15 @@ export function firstLine(text: string): string {
 }
 
 export function isLargePaste(text: string): boolean {
-	if (text.trim() === "") return false;
-	return (
-		text.length >= PASTED_TEXT_MIN_CHARS ||
-		countLines(text) >= PASTED_TEXT_MIN_LINES
-	);
+	return text.trim() !== "" && text.length >= PASTED_TEXT_MIN_CHARS;
 }
 
 /**
- * Appends each paste as a trailing block. The line count in the opening tag
- * bounds the block, so a paste that itself contains the tags still parses.
+ * Reads the trailing `<pasted_text lines="N">` blocks older builds appended
+ * to a message. New messages carry pastes as attachments; this only renders
+ * what was already sent. The line count in the opening tag bounds the block,
+ * so a paste that itself contains the tags still parses.
  */
-export function appendPastedText(
-	prompt: string,
-	pastes: readonly string[],
-): string {
-	if (pastes.length === 0) return prompt;
-	const blocks = pastes.map(
-		(paste) =>
-			`<pasted_text lines="${countLines(paste)}">\n${paste}\n${CLOSE_TAG}`,
-	);
-	return [prompt, ...blocks].filter(Boolean).join("\n\n");
-}
-
 export function parsePastedText(message: string): {
 	text: string;
 	pastes: string[];

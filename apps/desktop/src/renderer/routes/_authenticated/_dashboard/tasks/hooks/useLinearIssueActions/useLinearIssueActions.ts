@@ -3,9 +3,14 @@ import type { TaskPriority } from "@superset/db/enums";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
+import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import {
+	linkedContextSeed,
+	linkedIssueChip,
+} from "renderer/routes/_authenticated/components/AgentComposer/utils/linkedContextChips";
 import { deriveBranchName } from "renderer/routes/_authenticated/utils/deriveBranchName";
 import { linkedIssueFromLinear } from "renderer/routes/_authenticated/utils/linkedIssueFromLinear";
 import { useNewWorkspaceDraftStore } from "renderer/stores/new-workspace-draft";
@@ -18,6 +23,7 @@ export interface LinearIssueChanges {
 }
 
 export function useLinearIssueActions() {
+	const isDark = useIsDarkTheme();
 	const { t } = useLingui();
 	const navigate = useNavigate();
 	const organizationId = useActiveOrganizationId();
@@ -66,7 +72,7 @@ export function useLinearIssueActions() {
 			const store = useNewWorkspaceDraftStore.getState();
 			store.resetDraft();
 			store.updateDraft({
-				linkedIssues: [linkedIssue],
+				promptDraft: linkedContextSeed([linkedIssueChip(linkedIssue, isDark)]),
 				branchName: deriveBranchName(linkedIssue),
 				branchNameEdited: true,
 				branchNameFromProvider: !!linkedIssue.branch,
@@ -75,7 +81,7 @@ export function useLinearIssueActions() {
 			});
 			openNewWorkspace();
 		},
-		[openNewWorkspace],
+		[openNewWorkspace, isDark],
 	);
 
 	const update = useCallback(

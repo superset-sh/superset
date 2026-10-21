@@ -7,7 +7,7 @@ import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { PlainTextPlugin } from "@lexical/react/LexicalPlainTextPlugin";
 import { LexicalTypeaheadMenuPlugin } from "@lexical/react/LexicalTypeaheadMenuPlugin";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { appendPastedText, parsePastedText } from "@superset/chat/core";
+import { isLargePaste, normalizePastedText } from "@superset/chat/core";
 import { getClipboardFiles } from "@superset/ui/lib/clipboard-files";
 import { cn } from "@superset/ui/utils";
 import {
@@ -33,6 +33,7 @@ import {
 } from "lexical";
 import {
 	ArrowUpIcon,
+	LoaderCircleIcon,
 	MicIcon,
 	PaperclipIcon,
 	RefreshCcwIcon,
@@ -55,22 +56,24 @@ import {
 	type MentionSection,
 	useMentionSources,
 } from "../../hooks/useMentionSources";
-import { usePastedTexts } from "../../hooks/usePastedTexts";
 import { MentionChipNode } from "../../nodes/mentionChipNode";
 import type {
 	ComposerActionContext,
 	ComposerChip,
+	ComposerDraft,
 	ComposerMentionEntry,
 	ComposerPanelContent,
 	PromptInputAttachment,
 	PromptInputProps,
 } from "../../types";
-import { registerDraftEdit } from "../../utils/draftEdit";
+import {
+	$insertDraftSegments,
+	$readDraftSegments,
+} from "../../utils/draftSegments";
 import { registerHistoryNavigation } from "../../utils/historyNavigation";
 import { $insertTranscript } from "../../utils/insertTranscript";
 import { matchToken } from "../../utils/matchToken";
 import { rankCommands } from "../../utils/rankCommands";
-import { $restoreChips } from "../../utils/restoreChips";
 import {
 	CommandTypeaheadOption,
 	MentionTypeaheadOption,
@@ -109,10 +112,7 @@ function matchCommandToken(text: string) {
 }
 
 export type ComposerBodyProps = Required<
-	Pick<
-		PromptInputProps,
-		"placeholder" | "status" | "submitWhileStreaming" | "placement"
-	>
+	Pick<PromptInputProps, "placeholder" | "status">
 > &
 	Pick<
 		PromptInputProps,
@@ -121,21 +121,15 @@ export type ComposerBodyProps = Required<
 		| "dictation"
 		| "toolbar"
 		| "toolbarEnd"
-		| "defaultValue"
-		| "findChips"
-		| "onChange"
-		| "collapseLargePastes"
+		| "draft"
+		| "onDraftChange"
 		| "onSubmit"
 		| "onStop"
-		| "onMentionHighlight"
 		| "onAttachmentClick"
-		| "onChipClick"
 		| "ref"
-		| "header"
-		| "onAddFiles"
 		| "allowEmptySubmit"
-		| "clearOnSubmit"
-		| "hideSubmit"
+		| "disabled"
+		| "pending"
 		| "autoFocus"
 		| "history"
 	>;
@@ -175,84 +169,63 @@ export function ComposerBody({
 	commands,
 	dictation,
 	status,
-	submitWhileStreaming,
-	placement,
 	toolbar,
 	toolbarEnd,
-	defaultValue,
-	findChips,
-	onChange,
-	collapseLargePastes,
+	draft,
+	onDraftChange,
 	onSubmit,
 	onStop,
-	onMentionHighlight,
 	onAttachmentClick,
-	onChipClick,
 	ref,
-	header,
-	onAddFiles,
 	allowEmptySubmit,
-	clearOnSubmit,
-	hideSubmit,
+	disabled,
+	pending,
 	autoFocus,
 	history,
 }: ComposerBodyProps) {
 	const { t } = useLingui();
 	const [editor] = useLexicalComposerContext();
-	const onChangeRef = useRef(onChange);
-	onChangeRef.current = onChange;
-	const pasted = usePastedTexts(editor, {
-		enabled: Boolean(collapseLargePastes),
-		onCardsChange: (cards, editorText) =>
-			onChangeRef.current?.(
-				appendPastedText(
-					editorText,
-					cards.map((card) => card.text),
-				),
-			),
-	});
-	const { cardsRef } = pasted;
-	const draftText = useCallback(
-		(editorText: string) =>
-			appendPastedText(
-				editorText,
-				cardsRef.current.map((card) => card.text),
-			),
-		[cardsRef],
-	);
-	const splitPastes = useCallback(
-		(text: string) =>
-			collapseLargePastes ? parsePastedText(text) : { text, pastes: [] },
-		[collapseLargePastes],
-	);
+	const onDraftChangeRef = useRef(onDraftChange);
+	onDraftChangeRef.current = onDraftChange;
 	const focusAtEnd = useCallback(() => {
 		editor.update(() => $getRoot().selectEnd());
 		editor.focus();
 	}, [editor]);
+	const [attachments, setAttachments] = useState<PromptInputAttachment[]>([]);
+	const attachmentsRef = useRef(attachments);
+	attachmentsRef.current = attachments;
+	const addAttachments = useCallback(
+		(incoming: readonly Omit<PromptInputAttachment, "previewUrl">[]) => {
+			if (incoming.length === 0) return;
+			setAttachments((previous) => [
+				...previous,
+				...incoming.map(({ file, ...rest }) => ({
+					...rest,
+					file,
+					previewUrl:
+						file.type.startsWith("image/") || file.type.startsWith("video/")
+							? URL.createObjectURL(file)
+							: undefined,
+				})),
+			]);
+		},
+		[],
+	);
 	useImperativeHandle(
 		ref,
 		() => ({
-			appendText(message: string) {
-				const { text, pastes } = splitPastes(message);
-				pasted.restore(pastes);
-				if (!text) {
-					onChangeRef.current?.(
-						draftText(
-							editor.getEditorState().read(() => $getRoot().getTextContent()),
-						),
-					);
-					editor.focus();
-					return;
-				}
+			restoreDraft(restored: ComposerDraft) {
 				editor.update(() => {
 					const root = $getRoot();
 					const separator = root.getTextContent().trim() === "" ? "" : "\n";
 					root.selectEnd();
-					const selection = $getSelection();
-					if ($isRangeSelection(selection)) {
-						selection.insertRawText(`${separator}${text}`);
-					}
+					$insertDraftSegments(
+						separator
+							? [{ type: "text", text: separator }, ...restored.segments]
+							: restored.segments,
+					);
 				});
+				addAttachments(restored.attachments);
 				editor.focus();
 			},
 			insertChip(chip: ComposerChip) {
@@ -268,9 +241,8 @@ export function ComposerBody({
 				focusAtEnd();
 			},
 		}),
-		[draftText, editor, focusAtEnd, pasted.restore, splitPastes],
+		[addAttachments, editor, focusAtEnd],
 	);
-	const [attachments, setAttachments] = useState<PromptInputAttachment[]>([]);
 	const [isEmpty, setIsEmpty] = useState(true);
 	const [dragging, setDragging] = useState(false);
 	const [mentionQuery, setMentionQuery] = useState<string | null>(null);
@@ -286,96 +258,92 @@ export function ComposerBody({
 	// Lexical command listeners register once; this ref bridges them to live React state.
 	const stateRef = useRef({
 		attachments,
-		onChipClick,
 		onStop,
 		onSubmit,
 		status,
-		submitWhileStreaming,
 		allowEmptySubmit,
-		clearOnSubmit,
+		disabled,
+		pending,
 		history,
 	});
 	stateRef.current = {
 		attachments,
-		onChipClick,
 		onStop,
 		onSubmit,
 		status,
-		submitWhileStreaming,
 		allowEmptySubmit,
-		clearOnSubmit,
+		disabled,
+		pending,
 		history,
 	};
 	const historyNavigationRef = useRef<{ reset: () => void } | null>(null);
 
-	// A draft the host had stored. Read once: after mount the editor is the
-	// only writer, and re-applying would fight what is being typed.
-	const seededValue = useRef<string | null>(null);
+	// The host's stored draft, read once: after mount the editor is the only
+	// writer, and re-applying would fight what is being typed.
+	const seeded = useRef(false);
 	useEffect(() => {
-		if (seededValue.current !== null) return;
-		const { text, pastes } = splitPastes(defaultValue ?? "");
-		seededValue.current = text;
-		pasted.restore(pastes);
-		if (!text) return;
-		editor.update(() => {
-			const root = $getRoot();
-			if (root.getTextContent() !== "") return;
-			root.selectEnd();
-			const selection = $getSelection();
-			if ($isRangeSelection(selection)) selection.insertText(text);
-		});
-	}, [defaultValue, editor, pasted.restore, splitPastes]);
-
-	// Chips come back once the finder can name them, which may be after the
-	// draft was read (a catalog still loading). Only the untouched draft is
-	// rewritten: once edited, even back to the same text, it is the user's.
-	const draftEdited = useRef(false);
-	useEffect(() => {
-		const seededText = seededValue.current;
-		if (!seededText) return;
-		return registerDraftEdit(editor, seededText, () => {
-			draftEdited.current = true;
-		});
-	}, [editor]);
-	useEffect(() => {
-		const seededText = seededValue.current;
-		if (!findChips || !seededText || draftEdited.current) return;
-		editor.update(() => {
-			if ($getRoot().getTextContent() !== seededText) return;
-			$restoreChips(findChips);
-		});
-	}, [editor, findChips]);
+		if (seeded.current) return;
+		seeded.current = true;
+		if (!draft) return;
+		if (draft.segments.length > 0) {
+			editor.update(() => {
+				if ($getRoot().getTextContent() !== "") return;
+				$insertDraftSegments(draft.segments);
+			});
+		}
+		addAttachments(draft.attachments);
+	}, [addAttachments, draft, editor]);
 
 	useEffect(
 		() =>
 			editor.registerUpdateListener(({ editorState }) => {
-				const text = editorState.read(() => $getRoot().getTextContent());
-				onChangeRef.current?.(draftText(text));
+				onDraftChangeRef.current?.({
+					segments: editorState.read($readDraftSegments),
+					attachments: attachmentsRef.current,
+				});
 			}),
-		[draftText, editor],
+		[editor],
 	);
+	useEffect(() => {
+		onDraftChangeRef.current?.({
+			segments: editor.getEditorState().read($readDraftSegments),
+			attachments,
+		});
+	}, [attachments, editor]);
 
 	const addFiles = (files: FileList | File[]) => {
 		const incoming = Array.from(files);
 		if (incoming.length === 0) return;
-		if (onAddFiles) {
-			onAddFiles(incoming);
-			return;
-		}
-		setAttachments((previous) => [
-			...previous,
-			...incoming.map((file) => ({
+		addAttachments(incoming.map((file) => ({ id: crypto.randomUUID(), file })));
+	};
+	const addPastedText = (text: string) => {
+		const ordinal =
+			attachmentsRef.current.filter((entry) => entry.pastedText).length + 1;
+		addAttachments([
+			{
 				id: crypto.randomUUID(),
-				file,
-				previewUrl:
-					file.type.startsWith("image/") || file.type.startsWith("video/")
-						? URL.createObjectURL(file)
-						: undefined,
-			})),
+				file: new File([text], `pasted-${ordinal}.txt`, {
+					type: "text/plain",
+				}),
+				pastedText: text,
+			},
 		]);
+	};
+	const showPastedText = (id: string) => {
+		const entry = attachmentsRef.current.find((item) => item.id === id);
+		if (!entry?.pastedText) return;
+		const text = entry.pastedText;
+		setAttachments((previous) => previous.filter((item) => item.id !== id));
+		editor.update(() => {
+			$getRoot().selectEnd();
+			$insertDraftSegments([{ type: "text", text }]);
+		});
+		editor.focus();
 	};
 	const addFilesRef = useRef(addFiles);
 	addFilesRef.current = addFiles;
+	const addPastedTextRef = useRef(addPastedText);
+	addPastedTextRef.current = addPastedText;
 
 	const dropZone = useComposerDropZone();
 	useEffect(() => {
@@ -436,12 +404,14 @@ export function ComposerBody({
 	useEffect(() => {
 		setCommandDismissed(false);
 	}, [commandQuery]);
+	// A bare "@" opens the same menu as ⊕, so "Attach files" leads it.
+	const typeaheadSections = mentionQuery === "" ? browseSections : sections;
 	const mentionOptions = useMemo(
 		() =>
-			sections.flatMap((section) =>
+			typeaheadSections.flatMap((section) =>
 				section.entries.map((entry) => new MentionTypeaheadOption(entry)),
 			),
-		[sections],
+		[typeaheadSections],
 	);
 
 	const rankedCommands = useMemo(
@@ -480,34 +450,20 @@ export function ComposerBody({
 		void entry.select(actionContextRef.current);
 	};
 
-	useEffect(() => {
-		if (mentionQuery == null) onMentionHighlight?.(null);
-	}, [mentionQuery, onMentionHighlight]);
-
 	const releaseAttachment = (attachment: PromptInputAttachment) => {
 		if (attachment.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
 	};
 
 	const submit = ({ steer = false }: { steer?: boolean } = {}) => {
-		if (
-			stateRef.current.status === "streaming" &&
-			!stateRef.current.submitWhileStreaming
-		)
-			return;
-		const { text, mentions } = editor.getEditorState().read(() => ({
+		if (stateRef.current.disabled || stateRef.current.pending) return;
+		const { text, mentions, segments } = editor.getEditorState().read(() => ({
 			text: $getRoot().getTextContent().trim(),
 			mentions: $collectChips(),
+			segments: $readDraftSegments(),
 		}));
-		const files = stateRef.current.attachments.map(
-			(attachment) => attachment.file,
-		);
-		const pastedTexts = cardsRef.current.map((card) => card.text);
-		if (
-			!text &&
-			files.length === 0 &&
-			pastedTexts.length === 0 &&
-			!stateRef.current.allowEmptySubmit
-		) {
+		const sent = stateRef.current.attachments;
+		const files = sent.map((attachment) => attachment.file);
+		if (!text && files.length === 0 && !stateRef.current.allowEmptySubmit) {
 			return;
 		}
 		if (
@@ -515,14 +471,12 @@ export function ComposerBody({
 				text,
 				files,
 				mentions,
-				pastedTexts,
 				steer,
+				draft: { segments, attachments: sent },
 			}) === false
 		)
 			return;
 		historyNavigationRef.current?.reset();
-		if (!stateRef.current.clearOnSubmit) return;
-		pasted.clear();
 		editor.update(() => $getRoot().clear());
 		setAttachments((previous) => {
 			for (const attachment of previous) releaseAttachment(attachment);
@@ -611,12 +565,18 @@ export function ComposerBody({
 					addFilesRef.current(files);
 					return true;
 				}
-				return false;
+				const text = normalizePastedText(
+					event.clipboardData?.getData("text/plain") ?? "",
+				);
+				if (!isLargePaste(text)) return false;
+				event.preventDefault();
+				addPastedTextRef.current(text);
+				return true;
 			},
 			COMMAND_PRIORITY_HIGH,
 		);
-		// Chips are decorator nodes: clicks select them as a node selection (and
-		// notify the app), and Backspace/Delete remove the selected chips.
+		// Chips are decorator nodes: clicks select them as a node selection, and
+		// Backspace/Delete remove the selected chips.
 		const unregisterClick = editor.registerCommand<MouseEvent>(
 			CLICK_COMMAND,
 			(event) => {
@@ -629,7 +589,6 @@ export function ComposerBody({
 				const selection = $createNodeSelection();
 				selection.add(node.getKey());
 				$setSelection(selection);
-				stateRef.current.onChipClick?.(node.toChip());
 				return true;
 			},
 			COMMAND_PRIORITY_LOW,
@@ -780,11 +739,7 @@ export function ComposerBody({
 		return () => document.removeEventListener("pointerdown", onPointerDown);
 	}, []);
 
-	const canSend =
-		allowEmptySubmit ||
-		!isEmpty ||
-		attachments.length > 0 ||
-		pasted.cards.length > 0;
+	const canSend = allowEmptySubmit || !isEmpty || attachments.length > 0;
 
 	useEffect(() => {
 		if (autoFocus) focusAtEnd();
@@ -822,10 +777,7 @@ export function ComposerBody({
 		>
 			<div
 				ref={setMenuSlot}
-				className={cn(
-					"pointer-events-none absolute inset-x-0 [&>*]:pointer-events-auto",
-					placement === "bottom" ? "top-full pt-2" : "bottom-full pb-2",
-				)}
+				className="pointer-events-none absolute inset-x-0 bottom-full pb-2 [&>*]:pointer-events-auto"
 			>
 				{browseOpen && (
 					<MentionMenu
@@ -833,7 +785,6 @@ export function ComposerBody({
 						className="max-w-80"
 						selectedIndex={browseIndex}
 						onHighlight={setBrowseIndex}
-						onSelectionChange={onMentionHighlight}
 						onSelect={selectBrowseEntry}
 					/>
 				)}
@@ -842,20 +793,13 @@ export function ComposerBody({
 				<div
 					role="dialog"
 					aria-label={panel.title}
-					className={cn(
-						"absolute inset-x-0 z-30",
-						placement === "bottom" ? "top-full pt-2" : "bottom-full pb-2",
-					)}
+					className="absolute inset-x-0 bottom-full z-30 pb-2"
 				>
 					{panel.render({ close: closePanel })}
 				</div>
 			) : (
 				panel && (
-					<ComposerPanel
-						title={panel.title}
-						placement={placement}
-						onClose={() => setPanel(null)}
-					>
+					<ComposerPanel title={panel.title} onClose={() => setPanel(null)}>
 						{panel.render({ close: closePanel })}
 					</ComposerPanel>
 				)
@@ -876,12 +820,9 @@ export function ComposerBody({
 					<Trans>Drop to attach</Trans>
 				</span>
 			</div>
-			{header}
 			<AttachmentPills
 				attachments={attachments}
-				pastedTexts={pasted.cards}
-				onShowPastedText={pasted.showInTextField}
-				onRemovePastedText={pasted.remove}
+				onShowPastedText={showPastedText}
 				onAttachmentClick={onAttachmentClick}
 				onPreviewError={(id) =>
 					setAttachments((previous) =>
@@ -934,10 +875,9 @@ export function ComposerBody({
 						anchorElementRef.current && menuSlot && !typeaheadDismissed
 							? createPortal(
 									<MentionMenu
-										sections={sections}
+										sections={typeaheadSections}
 										selectedIndex={selectedIndex}
 										onHighlight={setHighlightedIndex}
-										onSelectionChange={onMentionHighlight}
 										onSelect={(entry) => {
 											const option = mentionOptions.find(
 												(candidate) => candidate.entry.id === entry.id,
@@ -1099,8 +1039,7 @@ export function ComposerBody({
 								<MicIcon className="size-4" />
 							</button>
 						)}
-						{hideSubmit ? null : status === "streaming" &&
-							!(submitWhileStreaming && canSend) ? (
+						{status === "streaming" && !canSend ? (
 							<button
 								type="button"
 								aria-label={t({
@@ -1114,13 +1053,20 @@ export function ComposerBody({
 						) : (
 							<button
 								type="button"
-								aria-label={t({
-									message: "Send message",
-								})}
-								disabled={!canSend}
+								aria-label={
+									status === "streaming"
+										? t({ message: "Queue message" })
+										: t({ message: "Send message" })
+								}
+								title={
+									status === "streaming"
+										? t({ message: "Queue; ⌘↩ to steer the running turn" })
+										: undefined
+								}
+								disabled={!canSend || disabled || pending}
 								onClick={() => submit()}
 								className={
-									canSend
+									canSend && !disabled && !pending
 										? cn(
 												FOOTER_BUTTON_CLASS,
 												"cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90",
@@ -1128,7 +1074,11 @@ export function ComposerBody({
 										: INACTIVE_SEND_BUTTON_CLASS
 								}
 							>
-								<ArrowUpIcon className="size-4" />
+								{pending ? (
+									<LoaderCircleIcon className="size-4 animate-spin" />
+								) : (
+									<ArrowUpIcon className="size-4" />
+								)}
 							</button>
 						)}
 					</>

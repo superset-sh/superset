@@ -11,7 +11,6 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { HiOutlineWifi } from "react-icons/hi2";
-import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
 import { Redirect } from "renderer/components/Redirect";
 import { env } from "renderer/env.renderer";
@@ -343,8 +342,6 @@ function AuthenticatedLayout() {
 								)}
 								<V1AutoMigration />
 								<WorkspaceInitEffects />
-								{/* v2 creates from the /new-workspace route; only v1 has a modal. */}
-								{!isV2CloudEnabled && <NewWorkspaceModal />}
 								<InitGitDialog />
 								<GitInitConfirmDialog />
 								<TeardownLogsDialog />

@@ -45,6 +45,8 @@ import {
 	setConfigOptionInputSchema,
 	setModeInputSchema,
 	stopBackgroundTaskInputSchema,
+	type UpdateQueuedPromptInput,
+	updateQueuedPromptInputSchema,
 } from "@superset/chat/protocol";
 import { z } from "zod";
 import type { ChatDb, ChatSessionRow } from "../../db";
@@ -173,6 +175,7 @@ export type ChatCommands = {
 	prompt(input: PromptInput): PromptResult;
 	removeQueuedPrompt(input: QueuedPromptInput): void;
 	steerQueuedPrompt(input: QueuedPromptInput): void;
+	updateQueuedPrompt(input: UpdateQueuedPromptInput): void;
 	resumeQueue(input: ResumeQueueInput): void;
 	cancelTurn(input: CancelTurnInput): void;
 	stopBackgroundTask(input: StopBackgroundTaskInput): Promise<boolean>;
@@ -354,6 +357,16 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 			const parsed: QueuedPromptInput = queuedPromptInputSchema.parse(input);
 			options.dedupe.run(`steerQueuedPrompt:${parsed.commandId}`, () => {
 				options.live.require(parsed.sessionId).steerQueued(parsed.itemId);
+			});
+		},
+
+		updateQueuedPrompt(input) {
+			const parsed: UpdateQueuedPromptInput =
+				updateQueuedPromptInputSchema.parse(input);
+			options.dedupe.run(`updateQueuedPrompt:${parsed.commandId}`, () => {
+				options.live
+					.require(parsed.sessionId)
+					.updateQueued(parsed.itemId, parsed.content);
 			});
 		},
 

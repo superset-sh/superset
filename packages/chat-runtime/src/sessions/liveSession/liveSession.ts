@@ -210,6 +210,19 @@ export class LiveSession {
 		this.unpauseIfEmpty();
 	}
 
+	/** Rewrites a queued prompt in place; it keeps its turn in the queue. */
+	updateQueued(itemId: string, content: UserContent[]): void {
+		const pending = this.queue[this.requireQueuedIndex(itemId)];
+		if (!pending) return;
+		pending.content = content;
+		pending.item = { ...pending.item, content };
+		this.appendDurable({
+			type: "item",
+			item: pending.item,
+			turnId: pending.turnId,
+		});
+	}
+
 	steerQueued(itemId: string): void {
 		const index = this.requireQueuedIndex(itemId);
 		const [steered] = this.queue.splice(index, 1);

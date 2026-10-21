@@ -1,4 +1,4 @@
-import type { FileUIPart } from "ai";
+import type { PromptInputAttachment } from "@superset/chat-ui/PromptInput";
 import { useCallback, useEffect } from "react";
 import {
 	awaitUploads,
@@ -35,18 +35,13 @@ export function useUploadAttachments({
 	files,
 	hostUrl,
 }: {
-	files: (FileUIPart & { id: string })[];
+	files: PromptInputAttachment[];
 	hostUrl: string | null;
 }): UseUploadAttachmentsApi {
 	useEffect(() => {
 		if (hostUrl) {
 			for (const file of files) {
-				startUpload(hostUrl, {
-					id: file.id,
-					url: file.url,
-					mediaType: file.mediaType,
-					filename: file.filename,
-				});
+				startUpload(hostUrl, { id: file.id, file: file.file });
 			}
 		}
 		pruneAttachmentUploads(new Set(files.map((f) => f.id)));
@@ -60,7 +55,7 @@ export function useUploadAttachments({
 		);
 		const errors: UploadFailure[] = result.failures.map((failure) => {
 			const file = files.find((f) => f.id === failure.fileId);
-			return { filename: file?.filename, message: failure.message };
+			return { filename: file?.file.name, message: failure.message };
 		});
 		const ready = files.flatMap((file) => {
 			const attachmentId = readyAttachmentId(file.id, hostUrl);
@@ -68,8 +63,8 @@ export function useUploadAttachments({
 				? [
 						{
 							attachmentId,
-							name: file.filename ?? attachmentId,
-							mimeType: file.mediaType ?? "application/octet-stream",
+							name: file.file.name || attachmentId,
+							mimeType: file.file.type || "application/octet-stream",
 						},
 					]
 				: [];

@@ -53,7 +53,9 @@ export function PluginDetail({
 	// already in the composer.
 	const tryNow = useCallback(() => {
 		useNewWorkspaceDraftStore.getState().updateDraft({
-			prompt: `${pluginMentionText(plugin.name)} `,
+			promptDraft: [
+				{ type: "text", text: `${pluginMentionText(plugin.name)} ` },
+			],
 		});
 		openNewWorkspace();
 	}, [openNewWorkspace, plugin.name]);

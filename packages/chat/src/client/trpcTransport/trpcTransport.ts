@@ -5,6 +5,7 @@ type Mutation =
 	| "prompt"
 	| "removeQueuedPrompt"
 	| "steerQueuedPrompt"
+	| "updateQueuedPrompt"
 	| "resumeQueue"
 	| "cancelTurn"
 	| "stopBackgroundTask"
@@ -38,6 +39,7 @@ export function chatTransportFromTrpc(client: ChatTrpcClient): ChatTransport {
 		prompt: (input) => client.prompt.mutate(input),
 		removeQueuedPrompt: (input) => client.removeQueuedPrompt.mutate(input),
 		steerQueuedPrompt: (input) => client.steerQueuedPrompt.mutate(input),
+		updateQueuedPrompt: (input) => client.updateQueuedPrompt.mutate(input),
 		resumeQueue: (input) => client.resumeQueue.mutate(input),
 		cancelTurn: (input) => client.cancelTurn.mutate(input),
 		stopBackgroundTask: (input) => client.stopBackgroundTask.mutate(input),

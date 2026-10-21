@@ -15,15 +15,12 @@ import {
 	PastedTextCard,
 } from "../../../PastedTextCard";
 import type { PromptInputAttachment } from "../../types";
-import type { PastedTextEntry } from "../../utils/pasteUndo";
 import { RemoveButton } from "./components/RemoveButton";
 
 export type AttachmentPillsProps = {
 	attachments: PromptInputAttachment[];
-	pastedTexts?: PastedTextEntry[];
 	onRemove: (id: string) => void;
 	onShowPastedText?: (id: string) => void;
-	onRemovePastedText?: (id: string) => void;
 	onPreviewError?: (id: string) => void;
 	onAttachmentClick?: (
 		attachment: PromptInputAttachment,
@@ -67,17 +64,33 @@ function fileTypeIcon(mediaType: string, extension: string): JSX.Element {
 
 export function AttachmentPills({
 	attachments,
-	pastedTexts = [],
 	onRemove,
 	onShowPastedText,
-	onRemovePastedText,
 	onPreviewError,
 	onAttachmentClick,
 }: AttachmentPillsProps) {
-	if (attachments.length === 0 && pastedTexts.length === 0) return null;
+	if (attachments.length === 0) return null;
 	return (
 		<div className="flex flex-wrap items-center gap-2 px-3 pt-3">
 			{attachments.map((attachment) => {
+				if (attachment.pastedText) {
+					return (
+						<PastedTextCard
+							key={attachment.id}
+							text={attachment.pastedText}
+							onRemove={() => onRemove(attachment.id)}
+							action={
+								<button
+									type="button"
+									className={PASTED_TEXT_ACTION_CLASS}
+									onClick={() => onShowPastedText?.(attachment.id)}
+								>
+									<Trans>Show in text field</Trans>
+								</button>
+							}
+						/>
+					);
+				}
 				const filename = attachment.file.name || "attachment";
 				const dotIndex = filename.lastIndexOf(".");
 				const extension =
@@ -139,22 +152,6 @@ export function AttachmentPills({
 					</div>
 				);
 			})}
-			{pastedTexts.map((entry) => (
-				<PastedTextCard
-					key={entry.id}
-					text={entry.text}
-					onRemove={() => onRemovePastedText?.(entry.id)}
-					action={
-						<button
-							type="button"
-							className={PASTED_TEXT_ACTION_CLASS}
-							onClick={() => onShowPastedText?.(entry.id)}
-						>
-							<Trans>Show in text field</Trans>
-						</button>
-					}
-				/>
-			))}
 		</div>
 	);
 }

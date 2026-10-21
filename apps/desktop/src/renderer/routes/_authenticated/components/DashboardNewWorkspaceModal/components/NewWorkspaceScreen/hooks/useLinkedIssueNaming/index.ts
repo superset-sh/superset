@@ -1,0 +1,1 @@
+export { useLinkedIssueNaming } from "./useLinkedIssueNaming";

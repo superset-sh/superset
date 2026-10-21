@@ -42,6 +42,15 @@ export const queuedPromptInputSchema = z.object({
 });
 export type QueuedPromptInput = z.infer<typeof queuedPromptInputSchema>;
 
+export const updateQueuedPromptInputSchema = z.object({
+	...commandBaseFields,
+	itemId: z.string().min(1),
+	content: z.array(userContentSchema).min(1),
+});
+export type UpdateQueuedPromptInput = z.infer<
+	typeof updateQueuedPromptInputSchema
+>;
+
 export const resumeQueueInputSchema = z.object(commandBaseFields);
 export type ResumeQueueInput = z.infer<typeof resumeQueueInputSchema>;
 

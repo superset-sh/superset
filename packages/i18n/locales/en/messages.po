@@ -209,9 +209,7 @@ msgstr "{0, plural, one {# result in Cloud} other {# results in Cloud}}"
 msgid "{0, plural, one {# result on this host} other {# results on this host}}"
 msgstr "{0, plural, one {# result on this host} other {# results on this host}}"
 
-#. placeholder {0}: pullRequests.length
 #. placeholder {0}: results.length
-#. placeholder {0}: searchResults.length
 msgid "{0, plural, one {# result} other {# results}}"
 msgstr "{0, plural, one {# result} other {# results}}"
 
@@ -954,9 +952,6 @@ msgstr "{minutes}m {rest}s"
 msgid "{minutes}m ago"
 msgstr "{minutes}m ago"
 
-msgid "{modKey}↵ to create"
-msgstr "{modKey}↵ to create"
-
 msgid "{monthlyPrice} per user/mo billed monthly, or {yearlyPrice} billed yearly. Cloud workspaces, mobile, priority support."
 msgstr "{monthlyPrice} per user/mo billed monthly, or {yearlyPrice} billed yearly. Cloud workspaces, mobile, priority support."
 
@@ -1693,9 +1688,6 @@ msgstr "Add another account, or disconnect one you no longer use."
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 
-msgid "Add attachment"
-msgstr "Add attachment"
-
 msgid "Add Attachment"
 msgstr "Add Attachment"
 
@@ -1979,9 +1971,6 @@ msgstr "AI · Conversation"
 
 msgid "AI · Status"
 msgstr "AI · Status"
-
-msgid "AI authentication failed. Please check your AI settings."
-msgstr "AI authentication failed. Please check your AI settings."
 
 msgid "Alert"
 msgstr "Alert"
@@ -2616,9 +2605,6 @@ msgstr "Assigned"
 msgid "Assigned to me"
 msgstr "Assigned to me"
 
-msgid "Assigned to you"
-msgstr "Assigned to you"
-
 msgid "Assignee"
 msgstr "Assignee"
 
@@ -2750,9 +2736,6 @@ msgstr "Auto follows your system language. You can change it later in Settings."
 
 msgid "Auto Save"
 msgstr "Auto Save"
-
-msgid "auto-generated"
-msgstr "auto-generated"
 
 msgid "Auto-run command"
 msgstr "Auto-run command"
@@ -2945,7 +2928,6 @@ msgstr "Base directory for new worktrees on {selectedHostName}."
 msgid "Base URL"
 msgstr "Base URL"
 
-#. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
 msgid "based off PR #{0}"
 msgstr "based off PR #{0}"
@@ -3077,12 +3059,6 @@ msgstr "Branch in a new worktree"
 
 msgid "Branch in this workspace"
 msgstr "Branch in this workspace"
-
-msgid "branch name"
-msgstr "branch name"
-
-msgid "Branch name"
-msgstr "Branch name"
 
 msgid "Branch name copied"
 msgstr "Branch name copied"
@@ -4439,9 +4415,6 @@ msgstr "Connect your GitHub repositories and sync pull requests. Track CI status
 msgid "Connect your Linear account before tracking tasks in Linear."
 msgstr "Connect your Linear account before tracking tasks in Linear."
 
-msgid "Connect your Linear account in Settings → Integrations to link Linear issues."
-msgstr "Connect your Linear account in Settings → Integrations to link Linear issues."
-
 msgid "Connect your Linear account to browse, update and start work on Linear issues from Superset."
 msgstr "Connect your Linear account to browse, update and start work on Linear issues from Superset."
 
@@ -5183,14 +5156,8 @@ msgstr "Couldn't load contributors — type a username instead."
 msgid "Couldn't load earlier messages. Retry"
 msgstr "Couldn't load earlier messages. Retry"
 
-msgid "Couldn't load issues: {msg}"
-msgstr "Couldn't load issues: {msg}"
-
 msgid "Couldn't load pages"
 msgstr "Couldn't load pages"
-
-msgid "Couldn't load pull requests: {msg}"
-msgstr "Couldn't load pull requests: {msg}"
 
 msgid "Couldn't load review comments"
 msgstr "Couldn't load review comments"
@@ -5368,9 +5335,6 @@ msgstr "Create a new project by cloning a repository or local path."
 
 msgid "Create a new task from the desktop tasks view."
 msgstr "Create a new task from the desktop tasks view."
-
-msgid "Create a new workspace"
-msgstr "Create a new workspace"
 
 msgid "Create a project to group tasks and cloud workspaces."
 msgstr "Create a project to group tasks and cloud workspaces."
@@ -5586,10 +5550,6 @@ msgstr "Creating the sandbox"
 
 msgid "Creating workspace"
 msgstr "Creating workspace"
-
-#. placeholder {0}: linkedPR.prNumber
-msgid "Creating workspace from PR #{0}..."
-msgstr "Creating workspace from PR #{0}..."
 
 msgid "Creating workspace: {name}"
 msgstr "Creating workspace: {name}"
@@ -6596,8 +6556,8 @@ msgstr "Edit name"
 msgid "Edit on GitHub"
 msgstr "Edit on GitHub"
 
-msgid "Edit prefix"
-msgstr "Edit prefix"
+msgid "Edit queued message"
+msgstr "Edit queued message"
 
 msgid "Edit Run Script"
 msgstr "Edit Run Script"
@@ -6969,9 +6929,6 @@ msgstr "Exploring"
 msgid "Extended thinking: {activeLabel}"
 msgstr "Extended thinking: {activeLabel}"
 
-msgid "external"
-msgstr "external"
-
 msgid "External Application"
 msgstr "External Application"
 
@@ -7138,9 +7095,6 @@ msgstr "Failed to create thread"
 msgid "Failed to create workspace"
 msgstr "Failed to create workspace"
 
-msgid "Failed to create workspace from PR"
-msgstr "Failed to create workspace from PR"
-
 msgid "Failed to delete"
 msgstr "Failed to delete"
 
@@ -7259,17 +7213,8 @@ msgstr "Failed to open new window: {0}"
 msgid "Failed to open new window: {message}"
 msgstr "Failed to open new window: {message}"
 
-msgid "Failed to open project"
-msgstr "Failed to open project"
-
-msgid "Failed to open task"
-msgstr "Failed to open task"
-
 msgid "Failed to open the billing portal"
 msgstr "Failed to open the billing portal"
-
-msgid "Failed to open worktree"
-msgstr "Failed to open worktree"
 
 #. placeholder {0}: error.message
 msgid "Failed to open: {0}"
@@ -7277,12 +7222,6 @@ msgstr "Failed to open: {0}"
 
 msgid "Failed to post reply"
 msgstr "Failed to post reply"
-
-msgid "Failed to prepare agent launch"
-msgstr "Failed to prepare agent launch"
-
-msgid "Failed to process attachments"
-msgstr "Failed to process attachments"
 
 msgid "Failed to push branch"
 msgstr "Failed to push branch"
@@ -9596,6 +9535,9 @@ msgstr "Linear integration"
 msgid "Linear is limiting requests. Try again in a few minutes."
 msgstr "Linear is limiting requests. Try again in a few minutes."
 
+msgid "Linear issues"
+msgstr "Linear issues"
+
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
 #. placeholder {1}: m.endLine
@@ -9605,9 +9547,6 @@ msgstr "Lines {0}–{1}"
 
 msgid "Link"
 msgstr "Link"
-
-msgid "Link ↵"
-msgstr "Link ↵"
 
 msgid "Link a GitHub repository on the project first to enable cloning."
 msgstr "Link a GitHub repository on the project first to enable cloning."
@@ -9620,15 +9559,6 @@ msgstr "link copied"
 
 msgid "Link copied"
 msgstr "Link copied"
-
-msgid "Link GitHub issue"
-msgstr "Link GitHub issue"
-
-msgid "Link Linear issue"
-msgstr "Link Linear issue"
-
-msgid "Link pull request"
-msgstr "Link pull request"
 
 msgid "Link task"
 msgstr "Link task"
@@ -9762,9 +9692,6 @@ msgstr "Loading groups…"
 msgid "Loading issue…"
 msgstr "Loading issue…"
 
-msgid "Loading issues..."
-msgstr "Loading issues..."
-
 msgid "Loading issues…"
 msgstr "Loading issues…"
 
@@ -9785,9 +9712,6 @@ msgstr "Loading projects…"
 
 msgid "Loading pull request…"
 msgstr "Loading pull request…"
-
-msgid "Loading pull requests..."
-msgstr "Loading pull requests..."
 
 msgid "Loading pull requests…"
 msgstr "Loading pull requests…"
@@ -10306,6 +10230,9 @@ msgstr "Mobile app"
 
 msgid "Mobile App"
 msgstr "Mobile App"
+
+msgid "Mode"
+msgstr "Mode"
 
 msgid "model"
 msgstr "model"
@@ -11061,6 +10988,12 @@ msgstr "No matches"
 msgid "No matching files"
 msgstr "No matching files"
 
+msgid "No matching issues"
+msgstr "No matching issues"
+
+msgid "No matching Linear issues"
+msgstr "No matching Linear issues"
+
 msgid "No matching MCP servers"
 msgstr "No matching MCP servers"
 
@@ -11073,8 +11006,14 @@ msgstr "No matching org members."
 msgid "No matching pages"
 msgstr "No matching pages"
 
+msgid "No matching pull requests"
+msgstr "No matching pull requests"
+
 msgid "No matching repositories."
 msgstr "No matching repositories."
+
+msgid "No matching tasks"
+msgstr "No matching tasks"
 
 msgid "No MCP servers found"
 msgstr "No MCP servers found"
@@ -11103,14 +11042,8 @@ msgstr "No name on file"
 msgid "No one in {organizationName} matches. Type a full email to invite someone new."
 msgstr "No one in {organizationName} matches. Type a full email to invite someone new."
 
-msgid "No open issues found."
-msgstr "No open issues found."
-
 msgid "No open issues."
 msgstr "No open issues."
-
-msgid "No open pull requests found."
-msgstr "No open pull requests found."
 
 msgid "No open pull requests."
 msgstr "No open pull requests."
@@ -12030,9 +11963,6 @@ msgstr "Open issue in GitHub"
 msgid "Open issue in Linear"
 msgstr "Open issue in Linear"
 
-msgid "Open issues"
-msgstr "Open issues"
-
 msgid "Open leaderboard"
 msgstr "Open leaderboard"
 
@@ -12083,9 +12013,6 @@ msgstr "Open Project"
 msgid "Open Projects"
 msgstr "Open Projects"
 
-msgid "Open PRs"
-msgstr "Open PRs"
-
 msgid "Open pull request"
 msgstr "Open pull request"
 
@@ -12102,9 +12029,6 @@ msgstr "Open pull request #{number}"
 
 msgid "Open pull request options"
 msgstr "Open pull request options"
-
-msgid "Open pull requests"
-msgstr "Open pull requests"
 
 msgid "Open recent"
 msgstr "Open recent"
@@ -12132,9 +12056,6 @@ msgstr "Open Superset on that computer"
 
 msgid "Open System Settings"
 msgstr "Open System Settings"
-
-msgid "Open task {title}"
-msgstr "Open task {title}"
 
 msgid "Open Terminal"
 msgstr "Open Terminal"
@@ -12219,9 +12140,6 @@ msgstr "Opening folders"
 
 msgid "Opening pages"
 msgstr "Opening pages"
-
-msgid "Opening worktree..."
-msgstr "Opening worktree..."
 
 msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
 msgstr "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
@@ -12924,9 +12842,6 @@ msgstr "PR URL"
 msgid "PR URL must match {repoMismatch}."
 msgstr "PR URL must match {repoMismatch}."
 
-msgid "PR URL must match {selectedRepositoryLabel}."
-msgstr "PR URL must match {selectedRepositoryLabel}."
-
 msgid "Prediction progress"
 msgstr "Prediction progress"
 
@@ -13367,6 +13282,9 @@ msgstr "Questions"
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 
+msgid "Queue message"
+msgstr "Queue message"
+
 msgid "Queue paused"
 msgstr "Queue paused"
 
@@ -13375,6 +13293,9 @@ msgstr "Queue paused because you interrupted"
 
 msgid "Queue work for agents"
 msgstr "Queue work for agents"
+
+msgid "Queue; ⌘↩ to steer the running turn"
+msgstr "Queue; ⌘↩ to steer the running turn"
 
 msgid "Queued"
 msgstr "Queued"
@@ -13586,17 +13507,8 @@ msgstr "Recent apps"
 msgid "Recent invoices"
 msgstr "Recent invoices"
 
-msgid "Recent issues"
-msgstr "Recent issues"
-
 msgid "Recent prompts"
 msgstr "Recent prompts"
-
-msgid "Recent PRs"
-msgstr "Recent PRs"
-
-msgid "Recent pull requests"
-msgstr "Recent pull requests"
 
 msgid "Recently deleted"
 msgstr "Recently deleted"
@@ -13814,12 +13726,6 @@ msgstr "Remove icon"
 
 msgid "Remove image"
 msgstr "Remove image"
-
-msgid "Remove linked issue"
-msgstr "Remove linked issue"
-
-msgid "Remove linked PR"
-msgstr "Remove linked PR"
 
 msgid "Remove member"
 msgstr "Remove member"
@@ -14583,9 +14489,6 @@ msgstr "Run on a schedule or on events, run on demand, pause, resume, and read l
 msgid "Run script"
 msgstr "Run script"
 
-msgid "Run setup script"
-msgstr "Run setup script"
-
 msgid "Run setup script in each imported workspace"
 msgstr "Run setup script in each imported workspace"
 
@@ -14901,9 +14804,6 @@ msgstr "Search history"
 msgid "Search in {frameTitle}…"
 msgstr "Search in {frameTitle}…"
 
-msgid "Search issues..."
-msgstr "Search issues..."
-
 msgid "Search labels..."
 msgstr "Search labels..."
 
@@ -14945,9 +14845,6 @@ msgstr "Search projects…"
 
 msgid "Search pull requests"
 msgstr "Search pull requests"
-
-msgid "Search pull requests..."
-msgstr "Search pull requests..."
 
 msgid "Search pull requests…"
 msgstr "Search pull requests…"
@@ -15008,12 +14905,6 @@ msgstr "Searched for tooltip overrides"
 
 msgid "Searching for Kbd usages"
 msgstr "Searching for Kbd usages"
-
-msgid "Searching..."
-msgstr "Searching..."
-
-msgid "Searching…"
-msgstr "Searching…"
 
 msgid "Secondary"
 msgstr "Secondary"
@@ -15566,9 +15457,6 @@ msgstr "Show Borders"
 
 msgid "Show checks"
 msgstr "Show checks"
-
-msgid "Show closed"
-msgstr "Show closed"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Show CPU and memory usage in the top bar"
@@ -18798,12 +18686,6 @@ msgstr "user@example.com"
 msgid "user@host, ssh://user@host:2222, or an ssh config alias"
 msgstr "user@host, ssh://user@host:2222, or an ssh config alias"
 
-msgid "Using random branch name (AI generation timed out)"
-msgstr "Using random branch name (AI generation timed out)"
-
-msgid "Using random branch name (AI generation unavailable)"
-msgstr "Using random branch name (AI generation unavailable)"
-
 msgid "v2ProjectId does not match the workspace's project"
 msgstr "v2ProjectId does not match the workspace's project"
 
@@ -19406,9 +19288,6 @@ msgstr "Workspace archived"
 msgid "Workspace created"
 msgstr "Workspace created"
 
-msgid "Workspace created from PR"
-msgstr "Workspace created from PR"
-
 msgid "Workspace details"
 msgstr "Workspace details"
 
@@ -19423,9 +19302,6 @@ msgstr "Workspace layout"
 
 msgid "Workspace name"
 msgstr "Workspace name"
-
-msgid "Workspace name (optional)"
-msgstr "Workspace name (optional)"
 
 msgid "Workspace not found"
 msgstr "Workspace not found"
@@ -19495,9 +19371,6 @@ msgstr "Worktree missing"
 
 msgid "Worktree on this device"
 msgstr "Worktree on this device"
-
-msgid "Worktree opened"
-msgstr "Worktree opened"
 
 msgid "Worktree out of sync"
 msgstr "Worktree out of sync"
