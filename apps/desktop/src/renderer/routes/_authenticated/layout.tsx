@@ -29,6 +29,7 @@ import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
 import { DaemonAutoUpdateFailureDialog } from "renderer/routes/_authenticated/components/DaemonAutoUpdateFailureDialog";
 import { DiffThemeSync } from "renderer/routes/_authenticated/components/DiffThemeSync";
 import { LeaderboardAutoPublish } from "renderer/routes/_authenticated/components/LeaderboardAutoPublish";
+import { OrganizationPluginSync } from "renderer/routes/_authenticated/components/OrganizationPluginSync";
 import { PendingDeletionScreen } from "renderer/routes/_authenticated/components/PendingDeletionScreen";
 import { RealtimeNudges } from "renderer/routes/_authenticated/components/RealtimeNudges";
 import { StarNagObserver } from "renderer/routes/_authenticated/components/StarNagObserver";
@@ -325,6 +326,7 @@ function AuthenticatedLayout() {
 								<DockBadgeController />
 								<StarNagObserver />
 								<LeaderboardAutoPublish />
+								<OrganizationPluginSync />
 								<RealtimeNudges />
 								<DaemonAutoUpdateFailureDialog />
 								<Outlet />

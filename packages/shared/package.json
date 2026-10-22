@@ -429,6 +429,10 @@
 			"types": "./src/themes/types.ts",
 			"default": "./src/themes/types.ts"
 		},
+		"./plugins/bundle": {
+			"types": "./src/plugins/bundle.ts",
+			"default": "./src/plugins/bundle.ts"
+		},
 		"./plugins/manifest-schema": {
 			"types": "./src/plugins/manifest-schema.ts",
 			"default": "./src/plugins/manifest-schema.ts"

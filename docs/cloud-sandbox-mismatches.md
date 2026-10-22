@@ -649,6 +649,30 @@ provider secret — has to go through the resolver instead: a `--require`
 preload patching `dns.lookup` for Node, `--host-resolver-rules` for Chrome.
 Binding 443 and using sudo otherwise work.
 
+## The desktop dev build's bundled CLI thinks it is in a sandbox — open
+
+Found verifying organization plugins in the desktop dev build, 2026-10-22.
+
+**The app assumes:** the desktop runs its bundled `superset` CLI on a person's
+machine, so `plugins install`, `uninstall` and `sync` (all `sandbox: false`)
+are there to call.
+
+**A sandbox is:** a box whose environment carries
+`SUPERSET_SANDBOX_WORKSPACE_ID` and `IS_SANDBOX`, which the desktop dev build
+inherits from `dev-stack.cloud.sh` and passes to the CLI it spawns. The CLI
+then hides every machine-only command, and each plugin action logs
+`Unknown command: install` while the UI reports success. A desktop started
+from an agent's shell also inherits `ELECTRON_RUN_AS_NODE=1` and dies at
+`electron.app.commandLine` before a window opens.
+
+**What we did:** started the desktop window with
+`unset ELECTRON_RUN_AS_NODE SUPERSET_SANDBOX_WORKSPACE_ID IS_SANDBOX`, after
+which plugin installs reached `superset-dev-data/plugins`. Nothing in
+`dev-stack.cloud.sh` does that yet. The box also has no object store for
+`R2_ENDPOINT` (`localhost:9000`): Docker Hub refuses `minio/minio` and
+MinIO's binary download answers 410, so an in-memory S3 stand-in on that port
+was used for the test.
+
 ## Shared memory is 64 MB
 
 **The app assumes:** `/dev/shm` is sized like a desktop (half of RAM). Chromium

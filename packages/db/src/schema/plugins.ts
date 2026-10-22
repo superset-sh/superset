@@ -1,3 +1,4 @@
+import type { OrganizationPluginPolicy } from "@superset/shared/plugins";
 import {
 	boolean,
 	index,
@@ -90,6 +91,46 @@ export const pluginMarketplaces = pgTable(
 export type InsertPluginMarketplace = typeof pluginMarketplaces.$inferInsert;
 export type SelectPluginMarketplace = typeof pluginMarketplaces.$inferSelect;
 
+export const organizationPluginSources = pgTable(
+	"organization_plugin_sources",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+
+		repo: text().notNull(),
+		ref: text(),
+		path: text().notNull().default(""),
+
+		syncedSha: text("synced_sha"),
+		syncedAt: timestamp("synced_at"),
+		syncError: text("sync_error"),
+
+		addedByUserId: uuid("added_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		uniqueIndex("organization_plugin_sources_organization_repo_path_unique").on(
+			table.organizationId,
+			table.repo,
+			table.path,
+		),
+	],
+);
+
+export type InsertOrganizationPluginSource =
+	typeof organizationPluginSources.$inferInsert;
+export type SelectOrganizationPluginSource =
+	typeof organizationPluginSources.$inferSelect;
+
 export const organizationPlugins = pgTable(
 	"organization_plugins",
 	{
@@ -97,15 +138,21 @@ export const organizationPlugins = pgTable(
 		organizationId: uuid("organization_id")
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
+		sourceId: uuid("source_id").references(() => organizationPluginSources.id, {
+			onDelete: "cascade",
+		}),
 
 		name: text().notNull(),
 		version: text().notNull(),
 		manifest: jsonb().notNull(),
+		/** SHA-256 of the plugin's bundle, which is also its R2 key. */
+		contentHash: text("content_hash").notNull(),
 
-		uploadedByUserId: uuid("uploaded_by_user_id").references(() => users.id, {
-			onDelete: "set null",
-		}),
-		publishedAt: timestamp("published_at"),
+		installPolicy: jsonb("install_policy")
+			.$type<OrganizationPluginPolicy>()
+			.notNull()
+			.default({}),
+		removedFromSourceAt: timestamp("removed_from_source_at"),
 
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at")
@@ -118,6 +165,7 @@ export const organizationPlugins = pgTable(
 			table.organizationId,
 			table.name,
 		),
+		index("organization_plugins_source_idx").on(table.sourceId),
 	],
 );
 

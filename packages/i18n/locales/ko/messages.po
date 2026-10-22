@@ -387,6 +387,7 @@ msgstr "{0}은(는) 아직 이 방식으로 로그인할 수 없습니다."
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "{0}명의 개발자가 에이전트 사용량으로 순위에 올라 있습니다. 최근 30일 사용량은 이미 집계되어 있고 숨겨져 있을 뿐입니다. 토큰 수와 모델 이름만 공개되며 저장소 이름, 파일 경로, 프롬프트는 포함되지 않습니다."
 
+#. placeholder {0}: displayName(name)
 #. placeholder {0}: variables.name
 msgid "{0} disabled"
 msgstr "{0} 비활성화됨"
@@ -927,6 +928,9 @@ msgstr "{kind} · 제작 {author}"
 
 msgid "{kindLabel} theme"
 msgstr "{kindLabel} 테마"
+
+msgid "{label} access to {pluginName}"
+msgstr "{label}의 {pluginName} 접근 권한"
 
 msgid "{label} in cloud workspaces"
 msgstr "클라우드 워크스페이스의 {label}"
@@ -1848,6 +1852,9 @@ msgstr "워크스페이스에 추가"
 msgid "Add your own terminal agent to this device."
 msgstr "이 기기에 직접 만든 터미널 에이전트를 추가합니다."
 
+msgid "Added {added}"
+msgstr "{added} 추가됨"
+
 msgid "Added {added} files to {where}"
 msgstr "{where}에 파일 {added}개를 추가했습니다"
 
@@ -1863,6 +1870,9 @@ msgstr "에이전트 입력란에 추가됨"
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
 msgstr "{organizationName}에 사람을 추가하려면 유료 플랜이 필요합니다. 조직의 플랜은 소유자가 {0}에서 관리합니다."
+
+msgid "Adding..."
+msgstr "추가 중..."
 
 msgid "Address Comments with Agent"
 msgstr "에이전트로 코멘트 처리"
@@ -2860,6 +2870,13 @@ msgstr "자율 티켓-투-PR 파이프라인"
 msgid "Available"
 msgstr "사용 가능"
 
+msgctxt "plugin access"
+msgid "Available"
+msgstr "사용 가능"
+
+msgid "Available plugins show on each role's Plugins page. Installed plugins are installed for everyone in the role, who can disable but not remove them."
+msgstr "사용 가능한 플러그인은 각 역할의 플러그인 페이지에 표시됩니다. 설치된 플러그인은 해당 역할의 모든 사람에게 설치되며, 비활성화할 수는 있지만 제거할 수는 없습니다."
+
 msgid "Avatar"
 msgstr "아바타"
 
@@ -3123,6 +3140,9 @@ msgstr "브랜치 이름을 사용할 수 없습니다"
 
 msgid "Branch names cannot end with a space."
 msgstr "브랜치 이름은 공백으로 끝날 수 없습니다."
+
+msgid "Branch or tag (optional)"
+msgstr "브랜치 또는 태그(선택 사항)"
 
 msgid "Branch prefix"
 msgstr "브랜치 접두사"
@@ -4883,6 +4903,9 @@ msgstr "실제 비용: $0"
 msgid "Could not add agent"
 msgstr "에이전트를 추가하지 못했습니다"
 
+msgid "Could not add repository"
+msgstr "리포지토리를 추가할 수 없습니다"
+
 msgid "Could not answer the agent"
 msgstr "에이전트에 응답할 수 없습니다"
 
@@ -4900,6 +4923,9 @@ msgstr "모드를 변경할 수 없습니다"
 
 msgid "Could not change the shared version"
 msgstr "공유 버전을 변경할 수 없습니다"
+
+msgid "Could not change who gets this plugin"
+msgstr "이 플러그인을 받을 대상을 변경할 수 없습니다"
 
 msgid "Could not change who has access"
 msgstr "접근 권한이 있는 사람을 변경할 수 없습니다"
@@ -4942,6 +4968,9 @@ msgstr "파일을 삭제할 수 없습니다"
 
 msgid "Could not delete this page"
 msgstr "이 페이지를 삭제할 수 없습니다"
+
+msgid "Could not disable plugin"
+msgstr "플러그인을 비활성화할 수 없습니다"
 
 msgid "Could not disconnect."
 msgstr "연결을 해제하지 못했습니다."
@@ -5058,6 +5087,9 @@ msgstr "환경을 저장할 수 없습니다"
 msgid "Could not remove access"
 msgstr "접근 권한을 제거할 수 없습니다"
 
+msgid "Could not remove repository"
+msgstr "리포지토리를 제거할 수 없습니다"
+
 msgid "Could not rename the session"
 msgstr "세션 이름을 변경할 수 없습니다"
 
@@ -5126,6 +5158,9 @@ msgstr "감시를 중지할 수 없습니다"
 
 msgid "Could not submit prompt. Try again."
 msgstr "프롬프트를 제출할 수 없습니다. 다시 시도하세요."
+
+msgid "Could not sync"
+msgstr "동기화할 수 없습니다"
 
 msgid "Could not take a screenshot"
 msgstr "스크린샷을 찍을 수 없습니다"
@@ -5837,6 +5872,9 @@ msgstr "기본값({defaultWorktreePath})"
 msgid "Default base for new workspaces. Override per-workspace at creation."
 msgstr "새 작업 공간의 기본 기준 브랜치입니다. 생성 시 작업 공간별로 변경할 수 있습니다."
 
+msgid "Default branch"
+msgstr "기본 브랜치"
+
 msgid "Default effort"
 msgstr "기본 강도"
 
@@ -6234,6 +6272,9 @@ msgstr "다이렉트 모드"
 
 msgid "Directory"
 msgstr "디렉터리"
+
+msgid "Disable"
+msgstr "비활성화"
 
 msgid "Disable skill"
 msgstr "스킬 비활성화"
@@ -8167,6 +8208,9 @@ msgstr "GitHub 요청 한도에 도달했습니다"
 msgid "GitHub refused the merge"
 msgstr "GitHub가 머지를 거부했습니다"
 
+msgid "GitHub repositories with a plugin marketplace file. Superset syncs their plugins into your organization."
+msgstr "플러그인 마켓플레이스 파일이 있는 GitHub 리포지토리입니다. Superset이 해당 플러그인을 조직에 동기화합니다."
+
 msgid "GitHub sign-in needed"
 msgstr "GitHub 로그인이 필요합니다"
 
@@ -8190,6 +8234,9 @@ msgstr "예시를 보여주세요"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "어디에 사용하는 키인지 알 수 있도록 설명이 담긴 이름을 지정하세요."
+
+msgid "Give your organization its own plugins from a GitHub repository. You choose who gets each one."
+msgstr "GitHub 저장소에서 조직만의 플러그인을 추가하세요. 각 플러그인을 누가 받을지 선택할 수 있습니다."
 
 msgid "Globe"
 msgstr "지구본"
@@ -8972,6 +9019,13 @@ msgstr "모든 워크스페이스의 MCP 서버를 한곳에서 설치하고, �
 msgid "Install."
 msgstr "설치."
 
+msgctxt "plugin access"
+msgid "Installed"
+msgstr "설치됨"
+
+msgid "Installed by your organization"
+msgstr "조직에서 설치함"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceHasInstalls"
 msgstr "설치된 플러그인이 {name}에서 왔습니다: {plugins}. 먼저 제거하세요."
@@ -9210,6 +9264,9 @@ msgstr "연결된 계정의 연결이 해제되었습니다."
 
 msgid "Its own branch and copy of the files"
 msgstr "독립된 브랜치와 파일 사본"
+
+msgid "Its plugins appear when the sync finishes."
+msgstr "동기화가 끝나면 플러그인이 표시됩니다."
 
 msgid "Its replies go with it."
 msgstr "답글도 함께 삭제됩니다."
@@ -11119,6 +11176,9 @@ msgstr "아직 로그가 없습니다"
 msgid "no logins"
 msgstr "로그인 없음"
 
+msgid "No longer in source"
+msgstr "소스에 더 이상 없음"
+
 msgid "No match"
 msgstr "일치 항목 없음"
 
@@ -11216,6 +11276,9 @@ msgstr "아직 사용할 수 있는 플러그인이 없습니다."
 msgid "No plugins match \"{0}\""
 msgstr "\"{0}\"과(와) 일치하는 플러그인이 없습니다"
 
+msgid "No plugins yet. Add a repository to sync them."
+msgstr "아직 플러그인이 없습니다. 리포지토리를 추가해 동기화하세요."
+
 msgid "No posts yet."
 msgstr "아직 게시물이 없습니다."
 
@@ -11290,6 +11353,9 @@ msgstr "{url}에 릴리스 노트가 없습니다"
 
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "리포지토리를 찾을 수 없습니다. GitHub App이 리포지토리에 접근할 수 있는지 확인하세요."
+
+msgid "No repositories yet."
+msgstr "아직 리포지토리가 없습니다."
 
 msgid "No repositories. Connect GitHub in Integrations, then refresh."
 msgstr "리포지토리가 없습니다. 통합에서 GitHub를 연결한 후 새로 고침하세요."
@@ -11549,6 +11615,9 @@ msgstr "이 호스트에 설정되지 않음"
 msgid "not sorted"
 msgstr "정렬 안 됨"
 
+msgid "Not synced yet"
+msgstr "아직 동기화되지 않음"
+
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "업데이트 없음"
@@ -11772,6 +11841,9 @@ msgstr "호스트 소유자 또는 조직 소유자만 이 호스트를 삭제�
 
 msgid "Only images can be attached to a comment"
 msgstr "댓글에는 이미지만 첨부할 수 있습니다"
+
+msgid "Only organization owners and admins can manage plugins."
+msgstr "조직 소유자와 관리자만 플러그인을 관리할 수 있습니다."
 
 msgid "Only organization owners can modify these settings."
 msgstr "조직 소유자만 이 설정을 변경할 수 있습니다."
@@ -12374,6 +12446,9 @@ msgstr "조직을 찾을 수 없습니다"
 msgid "Organization not found."
 msgstr "조직을 찾을 수 없습니다."
 
+msgid "Organization plugins"
+msgstr "조직 플러그인"
+
 msgid "Organization slug"
 msgstr "조직 슬러그"
 
@@ -12617,6 +12692,9 @@ msgstr "Superset CLI에 붙여 넣으세요:"
 msgid "Path"
 msgstr "경로"
 
+msgid "Path (optional)"
+msgstr "경로(선택 사항)"
+
 msgid "Path copied"
 msgstr "경로 복사됨"
 
@@ -12757,6 +12835,9 @@ msgstr "프로젝트 위치를 선택하세요"
 msgid "Pick a reason"
 msgstr "사유를 선택하세요"
 
+msgid "Pick a repository with a plugin marketplace file. Superset syncs its plugins now and each time you sync again."
+msgstr "플러그인 마켓플레이스 파일이 있는 리포지토리를 선택하세요. Superset이 지금 그리고 다시 동기화할 때마다 플러그인을 동기화합니다."
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "소리를 고르거나 직접 추가하세요. 사용자 지정 오디오는 .mp3, .wav, .ogg를 지원합니다."
 
@@ -12883,6 +12964,9 @@ msgstr "다시 시도하거나 해당 기기에서 Superset을 다시 시작해 
 msgid "Please try signing in again from the desktop app."
 msgstr "데스크톱 앱에서 다시 로그인해 주세요."
 
+msgid "Plugin"
+msgstr "플러그인"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.noApiKeyAuth"
 msgstr "플러그인 {plugin}은(는) api_key 인증을 사용하지 않습니다"
@@ -12896,6 +12980,9 @@ msgstr "플러그인 마켓플레이스"
 
 msgid "Plugins"
 msgstr "플러그인"
+
+msgid "Plugins update when the sync finishes."
+msgstr "동기화가 끝나면 플러그인이 업데이트됩니다."
 
 msgid "Point at the page. Your agent makes the change."
 msgstr "페이지를 가리키면 에이전트가 변경합니다."
@@ -13734,6 +13821,9 @@ msgstr "동작 줄이기"
 msgid "Reduce Transparency"
 msgstr "투명도 줄이기"
 
+msgid "Ref {ref} · Path {path}"
+msgstr "Ref {ref} · 경로 {path}"
+
 msgid "Referenced, not demoed"
 msgstr "참조만 하고 시연하지 않음"
 
@@ -13849,6 +13939,7 @@ msgid "Remove"
 msgstr "제거"
 
 #. placeholder {0}: member.name
+#. placeholder {0}: source.repo
 msgid "Remove {0}"
 msgstr "{0} 제거"
 
@@ -13857,6 +13948,9 @@ msgstr "{label} 제거"
 
 msgid "Remove {label}?"
 msgstr "{label}을(를) 제거할까요?"
+
+msgid "Remove {repo}? Every plugin synced from it is removed from your organization."
+msgstr "{repo}을(를) 제거할까요? 여기서 동기화된 모든 플러그인이 조직에서 제거됩니다."
 
 msgid "Remove {repositoryName}"
 msgstr "{repositoryName} 제거"
@@ -13908,6 +14002,9 @@ msgstr "PR 링크 제거"
 
 msgid "Remove queued message"
 msgstr "대기 중인 메시지 삭제"
+
+msgid "Remove repository"
+msgstr "리포지토리 제거"
 
 msgid "Remove script"
 msgstr "스크립트 제거"
@@ -14106,6 +14203,12 @@ msgstr "리포지토리: {label}"
 
 msgid "Repository"
 msgstr "리포지토리"
+
+msgid "Repository removed"
+msgstr "리포지토리를 제거했습니다"
+
+msgid "Repository root"
+msgstr "리포지토리 루트"
 
 msgid "Repository URL or path"
 msgstr "리포지토리 URL 또는 경로"
@@ -15168,6 +15271,9 @@ msgstr "풀 리퀘스트를 보려면 프로젝트를 선택하세요."
 
 msgid "Select a pull request to preview it here."
 msgstr "풀 리퀘스트를 선택하면 여기에서 미리 볼 수 있습니다."
+
+msgid "Select a repository"
+msgstr "리포지토리 선택"
 
 msgid "Select a team"
 msgstr "팀 선택"
@@ -16922,11 +17028,23 @@ msgstr "Linear와 이슈를 양방향으로 동기화합니다."
 msgid "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 msgstr "Linear와 이슈를 양방향으로 동기화하세요. Superset에서 만든 작업을 Linear에 나타나게 하거나 기존 Linear 이슈를 가져올 수 있습니다."
 
+msgid "Sync now"
+msgstr "지금 동기화"
+
+msgid "Sync plugins from your GitHub repositories and choose who can install them."
+msgstr "GitHub 리포지토리에서 플러그인을 동기화하고 설치할 수 있는 사람을 선택하세요."
+
 msgid "Sync Repositories"
 msgstr "리포지토리 동기화"
 
+msgid "Sync requested"
+msgstr "동기화 요청됨"
+
 msgid "Sync started"
 msgstr "동기화를 시작했습니다"
+
+msgid "Synced {syncedAgo}"
+msgstr "{syncedAgo} 동기화됨"
 
 msgid "Syncing..."
 msgstr "동기화하는 중..."
@@ -17259,6 +17377,10 @@ msgstr "해당 머신을 더 이상 사용할 수 없습니다"
 msgid "That name isn't allowed."
 msgstr "사용할 수 없는 이름입니다."
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.unknownPluginSource"
+msgstr "해당 플러그인 소스가 없습니다"
+
 msgid "That run is missed and isn't retried. Use Run now to start it later."
 msgstr "해당 실행은 건너뛰며 재시도하지 않습니다. 나중에 지금 실행으로 시작하세요."
 
@@ -17373,6 +17495,9 @@ msgstr "최초의 F4 팀"
 msgid "The first teams, small ones, ship majority-agent code without reading every line, and their defect rates hold. Nothing mystical behind it: review layers, canaries, fast rollback, and a habit of writing specifications instead of code."
 msgstr "규모가 작은 선발 팀들이 모든 줄을 읽지 않고도 대부분 에이전트가 쓴 코드를 출시하고, 결함률은 그대로 유지됩니다. 신비로운 비결은 없습니다. 리뷰 계층, 카나리, 빠른 롤백, 그리고 코드 대신 명세를 쓰는 습관입니다."
 
+msgid "The folder that holds the marketplace file, if it is not at the root."
+msgstr "마켓플레이스 파일이 루트에 없는 경우 해당 파일이 있는 폴더입니다."
+
 msgid "The following folders are not git repositories. Would you like to initialize them?"
 msgstr "다음 폴더는 git 저장소가 아닙니다. 초기화할까요?"
 
@@ -17390,6 +17515,9 @@ msgstr "완전한 워크스페이스. 에이전트를 병렬로 실행하고, �
 
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "재사용 가능한 Superset 에이전트 설정, 프롬프트, 셋업 가이드가 모일 공간입니다."
+
+msgid "The GitHub App cannot see any repositories yet. Give it access on GitHub, then try again."
+msgstr "GitHub App이 아직 리포지토리를 볼 수 없습니다. GitHub에서 접근 권한을 준 다음 다시 시도하세요."
 
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
@@ -17497,6 +17625,10 @@ msgstr "찾으시는 페이지가 존재하지 않습니다."
 
 msgid "The pane uses your real logins. Agents ask you before they take a consequential action."
 msgstr "패널은 실제 로그인 상태를 사용합니다. 에이전트는 중요한 작업을 하기 전에 먼저 확인을 요청합니다."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourcePathOutside"
+msgstr "경로는 리포지토리 안에 있어야 합니다"
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "프로젝트의 체크아웃을 그대로 사용: 파일과 브랜치가 공유됩니다"
@@ -18438,6 +18570,10 @@ msgstr "무인 야간 실행, 아침에 머지 가능"
 msgid "Unattended runs of 8 hours or more succeed on a majority of routine tickets without a human unblocking them."
 msgstr "8시간 이상 무인으로 실행한 작업이 사람이 막힌 곳을 풀어 주지 않아도 일상적인 티켓 대부분에서 성공합니다."
 
+msgid "Unavailable"
+msgstr "사용할 수 없음"
+
+msgctxt "plugin access"
 msgid "Unavailable"
 msgstr "사용할 수 없음"
 
@@ -19841,6 +19977,10 @@ msgstr "첫 번째 에이전트"
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "GitHub 계정이 이 환경의 리포지토리에 접근할 수 없습니다"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourceOutOfReach"
+msgstr "GitHub 계정으로 {repo}을(를) 읽을 수 없습니다"
+
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "GitHub 링크는 로그인에 사용한 계정에서 가져오므로 확인됨으로 표시되며 여기서는 수정할 수 없습니다."
 
@@ -19853,8 +19993,21 @@ msgstr "이름"
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "이름 <0>(프롬프트를 채택하면 변경 로그에 이름을 남겨 드립니다)</0>"
 
+msgid "Your organization"
+msgstr "내 조직"
+
+msgid "Your organization has not connected GitHub yet. Install the GitHub App in <0>Settings › Integrations</0>, then come back."
+msgstr "조직이 아직 GitHub를 연결하지 않았습니다. <0>설정 › 연동</0>에서 GitHub App을 설치한 다음 돌아오세요."
+
 msgid "Your organization has reached its cloud usage limit. Raise the limit or upgrade in Settings, Billing to start this workspace."
 msgstr "조직이 클라우드 사용 한도에 도달했습니다. 이 워크스페이스를 시작하려면 설정의 결제에서 한도를 올리거나 업그레이드하세요."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.managedByOrganization"
+msgstr "조직에서 {plugin}을(를) 대신 설치하므로 제거할 수 없습니다. 비활성화할 수는 있습니다."
+
+msgid "Your organization installs this plugin for you. You can disable it, but not remove it."
+msgstr "조직에서 이 플러그인을 대신 설치합니다. 비활성화할 수는 있지만 제거할 수는 없습니다."
 
 msgid "Your organization reached its cloud usage limit. This workspace stops in a few minutes unless the limit is raised."
 msgstr "조직이 클라우드 사용 한도에 도달했습니다. 한도를 올리지 않으면 이 워크스페이스는 몇 분 후에 중지됩니다."

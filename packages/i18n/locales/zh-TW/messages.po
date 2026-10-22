@@ -387,6 +387,7 @@ msgstr "{0}還不能用這種方式登入。"
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "已有 {0} 位開發者依 agent 用量排名。你最近 30 天的資料已計入，只是尚未公開。僅包含 token 數量與模型名稱，不含儲存庫名稱、檔案路徑或提示詞。"
 
+#. placeholder {0}: displayName(name)
 #. placeholder {0}: variables.name
 msgid "{0} disabled"
 msgstr "{0}已停用"
@@ -927,6 +928,9 @@ msgstr "{kind} · 作者{author}"
 
 msgid "{kindLabel} theme"
 msgstr "{kindLabel}主題"
+
+msgid "{label} access to {pluginName}"
+msgstr "{label} 對 {pluginName} 的存取權限"
 
 msgid "{label} in cloud workspaces"
 msgstr "雲端工作區中的{label}"
@@ -1848,6 +1852,9 @@ msgstr "新增到工作區"
 msgid "Add your own terminal agent to this device."
 msgstr "向此裝置新增你自己的終端代理程式。"
 
+msgid "Added {added}"
+msgstr "已新增 {added}"
+
 msgid "Added {added} files to {where}"
 msgstr "已向{where}新增{added}個檔案"
 
@@ -1863,6 +1870,9 @@ msgstr "已加入代理程式輸入框"
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
 msgstr "將成員加入 {organizationName} 需要付費方案。你組織的方案由其擁有者在 {0} 管理。"
+
+msgid "Adding..."
+msgstr "正在新增..."
 
 msgid "Address Comments with Agent"
 msgstr "用代理程式處理評論"
@@ -2860,6 +2870,13 @@ msgstr "工單到PR的自主流水線"
 msgid "Available"
 msgstr "可用"
 
+msgctxt "plugin access"
+msgid "Available"
+msgstr "可用"
+
+msgid "Available plugins show on each role's Plugins page. Installed plugins are installed for everyone in the role, who can disable but not remove them."
+msgstr "可用的外掛會顯示在各角色的外掛頁面上。已安裝的外掛會為該角色的所有人安裝，他們可以停用但不能移除。"
+
 msgid "Avatar"
 msgstr "頭像"
 
@@ -3123,6 +3140,9 @@ msgstr "分支名不可用"
 
 msgid "Branch names cannot end with a space."
 msgstr "分支名不能以空格結尾。"
+
+msgid "Branch or tag (optional)"
+msgstr "分支或標籤（選填）"
 
 msgid "Branch prefix"
 msgstr "分支字首"
@@ -4883,6 +4903,9 @@ msgstr "你的費用：$0"
 msgid "Could not add agent"
 msgstr "無法新增代理程式"
 
+msgid "Could not add repository"
+msgstr "無法新增儲存庫"
+
 msgid "Could not answer the agent"
 msgstr "無法回覆代理程式"
 
@@ -4900,6 +4923,9 @@ msgstr "無法變更模式"
 
 msgid "Could not change the shared version"
 msgstr "無法更改分享的版本"
+
+msgid "Could not change who gets this plugin"
+msgstr "無法變更此外掛的取得對象"
 
 msgid "Could not change who has access"
 msgstr "無法變更有存取權限的人"
@@ -4942,6 +4968,9 @@ msgstr "無法刪除檔案"
 
 msgid "Could not delete this page"
 msgstr "無法刪除這個頁面"
+
+msgid "Could not disable plugin"
+msgstr "無法停用外掛"
 
 msgid "Could not disconnect."
 msgstr "無法中斷連線。"
@@ -5058,6 +5087,9 @@ msgstr "無法儲存環境"
 msgid "Could not remove access"
 msgstr "無法移除存取權限"
 
+msgid "Could not remove repository"
+msgstr "無法移除儲存庫"
+
 msgid "Could not rename the session"
 msgstr "無法重新命名會話"
 
@@ -5126,6 +5158,9 @@ msgstr "無法停止關注"
 
 msgid "Could not submit prompt. Try again."
 msgstr "無法提交提示詞。請重試。"
+
+msgid "Could not sync"
+msgstr "無法同步"
 
 msgid "Could not take a screenshot"
 msgstr "無法截圖"
@@ -5837,6 +5872,9 @@ msgstr "預設（{defaultWorktreePath}）"
 msgid "Default base for new workspaces. Override per-workspace at creation."
 msgstr "新工作區的預設基底分支。可在建立時為各工作區個別覆寫。"
 
+msgid "Default branch"
+msgstr "預設分支"
+
 msgid "Default effort"
 msgstr "預設推理強度"
 
@@ -6234,6 +6272,9 @@ msgstr "直接模式"
 
 msgid "Directory"
 msgstr "目錄"
+
+msgid "Disable"
+msgstr "停用"
 
 msgid "Disable skill"
 msgstr "停用技能"
@@ -8167,6 +8208,9 @@ msgstr "已達到 GitHub 速率限制"
 msgid "GitHub refused the merge"
 msgstr "GitHub拒絕了此次合併"
 
+msgid "GitHub repositories with a plugin marketplace file. Superset syncs their plugins into your organization."
+msgstr "包含外掛市集檔案的 GitHub 儲存庫。Superset 會將其中的外掛同步到你的組織。"
+
 msgid "GitHub sign-in needed"
 msgstr "需要登入 GitHub"
 
@@ -8190,6 +8234,9 @@ msgstr "給我一個範例"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "給金鑰起一個描述性的名稱，方便記住它用在哪裡。"
+
+msgid "Give your organization its own plugins from a GitHub repository. You choose who gets each one."
+msgstr "從 GitHub 儲存庫為你的組織加入專屬外掛。由你決定每個外掛提供給誰。"
 
 msgid "Globe"
 msgstr "地球"
@@ -8972,6 +9019,13 @@ msgstr "在一處為所有工作區安裝、授權並劃定MCP伺服器的權限
 msgid "Install."
 msgstr "安裝。"
 
+msgctxt "plugin access"
+msgid "Installed"
+msgstr "已安裝"
+
+msgid "Installed by your organization"
+msgstr "由你的組織安裝"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceHasInstalls"
 msgstr "已安裝的外掛來自 {name}：{plugins}。請先移除它們。"
@@ -9210,6 +9264,9 @@ msgstr "其已連接的帳號已中斷連線。"
 
 msgid "Its own branch and copy of the files"
 msgstr "獨立的分支和檔案副本"
+
+msgid "Its plugins appear when the sync finishes."
+msgstr "同步完成後，其外掛會顯示出來。"
 
 msgid "Its replies go with it."
 msgstr "其回覆也會一併刪除。"
@@ -11119,6 +11176,9 @@ msgstr "尚無記錄"
 msgid "no logins"
 msgstr "無登入資訊"
 
+msgid "No longer in source"
+msgstr "已不在來源中"
+
 msgid "No match"
 msgstr "無匹配項"
 
@@ -11216,6 +11276,9 @@ msgstr "尚無可用的外掛。"
 msgid "No plugins match \"{0}\""
 msgstr "沒有匹配「{0}」的外掛"
 
+msgid "No plugins yet. Add a repository to sync them."
+msgstr "尚無外掛。新增一個儲存庫來同步外掛。"
+
 msgid "No posts yet."
 msgstr "暫無文章。"
 
@@ -11290,6 +11353,9 @@ msgstr "{url} 上沒有版本說明"
 
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "未找到儲存庫。請確認你的GitHub App有權存取儲存庫。"
+
+msgid "No repositories yet."
+msgstr "尚無儲存庫。"
 
 msgid "No repositories. Connect GitHub in Integrations, then refresh."
 msgstr "沒有儲存庫。請在「整合」中連結 GitHub，然後重新整理。"
@@ -11549,6 +11615,9 @@ msgstr "尚未在此主機上配置"
 msgid "not sorted"
 msgstr "未排序"
 
+msgid "Not synced yet"
+msgstr "尚未同步"
+
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "未更新"
@@ -11772,6 +11841,9 @@ msgstr "只有主機擁有者或組織擁有者才能刪除此主機"
 
 msgid "Only images can be attached to a comment"
 msgstr "評論只能附加圖片"
+
+msgid "Only organization owners and admins can manage plugins."
+msgstr "只有組織擁有者和管理員可以管理外掛。"
 
 msgid "Only organization owners can modify these settings."
 msgstr "只有組織擁有者可以修改這些設定。"
@@ -12374,6 +12446,9 @@ msgstr "未找到組織"
 msgid "Organization not found."
 msgstr "找不到該組織。"
 
+msgid "Organization plugins"
+msgstr "組織外掛"
+
 msgid "Organization slug"
 msgstr "組織slug"
 
@@ -12617,6 +12692,9 @@ msgstr "把它貼上到Superset CLI："
 msgid "Path"
 msgstr "路徑"
 
+msgid "Path (optional)"
+msgstr "路徑（選填）"
+
 msgid "Path copied"
 msgstr "已複製路徑"
 
@@ -12757,6 +12835,9 @@ msgstr "請選擇專案位置"
 msgid "Pick a reason"
 msgstr "選擇原因"
 
+msgid "Pick a repository with a plugin marketplace file. Superset syncs its plugins now and each time you sync again."
+msgstr "選擇一個包含外掛市集檔案的儲存庫。Superset 會立即同步其外掛，並在你每次重新同步時再次同步。"
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "選擇一個聲音或新增自己的。自訂音訊支援.mp3、.wav和.ogg。"
 
@@ -12883,6 +12964,9 @@ msgstr "請重試，或在該裝置上重新啟動 Superset。"
 msgid "Please try signing in again from the desktop app."
 msgstr "請從桌面應用程式重新登入。"
 
+msgid "Plugin"
+msgstr "外掛"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.noApiKeyAuth"
 msgstr "外掛 {plugin} 未使用 api_key 認證"
@@ -12896,6 +12980,9 @@ msgstr "外掛市場"
 
 msgid "Plugins"
 msgstr "外掛"
+
+msgid "Plugins update when the sync finishes."
+msgstr "同步完成後外掛會更新。"
 
 msgid "Point at the page. Your agent makes the change."
 msgstr "指向頁面，代理程式來完成修改。"
@@ -13734,6 +13821,9 @@ msgstr "減少動態效果"
 msgid "Reduce Transparency"
 msgstr "減少透明度"
 
+msgid "Ref {ref} · Path {path}"
+msgstr "參照 {ref} · 路徑 {path}"
+
 msgid "Referenced, not demoed"
 msgstr "僅作引用，未做演示"
 
@@ -13849,6 +13939,7 @@ msgid "Remove"
 msgstr "移除"
 
 #. placeholder {0}: member.name
+#. placeholder {0}: source.repo
 msgid "Remove {0}"
 msgstr "移除{0}"
 
@@ -13857,6 +13948,9 @@ msgstr "移除 {label}"
 
 msgid "Remove {label}?"
 msgstr "移除{label}？"
+
+msgid "Remove {repo}? Every plugin synced from it is removed from your organization."
+msgstr "要移除 {repo} 嗎？從中同步的所有外掛都會從你的組織中移除。"
 
 msgid "Remove {repositoryName}"
 msgstr "移除 {repositoryName}"
@@ -13908,6 +14002,9 @@ msgstr "移除PR連結"
 
 msgid "Remove queued message"
 msgstr "移除佇列中的訊息"
+
+msgid "Remove repository"
+msgstr "移除儲存庫"
 
 msgid "Remove script"
 msgstr "移除指令碼"
@@ -14106,6 +14203,12 @@ msgstr "儲存庫：{label}"
 
 msgid "Repository"
 msgstr "儲存庫"
+
+msgid "Repository removed"
+msgstr "已移除儲存庫"
+
+msgid "Repository root"
+msgstr "儲存庫根目錄"
 
 msgid "Repository URL or path"
 msgstr "儲存庫URL或路徑"
@@ -15168,6 +15271,9 @@ msgstr "選擇一個專案來檢視拉取請求。"
 
 msgid "Select a pull request to preview it here."
 msgstr "選擇一個拉取請求，在這裡預覽。"
+
+msgid "Select a repository"
+msgstr "選擇一個儲存庫"
 
 msgid "Select a team"
 msgstr "選擇團隊"
@@ -16922,11 +17028,23 @@ msgstr "與Linear雙向同步議題。"
 msgid "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 msgstr "與Linear雙向同步議題。在Superset中建立任務並讓它們出現在Linear裡，也可以匯入已有的Linear議題。"
 
+msgid "Sync now"
+msgstr "立即同步"
+
+msgid "Sync plugins from your GitHub repositories and choose who can install them."
+msgstr "從你的 GitHub 儲存庫同步外掛，並選擇誰可以安裝它們。"
+
 msgid "Sync Repositories"
 msgstr "同步儲存庫"
 
+msgid "Sync requested"
+msgstr "已要求同步"
+
 msgid "Sync started"
 msgstr "同步已開始"
+
+msgid "Synced {syncedAgo}"
+msgstr "{syncedAgo}同步"
 
 msgid "Syncing..."
 msgstr "正在同步..."
@@ -17259,6 +17377,10 @@ msgstr "該機器已不可用"
 msgid "That name isn't allowed."
 msgstr "該名稱不被允許。"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.unknownPluginSource"
+msgstr "該外掛來源不存在"
+
 msgid "That run is missed and isn't retried. Use Run now to start it later."
 msgstr "這次執行會被錯過，且不會重試。之後可用「立即執行」啟動它。"
 
@@ -17373,6 +17495,9 @@ msgstr "第一批F4團隊"
 msgid "The first teams, small ones, ship majority-agent code without reading every line, and their defect rates hold. Nothing mystical behind it: review layers, canaries, fast rollback, and a habit of writing specifications instead of code."
 msgstr "第一批團隊，規模都不大，在不逐行閱讀的情況下交付了以代理程式為主的程式碼，缺陷率並沒有惡化。背後沒什麼玄學：分層審查、灰度釋出、快速回滾，以及寫規格而不是寫程式碼的習慣。"
 
+msgid "The folder that holds the marketplace file, if it is not at the root."
+msgstr "如果市集檔案不在根目錄，請填寫包含它的資料夾。"
+
 msgid "The following folders are not git repositories. Would you like to initialize them?"
 msgstr "以下資料夾不是git儲存庫。要初始化它們嗎？"
 
@@ -17390,6 +17515,9 @@ msgstr "完整的工作區。平行執行多個 agent，讓每個 agent 各自�
 
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "未來可重複使用的 Superset 代理設定、提示詞與設定指南的集散地。"
+
+msgid "The GitHub App cannot see any repositories yet. Give it access on GitHub, then try again."
+msgstr "GitHub App 還看不到任何儲存庫。請在 GitHub 上授予它存取權限，然後再試一次。"
 
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
@@ -17497,6 +17625,10 @@ msgstr "你要找的頁面不存在。"
 
 msgid "The pane uses your real logins. Agents ask you before they take a consequential action."
 msgstr "窗格使用你真實的登入狀態。代理程式在執行重要操作前會先徵求你的同意。"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourcePathOutside"
+msgstr "路徑必須位於儲存庫內"
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "按原樣使用專案的簽出: 檔案和分支是共用的"
@@ -18438,6 +18570,10 @@ msgstr "無人值守通宵執行，早上可合併"
 msgid "Unattended runs of 8 hours or more succeed on a majority of routine tickets without a human unblocking them."
 msgstr "無人值守執行8小時以上，在多數常規工單上無需人工解阻即可完成。"
 
+msgid "Unavailable"
+msgstr "不可用"
+
+msgctxt "plugin access"
 msgid "Unavailable"
 msgstr "不可用"
 
@@ -19841,6 +19977,10 @@ msgstr "你的第一個代理程式"
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "你的 GitHub 帳戶無法存取此環境中的某個儲存庫"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourceOutOfReach"
+msgstr "你的 GitHub 帳號無法讀取 {repo}"
+
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "你的 GitHub 連結來自登入所用的帳號，因此顯示為已驗證，無法在此編輯。"
 
@@ -19853,8 +19993,21 @@ msgstr "你的姓名"
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "你的名字 <0>（若我們採用你的提示詞，會在更新日誌中署名致謝）</0>"
 
+msgid "Your organization"
+msgstr "你的組織"
+
+msgid "Your organization has not connected GitHub yet. Install the GitHub App in <0>Settings › Integrations</0>, then come back."
+msgstr "你的組織尚未連接 GitHub。請在<0>設定 › 整合</0>中安裝 GitHub App，然後再回來。"
+
 msgid "Your organization has reached its cloud usage limit. Raise the limit or upgrade in Settings, Billing to start this workspace."
 msgstr "你的組織已達到雲端用量上限。請在「設定」中的「帳單」提高上限或升級，以啟動此工作區。"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.managedByOrganization"
+msgstr "你的組織為你安裝了 {plugin}，因此無法解除安裝。你可以停用它。"
+
+msgid "Your organization installs this plugin for you. You can disable it, but not remove it."
+msgstr "你的組織為你安裝了此外掛。你可以停用它，但不能移除。"
 
 msgid "Your organization reached its cloud usage limit. This workspace stops in a few minutes unless the limit is raised."
 msgstr "你的組織已達到雲端用量上限。除非提高上限，此工作區將在幾分鐘後停止。"

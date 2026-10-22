@@ -5,6 +5,7 @@ import {
 	string,
 	table,
 } from "@superset/cli-framework";
+import { isOrganizationMarketplace } from "@superset/shared/plugins";
 import type { ApiClient } from "../../../lib/api-client";
 import { command } from "../../../lib/command";
 import { canReachDesktop, openUrl } from "../../../lib/open-url";
@@ -18,8 +19,10 @@ import {
 import {
 	ensureDefaultMarketplace,
 	installPlugin,
+	listAvailable,
 } from "../../../lib/plugins/install";
 import { syncPluginMcpServers } from "../../../lib/plugins/mcp-servers";
+import { installOrganizationPlugin } from "../../../lib/plugins/organization";
 
 const POLL_INTERVAL_MS = 2_000;
 const POLL_TIMEOUT_MS = 5 * 60_000;
@@ -28,6 +31,39 @@ type ConnectFirst =
 	| { status: "ready"; connection: string }
 	| { status: "authorize"; url: string };
 
+const ORGANIZATION = "organization";
+
+async function organizationPlugin(
+	api: ApiClient,
+	name: string,
+	marketplace: string | undefined,
+) {
+	const named =
+		marketplace === ORGANIZATION ||
+		(marketplace !== undefined && isOrganizationMarketplace(marketplace));
+	if (marketplace && !named) return null;
+	if (!named && listAvailable().some((a) => a.entry.name === name)) return null;
+
+	const plugins = await api.plugins.organization.list.query().catch((error) => {
+		if (named) throw error;
+		return [];
+	});
+	const plugin = plugins.find(
+		(p) =>
+			p.name === name &&
+			(!marketplace ||
+				marketplace === ORGANIZATION ||
+				p.marketplace === marketplace),
+	);
+	if (!plugin && named) {
+		throw new CLIError(
+			`Your organization has no plugin "${name}".`,
+			"See what it has: superset plugins organization list",
+		);
+	}
+	return plugin ?? null;
+}
+
 export default command({
 	sandbox: false,
 	description:
@@ -35,7 +71,9 @@ export default command({
 	args: [
 		positional("plugin")
 			.required()
-			.desc("Plugin name, or name@marketplace to disambiguate"),
+			.desc(
+				"Plugin name, or name@marketplace to disambiguate (name@organization for one your organization published)",
+			),
 	],
 	options: {
 		marketplace: string().desc(
@@ -68,12 +106,14 @@ export default command({
 			options.marketplace as string | undefined,
 		);
 
+		const organization = await organizationPlugin(ctx.api, name, marketplace);
+
 		const connected = options.update
 			? ({ status: "ready", connection: "unchanged" } as const)
 			: await connectFirst({
 					api: ctx.api,
 					name,
-					marketplace,
+					marketplace: organization?.marketplace ?? marketplace,
 					method: options.method as string | undefined,
 					inputs: options.inputs as string | undefined,
 					noWait: Boolean(options.noWait),
@@ -86,18 +126,27 @@ export default command({
 			};
 		}
 
-		const local = await installPlugin(name, marketplace, {
-			update: Boolean(options.update),
-		});
-
+		let local: Awaited<ReturnType<typeof installPlugin>>;
 		let accountError: string | null = null;
-		try {
+
+		if (organization) {
 			await ctx.api.plugins.install.mutate({
 				name,
-				marketplace: local.marketplace,
+				marketplace: organization.marketplace,
 			});
-		} catch (error) {
-			accountError = error instanceof Error ? error.message : String(error);
+			local = await installOrganizationPlugin(ctx.api, name);
+		} else {
+			local = await installPlugin(name, marketplace, {
+				update: Boolean(options.update),
+			});
+			try {
+				await ctx.api.plugins.install.mutate({
+					name,
+					marketplace: local.marketplace,
+				});
+			} catch (error) {
+				accountError = error instanceof Error ? error.message : String(error);
+			}
 		}
 
 		const mcp = syncPluginMcpServers();

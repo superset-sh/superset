@@ -18,6 +18,7 @@ import {
 	SUPERSET_MANAGED_SKILLS,
 } from "@superset/shared/plugins";
 import log from "electron-log/main";
+import { loadToken } from "lib/trpc/routers/auth/utils/auth-functions";
 import { env } from "main/env.main";
 import { resolveBundledCliPath } from "main/lib/bundled-cli";
 import { localDb } from "main/lib/local-db";
@@ -47,10 +48,18 @@ async function runPluginCli(args: string[]): Promise<void> {
 		return;
 	}
 
+	const { token } = await loadToken();
+	const { SUPERSET_ORGANIZATION_ID: _inherited, ...inherited } = process.env;
 	try {
 		await execFileAsync(cli, ["plugins", ...args, "--json"], {
 			timeout: 60_000,
-			env: { ...process.env, SUPERSET_CLI_AUDIENCE: "internal" },
+			// The CLI otherwise signs in as its own login and calls production.
+			env: {
+				...inherited,
+				SUPERSET_CLI_AUDIENCE: "internal",
+				SUPERSET_API_URL: env.NEXT_PUBLIC_API_URL,
+				...(token ? { SUPERSET_API_KEY: token } : {}),
+			},
 		});
 	} catch (error) {
 		log.warn(
@@ -111,6 +120,50 @@ export function uninstallPlugin(name: string): InstalledPlugin[] {
 	saveInstalledPlugins(next);
 	void queuePluginCli(["uninstall", name]);
 	return next;
+}
+
+/** The bundled CLI fetches an organization plugin's tree; skills are written here, where the templates live. */
+function queueOrganizationPluginCli(args: string[]): Promise<void> {
+	return queuePluginCli(args).then(() =>
+		queueManagedSkillsSync(resolveDisabledSkillIds(getDisabledSkills())),
+	);
+}
+
+export function installOrganizationPlugin(name: string): void {
+	void queueOrganizationPluginCli([
+		"install",
+		`${name}@organization`,
+		"--update",
+	]);
+}
+
+export function uninstallOrganizationPlugin(
+	name: string,
+	marketplace: string,
+): void {
+	void queueOrganizationPluginCli([
+		"uninstall",
+		name,
+		"--marketplace",
+		marketplace,
+	]);
+}
+
+export function setOrganizationPluginEnabled(
+	name: string,
+	marketplace: string,
+	enabled: boolean,
+): void {
+	void queueOrganizationPluginCli([
+		enabled ? "enable" : "disable",
+		name,
+		"--marketplace",
+		marketplace,
+	]);
+}
+
+export function syncPlugins(): Promise<void> {
+	return queueOrganizationPluginCli(["sync"]);
 }
 
 /**

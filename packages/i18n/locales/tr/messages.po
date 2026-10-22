@@ -387,6 +387,7 @@ msgstr "{0} henüz bu şekilde oturum açamıyor."
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "{0} geliştirici ajan kullanımına göre sıralanıyor. Son 30 gününüz zaten sayılıyor, yalnızca gizli. Yalnızca token sayıları ve model adları; repo adları, dosya yolları veya prompt'lar yok."
 
+#. placeholder {0}: displayName(name)
 #. placeholder {0}: variables.name
 msgid "{0} disabled"
 msgstr "{0} devre dışı bırakıldı"
@@ -927,6 +928,9 @@ msgstr "{kind} · {author} tarafından"
 
 msgid "{kindLabel} theme"
 msgstr "{kindLabel} tema"
+
+msgid "{label} access to {pluginName}"
+msgstr "{label} rolünün {pluginName} erişimi"
 
 msgid "{label} in cloud workspaces"
 msgstr "Bulut çalışma alanlarında {label}"
@@ -1848,6 +1852,9 @@ msgstr "Çalışma alanına ekle"
 msgid "Add your own terminal agent to this device."
 msgstr "Bu cihaza kendi terminal ajanınızı ekleyin."
 
+msgid "Added {added}"
+msgstr "{added} eklendi"
+
 msgid "Added {added} files to {where}"
 msgstr "{where} konumuna {added} dosya eklendi"
 
@@ -1863,6 +1870,9 @@ msgstr "Ajan girişine eklendi"
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
 msgstr "{organizationName} kuruluşuna kişi eklemek için ücretli bir plan gerekir. Kuruluşunuzun planını sahibi {0} adresinde yönetir."
+
+msgid "Adding..."
+msgstr "Ekleniyor..."
 
 msgid "Address Comments with Agent"
 msgstr "Yorumları ajanla ele al"
@@ -2860,6 +2870,13 @@ msgstr "Otonom biletten PR'a boru hattı"
 msgid "Available"
 msgstr "Uygun"
 
+msgctxt "plugin access"
+msgid "Available"
+msgstr "Kullanılabilir"
+
+msgid "Available plugins show on each role's Plugins page. Installed plugins are installed for everyone in the role, who can disable but not remove them."
+msgstr "Kullanılabilir eklentiler her rolün Eklentiler sayfasında görünür. Yüklü eklentiler roldeki herkes için yüklenir; bu kişiler onları devre dışı bırakabilir ama kaldıramaz."
+
 msgid "Avatar"
 msgstr "Avatar"
 
@@ -3123,6 +3140,9 @@ msgstr "Dal adı kullanılamıyor"
 
 msgid "Branch names cannot end with a space."
 msgstr "Dal adları boşlukla bitemez."
+
+msgid "Branch or tag (optional)"
+msgstr "Dal veya etiket (isteğe bağlı)"
 
 msgid "Branch prefix"
 msgstr "Dal ön eki"
@@ -4883,6 +4903,9 @@ msgstr "Size maliyeti: $0"
 msgid "Could not add agent"
 msgstr "Ajan eklenemedi"
 
+msgid "Could not add repository"
+msgstr "Depo eklenemedi"
+
 msgid "Could not answer the agent"
 msgstr "Ajana yanıt verilemedi"
 
@@ -4900,6 +4923,9 @@ msgstr "Mod değiştirilemedi"
 
 msgid "Could not change the shared version"
 msgstr "Paylaşılan sürüm değiştirilemedi"
+
+msgid "Could not change who gets this plugin"
+msgstr "Bu eklentiyi kimin alacağı değiştirilemedi"
 
 msgid "Could not change who has access"
 msgstr "Erişimi olanlar değiştirilemedi"
@@ -4942,6 +4968,9 @@ msgstr "Dosya silinemedi"
 
 msgid "Could not delete this page"
 msgstr "Bu sayfa silinemedi"
+
+msgid "Could not disable plugin"
+msgstr "Eklenti devre dışı bırakılamadı"
 
 msgid "Could not disconnect."
 msgstr "Bağlantı kesilemedi."
@@ -5058,6 +5087,9 @@ msgstr "Ortam kaydedilemedi"
 msgid "Could not remove access"
 msgstr "Erişim kaldırılamadı"
 
+msgid "Could not remove repository"
+msgstr "Depo kaldırılamadı"
+
 msgid "Could not rename the session"
 msgstr "Oturum yeniden adlandırılamadı"
 
@@ -5126,6 +5158,9 @@ msgstr "İzleme durdurulamadı"
 
 msgid "Could not submit prompt. Try again."
 msgstr "İstem gönderilemedi. Yeniden deneyin."
+
+msgid "Could not sync"
+msgstr "Eşitlenemedi"
 
 msgid "Could not take a screenshot"
 msgstr "Ekran görüntüsü alınamadı"
@@ -5837,6 +5872,9 @@ msgstr "Varsayılan ({defaultWorktreePath})"
 msgid "Default base for new workspaces. Override per-workspace at creation."
 msgstr "Yeni çalışma alanları için varsayılan temel. Oluştururken her çalışma alanı için değiştirilebilir."
 
+msgid "Default branch"
+msgstr "Varsayılan dal"
+
 msgid "Default effort"
 msgstr "Varsayılan çaba"
 
@@ -6234,6 +6272,9 @@ msgstr "Doğrudan mod"
 
 msgid "Directory"
 msgstr "Dizin"
+
+msgid "Disable"
+msgstr "Devre dışı bırak"
 
 msgid "Disable skill"
 msgstr "Beceriyi devre dışı bırak"
@@ -8167,6 +8208,9 @@ msgstr "GitHub istek sınırına ulaşıldı"
 msgid "GitHub refused the merge"
 msgstr "GitHub birleştirmeyi reddetti"
 
+msgid "GitHub repositories with a plugin marketplace file. Superset syncs their plugins into your organization."
+msgstr "Eklenti pazar yeri dosyası olan GitHub depoları. Superset bunların eklentilerini kuruluşunuza eşitler."
+
 msgid "GitHub sign-in needed"
 msgstr "GitHub oturumu açmanız gerekiyor"
 
@@ -8190,6 +8234,9 @@ msgstr "Bana bir örnek ver"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Nerede kullanıldığını hatırlamak için anahtarınıza açıklayıcı bir ad verin."
+
+msgid "Give your organization its own plugins from a GitHub repository. You choose who gets each one."
+msgstr "Kuruluşunuza bir GitHub deposundan kendi eklentilerini verin. Her birini kimin alacağını siz seçersiniz."
 
 msgid "Globe"
 msgstr "Küre"
@@ -8972,6 +9019,13 @@ msgstr "MCP sunucularını tek bir yerden, merkezi OAuth ile tüm çalışma ala
 msgid "Install."
 msgstr "Kurun."
 
+msgctxt "plugin access"
+msgid "Installed"
+msgstr "Yüklü"
+
+msgid "Installed by your organization"
+msgstr "Kuruluşunuz tarafından yüklendi"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceHasInstalls"
 msgstr "Kurulu eklentiler {name} kaynağından geldi: {plugins}. Önce onları kaldırın."
@@ -9210,6 +9264,9 @@ msgstr "Bağlı hesapların bağlantısı kesildi."
 
 msgid "Its own branch and copy of the files"
 msgstr "Kendi dalı ve dosyaların kendi kopyası"
+
+msgid "Its plugins appear when the sync finishes."
+msgstr "Eklentileri eşitleme bitince görünür."
 
 msgid "Its replies go with it."
 msgstr "Yanıtları da silinir."
@@ -11119,6 +11176,9 @@ msgstr "Henüz günlük satırı yok"
 msgid "no logins"
 msgstr "oturum bilgisi yok"
 
+msgid "No longer in source"
+msgstr "Artık kaynakta yok"
+
 msgid "No match"
 msgstr "Eşleşme yok"
 
@@ -11216,6 +11276,9 @@ msgstr "Henüz kullanılabilir eklenti yok."
 msgid "No plugins match \"{0}\""
 msgstr "\"{0}\" ile eşleşen eklenti yok"
 
+msgid "No plugins yet. Add a repository to sync them."
+msgstr "Henüz eklenti yok. Eşitlemek için bir depo ekleyin."
+
 msgid "No posts yet."
 msgstr "Henüz yazı yok."
 
@@ -11290,6 +11353,9 @@ msgstr "{url} adresinde sürüm notu yok"
 
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Depo bulunamadı. GitHub App'inizin depolara erişimi olduğundan emin olun."
+
+msgid "No repositories yet."
+msgstr "Henüz depo yok."
 
 msgid "No repositories. Connect GitHub in Integrations, then refresh."
 msgstr "Depo yok. Entegrasyonlar'dan GitHub'ı bağlayın, sonra yenileyin."
@@ -11549,6 +11615,9 @@ msgstr "Bu host'ta kurulu değil"
 msgid "not sorted"
 msgstr "sıralanmamış"
 
+msgid "Not synced yet"
+msgstr "Henüz eşitlenmedi"
+
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "Güncellenmiyor"
@@ -11772,6 +11841,9 @@ msgstr "Bu host'u yalnızca host sahipleri veya kuruluş sahipleri silebilir"
 
 msgid "Only images can be attached to a comment"
 msgstr "Bir yoruma yalnızca görsel eklenebilir"
+
+msgid "Only organization owners and admins can manage plugins."
+msgstr "Eklentileri yalnızca kuruluş sahipleri ve yöneticileri yönetebilir."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Bu ayarları yalnızca kuruluş sahipleri değiştirebilir."
@@ -12374,6 +12446,9 @@ msgstr "Kuruluş bulunamadı"
 msgid "Organization not found."
 msgstr "Kuruluş bulunamadı."
 
+msgid "Organization plugins"
+msgstr "Kuruluş eklentileri"
+
 msgid "Organization slug"
 msgstr "Kuruluş slug'ı"
 
@@ -12617,6 +12692,9 @@ msgstr "Bunu Superset CLI'ye yapıştırın:"
 msgid "Path"
 msgstr "Yol"
 
+msgid "Path (optional)"
+msgstr "Yol (isteğe bağlı)"
+
 msgid "Path copied"
 msgstr "Yol kopyalandı"
 
@@ -12757,6 +12835,9 @@ msgstr "Bir proje konumu seçin"
 msgid "Pick a reason"
 msgstr "Bir neden seçin"
 
+msgid "Pick a repository with a plugin marketplace file. Superset syncs its plugins now and each time you sync again."
+msgstr "Eklenti pazar yeri dosyası olan bir depo seçin. Superset eklentilerini şimdi ve her yeniden eşitlemenizde eşitler."
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Bir ses seçin veya kendinizinkini ekleyin. Özel ses .mp3, .wav ve .ogg destekler."
 
@@ -12883,6 +12964,9 @@ msgstr "Lütfen tekrar deneyin veya o cihazda Superset’i yeniden başlatın."
 msgid "Please try signing in again from the desktop app."
 msgstr "Lütfen masaüstü uygulamasından yeniden oturum açmayı deneyin."
 
+msgid "Plugin"
+msgstr "Eklenti"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.noApiKeyAuth"
 msgstr "{plugin} eklentisi api_key kimlik doğrulaması kullanmıyor"
@@ -12896,6 +12980,9 @@ msgstr "Eklenti pazar yeri"
 
 msgid "Plugins"
 msgstr "Eklentiler"
+
+msgid "Plugins update when the sync finishes."
+msgstr "Eklentiler eşitleme bitince güncellenir."
 
 msgid "Point at the page. Your agent makes the change."
 msgstr "Sayfayı işaret edin. Ajanınız değişikliği yapar."
@@ -13734,6 +13821,9 @@ msgstr "Hareketi Azalt"
 msgid "Reduce Transparency"
 msgstr "Saydamlığı Azalt"
 
+msgid "Ref {ref} · Path {path}"
+msgstr "Ref {ref} · Yol {path}"
+
 msgid "Referenced, not demoed"
 msgstr "Referans verildi, gösterilmedi"
 
@@ -13849,6 +13939,7 @@ msgid "Remove"
 msgstr "Kaldır"
 
 #. placeholder {0}: member.name
+#. placeholder {0}: source.repo
 msgid "Remove {0}"
 msgstr "{0} kişisini kaldır"
 
@@ -13857,6 +13948,9 @@ msgstr "{label} kaldır"
 
 msgid "Remove {label}?"
 msgstr "{label} kaldırılsın mı?"
+
+msgid "Remove {repo}? Every plugin synced from it is removed from your organization."
+msgstr "{repo} kaldırılsın mı? Ondan eşitlenen tüm eklentiler kuruluşunuzdan kaldırılır."
 
 msgid "Remove {repositoryName}"
 msgstr "{repositoryName} kaldır"
@@ -13908,6 +14002,9 @@ msgstr "PR bağlantısını kaldır"
 
 msgid "Remove queued message"
 msgstr "Kuyruktaki mesajı kaldır"
+
+msgid "Remove repository"
+msgstr "Depoyu kaldır"
 
 msgid "Remove script"
 msgstr "Betiği kaldır"
@@ -14106,6 +14203,12 @@ msgstr "Depolar: {label}"
 
 msgid "Repository"
 msgstr "Depo"
+
+msgid "Repository removed"
+msgstr "Depo kaldırıldı"
+
+msgid "Repository root"
+msgstr "Depo kökü"
 
 msgid "Repository URL or path"
 msgstr "Depo URL'si veya yolu"
@@ -15168,6 +15271,9 @@ msgstr "Pull request'leri görmek için bir proje seçin."
 
 msgid "Select a pull request to preview it here."
 msgstr "Burada önizlemek için bir pull request seçin."
+
+msgid "Select a repository"
+msgstr "Bir depo seçin"
 
 msgid "Select a team"
 msgstr "Bir takım seçin"
@@ -16922,11 +17028,23 @@ msgstr "Issue'ları Linear ile çift yönlü eşitleyin."
 msgid "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 msgstr "Issue'ları Linear ile çift yönlü eşitleyin. Superset'te görev oluşturup Linear'da görünmesini sağlayın veya mevcut Linear issue'larını içe aktarın."
 
+msgid "Sync now"
+msgstr "Şimdi eşitle"
+
+msgid "Sync plugins from your GitHub repositories and choose who can install them."
+msgstr "GitHub depolarınızdan eklentileri eşitleyin ve onları kimin yükleyebileceğini seçin."
+
 msgid "Sync Repositories"
 msgstr "Depoları eşitle"
 
+msgid "Sync requested"
+msgstr "Eşitleme istendi"
+
 msgid "Sync started"
 msgstr "Eşitleme başladı"
+
+msgid "Synced {syncedAgo}"
+msgstr "Eşitlendi: {syncedAgo}"
 
 msgid "Syncing..."
 msgstr "Eşitleniyor..."
@@ -17259,6 +17377,10 @@ msgstr "O makine artık kullanılamıyor"
 msgid "That name isn't allowed."
 msgstr "Bu ada izin verilmiyor."
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.unknownPluginSource"
+msgstr "Bu eklenti kaynağı yok"
+
 msgid "That run is missed and isn't retried. Use Run now to start it later."
 msgstr "O çalıştırma kaçırılır ve yeniden denenmez. Daha sonra başlatmak için Şimdi çalıştır'ı kullanın."
 
@@ -17373,6 +17495,9 @@ msgstr "İlk F4 takımları"
 msgid "The first teams, small ones, ship majority-agent code without reading every line, and their defect rates hold. Nothing mystical behind it: review layers, canaries, fast rollback, and a habit of writing specifications instead of code."
 msgstr "İlk takımlar, küçük olanlar, her satırı okumadan çoğunlukla ajan üretimi kod göndermeye başlar ve hata oranları bozulmaz. Arkasında gizemli bir şey yok: inceleme katmanları, kanarya sürümleri, hızlı geri alma ve kod yerine spesifikasyon yazma alışkanlığı."
 
+msgid "The folder that holds the marketplace file, if it is not at the root."
+msgstr "Pazar yeri dosyası kökte değilse, onu içeren klasör."
+
 msgid "The following folders are not git repositories. Would you like to initialize them?"
 msgstr "Aşağıdaki klasörler git deposu değil. Bunları başlatmak ister misiniz?"
 
@@ -17390,6 +17515,9 @@ msgstr "Eksiksiz çalışma alanı. Ajanları paralel çalıştırın, her birin
 
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "Yeniden kullanılabilir Superset ajan yapılandırmaları, istemleri ve kurulum kılavuzları için gelecekteki adres."
+
+msgid "The GitHub App cannot see any repositories yet. Give it access on GitHub, then try again."
+msgstr "GitHub App henüz hiçbir depoyu göremiyor. GitHub'da ona erişim verin, sonra tekrar deneyin."
 
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
@@ -17497,6 +17625,10 @@ msgstr "Aradığınız sayfa mevcut değil."
 
 msgid "The pane uses your real logins. Agents ask you before they take a consequential action."
 msgstr "Bölme gerçek oturumlarınızı kullanır. Ajanlar, önemli sonuçları olan bir eylemden önce size sorar."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourcePathOutside"
+msgstr "Yol deponun içinde kalmalı"
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "Projenin checkout'u olduğu gibi: dosyalar ve dal paylaşılır"
@@ -18440,6 +18572,10 @@ msgstr "8 saat ve üzeri gözetimsiz çalıştırmalar, bir insanın engel kald�
 
 msgid "Unavailable"
 msgstr "Kullanılamıyor"
+
+msgctxt "plugin access"
+msgid "Unavailable"
+msgstr "Kullanılamaz"
 
 msgid "Uncached input"
 msgstr "Önbelleksiz girdi"
@@ -19841,6 +19977,10 @@ msgstr "İlk ajanınız"
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "GitHub hesabın bu ortamdaki bir depoya erişemiyor"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourceOutOfReach"
+msgstr "GitHub hesabınız {repo} deposunu okuyamıyor"
+
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "GitHub bağlantın oturum açtığın hesaptan gelir, bu yüzden doğrulanmış görünür ve burada düzenlenemez."
 
@@ -19853,8 +19993,21 @@ msgstr "Adınız"
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Adınız <0>(isteminizi kullanırsak değişiklik günlüğünde size teşekkür ederiz)</0>"
 
+msgid "Your organization"
+msgstr "Kuruluşunuz"
+
+msgid "Your organization has not connected GitHub yet. Install the GitHub App in <0>Settings › Integrations</0>, then come back."
+msgstr "Kuruluşunuz henüz GitHub'ı bağlamadı. GitHub App'i <0>Ayarlar › Entegrasyonlar</0> bölümünden yükleyin, sonra geri gelin."
+
 msgid "Your organization has reached its cloud usage limit. Raise the limit or upgrade in Settings, Billing to start this workspace."
 msgstr "Kuruluşunuz bulut kullanım sınırına ulaştı. Bu çalışma alanını başlatmak için Ayarlar, Faturalandırma bölümünden sınırı artırın veya planı yükseltin."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.managedByOrganization"
+msgstr "Kuruluşunuz {plugin} eklentisini sizin için yüklüyor, bu yüzden kaldırılamaz. Devre dışı bırakabilirsiniz."
+
+msgid "Your organization installs this plugin for you. You can disable it, but not remove it."
+msgstr "Kuruluşunuz bu eklentiyi sizin için yüklüyor. Devre dışı bırakabilirsiniz ama kaldıramazsınız."
 
 msgid "Your organization reached its cloud usage limit. This workspace stops in a few minutes unless the limit is raised."
 msgstr "Kuruluşunuz bulut kullanım sınırına ulaştı. Sınır artırılmazsa bu çalışma alanı birkaç dakika içinde durdurulacak."

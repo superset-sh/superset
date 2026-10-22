@@ -387,6 +387,7 @@ msgstr "{0}はまだこの方法ではサインインできません。"
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "{0}人の開発者がエージェント利用量でランク付けされています。あなたの直近30日はすでに集計済みで、非表示になっているだけです。公開されるのはトークン数とモデル名のみで、リポジトリ名・ファイルパス・プロンプトは含まれません。"
 
+#. placeholder {0}: displayName(name)
 #. placeholder {0}: variables.name
 msgid "{0} disabled"
 msgstr "{0}を無効にしました"
@@ -927,6 +928,9 @@ msgstr "{kind} · 作者: {author}"
 
 msgid "{kindLabel} theme"
 msgstr "{kindLabel}テーマ"
+
+msgid "{label} access to {pluginName}"
+msgstr "{label} の {pluginName} へのアクセス"
 
 msgid "{label} in cloud workspaces"
 msgstr "クラウドワークスペースでの{label}"
@@ -1848,6 +1852,9 @@ msgstr "ワークスペースに追加"
 msgid "Add your own terminal agent to this device."
 msgstr "このデバイスに独自のターミナルエージェントを追加します。"
 
+msgid "Added {added}"
+msgstr "{added} を追加しました"
+
 msgid "Added {added} files to {where}"
 msgstr "{added}件のファイルを{where}に追加しました"
 
@@ -1863,6 +1870,9 @@ msgstr "エージェントの入力欄に追加しました"
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
 msgstr "{organizationName} にメンバーを追加するには有料プランが必要です。組織のプランはオーナーが {0} で管理しています。"
+
+msgid "Adding..."
+msgstr "追加中..."
 
 msgid "Address Comments with Agent"
 msgstr "エージェントでコメントに対応"
@@ -2860,6 +2870,13 @@ msgstr "チケットからPRまでの自律パイプライン"
 msgid "Available"
 msgstr "利用可能"
 
+msgctxt "plugin access"
+msgid "Available"
+msgstr "利用可能"
+
+msgid "Available plugins show on each role's Plugins page. Installed plugins are installed for everyone in the role, who can disable but not remove them."
+msgstr "利用可能なプラグインは各ロールのプラグインページに表示されます。インストール済みのプラグインはそのロールの全員にインストールされ、無効にはできますが削除はできません。"
+
 msgid "Avatar"
 msgstr "アバター"
 
@@ -3123,6 +3140,9 @@ msgstr "ブランチ名は利用できません"
 
 msgid "Branch names cannot end with a space."
 msgstr "ブランチ名の末尾にスペースは使えません。"
+
+msgid "Branch or tag (optional)"
+msgstr "ブランチまたはタグ（任意）"
 
 msgid "Branch prefix"
 msgstr "ブランチプレフィックス"
@@ -4883,6 +4903,9 @@ msgstr "実際のコスト: $0"
 msgid "Could not add agent"
 msgstr "エージェントを追加できませんでした"
 
+msgid "Could not add repository"
+msgstr "リポジトリを追加できませんでした"
+
 msgid "Could not answer the agent"
 msgstr "エージェントに応答できませんでした"
 
@@ -4900,6 +4923,9 @@ msgstr "モードを変更できませんでした"
 
 msgid "Could not change the shared version"
 msgstr "共有バージョンを変更できませんでした"
+
+msgid "Could not change who gets this plugin"
+msgstr "このプラグインの対象を変更できませんでした"
 
 msgid "Could not change who has access"
 msgstr "アクセスできるユーザーを変更できませんでした"
@@ -4942,6 +4968,9 @@ msgstr "ファイルを削除できませんでした"
 
 msgid "Could not delete this page"
 msgstr "このページを削除できませんでした"
+
+msgid "Could not disable plugin"
+msgstr "プラグインを無効にできませんでした"
 
 msgid "Could not disconnect."
 msgstr "接続を解除できませんでした。"
@@ -5058,6 +5087,9 @@ msgstr "環境を保存できませんでした"
 msgid "Could not remove access"
 msgstr "アクセスを削除できませんでした"
 
+msgid "Could not remove repository"
+msgstr "リポジトリを削除できませんでした"
+
 msgid "Could not rename the session"
 msgstr "セッションの名前を変更できませんでした"
 
@@ -5126,6 +5158,9 @@ msgstr "監視を停止できませんでした"
 
 msgid "Could not submit prompt. Try again."
 msgstr "プロンプトを送信できませんでした。もう一度お試しください。"
+
+msgid "Could not sync"
+msgstr "同期できませんでした"
 
 msgid "Could not take a screenshot"
 msgstr "スクリーンショットを撮れませんでした"
@@ -5837,6 +5872,9 @@ msgstr "デフォルト({defaultWorktreePath})"
 msgid "Default base for new workspaces. Override per-workspace at creation."
 msgstr "新しいワークスペースの既定のベース。作成時に個別に変更できます。"
 
+msgid "Default branch"
+msgstr "デフォルトブランチ"
+
 msgid "Default effort"
 msgstr "デフォルトのエフォート"
 
@@ -6234,6 +6272,9 @@ msgstr "ダイレクトモード"
 
 msgid "Directory"
 msgstr "ディレクトリ"
+
+msgid "Disable"
+msgstr "無効にする"
 
 msgid "Disable skill"
 msgstr "スキルを無効にする"
@@ -8167,6 +8208,9 @@ msgstr "GitHub のレート制限に達しました"
 msgid "GitHub refused the merge"
 msgstr "GitHubがマージを拒否しました"
 
+msgid "GitHub repositories with a plugin marketplace file. Superset syncs their plugins into your organization."
+msgstr "プラグインのマーケットプレイスファイルを含む GitHub リポジトリです。Superset はそのプラグインを組織に同期します。"
+
 msgid "GitHub sign-in needed"
 msgstr "GitHub へのサインインが必要です"
 
@@ -8190,6 +8234,9 @@ msgstr "例を挙げて"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "どこで使うキーか分かる名前を付けてください。"
+
+msgid "Give your organization its own plugins from a GitHub repository. You choose who gets each one."
+msgstr "GitHub リポジトリから組織独自のプラグインを追加できます。各プラグインを誰に提供するかを選べます。"
 
 msgid "Globe"
 msgstr "地球"
@@ -8972,6 +9019,13 @@ msgstr "すべてのワークスペースにまたがるMCPサーバーのイン
 msgid "Install."
 msgstr "インストール。"
 
+msgctxt "plugin access"
+msgid "Installed"
+msgstr "インストール済み"
+
+msgid "Installed by your organization"
+msgstr "組織がインストール済み"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceHasInstalls"
 msgstr "インストール済みのプラグインが {name} 由来です: {plugins}。先に削除してください。"
@@ -9210,6 +9264,9 @@ msgstr "接続済みのアカウントは切断されました。"
 
 msgid "Its own branch and copy of the files"
 msgstr "独自のブランチとファイルのコピー"
+
+msgid "Its plugins appear when the sync finishes."
+msgstr "同期が完了するとプラグインが表示されます。"
 
 msgid "Its replies go with it."
 msgstr "返信も一緒に削除されます。"
@@ -11119,6 +11176,9 @@ msgstr "ログ行はまだありません"
 msgid "no logins"
 msgstr "ログイン情報なし"
 
+msgid "No longer in source"
+msgstr "ソースから削除済み"
+
 msgid "No match"
 msgstr "一致なし"
 
@@ -11216,6 +11276,9 @@ msgstr "利用できるプラグインはまだありません。"
 msgid "No plugins match \"{0}\""
 msgstr "「{0}」に一致するプラグインがありません"
 
+msgid "No plugins yet. Add a repository to sync them."
+msgstr "プラグインはまだありません。リポジトリを追加して同期してください。"
+
 msgid "No posts yet."
 msgstr "投稿はまだありません。"
 
@@ -11290,6 +11353,9 @@ msgstr "{url} にリリースノートがありません"
 
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "リポジトリが見つかりません。GitHub Appにリポジトリへのアクセス権があるか確認してください。"
+
+msgid "No repositories yet."
+msgstr "リポジトリはまだありません。"
 
 msgid "No repositories. Connect GitHub in Integrations, then refresh."
 msgstr "リポジトリがありません。「連携」で GitHub を接続してから更新してください。"
@@ -11549,6 +11615,9 @@ msgstr "このホストではセットアップされていません"
 msgid "not sorted"
 msgstr "並べ替えなし"
 
+msgid "Not synced yet"
+msgstr "未同期"
+
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "更新なし"
@@ -11772,6 +11841,9 @@ msgstr "このホストを削除できるのはホストのオーナーまたは
 
 msgid "Only images can be attached to a comment"
 msgstr "コメントに添付できるのは画像のみです"
+
+msgid "Only organization owners and admins can manage plugins."
+msgstr "プラグインを管理できるのは組織のオーナーと管理者だけです。"
 
 msgid "Only organization owners can modify these settings."
 msgstr "これらの設定を変更できるのは組織のオーナーのみです。"
@@ -12374,6 +12446,9 @@ msgstr "組織が見つかりません"
 msgid "Organization not found."
 msgstr "組織が見つかりません。"
 
+msgid "Organization plugins"
+msgstr "組織のプラグイン"
+
 msgid "Organization slug"
 msgstr "組織スラッグ"
 
@@ -12617,6 +12692,9 @@ msgstr "これをSuperset CLIに貼り付けてください:"
 msgid "Path"
 msgstr "パス"
 
+msgid "Path (optional)"
+msgstr "パス（任意）"
+
 msgid "Path copied"
 msgstr "パスをコピーしました"
 
@@ -12757,6 +12835,9 @@ msgstr "プロジェクトの場所を選択してください"
 msgid "Pick a reason"
 msgstr "理由を選択"
 
+msgid "Pick a repository with a plugin marketplace file. Superset syncs its plugins now and each time you sync again."
+msgstr "プラグインのマーケットプレイスファイルを含むリポジトリを選んでください。Superset は今すぐ、そして再同期するたびにプラグインを同期します。"
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "サウンドを選ぶか、独自の音声を追加してください。カスタム音声は.mp3、.wav、.ogg対応です。"
 
@@ -12883,6 +12964,9 @@ msgstr "もう一度試すか、そのデバイスで Superset を再起動し�
 msgid "Please try signing in again from the desktop app."
 msgstr "デスクトップアプリからもう一度サインインしてください。"
 
+msgid "Plugin"
+msgstr "プラグイン"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.noApiKeyAuth"
 msgstr "プラグイン {plugin} は api_key 認証を使用していません"
@@ -12896,6 +12980,9 @@ msgstr "プラグインマーケットプレイス"
 
 msgid "Plugins"
 msgstr "プラグイン"
+
+msgid "Plugins update when the sync finishes."
+msgstr "同期が完了するとプラグインが更新されます。"
 
 msgid "Point at the page. Your agent makes the change."
 msgstr "ページを指すだけで、エージェントが変更します。"
@@ -13734,6 +13821,9 @@ msgstr "視差効果を減らす"
 msgid "Reduce Transparency"
 msgstr "透明度を下げる"
 
+msgid "Ref {ref} · Path {path}"
+msgstr "参照 {ref} · パス {path}"
+
 msgid "Referenced, not demoed"
 msgstr "参照のみでデモなし"
 
@@ -13849,6 +13939,7 @@ msgid "Remove"
 msgstr "削除"
 
 #. placeholder {0}: member.name
+#. placeholder {0}: source.repo
 msgid "Remove {0}"
 msgstr "{0}を削除"
 
@@ -13857,6 +13948,9 @@ msgstr "{label}を削除"
 
 msgid "Remove {label}?"
 msgstr "{label}を削除しますか?"
+
+msgid "Remove {repo}? Every plugin synced from it is removed from your organization."
+msgstr "{repo} を削除しますか？このリポジトリから同期されたプラグインはすべて組織から削除されます。"
 
 msgid "Remove {repositoryName}"
 msgstr "{repositoryName} を削除"
@@ -13908,6 +14002,9 @@ msgstr "PRリンクを解除"
 
 msgid "Remove queued message"
 msgstr "キューのメッセージを削除"
+
+msgid "Remove repository"
+msgstr "リポジトリを削除"
 
 msgid "Remove script"
 msgstr "スクリプトを削除"
@@ -14106,6 +14203,12 @@ msgstr "リポジトリ: {label}"
 
 msgid "Repository"
 msgstr "リポジトリ"
+
+msgid "Repository removed"
+msgstr "リポジトリを削除しました"
+
+msgid "Repository root"
+msgstr "リポジトリのルート"
 
 msgid "Repository URL or path"
 msgstr "リポジトリのURLまたはパス"
@@ -15168,6 +15271,9 @@ msgstr "プロジェクトを選択するとプルリクエストが表示され
 
 msgid "Select a pull request to preview it here."
 msgstr "プルリクエストを選択するとここでプレビューできます。"
+
+msgid "Select a repository"
+msgstr "リポジトリを選択"
 
 msgid "Select a team"
 msgstr "チームを選択"
@@ -16922,11 +17028,23 @@ msgstr "Linearとissueを双方向に同期します。"
 msgid "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 msgstr "Linearと双方向にIssueを同期します。SupersetでタスクをつくるとLinearに反映され、既存のLinear Issueを取り込むこともできます。"
 
+msgid "Sync now"
+msgstr "今すぐ同期"
+
+msgid "Sync plugins from your GitHub repositories and choose who can install them."
+msgstr "GitHub リポジトリからプラグインを同期し、インストールできるユーザーを選びます。"
+
 msgid "Sync Repositories"
 msgstr "リポジトリを同期"
 
+msgid "Sync requested"
+msgstr "同期をリクエストしました"
+
 msgid "Sync started"
 msgstr "同期を開始しました"
+
+msgid "Synced {syncedAgo}"
+msgstr "{syncedAgo}に同期"
 
 msgid "Syncing..."
 msgstr "同期中..."
@@ -17259,6 +17377,10 @@ msgstr "そのマシンは利用できなくなりました"
 msgid "That name isn't allowed."
 msgstr "その名前は使用できません。"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.unknownPluginSource"
+msgstr "そのプラグインソースは存在しません"
+
 msgid "That run is missed and isn't retried. Use Run now to start it later."
 msgstr "その実行はスキップされ、再試行されません。あとで「今すぐ実行」で開始できます。"
 
@@ -17373,6 +17495,9 @@ msgstr "最初のF4チーム"
 msgid "The first teams, small ones, ship majority-agent code without reading every line, and their defect rates hold. Nothing mystical behind it: review layers, canaries, fast rollback, and a habit of writing specifications instead of code."
 msgstr "最初のチーム、それも小規模なチームが、全行を読まずにエージェント中心のコードを出荷し、それでも不具合率を維持します。特別なことは何もありません。レビューの多層化、カナリア、素早いロールバック、そしてコードではなく仕様を書く習慣です。"
 
+msgid "The folder that holds the marketplace file, if it is not at the root."
+msgstr "マーケットプレイスファイルがルートにない場合、それを含むフォルダー。"
+
 msgid "The following folders are not git repositories. Would you like to initialize them?"
 msgstr "次のフォルダはgitリポジトリではありません。初期化しますか?"
 
@@ -17390,6 +17515,9 @@ msgstr "フル機能のワークスペース。エージェントを並列実行
 
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "再利用可能なSupersetエージェント設定、プロンプト、セットアップガイドの今後の公開場所。"
+
+msgid "The GitHub App cannot see any repositories yet. Give it access on GitHub, then try again."
+msgstr "GitHub App からはまだリポジトリが見えません。GitHub でアクセスを許可してから、もう一度お試しください。"
 
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
@@ -17497,6 +17625,10 @@ msgstr "お探しのページは存在しません。"
 
 msgid "The pane uses your real logins. Agents ask you before they take a consequential action."
 msgstr "ペインでは、あなたの実際のログイン状態が使われます。重要な操作の前には、エージェントが確認を求めます。"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourcePathOutside"
+msgstr "パスはリポジトリ内にある必要があります"
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "プロジェクトのチェックアウトをそのまま使用: ファイルとブランチは共有されます"
@@ -18438,6 +18570,10 @@ msgstr "無人の夜間実行、朝にはマージ可能"
 msgid "Unattended runs of 8 hours or more succeed on a majority of routine tickets without a human unblocking them."
 msgstr "8時間以上の無人実行が、人間の介入なしに定型チケットの過半数で成功する。"
 
+msgid "Unavailable"
+msgstr "利用不可"
+
+msgctxt "plugin access"
 msgid "Unavailable"
 msgstr "利用不可"
 
@@ -19841,6 +19977,10 @@ msgstr "最初のエージェント"
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "あなたの GitHub アカウントはこの環境のリポジトリにアクセスできません"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourceOutOfReach"
+msgstr "あなたの GitHub アカウントは {repo} を読み取れません"
+
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "GitHub のリンクはサインインしたアカウントから取得されるため、確認済みと表示され、ここでは編集できません。"
 
@@ -19853,8 +19993,21 @@ msgstr "あなたの名前"
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "お名前 <0>(プロンプトを採用した場合、changelogでクレジットします)</0>"
 
+msgid "Your organization"
+msgstr "あなたの組織"
+
+msgid "Your organization has not connected GitHub yet. Install the GitHub App in <0>Settings › Integrations</0>, then come back."
+msgstr "組織はまだ GitHub に接続していません。<0>設定 › 連携</0>で GitHub App をインストールしてから戻ってきてください。"
+
 msgid "Your organization has reached its cloud usage limit. Raise the limit or upgrade in Settings, Billing to start this workspace."
 msgstr "組織がクラウドの利用上限に達しました。このワークスペースを起動するには、「設定」の「請求」で上限を引き上げるかアップグレードしてください。"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.managedByOrganization"
+msgstr "{plugin} は組織によってインストールされているため、アンインストールできません。無効にすることはできます。"
+
+msgid "Your organization installs this plugin for you. You can disable it, but not remove it."
+msgstr "このプラグインは組織によってインストールされています。無効にはできますが、削除はできません。"
 
 msgid "Your organization reached its cloud usage limit. This workspace stops in a few minutes unless the limit is raised."
 msgstr "組織がクラウドの利用上限に達しました。上限を引き上げない限り、このワークスペースは数分後に停止します。"

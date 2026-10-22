@@ -1,17 +1,38 @@
+import { isOrganizationMarketplace } from "@superset/shared/plugins";
 import { TRPCError } from "@trpc/server";
 import {
 	getBundledSkillContent,
 	getBundledSkillIcons,
 	getBundledSkillPath,
 	getDisabledSkills,
+	getInstalledPlugins,
+	installOrganizationPlugin,
 	installPlugin,
+	setOrganizationPluginEnabled,
 	setPluginEnabled,
 	setSkillEnabled,
+	syncPlugins,
+	uninstallOrganizationPlugin,
 	uninstallPlugin,
 	writeBundledSkillContent,
 } from "main/lib/plugin-installs";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+
+const pluginRef = z.object({
+	name: z.string().min(1),
+	marketplace: z.string().min(1).optional(),
+});
+
+function isOrganizationPlugin(input: {
+	name: string;
+	marketplace?: string;
+}): input is { name: string; marketplace: string } {
+	return (
+		input.marketplace !== undefined &&
+		isOrganizationMarketplace(input.marketplace)
+	);
+}
 
 /**
  * Materialization only: skills, agent config, and the local install record are
@@ -69,29 +90,47 @@ export const createPluginsRouter = () => {
 				return { ok: true };
 			}),
 
-		install: publicProcedure
-			.input(z.object({ name: z.string().min(1) }))
-			.mutation(({ input }) => {
-				const installed = installPlugin(input.name);
-				if (installed === null) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: `Unknown plugin: ${input.name}`,
-					});
-				}
-				return { installed };
-			}),
+		install: publicProcedure.input(pluginRef).mutation(({ input }) => {
+			if (isOrganizationPlugin(input)) {
+				installOrganizationPlugin(input.name);
+				return { installed: getInstalledPlugins() };
+			}
+			const installed = installPlugin(input.name);
+			if (installed === null) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `Unknown plugin: ${input.name}`,
+				});
+			}
+			return { installed };
+		}),
 
-		uninstall: publicProcedure
-			.input(z.object({ name: z.string().min(1) }))
-			.mutation(({ input }) => {
-				return { installed: uninstallPlugin(input.name) };
-			}),
+		uninstall: publicProcedure.input(pluginRef).mutation(({ input }) => {
+			if (isOrganizationPlugin(input)) {
+				uninstallOrganizationPlugin(input.name, input.marketplace);
+				return { installed: getInstalledPlugins() };
+			}
+			return { installed: uninstallPlugin(input.name) };
+		}),
 
 		setEnabled: publicProcedure
-			.input(z.object({ name: z.string().min(1), enabled: z.boolean() }))
+			.input(pluginRef.extend({ enabled: z.boolean() }))
 			.mutation(({ input }) => {
+				if (isOrganizationPlugin(input)) {
+					setOrganizationPluginEnabled(
+						input.name,
+						input.marketplace,
+						input.enabled,
+					);
+					return { installed: getInstalledPlugins() };
+				}
 				return { installed: setPluginEnabled(input.name, input.enabled) };
 			}),
+
+		/** Reconciles local skills and MCP entries, including the organization's managed plugins. */
+		sync: publicProcedure.mutation(async () => {
+			await syncPlugins();
+			return { ok: true };
+		}),
 	});
 };

@@ -6,8 +6,16 @@ import {
 	type InstalledPluginEntry,
 	pluginCachePath,
 	writeInstalledPlugins,
+	writePluginTree,
 } from "@superset/agent-setup";
-import { DEFAULT_MARKETPLACE } from "@superset/shared/plugins";
+import {
+	DEFAULT_MARKETPLACE,
+	isOrganizationMarketplace,
+} from "@superset/shared/plugins";
+import {
+	pluginBundleHash,
+	unpackPluginBundle,
+} from "@superset/shared/plugins/bundle";
 import { sandboxPluginsSchema } from "@superset/shared/sandbox-contract";
 
 function treeVersion(dir: string, fallback: string): string {
@@ -61,8 +69,42 @@ async function cacheShippedTree(
 	}
 }
 
+export interface OrganizationPluginBundle {
+	name: string;
+	marketplace: string;
+	version: string;
+	contentHash: string;
+	bundle: string;
+}
+
+async function cacheOrganizationTree(
+	name: string,
+	fetchBundle: (name: string) => Promise<OrganizationPluginBundle>,
+): Promise<{ version: string; installPath: string } | undefined> {
+	try {
+		const download = await fetchBundle(name);
+		const bundle = Buffer.from(download.bundle, "base64");
+		if (pluginBundleHash(bundle) !== download.contentHash) {
+			throw new Error("the download does not match its hash");
+		}
+		return {
+			version: download.version,
+			installPath: writePluginTree(
+				download.marketplace,
+				download.name,
+				download.version,
+				unpackPluginBundle(bundle),
+			),
+		};
+	} catch (error) {
+		console.warn(`[sandbox] ${name}: could not fetch its tree:`, error);
+		return undefined;
+	}
+}
+
 export async function seedSandboxPlugins(
 	env: NodeJS.ProcessEnv = process.env,
+	fetchOrganizationBundle?: (name: string) => Promise<OrganizationPluginBundle>,
 ): Promise<void> {
 	const raw = env.SUPERSET_SANDBOX_PLUGINS;
 	if (!raw) return;
@@ -90,10 +132,18 @@ export async function seedSandboxPlugins(
 		const shipped =
 			plugin.marketplace === DEFAULT_MARKETPLACE &&
 			existsSync(join(dir, "plugin.json"));
-		const version = shipped ? treeVersion(dir, plugin.version) : plugin.version;
+		const fetched =
+			!shipped &&
+			fetchOrganizationBundle &&
+			isOrganizationMarketplace(plugin.marketplace)
+				? await cacheOrganizationTree(plugin.name, fetchOrganizationBundle)
+				: undefined;
+		const version = shipped
+			? treeVersion(dir, plugin.version)
+			: (fetched?.version ?? plugin.version);
 		const installPath = shipped
 			? await cacheShippedTree(dir, plugin.marketplace, plugin.name, version)
-			: undefined;
+			: fetched?.installPath;
 		entries.push({
 			marketplace: plugin.marketplace,
 			name: plugin.name,

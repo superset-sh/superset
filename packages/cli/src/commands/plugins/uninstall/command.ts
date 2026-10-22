@@ -36,6 +36,7 @@ export default command({
 				error && typeof error === "object" && "data" in error
 					? (error as { data?: { code?: string } }).data?.code
 					: undefined;
+			if (code === "FORBIDDEN") throw error;
 			if (code !== "NOT_FOUND") {
 				accountError = error instanceof Error ? error.message : String(error);
 			}

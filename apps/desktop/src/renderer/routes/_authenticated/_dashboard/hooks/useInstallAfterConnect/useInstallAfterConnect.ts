@@ -19,7 +19,8 @@ export function useInstallAfterConnect() {
 				const row = rows.find((entry) => entry.name === pluginName);
 				const connected = Boolean(row?.connector && row.connections.length > 0);
 				const installed = Boolean(row?.installed && row.enabled);
-				if (connected && !installed) await install(pluginName);
+				if (connected && !installed)
+					await install(pluginName, row?.marketplace);
 			} finally {
 				inFlight.current.delete(pluginName);
 			}

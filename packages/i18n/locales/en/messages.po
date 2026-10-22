@@ -387,6 +387,7 @@ msgstr "{0} cannot be signed in this way yet."
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 
+#. placeholder {0}: displayName(name)
 #. placeholder {0}: variables.name
 msgid "{0} disabled"
 msgstr "{0} disabled"
@@ -927,6 +928,9 @@ msgstr "{kind} · by {author}"
 
 msgid "{kindLabel} theme"
 msgstr "{kindLabel} theme"
+
+msgid "{label} access to {pluginName}"
+msgstr "{label} access to {pluginName}"
 
 msgid "{label} in cloud workspaces"
 msgstr "{label} in cloud workspaces"
@@ -1848,6 +1852,9 @@ msgstr "Add to workspace"
 msgid "Add your own terminal agent to this device."
 msgstr "Add your own terminal agent to this device."
 
+msgid "Added {added}"
+msgstr "Added {added}"
+
 msgid "Added {added} files to {where}"
 msgstr "Added {added} files to {where}"
 
@@ -1863,6 +1870,9 @@ msgstr "Added to agent input"
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
 msgstr "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
+
+msgid "Adding..."
+msgstr "Adding..."
 
 msgid "Address Comments with Agent"
 msgstr "Address Comments with Agent"
@@ -2860,6 +2870,13 @@ msgstr "Autonomous ticket-to-PR pipeline"
 msgid "Available"
 msgstr "Available"
 
+msgctxt "plugin access"
+msgid "Available"
+msgstr "Available"
+
+msgid "Available plugins show on each role's Plugins page. Installed plugins are installed for everyone in the role, who can disable but not remove them."
+msgstr "Available plugins show on each role's Plugins page. Installed plugins are installed for everyone in the role, who can disable but not remove them."
+
 msgid "Avatar"
 msgstr "Avatar"
 
@@ -3123,6 +3140,9 @@ msgstr "Branch name is not available"
 
 msgid "Branch names cannot end with a space."
 msgstr "Branch names cannot end with a space."
+
+msgid "Branch or tag (optional)"
+msgstr "Branch or tag (optional)"
 
 msgid "Branch prefix"
 msgstr "Branch prefix"
@@ -4883,6 +4903,9 @@ msgstr "Cost to you: $0"
 msgid "Could not add agent"
 msgstr "Could not add agent"
 
+msgid "Could not add repository"
+msgstr "Could not add repository"
+
 msgid "Could not answer the agent"
 msgstr "Could not answer the agent"
 
@@ -4900,6 +4923,9 @@ msgstr "Could not change the mode"
 
 msgid "Could not change the shared version"
 msgstr "Could not change the shared version"
+
+msgid "Could not change who gets this plugin"
+msgstr "Could not change who gets this plugin"
 
 msgid "Could not change who has access"
 msgstr "Could not change who has access"
@@ -4942,6 +4968,9 @@ msgstr "Could not delete file"
 
 msgid "Could not delete this page"
 msgstr "Could not delete this page"
+
+msgid "Could not disable plugin"
+msgstr "Could not disable plugin"
 
 msgid "Could not disconnect."
 msgstr "Could not disconnect."
@@ -5058,6 +5087,9 @@ msgstr "Could not record environment"
 msgid "Could not remove access"
 msgstr "Could not remove access"
 
+msgid "Could not remove repository"
+msgstr "Could not remove repository"
+
 msgid "Could not rename the session"
 msgstr "Could not rename the session"
 
@@ -5126,6 +5158,9 @@ msgstr "Could not stop watching"
 
 msgid "Could not submit prompt. Try again."
 msgstr "Could not submit prompt. Try again."
+
+msgid "Could not sync"
+msgstr "Could not sync"
 
 msgid "Could not take a screenshot"
 msgstr "Could not take a screenshot"
@@ -5837,6 +5872,9 @@ msgstr "Default ({defaultWorktreePath})"
 msgid "Default base for new workspaces. Override per-workspace at creation."
 msgstr "Default base for new workspaces. Override per-workspace at creation."
 
+msgid "Default branch"
+msgstr "Default branch"
+
 msgid "Default effort"
 msgstr "Default effort"
 
@@ -6234,6 +6272,9 @@ msgstr "Direct mode"
 
 msgid "Directory"
 msgstr "Directory"
+
+msgid "Disable"
+msgstr "Disable"
 
 msgid "Disable skill"
 msgstr "Disable skill"
@@ -8167,6 +8208,9 @@ msgstr "GitHub rate limit reached"
 msgid "GitHub refused the merge"
 msgstr "GitHub refused the merge"
 
+msgid "GitHub repositories with a plugin marketplace file. Superset syncs their plugins into your organization."
+msgstr "GitHub repositories with a plugin marketplace file. Superset syncs their plugins into your organization."
+
 msgid "GitHub sign-in needed"
 msgstr "GitHub sign-in needed"
 
@@ -8190,6 +8234,9 @@ msgstr "Give me an example"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Give your key a descriptive name to remember where it's used."
+
+msgid "Give your organization its own plugins from a GitHub repository. You choose who gets each one."
+msgstr "Give your organization its own plugins from a GitHub repository. You choose who gets each one."
 
 msgid "Globe"
 msgstr "Globe"
@@ -8972,6 +9019,13 @@ msgstr "Install, authorize, and scope MCP servers across all your workspaces fro
 msgid "Install."
 msgstr "Install."
 
+msgctxt "plugin access"
+msgid "Installed"
+msgstr "Installed"
+
+msgid "Installed by your organization"
+msgstr "Installed by your organization"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceHasInstalls"
 msgstr "Installed plugins came from {name}: {plugins}. Remove them first."
@@ -9210,6 +9264,9 @@ msgstr "Its connected accounts were disconnected."
 
 msgid "Its own branch and copy of the files"
 msgstr "Its own branch and copy of the files"
+
+msgid "Its plugins appear when the sync finishes."
+msgstr "Its plugins appear when the sync finishes."
 
 msgid "Its replies go with it."
 msgstr "Its replies go with it."
@@ -11119,6 +11176,9 @@ msgstr "No log lines yet"
 msgid "no logins"
 msgstr "no logins"
 
+msgid "No longer in source"
+msgstr "No longer in source"
+
 msgid "No match"
 msgstr "No match"
 
@@ -11216,6 +11276,9 @@ msgstr "No plugins available yet."
 msgid "No plugins match \"{0}\""
 msgstr "No plugins match \"{0}\""
 
+msgid "No plugins yet. Add a repository to sync them."
+msgstr "No plugins yet. Add a repository to sync them."
+
 msgid "No posts yet."
 msgstr "No posts yet."
 
@@ -11290,6 +11353,9 @@ msgstr "No release notes at {url}"
 
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "No repositories found. Make sure your GitHub App has access to repositories."
+
+msgid "No repositories yet."
+msgstr "No repositories yet."
 
 msgid "No repositories. Connect GitHub in Integrations, then refresh."
 msgstr "No repositories. Connect GitHub in Integrations, then refresh."
@@ -11549,6 +11615,9 @@ msgstr "Not set up on this host"
 msgid "not sorted"
 msgstr "not sorted"
 
+msgid "Not synced yet"
+msgstr "Not synced yet"
+
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "Not updating"
@@ -11772,6 +11841,9 @@ msgstr "Only host owners or organization owners can delete this host"
 
 msgid "Only images can be attached to a comment"
 msgstr "Only images can be attached to a comment"
+
+msgid "Only organization owners and admins can manage plugins."
+msgstr "Only organization owners and admins can manage plugins."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Only organization owners can modify these settings."
@@ -12374,6 +12446,9 @@ msgstr "Organization not found"
 msgid "Organization not found."
 msgstr "Organization not found."
 
+msgid "Organization plugins"
+msgstr "Organization plugins"
+
 msgid "Organization slug"
 msgstr "Organization slug"
 
@@ -12617,6 +12692,9 @@ msgstr "Paste this into Superset CLI:"
 msgid "Path"
 msgstr "Path"
 
+msgid "Path (optional)"
+msgstr "Path (optional)"
+
 msgid "Path copied"
 msgstr "Path copied"
 
@@ -12757,6 +12835,9 @@ msgstr "Pick a project location"
 msgid "Pick a reason"
 msgstr "Pick a reason"
 
+msgid "Pick a repository with a plugin marketplace file. Superset syncs its plugins now and each time you sync again."
+msgstr "Pick a repository with a plugin marketplace file. Superset syncs its plugins now and each time you sync again."
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 
@@ -12883,6 +12964,9 @@ msgstr "Please try again, or restart Superset on that device."
 msgid "Please try signing in again from the desktop app."
 msgstr "Please try signing in again from the desktop app."
 
+msgid "Plugin"
+msgstr "Plugin"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.noApiKeyAuth"
 msgstr "Plugin {plugin} does not use api_key auth"
@@ -12896,6 +12980,9 @@ msgstr "Plugin marketplace"
 
 msgid "Plugins"
 msgstr "Plugins"
+
+msgid "Plugins update when the sync finishes."
+msgstr "Plugins update when the sync finishes."
 
 msgid "Point at the page. Your agent makes the change."
 msgstr "Point at the page. Your agent makes the change."
@@ -13734,6 +13821,9 @@ msgstr "Reduce Motion"
 msgid "Reduce Transparency"
 msgstr "Reduce Transparency"
 
+msgid "Ref {ref} · Path {path}"
+msgstr "Ref {ref} · Path {path}"
+
 msgid "Referenced, not demoed"
 msgstr "Referenced, not demoed"
 
@@ -13849,6 +13939,7 @@ msgid "Remove"
 msgstr "Remove"
 
 #. placeholder {0}: member.name
+#. placeholder {0}: source.repo
 msgid "Remove {0}"
 msgstr "Remove {0}"
 
@@ -13857,6 +13948,9 @@ msgstr "Remove {label}"
 
 msgid "Remove {label}?"
 msgstr "Remove {label}?"
+
+msgid "Remove {repo}? Every plugin synced from it is removed from your organization."
+msgstr "Remove {repo}? Every plugin synced from it is removed from your organization."
 
 msgid "Remove {repositoryName}"
 msgstr "Remove {repositoryName}"
@@ -13908,6 +14002,9 @@ msgstr "Remove PR Link"
 
 msgid "Remove queued message"
 msgstr "Remove queued message"
+
+msgid "Remove repository"
+msgstr "Remove repository"
 
 msgid "Remove script"
 msgstr "Remove script"
@@ -14106,6 +14203,12 @@ msgstr "Repositories: {label}"
 
 msgid "Repository"
 msgstr "Repository"
+
+msgid "Repository removed"
+msgstr "Repository removed"
+
+msgid "Repository root"
+msgstr "Repository root"
 
 msgid "Repository URL or path"
 msgstr "Repository URL or path"
@@ -15168,6 +15271,9 @@ msgstr "Select a project to see pull requests."
 
 msgid "Select a pull request to preview it here."
 msgstr "Select a pull request to preview it here."
+
+msgid "Select a repository"
+msgstr "Select a repository"
 
 msgid "Select a team"
 msgstr "Select a team"
@@ -16922,11 +17028,23 @@ msgstr "Sync issues bidirectionally with Linear."
 msgid "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 msgstr "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 
+msgid "Sync now"
+msgstr "Sync now"
+
+msgid "Sync plugins from your GitHub repositories and choose who can install them."
+msgstr "Sync plugins from your GitHub repositories and choose who can install them."
+
 msgid "Sync Repositories"
 msgstr "Sync Repositories"
 
+msgid "Sync requested"
+msgstr "Sync requested"
+
 msgid "Sync started"
 msgstr "Sync started"
+
+msgid "Synced {syncedAgo}"
+msgstr "Synced {syncedAgo}"
 
 msgid "Syncing..."
 msgstr "Syncing..."
@@ -17259,6 +17377,10 @@ msgstr "That machine is no longer available"
 msgid "That name isn't allowed."
 msgstr "That name isn't allowed."
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.unknownPluginSource"
+msgstr "That plugin source does not exist"
+
 msgid "That run is missed and isn't retried. Use Run now to start it later."
 msgstr "That run is missed and isn't retried. Use Run now to start it later."
 
@@ -17373,6 +17495,9 @@ msgstr "The first F4 teams"
 msgid "The first teams, small ones, ship majority-agent code without reading every line, and their defect rates hold. Nothing mystical behind it: review layers, canaries, fast rollback, and a habit of writing specifications instead of code."
 msgstr "The first teams, small ones, ship majority-agent code without reading every line, and their defect rates hold. Nothing mystical behind it: review layers, canaries, fast rollback, and a habit of writing specifications instead of code."
 
+msgid "The folder that holds the marketplace file, if it is not at the root."
+msgstr "The folder that holds the marketplace file, if it is not at the root."
+
 msgid "The following folders are not git repositories. Would you like to initialize them?"
 msgstr "The following folders are not git repositories. Would you like to initialize them?"
 
@@ -17390,6 +17515,9 @@ msgstr "The full workspace. Run agents in parallel, keep each one in its own wor
 
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "The future home for reusable Superset agent configs, prompts, and setup guides."
+
+msgid "The GitHub App cannot see any repositories yet. Give it access on GitHub, then try again."
+msgstr "The GitHub App cannot see any repositories yet. Give it access on GitHub, then try again."
 
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
@@ -17497,6 +17625,10 @@ msgstr "The page you're looking for doesn't exist."
 
 msgid "The pane uses your real logins. Agents ask you before they take a consequential action."
 msgstr "The pane uses your real logins. Agents ask you before they take a consequential action."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourcePathOutside"
+msgstr "The path must stay inside the repository"
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "The project's checkout as it is: files and branch are shared"
@@ -18438,6 +18570,10 @@ msgstr "Unattended overnight runs, mergeable by morning"
 msgid "Unattended runs of 8 hours or more succeed on a majority of routine tickets without a human unblocking them."
 msgstr "Unattended runs of 8 hours or more succeed on a majority of routine tickets without a human unblocking them."
 
+msgid "Unavailable"
+msgstr "Unavailable"
+
+msgctxt "plugin access"
 msgid "Unavailable"
 msgstr "Unavailable"
 
@@ -19841,6 +19977,10 @@ msgstr "Your first agent"
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "Your GitHub account cannot reach a repository in this environment"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourceOutOfReach"
+msgstr "Your GitHub account cannot read {repo}"
+
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 
@@ -19853,8 +19993,21 @@ msgstr "Your name"
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 
+msgid "Your organization"
+msgstr "Your organization"
+
+msgid "Your organization has not connected GitHub yet. Install the GitHub App in <0>Settings › Integrations</0>, then come back."
+msgstr "Your organization has not connected GitHub yet. Install the GitHub App in <0>Settings › Integrations</0>, then come back."
+
 msgid "Your organization has reached its cloud usage limit. Raise the limit or upgrade in Settings, Billing to start this workspace."
 msgstr "Your organization has reached its cloud usage limit. Raise the limit or upgrade in Settings, Billing to start this workspace."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.managedByOrganization"
+msgstr "Your organization installs {plugin} for you, so it cannot be uninstalled. You can disable it."
+
+msgid "Your organization installs this plugin for you. You can disable it, but not remove it."
+msgstr "Your organization installs this plugin for you. You can disable it, but not remove it."
 
 msgid "Your organization reached its cloud usage limit. This workspace stops in a few minutes unless the limit is raised."
 msgstr "Your organization reached its cloud usage limit. This workspace stops in a few minutes unless the limit is raised."

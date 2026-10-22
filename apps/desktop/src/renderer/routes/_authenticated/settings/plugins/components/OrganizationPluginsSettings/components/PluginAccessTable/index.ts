@@ -1,0 +1,1 @@
+export { PluginAccessTable } from "./PluginAccessTable";

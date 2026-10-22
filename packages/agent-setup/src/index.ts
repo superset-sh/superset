@@ -114,6 +114,7 @@ export {
 	isSafePluginSegment,
 	pluginCacheDir,
 	pluginCachePath,
+	writePluginTree,
 } from "./plugin-cache";
 export { mcpHeadersHelperCommand } from "./plugin-connections";
 export {

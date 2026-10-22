@@ -387,6 +387,7 @@ msgstr "{0} chưa thể đăng nhập theo cách này."
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "{0} nhà phát triển được xếp hạng theo mức dùng agent. 30 ngày qua của bạn đã được tính, chỉ là đang ẩn. Chỉ số lượng token và tên mô hình, không có tên repo, đường dẫn tệp hay prompt."
 
+#. placeholder {0}: displayName(name)
 #. placeholder {0}: variables.name
 msgid "{0} disabled"
 msgstr "Đã tắt {0}"
@@ -927,6 +928,9 @@ msgstr "{kind} · bởi {author}"
 
 msgid "{kindLabel} theme"
 msgstr "Chủ đề {kindLabel}"
+
+msgid "{label} access to {pluginName}"
+msgstr "Quyền {label} với {pluginName}"
 
 msgid "{label} in cloud workspaces"
 msgstr "{label} trong workspace cloud"
@@ -1848,6 +1852,9 @@ msgstr "Thêm vào workspace"
 msgid "Add your own terminal agent to this device."
 msgstr "Thêm agent terminal của riêng bạn vào thiết bị này."
 
+msgid "Added {added}"
+msgstr "Đã thêm {added}"
+
 msgid "Added {added} files to {where}"
 msgstr "Đã thêm {added} tệp vào {where}"
 
@@ -1863,6 +1870,9 @@ msgstr "Đã thêm vào ô nhập của agent"
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
 msgstr "Để thêm người vào {organizationName}, bạn cần gói trả phí. Gói của tổ chức bạn do chủ sở hữu quản lý tại {0}."
+
+msgid "Adding..."
+msgstr "Đang thêm..."
 
 msgid "Address Comments with Agent"
 msgstr "Xử lý bình luận bằng agent"
@@ -2860,6 +2870,13 @@ msgstr "Quy trình tự động từ ticket tới PR"
 msgid "Available"
 msgstr "Còn trống"
 
+msgctxt "plugin access"
+msgid "Available"
+msgstr "Khả dụng"
+
+msgid "Available plugins show on each role's Plugins page. Installed plugins are installed for everyone in the role, who can disable but not remove them."
+msgstr "Plugin khả dụng hiện trên trang Plugin của từng vai trò. Plugin đã cài được cài cho mọi người trong vai trò đó; họ có thể tắt nhưng không thể gỡ."
+
 msgid "Avatar"
 msgstr "Ảnh đại diện"
 
@@ -3123,6 +3140,9 @@ msgstr "Không có tên nhánh"
 
 msgid "Branch names cannot end with a space."
 msgstr "Tên nhánh không được kết thúc bằng dấu cách."
+
+msgid "Branch or tag (optional)"
+msgstr "Nhánh hoặc tag (tùy chọn)"
 
 msgid "Branch prefix"
 msgstr "Tiền tố nhánh"
@@ -4883,6 +4903,9 @@ msgstr "Chi phí của bạn: $0"
 msgid "Could not add agent"
 msgstr "Không thể thêm tác nhân"
 
+msgid "Could not add repository"
+msgstr "Không thể thêm repository"
+
 msgid "Could not answer the agent"
 msgstr "Không thể trả lời agent"
 
@@ -4900,6 +4923,9 @@ msgstr "Không thể đổi chế độ"
 
 msgid "Could not change the shared version"
 msgstr "Không thể đổi phiên bản được chia sẻ"
+
+msgid "Could not change who gets this plugin"
+msgstr "Không thể thay đổi ai nhận plugin này"
 
 msgid "Could not change who has access"
 msgstr "Không thể thay đổi người có quyền truy cập"
@@ -4942,6 +4968,9 @@ msgstr "Không thể xóa tệp"
 
 msgid "Could not delete this page"
 msgstr "Không thể xóa trang này"
+
+msgid "Could not disable plugin"
+msgstr "Không thể tắt plugin"
 
 msgid "Could not disconnect."
 msgstr "Không thể ngắt kết nối."
@@ -5058,6 +5087,9 @@ msgstr "Không thể lưu environment"
 msgid "Could not remove access"
 msgstr "Không thể gỡ quyền truy cập"
 
+msgid "Could not remove repository"
+msgstr "Không thể gỡ repository"
+
 msgid "Could not rename the session"
 msgstr "Không thể đổi tên phiên"
 
@@ -5126,6 +5158,9 @@ msgstr "Không thể ngừng theo dõi"
 
 msgid "Could not submit prompt. Try again."
 msgstr "Không thể gửi prompt. Hãy thử lại."
+
+msgid "Could not sync"
+msgstr "Không thể đồng bộ"
 
 msgid "Could not take a screenshot"
 msgstr "Không thể chụp màn hình"
@@ -5837,6 +5872,9 @@ msgstr "Mặc định ({defaultWorktreePath})"
 msgid "Default base for new workspaces. Override per-workspace at creation."
 msgstr "Nhánh cơ sở mặc định cho không gian làm việc mới. Có thể ghi đè riêng khi tạo."
 
+msgid "Default branch"
+msgstr "Nhánh mặc định"
+
 msgid "Default effort"
 msgstr "Mức nỗ lực mặc định"
 
@@ -6234,6 +6272,9 @@ msgstr "Chế độ trực tiếp"
 
 msgid "Directory"
 msgstr "Thư mục"
+
+msgid "Disable"
+msgstr "Tắt"
 
 msgid "Disable skill"
 msgstr "Tắt skill"
@@ -8167,6 +8208,9 @@ msgstr "Đã đạt giới hạn yêu cầu GitHub"
 msgid "GitHub refused the merge"
 msgstr "GitHub từ chối merge"
 
+msgid "GitHub repositories with a plugin marketplace file. Superset syncs their plugins into your organization."
+msgstr "Các repository GitHub có tệp marketplace plugin. Superset đồng bộ plugin của chúng vào tổ chức của bạn."
+
 msgid "GitHub sign-in needed"
 msgstr "Cần đăng nhập GitHub"
 
@@ -8190,6 +8234,9 @@ msgstr "Cho tôi một ví dụ"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Đặt tên gợi nhớ để biết khóa này dùng ở đâu."
+
+msgid "Give your organization its own plugins from a GitHub repository. You choose who gets each one."
+msgstr "Cung cấp cho tổ chức của bạn các plugin riêng từ một kho GitHub. Bạn chọn ai nhận từng plugin."
 
 msgid "Globe"
 msgstr "Quả địa cầu"
@@ -8972,6 +9019,13 @@ msgstr "Cài đặt, ủy quyền và giới hạn phạm vi server MCP trên m�
 msgid "Install."
 msgstr "Cài đặt."
 
+msgctxt "plugin access"
+msgid "Installed"
+msgstr "Đã cài"
+
+msgid "Installed by your organization"
+msgstr "Do tổ chức của bạn cài"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceHasInstalls"
 msgstr "Các plugin đã cài đến từ {name}: {plugins}. Hãy gỡ chúng trước."
@@ -9210,6 +9264,9 @@ msgstr "Các tài khoản đã kết nối đã bị ngắt kết nối."
 
 msgid "Its own branch and copy of the files"
 msgstr "Nhánh riêng và bản sao tệp riêng"
+
+msgid "Its plugins appear when the sync finishes."
+msgstr "Plugin của nó sẽ hiện khi đồng bộ xong."
 
 msgid "Its replies go with it."
 msgstr "Các câu trả lời cũng bị xóa theo."
@@ -11119,6 +11176,9 @@ msgstr "Chưa có dòng nhật ký nào"
 msgid "no logins"
 msgstr "không có đăng nhập"
 
+msgid "No longer in source"
+msgstr "Không còn trong nguồn"
+
 msgid "No match"
 msgstr "Không khớp"
 
@@ -11216,6 +11276,9 @@ msgstr "Chưa có plugin nào."
 msgid "No plugins match \"{0}\""
 msgstr "Không có plugin nào khớp \"{0}\""
 
+msgid "No plugins yet. Add a repository to sync them."
+msgstr "Chưa có plugin nào. Thêm một repository để đồng bộ."
+
 msgid "No posts yet."
 msgstr "Chưa có bài viết nào."
 
@@ -11290,6 +11353,9 @@ msgstr "Không có ghi chú phát hành tại {url}"
 
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Không tìm thấy repository nào. Hãy đảm bảo GitHub App của bạn có quyền truy cập repository."
+
+msgid "No repositories yet."
+msgstr "Chưa có repository nào."
 
 msgid "No repositories. Connect GitHub in Integrations, then refresh."
 msgstr "Không có repository. Hãy kết nối GitHub trong Tích hợp rồi làm mới."
@@ -11549,6 +11615,9 @@ msgstr "Chưa thiết lập trên host này"
 msgid "not sorted"
 msgstr "chưa sắp xếp"
 
+msgid "Not synced yet"
+msgstr "Chưa đồng bộ"
+
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "Không cập nhật"
@@ -11772,6 +11841,9 @@ msgstr "Chỉ chủ sở hữu host hoặc chủ sở hữu tổ chức mới x�
 
 msgid "Only images can be attached to a comment"
 msgstr "Chỉ có thể đính kèm hình ảnh vào bình luận"
+
+msgid "Only organization owners and admins can manage plugins."
+msgstr "Chỉ chủ sở hữu và admin của tổ chức mới có thể quản lý plugin."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Chỉ chủ sở hữu tổ chức mới sửa được các cài đặt này."
@@ -12374,6 +12446,9 @@ msgstr "Không tìm thấy tổ chức"
 msgid "Organization not found."
 msgstr "Không tìm thấy tổ chức."
 
+msgid "Organization plugins"
+msgstr "Plugin của tổ chức"
+
 msgid "Organization slug"
 msgstr "Slug tổ chức"
 
@@ -12617,6 +12692,9 @@ msgstr "Dán mã này vào Superset CLI:"
 msgid "Path"
 msgstr "Đường dẫn"
 
+msgid "Path (optional)"
+msgstr "Đường dẫn (tùy chọn)"
+
 msgid "Path copied"
 msgstr "Đã sao chép đường dẫn"
 
@@ -12757,6 +12835,9 @@ msgstr "Hãy chọn vị trí dự án"
 msgid "Pick a reason"
 msgstr "Chọn lý do"
 
+msgid "Pick a repository with a plugin marketplace file. Superset syncs its plugins now and each time you sync again."
+msgstr "Chọn một repository có tệp marketplace plugin. Superset đồng bộ plugin của nó ngay bây giờ và mỗi lần bạn đồng bộ lại."
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Chọn một âm thanh hoặc thêm âm thanh riêng. Âm thanh riêng hỗ trợ .mp3, .wav và .ogg."
 
@@ -12883,6 +12964,9 @@ msgstr "Vui lòng thử lại hoặc khởi động lại Superset trên thiết
 msgid "Please try signing in again from the desktop app."
 msgstr "Vui lòng thử đăng nhập lại từ ứng dụng máy tính."
 
+msgid "Plugin"
+msgstr "Plugin"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.noApiKeyAuth"
 msgstr "Plugin {plugin} không dùng xác thực api_key"
@@ -12896,6 +12980,9 @@ msgstr "Marketplace plugin"
 
 msgid "Plugins"
 msgstr "Plugin"
+
+msgid "Plugins update when the sync finishes."
+msgstr "Plugin sẽ cập nhật khi đồng bộ xong."
 
 msgid "Point at the page. Your agent makes the change."
 msgstr "Chỉ vào trang. Agent của bạn sẽ thực hiện thay đổi."
@@ -13734,6 +13821,9 @@ msgstr "Giảm chuyển động"
 msgid "Reduce Transparency"
 msgstr "Giảm độ trong suốt"
 
+msgid "Ref {ref} · Path {path}"
+msgstr "Ref {ref} · Đường dẫn {path}"
+
 msgid "Referenced, not demoed"
 msgstr "Chỉ được nhắc tới, không demo"
 
@@ -13849,6 +13939,7 @@ msgid "Remove"
 msgstr "Gỡ"
 
 #. placeholder {0}: member.name
+#. placeholder {0}: source.repo
 msgid "Remove {0}"
 msgstr "Gỡ {0}"
 
@@ -13857,6 +13948,9 @@ msgstr "Gỡ {label}"
 
 msgid "Remove {label}?"
 msgstr "Gỡ {label}?"
+
+msgid "Remove {repo}? Every plugin synced from it is removed from your organization."
+msgstr "Gỡ {repo}? Mọi plugin được đồng bộ từ đó sẽ bị gỡ khỏi tổ chức của bạn."
 
 msgid "Remove {repositoryName}"
 msgstr "Gỡ {repositoryName}"
@@ -13908,6 +14002,9 @@ msgstr "Gỡ liên kết PR"
 
 msgid "Remove queued message"
 msgstr "Xóa tin nhắn trong hàng đợi"
+
+msgid "Remove repository"
+msgstr "Gỡ repository"
 
 msgid "Remove script"
 msgstr "Gỡ script"
@@ -14106,6 +14203,12 @@ msgstr "Repository: {label}"
 
 msgid "Repository"
 msgstr "Repository"
+
+msgid "Repository removed"
+msgstr "Đã gỡ repository"
+
+msgid "Repository root"
+msgstr "Thư mục gốc của repository"
 
 msgid "Repository URL or path"
 msgstr "URL hoặc đường dẫn repository"
@@ -15168,6 +15271,9 @@ msgstr "Chọn một dự án để xem pull request."
 
 msgid "Select a pull request to preview it here."
 msgstr "Chọn một pull request để xem trước ở đây."
+
+msgid "Select a repository"
+msgstr "Chọn một repository"
 
 msgid "Select a team"
 msgstr "Chọn một nhóm"
@@ -16922,11 +17028,23 @@ msgstr "Đồng bộ issue hai chiều với Linear."
 msgid "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 msgstr "Đồng bộ issue hai chiều với Linear. Tạo tác vụ trong Superset để chúng xuất hiện trong Linear, hoặc nhập issue Linear có sẵn."
 
+msgid "Sync now"
+msgstr "Đồng bộ ngay"
+
+msgid "Sync plugins from your GitHub repositories and choose who can install them."
+msgstr "Đồng bộ plugin từ các repository GitHub của bạn và chọn ai có thể cài chúng."
+
 msgid "Sync Repositories"
 msgstr "Đồng bộ repository"
 
+msgid "Sync requested"
+msgstr "Đã yêu cầu đồng bộ"
+
 msgid "Sync started"
 msgstr "Đã bắt đầu đồng bộ"
+
+msgid "Synced {syncedAgo}"
+msgstr "Đã đồng bộ {syncedAgo}"
 
 msgid "Syncing..."
 msgstr "Đang đồng bộ..."
@@ -17259,6 +17377,10 @@ msgstr "Máy đó không còn khả dụng"
 msgid "That name isn't allowed."
 msgstr "Tên đó không được phép."
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.unknownPluginSource"
+msgstr "Nguồn plugin đó không tồn tại"
+
 msgid "That run is missed and isn't retried. Use Run now to start it later."
 msgstr "Lượt chạy đó bị bỏ lỡ và không được thử lại. Dùng Chạy ngay để chạy nó sau."
 
@@ -17373,6 +17495,9 @@ msgstr "Những đội F4 đầu tiên"
 msgid "The first teams, small ones, ship majority-agent code without reading every line, and their defect rates hold. Nothing mystical behind it: review layers, canaries, fast rollback, and a habit of writing specifications instead of code."
 msgstr "Những đội đầu tiên, quy mô nhỏ, ship code phần lớn do agent viết mà không đọc từng dòng, và tỷ lệ lỗi vẫn ổn. Không có gì huyền bí đằng sau: các lớp review, canary, rollback nhanh, và thói quen viết đặc tả thay vì viết code."
 
+msgid "The folder that holds the marketplace file, if it is not at the root."
+msgstr "Thư mục chứa tệp marketplace, nếu tệp không nằm ở thư mục gốc."
+
 msgid "The following folders are not git repositories. Would you like to initialize them?"
 msgstr "Các thư mục sau không phải là repository git. Bạn có muốn khởi tạo chúng không?"
 
@@ -17390,6 +17515,9 @@ msgstr "Toàn bộ workspace. Chạy nhiều agent song song, giữ mỗi agent 
 
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "Nơi sẽ chứa các cấu hình agent, prompt và hướng dẫn thiết lập Superset có thể tái sử dụng."
+
+msgid "The GitHub App cannot see any repositories yet. Give it access on GitHub, then try again."
+msgstr "GitHub App chưa thấy repository nào. Cấp quyền cho nó trên GitHub rồi thử lại."
 
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
@@ -17497,6 +17625,10 @@ msgstr "Trang bạn tìm không tồn tại."
 
 msgid "The pane uses your real logins. Agents ask you before they take a consequential action."
 msgstr "Ngăn dùng thông tin đăng nhập thật của bạn. Agent sẽ hỏi bạn trước khi thực hiện hành động quan trọng."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourcePathOutside"
+msgstr "Đường dẫn phải nằm trong repository"
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "Checkout của dự án như hiện có: tệp và nhánh được dùng chung"
@@ -18438,6 +18570,10 @@ msgstr "Chạy qua đêm không giám sát, sáng có thể merge"
 msgid "Unattended runs of 8 hours or more succeed on a majority of routine tickets without a human unblocking them."
 msgstr "Các lần chạy không giám sát từ 8 giờ trở lên thành công với phần lớn ticket thường ngày mà không cần con người gỡ vướng."
 
+msgid "Unavailable"
+msgstr "Không khả dụng"
+
+msgctxt "plugin access"
 msgid "Unavailable"
 msgstr "Không khả dụng"
 
@@ -19841,6 +19977,10 @@ msgstr "Agent đầu tiên của bạn"
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "Tài khoản GitHub của bạn không truy cập được một repository trong environment này"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourceOutOfReach"
+msgstr "Tài khoản GitHub của bạn không thể đọc {repo}"
+
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "Liên kết GitHub của bạn lấy từ tài khoản bạn đã đăng nhập, nên nó hiển thị là đã xác minh và không sửa được ở đây."
 
@@ -19853,8 +19993,21 @@ msgstr "Tên của bạn"
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Tên của bạn <0>(nếu dùng prompt của bạn, chúng tôi sẽ ghi công trong changelog)</0>"
 
+msgid "Your organization"
+msgstr "Tổ chức của bạn"
+
+msgid "Your organization has not connected GitHub yet. Install the GitHub App in <0>Settings › Integrations</0>, then come back."
+msgstr "Tổ chức của bạn chưa kết nối GitHub. Cài GitHub App trong <0>Cài đặt › Tích hợp</0>, rồi quay lại."
+
 msgid "Your organization has reached its cloud usage limit. Raise the limit or upgrade in Settings, Billing to start this workspace."
 msgstr "Tổ chức của bạn đã đạt giới hạn sử dụng cloud. Hãy tăng giới hạn hoặc nâng cấp trong Cài đặt, Thanh toán để khởi động workspace này."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.managedByOrganization"
+msgstr "Tổ chức của bạn cài {plugin} cho bạn nên không thể gỡ cài đặt. Bạn có thể tắt nó."
+
+msgid "Your organization installs this plugin for you. You can disable it, but not remove it."
+msgstr "Tổ chức của bạn cài plugin này cho bạn. Bạn có thể tắt nhưng không thể gỡ nó."
 
 msgid "Your organization reached its cloud usage limit. This workspace stops in a few minutes unless the limit is raised."
 msgstr "Tổ chức của bạn đã đạt giới hạn sử dụng cloud. Workspace này sẽ dừng sau vài phút nếu giới hạn không được tăng."

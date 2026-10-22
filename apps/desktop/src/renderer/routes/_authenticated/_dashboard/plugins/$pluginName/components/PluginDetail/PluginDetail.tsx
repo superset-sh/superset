@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { isOrganizationMarketplace } from "@superset/shared/plugins";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -11,6 +12,7 @@ import { useCallback, useState } from "react";
 import {
 	LuArrowLeft,
 	LuArrowUp,
+	LuCircleOff,
 	LuEllipsis,
 	LuExternalLink,
 	LuPlus,
@@ -26,6 +28,7 @@ import { pluginMentionText } from "renderer/components/PluginMention";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import type { CatalogPlugin } from "renderer/hooks/usePluginCatalog";
 import { usePluginMutations } from "renderer/routes/_authenticated/_dashboard/hooks/usePluginMutations";
+import { ManagedBadge } from "renderer/routes/_authenticated/_dashboard/plugins/components/ManagedBadge";
 import { SkillIcon } from "renderer/routes/_authenticated/_dashboard/plugins/components/SkillIcon";
 import { useNewWorkspaceDraftStore } from "renderer/stores/new-workspace-draft";
 import { ConnectedAccounts } from "./components/ConnectedAccounts";
@@ -43,7 +46,7 @@ export function PluginDetail({
 }) {
 	const { t } = useLingui();
 	const navigate = useNavigate();
-	const { install, uninstall, update, isBusy } = usePluginMutations();
+	const { install, uninstall, update, disable, isBusy } = usePluginMutations();
 	const openNewWorkspace = useOpenNewWorkspace();
 
 	const [isConnectOpen, setIsConnectOpen] = useState(openConnect);
@@ -62,7 +65,7 @@ export function PluginDetail({
 		if (plugin.connector && plugin.connections.length === 0) {
 			setIsConnectOpen(true);
 		} else {
-			void install(plugin.name);
+			void install(plugin.name, plugin.marketplace);
 		}
 	};
 
@@ -110,20 +113,36 @@ export function PluginDetail({
 										{plugin.updateAvailable && (
 											<DropdownMenuItem
 												disabled={isBusy}
-												onSelect={() => void update(plugin.name)}
+												onSelect={() =>
+													void update(plugin.name, plugin.marketplace)
+												}
 											>
 												<LuArrowUp className="size-3.5 shrink-0 text-current" />
 												<Trans>Update</Trans>
 											</DropdownMenuItem>
 										)}
-										<DropdownMenuItem
-											variant="destructive"
-											disabled={isBusy}
-											onSelect={() => uninstall(plugin.name)}
-										>
-											<LuTrash2 className="size-3.5 shrink-0 text-current" />
-											<Trans>Remove</Trans>
-										</DropdownMenuItem>
+										{plugin.managed ? (
+											<DropdownMenuItem
+												disabled={isBusy}
+												onSelect={() =>
+													void disable(plugin.name, plugin.marketplace)
+												}
+											>
+												<LuCircleOff className="size-3.5 shrink-0 text-current" />
+												<Trans>Disable</Trans>
+											</DropdownMenuItem>
+										) : (
+											<DropdownMenuItem
+												variant="destructive"
+												disabled={isBusy}
+												onSelect={() =>
+													uninstall(plugin.name, plugin.marketplace)
+												}
+											>
+												<LuTrash2 className="size-3.5 shrink-0 text-current" />
+												<Trans>Remove</Trans>
+											</DropdownMenuItem>
+										)}
 									</DropdownMenuContent>
 								</DropdownMenu>
 							)}
@@ -142,6 +161,11 @@ export function PluginDetail({
 							)}
 						</div>
 					</div>
+					{plugin.managed && (
+						<div className="mt-2">
+							<ManagedBadge />
+						</div>
+					)}
 					<p className="mt-2 text-sm text-muted-foreground">
 						{plugin.description}
 					</p>
@@ -220,7 +244,11 @@ export function PluginDetail({
 							: ""}
 					</InfoRow>
 					<InfoRow label={<Trans>Marketplace</Trans>}>
-						{plugin.marketplace}
+						{isOrganizationMarketplace(plugin.marketplace) ? (
+							<Trans>Your organization</Trans>
+						) : (
+							plugin.marketplace
+						)}
 					</InfoRow>
 					{plugin.license && (
 						<InfoRow label={<Trans>License</Trans>}>{plugin.license}</InfoRow>

@@ -387,6 +387,7 @@ msgstr "{0} belum bisa masuk dengan cara ini."
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "{0} developer diperingkat berdasarkan penggunaan agen. 30 hari terakhir Anda sudah dihitung, hanya disembunyikan. Hanya jumlah token dan nama model, tanpa nama repo, path file, atau prompt."
 
+#. placeholder {0}: displayName(name)
 #. placeholder {0}: variables.name
 msgid "{0} disabled"
 msgstr "{0} dinonaktifkan"
@@ -927,6 +928,9 @@ msgstr "{kind} · oleh {author}"
 
 msgid "{kindLabel} theme"
 msgstr "Tema {kindLabel}"
+
+msgid "{label} access to {pluginName}"
+msgstr "Akses {label} ke {pluginName}"
 
 msgid "{label} in cloud workspaces"
 msgstr "{label} di workspace cloud"
@@ -1848,6 +1852,9 @@ msgstr "Tambahkan ke workspace"
 msgid "Add your own terminal agent to this device."
 msgstr "Tambahkan agen terminal Anda sendiri ke perangkat ini."
 
+msgid "Added {added}"
+msgstr "{added} ditambahkan"
+
 msgid "Added {added} files to {where}"
 msgstr "Menambahkan {added} file ke {where}"
 
@@ -1863,6 +1870,9 @@ msgstr "Ditambahkan ke input agen"
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
 msgstr "Menambahkan orang ke {organizationName} memerlukan paket berbayar. Paket organisasi Anda dikelola oleh pemiliknya di {0}."
+
+msgid "Adding..."
+msgstr "Menambahkan..."
 
 msgid "Address Comments with Agent"
 msgstr "Tanggapi Komentar dengan Agen"
@@ -2860,6 +2870,13 @@ msgstr "Pipeline otonom dari tiket ke PR"
 msgid "Available"
 msgstr "Tersedia"
 
+msgctxt "plugin access"
+msgid "Available"
+msgstr "Tersedia"
+
+msgid "Available plugins show on each role's Plugins page. Installed plugins are installed for everyone in the role, who can disable but not remove them."
+msgstr "Plugin yang tersedia muncul di halaman Plugin setiap peran. Plugin yang terpasang dipasang untuk semua orang dalam peran itu, yang bisa menonaktifkannya tetapi tidak bisa menghapusnya."
+
 msgid "Avatar"
 msgstr "Avatar"
 
@@ -3123,6 +3140,9 @@ msgstr "Nama branch tidak tersedia"
 
 msgid "Branch names cannot end with a space."
 msgstr "Nama branch tidak boleh diakhiri spasi."
+
+msgid "Branch or tag (optional)"
+msgstr "Branch atau tag (opsional)"
 
 msgid "Branch prefix"
 msgstr "Prefix branch"
@@ -4883,6 +4903,9 @@ msgstr "Biaya untuk Anda: $0"
 msgid "Could not add agent"
 msgstr "Tidak dapat menambahkan agen"
 
+msgid "Could not add repository"
+msgstr "Tidak dapat menambahkan repositori"
+
 msgid "Could not answer the agent"
 msgstr "Tidak dapat menjawab agen"
 
@@ -4900,6 +4923,9 @@ msgstr "Tidak dapat mengubah mode"
 
 msgid "Could not change the shared version"
 msgstr "Tidak bisa mengubah versi yang dibagikan"
+
+msgid "Could not change who gets this plugin"
+msgstr "Tidak dapat mengubah siapa yang mendapat plugin ini"
 
 msgid "Could not change who has access"
 msgstr "Tidak bisa mengubah siapa yang punya akses"
@@ -4942,6 +4968,9 @@ msgstr "Tidak bisa menghapus file"
 
 msgid "Could not delete this page"
 msgstr "Tidak bisa menghapus halaman ini"
+
+msgid "Could not disable plugin"
+msgstr "Tidak dapat menonaktifkan plugin"
 
 msgid "Could not disconnect."
 msgstr "Tidak dapat memutuskan."
@@ -5058,6 +5087,9 @@ msgstr "Tidak dapat menyimpan environment"
 msgid "Could not remove access"
 msgstr "Tidak bisa menghapus akses"
 
+msgid "Could not remove repository"
+msgstr "Tidak dapat menghapus repositori"
+
 msgid "Could not rename the session"
 msgstr "Tidak dapat mengganti nama sesi"
 
@@ -5126,6 +5158,9 @@ msgstr "Tidak bisa berhenti memantau"
 
 msgid "Could not submit prompt. Try again."
 msgstr "Tidak bisa mengirim prompt. Coba lagi."
+
+msgid "Could not sync"
+msgstr "Tidak dapat menyinkronkan"
 
 msgid "Could not take a screenshot"
 msgstr "Tidak bisa mengambil tangkapan layar"
@@ -5837,6 +5872,9 @@ msgstr "Bawaan ({defaultWorktreePath})"
 msgid "Default base for new workspaces. Override per-workspace at creation."
 msgstr "Dasar default untuk ruang kerja baru. Dapat diganti per ruang kerja saat dibuat."
 
+msgid "Default branch"
+msgstr "Branch default"
+
 msgid "Default effort"
 msgstr "Effort bawaan"
 
@@ -6234,6 +6272,9 @@ msgstr "Mode langsung"
 
 msgid "Directory"
 msgstr "Direktori"
+
+msgid "Disable"
+msgstr "Nonaktifkan"
 
 msgid "Disable skill"
 msgstr "Nonaktifkan skill"
@@ -8167,6 +8208,9 @@ msgstr "Batas laju GitHub tercapai"
 msgid "GitHub refused the merge"
 msgstr "GitHub menolak merge-nya"
 
+msgid "GitHub repositories with a plugin marketplace file. Superset syncs their plugins into your organization."
+msgstr "Repositori GitHub dengan file marketplace plugin. Superset menyinkronkan plugin-pluginnya ke organisasi Anda."
+
 msgid "GitHub sign-in needed"
 msgstr "Perlu masuk ke GitHub"
 
@@ -8190,6 +8234,9 @@ msgstr "Beri contoh"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Beri nama deskriptif agar Anda ingat kunci ini dipakai di mana."
+
+msgid "Give your organization its own plugins from a GitHub repository. You choose who gets each one."
+msgstr "Berikan organisasi Anda plugin sendiri dari repositori GitHub. Anda memilih siapa yang mendapatkan masing-masing."
 
 msgid "Globe"
 msgstr "Globe"
@@ -8972,6 +9019,13 @@ msgstr "Pasang, otorisasi, dan atur cakupan server MCP di semua workspace Anda d
 msgid "Install."
 msgstr "Instal."
 
+msgctxt "plugin access"
+msgid "Installed"
+msgstr "Terpasang"
+
+msgid "Installed by your organization"
+msgstr "Dipasang oleh organisasi Anda"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceHasInstalls"
 msgstr "Plugin yang terpasang berasal dari {name}: {plugins}. Hapus dulu."
@@ -9210,6 +9264,9 @@ msgstr "Akun yang terhubung telah diputuskan."
 
 msgid "Its own branch and copy of the files"
 msgstr "Branch dan salinan file tersendiri"
+
+msgid "Its plugins appear when the sync finishes."
+msgstr "Plugin-pluginnya muncul setelah sinkronisasi selesai."
 
 msgid "Its replies go with it."
 msgstr "Balasannya ikut terhapus."
@@ -11119,6 +11176,9 @@ msgstr "Belum ada baris log"
 msgid "no logins"
 msgstr "tanpa login"
 
+msgid "No longer in source"
+msgstr "Tidak lagi ada di sumber"
+
 msgid "No match"
 msgstr "Tidak ada yang cocok"
 
@@ -11216,6 +11276,9 @@ msgstr "Belum ada plugin yang tersedia."
 msgid "No plugins match \"{0}\""
 msgstr "Tidak ada plugin yang cocok dengan \"{0}\""
 
+msgid "No plugins yet. Add a repository to sync them."
+msgstr "Belum ada plugin. Tambahkan repositori untuk menyinkronkannya."
+
 msgid "No posts yet."
 msgstr "Belum ada tulisan."
 
@@ -11290,6 +11353,9 @@ msgstr "Tidak ada catatan rilis di {url}"
 
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Tidak ada repositori ditemukan. Pastikan GitHub App Anda punya akses ke repositori."
+
+msgid "No repositories yet."
+msgstr "Belum ada repositori."
 
 msgid "No repositories. Connect GitHub in Integrations, then refresh."
 msgstr "Tidak ada repositori. Hubungkan GitHub di Integrasi, lalu segarkan."
@@ -11549,6 +11615,9 @@ msgstr "Belum disiapkan di host ini"
 msgid "not sorted"
 msgstr "tidak diurutkan"
 
+msgid "Not synced yet"
+msgstr "Belum disinkronkan"
+
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "Tidak diperbarui"
@@ -11772,6 +11841,9 @@ msgstr "Hanya pemilik host atau pemilik organisasi yang bisa menghapus host ini"
 
 msgid "Only images can be attached to a comment"
 msgstr "Hanya gambar yang dapat dilampirkan ke komentar"
+
+msgid "Only organization owners and admins can manage plugins."
+msgstr "Hanya pemilik dan admin organisasi yang dapat mengelola plugin."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Hanya pemilik organisasi yang bisa mengubah pengaturan ini."
@@ -12374,6 +12446,9 @@ msgstr "Organisasi tidak ditemukan"
 msgid "Organization not found."
 msgstr "Organisasi tidak ditemukan."
 
+msgid "Organization plugins"
+msgstr "Plugin organisasi"
+
 msgid "Organization slug"
 msgstr "Slug organisasi"
 
@@ -12617,6 +12692,9 @@ msgstr "Tempel ini ke Superset CLI:"
 msgid "Path"
 msgstr "Path"
 
+msgid "Path (optional)"
+msgstr "Path (opsional)"
+
 msgid "Path copied"
 msgstr "Path disalin"
 
@@ -12757,6 +12835,9 @@ msgstr "Pilih lokasi proyek"
 msgid "Pick a reason"
 msgstr "Pilih alasan"
 
+msgid "Pick a repository with a plugin marketplace file. Superset syncs its plugins now and each time you sync again."
+msgstr "Pilih repositori dengan file marketplace plugin. Superset menyinkronkan plugin-pluginnya sekarang dan setiap kali Anda menyinkronkan lagi."
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Pilih suara atau tambahkan milik Anda sendiri. Audio kustom mendukung .mp3, .wav, dan .ogg."
 
@@ -12883,6 +12964,9 @@ msgstr "Coba lagi, atau mulai ulang Superset di perangkat tersebut."
 msgid "Please try signing in again from the desktop app."
 msgstr "Silakan coba masuk lagi dari aplikasi desktop."
 
+msgid "Plugin"
+msgstr "Plugin"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.noApiKeyAuth"
 msgstr "Plugin {plugin} tidak memakai autentikasi api_key"
@@ -12896,6 +12980,9 @@ msgstr "Marketplace plugin"
 
 msgid "Plugins"
 msgstr "Plugin"
+
+msgid "Plugins update when the sync finishes."
+msgstr "Plugin diperbarui setelah sinkronisasi selesai."
 
 msgid "Point at the page. Your agent makes the change."
 msgstr "Tunjuk halamannya. Agen Anda yang membuat perubahan."
@@ -13734,6 +13821,9 @@ msgstr "Kurangi Gerakan"
 msgid "Reduce Transparency"
 msgstr "Kurangi Transparansi"
 
+msgid "Ref {ref} · Path {path}"
+msgstr "Ref {ref} · Path {path}"
+
 msgid "Referenced, not demoed"
 msgstr "Dirujuk, tidak didemokan"
 
@@ -13849,6 +13939,7 @@ msgid "Remove"
 msgstr "Hapus"
 
 #. placeholder {0}: member.name
+#. placeholder {0}: source.repo
 msgid "Remove {0}"
 msgstr "Hapus {0}"
 
@@ -13857,6 +13948,9 @@ msgstr "Hapus {label}"
 
 msgid "Remove {label}?"
 msgstr "Hapus {label}?"
+
+msgid "Remove {repo}? Every plugin synced from it is removed from your organization."
+msgstr "Hapus {repo}? Semua plugin yang disinkronkan darinya dihapus dari organisasi Anda."
 
 msgid "Remove {repositoryName}"
 msgstr "Hapus {repositoryName}"
@@ -13908,6 +14002,9 @@ msgstr "Hapus Tautan PR"
 
 msgid "Remove queued message"
 msgstr "Hapus pesan dari antrean"
+
+msgid "Remove repository"
+msgstr "Hapus repositori"
 
 msgid "Remove script"
 msgstr "Hapus skrip"
@@ -14106,6 +14203,12 @@ msgstr "Repositori: {label}"
 
 msgid "Repository"
 msgstr "Repositori"
+
+msgid "Repository removed"
+msgstr "Repositori dihapus"
+
+msgid "Repository root"
+msgstr "Root repositori"
 
 msgid "Repository URL or path"
 msgstr "URL atau path repositori"
@@ -15168,6 +15271,9 @@ msgstr "Pilih proyek untuk melihat pull request."
 
 msgid "Select a pull request to preview it here."
 msgstr "Pilih pull request untuk melihat pratinjaunya di sini."
+
+msgid "Select a repository"
+msgstr "Pilih repositori"
 
 msgid "Select a team"
 msgstr "Pilih sebuah tim"
@@ -16922,11 +17028,23 @@ msgstr "Sinkronkan issue dua arah dengan Linear."
 msgid "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 msgstr "Sinkronkan issue dua arah dengan Linear. Buat tugas di Superset dan tugas itu muncul di Linear, atau impor issue Linear yang sudah ada."
 
+msgid "Sync now"
+msgstr "Sinkronkan sekarang"
+
+msgid "Sync plugins from your GitHub repositories and choose who can install them."
+msgstr "Sinkronkan plugin dari repositori GitHub Anda dan pilih siapa yang dapat memasangnya."
+
 msgid "Sync Repositories"
 msgstr "Sinkronkan Repositori"
 
+msgid "Sync requested"
+msgstr "Sinkronisasi diminta"
+
 msgid "Sync started"
 msgstr "Sinkronisasi dimulai"
+
+msgid "Synced {syncedAgo}"
+msgstr "Disinkronkan {syncedAgo}"
 
 msgid "Syncing..."
 msgstr "Menyinkronkan..."
@@ -17259,6 +17377,10 @@ msgstr "Mesin itu sudah tidak tersedia"
 msgid "That name isn't allowed."
 msgstr "Nama itu tidak diizinkan."
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.unknownPluginSource"
+msgstr "Sumber plugin itu tidak ada"
+
 msgid "That run is missed and isn't retried. Use Run now to start it later."
 msgstr "Run itu terlewat dan tidak diulang. Gunakan Jalankan sekarang untuk memulainya nanti."
 
@@ -17373,6 +17495,9 @@ msgstr "Tim F4 pertama"
 msgid "The first teams, small ones, ship majority-agent code without reading every line, and their defect rates hold. Nothing mystical behind it: review layers, canaries, fast rollback, and a habit of writing specifications instead of code."
 msgstr "Tim-tim pertama, yang berukuran kecil, merilis kode yang mayoritas ditulis agen tanpa membaca tiap barisnya, dan tingkat cacatnya tetap terjaga. Tidak ada yang gaib di baliknya: lapisan review, canary, rollback cepat, dan kebiasaan menulis spesifikasi alih-alih kode."
 
+msgid "The folder that holds the marketplace file, if it is not at the root."
+msgstr "Folder yang berisi file marketplace, jika tidak berada di root."
+
 msgid "The following folders are not git repositories. Would you like to initialize them?"
 msgstr "Folder berikut bukan repositori git. Ingin menginisialisasinya?"
 
@@ -17390,6 +17515,9 @@ msgstr "Workspace lengkap. Jalankan agen secara paralel, simpan masing-masing di
 
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "Rumah masa depan untuk konfigurasi agen Superset, prompt, dan panduan penyiapan yang dapat digunakan ulang."
+
+msgid "The GitHub App cannot see any repositories yet. Give it access on GitHub, then try again."
+msgstr "GitHub App belum dapat melihat repositori apa pun. Beri akses di GitHub, lalu coba lagi."
 
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
@@ -17497,6 +17625,10 @@ msgstr "Halaman yang Anda cari tidak ada."
 
 msgid "The pane uses your real logins. Agents ask you before they take a consequential action."
 msgstr "Panel memakai login asli Anda. Agen bertanya dulu sebelum melakukan tindakan yang berdampak."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourcePathOutside"
+msgstr "Path harus tetap di dalam repositori"
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "Checkout proyek apa adanya: file dan branch dibagikan"
@@ -18438,6 +18570,10 @@ msgstr "Run semalaman tanpa pengawasan, siap di-merge pagi harinya"
 msgid "Unattended runs of 8 hours or more succeed on a majority of routine tickets without a human unblocking them."
 msgstr "Run tanpa pengawasan selama 8 jam atau lebih berhasil pada mayoritas tiket rutin tanpa manusia yang membukanya dari kebuntuan."
 
+msgid "Unavailable"
+msgstr "Tidak tersedia"
+
+msgctxt "plugin access"
 msgid "Unavailable"
 msgstr "Tidak tersedia"
 
@@ -19841,6 +19977,10 @@ msgstr "Agen pertama Anda"
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "Akun GitHub Anda tidak dapat menjangkau repositori di environment ini"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourceOutOfReach"
+msgstr "Akun GitHub Anda tidak dapat membaca {repo}"
+
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "Tautan GitHub Anda berasal dari akun yang Anda gunakan untuk masuk, jadi ditampilkan sebagai terverifikasi dan tidak bisa diubah di sini."
 
@@ -19853,8 +19993,21 @@ msgstr "Nama Anda"
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Nama Anda <0>(kalau prompt Anda kami pakai, kami akan mencantumkan Anda di changelog)</0>"
 
+msgid "Your organization"
+msgstr "Organisasi Anda"
+
+msgid "Your organization has not connected GitHub yet. Install the GitHub App in <0>Settings › Integrations</0>, then come back."
+msgstr "Organisasi Anda belum menghubungkan GitHub. Pasang GitHub App di <0>Pengaturan › Integrasi</0>, lalu kembali."
+
 msgid "Your organization has reached its cloud usage limit. Raise the limit or upgrade in Settings, Billing to start this workspace."
 msgstr "Organisasi Anda telah mencapai batas penggunaan cloud. Naikkan batas atau upgrade di Pengaturan, Penagihan untuk memulai workspace ini."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.managedByOrganization"
+msgstr "Organisasi Anda memasang {plugin} untuk Anda, jadi plugin ini tidak dapat dicopot. Anda dapat menonaktifkannya."
+
+msgid "Your organization installs this plugin for you. You can disable it, but not remove it."
+msgstr "Organisasi Anda memasang plugin ini untuk Anda. Anda dapat menonaktifkannya, tetapi tidak dapat menghapusnya."
 
 msgid "Your organization reached its cloud usage limit. This workspace stops in a few minutes unless the limit is raised."
 msgstr "Organisasi Anda telah mencapai batas penggunaan cloud. Workspace ini akan berhenti dalam beberapa menit kecuali batasnya dinaikkan."

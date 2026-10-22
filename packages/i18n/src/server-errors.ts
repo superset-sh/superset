@@ -887,6 +887,29 @@ export const serverErrorMessages: Record<
 			message: "Plugin {plugin} is not installed",
 			values: params,
 		}),
+	"serverError.plugins.managedByOrganization": (params) =>
+		i18n._({
+			id: "serverError.plugins.managedByOrganization",
+			message:
+				"Your organization installs {plugin} for you, so it cannot be uninstalled. You can disable it.",
+			values: params,
+		}),
+	"serverError.plugins.pluginSourceOutOfReach": (params) =>
+		i18n._({
+			id: "serverError.plugins.pluginSourceOutOfReach",
+			message: "Your GitHub account cannot read {repo}",
+			values: params,
+		}),
+	"serverError.plugins.pluginSourcePathOutside": () =>
+		i18n._({
+			id: "serverError.plugins.pluginSourcePathOutside",
+			message: "The path must stay inside the repository",
+		}),
+	"serverError.plugins.unknownPluginSource": () =>
+		i18n._({
+			id: "serverError.plugins.unknownPluginSource",
+			message: "That plugin source does not exist",
+		}),
 	"serverError.plugins.unknownPlugin": (params) =>
 		i18n._({
 			id: "serverError.plugins.unknownPlugin",

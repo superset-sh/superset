@@ -29,19 +29,35 @@ export function usePluginMutations() {
 
 	const machineSetEnabled = electronTrpc.plugins.setEnabled.useMutation();
 
-	const wasDisabled = (name: string) =>
+	const wasDisabled = (name: string, marketplace?: string) =>
 		utils.plugins.list
 			.getData()
-			?.some((row) => row.name === name && row.installed && !row.enabled) ??
-		false;
+			?.some(
+				(row) =>
+					row.name === name &&
+					(!marketplace || row.marketplace === marketplace) &&
+					row.installed &&
+					!row.enabled,
+			) ?? false;
 
-	const syncAccountInstall = async (name: string): Promise<boolean> => {
-		const reenable = wasDisabled(name);
+	const syncAccountInstall = async (
+		name: string,
+		marketplace?: string,
+	): Promise<boolean> => {
+		const reenable = wasDisabled(name, marketplace);
 		try {
-			await accountInstall.mutateAsync({ name });
+			await accountInstall.mutateAsync({ name, marketplace });
 			if (reenable) {
-				await machineSetEnabled.mutateAsync({ name, enabled: true });
-				await accountSetEnabled.mutateAsync({ name, enabled: true });
+				await machineSetEnabled.mutateAsync({
+					name,
+					marketplace,
+					enabled: true,
+				});
+				await accountSetEnabled.mutateAsync({
+					name,
+					marketplace,
+					enabled: true,
+				});
 			}
 			return true;
 		} catch (error) {
@@ -86,6 +102,7 @@ export function usePluginMutations() {
 			try {
 				const result = await accountUninstall.mutateAsync({
 					name: variables.name,
+					marketplace: variables.marketplace,
 				});
 				disconnected = result.disconnected;
 			} catch (error) {
@@ -145,25 +162,59 @@ export function usePluginMutations() {
 		},
 	});
 
-	const add = async (name: string): Promise<boolean> => {
-		navigate({ to: "/plugins/$pluginName", params: { pluginName: name } });
-		await installMutation.mutateAsync({ name });
-		return await syncAccountInstall(name);
+	const install = async (
+		name: string,
+		marketplace?: string,
+	): Promise<boolean> => {
+		await installMutation.mutateAsync({ name, marketplace });
+		return await syncAccountInstall(name, marketplace);
 	};
 
-	const update = async (name: string): Promise<boolean> => {
-		await updateMutation.mutateAsync({ name });
-		return await syncAccountInstall(name);
+	const add = async (name: string, marketplace?: string): Promise<boolean> => {
+		navigate({ to: "/plugins/$pluginName", params: { pluginName: name } });
+		return await install(name, marketplace);
+	};
+
+	const update = async (
+		name: string,
+		marketplace?: string,
+	): Promise<boolean> => {
+		await updateMutation.mutateAsync({ name, marketplace });
+		return await syncAccountInstall(name, marketplace);
+	};
+
+	const disable = async (name: string, marketplace?: string) => {
+		try {
+			await machineSetEnabled.mutateAsync({
+				name,
+				marketplace,
+				enabled: false,
+			});
+			await accountSetEnabled.mutateAsync({
+				name,
+				marketplace,
+				enabled: false,
+			});
+			posthog.capture("plugin_disabled", { plugin: name });
+			toast.success(t({ message: `${displayName(name)} disabled` }), {
+				description: t({ message: "Takes effect in new agent sessions." }),
+			});
+		} catch (error) {
+			toast.error(t({ message: "Could not disable plugin" }), {
+				description: errorMessage(error),
+			});
+		} finally {
+			await invalidate();
+		}
 	};
 
 	return {
 		add,
 		update,
-		install: async (name: string) => {
-			await installMutation.mutateAsync({ name });
-			return await syncAccountInstall(name);
-		},
-		uninstall: (name: string) => uninstallMutation.mutate({ name }),
+		install,
+		disable,
+		uninstall: (name: string, marketplace?: string) =>
+			uninstallMutation.mutate({ name, marketplace }),
 		isBusy:
 			installMutation.isPending ||
 			updateMutation.isPending ||

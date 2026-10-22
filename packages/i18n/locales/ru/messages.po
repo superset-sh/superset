@@ -387,6 +387,7 @@ msgstr "{0} пока нельзя подключить таким способо
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "Разработчиков в рейтинге по использованию агентов: {0}. Ваши последние 30 дней уже учтены — просто скрыты. Только количество токенов и названия моделей, без имён репозиториев, путей к файлам и промптов."
 
+#. placeholder {0}: displayName(name)
 #. placeholder {0}: variables.name
 msgid "{0} disabled"
 msgstr "{0} отключён"
@@ -927,6 +928,9 @@ msgstr "{kind} · автор {author}"
 
 msgid "{kindLabel} theme"
 msgstr "{kindLabel} тема"
+
+msgid "{label} access to {pluginName}"
+msgstr "Доступ роли {label} к {pluginName}"
 
 msgid "{label} in cloud workspaces"
 msgstr "{label} в облачных рабочих областях"
@@ -1848,6 +1852,9 @@ msgstr "Добавить в рабочую область"
 msgid "Add your own terminal agent to this device."
 msgstr "Добавьте своего терминального агента на это устройство."
 
+msgid "Added {added}"
+msgstr "Добавлено: {added}"
+
 msgid "Added {added} files to {where}"
 msgstr "В {where} добавлено файлов: {added}"
 
@@ -1863,6 +1870,9 @@ msgstr "Добавлено в поле ввода агента"
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
 msgstr "Чтобы добавлять людей в {organizationName}, нужен платный тариф. Тарифом вашей организации управляет её владелец на {0}."
+
+msgid "Adding..."
+msgstr "Добавление..."
 
 msgid "Address Comments with Agent"
 msgstr "Разобрать комментарии агентом"
@@ -2860,6 +2870,13 @@ msgstr "Автономный конвейер от тикета до PR"
 msgid "Available"
 msgstr "Свободен"
 
+msgctxt "plugin access"
+msgid "Available"
+msgstr "Доступен"
+
+msgid "Available plugins show on each role's Plugins page. Installed plugins are installed for everyone in the role, who can disable but not remove them."
+msgstr "Доступные плагины показываются на странице «Плагины» каждой роли. Установленные плагины устанавливаются всем в роли; их можно отключить, но нельзя удалить."
+
 msgid "Avatar"
 msgstr "Аватар"
 
@@ -3123,6 +3140,9 @@ msgstr "Имя ветки недоступно"
 
 msgid "Branch names cannot end with a space."
 msgstr "Имена веток не могут заканчиваться пробелом."
+
+msgid "Branch or tag (optional)"
+msgstr "Ветка или тег (необязательно)"
 
 msgid "Branch prefix"
 msgstr "Префикс ветки"
@@ -4883,6 +4903,9 @@ msgstr "Ваши затраты: $0"
 msgid "Could not add agent"
 msgstr "Не удалось добавить агента"
 
+msgid "Could not add repository"
+msgstr "Не удалось добавить репозиторий"
+
 msgid "Could not answer the agent"
 msgstr "Не удалось ответить агенту"
 
@@ -4900,6 +4923,9 @@ msgstr "Не удалось сменить режим"
 
 msgid "Could not change the shared version"
 msgstr "Не удалось изменить общедоступную версию"
+
+msgid "Could not change who gets this plugin"
+msgstr "Не удалось изменить, кто получает этот плагин"
 
 msgid "Could not change who has access"
 msgstr "Не удалось изменить, у кого есть доступ"
@@ -4942,6 +4968,9 @@ msgstr "Не удалось удалить файл"
 
 msgid "Could not delete this page"
 msgstr "Не удалось удалить эту страницу"
+
+msgid "Could not disable plugin"
+msgstr "Не удалось отключить плагин"
 
 msgid "Could not disconnect."
 msgstr "Не удалось отключить."
@@ -5058,6 +5087,9 @@ msgstr "Не удалось сохранить окружение"
 msgid "Could not remove access"
 msgstr "Не удалось закрыть доступ"
 
+msgid "Could not remove repository"
+msgstr "Не удалось удалить репозиторий"
+
 msgid "Could not rename the session"
 msgstr "Не удалось переименовать сессию"
 
@@ -5126,6 +5158,9 @@ msgstr "Не удалось прекратить отслеживание"
 
 msgid "Could not submit prompt. Try again."
 msgstr "Не удалось отправить промпт. Повторите."
+
+msgid "Could not sync"
+msgstr "Не удалось синхронизировать"
 
 msgid "Could not take a screenshot"
 msgstr "Не удалось сделать скриншот"
@@ -5837,6 +5872,9 @@ msgstr "По умолчанию ({defaultWorktreePath})"
 msgid "Default base for new workspaces. Override per-workspace at creation."
 msgstr "База по умолчанию для новых рабочих пространств. Можно изменить при создании каждого пространства."
 
+msgid "Default branch"
+msgstr "Ветка по умолчанию"
+
 msgid "Default effort"
 msgstr "Уровень усилий по умолчанию"
 
@@ -6234,6 +6272,9 @@ msgstr "Прямой режим"
 
 msgid "Directory"
 msgstr "Папка"
+
+msgid "Disable"
+msgstr "Отключить"
 
 msgid "Disable skill"
 msgstr "Отключить навык"
@@ -8167,6 +8208,9 @@ msgstr "Достигнут лимит запросов GitHub"
 msgid "GitHub refused the merge"
 msgstr "GitHub отклонил слияние"
 
+msgid "GitHub repositories with a plugin marketplace file. Superset syncs their plugins into your organization."
+msgstr "Репозитории GitHub с файлом маркетплейса плагинов. Superset синхронизирует их плагины в вашу организацию."
+
 msgid "GitHub sign-in needed"
 msgstr "Требуется вход в GitHub"
 
@@ -8190,6 +8234,9 @@ msgstr "Приведи пример"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Дайте ключу понятное название, чтобы помнить, где он используется."
+
+msgid "Give your organization its own plugins from a GitHub repository. You choose who gets each one."
+msgstr "Добавьте своей организации собственные плагины из репозитория GitHub. Вы выбираете, кто получит каждый из них."
 
 msgid "Globe"
 msgstr "Глобус"
@@ -8972,6 +9019,13 @@ msgstr "Устанавливайте, авторизуйте и ограничи
 msgid "Install."
 msgstr "Установите."
 
+msgctxt "plugin access"
+msgid "Installed"
+msgstr "Установлен"
+
+msgid "Installed by your organization"
+msgstr "Установлено вашей организацией"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceHasInstalls"
 msgstr "Установленные плагины получены из {name}: {plugins}. Сначала удалите их."
@@ -9210,6 +9264,9 @@ msgstr "Подключённые аккаунты были отключены."
 
 msgid "Its own branch and copy of the files"
 msgstr "Собственная ветка и собственная копия файлов"
+
+msgid "Its plugins appear when the sync finishes."
+msgstr "Его плагины появятся после завершения синхронизации."
 
 msgid "Its replies go with it."
 msgstr "Ответы тоже будут удалены."
@@ -11119,6 +11176,9 @@ msgstr "Строк лога пока нет"
 msgid "no logins"
 msgstr "нет логинов"
 
+msgid "No longer in source"
+msgstr "Больше нет в источнике"
+
 msgid "No match"
 msgstr "Нет совпадений"
 
@@ -11216,6 +11276,9 @@ msgstr "Плагинов пока нет."
 msgid "No plugins match \"{0}\""
 msgstr "Нет плагинов по запросу «{0}»"
 
+msgid "No plugins yet. Add a repository to sync them."
+msgstr "Плагинов пока нет. Добавьте репозиторий, чтобы синхронизировать их."
+
 msgid "No posts yet."
 msgstr "Постов пока нет."
 
@@ -11290,6 +11353,9 @@ msgstr "Нет заметок о релизе по адресу {url}"
 
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Репозитории не найдены. Убедитесь, что у вашего GitHub App есть доступ к репозиториям."
+
+msgid "No repositories yet."
+msgstr "Репозиториев пока нет."
 
 msgid "No repositories. Connect GitHub in Integrations, then refresh."
 msgstr "Нет репозиториев. Подключите GitHub в разделе «Интеграции», затем обновите."
@@ -11549,6 +11615,9 @@ msgstr "Не настроен на этом хосте"
 msgid "not sorted"
 msgstr "без сортировки"
 
+msgid "Not synced yet"
+msgstr "Ещё не синхронизировано"
+
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "Нет обновлений"
@@ -11772,6 +11841,9 @@ msgstr "Удалить этот хост могут только владель�
 
 msgid "Only images can be attached to a comment"
 msgstr "К комментарию можно прикреплять только изображения"
+
+msgid "Only organization owners and admins can manage plugins."
+msgstr "Управлять плагинами могут только владельцы и администраторы организации."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Изменять эти настройки могут только владельцы организации."
@@ -12374,6 +12446,9 @@ msgstr "Организация не найдена"
 msgid "Organization not found."
 msgstr "Организация не найдена."
 
+msgid "Organization plugins"
+msgstr "Плагины организации"
+
 msgid "Organization slug"
 msgstr "Slug организации"
 
@@ -12617,6 +12692,9 @@ msgstr "Вставьте это в Superset CLI:"
 msgid "Path"
 msgstr "Путь"
 
+msgid "Path (optional)"
+msgstr "Путь (необязательно)"
+
 msgid "Path copied"
 msgstr "Путь скопирован"
 
@@ -12757,6 +12835,9 @@ msgstr "Выберите расположение проекта"
 msgid "Pick a reason"
 msgstr "Выберите причину"
 
+msgid "Pick a repository with a plugin marketplace file. Superset syncs its plugins now and each time you sync again."
+msgstr "Выберите репозиторий с файлом маркетплейса плагинов. Superset синхронизирует его плагины сейчас и при каждой следующей синхронизации."
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Выберите звук или добавьте свой. Поддерживаются .mp3, .wav и .ogg."
 
@@ -12883,6 +12964,9 @@ msgstr "Попробуйте ещё раз или перезапустите Sup
 msgid "Please try signing in again from the desktop app."
 msgstr "Попробуйте войти ещё раз из десктопного приложения."
 
+msgid "Plugin"
+msgstr "Плагин"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.noApiKeyAuth"
 msgstr "Плагин {plugin} не использует аутентификацию api_key"
@@ -12896,6 +12980,9 @@ msgstr "Маркетплейс плагинов"
 
 msgid "Plugins"
 msgstr "Плагины"
+
+msgid "Plugins update when the sync finishes."
+msgstr "Плагины обновятся после завершения синхронизации."
 
 msgid "Point at the page. Your agent makes the change."
 msgstr "Укажите на страницу. Ваш агент внесёт изменение."
@@ -13734,6 +13821,9 @@ msgstr "Уменьшение движения"
 msgid "Reduce Transparency"
 msgstr "Понижение прозрачности"
 
+msgid "Ref {ref} · Path {path}"
+msgstr "Ref {ref} · Путь {path}"
+
 msgid "Referenced, not demoed"
 msgstr "Упомянуто, не показано"
 
@@ -13849,6 +13939,7 @@ msgid "Remove"
 msgstr "Удалить"
 
 #. placeholder {0}: member.name
+#. placeholder {0}: source.repo
 msgid "Remove {0}"
 msgstr "Удалить {0}"
 
@@ -13857,6 +13948,9 @@ msgstr "Удалить {label}"
 
 msgid "Remove {label}?"
 msgstr "Удалить {label}?"
+
+msgid "Remove {repo}? Every plugin synced from it is removed from your organization."
+msgstr "Удалить {repo}? Все синхронизированные из него плагины будут удалены из вашей организации."
 
 msgid "Remove {repositoryName}"
 msgstr "Удалить {repositoryName}"
@@ -13908,6 +14002,9 @@ msgstr "Отвязать PR"
 
 msgid "Remove queued message"
 msgstr "Удалить сообщение из очереди"
+
+msgid "Remove repository"
+msgstr "Удалить репозиторий"
 
 msgid "Remove script"
 msgstr "Удалить скрипт"
@@ -14106,6 +14203,12 @@ msgstr "Репозитории: {label}"
 
 msgid "Repository"
 msgstr "Репозиторий"
+
+msgid "Repository removed"
+msgstr "Репозиторий удалён"
+
+msgid "Repository root"
+msgstr "Корень репозитория"
 
 msgid "Repository URL or path"
 msgstr "URL или путь репозитория"
@@ -15168,6 +15271,9 @@ msgstr "Выберите проект, чтобы видеть пул-рекве
 
 msgid "Select a pull request to preview it here."
 msgstr "Выберите пул-реквест, чтобы посмотреть его здесь."
+
+msgid "Select a repository"
+msgstr "Выберите репозиторий"
 
 msgid "Select a team"
 msgstr "Выберите команду"
@@ -16922,11 +17028,23 @@ msgstr "Двусторонняя синхронизация задач с Linear
 msgid "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 msgstr "Двусторонняя синхронизация задач с Linear. Создавайте задачи в Superset — они появятся в Linear, или импортируйте существующие задачи Linear."
 
+msgid "Sync now"
+msgstr "Синхронизировать сейчас"
+
+msgid "Sync plugins from your GitHub repositories and choose who can install them."
+msgstr "Синхронизируйте плагины из своих репозиториев GitHub и выберите, кто может их устанавливать."
+
 msgid "Sync Repositories"
 msgstr "Синхронизировать репозитории"
 
+msgid "Sync requested"
+msgstr "Синхронизация запрошена"
+
 msgid "Sync started"
 msgstr "Синхронизация запущена"
+
+msgid "Synced {syncedAgo}"
+msgstr "Синхронизировано {syncedAgo}"
 
 msgid "Syncing..."
 msgstr "Синхронизация..."
@@ -17259,6 +17377,10 @@ msgstr "Эта машина больше недоступна"
 msgid "That name isn't allowed."
 msgstr "Такое имя недопустимо."
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.unknownPluginSource"
+msgstr "Такого источника плагинов не существует"
+
 msgid "That run is missed and isn't retried. Use Run now to start it later."
 msgstr "Этот запуск пропускается и не повторяется. Запустите его позже кнопкой «Запустить сейчас»."
 
@@ -17373,6 +17495,9 @@ msgstr "Первые команды на F4"
 msgid "The first teams, small ones, ship majority-agent code without reading every line, and their defect rates hold. Nothing mystical behind it: review layers, canaries, fast rollback, and a habit of writing specifications instead of code."
 msgstr "Первые команды, небольшие, выпускают код, написанный преимущественно агентами, не читая каждую строку, и их уровень дефектов держится. Ничего мистического: слои ревью, канареечные выкладки, быстрый откат и привычка писать спецификации вместо кода."
 
+msgid "The folder that holds the marketplace file, if it is not at the root."
+msgstr "Папка с файлом маркетплейса, если он не в корне."
+
 msgid "The following folders are not git repositories. Would you like to initialize them?"
 msgstr "Следующие папки не являются git-репозиториями. Инициализировать их?"
 
@@ -17390,6 +17515,9 @@ msgstr "Полноценная рабочая область. Запускайт
 
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "Будущий дом для переиспользуемых конфигураций агентов, промптов и руководств по настройке Superset."
+
+msgid "The GitHub App cannot see any repositories yet. Give it access on GitHub, then try again."
+msgstr "GitHub App пока не видит ни одного репозитория. Дайте ему доступ на GitHub и попробуйте снова."
 
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
@@ -17497,6 +17625,10 @@ msgstr "Такой страницы не существует."
 
 msgid "The pane uses your real logins. Agents ask you before they take a consequential action."
 msgstr "Панель использует ваши настоящие входы. Агенты спрашивают вас, прежде чем выполнить важное действие."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourcePathOutside"
+msgstr "Путь должен оставаться внутри репозитория"
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "Checkout проекта как есть: файлы и ветка общие"
@@ -18440,6 +18572,10 @@ msgstr "Автономные прогоны от 8 часов и дольше у
 
 msgid "Unavailable"
 msgstr "Недоступно"
+
+msgctxt "plugin access"
+msgid "Unavailable"
+msgstr "Недоступен"
 
 msgid "Uncached input"
 msgstr "Некешированный ввод"
@@ -19841,6 +19977,10 @@ msgstr "Ваш первый агент"
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "Ваша учётная запись GitHub не может получить доступ к репозиторию этого окружения"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourceOutOfReach"
+msgstr "Ваша учётная запись GitHub не может прочитать {repo}"
+
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "Ссылка на GitHub берётся из аккаунта, через который вы вошли, поэтому она отмечена как подтверждённая и не редактируется здесь."
 
@@ -19853,8 +19993,21 @@ msgstr "Ваше имя"
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Ваше имя <0>(если возьмём ваш промпт, укажем вас в changelog)</0>"
 
+msgid "Your organization"
+msgstr "Ваша организация"
+
+msgid "Your organization has not connected GitHub yet. Install the GitHub App in <0>Settings › Integrations</0>, then come back."
+msgstr "Ваша организация ещё не подключила GitHub. Установите GitHub App в разделе <0>Настройки › Интеграции</0>, затем вернитесь."
+
 msgid "Your organization has reached its cloud usage limit. Raise the limit or upgrade in Settings, Billing to start this workspace."
 msgstr "Ваша организация достигла лимита использования облака. Увеличьте лимит или перейдите на другой тариф в разделе «Настройки», «Оплата», чтобы запустить эту рабочую область."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.managedByOrganization"
+msgstr "Ваша организация устанавливает {plugin} для вас, поэтому его нельзя удалить. Его можно отключить."
+
+msgid "Your organization installs this plugin for you. You can disable it, but not remove it."
+msgstr "Ваша организация устанавливает этот плагин для вас. Его можно отключить, но нельзя удалить."
 
 msgid "Your organization reached its cloud usage limit. This workspace stops in a few minutes unless the limit is raised."
 msgstr "Ваша организация достигла лимита использования облака. Эта рабочая область остановится через несколько минут, если лимит не увеличить."

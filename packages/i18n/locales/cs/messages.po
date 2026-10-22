@@ -387,6 +387,7 @@ msgstr "{0} se zatím nedá přihlásit tímto způsobem."
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "Počet vývojářů v žebříčku podle využití agentů: {0}. Vašich posledních 30 dní se už počítá, jen je skryto. Pouze počty tokenů a názvy modelů, žádné názvy repozitářů, cesty k souborům ani prompty."
 
+#. placeholder {0}: displayName(name)
 #. placeholder {0}: variables.name
 msgid "{0} disabled"
 msgstr "{0} vypnuto"
@@ -927,6 +928,9 @@ msgstr "{kind} · autor: {author}"
 
 msgid "{kindLabel} theme"
 msgstr "{kindLabel} motiv"
+
+msgid "{label} access to {pluginName}"
+msgstr "Přístup role {label} k {pluginName}"
 
 msgid "{label} in cloud workspaces"
 msgstr "{label} v cloudových pracovních prostorech"
@@ -1848,6 +1852,9 @@ msgstr "Přidat do pracovního prostoru"
 msgid "Add your own terminal agent to this device."
 msgstr "Přidejte na toto zařízení vlastního terminálového agenta."
 
+msgid "Added {added}"
+msgstr "Přidáno: {added}"
+
 msgid "Added {added} files to {where}"
 msgstr "Přidáno {added} souborů do {where}"
 
@@ -1863,6 +1870,9 @@ msgstr "Přidáno do vstupu agenta"
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
 msgstr "Přidávání lidí do {organizationName} vyžaduje placený tarif. Tarif vaší organizace spravuje její vlastník na {0}."
+
+msgid "Adding..."
+msgstr "Přidávání..."
 
 msgid "Address Comments with Agent"
 msgstr "Vyřešit komentáře agentem"
@@ -2860,6 +2870,13 @@ msgstr "Autonomní cesta od ticketu k PR"
 msgid "Available"
 msgstr "Volné"
 
+msgctxt "plugin access"
+msgid "Available"
+msgstr "Dostupné"
+
+msgid "Available plugins show on each role's Plugins page. Installed plugins are installed for everyone in the role, who can disable but not remove them."
+msgstr "Dostupné pluginy se zobrazí na stránce Pluginy dané role. Nainstalované pluginy se nainstalují všem v roli; mohou je zakázat, ale ne odebrat."
+
 msgid "Avatar"
 msgstr "Avatar"
 
@@ -3123,6 +3140,9 @@ msgstr "Název větve není dostupný"
 
 msgid "Branch names cannot end with a space."
 msgstr "Názvy větví nesmí končit mezerou."
+
+msgid "Branch or tag (optional)"
+msgstr "Větev nebo tag (volitelné)"
 
 msgid "Branch prefix"
 msgstr "Prefix větve"
@@ -4883,6 +4903,9 @@ msgstr "Vaše náklady: 0 $"
 msgid "Could not add agent"
 msgstr "Agenta se nepodařilo přidat"
 
+msgid "Could not add repository"
+msgstr "Repozitář se nepodařilo přidat"
+
 msgid "Could not answer the agent"
 msgstr "Agentovi se nepodařilo odpovědět"
 
@@ -4900,6 +4923,9 @@ msgstr "Režim se nepodařilo změnit"
 
 msgid "Could not change the shared version"
 msgstr "Sdílenou verzi se nepodařilo změnit"
+
+msgid "Could not change who gets this plugin"
+msgstr "Nepodařilo se změnit, kdo tento plugin dostane"
 
 msgid "Could not change who has access"
 msgstr "Nepodařilo se změnit, kdo má přístup"
@@ -4942,6 +4968,9 @@ msgstr "Soubor se nepodařilo smazat"
 
 msgid "Could not delete this page"
 msgstr "Tuto stránku se nepodařilo smazat"
+
+msgid "Could not disable plugin"
+msgstr "Plugin se nepodařilo zakázat"
 
 msgid "Could not disconnect."
 msgstr "Odpojení se nezdařilo."
@@ -5058,6 +5087,9 @@ msgstr "Prostředí se nepodařilo uložit"
 msgid "Could not remove access"
 msgstr "Přístup se nepodařilo odebrat"
 
+msgid "Could not remove repository"
+msgstr "Repozitář se nepodařilo odebrat"
+
 msgid "Could not rename the session"
 msgstr "Relaci se nepodařilo přejmenovat"
 
@@ -5126,6 +5158,9 @@ msgstr "Nepodařilo se přestat sledovat"
 
 msgid "Could not submit prompt. Try again."
 msgstr "Prompt se nepodařilo odeslat. Zkuste to znovu."
+
+msgid "Could not sync"
+msgstr "Synchronizace se nezdařila"
 
 msgid "Could not take a screenshot"
 msgstr "Nepodařilo se pořídit snímek obrazovky"
@@ -5837,6 +5872,9 @@ msgstr "Výchozí ({defaultWorktreePath})"
 msgid "Default base for new workspaces. Override per-workspace at creation."
 msgstr "Výchozí základ nových pracovních prostorů. Lze jej změnit při vytváření jednotlivých prostorů."
 
+msgid "Default branch"
+msgstr "Výchozí větev"
+
 msgid "Default effort"
 msgstr "Výchozí úsilí"
 
@@ -6234,6 +6272,9 @@ msgstr "Přímý režim"
 
 msgid "Directory"
 msgstr "Adresář"
+
+msgid "Disable"
+msgstr "Zakázat"
 
 msgid "Disable skill"
 msgstr "Vypnout skill"
@@ -8167,6 +8208,9 @@ msgstr "Dosažen limit požadavků GitHubu"
 msgid "GitHub refused the merge"
 msgstr "GitHub sloučení odmítl"
 
+msgid "GitHub repositories with a plugin marketplace file. Superset syncs their plugins into your organization."
+msgstr "Repozitáře GitHub se souborem marketplace pluginů. Superset synchronizuje jejich pluginy do vaší organizace."
+
 msgid "GitHub sign-in needed"
 msgstr "Je vyžadováno přihlášení ke GitHubu"
 
@@ -8190,6 +8234,9 @@ msgstr "Uveď příklad"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Pojmenujte klíč popisně, ať víte, kde se používá."
+
+msgid "Give your organization its own plugins from a GitHub repository. You choose who gets each one."
+msgstr "Dejte své organizaci vlastní pluginy z repozitáře na GitHubu. U každého určíte, kdo ho dostane."
 
 msgid "Globe"
 msgstr "Zeměkoule"
@@ -8972,6 +9019,13 @@ msgstr "Instalujte, autorizujte a omezujte MCP servery napříč všemi pracovn�
 msgid "Install."
 msgstr "Nainstalujte."
 
+msgctxt "plugin access"
+msgid "Installed"
+msgstr "Nainstalováno"
+
+msgid "Installed by your organization"
+msgstr "Nainstalováno vaší organizací"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceHasInstalls"
 msgstr "Nainstalované pluginy pocházejí z {name}: {plugins}. Nejprve je odeberte."
@@ -9210,6 +9264,9 @@ msgstr "Připojené účty byly odpojeny."
 
 msgid "Its own branch and copy of the files"
 msgstr "Vlastní větev a vlastní kopie souborů"
+
+msgid "Its plugins appear when the sync finishes."
+msgstr "Jeho pluginy se objeví po dokončení synchronizace."
 
 msgid "Its replies go with it."
 msgstr "Smažou se i odpovědi."
@@ -11119,6 +11176,9 @@ msgstr "Zatím žádné řádky protokolu"
 msgid "no logins"
 msgstr "žádná přihlášení"
 
+msgid "No longer in source"
+msgstr "Už není ve zdroji"
+
 msgid "No match"
 msgstr "Žádná shoda"
 
@@ -11216,6 +11276,9 @@ msgstr "Zatím nejsou k dispozici žádné pluginy."
 msgid "No plugins match \"{0}\""
 msgstr "Žádný plugin neodpovídá „{0}“"
 
+msgid "No plugins yet. Add a repository to sync them."
+msgstr "Zatím žádné pluginy. Přidejte repozitář a synchronizujte je."
+
 msgid "No posts yet."
 msgstr "Zatím žádné články."
 
@@ -11290,6 +11353,9 @@ msgstr "Žádné poznámky k vydání na {url}"
 
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Nenalezeny žádné repozitáře. Ověřte, že vaše GitHub App má k repozitářům přístup."
+
+msgid "No repositories yet."
+msgstr "Zatím žádné repozitáře."
 
 msgid "No repositories. Connect GitHub in Integrations, then refresh."
 msgstr "Žádné repozitáře. Připojte GitHub v Integracích a poté obnovte."
@@ -11549,6 +11615,9 @@ msgstr "Na tomto hostu není nastaveno"
 msgid "not sorted"
 msgstr "neseřazeno"
 
+msgid "Not synced yet"
+msgstr "Zatím nesynchronizováno"
+
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "Bez aktualizací"
@@ -11772,6 +11841,9 @@ msgstr "Tohoto hosta mohou smazat jen jeho vlastníci nebo vlastníci organizace
 
 msgid "Only images can be attached to a comment"
 msgstr "Ke komentáři lze připojit pouze obrázky"
+
+msgid "Only organization owners and admins can manage plugins."
+msgstr "Pluginy mohou spravovat jen vlastníci a správci organizace."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Toto nastavení mohou měnit jen vlastníci organizace."
@@ -12374,6 +12446,9 @@ msgstr "Organizace nenalezena"
 msgid "Organization not found."
 msgstr "Organizace nenalezena."
 
+msgid "Organization plugins"
+msgstr "Pluginy organizace"
+
 msgid "Organization slug"
 msgstr "Slug organizace"
 
@@ -12617,6 +12692,9 @@ msgstr "Vložte to do Superset CLI:"
 msgid "Path"
 msgstr "Cesta"
 
+msgid "Path (optional)"
+msgstr "Cesta (volitelné)"
+
 msgid "Path copied"
 msgstr "Cesta zkopírována"
 
@@ -12757,6 +12835,9 @@ msgstr "Vyberte umístění projektu"
 msgid "Pick a reason"
 msgstr "Vyberte důvod"
 
+msgid "Pick a repository with a plugin marketplace file. Superset syncs its plugins now and each time you sync again."
+msgstr "Vyberte repozitář se souborem marketplace pluginů. Superset synchronizuje jeho pluginy nyní a při každé další synchronizaci."
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Vyberte zvuk nebo přidejte vlastní. Vlastní zvuk podporuje .mp3, .wav a .ogg."
 
@@ -12883,6 +12964,9 @@ msgstr "Zkuste to znovu nebo na daném zařízení restartujte Superset."
 msgid "Please try signing in again from the desktop app."
 msgstr "Zkuste se prosím znovu přihlásit z desktopové aplikace."
 
+msgid "Plugin"
+msgstr "Plugin"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.noApiKeyAuth"
 msgstr "Plugin {plugin} nepoužívá ověřování api_key"
@@ -12896,6 +12980,9 @@ msgstr "Marketplace pluginů"
 
 msgid "Plugins"
 msgstr "Pluginy"
+
+msgid "Plugins update when the sync finishes."
+msgstr "Pluginy se aktualizují po dokončení synchronizace."
 
 msgid "Point at the page. Your agent makes the change."
 msgstr "Ukažte na stránku. Změnu provede váš agent."
@@ -13734,6 +13821,9 @@ msgstr "Omezit pohyb"
 msgid "Reduce Transparency"
 msgstr "Omezit průhlednost"
 
+msgid "Ref {ref} · Path {path}"
+msgstr "Ref {ref} · Cesta {path}"
+
 msgid "Referenced, not demoed"
 msgstr "Odkazované, bez ukázky"
 
@@ -13849,6 +13939,7 @@ msgid "Remove"
 msgstr "Odebrat"
 
 #. placeholder {0}: member.name
+#. placeholder {0}: source.repo
 msgid "Remove {0}"
 msgstr "Odebrat {0}"
 
@@ -13857,6 +13948,9 @@ msgstr "Odebrat {label}"
 
 msgid "Remove {label}?"
 msgstr "Odebrat {label}?"
+
+msgid "Remove {repo}? Every plugin synced from it is removed from your organization."
+msgstr "Odebrat {repo}? Všechny pluginy z něj synchronizované budou z vaší organizace odebrány."
 
 msgid "Remove {repositoryName}"
 msgstr "Odebrat {repositoryName}"
@@ -13908,6 +14002,9 @@ msgstr "Odebrat propojení s PR"
 
 msgid "Remove queued message"
 msgstr "Odebrat zprávu z fronty"
+
+msgid "Remove repository"
+msgstr "Odebrat repozitář"
 
 msgid "Remove script"
 msgstr "Odebrat skript"
@@ -14106,6 +14203,12 @@ msgstr "Repozitáře: {label}"
 
 msgid "Repository"
 msgstr "Repozitář"
+
+msgid "Repository removed"
+msgstr "Repozitář odebrán"
+
+msgid "Repository root"
+msgstr "Kořen repozitáře"
 
 msgid "Repository URL or path"
 msgstr "URL nebo cesta repozitáře"
@@ -15168,6 +15271,9 @@ msgstr "Vyberte projekt a uvidíte pull requesty."
 
 msgid "Select a pull request to preview it here."
 msgstr "Vyberte pull request a zobrazí se tady jeho náhled."
+
+msgid "Select a repository"
+msgstr "Vyberte repozitář"
 
 msgid "Select a team"
 msgstr "Vyberte tým"
@@ -16922,11 +17028,23 @@ msgstr "Synchronizujte issues s Linearem oběma směry."
 msgid "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 msgstr "Synchronizujte issues obousměrně s Linearem. Vytvářejte úkoly v Superset a nechte je objevit se v Linearu, nebo importujte stávající issues z Linearu."
 
+msgid "Sync now"
+msgstr "Synchronizovat nyní"
+
+msgid "Sync plugins from your GitHub repositories and choose who can install them."
+msgstr "Synchronizujte pluginy ze svých repozitářů GitHub a zvolte, kdo je může instalovat."
+
 msgid "Sync Repositories"
 msgstr "Synchronizovat repozitáře"
 
+msgid "Sync requested"
+msgstr "Synchronizace vyžádána"
+
 msgid "Sync started"
 msgstr "Synchronizace spuštěna"
+
+msgid "Synced {syncedAgo}"
+msgstr "Synchronizováno {syncedAgo}"
 
 msgid "Syncing..."
 msgstr "Synchronizuji..."
@@ -17259,6 +17377,10 @@ msgstr "Tento počítač už není dostupný"
 msgid "That name isn't allowed."
 msgstr "Takový název není povolený."
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.unknownPluginSource"
+msgstr "Tento zdroj pluginů neexistuje"
+
 msgid "That run is missed and isn't retried. Use Run now to start it later."
 msgstr "Tento běh se vynechá a neopakuje se. Později ho spustíte tlačítkem Spustit teď."
 
@@ -17373,6 +17495,9 @@ msgstr "První týmy na úrovni F4"
 msgid "The first teams, small ones, ship majority-agent code without reading every line, and their defect rates hold. Nothing mystical behind it: review layers, canaries, fast rollback, and a habit of writing specifications instead of code."
 msgstr "První týmy, ty malé, dodávají kód psaný převážně agenty, aniž by četly každý řádek, a jejich chybovost drží. Nic mystického za tím není: vrstvy revizí, kanárkové nasazení, rychlý rollback a zvyk psát specifikace místo kódu."
 
+msgid "The folder that holds the marketplace file, if it is not at the root."
+msgstr "Složka se souborem marketplace, pokud není v kořeni."
+
 msgid "The following folders are not git repositories. Would you like to initialize them?"
 msgstr "Následující složky nejsou git repozitáře. Chcete je inicializovat?"
 
@@ -17390,6 +17515,9 @@ msgstr "Kompletní pracovní prostor. Spouštějte agenty paralelně, každého 
 
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "Budoucí domov pro znovupoužitelné konfigurace agentů, prompty a průvodce nastavením pro Superset."
+
+msgid "The GitHub App cannot see any repositories yet. Give it access on GitHub, then try again."
+msgstr "GitHub App zatím nevidí žádné repozitáře. Udělte jí přístup na GitHubu a zkuste to znovu."
 
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
@@ -17497,6 +17625,10 @@ msgstr "Stránka, kterou hledáte, neexistuje."
 
 msgid "The pane uses your real logins. Agents ask you before they take a consequential action."
 msgstr "Panel používá vaše skutečná přihlášení. Agenti se před důležitou akcí zeptají."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourcePathOutside"
+msgstr "Cesta musí zůstat uvnitř repozitáře"
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "Checkout projektu tak, jak je: soubory a větev jsou sdílené"
@@ -18438,6 +18570,10 @@ msgstr "Noční běhy bez dozoru, ke sloučení do rána"
 msgid "Unattended runs of 8 hours or more succeed on a majority of routine tickets without a human unblocking them."
 msgstr "Běhy bez dozoru trvající 8 hodin a víc uspějí u většiny rutinních ticketů, aniž by je člověk odblokoval."
 
+msgid "Unavailable"
+msgstr "Nedostupné"
+
+msgctxt "plugin access"
 msgid "Unavailable"
 msgstr "Nedostupné"
 
@@ -19841,6 +19977,10 @@ msgstr "Váš první agent"
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "Váš účet GitHub nemá přístup k repozitáři tohoto prostředí"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourceOutOfReach"
+msgstr "Váš účet GitHub nemůže číst {repo}"
+
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "Odkaz na GitHub pochází z účtu, kterým jste se přihlásili, proto je označen jako ověřený a nelze ho zde upravit."
 
@@ -19853,8 +19993,21 @@ msgstr "Vaše jméno"
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Vaše jméno <0>(pokud váš prompt použijeme, uvedeme vás v changelogu)</0>"
 
+msgid "Your organization"
+msgstr "Vaše organizace"
+
+msgid "Your organization has not connected GitHub yet. Install the GitHub App in <0>Settings › Integrations</0>, then come back."
+msgstr "Vaše organizace zatím nepřipojila GitHub. Nainstalujte GitHub App v <0>Nastavení › Integrace</0> a pak se vraťte."
+
 msgid "Your organization has reached its cloud usage limit. Raise the limit or upgrade in Settings, Billing to start this workspace."
 msgstr "Vaše organizace dosáhla limitu využití cloudu. Pro spuštění tohoto pracovního prostoru zvyšte limit nebo přejděte na vyšší tarif v Nastavení, Fakturace."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.managedByOrganization"
+msgstr "Vaše organizace pro vás instaluje {plugin}, proto jej nelze odinstalovat. Můžete jej zakázat."
+
+msgid "Your organization installs this plugin for you. You can disable it, but not remove it."
+msgstr "Vaše organizace pro vás instaluje tento plugin. Můžete jej zakázat, ale ne odebrat."
 
 msgid "Your organization reached its cloud usage limit. This workspace stops in a few minutes unless the limit is raised."
 msgstr "Vaše organizace dosáhla limitu využití cloudu. Tento pracovní prostor se za několik minut zastaví, pokud limit nezvýšíte."

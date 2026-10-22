@@ -387,6 +387,7 @@ msgstr "{0}还不能用这种方式登录。"
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "已有{0}位开发者按agent用量排名。你最近30天的数据已计入，只是尚未公开。仅包含token数量和模型名称，不含仓库名、文件路径或提示词。"
 
+#. placeholder {0}: displayName(name)
 #. placeholder {0}: variables.name
 msgid "{0} disabled"
 msgstr "{0}已停用"
@@ -927,6 +928,9 @@ msgstr "{kind} · 作者{author}"
 
 msgid "{kindLabel} theme"
 msgstr "{kindLabel}主题"
+
+msgid "{label} access to {pluginName}"
+msgstr "{label} 对 {pluginName} 的访问权限"
 
 msgid "{label} in cloud workspaces"
 msgstr "云端工作区中的{label}"
@@ -1848,6 +1852,9 @@ msgstr "添加到工作区"
 msgid "Add your own terminal agent to this device."
 msgstr "向此设备添加你自己的终端智能体。"
 
+msgid "Added {added}"
+msgstr "已添加 {added}"
+
 msgid "Added {added} files to {where}"
 msgstr "已向{where}添加{added}个文件"
 
@@ -1863,6 +1870,9 @@ msgstr "已添加到智能体输入框"
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
 msgstr "向 {organizationName} 添加成员需要付费套餐。你所在组织的套餐由其所有者在 {0} 管理。"
+
+msgid "Adding..."
+msgstr "正在添加..."
 
 msgid "Address Comments with Agent"
 msgstr "用智能体处理评论"
@@ -2860,6 +2870,13 @@ msgstr "工单到PR的自主流水线"
 msgid "Available"
 msgstr "可用"
 
+msgctxt "plugin access"
+msgid "Available"
+msgstr "可用"
+
+msgid "Available plugins show on each role's Plugins page. Installed plugins are installed for everyone in the role, who can disable but not remove them."
+msgstr "可用的插件会显示在各角色的插件页面上。已安装的插件会为该角色的所有人安装，他们可以停用但不能移除。"
+
 msgid "Avatar"
 msgstr "头像"
 
@@ -3123,6 +3140,9 @@ msgstr "分支名不可用"
 
 msgid "Branch names cannot end with a space."
 msgstr "分支名不能以空格结尾。"
+
+msgid "Branch or tag (optional)"
+msgstr "分支或标签（可选）"
 
 msgid "Branch prefix"
 msgstr "分支前缀"
@@ -4883,6 +4903,9 @@ msgstr "你的费用：$0"
 msgid "Could not add agent"
 msgstr "无法添加智能体"
 
+msgid "Could not add repository"
+msgstr "无法添加仓库"
+
 msgid "Could not answer the agent"
 msgstr "无法回复智能体"
 
@@ -4900,6 +4923,9 @@ msgstr "无法更改模式"
 
 msgid "Could not change the shared version"
 msgstr "无法更改分享的版本"
+
+msgid "Could not change who gets this plugin"
+msgstr "无法更改此插件的获取对象"
 
 msgid "Could not change who has access"
 msgstr "无法更改有访问权限的人"
@@ -4942,6 +4968,9 @@ msgstr "无法删除文件"
 
 msgid "Could not delete this page"
 msgstr "无法删除这个页面"
+
+msgid "Could not disable plugin"
+msgstr "无法停用插件"
 
 msgid "Could not disconnect."
 msgstr "无法断开连接。"
@@ -5058,6 +5087,9 @@ msgstr "无法保存环境"
 msgid "Could not remove access"
 msgstr "无法移除访问权限"
 
+msgid "Could not remove repository"
+msgstr "无法移除仓库"
+
 msgid "Could not rename the session"
 msgstr "无法重命名会话"
 
@@ -5126,6 +5158,9 @@ msgstr "无法停止关注"
 
 msgid "Could not submit prompt. Try again."
 msgstr "无法提交提示词。请重试。"
+
+msgid "Could not sync"
+msgstr "无法同步"
 
 msgid "Could not take a screenshot"
 msgstr "无法截图"
@@ -5837,6 +5872,9 @@ msgstr "默认（{defaultWorktreePath}）"
 msgid "Default base for new workspaces. Override per-workspace at creation."
 msgstr "新工作区的默认基础分支。可在创建时为各工作区单独覆盖。"
 
+msgid "Default branch"
+msgstr "默认分支"
+
 msgid "Default effort"
 msgstr "默认推理强度"
 
@@ -6234,6 +6272,9 @@ msgstr "直接模式"
 
 msgid "Directory"
 msgstr "目录"
+
+msgid "Disable"
+msgstr "停用"
 
 msgid "Disable skill"
 msgstr "停用技能"
@@ -8167,6 +8208,9 @@ msgstr "已达到 GitHub 速率限制"
 msgid "GitHub refused the merge"
 msgstr "GitHub拒绝了此次合并"
 
+msgid "GitHub repositories with a plugin marketplace file. Superset syncs their plugins into your organization."
+msgstr "包含插件市场文件的 GitHub 仓库。Superset 会将其中的插件同步到你的组织。"
+
 msgid "GitHub sign-in needed"
 msgstr "需要登录 GitHub"
 
@@ -8190,6 +8234,9 @@ msgstr "给我一个示例"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "给密钥起一个描述性的名称，方便记住它用在哪里。"
+
+msgid "Give your organization its own plugins from a GitHub repository. You choose who gets each one."
+msgstr "从 GitHub 仓库为你的组织添加专属插件。由你决定每个插件提供给谁。"
 
 msgid "Globe"
 msgstr "地球"
@@ -8972,6 +9019,13 @@ msgstr "在一处为所有工作区安装、授权并划定MCP服务器的权限
 msgid "Install."
 msgstr "安装。"
 
+msgctxt "plugin access"
+msgid "Installed"
+msgstr "已安装"
+
+msgid "Installed by your organization"
+msgstr "由你的组织安装"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceHasInstalls"
 msgstr "已安装的插件来自 {name}：{plugins}。请先移除它们。"
@@ -9210,6 +9264,9 @@ msgstr "其已连接的账户已断开。"
 
 msgid "Its own branch and copy of the files"
 msgstr "独立的分支和文件副本"
+
+msgid "Its plugins appear when the sync finishes."
+msgstr "同步完成后，其插件会显示出来。"
 
 msgid "Its replies go with it."
 msgstr "其回复也会一并删除。"
@@ -11119,6 +11176,9 @@ msgstr "暂无日志"
 msgid "no logins"
 msgstr "无登录信息"
 
+msgid "No longer in source"
+msgstr "已不在来源中"
+
 msgid "No match"
 msgstr "无匹配项"
 
@@ -11216,6 +11276,9 @@ msgstr "暂无可用插件。"
 msgid "No plugins match \"{0}\""
 msgstr "没有匹配“{0}”的插件"
 
+msgid "No plugins yet. Add a repository to sync them."
+msgstr "暂无插件。添加一个仓库来同步插件。"
+
 msgid "No posts yet."
 msgstr "暂无文章。"
 
@@ -11290,6 +11353,9 @@ msgstr "{url} 上没有版本说明"
 
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "未找到仓库。请确认你的GitHub App有权访问仓库。"
+
+msgid "No repositories yet."
+msgstr "暂无仓库。"
 
 msgid "No repositories. Connect GitHub in Integrations, then refresh."
 msgstr "没有仓库。请在“集成”中连接 GitHub，然后刷新。"
@@ -11549,6 +11615,9 @@ msgstr "尚未在此主机上配置"
 msgid "not sorted"
 msgstr "未排序"
 
+msgid "Not synced yet"
+msgstr "尚未同步"
+
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "未更新"
@@ -11772,6 +11841,9 @@ msgstr "只有主机所有者或组织所有者才能删除此主机"
 
 msgid "Only images can be attached to a comment"
 msgstr "评论只能附加图片"
+
+msgid "Only organization owners and admins can manage plugins."
+msgstr "只有组织所有者和管理员可以管理插件。"
 
 msgid "Only organization owners can modify these settings."
 msgstr "只有组织所有者可以修改这些设置。"
@@ -12374,6 +12446,9 @@ msgstr "未找到组织"
 msgid "Organization not found."
 msgstr "找不到该组织。"
 
+msgid "Organization plugins"
+msgstr "组织插件"
+
 msgid "Organization slug"
 msgstr "组织slug"
 
@@ -12617,6 +12692,9 @@ msgstr "把它粘贴到Superset CLI："
 msgid "Path"
 msgstr "路径"
 
+msgid "Path (optional)"
+msgstr "路径（可选）"
+
 msgid "Path copied"
 msgstr "已复制路径"
 
@@ -12757,6 +12835,9 @@ msgstr "请选择项目位置"
 msgid "Pick a reason"
 msgstr "选择原因"
 
+msgid "Pick a repository with a plugin marketplace file. Superset syncs its plugins now and each time you sync again."
+msgstr "选择一个包含插件市场文件的仓库。Superset 会立即同步其插件，并在你每次重新同步时再次同步。"
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "选择一个声音或添加自己的。自定义音频支持.mp3、.wav和.ogg。"
 
@@ -12883,6 +12964,9 @@ msgstr "请重试，或在该设备上重启 Superset。"
 msgid "Please try signing in again from the desktop app."
 msgstr "请从桌面应用重新登录。"
 
+msgid "Plugin"
+msgstr "插件"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.noApiKeyAuth"
 msgstr "插件 {plugin} 未使用 api_key 认证"
@@ -12896,6 +12980,9 @@ msgstr "插件市场"
 
 msgid "Plugins"
 msgstr "插件"
+
+msgid "Plugins update when the sync finishes."
+msgstr "同步完成后插件会更新。"
 
 msgid "Point at the page. Your agent makes the change."
 msgstr "指向页面，智能体来完成修改。"
@@ -13734,6 +13821,9 @@ msgstr "减弱动态效果"
 msgid "Reduce Transparency"
 msgstr "降低透明度"
 
+msgid "Ref {ref} · Path {path}"
+msgstr "引用 {ref} · 路径 {path}"
+
 msgid "Referenced, not demoed"
 msgstr "仅作引用，未做演示"
 
@@ -13849,6 +13939,7 @@ msgid "Remove"
 msgstr "移除"
 
 #. placeholder {0}: member.name
+#. placeholder {0}: source.repo
 msgid "Remove {0}"
 msgstr "移除{0}"
 
@@ -13857,6 +13948,9 @@ msgstr "移除 {label}"
 
 msgid "Remove {label}?"
 msgstr "移除{label}？"
+
+msgid "Remove {repo}? Every plugin synced from it is removed from your organization."
+msgstr "移除 {repo}？从中同步的所有插件都会从你的组织中移除。"
 
 msgid "Remove {repositoryName}"
 msgstr "移除 {repositoryName}"
@@ -13908,6 +14002,9 @@ msgstr "移除PR链接"
 
 msgid "Remove queued message"
 msgstr "移除排队消息"
+
+msgid "Remove repository"
+msgstr "移除仓库"
 
 msgid "Remove script"
 msgstr "移除脚本"
@@ -14106,6 +14203,12 @@ msgstr "仓库：{label}"
 
 msgid "Repository"
 msgstr "仓库"
+
+msgid "Repository removed"
+msgstr "已移除仓库"
+
+msgid "Repository root"
+msgstr "仓库根目录"
 
 msgid "Repository URL or path"
 msgstr "仓库URL或路径"
@@ -15168,6 +15271,9 @@ msgstr "选择一个项目来查看拉取请求。"
 
 msgid "Select a pull request to preview it here."
 msgstr "选择一个拉取请求，在这里预览。"
+
+msgid "Select a repository"
+msgstr "选择一个仓库"
 
 msgid "Select a team"
 msgstr "选择团队"
@@ -16922,11 +17028,23 @@ msgstr "与Linear双向同步议题。"
 msgid "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 msgstr "与Linear双向同步议题。在Superset中创建任务并让它们出现在Linear里，也可以导入已有的Linear议题。"
 
+msgid "Sync now"
+msgstr "立即同步"
+
+msgid "Sync plugins from your GitHub repositories and choose who can install them."
+msgstr "从你的 GitHub 仓库同步插件，并选择谁可以安装它们。"
+
 msgid "Sync Repositories"
 msgstr "同步仓库"
 
+msgid "Sync requested"
+msgstr "已请求同步"
+
 msgid "Sync started"
 msgstr "同步已开始"
+
+msgid "Synced {syncedAgo}"
+msgstr "{syncedAgo}同步"
 
 msgid "Syncing..."
 msgstr "正在同步..."
@@ -17259,6 +17377,10 @@ msgstr "该机器已不可用"
 msgid "That name isn't allowed."
 msgstr "该名称不被允许。"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.unknownPluginSource"
+msgstr "该插件来源不存在"
+
 msgid "That run is missed and isn't retried. Use Run now to start it later."
 msgstr "这次运行会被错过，且不会重试。之后可用“立即运行”启动它。"
 
@@ -17373,6 +17495,9 @@ msgstr "第一批F4团队"
 msgid "The first teams, small ones, ship majority-agent code without reading every line, and their defect rates hold. Nothing mystical behind it: review layers, canaries, fast rollback, and a habit of writing specifications instead of code."
 msgstr "第一批团队，规模都不大，在不逐行阅读的情况下交付了以智能体为主的代码，缺陷率并没有恶化。背后没什么玄学：分层审查、灰度发布、快速回滚，以及写规格而不是写代码的习惯。"
 
+msgid "The folder that holds the marketplace file, if it is not at the root."
+msgstr "如果市场文件不在根目录，填写包含它的文件夹。"
+
 msgid "The following folders are not git repositories. Would you like to initialize them?"
 msgstr "以下文件夹不是git仓库。要初始化它们吗？"
 
@@ -17390,6 +17515,9 @@ msgstr "完整的工作区。并行运行智能体，让每个智能体独占自
 
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "未来用于存放可复用的 Superset 智能体配置、提示词与安装指南。"
+
+msgid "The GitHub App cannot see any repositories yet. Give it access on GitHub, then try again."
+msgstr "GitHub App 还看不到任何仓库。请在 GitHub 上为它授予访问权限，然后重试。"
 
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
@@ -17497,6 +17625,10 @@ msgstr "你要找的页面不存在。"
 
 msgid "The pane uses your real logins. Agents ask you before they take a consequential action."
 msgstr "窗格使用你真实的登录状态。智能体在执行重要操作前会先征求你的同意。"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourcePathOutside"
+msgstr "路径必须位于仓库内"
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "按原样使用项目的检出: 文件和分支是共享的"
@@ -18438,6 +18570,10 @@ msgstr "无人值守通宵运行，早上可合并"
 msgid "Unattended runs of 8 hours or more succeed on a majority of routine tickets without a human unblocking them."
 msgstr "无人值守运行8小时以上，在多数常规工单上无需人工解阻即可完成。"
 
+msgid "Unavailable"
+msgstr "不可用"
+
+msgctxt "plugin access"
 msgid "Unavailable"
 msgstr "不可用"
 
@@ -19841,6 +19977,10 @@ msgstr "你的第一个智能体"
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "你的 GitHub 账户无法访问此环境中的某个仓库"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourceOutOfReach"
+msgstr "你的 GitHub 账号无法读取 {repo}"
+
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "你的 GitHub 链接来自登录所用的账号，因此显示为已验证，无法在此编辑。"
 
@@ -19853,8 +19993,21 @@ msgstr "你的姓名"
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "你的名字 <0>（若我们采用你的提示词，会在更新日志中署名致谢）</0>"
 
+msgid "Your organization"
+msgstr "你的组织"
+
+msgid "Your organization has not connected GitHub yet. Install the GitHub App in <0>Settings › Integrations</0>, then come back."
+msgstr "你的组织尚未连接 GitHub。请在<0>设置 › 集成</0>中安装 GitHub App，然后再回来。"
+
 msgid "Your organization has reached its cloud usage limit. Raise the limit or upgrade in Settings, Billing to start this workspace."
 msgstr "你的组织已达到云端用量上限。请在“设置”中的“账单”提高上限或升级，以启动此工作区。"
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.managedByOrganization"
+msgstr "你的组织为你安装了 {plugin}，因此无法卸载。你可以停用它。"
+
+msgid "Your organization installs this plugin for you. You can disable it, but not remove it."
+msgstr "你的组织为你安装了此插件。你可以停用它，但不能移除。"
 
 msgid "Your organization reached its cloud usage limit. This workspace stops in a few minutes unless the limit is raised."
 msgstr "你的组织已达到云端用量上限。除非提高上限，此工作区将在几分钟后停止。"

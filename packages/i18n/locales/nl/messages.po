@@ -387,6 +387,7 @@ msgstr "{0} kan nog niet op deze manier worden ingelogd."
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "{0} developers zijn gerangschikt op agentgebruik. Je laatste 30 dagen zijn al meegeteld, alleen verborgen. Alleen tokenaantallen en modelnamen, geen repo-namen, bestandspaden of prompts."
 
+#. placeholder {0}: displayName(name)
 #. placeholder {0}: variables.name
 msgid "{0} disabled"
 msgstr "{0} uitgeschakeld"
@@ -927,6 +928,9 @@ msgstr "{kind} · door {author}"
 
 msgid "{kindLabel} theme"
 msgstr "{kindLabel} thema"
+
+msgid "{label} access to {pluginName}"
+msgstr "{label}-toegang tot {pluginName}"
 
 msgid "{label} in cloud workspaces"
 msgstr "{label} in cloudwerkruimtes"
@@ -1848,6 +1852,9 @@ msgstr "Toevoegen aan werkruimte"
 msgid "Add your own terminal agent to this device."
 msgstr "Voeg je eigen terminalagent toe aan dit apparaat."
 
+msgid "Added {added}"
+msgstr "{added} toegevoegd"
+
 msgid "Added {added} files to {where}"
 msgstr "{added} bestanden toegevoegd aan {where}"
 
@@ -1863,6 +1870,9 @@ msgstr "Toegevoegd aan de invoer van de agent"
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "Adding people to {organizationName} needs a paid plan. Your organization's plan is managed by its owner at {0}."
 msgstr "Voor het toevoegen van mensen aan {organizationName} is een betaald abonnement nodig. Het abonnement van je organisatie wordt beheerd door de eigenaar op {0}."
+
+msgid "Adding..."
+msgstr "Toevoegen..."
 
 msgid "Address Comments with Agent"
 msgstr "Opmerkingen afhandelen met agent"
@@ -2860,6 +2870,13 @@ msgstr "Autonome pijplijn van ticket naar PR"
 msgid "Available"
 msgstr "Beschikbaar"
 
+msgctxt "plugin access"
+msgid "Available"
+msgstr "Beschikbaar"
+
+msgid "Available plugins show on each role's Plugins page. Installed plugins are installed for everyone in the role, who can disable but not remove them."
+msgstr "Beschikbare plugins verschijnen op de Plugins-pagina van elke rol. Geïnstalleerde plugins worden voor iedereen in de rol geïnstalleerd; zij kunnen ze uitschakelen, maar niet verwijderen."
+
 msgid "Avatar"
 msgstr "Avatar"
 
@@ -3123,6 +3140,9 @@ msgstr "Branchnaam is niet beschikbaar"
 
 msgid "Branch names cannot end with a space."
 msgstr "Branchnamen mogen niet op een spatie eindigen."
+
+msgid "Branch or tag (optional)"
+msgstr "Branch of tag (optioneel)"
 
 msgid "Branch prefix"
 msgstr "Branchprefix"
@@ -4883,6 +4903,9 @@ msgstr "Kosten voor jou: $0"
 msgid "Could not add agent"
 msgstr "Kon agent niet toevoegen"
 
+msgid "Could not add repository"
+msgstr "Kan repository niet toevoegen"
+
 msgid "Could not answer the agent"
 msgstr "Kan de agent niet antwoorden"
 
@@ -4900,6 +4923,9 @@ msgstr "Kan de modus niet wijzigen"
 
 msgid "Could not change the shared version"
 msgstr "Kan de gedeelde versie niet wijzigen"
+
+msgid "Could not change who gets this plugin"
+msgstr "Kan niet wijzigen wie deze plugin krijgt"
 
 msgid "Could not change who has access"
 msgstr "Kan niet wijzigen wie toegang heeft"
@@ -4942,6 +4968,9 @@ msgstr "Kan bestand niet verwijderen"
 
 msgid "Could not delete this page"
 msgstr "Kan deze pagina niet verwijderen"
+
+msgid "Could not disable plugin"
+msgstr "Kan plugin niet uitschakelen"
 
 msgid "Could not disconnect."
 msgstr "Loskoppelen is mislukt."
@@ -5058,6 +5087,9 @@ msgstr "Omgeving kon niet worden opgeslagen"
 msgid "Could not remove access"
 msgstr "Kan toegang niet verwijderen"
 
+msgid "Could not remove repository"
+msgstr "Kan repository niet verwijderen"
+
 msgid "Could not rename the session"
 msgstr "Kan de naam van de sessie niet wijzigen"
 
@@ -5126,6 +5158,9 @@ msgstr "Kon niet stoppen met volgen"
 
 msgid "Could not submit prompt. Try again."
 msgstr "Kan prompt niet insturen. Probeer het opnieuw."
+
+msgid "Could not sync"
+msgstr "Kan niet synchroniseren"
 
 msgid "Could not take a screenshot"
 msgstr "Kan geen screenshot maken"
@@ -5837,6 +5872,9 @@ msgstr "Standaard ({defaultWorktreePath})"
 msgid "Default base for new workspaces. Override per-workspace at creation."
 msgstr "Standaardbasis voor nieuwe werkruimten. Per werkruimte te wijzigen bij het aanmaken."
 
+msgid "Default branch"
+msgstr "Standaardbranch"
+
 msgid "Default effort"
 msgstr "Standaard-effort"
 
@@ -6234,6 +6272,9 @@ msgstr "Directe modus"
 
 msgid "Directory"
 msgstr "Map"
+
+msgid "Disable"
+msgstr "Uitschakelen"
 
 msgid "Disable skill"
 msgstr "Skill uitschakelen"
@@ -8167,6 +8208,9 @@ msgstr "GitHub-limiet bereikt"
 msgid "GitHub refused the merge"
 msgstr "GitHub weigerde de merge"
 
+msgid "GitHub repositories with a plugin marketplace file. Superset syncs their plugins into your organization."
+msgstr "GitHub-repository's met een plugin-marketplacebestand. Superset synchroniseert hun plugins naar je organisatie."
+
 msgid "GitHub sign-in needed"
 msgstr "Aanmelden bij GitHub vereist"
 
@@ -8190,6 +8234,9 @@ msgstr "Geef een voorbeeld"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Geef je sleutel een duidelijke naam zodat je weet waar hij wordt gebruikt."
+
+msgid "Give your organization its own plugins from a GitHub repository. You choose who gets each one."
+msgstr "Geef je organisatie eigen plugins uit een GitHub-repository. Jij kiest wie elke plugin krijgt."
 
 msgid "Globe"
 msgstr "Wereldbol"
@@ -8972,6 +9019,13 @@ msgstr "Installeer, autoriseer en begrens MCP-servers voor al je werkruimtes van
 msgid "Install."
 msgstr "Installeer."
 
+msgctxt "plugin access"
+msgid "Installed"
+msgstr "Geïnstalleerd"
+
+msgid "Installed by your organization"
+msgstr "Geïnstalleerd door je organisatie"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceHasInstalls"
 msgstr "Geïnstalleerde plugins komen uit {name}: {plugins}. Verwijder ze eerst."
@@ -9210,6 +9264,9 @@ msgstr "De gekoppelde accounts zijn ontkoppeld."
 
 msgid "Its own branch and copy of the files"
 msgstr "Een eigen branch en een eigen kopie van de bestanden"
+
+msgid "Its plugins appear when the sync finishes."
+msgstr "De plugins verschijnen zodra de synchronisatie klaar is."
 
 msgid "Its replies go with it."
 msgstr "De antwoorden worden ook verwijderd."
@@ -11119,6 +11176,9 @@ msgstr "Nog geen logregels"
 msgid "no logins"
 msgstr "geen logins"
 
+msgid "No longer in source"
+msgstr "Niet meer in de bron"
+
 msgid "No match"
 msgstr "Geen overeenkomst"
 
@@ -11216,6 +11276,9 @@ msgstr "Nog geen plugins beschikbaar."
 msgid "No plugins match \"{0}\""
 msgstr "Geen plugins gevonden voor \"{0}\""
 
+msgid "No plugins yet. Add a repository to sync them."
+msgstr "Nog geen plugins. Voeg een repository toe om ze te synchroniseren."
+
 msgid "No posts yet."
 msgstr "Nog geen berichten."
 
@@ -11290,6 +11353,9 @@ msgstr "Geen releasenotes op {url}"
 
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Geen repository's gevonden. Controleer of je GitHub App toegang heeft tot repository's."
+
+msgid "No repositories yet."
+msgstr "Nog geen repository's."
 
 msgid "No repositories. Connect GitHub in Integrations, then refresh."
 msgstr "Geen repositories. Koppel GitHub bij Integraties en vernieuw daarna."
@@ -11549,6 +11615,9 @@ msgstr "Niet ingesteld op deze host"
 msgid "not sorted"
 msgstr "niet gesorteerd"
 
+msgid "Not synced yet"
+msgstr "Nog niet gesynchroniseerd"
+
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "Geen updates"
@@ -11772,6 +11841,9 @@ msgstr "Alleen eigenaren van de host of organisatie-eigenaren kunnen deze host v
 
 msgid "Only images can be attached to a comment"
 msgstr "Aan een reactie kunnen alleen afbeeldingen worden toegevoegd"
+
+msgid "Only organization owners and admins can manage plugins."
+msgstr "Alleen eigenaren en beheerders van de organisatie kunnen plugins beheren."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Alleen eigenaren van de organisatie kunnen deze instellingen wijzigen."
@@ -12374,6 +12446,9 @@ msgstr "Organisatie niet gevonden"
 msgid "Organization not found."
 msgstr "Organisatie niet gevonden."
 
+msgid "Organization plugins"
+msgstr "Plugins van de organisatie"
+
 msgid "Organization slug"
 msgstr "Slug van organisatie"
 
@@ -12617,6 +12692,9 @@ msgstr "Plak dit in de Superset-CLI:"
 msgid "Path"
 msgstr "Pad"
 
+msgid "Path (optional)"
+msgstr "Pad (optioneel)"
+
 msgid "Path copied"
 msgstr "Pad gekopieerd"
 
@@ -12757,6 +12835,9 @@ msgstr "Kies een projectlocatie"
 msgid "Pick a reason"
 msgstr "Kies een reden"
 
+msgid "Pick a repository with a plugin marketplace file. Superset syncs its plugins now and each time you sync again."
+msgstr "Kies een repository met een plugin-marketplacebestand. Superset synchroniseert de plugins nu en telkens als je opnieuw synchroniseert."
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Kies een geluid of voeg je eigen toe. Eigen audio ondersteunt .mp3, .wav en .ogg."
 
@@ -12883,6 +12964,9 @@ msgstr "Probeer het opnieuw of herstart Superset op dat apparaat."
 msgid "Please try signing in again from the desktop app."
 msgstr "Probeer opnieuw in te loggen vanuit de desktop-app."
 
+msgid "Plugin"
+msgstr "Plugin"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.noApiKeyAuth"
 msgstr "Plugin {plugin} gebruikt geen api_key-authenticatie"
@@ -12896,6 +12980,9 @@ msgstr "Plugin-marketplace"
 
 msgid "Plugins"
 msgstr "Plugins"
+
+msgid "Plugins update when the sync finishes."
+msgstr "Plugins worden bijgewerkt zodra de synchronisatie klaar is."
 
 msgid "Point at the page. Your agent makes the change."
 msgstr "Wijs naar de pagina. Je agent voert de wijziging door."
@@ -13734,6 +13821,9 @@ msgstr "Verminder beweging"
 msgid "Reduce Transparency"
 msgstr "Verminder doorzichtigheid"
 
+msgid "Ref {ref} · Path {path}"
+msgstr "Ref {ref} · Pad {path}"
+
 msgid "Referenced, not demoed"
 msgstr "Genoemd, niet gedemonstreerd"
 
@@ -13849,6 +13939,7 @@ msgid "Remove"
 msgstr "Verwijderen"
 
 #. placeholder {0}: member.name
+#. placeholder {0}: source.repo
 msgid "Remove {0}"
 msgstr "{0} verwijderen"
 
@@ -13857,6 +13948,9 @@ msgstr "{label} verwijderen"
 
 msgid "Remove {label}?"
 msgstr "{label} verwijderen?"
+
+msgid "Remove {repo}? Every plugin synced from it is removed from your organization."
+msgstr "{repo} verwijderen? Alle plugins die eruit zijn gesynchroniseerd, worden uit je organisatie verwijderd."
 
 msgid "Remove {repositoryName}"
 msgstr "{repositoryName} verwijderen"
@@ -13908,6 +14002,9 @@ msgstr "PR-koppeling verwijderen"
 
 msgid "Remove queued message"
 msgstr "Bericht uit wachtrij verwijderen"
+
+msgid "Remove repository"
+msgstr "Repository verwijderen"
 
 msgid "Remove script"
 msgstr "Script verwijderen"
@@ -14106,6 +14203,12 @@ msgstr "Repository's: {label}"
 
 msgid "Repository"
 msgstr "Repository"
+
+msgid "Repository removed"
+msgstr "Repository verwijderd"
+
+msgid "Repository root"
+msgstr "Hoofdmap van repository"
 
 msgid "Repository URL or path"
 msgstr "Repository-URL of pad"
@@ -15168,6 +15271,9 @@ msgstr "Kies een project om pull requests te zien."
 
 msgid "Select a pull request to preview it here."
 msgstr "Kies een pull request om hem hier te bekijken."
+
+msgid "Select a repository"
+msgstr "Selecteer een repository"
 
 msgid "Select a team"
 msgstr "Kies een team"
@@ -16922,11 +17028,23 @@ msgstr "Synchroniseer issues beide kanten op met Linear."
 msgid "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 msgstr "Synchroniseer issues beide kanten op met Linear. Maak taken in Superset die in Linear verschijnen, of importeer bestaande Linear-issues."
 
+msgid "Sync now"
+msgstr "Nu synchroniseren"
+
+msgid "Sync plugins from your GitHub repositories and choose who can install them."
+msgstr "Synchroniseer plugins uit je GitHub-repository's en kies wie ze mag installeren."
+
 msgid "Sync Repositories"
 msgstr "Repository's synchroniseren"
 
+msgid "Sync requested"
+msgstr "Synchronisatie aangevraagd"
+
 msgid "Sync started"
 msgstr "Synchronisatie gestart"
+
+msgid "Synced {syncedAgo}"
+msgstr "Gesynchroniseerd {syncedAgo}"
 
 msgid "Syncing..."
 msgstr "Synchroniseren..."
@@ -17259,6 +17377,10 @@ msgstr "Die machine is niet meer beschikbaar"
 msgid "That name isn't allowed."
 msgstr "Die naam is niet toegestaan."
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.unknownPluginSource"
+msgstr "Die pluginbron bestaat niet"
+
 msgid "That run is missed and isn't retried. Use Run now to start it later."
 msgstr "Die run wordt gemist en niet opnieuw geprobeerd. Gebruik Nu uitvoeren om hem later te starten."
 
@@ -17373,6 +17495,9 @@ msgstr "De eerste F4-teams"
 msgid "The first teams, small ones, ship majority-agent code without reading every line, and their defect rates hold. Nothing mystical behind it: review layers, canaries, fast rollback, and a habit of writing specifications instead of code."
 msgstr "De eerste teams, kleine, leveren code die grotendeels door agents is geschreven zonder elke regel te lezen, en hun defectpercentages houden stand. Niets mystieks erachter: reviewlagen, canaries, snelle rollback en de gewoonte om specificaties te schrijven in plaats van code."
 
+msgid "The folder that holds the marketplace file, if it is not at the root."
+msgstr "De map met het marketplacebestand, als dat niet in de hoofdmap staat."
+
 msgid "The following folders are not git repositories. Would you like to initialize them?"
 msgstr "De volgende mappen zijn geen git-repository's. Wil je ze initialiseren?"
 
@@ -17390,6 +17515,9 @@ msgstr "De volledige werkruimte. Draai agents parallel, houd elke agent in zijn 
 
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "De toekomstige plek voor herbruikbare Superset-agentconfigs, prompts en setupgidsen."
+
+msgid "The GitHub App cannot see any repositories yet. Give it access on GitHub, then try again."
+msgstr "De GitHub App ziet nog geen repository's. Geef de app toegang op GitHub en probeer het opnieuw."
 
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
@@ -17497,6 +17625,10 @@ msgstr "De pagina die je zoekt bestaat niet."
 
 msgid "The pane uses your real logins. Agents ask you before they take a consequential action."
 msgstr "Het paneel gebruikt je echte logins. Agents vragen het je voordat ze een ingrijpende actie uitvoeren."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourcePathOutside"
+msgstr "Het pad moet binnen de repository blijven"
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "De checkout van het project zoals die is: bestanden en branch worden gedeeld"
@@ -18438,6 +18570,10 @@ msgstr "Onbewaakte nachtruns, 's ochtends mergebaar"
 msgid "Unattended runs of 8 hours or more succeed on a majority of routine tickets without a human unblocking them."
 msgstr "Onbewaakte runs van 8 uur of langer slagen bij een meerderheid van de routinetickets zonder dat een mens ze vlottrekt."
 
+msgid "Unavailable"
+msgstr "Niet beschikbaar"
+
+msgctxt "plugin access"
 msgid "Unavailable"
 msgstr "Niet beschikbaar"
 
@@ -19841,6 +19977,10 @@ msgstr "Je eerste agent"
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "Je GitHub-account kan een repository van deze omgeving niet bereiken"
 
+#. js-lingui-explicit-id
+msgid "serverError.plugins.pluginSourceOutOfReach"
+msgstr "Je GitHub-account kan {repo} niet lezen"
+
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "Je GitHub-link komt van het account waarmee je bent ingelogd, daarom staat hij als geverifieerd en kun je hem hier niet bewerken."
 
@@ -19853,8 +19993,21 @@ msgstr "Je naam"
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Je naam <0>(als we je prompt gebruiken, vermelden we je in de changelog)</0>"
 
+msgid "Your organization"
+msgstr "Je organisatie"
+
+msgid "Your organization has not connected GitHub yet. Install the GitHub App in <0>Settings › Integrations</0>, then come back."
+msgstr "Je organisatie heeft GitHub nog niet verbonden. Installeer de GitHub App via <0>Instellingen › Integraties</0> en kom dan terug."
+
 msgid "Your organization has reached its cloud usage limit. Raise the limit or upgrade in Settings, Billing to start this workspace."
 msgstr "Je organisatie heeft haar limiet voor cloudgebruik bereikt. Verhoog de limiet of upgrade in Instellingen, Facturering om deze werkruimte te starten."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.managedByOrganization"
+msgstr "Je organisatie installeert {plugin} voor je, dus het kan niet worden verwijderd. Je kunt het uitschakelen."
+
+msgid "Your organization installs this plugin for you. You can disable it, but not remove it."
+msgstr "Je organisatie installeert deze plugin voor je. Je kunt hem uitschakelen, maar niet verwijderen."
 
 msgid "Your organization reached its cloud usage limit. This workspace stops in a few minutes unless the limit is raised."
 msgstr "Je organisatie heeft haar limiet voor cloudgebruik bereikt. Deze werkruimte stopt over een paar minuten, tenzij de limiet wordt verhoogd."
