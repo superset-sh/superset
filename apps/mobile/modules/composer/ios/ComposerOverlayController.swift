@@ -68,6 +68,7 @@ final class ComposerPassthroughView: UIView {
 final class ComposerOverlayController {
   private var hosting: UIHostingController<ComposerRootView>?
   private weak var container: ComposerPassthroughView?
+  private var keyboard: ComposerKeyboardTracker?
 
   /// Owned here and injected into the SwiftUI tree once. Props mutate it; the
   /// root view is never reassigned.
@@ -93,6 +94,12 @@ final class ComposerOverlayController {
     // the SwiftUI environment is what reaches the UIKit-backed pieces too —
     // keyboard appearance, text selection handles, the caret.
     controller.overrideUserInterfaceStyle = .dark
+    // SwiftUI's automatic avoidance is a stored inset that a missed hide once
+    // left behind, stranding the collapsed pill at keyboard height. Off, and
+    // the tracker positions the composer instead.
+    controller.safeAreaRegions = .container
+    model.keyboardInset = 0
+    keyboard = ComposerKeyboardTracker(model: model, container: passthrough)
 
     parent.addChild(controller)
     parent.view.addSubview(passthrough)
@@ -124,6 +131,7 @@ final class ComposerOverlayController {
     container?.removeFromSuperview()
     controller.view.removeFromSuperview()
     controller.removeFromParent()
+    keyboard = nil
     hosting = nil
     container = nil
     // Navigating back re-attaches: that placement is an appearance too.
