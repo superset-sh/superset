@@ -62,6 +62,39 @@ function syncHash(path: string) {
 	window.history.replaceState(window.history.state, "", `#${path}`);
 }
 
+function getHashPath(): string {
+	const hash = window.location.hash;
+	if (!hash || hash === "#") return "/";
+	return hash.startsWith("#") ? hash.slice(1) : hash;
+}
+
+function getInitialHashPath(): string | null {
+	const hash = window.location.hash;
+	// registerRoute bootstraps the app at #/ so persisted history can restore the
+	// last route. Any more specific initial hash is an intentional deep link.
+	if (!hash || hash === "#" || hash === "#/") return null;
+	return getHashPath();
+}
+
+function findNearestEntryIndex(
+	entries: string[],
+	currentIndex: number,
+	path: string,
+): number {
+	for (let distance = 1; distance < entries.length; distance++) {
+		const backwardIndex = currentIndex - distance;
+		if (backwardIndex >= 0 && entries[backwardIndex] === path) {
+			return backwardIndex;
+		}
+
+		const forwardIndex = currentIndex + distance;
+		if (forwardIndex < entries.length && entries[forwardIndex] === path) {
+			return forwardIndex;
+		}
+	}
+	return -1;
+}
+
 function createRandomKey(): string {
 	return (Math.random() + 1).toString(36).substring(7);
 }
@@ -111,11 +144,28 @@ export function createPersistentHashHistory(): PersistentHashHistory {
 	const persisted = loadPersistedState();
 
 	const entries: string[] = [...persisted.entries];
+	let index = persisted.index;
+	const initialHashPath = getInitialHashPath();
+	if (initialHashPath && initialHashPath !== entries[index]) {
+		const existingIndex = findNearestEntryIndex(
+			entries,
+			index,
+			initialHashPath,
+		);
+		if (existingIndex >= 0) {
+			index = existingIndex;
+		} else {
+			entries.splice(index + 1);
+			entries.push(initialHashPath);
+			index = entries.length - 1;
+		}
+		persistState(entries, index);
+	}
+
 	const timestamps: number[] = entries.map(() => Date.now());
 	const states: LocationState[] = entries.map((_entry, i) =>
 		assignKeyAndIndex(i),
 	);
-	let index = persisted.index;
 
 	const getLocation = () =>
 		parseHref(entries[index] ?? "/", states[index] ?? assignKeyAndIndex(index));
@@ -126,7 +176,47 @@ export function createPersistentHashHistory(): PersistentHashHistory {
 
 	syncHash(entries[index] ?? "/");
 
-	const history = createHistory({
+	let history: RouterHistory;
+	const synchronizeExternalNavigation = (
+		navigationType?: NavigationCurrentEntryChangeEvent["navigationType"],
+	) => {
+		const path = getHashPath();
+		if (path === (entries[index] ?? "/")) return;
+
+		// The browser URL has already changed, so a blocker cannot safely cancel
+		// this navigation without leaving the URL and router out of sync.
+		const navigateOptions = { ignoreBlocker: true };
+		if (navigationType === "replace") {
+			history.replace(path, undefined, navigateOptions);
+			return;
+		}
+		if (navigationType === "push") {
+			history.push(path, undefined, navigateOptions);
+			return;
+		}
+
+		const existingIndex = findNearestEntryIndex(entries, index, path);
+		if (existingIndex >= 0) {
+			const delta = existingIndex - index;
+			if (delta === -1) {
+				history.back(navigateOptions);
+				return;
+			}
+			if (delta === 1) {
+				history.forward(navigateOptions);
+				return;
+			}
+			history.go(delta, navigateOptions);
+			return;
+		}
+		history.push(path, undefined, navigateOptions);
+	};
+	const handleExternalHashChange = () => synchronizeExternalNavigation();
+	const handleCurrentEntryChange = (event: NavigationCurrentEntryChangeEvent) =>
+		synchronizeExternalNavigation(event.navigationType);
+	const navigationApi = window.navigation;
+
+	history = createHistory({
 		getLocation,
 		getLength: () => entries.length,
 		pushState: (path, state) => {
@@ -170,7 +260,25 @@ export function createPersistentHashHistory(): PersistentHashHistory {
 		setBlockers: (newBlockers) => {
 			blockers = newBlockers;
 		},
+		destroy: () => {
+			if (navigationApi) {
+				navigationApi.removeEventListener(
+					"currententrychange",
+					handleCurrentEntryChange,
+				);
+			} else {
+				window.removeEventListener("hashchange", handleExternalHashChange);
+			}
+		},
 	});
+	if (navigationApi) {
+		navigationApi.addEventListener(
+			"currententrychange",
+			handleCurrentEntryChange,
+		);
+	} else {
+		window.addEventListener("hashchange", handleExternalHashChange);
+	}
 
 	return Object.assign(history, {
 		getEntries: (): HistoryEntry[] =>
