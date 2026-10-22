@@ -53,17 +53,44 @@ function matchesQuery(
 
 export function WorkspaceListFrame() {
 	const rawQuery = useCommandPaletteQuery();
-	const query = rawQuery.trim();
-	const isV2CloudEnabled = useIsV2CloudEnabled();
 
-	return isV2CloudEnabled ? (
-		<V2WorkspaceList query={query} />
-	) : (
-		<V1WorkspaceList query={query} />
+	return (
+		<CommandList>
+			<CommandEmpty>
+				<Trans>No workspaces found.</Trans>
+			</CommandEmpty>
+			<WorkspaceSearchResults query={rawQuery} groupByProject />
+		</CommandList>
 	);
 }
 
-function V1WorkspaceList({ query }: { query: string }) {
+export function WorkspaceSearchResults({
+	query: rawQuery,
+	groupByProject = false,
+}: {
+	query: string;
+	groupByProject?: boolean;
+}) {
+	const query = rawQuery.trim();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
+
+	if (!query && !groupByProject) return null;
+
+	return isV2CloudEnabled ? (
+		<V2WorkspaceResults query={query} groupByProject={groupByProject} />
+	) : (
+		<V1WorkspaceResults query={query} groupByProject={groupByProject} />
+	);
+}
+
+function V1WorkspaceResults({
+	query,
+	groupByProject,
+}: {
+	query: string;
+	groupByProject: boolean;
+}) {
+	const { t } = useLingui();
 	const { data: groups = [] } =
 		electronTrpc.workspaces.getAllGrouped.useQuery();
 	const currentPath = useLocation({ select: (loc) => loc.pathname });
@@ -92,18 +119,26 @@ function V1WorkspaceList({ query }: { query: string }) {
 			];
 		});
 	}, [groups, query]);
+	const resultGroups = groupByProject
+		? projectGroups
+		: [
+				{
+					projectId: "workspace-search-results",
+					projectName: t({ message: "Workspaces" }),
+					workspaces: projectGroups.flatMap((group) => group.workspaces),
+				},
+			];
 
 	const handleSelect = (workspaceId: string) => {
 		void navigateToWorkspace(workspaceId, navigate);
 		setOpen(false);
 	};
 
+	if (!groupByProject && projectGroups.length === 0) return null;
+
 	return (
-		<CommandList>
-			<CommandEmpty>
-				<Trans>No workspaces found.</Trans>
-			</CommandEmpty>
-			{projectGroups.map((group) => (
+		<>
+			{resultGroups.map((group) => (
 				<CommandGroup key={group.projectId} heading={group.projectName}>
 					{group.workspaces.map((workspace) => (
 						<CommandItem
@@ -132,11 +167,17 @@ function V1WorkspaceList({ query }: { query: string }) {
 					))}
 				</CommandGroup>
 			))}
-		</CommandList>
+		</>
 	);
 }
 
-function V2WorkspaceList({ query }: { query: string }) {
+function V2WorkspaceResults({
+	query,
+	groupByProject,
+}: {
+	query: string;
+	groupByProject: boolean;
+}) {
 	const { t } = useLingui();
 	const { all: workspaces } = useAccessibleV2Workspaces({
 		searchQuery: query,
@@ -172,18 +213,26 @@ function V2WorkspaceList({ query }: { query: string }) {
 			...group,
 		}));
 	}, [workspaces, t]);
+	const resultGroups = groupByProject
+		? projectGroups
+		: [
+				{
+					projectId: "workspace-search-results",
+					projectName: t({ message: "Workspaces" }),
+					workspaces: projectGroups.flatMap((group) => group.workspaces),
+				},
+			];
 
 	const handleSelect = (workspaceId: string) => {
 		void navigateToV2Workspace(workspaceId, navigate);
 		setOpen(false);
 	};
 
+	if (!groupByProject && projectGroups.length === 0) return null;
+
 	return (
-		<CommandList>
-			<CommandEmpty>
-				<Trans>No workspaces found.</Trans>
-			</CommandEmpty>
-			{projectGroups.map((group) => (
+		<>
+			{resultGroups.map((group) => (
 				<CommandGroup key={group.projectId} heading={group.projectName}>
 					{group.workspaces.map((workspace) => {
 						const HostIcon =
@@ -215,6 +264,6 @@ function V2WorkspaceList({ query }: { query: string }) {
 					})}
 				</CommandGroup>
 			))}
-		</CommandList>
+		</>
 	);
 }
