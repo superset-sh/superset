@@ -55,6 +55,7 @@ export const setFontSettingsSchema = z.object({
 	terminalMinimumContrast: contrastSchema.nullable().optional(),
 	terminalCursorStyle: z.enum(TERMINAL_CURSOR_STYLES).nullable().optional(),
 	terminalCursorBlink: z.boolean().nullable().optional(),
+	terminalMacOptionIsMeta: z.boolean().nullable().optional(),
 	editorFontFamily: z
 		.string()
 		.max(FONT_FAMILY_MAX_LENGTH)
@@ -102,6 +103,9 @@ export function transformFontSettings(
 	}
 	if (input.terminalCursorBlink !== undefined) {
 		set.terminalCursorBlink = input.terminalCursorBlink;
+	}
+	if (input.terminalMacOptionIsMeta !== undefined) {
+		set.terminalMacOptionIsMeta = input.terminalMacOptionIsMeta;
 	}
 	if (input.editorFontFamily !== undefined) {
 		set.editorFontFamily = input.editorFontFamily?.trim() || null;
