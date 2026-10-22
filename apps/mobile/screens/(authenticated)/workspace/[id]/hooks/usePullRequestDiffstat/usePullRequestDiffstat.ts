@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { getHostServiceClientByUrl } from "@/lib/host-service/client";
+import { useSession } from "@/lib/auth/client";
+import { apiClient } from "@/lib/trpc/client";
 import type { WorkspacePullRequest } from "../useWorkspacePullRequest";
 
 export interface PullRequestDiffstat {
@@ -9,29 +10,31 @@ export interface PullRequestDiffstat {
 
 /**
  * The host's PR history carries no per-PR detail, so the diffstat is fetched
- * per pull request. Null until the numbers exist.
+ * per pull request, as the viewer. Null until the numbers exist.
  */
 export function usePullRequestDiffstat({
-	hostUrl,
 	pullRequest,
 	enabled = true,
 }: {
-	hostUrl: string | null;
 	pullRequest: WorkspacePullRequest | undefined;
 	enabled?: boolean;
 }): PullRequestDiffstat | null {
+	const { data: session } = useSession();
+	const organizationId = session?.session?.activeOrganizationId ?? null;
 	const { data } = useQuery({
-		queryKey: ["pull-request-diffstat", hostUrl, pullRequest?.key],
-		enabled: enabled && hostUrl !== null && pullRequest !== undefined,
+		queryKey: ["pull-request-diffstat", organizationId, pullRequest?.key],
+		enabled: enabled && organizationId !== null && pullRequest !== undefined,
 		staleTime: 5 * 60_000,
+		retry: false,
 		networkMode: "always" as const,
 		queryFn: async () => {
-			if (!hostUrl || !pullRequest) return null;
-			const pr = await getHostServiceClientByUrl(hostUrl).github.getPR.query({
-				owner: pullRequest.repoOwner,
-				repo: pullRequest.repoName,
-				pullNumber: pullRequest.prNumber,
-			});
+			if (!organizationId || !pullRequest) return null;
+			const { pullRequest: pr } =
+				await apiClient.integration.github.getPullRequestDetail.query({
+					organizationId,
+					repoFullName: `${pullRequest.repoOwner}/${pullRequest.repoName}`,
+					number: pullRequest.prNumber,
+				});
 			return { additions: pr.additions, deletions: pr.deletions };
 		},
 	});

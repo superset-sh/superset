@@ -908,7 +908,6 @@ export function WorkspaceScreen() {
 
 	const pullRequestCount = pullRequests.length;
 	const latestPullRequestDiffstat = usePullRequestDiffstat({
-		hostUrl,
 		pullRequest: pullRequests[0],
 	});
 	const chatPullRequestChip = pullRequestStatusNow

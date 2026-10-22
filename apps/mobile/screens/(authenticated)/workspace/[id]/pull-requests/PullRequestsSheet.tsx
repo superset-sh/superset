@@ -4,8 +4,6 @@ import { ChevronRight } from "lucide-react-native";
 import { Pressable, ScrollView } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
-import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
-import { hostServiceUrl } from "@/lib/host-service/client";
 import { useWorkspacePullRequests } from "../hooks/useWorkspacePullRequest";
 import { PULL_REQUEST_STATUS, pullRequestStatus } from "../utils/pullRequest";
 import { RowDiffstat } from "./components/RowDiffstat";
@@ -26,11 +24,6 @@ export function PullRequestsSheet() {
 	const { t } = useLingui();
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const router = useRouter();
-	const { host } = useWorkspaceHost(id ?? null);
-	const hostUrl =
-		host?.isOnline === true
-			? hostServiceUrl(host.organizationId, host.machineId)
-			: null;
 	// The hook hands back current-then-newest, which is what the strip's chip
 	// colours itself from; only the list wants the other direction.
 	const pullRequests = useWorkspacePullRequests(id ?? null).toReversed();
@@ -90,7 +83,6 @@ export function PullRequestsSheet() {
 							</Text>
 							<RowDiffstat
 								enabled={index >= pullRequests.length - DIFFSTAT_ROW_LIMIT}
-								hostUrl={hostUrl}
 								pullRequest={pullRequest}
 							/>
 							<Icon

@@ -53,9 +53,15 @@ export function useNewWorkspacePromptContext(args: {
 		const store = useNewWorkspacePromptContextStore.getState();
 
 		if (linkedPR) {
-			const prNumber = linkedPR.prNumber;
+			const { prNumber, url } = linkedPR;
 			store.register(`pr:${prNumber}`, () =>
-				fetchPrBody({ prNumber, projectId, hostUrl }),
+				fetchPrBody({
+					prNumber,
+					url,
+					organizationId: activeOrganizationId,
+					projectId,
+					hostUrl,
+				}),
 			);
 		}
 

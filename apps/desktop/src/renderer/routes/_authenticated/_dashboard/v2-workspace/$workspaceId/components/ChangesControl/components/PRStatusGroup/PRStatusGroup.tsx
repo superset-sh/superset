@@ -16,6 +16,7 @@ import { Popover, PopoverAnchor, PopoverContent } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
+import { useMutation } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 import { LuArrowUpRight } from "react-icons/lu";
 import {
@@ -26,11 +27,18 @@ import {
 	VscLoading,
 	VscRepoPush,
 } from "react-icons/vsc";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { usePullRequestLinkPolicy } from "renderer/lib/clickPolicy";
 import {
 	type OpenPullRequestPane,
 	openPullRequestLink,
 } from "renderer/lib/github/openPullRequestLink";
+import {
+	mergePullRequest,
+	type PullRequestMergeMethod,
+	type PullRequestTarget,
+	setPullRequestDraft,
+} from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/pullRequestClient";
 import { computeChecksRollup } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/computeChecksStatus";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { PRIcon, type PRState } from "renderer/screens/main/components/PRIcon";
@@ -82,7 +90,8 @@ export function PRStatusGroup({
 	paneAreaStyle = false,
 }: PRStatusGroupProps) {
 	const { t } = useLingui();
-	const { workspace } = useWorkspace();
+	const { workspace, hostUrl } = useWorkspace();
+	const organizationId = useActiveOrganizationId();
 	const linkPolicy = usePullRequestLinkPolicy();
 	const isSession = workspace.type === "session";
 	const pr =
@@ -91,6 +100,14 @@ export function PRStatusGroup({
 			: state.kind === "busy" || state.kind === "error"
 				? state.pr
 				: null;
+	const target: PullRequestTarget | null = pr
+		? {
+				organizationId,
+				repoFullName: `${pr.repoOwner}/${pr.repoName}`,
+				prNumber: pr.number,
+				host: { hostUrl, projectId: workspace.projectId ?? null },
+			}
+		: null;
 
 	// Triggers a GitHub→host-service-DB sync for this workspace's PR. Without
 	// this, post-merge UI state lags by up to ~30s waiting for the next
@@ -99,7 +116,11 @@ export function PRStatusGroup({
 	const refreshPRMutation =
 		workspaceTrpc.pullRequests.refreshByWorkspaces.useMutation();
 
-	const mergePRMutation = workspaceTrpc.github.mergePR.useMutation({
+	const mergePRMutation = useMutation({
+		mutationFn: (mergeMethod: PullRequestMergeMethod) => {
+			if (!target) throw new Error("No pull request to merge");
+			return mergePullRequest(target, { mergeMethod });
+		},
 		onMutate: () => {
 			const toastId = toast.loading(t({ message: "Merging PR..." }));
 			return { toastId };
@@ -130,46 +151,49 @@ export function PRStatusGroup({
 		},
 	});
 
-	const markReadyMutation =
-		workspaceTrpc.github.markPullRequestReady.useMutation({
-			onMutate: () => {
-				const toastId = toast.loading(
+	const markReadyMutation = useMutation({
+		mutationFn: () => {
+			if (!target) throw new Error("No pull request to mark ready");
+			return setPullRequestDraft(target, false);
+		},
+		onMutate: () => {
+			const toastId = toast.loading(
+				t({
+					message: "Marking ready for review...",
+				}),
+			);
+			return { toastId };
+		},
+		onSuccess: async (_data, _variables, context) => {
+			toast.success(
+				t({
+					message: "PR ready for review",
+				}),
+				{ id: context?.toastId },
+			);
+			try {
+				await refreshPRMutation.mutateAsync({ workspaceIds: [workspaceId] });
+			} catch (error) {
+				console.warn("Failed to refresh PR state after marking ready", error);
+				toast.warning(
 					t({
-						message: "Marking ready for review...",
+						message:
+							"Marked ready, but couldn't refresh PR state — try again in a moment",
 					}),
 				);
-				return { toastId };
-			},
-			onSuccess: async (_data, _variables, context) => {
-				toast.success(
-					t({
-						message: "PR ready for review",
-					}),
-					{ id: context?.toastId },
-				);
-				try {
-					await refreshPRMutation.mutateAsync({ workspaceIds: [workspaceId] });
-				} catch (error) {
-					console.warn("Failed to refresh PR state after marking ready", error);
-					toast.warning(
-						t({
-							message:
-								"Marked ready, but couldn't refresh PR state — try again in a moment",
-						}),
-					);
-				} finally {
-					onRefresh?.();
-				}
-			},
-			onError: (error, _variables, context) => {
-				toast.error(
-					t({
-						message: `Ready for review failed: ${error.message}`,
-					}),
-					{ id: context?.toastId },
-				);
-			},
-		});
+			} finally {
+				onRefresh?.();
+			}
+		},
+		onError: (error, _variables, context) => {
+			toast.error(
+				t({
+					message: `Ready for review failed: ${error.message}`,
+				}),
+				{ id: context?.toastId },
+			);
+		},
+	});
 
 	const sync = state.kind === "pr-exists" && !paneAreaStyle ? state.sync : null;
 	const canCommit = sync?.hasUncommitted === true;
@@ -212,12 +236,7 @@ export function PRStatusGroup({
 	const showIndicators = pr.state === "open" || pr.state === "queued";
 
 	const handleMerge = (mergeMethod: "merge" | "squash" | "rebase") => {
-		mergePRMutation.mutate({
-			owner: pr.repoOwner,
-			repo: pr.repoName,
-			pullNumber: pr.number,
-			mergeMethod,
-		});
+		mergePRMutation.mutate(mergeMethod);
 	};
 
 	const isBusy =
@@ -376,13 +395,7 @@ export function PRStatusGroup({
 									<DropdownMenuItem
 										className={menuItemClass}
 										disabled={markReadyMutation.isPending}
-										onClick={() =>
-											markReadyMutation.mutate({
-												owner: pr.repoOwner,
-												repo: pr.repoName,
-												pullNumber: pr.number,
-											})
-										}
+										onClick={() => markReadyMutation.mutate()}
 									>
 										<VscGitPullRequest className={menuIconClass} />
 										<Trans>Ready for review</Trans>

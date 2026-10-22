@@ -1,17 +1,22 @@
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { readPullRequestContent } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/pullRequestClient";
 import type { PromptContextBody } from "./store";
 
 export async function fetchPrBody(args: {
 	prNumber: number;
+	url: string;
+	organizationId: string | null;
 	projectId: string;
 	hostUrl: string;
 }): Promise<PromptContextBody | null> {
 	try {
-		const client = getHostServiceClientByUrl(args.hostUrl);
-		const result = await client.pullRequests.getContent.query({
-			projectId: args.projectId,
+		const result = await readPullRequestContent({
+			organizationId: args.organizationId,
+			repoFullName: pullRequestRefFromUrl(args.url)?.repoFullName ?? null,
 			prNumber: args.prNumber,
+			host: { hostUrl: args.hostUrl, projectId: args.projectId },
 		});
 		const text = (result.body ?? "").trim();
 		return text ? { text } : null;
