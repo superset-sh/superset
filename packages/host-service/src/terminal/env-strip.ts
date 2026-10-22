@@ -34,6 +34,9 @@ const STRIP_PREFIXES = [
 	"NEXT_PUBLIC_",
 	"TURBO_",
 	"HOST_",
+	// Loopback control surface for the desktop's in-app browser panes; the
+	// secret authorizes CDP-level control and belongs to host-service only.
+	"BROWSER_BRIDGE_",
 ];
 
 const SUPERSET_KEEP_KEYS = new Set([
