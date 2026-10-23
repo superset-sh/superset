@@ -23,17 +23,21 @@ function options() {
 }
 
 describe("pending file position", () => {
-	it("does not steal focus when a file finishes loading in an inactive pane", () => {
+	it("reveals a requested position without activating an inactive pane", () => {
 		const props = options();
 		const { rerender } = renderHook(usePendingFilePosition, {
 			initialProps: props,
 		});
 		rerender({ ...props, isActive: false });
 		rerender({ ...props, isReady: true, isActive: false });
-		expect(props.editorRef.current.revealPosition).not.toHaveBeenCalled();
-		expect(props.onPositionRevealed).not.toHaveBeenCalled();
+		expect(props.editorRef.current.revealPosition).toHaveBeenCalledWith(
+			240,
+			7,
+			false,
+		);
+		expect(props.onPositionRevealed).toHaveBeenCalledTimes(1);
 		rerender({ ...props, isReady: true, isActive: true });
-		expect(props.editorRef.current.revealPosition).toHaveBeenCalledWith(240, 7);
+		expect(props.editorRef.current.revealPosition).toHaveBeenCalledTimes(1);
 		expect(props.onPositionRevealed).toHaveBeenCalledTimes(1);
 	});
 	it("applies only the latest request when loading completes", () => {
@@ -46,7 +50,11 @@ describe("pending file position", () => {
 		expect(props.editorRef.current.revealPosition).not.toHaveBeenCalled();
 		rerender({ ...latest, isReady: true });
 		expect(props.editorRef.current.revealPosition).toHaveBeenCalledTimes(1);
-		expect(props.editorRef.current.revealPosition).toHaveBeenCalledWith(400, 3);
+		expect(props.editorRef.current.revealPosition).toHaveBeenCalledWith(
+			400,
+			3,
+			true,
+		);
 	});
 	it("does not replay consumed requests when switching panes", () => {
 		const props = { ...options(), isReady: true };

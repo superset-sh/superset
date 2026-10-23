@@ -450,6 +450,7 @@ export async function listDirectory({
 }
 
 export async function readFile({
+	rootPath,
 	absolutePath,
 	offset,
 	maxBytes,
@@ -461,7 +462,8 @@ export async function readFile({
 	maxBytes?: number;
 	encoding?: string;
 }): Promise<FsReadResult> {
-	const targetPath = normalizeAbsolutePath(absolutePath);
+	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
+	await assertRealpathWithinRoot(rootPath, targetPath);
 
 	const fileHandle = await fs.open(targetPath, "r");
 	try {

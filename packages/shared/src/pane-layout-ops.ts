@@ -16,6 +16,14 @@ export const paneLayoutOpSchema = z.discriminatedUnion("type", [
 		terminalId: z.string().min(1),
 	}),
 	z.object({
+		type: z.literal("openFile"),
+		paneId,
+		direction,
+		filePath: z.string().min(1),
+		line: z.number().int().positive().optional(),
+		column: z.number().int().positive().optional(),
+	}),
+	z.object({
 		type: z.literal("resize"),
 		paneId,
 		ratio: z.number().gt(0).lt(1),

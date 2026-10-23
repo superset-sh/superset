@@ -18,11 +18,12 @@ export function usePendingFilePosition({
 	onPositionRevealed,
 }: PendingFilePositionOptions) {
 	useEffect(() => {
-		if (!isReady || !isActive || !pendingPosition || !editorRef.current) return;
+		if (!isReady || !pendingPosition || !editorRef.current) return;
 		editorRef.current.revealPosition(
 			pendingPosition.line,
 			pendingPosition.column,
+			isActive,
 		);
 		onPositionRevealed?.();
-	}, [editorRef, isReady, isActive, pendingPosition, onPositionRevealed]);
+	}, [editorRef, isReady, pendingPosition, onPositionRevealed]);
 }

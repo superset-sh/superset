@@ -134,25 +134,18 @@ describe("readFile", () => {
 		expect(atEnd.exceededLimit).toEqual(false);
 	});
 
-	it("reads files outside the workspace root", async () => {
+	it("rejects files outside the workspace root", async () => {
 		const rootPath = await createTempRoot();
 		const outsideRoot = await createTempRoot();
 		const absolutePath = path.join(outsideRoot, "outside.txt");
 		await fs.writeFile(absolutePath, "outside");
 
-		const result = await readFile({
-			rootPath,
-			absolutePath,
-			encoding: "utf-8",
-		});
-
-		expect(result.kind).toEqual("text");
-		if (result.kind === "text") {
-			expect(result.content).toEqual("outside");
-		}
+		await expect(
+			readFile({ rootPath, absolutePath, encoding: "utf-8" }),
+		).rejects.toMatchObject({ code: "INVALID_TARGET" });
 	});
 
-	it("reads in-root symlinks that resolve outside the workspace root", async () => {
+	it("rejects in-root symlinks that resolve outside the workspace root", async () => {
 		const rootPath = await createTempRoot();
 		const outsideRoot = await createTempRoot();
 		const targetPath = path.join(outsideRoot, "secret.txt");
@@ -160,13 +153,9 @@ describe("readFile", () => {
 		const linkPath = path.join(rootPath, "innocent.txt");
 		await fs.symlink(targetPath, linkPath);
 
-		const result = await readFile({
-			rootPath,
-			absolutePath: linkPath,
-			encoding: "utf-8",
-		});
-
-		expect(result).toMatchObject({ kind: "text", content: "secret" });
+		await expect(
+			readFile({ rootPath, absolutePath: linkPath, encoding: "utf-8" }),
+		).rejects.toMatchObject({ code: "SYMLINK_ESCAPE" });
 	});
 
 	it("reads small file without exceeding limit", async () => {

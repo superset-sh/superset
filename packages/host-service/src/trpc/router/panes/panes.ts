@@ -93,6 +93,26 @@ export const panesRouter = router({
 			});
 		}),
 
+	openFile: protectedProcedure
+		.input(
+			paneInput.extend({
+				direction,
+				filePath: z.string().min(1),
+				line: z.number().int().positive().optional(),
+				column: z.number().int().positive().optional(),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			applyOp(ctx, input.workspaceId, {
+				type: "openFile",
+				paneId: input.paneId,
+				direction: input.direction,
+				filePath: input.filePath,
+				line: input.line,
+				column: input.column,
+			}),
+		),
+
 	newTab: protectedProcedure
 		.input(z.object({ workspaceId: z.string(), terminalId: z.string().min(1) }))
 		.mutation(({ ctx, input }) => {
