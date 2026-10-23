@@ -8,7 +8,8 @@ import { setDraft } from "./set-draft";
 
 const caller = createCallerFactory(router({ setDraft }))({
 	isAuthenticated: true,
-} as HostServiceContext);
+	runtime: { pullRequests: { getGitLabRepository: async () => null } },
+} as unknown as HostServiceContext);
 
 afterEach(() => mock.restore());
 

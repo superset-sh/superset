@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import type { Octokit } from "@octokit/rest";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
+import { parseGitLabRemote } from "@superset/shared/gitlab-remote";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { HostDb } from "../../db";
 import {
@@ -13,6 +14,10 @@ import {
 import type { EventBus } from "../../events/event-bus";
 import type { GitWatcher } from "../../events/git-watcher";
 import type { ExecGh } from "../../trpc/router/workspace-creation/utils/exec-gh";
+import {
+	type ExecGlab,
+	execGlab,
+} from "../../trpc/router/workspace-creation/utils/exec-glab";
 import { type GitFactory, resolveDefaultBranchName } from "../git";
 import { ConditionalGh } from "./utils/conditional-gh";
 import {
@@ -26,8 +31,10 @@ import {
 	fetchOpenPullRequestsFromGh,
 	fetchPullRequestByHead,
 	fetchPullRequestByHeadFromGh,
+	fetchPullRequestByHeadFromGlab,
 	fetchPullRequestChecks,
 	fetchPullRequestChecksFromGh,
+	fetchPullRequestDetailsFromGlab,
 	fetchPullRequestMergeQueueState,
 	fetchPullRequestMergeQueueStateFromGh,
 	fetchPullRequestReviewDecision,
@@ -92,7 +99,7 @@ function upstreamKey(
 	return `${owner.toLowerCase()}/${repo.toLowerCase()}#${branch}`;
 }
 
-type RepoProvider = "github";
+type RepoProvider = "github" | "gitlab";
 
 export interface PullRequestStateSnapshot {
 	url: string;
@@ -144,6 +151,7 @@ export interface PullRequestRuntimeManagerOptions {
 	execGh: ExecGh;
 	git: GitFactory;
 	github: () => Promise<Octokit>;
+	execGlab?: ExecGlab;
 	gitWatcher: GitWatcher;
 	/** Override to run the per-workspace branch/HEAD/upstream read off the
 	 * event loop (app wiring passes a worker-pool-backed reader). Defaults
@@ -223,6 +231,8 @@ export class PullRequestRuntimeManager {
 	private readonly conditionalGh: ConditionalGh;
 	private readonly git: GitFactory;
 	private readonly github: () => Promise<Octokit>;
+	private readonly execGlab: ExecGlab;
+	private readonly glabHosts = new Set<string>();
 	private readonly gitWatcher: GitWatcher;
 	private safetyNetTimer: ReturnType<typeof setInterval> | null = null;
 	private projectRefreshTimer: ReturnType<typeof setInterval> | null = null;
@@ -288,6 +298,7 @@ export class PullRequestRuntimeManager {
 		this.execGh = this.conditionalGh.exec;
 		this.git = options.git;
 		this.github = options.github;
+		this.execGlab = options.execGlab ?? execGlab;
 		this.gitWatcher = options.gitWatcher;
 		this.readWorkspaceRefs =
 			options.readWorkspaceRefs ??
@@ -1049,6 +1060,13 @@ export class PullRequestRuntimeManager {
 		}
 	}
 
+	async getGitLabRepository(
+		projectId: string,
+	): Promise<NormalizedRepoIdentity | null> {
+		const repo = await this.getProjectRepository(projectId);
+		return repo?.provider === "gitlab" ? repo : null;
+	}
+
 	private async getProjectRepository(
 		projectId: string,
 	): Promise<NormalizedRepoIdentity | null> {
@@ -1090,7 +1108,13 @@ export class PullRequestRuntimeManager {
 			}
 
 			const parsedRemote = parseGitHubRemote(remoteUrl);
-			if (!parsedRemote) return null;
+			if (!parsedRemote) {
+				// Not persisted: the rest of the app reads projects.repo* as GitHub.
+				const gitlab = parseGitLabRemote(remoteUrl);
+				if (!gitlab || !(await this.isGlabHost(gitlab))) return null;
+				const defaultBranch = await this.resolveDefaultBranch(project.repoPath);
+				return { ...gitlab, remoteName, defaultBranch };
+			}
 
 			this.db
 				.update(projects)
@@ -1109,6 +1133,23 @@ export class PullRequestRuntimeManager {
 
 		const defaultBranch = await this.resolveDefaultBranch(project.repoPath);
 		return { ...identity, defaultBranch };
+	}
+
+	// glab knows a host when its config has an API host for it (a local read).
+	// Only known hosts are kept, so a host added later shows at the next refresh.
+	private async isGlabHost({ owner }: { owner: string }): Promise<boolean> {
+		const host = owner.slice(0, owner.indexOf("/"));
+		if (this.glabHosts.has(host)) return true;
+		const apiHost = await this.execGlab([
+			"config",
+			"get",
+			"api_host",
+			"--host",
+			host,
+		]).catch(() => "");
+		if (typeof apiHost !== "string" || apiHost === "") return false;
+		this.glabHosts.add(host);
+		return true;
 	}
 
 	// Shared origin/HEAD resolver; a repo-open failure disables the guard
@@ -1415,23 +1456,25 @@ export class PullRequestRuntimeManager {
 			cacheKey,
 			options,
 			() =>
-				this.fetchFromGitHub(
-					"PR head lookup",
-					{ owner: repo.owner, name: repo.name, head },
-					() =>
-						fetchPullRequestByHeadFromGh(
-							this.execGh,
-							{ owner: repo.owner, name: repo.name },
-							head,
+				repo.provider === "gitlab"
+					? fetchPullRequestByHeadFromGlab(this.execGlab, repo, head)
+					: this.fetchFromGitHub(
+							"PR head lookup",
+							{ owner: repo.owner, name: repo.name, head },
+							() =>
+								fetchPullRequestByHeadFromGh(
+									this.execGh,
+									{ owner: repo.owner, name: repo.name },
+									head,
+								),
+							async () =>
+								fetchPullRequestByHead(
+									await this.github(),
+									{ owner: repo.owner, name: repo.name },
+									head,
+								),
+							{ probe: options.bypassCache === true },
 						),
-					async () =>
-						fetchPullRequestByHead(
-							await this.github(),
-							{ owner: repo.owner, name: repo.name },
-							head,
-						),
-					{ probe: options.bypassCache === true },
-				),
 		);
 	}
 
@@ -1454,6 +1497,13 @@ export class PullRequestRuntimeManager {
 			cacheKey,
 			{ ...options, fingerprint: node.headRefOid },
 			async () => {
+				if (repo.provider === "gitlab") {
+					return fetchPullRequestDetailsFromGlab(
+						this.execGlab,
+						repo,
+						node.number,
+					);
+				}
 				const [reviewDecision, checks] = await this.fetchFromGitHub(
 					"PR review/check lookup",
 					context,
@@ -1524,6 +1574,9 @@ export class PullRequestRuntimeManager {
 		repo: NormalizedRepoIdentity,
 		options: { bypassCache?: boolean } = {},
 	): Promise<GitHubPullRequestNode[]> {
+		// No GitLab sweep yet. GitLab's branch filter is also case-sensitive, so a
+		// branch whose case drifted from its MR stays unlinked.
+		if (repo.provider === "gitlab") return [];
 		const cacheKey = `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}`;
 		return this.cachedGitHubFetch(
 			this.openPullRequestsCache,

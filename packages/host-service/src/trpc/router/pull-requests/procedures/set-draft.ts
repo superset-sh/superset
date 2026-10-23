@@ -3,6 +3,7 @@ import { z } from "zod";
 import { protectedProcedure } from "../../../index";
 import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
 import { execGh } from "../../workspace-creation/utils/exec-gh";
+import { writeGitLabMergeRequest } from "../shared/gitlab-merge-request";
 import { syncPullRequestAfterWrite } from "../shared/sync-after-write";
 
 const setDraftInputSchema = z.object({
@@ -15,8 +16,12 @@ const setDraftInputSchema = z.object({
 export const setDraft = protectedProcedure
 	.input(setDraftInputSchema)
 	.mutation(async ({ ctx, input }) => {
-		const repo = await resolveGithubRepo(ctx, input.projectId);
 		const action = input.draft ? "draft" : "ready";
+		const update = ["update", String(input.prNumber), `--${action}`];
+		if (await writeGitLabMergeRequest(ctx, input, action, update)) {
+			return { ok: true };
+		}
+		const repo = await resolveGithubRepo(ctx, input.projectId);
 		try {
 			await execGh([
 				"pr",

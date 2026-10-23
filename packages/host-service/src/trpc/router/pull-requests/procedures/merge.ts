@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { protectedProcedure } from "../../../index";
-import { actionRejectionError } from "../../github/github";
+import { actionRejectionError } from "../../github/github-gitlab";
 import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
+import { writeGitLabMergeRequest } from "../shared/gitlab-merge-request";
 import { syncPullRequestAfterWrite } from "../shared/sync-after-write";
 
 const mergeInputSchema = z.object({
@@ -19,6 +20,22 @@ const mergeInputSchema = z.object({
 export const mergePR = protectedProcedure
 	.input(mergeInputSchema)
 	.mutation(async ({ ctx, input }) => {
+		const merge = [
+			"merge",
+			String(input.prNumber),
+			"--auto-merge=false",
+			"--yes",
+		];
+		if (input.mergeMethod !== "merge") merge.push(`--${input.mergeMethod}`);
+		if (input.commitMessage) {
+			merge.push(
+				input.mergeMethod === "squash" ? "--squash-message" : "--message",
+				input.commitMessage,
+			);
+		}
+		if (await writeGitLabMergeRequest(ctx, input, "merge", merge)) {
+			return { merged: true };
+		}
 		const repo = await resolveGithubRepo(ctx, input.projectId);
 		const octokit = await ctx.github();
 		let merged: Awaited<ReturnType<typeof octokit.pulls.merge>>["data"];

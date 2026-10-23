@@ -13,8 +13,8 @@ function open(url: string, action: LinkAction | null) {
 }
 
 describe("openPullRequestLink", () => {
-	it("opens a URL that is not a GitHub pull request in the browser", () => {
-		const url = "https://gitlab.com/acme/app/-/merge_requests/3";
+	it("opens a URL that is not a pull request in the browser", () => {
+		const url = "https://gitlab.com/acme/app/-/issues/3";
 		const { openPane, openInBrowser } = open(url, "pane");
 		expect(openInBrowser).toHaveBeenCalledWith(url);
 		expect(openPane).not.toHaveBeenCalled();
@@ -36,6 +36,13 @@ describe("openPullRequestLink", () => {
 		const { openPane, openInBrowser } = open(PR_URL, "newTab");
 		expect(openPane).toHaveBeenCalledWith(PR_REF, "tab");
 		expect(openInBrowser).not.toHaveBeenCalled();
+	});
+
+	it("splits the pull request pane for a GitLab merge request", () => {
+		const url = "https://gitlab.com/acme/sub/app/-/merge_requests/3";
+		const { openPane } = open(url, "pane");
+		const ref = { repoFullName: "gitlab.com/acme/sub/app", number: 3 };
+		expect(openPane).toHaveBeenCalledWith(ref, "split");
 	});
 
 	it("falls back to the split pane for an unbound tier", () => {

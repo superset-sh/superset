@@ -144,14 +144,15 @@ function CheckRow({
 }) {
 	const { Icon: CheckIcon, className } = CHECK_STATUS_ICONS[check.status];
 	const checkUrl = resolveCheckUrl(check, prUrl);
-	// Mirror the server's guard: only failed github.com Actions job URLs have
-	// downloadable logs, so don't offer copy for non-GitHub CI checks.
+	// Mirror the server's guard: only failed GitHub Actions and GitLab CI job
+	// URLs have downloadable logs, so don't offer copy for other checks.
 	const canCopyLogs =
 		check.status === "failure" &&
 		!!check.url &&
 		URL.canParse(check.url) &&
-		new URL(check.url).hostname === "github.com" &&
-		/\/job\/\d+/.test(check.url);
+		((new URL(check.url).hostname === "github.com" &&
+			/\/job\/\d+/.test(check.url)) ||
+			/\/-\/jobs\/\d+/.test(check.url));
 
 	const rowContent = (
 		<div className="flex min-w-0 flex-1 items-center gap-1 rounded-sm px-1.5 py-1 text-xs transition-colors hover:bg-accent/50">

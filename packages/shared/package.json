@@ -401,6 +401,10 @@
 			"types": "./src/github-remote.ts",
 			"default": "./src/github-remote.ts"
 		},
+		"./gitlab-remote": {
+			"types": "./src/gitlab-remote.ts",
+			"default": "./src/gitlab-remote.ts"
+		},
 		"./simple-git-options": {
 			"types": "./src/simple-git-options.ts",
 			"default": "./src/simple-git-options.ts"

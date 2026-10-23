@@ -1,1 +1,1 @@
-export { githubRouter } from "./github";
+export { githubRouter } from "./github-gitlab";

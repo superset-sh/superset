@@ -6,7 +6,7 @@ import {
 	fetchPullRequestMergeQueueStateFromGh,
 	fetchPullRequestReviewDecisionFromGh,
 	parseMergedAt,
-} from "./github-query";
+} from "./github-gitlab-query";
 
 interface GhCall {
 	args: string[];

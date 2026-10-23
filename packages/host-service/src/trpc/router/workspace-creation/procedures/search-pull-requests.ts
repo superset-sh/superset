@@ -18,6 +18,7 @@ import {
 	normalizePullRequestChecks,
 	pullRequestCheckContextSchema,
 } from "../../pull-requests/pull-request-checks";
+import { searchMergeRequests } from "../../pull-requests/shared/gitlab-merge-request";
 import { normalizeGitHubQuery } from "../normalize-github-query";
 import { githubSearchInputSchema } from "../schemas";
 import {
@@ -985,6 +986,12 @@ async function enrichPageWithChecks(
 export const searchPullRequests = protectedProcedure
 	.input(searchPullRequestsInputSchema)
 	.query(async ({ ctx, input }): Promise<PullRequestsPage> => {
+		const gitlab = input.projectIds
+			? null
+			: await ctx.runtime.pullRequests.getGitLabRepository(input.projectId);
+		if (gitlab) {
+			return searchMergeRequests(gitlab, input.projectId, input);
+		}
 		const projectIds = input.projectIds ?? [input.projectId];
 		const projectRepos: ProjectRepo[] = await resolveProjectRepos(
 			projectIds,

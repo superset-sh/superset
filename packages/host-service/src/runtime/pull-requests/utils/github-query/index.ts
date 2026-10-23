@@ -3,14 +3,16 @@ export {
 	fetchOpenPullRequestsFromGh,
 	fetchPullRequestByHead,
 	fetchPullRequestByHeadFromGh,
+	fetchPullRequestByHeadFromGlab,
 	fetchPullRequestChecks,
 	fetchPullRequestChecksFromGh,
+	fetchPullRequestDetailsFromGlab,
 	fetchPullRequestMergeQueueState,
 	fetchPullRequestMergeQueueStateFromGh,
 	fetchPullRequestReviewDecision,
 	fetchPullRequestReviewDecisionFromGh,
 	parseMergedAt,
-} from "./github-query";
+} from "./github-gitlab-query";
 export type {
 	GitHubCheckContextNode,
 	GitHubPullRequestHeadRef,

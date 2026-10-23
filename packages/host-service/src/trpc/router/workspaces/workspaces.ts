@@ -47,6 +47,7 @@ import {
 	DEFAULT_LOCAL_WORKSPACE_NAME,
 	listLiveLocalWorkspaces,
 } from "../project/utils/create-local-workspace";
+import { fetchMergeRequestMetadata } from "../pull-requests/shared/gitlab-merge-request";
 import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { claimWorkspaceRestore } from "../workspace-cleanup";
 import { createSession } from "../workspace-creation/procedures/create-session";
@@ -808,11 +809,16 @@ export const workspacesRouter = router({
 					`pr:${input.projectId}:${input.pr}`,
 				);
 				try {
-					const prMetadata = await fetchPrMetadata({
-						cwd: repoPath,
-						prNumber: input.pr,
-						execGh: ctx.execGh,
-					});
+					const gitlab = await ctx.runtime.pullRequests.getGitLabRepository(
+						input.projectId,
+					);
+					const prMetadata = gitlab
+						? await fetchMergeRequestMetadata(gitlab.url, input.pr)
+						: await fetchPrMetadata({
+								cwd: repoPath,
+								prNumber: input.pr,
+								execGh: ctx.execGh,
+							});
 					resolvedBranch = derivePrLocalBranchName(prMetadata);
 
 					const existing = findExistingWorkspaceByBranch(

@@ -75,6 +75,7 @@ async function createHarness(
 		github: async () => octokit,
 		runtime: {
 			pullRequests: {
+				getGitLabRepository: async () => null,
 				refreshPullRequestsByWorkspaces: async (ids: string[]) => {
 					refreshCalls.push(ids);
 					if (options.refresh) await options.refresh(ids);

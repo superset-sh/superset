@@ -3,6 +3,7 @@ import { z } from "zod";
 import { protectedProcedure } from "../../../index";
 import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
 import { execGh } from "../../workspace-creation/utils/exec-gh";
+import { writeGitLabMergeRequest } from "../shared/gitlab-merge-request";
 import { syncPullRequestAfterWrite } from "../shared/sync-after-write";
 
 const setStateInputSchema = z.object({
@@ -16,8 +17,16 @@ const setStateInputSchema = z.object({
 export const setState = protectedProcedure
 	.input(setStateInputSchema)
 	.mutation(async ({ ctx, input }) => {
-		const repo = await resolveGithubRepo(ctx, input.projectId);
 		const verb = input.state === "closed" ? "close" : "reopen";
+		if (
+			await writeGitLabMergeRequest(ctx, input, verb, [
+				verb,
+				String(input.prNumber),
+			])
+		) {
+			return { ok: true };
+		}
+		const repo = await resolveGithubRepo(ctx, input.projectId);
 		try {
 			await execGh([
 				"pr",

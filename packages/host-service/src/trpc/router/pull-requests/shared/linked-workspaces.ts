@@ -37,7 +37,6 @@ export function findPullRequestRows(
 		.from(pullRequests)
 		.where(
 			and(
-				eq(pullRequests.repoProvider, "github"),
 				eq(sql`lower(${pullRequests.repoOwner})`, repo.owner.toLowerCase()),
 				eq(sql`lower(${pullRequests.repoName})`, repo.name.toLowerCase()),
 				eq(pullRequests.prNumber, prNumber),

@@ -7,8 +7,9 @@ import { getHostWorkerPool } from "../../../../workers/host-worker-pool";
 import { gitPrHeadBaseTask } from "../../../../workers/tasks/git";
 import { protectedProcedure } from "../../../index";
 import { resolveWorktreePath } from "../../git/utils/resolve-worktree";
-import { actionRejectionError } from "../../github/github";
+import { actionRejectionError } from "../../github/github-gitlab";
 import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
+import { execGlab } from "../../workspace-creation/utils/exec-glab";
 
 const createInputSchema = z.object({
 	workspaceId: z.string(),
@@ -68,6 +69,45 @@ export const createForWorkspace = protectedProcedure
 			});
 		}
 
+		const gitlab = await ctx.runtime.pullRequests.getGitLabRepository(
+			workspace.projectId,
+		);
+		if (gitlab) {
+			const output = String(
+				await execGlab(
+					[
+						"mr",
+						"create",
+						"-R",
+						gitlab.url,
+						"-s",
+						head,
+						"-b",
+						base,
+						"-t",
+						input.title,
+						"-d",
+						input.body ?? "",
+						...(input.draft ? ["--draft"] : []),
+						"--yes",
+					],
+					{ cwd: worktreePath },
+				),
+			);
+			const created = /\S+\/-\/merge_requests\/(\d+)/.exec(output);
+			if (!created) {
+				throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: output });
+			}
+			await ctx.runtime.pullRequests
+				.refreshPullRequestsByWorkspaces([input.workspaceId])
+				.catch((error) =>
+					console.warn(
+						"[pull-requests:create-for-workspace] created MR but failed to refresh workspace link",
+						{ workspaceId: input.workspaceId, error },
+					),
+				);
+			return { number: Number(created[1]), url: created[0] };
+		}
 		const repo = await resolveGithubRepo(ctx, workspace.projectId);
 		const octokit = await ctx.github();
 		let created: { number: number; html_url: string };

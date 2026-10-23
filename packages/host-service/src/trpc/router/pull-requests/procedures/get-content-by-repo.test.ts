@@ -12,7 +12,10 @@ import { getContentByRepo } from "./get-content-by-repo";
 const createCaller = createCallerFactory(
 	router({ getContent, getContentByRepo }),
 );
-const caller = createCaller({ isAuthenticated: true } as HostServiceContext);
+const caller = createCaller({
+	isAuthenticated: true,
+	runtime: { pullRequests: { getGitLabRepository: async () => null } },
+} as unknown as HostServiceContext);
 const rawContent = {
 	number: 12,
 	title: "Fix the fallback",

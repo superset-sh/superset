@@ -96,7 +96,7 @@ export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 				className="group flex items-center justify-between border-t border-border/60 px-3 py-2 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 			>
 				<span>
-					<Trans>View on GitHub</Trans>
+					<Trans>Open in browser</Trans>
 				</span>
 				<LuArrowUpRight
 					aria-hidden="true"
