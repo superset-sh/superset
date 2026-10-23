@@ -6,7 +6,7 @@ import { i18n } from "@superset/i18n";
 import { workspaces, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
-import { app, Notification, nativeTheme } from "electron";
+import { app, Notification, nativeTheme, webContents } from "electron";
 import log from "electron-log/main";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createTrpcContext } from "lib/trpc/context";
@@ -16,6 +16,7 @@ import { resolveDevWorkspaceName } from "main/lib/dev-workspace-name";
 import { getIconPath } from "main/lib/dock-icon";
 import { localDb } from "main/lib/local-db";
 import { isExpectedRendererExit } from "main/lib/renderer-exit";
+import { keepZoomAcrossRoutes } from "main/lib/route-zoom";
 import { NOTIFICATION_EVENTS, PLATFORM } from "shared/constants";
 import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
@@ -535,6 +536,16 @@ export async function createPlatformWindow({
 			persistedZoomLevel = window.webContents.getZoomLevel();
 			debouncedSave();
 		}, 0);
+	});
+
+	keepZoomAcrossRoutes(window.webContents, {
+		listGuests: () =>
+			webContents
+				.getAllWebContents()
+				.filter((guest) => guest.hostWebContents === window.webContents),
+		onDocumentLeave: (zoomLevel) => {
+			persistedZoomLevel = zoomLevel;
+		},
 	});
 
 	window.webContents.on("did-finish-load", () => {
