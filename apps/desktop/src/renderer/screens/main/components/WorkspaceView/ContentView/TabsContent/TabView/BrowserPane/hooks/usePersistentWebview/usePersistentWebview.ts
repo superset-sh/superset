@@ -238,11 +238,13 @@ export function usePersistentWebview({
 			}
 		};
 
+		// did-start-loading also fires for a subframe that starts loading
+		// after the page is up, so the favicon is dropped on a committed
+		// main-frame navigation instead (see handleDidNavigate).
 		const handleDidStartLoading = () => {
 			const store = useTabsStore.getState();
 			store.updateBrowserLoading(paneId, true);
 			store.setBrowserError(paneId, null);
-			faviconUrlRef.current = undefined;
 		};
 
 		const handleDidStopLoading = () => {
@@ -273,6 +275,8 @@ export function usePersistentWebview({
 		};
 
 		const handleDidNavigate = (e: Electron.DidNavigateEvent) => {
+			// A new document starts without the previous one's favicon.
+			faviconUrlRef.current = undefined;
 			if (isHistoryNavigation.current) {
 				isHistoryNavigation.current = false;
 				return;
@@ -288,6 +292,8 @@ export function usePersistentWebview({
 		};
 
 		const handleDidNavigateInPage = (e: Electron.DidNavigateInPageEvent) => {
+			// An in-page navigation inside an iframe is not the page's URL.
+			if (!e.isMainFrame) return;
 			if (isHistoryNavigation.current) {
 				isHistoryNavigation.current = false;
 				return;
@@ -335,6 +341,8 @@ export function usePersistentWebview({
 
 		const handleDidFailLoad = (e: Electron.DidFailLoadEvent) => {
 			if (e.errorCode === -3) return; // ERR_ABORTED
+			// A broken embed must not replace the page with the error overlay.
+			if (!e.isMainFrame) return;
 			const store = useTabsStore.getState();
 			store.updateBrowserLoading(paneId, false);
 			store.setBrowserError(paneId, {
