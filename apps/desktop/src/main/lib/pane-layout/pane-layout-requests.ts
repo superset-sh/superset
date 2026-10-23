@@ -14,6 +14,7 @@ const STATUS_BY_CODE: Record<PaneLayoutErrorCode, number> = {
 	NOT_FOUND: 404,
 	BAD_REQUEST: 400,
 	PRECONDITION_FAILED: 412,
+	CONFLICT: 409,
 };
 
 export interface PaneLayoutRendererRequest {

@@ -9,6 +9,7 @@ import { bridgeErrorDetail, bridgeFetch } from "../browser-bridge/bridge-fetch";
 const CODE_BY_STATUS: Record<number, TRPC_ERROR_CODE_KEY> = {
 	400: "BAD_REQUEST",
 	404: "NOT_FOUND",
+	409: "CONFLICT",
 	412: "PRECONDITION_FAILED",
 	503: "PRECONDITION_FAILED",
 	504: "TIMEOUT",

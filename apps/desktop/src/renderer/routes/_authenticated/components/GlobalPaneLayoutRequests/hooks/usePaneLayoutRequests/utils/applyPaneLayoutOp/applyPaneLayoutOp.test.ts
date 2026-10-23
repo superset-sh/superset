@@ -158,6 +158,30 @@ describe("applyPaneLayoutOp", () => {
 		expect(state.tabs[0]?.activePaneId).toBe("b");
 	});
 
+	test("close with expectedTerminalId closes a pane that still shows it", () => {
+		const { state } = applyPaneLayoutOp(fixture(), {
+			type: "close",
+			paneId: "a",
+			expectedTerminalId: "term-a",
+		});
+		expect(state.tabs[0]?.layout).toEqual(leaf("b"));
+	});
+
+	test("close with expectedTerminalId leaves a pane that shows another terminal", () => {
+		const layout = fixture();
+		const pane = layout.tabs[0]?.panes.a;
+		if (pane) pane.data = { terminalId: "term-switched" };
+		expectError(
+			() =>
+				applyPaneLayoutOp(layout, {
+					type: "close",
+					paneId: "a",
+					expectedTerminalId: "term-a",
+				}),
+			"CONFLICT",
+		);
+	});
+
 	test("move splits the pane into another tab and removes the emptied tab", () => {
 		const { state, tabId } = applyPaneLayoutOp(fixture(), {
 			type: "move",

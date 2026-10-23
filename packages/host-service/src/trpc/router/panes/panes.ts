@@ -129,16 +129,33 @@ export const panesRouter = router({
 		),
 
 	close: protectedProcedure
-		.input(paneInput.extend({ keepTerminal: z.boolean().default(false) }))
+		.input(
+			paneInput.extend({
+				keepTerminal: z.boolean().default(false),
+				expectedTerminalId: z.string().min(1).optional(),
+			}),
+		)
 		.mutation(async ({ ctx, input }) => {
 			const before = await applyOp(ctx, input.workspaceId, { type: "list" });
-			const terminalId = before.layout.tabs
+			const pane = before.layout.tabs
 				.flatMap((tab) => tab.panes)
-				.find((pane) => pane.id === input.paneId)?.terminalId;
+				.find((candidate) => candidate.id === input.paneId);
+			const terminalId = pane?.terminalId;
+			if (
+				pane &&
+				input.expectedTerminalId !== undefined &&
+				terminalId !== input.expectedTerminalId
+			) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: `Pane ${input.paneId} no longer shows terminal ${input.expectedTerminalId}`,
+				});
+			}
 			const result = await applyOp(ctx, input.workspaceId, {
 				type: "close",
 				paneId: input.paneId,
 				keepTerminal: input.keepTerminal,
+				expectedTerminalId: input.expectedTerminalId,
 			});
 			// A live terminal left without a pane is re-adopted into a new tab
 			// by the desktop, so closing ends it unless it was backgrounded.

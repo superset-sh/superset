@@ -1385,9 +1385,44 @@ superset terminals attach --ssh me@build-box --workspace ws_… --terminal term_
 		{ flag: "--terminal <id>", required: true, description: "Terminal session ID." },
 		{ flag: "--host <id>", description: "Host the workspace lives on (default: the cloud if your account has cloud workspaces, else this machine)." },
 		{ flag: "--local", description: "The workspace is on this machine." },
+		{ flag: "--remove-pane", description: "Also close the desktop app panes that show the terminal, and their tab when it is left empty." },
 	]}
 >
 Close (dispose) a terminal running in a workspace. This ends the session.
+Without `--remove-pane`, a pane showing the terminal stays open on the ended
+session in the desktop app.
+
+With `--remove-pane`, the panes that show the terminal are closed first, then
+the terminal is ended. The terminal is ended even when its panes cannot be
+removed: the host or desktop app is too old for `superset panes`, or no desktop
+app is attached (`paneRemovalSkippedReason`), or one pane fails to close
+(`failedPanes`).
+
+A pane that was switched to another terminal after the command listed the
+panes is left open (`skippedPanes`). A host too old to check this closes the
+pane anyway; the command then reports it in `closedOtherTerminalPanes`, and the
+other terminal keeps running in the background.
+
+```bash
+superset terminals close --workspace ws_… --terminal term_… --remove-pane
+```
+
+<CommandReturns>
+<JsonOutput>
+```ts
+{
+  terminalId: string;
+  status: "disposed";
+  // Only with --remove-pane:
+  removedPaneIds: string[];
+  skippedPanes: { paneId: string; reason: string }[];
+  failedPanes: { paneId: string; error: string }[];
+  closedOtherTerminalPanes: { paneId: string; terminalId: string | null }[];
+  paneRemovalSkippedReason: string | null;
+}
+```
+</JsonOutput>
+</CommandReturns>
 </Command>
 
 ---

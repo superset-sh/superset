@@ -198,7 +198,18 @@ export function applyPaneLayoutOp(
 		}
 
 		case "close": {
-			const { tab } = locatePane(state, op.paneId);
+			const { tab, pane } = locatePane(state, op.paneId);
+			const shownTerminalId = (pane.data as { terminalId?: unknown } | null)
+				?.terminalId;
+			if (
+				op.expectedTerminalId !== undefined &&
+				shownTerminalId !== op.expectedTerminalId
+			) {
+				throw new PaneLayoutOpError(
+					"CONFLICT",
+					`Pane ${op.paneId} no longer shows terminal ${op.expectedTerminalId}`,
+				);
+			}
 			const next = runInStore(state, (store) =>
 				store.closePane({ tabId: tab.id, paneId: op.paneId }),
 			);

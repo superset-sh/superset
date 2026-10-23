@@ -14,22 +14,43 @@ export const directionOption = () =>
 		.enum(...PANE_SPLIT_DIRECTIONS)
 		.desc("Side to place the pane on: right, left, down, or up");
 
+const OLD_HOST_MESSAGE = "This host is too old for `superset panes`";
+
+function isOldPanesHost(error: unknown): boolean {
+	return (
+		error instanceof Error &&
+		/No procedure found on path "?panes\./.test(error.message)
+	);
+}
+
 /** Turns a host without the `panes` router into an actionable error. */
 export async function callPanes<T>(call: () => Promise<T>): Promise<T> {
 	try {
 		return await call();
 	} catch (error) {
-		if (
-			error instanceof Error &&
-			/No procedure found on path "?panes\./.test(error.message)
-		) {
+		if (isOldPanesHost(error)) {
 			throw new CLIError(
-				"This host is too old for `superset panes`",
+				OLD_HOST_MESSAGE,
 				"Update the Superset desktop app on that host",
 			);
 		}
 		throw error;
 	}
+}
+
+/**
+ * Why the host cannot edit pane layouts at all (the host is too old, or no
+ * new enough desktop app is attached), or null for any other failure.
+ */
+export function paneLayoutUnavailableReason(error: unknown): string | null {
+	if (isOldPanesHost(error)) return OLD_HOST_MESSAGE;
+	if (
+		error instanceof Error &&
+		(error as { data?: { code?: string } }).data?.code === "PRECONDITION_FAILED"
+	) {
+		return error.message;
+	}
+	return null;
 }
 
 export const terminalOptions = {

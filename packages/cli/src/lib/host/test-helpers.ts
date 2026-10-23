@@ -8,7 +8,8 @@ type Procedure = (input: Record<string, unknown>) => unknown;
 /**
  * Give every test in the calling file a running host-service on this machine:
  * a local tRPC endpoint that answers `procedures` (keyed by dotted path), and
- * a manifest for it in a fresh SUPERSET_HOME_DIR.
+ * a manifest for it in a fresh SUPERSET_HOME_DIR. A thrown error's `code`
+ * becomes the tRPC error code the client sees.
  */
 export function withLocalHostService(
 	organizationId: string,
@@ -48,7 +49,9 @@ export function withLocalHostService(
 									message: error instanceof Error ? error.message : "failed",
 									code: -32603,
 									data: {
-										code: "INTERNAL_SERVER_ERROR",
+										code:
+											(error as { code?: string } | null)?.code ??
+											"INTERNAL_SERVER_ERROR",
 										httpStatus: 500,
 										path,
 									},

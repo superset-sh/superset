@@ -26,6 +26,8 @@ export const paneLayoutOpSchema = z.discriminatedUnion("type", [
 		type: z.literal("close"),
 		paneId,
 		keepTerminal: z.boolean().optional(),
+		/** Close only while the pane still shows this terminal, else CONFLICT. */
+		expectedTerminalId: z.string().min(1).optional(),
 	}),
 	z.object({
 		type: z.literal("move"),
@@ -97,5 +99,6 @@ export const PANE_LAYOUT_ERROR_CODES = [
 	"NOT_FOUND",
 	"BAD_REQUEST",
 	"PRECONDITION_FAILED",
+	"CONFLICT",
 ] as const;
 export type PaneLayoutErrorCode = (typeof PANE_LAYOUT_ERROR_CODES)[number];
