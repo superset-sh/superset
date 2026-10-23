@@ -66,6 +66,16 @@ For full interaction (clicking, typing, scrolling, form flows), `superset browse
 
 Agents pick this up automatically through the [`superset:browser` skill](/skills). A pane runs against the browser's real, logged-in session; agents are instructed to treat it accordingly and to confirm before consequential actions.
 
+For a remote host authenticated with an API key, `browser cdp` starts a local proxy that keeps the exported URL usable after the command exits. It refreshes the remote token when a client connects. Repeating the command with the same API key, API address, organization, host, workspace and pane reuses that proxy while the remote endpoint is unchanged.
+
+The URL is a secret capability for that pane. It listens only on the CLI machine's loopback interface; clients on another machine need deliberate port forwarding. The proxy keeps the API key in memory and stops after 24 hours without an active connection. Active connections keep it running. Stop it explicitly with the `proxyId` returned by `--json`:
+
+```bash
+superset browser cdp-stop --id <proxyId>
+```
+
+Stopping does not require the original API key. Local-host and OAuth-authenticated endpoints retain their existing token lifetime.
+
 ## Pane or standalone browser?
 
 The `superset:browser` skill is engine-generic with the in-app pane as the default: when a page is (or can be) open in a workspace pane (previewing a dev server, verifying UI you're watching, clicking through a flow), agents use the `superset browser` commands above.
