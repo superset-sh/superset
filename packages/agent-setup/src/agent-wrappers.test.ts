@@ -68,6 +68,7 @@ const {
 	createAmpWrapper,
 	buildCodexWrapperExecLine,
 	buildCopilotWrapperExecLine,
+	buildOpenCodeWrapperExecLine,
 	buildWrapperScript,
 	createClaudeSettingsJson,
 	createCodexHooksJson,
@@ -96,7 +97,16 @@ const {
 	getAmpPluginContent,
 	getGeminiSettingsJsonContent,
 	getMastraHooksJsonContent,
+	createOpenCodePlugin,
+	getOpenCodeCliJsonContent,
+	getOpenCodeCliJsonPath,
+	getOpenCodeCliPluginContent,
 	getOpenCodePluginContent,
+	getOpenCodePluginPath,
+	OPENCODE_CLI_PLUGIN_FILE,
+	OPENCODE_CLI_PLUGIN_MARKER,
+	OPENCODE_PLUGIN_FILE,
+	OPENCODE_PLUGIN_MARKER,
 	getOmpExtensionContent,
 	getOmpExtensionPath,
 	OMP_EXTENSION_MARKER,
@@ -420,6 +430,260 @@ describe("agent-wrappers opencode", () => {
 			},
 		});
 		expect(notify).not.toHaveBeenCalled();
+	});
+});
+
+describe("agent-wrappers opencode v2", () => {
+	const originalTerminalId = process.env.SUPERSET_TERMINAL_ID;
+	const cliRoot = path.join(TEST_ROOT, "opencode-cli");
+	const notifyLog = path.join(cliRoot, "notify.log");
+	const notifyPath = path.join(cliRoot, "notify.sh");
+	type CliPlugin = {
+		default: { setup: (context: unknown) => unknown };
+	};
+	type Listener = (event: {
+		details: { type: string; data: unknown };
+	}) => Promise<unknown> | undefined;
+	let pluginModule: Promise<CliPlugin>;
+
+	const loadCliPlugin = async () => {
+		if (!pluginModule) {
+			const pluginPath = path.join(cliRoot, "tui.mjs");
+			writeFileSync(pluginPath, getOpenCodeCliPluginContent(notifyPath));
+			pluginModule = import(pathToFileURL(pluginPath).href);
+		}
+		return pluginModule;
+	};
+
+	const startCliPlugin = async (
+		sessions: Record<string, { parentID?: string }>,
+		route: { sessionID: string },
+	) => {
+		const { default: plugin } = await loadCliPlugin();
+		let listener: Listener | undefined;
+		plugin.setup({
+			data: {
+				listen: (fn: Listener) => {
+					listener = fn;
+					return () => {};
+				},
+				session: { get: (id: string) => sessions[id] },
+			},
+			ui: {
+				router: {
+					current: () => ({ type: "session", sessionID: route.sessionID }),
+				},
+			},
+		});
+		return {
+			emit: async (type: string, data: unknown) => {
+				if (!listener) throw new Error("Plugin did not listen");
+				await listener({ details: { type, data } });
+			},
+			notifications: () =>
+				existsSync(notifyLog)
+					? readFileSync(notifyLog, "utf-8")
+							.trim()
+							.split("\n")
+							.map((line) => {
+								const separator = line.indexOf(" ");
+								expect(line.slice(0, separator)).toBe("opencode");
+								return JSON.parse(line.slice(separator + 1));
+							})
+					: [],
+		};
+	};
+
+	beforeEach(() => {
+		mkdirSync(cliRoot, { recursive: true });
+		writeFileSync(
+			notifyPath,
+			`#!/bin/bash\necho "$SUPERSET_HOOK_HARNESS $1" >> "${notifyLog}"\n`,
+			{ mode: 0o755 },
+		);
+		rmSync(notifyLog, { force: true });
+		process.env.SUPERSET_TERMINAL_ID = "terminal-1";
+	});
+
+	afterEach(() => {
+		if (originalTerminalId === undefined) {
+			delete process.env.SUPERSET_TERMINAL_ID;
+		} else {
+			process.env.SUPERSET_TERMINAL_ID = originalTerminalId;
+		}
+	});
+
+	it("reports one Start and one Stop per busy period of the viewed root", async () => {
+		const plugin = await startCliPlugin({}, { sessionID: "root" });
+		await plugin.emit("session.created", { sessionID: "root" });
+		await plugin.emit("session.execution.started", { sessionID: "root" });
+		await plugin.emit("session.execution.started", { sessionID: "root" });
+		await plugin.emit("session.created", {
+			sessionID: "child",
+			parentID: "root",
+		});
+		await plugin.emit("session.execution.started", { sessionID: "child" });
+		await plugin.emit("permission.asked", { sessionID: "child" });
+		await plugin.emit("session.execution.succeeded", { sessionID: "child" });
+		await plugin.emit("form.created", { form: { sessionID: "root" } });
+		await plugin.emit("session.execution.succeeded", { sessionID: "root" });
+		await plugin.emit("session.execution.interrupted", { sessionID: "root" });
+		await plugin.emit("session.execution.started", { sessionID: "root" });
+		await plugin.emit("session.execution.failed", {
+			sessionID: "root",
+			error: { message: "Provider unavailable" },
+		});
+		await plugin.emit("session.deleted", { sessionID: "root" });
+		expect(plugin.notifications()).toEqual([
+			{ hook_event_name: "SessionStart", session_id: "root" },
+			{ hook_event_name: "Start", session_id: "root" },
+			{ hook_event_name: "PermissionRequest", session_id: "root" },
+			{ hook_event_name: "Stop", session_id: "root" },
+			{ hook_event_name: "Start", session_id: "root" },
+			{
+				hook_event_name: "Failed",
+				session_id: "root",
+				message: "Provider unavailable",
+			},
+			{ hook_event_name: "SessionEnd", session_id: "root" },
+		]);
+	});
+
+	it("ignores sessions that another terminal's TUI shows", async () => {
+		const route = { sessionID: "mine" };
+		const plugin = await startCliPlugin({ mine: {}, theirs: {} }, route);
+		await plugin.emit("session.created", { sessionID: "theirs" });
+		await plugin.emit("session.execution.started", { sessionID: "theirs" });
+		await plugin.emit("permission.asked", { sessionID: "theirs" });
+		await plugin.emit("session.execution.started", { sessionID: "missing" });
+		await plugin.emit("session.execution.started", { sessionID: "mine" });
+		await plugin.emit("session.execution.succeeded", { sessionID: "theirs" });
+		await plugin.emit("session.deleted", { sessionID: "theirs" });
+		await plugin.emit("session.execution.succeeded", { sessionID: "mine" });
+		expect(plugin.notifications()).toEqual([
+			{ hook_event_name: "Start", session_id: "mine" },
+			{ hook_event_name: "Stop", session_id: "mine" },
+		]);
+	});
+
+	it("ignores its idle root once another terminal's TUI resumes it", async () => {
+		const route = { sessionID: "shared" };
+		const plugin = await startCliPlugin({ shared: {}, other: {} }, route);
+		await plugin.emit("session.execution.started", { sessionID: "shared" });
+		await plugin.emit("session.execution.succeeded", { sessionID: "shared" });
+		route.sessionID = "other";
+		await plugin.emit("session.execution.started", { sessionID: "shared" });
+		await plugin.emit("permission.asked", { sessionID: "shared" });
+		await plugin.emit("session.execution.succeeded", { sessionID: "shared" });
+		expect(plugin.notifications()).toEqual([
+			{ hook_event_name: "Start", session_id: "shared" },
+			{ hook_event_name: "Stop", session_id: "shared" },
+		]);
+	});
+
+	it("does nothing outside a Superset terminal", async () => {
+		delete process.env.SUPERSET_TERMINAL_ID;
+		const { default: plugin } = await loadCliPlugin();
+		const listen = mock(() => () => {});
+		plugin.setup({ data: { listen } });
+		expect(listen).not.toHaveBeenCalled();
+	});
+
+	it("adds the plugin to cli.json and keeps OpenCode's own settings", () => {
+		const pluginDir = "/hooks/opencode/cli-plugins/superset-notify";
+		const existing = JSON.stringify({
+			theme: { name: "opencode" },
+			plugins: ["/other/plugin"],
+		});
+		const merged = requireContent(
+			getOpenCodeCliJsonContent(existing, pluginDir),
+		);
+		expect(JSON.parse(merged)).toEqual({
+			theme: { name: "opencode" },
+			plugins: ["/other/plugin", pluginDir],
+		});
+		expect(getOpenCodeCliJsonContent(merged, pluginDir)).toBe(merged);
+		expect(
+			JSON.parse(requireContent(getOpenCodeCliJsonContent(null, pluginDir)))
+				.plugins,
+		).toEqual([pluginDir]);
+		expect(
+			getOpenCodeCliJsonContent('{ // comment\n "plugins": [] }', pluginDir),
+		).toBeNull();
+		expect(getOpenCodeCliJsonContent("[]", pluginDir)).toBeNull();
+	});
+
+	it("moves the V1 plugin out of the V2 config dir and registers the CLI plugin", () => {
+		const legacyDir = path.join(TEST_HOOKS_DIR, "opencode", "plugin");
+		const legacyPath = path.join(legacyDir, OPENCODE_PLUGIN_FILE);
+		const userPluginPath = path.join(legacyDir, "user-plugin.js");
+		mkdirSync(legacyDir, { recursive: true });
+		writeFileSync(legacyPath, `${OPENCODE_PLUGIN_MARKER}\n`);
+		writeFileSync(userPluginPath, "export default {};\n");
+		try {
+			createOpenCodePlugin();
+			expect(existsSync(legacyPath)).toBe(false);
+			expect(existsSync(userPluginPath)).toBe(true);
+			expect(readFileSync(getOpenCodePluginPath(), "utf-8")).toContain(
+				OPENCODE_PLUGIN_MARKER,
+			);
+			const cliPluginDir = path.join(
+				TEST_HOOKS_DIR,
+				"opencode",
+				"cli-plugins",
+				"superset-notify",
+			);
+			expect(
+				readFileSync(
+					path.join(cliPluginDir, OPENCODE_CLI_PLUGIN_FILE),
+					"utf-8",
+				),
+			).toContain(OPENCODE_CLI_PLUGIN_MARKER);
+			expect(
+				JSON.parse(readFileSync(getOpenCodeCliJsonPath(), "utf-8")).plugins,
+			).toEqual([cliPluginDir]);
+		} finally {
+			rmSync(TEST_SUPERSET_HOME_DIR, { recursive: true, force: true });
+		}
+	});
+
+	it.each([
+		["opencode 1.19.0", "opencode-v1"],
+		["0.15.8", "opencode-v1"],
+		["opencode v2.0.28", "opencode"],
+		["", "opencode"],
+	])("picks the config dir for version %p", (version, configDir) => {
+		const realBinDir = path.join(TEST_ROOT, "real-bin");
+		const realOpenCode = path.join(realBinDir, "opencode");
+		const wrapperPath = path.join(TEST_BIN_DIR, "opencode");
+		mkdirSync(realBinDir, { recursive: true });
+		mkdirSync(TEST_BIN_DIR, { recursive: true });
+		writeFileSync(
+			realOpenCode,
+			`#!/bin/bash\nif [ "$1" = "--version" ]; then echo "${version}"; else echo "$OPENCODE_CONFIG_DIR"; fi\n`,
+			{ mode: 0o755 },
+		);
+		writeFileSync(
+			wrapperPath,
+			buildWrapperScript("opencode", buildOpenCodeWrapperExecLine(), {
+				agentId: "opencode",
+			}),
+			{ mode: 0o755 },
+		);
+		try {
+			const output = execFileSync(wrapperPath, ["run"], {
+				env: {
+					...process.env,
+					PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
+					SUPERSET_AGENT_ID: "opencode",
+				},
+				encoding: "utf-8",
+			});
+			expect(output.trim()).toBe(path.join(TEST_HOOKS_DIR, configDir));
+		} finally {
+			rmSync(TEST_SUPERSET_HOME_DIR, { recursive: true, force: true });
+			rmSync(realBinDir, { recursive: true, force: true });
+		}
 	});
 });
 

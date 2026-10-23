@@ -364,7 +364,7 @@ await withAgentEnv(
 	{ SUPERSET_AGENT_ID: "opencode", SUPERSET_DEBUG: "1" },
 	async () => {
 		const mod = await import(
-			path.join(SS_HOME, "hooks", "opencode", "plugin", "superset-notify.js")
+			path.join(SS_HOME, "hooks", "opencode-v1", "plugin", "superset-notify.js")
 		);
 		const $ = (_strings: TemplateStringsArray, ...vals: unknown[]) => {
 			Bun.spawnSync(["bash", String(vals[0]), String(vals[1])], {

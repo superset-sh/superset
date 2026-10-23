@@ -44,6 +44,18 @@ export function getOpenCodeConfigDir(): string {
 	return path.join(getHooksDir(), "opencode");
 }
 
+/**
+ * OpenCode V2 scans every config dir's `plugin/` folder and fails on V1
+ * plugins, so V1 gets its own config dir that V2 never opens.
+ */
+export function getOpenCodeV1ConfigDir(): string {
+	return path.join(getHooksDir(), "opencode-v1");
+}
+
 export function getOpenCodePluginDir(): string {
-	return path.join(getOpenCodeConfigDir(), "plugin");
+	return path.join(getOpenCodeV1ConfigDir(), "plugin");
+}
+
+export function getOpenCodeCliPluginDir(): string {
+	return path.join(getOpenCodeConfigDir(), "cli-plugins", "superset-notify");
 }
