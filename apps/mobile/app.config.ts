@@ -41,7 +41,7 @@ export default ({ config }: ConfigContext) => ({
 	locales: Object.fromEntries(
 		SUPPORTED_LOCALES.map((locale) => [locale, `./locales/${locale}.json`]),
 	),
-	version: "1.1.4",
+	version: "1.2.1",
 	orientation: "portrait",
 	icon: "./assets/icon.png",
 	userInterfaceStyle: "dark",
