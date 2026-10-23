@@ -23,7 +23,7 @@ fi
 # release is the one marked latest — the cli-v tag is a prerelease, so
 # /releases/latest would never return it.
 TAG=$(curl -sfL -m 20 -H "Accept: application/vnd.github+json" \
-  https://api.github.com/repos/superset-sh/superset/releases/latest 2>/dev/null \
+  https://api.github.com/repos/paradevai/superset/releases/latest 2>/dev/null \
   | python3 -c 'import json,sys;print(json.load(sys.stdin).get("tag_name",""))' 2>/dev/null || true)
 LATEST="${TAG#desktop-v}"
 case "$LATEST" in

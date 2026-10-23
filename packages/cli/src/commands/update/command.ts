@@ -24,7 +24,7 @@ import { atomicReplace, backupRootFor } from "./atomic-replace";
 // CLI's update channel independent of desktop releases — which would otherwise
 // shadow CLI on `/releases/latest`.
 const ROLLING_DOWNLOAD_BASE =
-	"https://github.com/superset-sh/superset/releases/download/cli-latest";
+	"https://github.com/paradevai/superset/releases/download/cli-latest";
 
 function detectTarget(): string {
 	const arch = process.arch === "arm64" ? "arm64" : "x64";
@@ -59,7 +59,7 @@ function tarballUrl(target: string, version?: string): string {
 	if (!version) {
 		return `${ROLLING_DOWNLOAD_BASE}/superset-${target}.tar.gz`;
 	}
-	return `https://github.com/superset-sh/superset/releases/download/cli-v${version}/superset-${target}.tar.gz`;
+	return `https://github.com/paradevai/superset/releases/download/cli-v${version}/superset-${target}.tar.gz`;
 }
 
 const SEMVER_RE = /^[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.]+)?$/;

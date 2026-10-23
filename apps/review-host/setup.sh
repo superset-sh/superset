@@ -37,7 +37,7 @@ if [ ! -x /opt/superset/bin/superset-host ] || [ "$INSTALLED" != "$SUPERSET_VERS
   rm -rf /opt/superset.new
   mkdir -p /opt/superset.new
   curl -fsSL -o /tmp/superset.tar.gz \
-    "https://github.com/superset-sh/superset/releases/download/cli-v${SUPERSET_VERSION}/superset-linux-x64.tar.gz"
+    "https://github.com/paradevai/superset/releases/download/cli-v${SUPERSET_VERSION}/superset-linux-x64.tar.gz"
   tar -xzf /tmp/superset.tar.gz -C /opt/superset.new
   rm -f /tmp/superset.tar.gz
   echo "$SUPERSET_VERSION" > /opt/superset.new/.superset-version
@@ -65,7 +65,7 @@ fi
 
 # Demo repositories the reviewer browses.
 #
-# acme is a CLONE of the public superset-sh/acme-demo, and that matters: its open
+# acme is a CLONE of the public paradevai/acme-demo, and that matters: its open
 # PR #1 is what puts the pull-request chip on a workspace, and the chip is the
 # only route to the diff the store listing promises. A `git init` here instead of
 # a clone leaves no origin, no refs/remotes/origin/HEAD, and therefore no diff
@@ -94,8 +94,8 @@ clone_demo() {
 exclude_agent_residue() {
   grep -qx '.local/' "$1/.git/info/exclude" 2>/dev/null || printf '.local/\n' >> "$1/.git/info/exclude"
 }
-clone_demo /demo/acme https://github.com/superset-sh/acme-demo.git
-clone_demo /demo/acme-ios https://github.com/superset-sh/acme-ios-demo.git
+clone_demo /demo/acme https://github.com/paradevai/acme-demo.git
+clone_demo /demo/acme-ios https://github.com/paradevai/acme-ios-demo.git
 exclude_agent_residue /demo/acme
 exclude_agent_residue /demo/acme-ios
 git config --global user.email "appreview@superset.sh"

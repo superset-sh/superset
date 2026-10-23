@@ -10,7 +10,7 @@ export interface InstallTab {
 export const DEFAULT_INSTALL_TAB: InstallTab = {
 	id: "brew",
 	label: "brew",
-	command: "brew install superset-sh/tap/superset",
+	command: "brew install paradevai/tap/superset",
 	shell: true,
 };
 

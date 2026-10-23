@@ -1,4 +1,4 @@
-const REPO_RAW = "https://raw.githubusercontent.com/superset-sh/skills/main";
+const REPO_RAW = "https://raw.githubusercontent.com/paradevai/skills/main";
 
 export const SKILL_NAMES = [
 	"superset-orchestrate",

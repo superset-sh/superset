@@ -36,7 +36,7 @@ function getModelContext(): ModelContext | undefined {
 
 const INSTALL_COMMANDS: Record<string, string> = {
 	macos: `Download the desktop app from ${COMPANY.MARKETING_URL}/download`,
-	cli: `brew install superset-sh/tap/superset (or: curl -fsSL ${CANONICAL_URLS.MARKETING}/cli/install.sh | sh)`,
+	cli: `brew install paradevai/tap/superset (or: curl -fsSL ${CANONICAL_URLS.MARKETING}/cli/install.sh | sh)`,
 	mcp: `claude mcp add --transport http superset ${MCP_SERVER_URL}`,
 };
 

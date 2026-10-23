@@ -28,7 +28,7 @@ export async function GET() {
 
 	return Response.json({
 		$schema: "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
-		repository: "https://github.com/superset-sh/skills",
+		repository: "https://github.com/paradevai/skills",
 		skills,
 	});
 }

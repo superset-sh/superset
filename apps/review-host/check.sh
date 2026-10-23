@@ -44,7 +44,7 @@ HOST_ID=$(printf '%s' "$INFO" | python3 -c 'import json,sys;print(json.load(sys.
 if [ -n "$RUNNING_VERSION" ]; then note "host-service: $RUNNING_VERSION (host $HOST_ID)"; else fail "host-service is not answering"; fi
 
 TAG=$(curl -sfL -m 20 -H "Accept: application/vnd.github+json" \
-  https://api.github.com/repos/superset-sh/superset/releases/latest 2>/dev/null \
+  https://api.github.com/repos/paradevai/superset/releases/latest 2>/dev/null \
   | python3 -c 'import json,sys;print(json.load(sys.stdin).get("tag_name",""))' 2>/dev/null)
 LATEST="${TAG#desktop-v}"
 # Every branch below fails closed. A probe that cannot run tells us nothing
@@ -170,7 +170,7 @@ fi
 # fine-grained PAT and PATs expire — this one on 2026-10-05 — so check it
 # directly rather than waiting for a reviewer to find an empty chip.
 for REPO in acme-demo acme-ios-demo; do
-  TOKEN_STATUS=$(ssh_box "sudo bash -c 'set -a; . /etc/superset-review-host.env 2>/dev/null; set +a; curl -sL -o /dev/null -w \"%{http_code}\" -m 15 -H \"Authorization: Bearer \$GH_TOKEN\" https://api.github.com/repos/superset-sh/$REPO/pulls/1'")
+  TOKEN_STATUS=$(ssh_box "sudo bash -c 'set -a; . /etc/superset-review-host.env 2>/dev/null; set +a; curl -sL -o /dev/null -w \"%{http_code}\" -m 15 -H \"Authorization: Bearer \$GH_TOKEN\" https://api.github.com/repos/paradevai/$REPO/pulls/1'")
   case "$TOKEN_STATUS" in
     200) note "github token: can read $REPO#1" ;;
     401|403) fail "the GitHub token is rejected ($TOKEN_STATUS) — expired or revoked; the PR chip and the diff behind it are gone. Regenerate a fine-grained PAT (public repositories, read-only) and rewrite /etc/superset-review-host.env" ;;

@@ -6,7 +6,7 @@
 
 Run Claude Code, Codex, or another CLI agent with terminals, code review, and browser previews in one workspace.
 
-[**Download for macOS**](https://github.com/superset-sh/superset/releases/latest) &nbsp;&bull;&nbsp; [Documentation](https://docs.superset.sh) &nbsp;&bull;&nbsp; [Changelog](https://github.com/superset-sh/superset/releases) &nbsp;&bull;&nbsp; [Discord](https://discord.gg/cZeD9WYcV7)
+[**Download for macOS**](https://github.com/paradevai/superset/releases/latest) &nbsp;&bull;&nbsp; [Documentation](https://docs.superset.sh) &nbsp;&bull;&nbsp; [Changelog](https://github.com/paradevai/superset/releases) &nbsp;&bull;&nbsp; [Discord](https://discord.gg/cZeD9WYcV7)
 
 <p align="center">
   <img width="800" alt="Claude and OpenCode working in parallel Superset workspaces with live diffs" src="apps/marketing/public/images/readme-hero.gif" />
@@ -22,10 +22,10 @@ The docs are available as [a Markdown index](https://docs.superset.sh/llms.txt) 
 
 Download the desktop app:
 
-- **macOS**: [Apple Silicon (.dmg)](https://github.com/superset-sh/superset/releases/latest/download/Superset-arm64.dmg) · [Intel (.dmg)](https://github.com/superset-sh/superset/releases/latest/download/Superset-x64.dmg)
-- **Linux**: [x64 AppImage](https://github.com/superset-sh/superset/releases/latest/download/Superset-x86_64.AppImage) (experimental; macOS is the primary target)
+- **macOS**: [Apple Silicon (.dmg)](https://github.com/paradevai/superset/releases/latest/download/Superset-arm64.dmg) · [Intel (.dmg)](https://github.com/paradevai/superset/releases/latest/download/Superset-x64.dmg)
+- **Linux**: [x64 AppImage](https://github.com/paradevai/superset/releases/latest/download/Superset-x86_64.AppImage) (experimental; macOS is the primary target)
 - **Windows**: not yet available
-- [All builds](https://github.com/superset-sh/superset/releases/latest)
+- [All builds](https://github.com/paradevai/superset/releases/latest)
 
 All you need installed is [Git](https://git-scm.com/). [gh](https://cli.github.com/) is optional and enables the PR workflows; Superset offers to install it for you.
 
@@ -214,7 +214,7 @@ Every surface talks to the same workspaces, so you can start a task in the app a
 
 | Surface | What you get |
 |:--------|:-------------|
-| [**Desktop App**](https://github.com/superset-sh/superset/releases/latest) | The full IDE: terminals, diff viewer, in-app browser, automations |
+| [**Desktop App**](https://github.com/paradevai/superset/releases/latest) | The full IDE: terminals, diff viewer, in-app browser, automations |
 | [**CLI**](https://docs.superset.sh/cli/getting-started) | A single `superset` binary to manage workspaces, agents, terminals, and hosts from any shell |
 | [**TypeScript SDK**](https://docs.superset.sh/sdk/getting-started) | Drive Superset programmatically with [`@superset_sh/sdk`](https://www.npmjs.com/package/@superset_sh/sdk) from Node, Bun, or Deno |
 | [**MCP Server**](https://docs.superset.sh/mcp) | Let Claude Code, Codex, Cursor, and other agents create and manage workspaces themselves |
@@ -224,7 +224,7 @@ The CLI comes bundled with the desktop app, or install it standalone:
 ```bash
 curl -fsSL https://superset.sh/cli/install.sh | sh
 # or
-brew install superset-sh/tap/superset
+brew install paradevai/tap/superset
 ```
 
 ## Development
@@ -233,7 +233,7 @@ Want to hack on Superset or contribute a PR? Clone the repository, add it to the
 installed Superset app, and create a workspace for your change:
 
 ```bash
-git clone https://github.com/superset-sh/superset.git
+git clone https://github.com/paradevai/superset.git
 ```
 
 Then run the development setup from that workspace terminal:
@@ -293,14 +293,14 @@ Configure workspace setup, teardown, and run scripts in `.superset/config.json`.
 
 ## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get set up and open a PR. Bugs and feature requests go in [issues](https://github.com/superset-sh/superset/issues).
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get set up and open a PR. Bugs and feature requests go in [issues](https://github.com/paradevai/superset/issues).
 
-<a href="https://github.com/superset-sh/superset/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=superset-sh/superset" />
+<a href="https://github.com/paradevai/superset/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=paradevai/superset" />
 </a>
 
-[![GitHub stars](https://img.shields.io/github/stars/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/stargazers)
-[![GitHub release](https://img.shields.io/github/v/release/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/releases)
+[![GitHub stars](https://img.shields.io/github/stars/paradevai/superset?style=flat&logo=github)](https://github.com/paradevai/superset/stargazers)
+[![GitHub release](https://img.shields.io/github/v/release/paradevai/superset?style=flat&logo=github)](https://github.com/paradevai/superset/releases)
 [![License](https://img.shields.io/badge/license-Elastic%20License%202.0-blue?style=flat)](LICENSE.md)
 [![Twitter](https://img.shields.io/badge/@superset__sh-555?logo=x)](https://x.com/superset_sh)
 [![Discord](https://img.shields.io/badge/Discord-555?logo=discord)](https://discord.gg/cZeD9WYcV7)
@@ -319,8 +319,8 @@ Join the Superset community to get help, share feedback, and connect with other 
 
 - **[Discord](https://discord.gg/cZeD9WYcV7)**: chat with the team and community
 - **[Twitter](https://x.com/superset_sh)**: follow for updates and announcements
-- **[GitHub Issues](https://github.com/superset-sh/superset/issues)**: report bugs and request features
-- **[GitHub Discussions](https://github.com/superset-sh/superset/discussions)**: ask questions and share ideas
+- **[GitHub Issues](https://github.com/paradevai/superset/issues)**: report bugs and request features
+- **[GitHub Discussions](https://github.com/paradevai/superset/discussions)**: ask questions and share ideas
 
 ### Team
 

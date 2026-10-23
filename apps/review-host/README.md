@@ -83,7 +83,7 @@ stale unnoticed, which is what the outside-in `check.sh` now also watches for.
 primary path and the timer only a backstop. No such automation exists, and one
 cannot be built the obvious way.** A GitHub App installation maps to exactly one
 organization (`apps/api/src/app/api/github/webhook/route.ts`), and
-`superset-sh/superset` is installed under Superset, so the release event only ever
+`paradevai/superset` is installed under Superset, so the release event only ever
 lands there — while an automation can only target a host registered in *its own*
 organization (`packages/trpc/src/router/automation/automation.ts`), and this box
 lives in App Review. So an automation in App Review can never fire, and one in

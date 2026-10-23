@@ -7,7 +7,7 @@ SUPERSET_VERSION="${SUPERSET_VERSION:?set SUPERSET_VERSION}"
 rm -rf /opt/superset.new
 mkdir -p /opt/superset.new
 curl -fsSL -o /tmp/superset.tar.gz \
-  "https://github.com/superset-sh/superset/releases/download/cli-v${SUPERSET_VERSION}/superset-linux-x64.tar.gz"
+  "https://github.com/paradevai/superset/releases/download/cli-v${SUPERSET_VERSION}/superset-linux-x64.tar.gz"
 tar -xzf /tmp/superset.tar.gz -C /opt/superset.new
 rm -f /tmp/superset.tar.gz
 # setup.sh reads this to refuse a downgrade; the bundle carries no version it
