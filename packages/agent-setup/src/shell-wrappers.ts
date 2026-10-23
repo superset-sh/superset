@@ -250,8 +250,18 @@ ${SUPERSET_ENV_RESTORE}
 # Keep superset bin first without duplicating entries
 ${buildPathPrependFunction(paths.BIN_DIR)}
 hash -r 2>/dev/null || true
-# Minimal prompt (path/env shown in toolbar) - emerald to match app theme
-export PS1=$'\\[\\e[1;38;2;52;211;153m\\]❯\\[\\e[0m\\] '
+# Minimal prompt (path/env shown in toolbar) - emerald to match app theme.
+# Only set it for an interactive shell (this rcfile is also sourced for
+# non-interactive command execution, where a prompt is meaningless), and only
+# when the user has not opted out with SUPERSET_KEEP_PS1=1. Plain assignment
+# (no export) so PS1 does not leak into child processes, where rc files and
+# scripts that test for a set PS1 to detect interactivity would be misled.
+# export -n clears the export attribute if the user's own config exported
+# PS1 before this point, so the "not exported" guarantee holds either way.
+if [[ -z "\${SUPERSET_KEEP_PS1:-}" && $- == *i* ]]; then
+  export -n PS1 2>/dev/null || true
+  PS1=$'\\[\\e[1;38;2;52;211;153m\\]❯\\[\\e[0m\\] '
+fi
 # Shell readiness markers — see zsh wrapper for rationale on emitting both.
 # Protocol ref: https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md
 __superset_prompt_mark() {
