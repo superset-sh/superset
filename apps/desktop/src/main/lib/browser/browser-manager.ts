@@ -101,11 +101,13 @@ const DEEP_LINK_SCHEMES = new Set([
  * injections into the same document) and queues a resolver per call so a
  * fresh `executeJavaScript` await always gets the *next* press, not a stale
  * one. Never calls `stopPropagation`/`preventDefault` — purely observes.
+ * Ignores untrusted (script-dispatched) events: they are not a user click.
  */
 const NEXT_MOUSEDOWN_SCRIPT = `(() => {
 	if (!window.__supersetMousedownHook) {
 		window.__supersetMousedownHook = { resolvers: [] };
-		document.addEventListener("mousedown", () => {
+		document.addEventListener("mousedown", (event) => {
+			if (!event.isTrusted) return;
 			const hook = window.__supersetMousedownHook;
 			const resolvers = hook.resolvers;
 			hook.resolvers = [];
@@ -114,6 +116,26 @@ const NEXT_MOUSEDOWN_SCRIPT = `(() => {
 	}
 	return new Promise((resolve) => {
 		window.__supersetMousedownHook.resolvers.push(resolve);
+	});
+})()`;
+
+/**
+ * Resolves the next time the guest page gains keyboard focus. Same shape as
+ * NEXT_MOUSEDOWN_SCRIPT.
+ */
+const NEXT_PAGE_FOCUS_SCRIPT = `(() => {
+	if (!window.__supersetPageFocusHook) {
+		window.__supersetPageFocusHook = { resolvers: [] };
+		window.addEventListener("focus", (event) => {
+			if (!event.isTrusted || event.target !== window) return;
+			const hook = window.__supersetPageFocusHook;
+			const resolvers = hook.resolvers;
+			hook.resolvers = [];
+			for (const resolve of resolvers) resolve();
+		}, true);
+	}
+	return new Promise((resolve) => {
+		window.__supersetPageFocusHook.resolvers.push(resolve);
 	});
 })()`;
 
@@ -253,6 +275,11 @@ class BrowserManager extends EventEmitter {
 	// un-throttled — see acquireAgentWake. The entry object's identity ties
 	// releases to the registration generation they were acquired under.
 	private agentWakes = new Map<string, { count: number }>();
+	// CDP `Input.*` commands in flight per pane. Their input is trusted, so the
+	// guest cannot tell it from a user click — see setupFocusForward. The entry
+	// object's identity ties releases to the registration they were taken
+	// under.
+	private agentInputs = new Map<string, { inFlight: number }>();
 	// Canonical chords to suppress in the focused guest and forward for the
 	// renderer to replay. Kept override/layout-aware by the renderer.
 	private forwardableChords = new Set<string>();
@@ -326,6 +353,7 @@ class BrowserManager extends EventEmitter {
 		this.designMode.cancel(paneId, "destroyed");
 		this.panes.delete(paneId);
 		this.consoleLogs.delete(paneId);
+		this.endAgentInput(paneId);
 		// Tell subscribers when a live wake dies with the pane, so the renderer
 		// doesn't keep a stale pane id in its exemption set.
 		if (this.agentWakes.delete(paneId)) this.emitAgentActive();
@@ -372,6 +400,28 @@ class BrowserManager extends EventEmitter {
 				this.emitAgentActive();
 			}
 		};
+	}
+
+	private beginAgentInput(paneId: string): () => void {
+		let entry = this.agentInputs.get(paneId);
+		if (!entry) {
+			entry = { inFlight: 0 };
+			this.agentInputs.set(paneId, entry);
+		}
+		const held = entry;
+		held.inFlight += 1;
+		let released = false;
+		return () => {
+			if (released) return;
+			released = true;
+			if (this.agentInputs.get(paneId) !== held) return;
+			held.inFlight -= 1;
+			if (held.inFlight === 0) this.endAgentInput(paneId);
+		};
+	}
+
+	private endAgentInput(paneId: string): void {
+		this.agentInputs.delete(paneId);
 	}
 
 	private applyThrottling(paneId: string, wc: Electron.WebContents): void {
@@ -523,6 +573,7 @@ class BrowserManager extends EventEmitter {
 				wc.debugger.off("detach", handleDetach);
 			}
 			this.cdpDetachers.delete(paneId);
+			this.endAgentInput(paneId);
 			releaseWake();
 		};
 		wc.debugger.on("message", handleMessage);
@@ -720,6 +771,9 @@ class BrowserManager extends EventEmitter {
 				// channel, so strip it before forwarding; the response still
 				// echoes the client's original sessionId above.
 				const forwardSessionId = forwardSessionFor(sessionId, flatSessionId);
+				const releaseAgentInput = method.startsWith("Input.")
+					? this.beginAgentInput(paneId)
+					: null;
 				wc.debugger
 					.sendCommand(method, params, forwardSessionId)
 					.then((result) => {
@@ -744,6 +798,19 @@ class BrowserManager extends EventEmitter {
 								...(sessionId ? { sessionId } : {}),
 							}),
 						);
+					})
+					.finally(() => {
+						if (!releaseAgentInput) return;
+						if (wc.isDestroyed()) return releaseAgentInput();
+						// The guest reports a mousedown or a focus gain to
+						// setupFocusForward while it handles the input, before the
+						// ack, on the IPC channel this reply also takes. So the report
+						// is in before agent input ends. mainFrame skips the wait for
+						// a load that wc.executeJavaScript adds.
+						wc.mainFrame
+							.executeJavaScript("0")
+							.catch(() => {})
+							.finally(releaseAgentInput);
 					});
 			},
 			detach,
@@ -1254,6 +1321,16 @@ class BrowserManager extends EventEmitter {
 	 * inject a script that resolves a Promise on the guest's next mousedown,
 	 * `executeJavaScript` awaits it, and re-arms immediately after. No
 	 * preload/nodeIntegration needed — the guest stays untrusted.
+	 *
+	 * An agent's CDP `Input.dispatchMouseEvent` also fires a trusted mousedown.
+	 * Activating the pane for it moves the user's focus away from the pane they
+	 * are typing in, and can switch tabs. So a mousedown that lands while an
+	 * agent input command is in flight does not activate the pane.
+	 *
+	 * Chromium also moves keyboard focus into the guest on that mousedown. The
+	 * page gaining focus while agent input is in flight is reported as
+	 * `agent-focus`, so the renderer can hand focus back. The renderer cannot
+	 * tell this itself: its focus events and our IPC are not ordered.
 	 */
 	private setupFocusForward(paneId: string, wc: Electron.WebContents): void {
 		let cancelled = false;
@@ -1264,11 +1341,15 @@ class BrowserManager extends EventEmitter {
 		// loop for the new document; the stale one exits at its next check and
 		// a late resolution from it is dropped rather than emitted.
 		let generation = 0;
-		const loop = async (gen: number): Promise<void> => {
+		const watch = async (
+			gen: number,
+			script: string,
+			onEvent: () => void,
+		): Promise<void> => {
 			while (!cancelled && gen === generation) {
 				if (wc.isDestroyed()) return;
 				try {
-					await wc.executeJavaScript(NEXT_MOUSEDOWN_SCRIPT);
+					await wc.executeJavaScript(script);
 				} catch {
 					// Script failed to run (mid-navigation, crashed renderer):
 					// retry, but not in a hot spin.
@@ -1276,12 +1357,20 @@ class BrowserManager extends EventEmitter {
 					continue;
 				}
 				if (cancelled || gen !== generation) return;
-				this.emit(`pane-focus:${paneId}`);
+				onEvent();
 			}
+		};
+		const loop = (gen: number): void => {
+			void watch(gen, NEXT_MOUSEDOWN_SCRIPT, () => {
+				if (!this.agentInputs.has(paneId)) this.emit(`pane-focus:${paneId}`);
+			});
+			void watch(gen, NEXT_PAGE_FOCUS_SCRIPT, () => {
+				if (this.agentInputs.has(paneId)) this.emit("agent-focus", { paneId });
+			});
 		};
 		const rearm = (): void => {
 			generation += 1;
-			void loop(generation);
+			loop(generation);
 		};
 
 		wc.on("dom-ready", rearm);
@@ -1293,7 +1382,7 @@ class BrowserManager extends EventEmitter {
 				// webContents may be destroyed
 			}
 		});
-		void loop(generation);
+		loop(generation);
 	}
 
 	private setupConsoleCapture(paneId: string, wc: Electron.WebContents): void {

@@ -319,6 +319,20 @@ export const createBrowserRouter = () => {
 			});
 		}),
 
+		// An agent's CDP input moved keyboard focus into a pane's guest; the
+		// renderer registry hands it back to whatever the user had focused.
+		onAgentFocus: publicProcedure.subscription(() => {
+			return observable<{ paneId: string }>((emit) => {
+				const handler = (event: { paneId: string }) => {
+					emit.next(event);
+				};
+				browserManager.on("agent-focus", handler);
+				return () => {
+					browserManager.off("agent-focus", handler);
+				};
+			});
+		}),
+
 		openDevTools: publicProcedure
 			.input(z.object({ paneId: z.string() }))
 			.mutation(({ input }) => {

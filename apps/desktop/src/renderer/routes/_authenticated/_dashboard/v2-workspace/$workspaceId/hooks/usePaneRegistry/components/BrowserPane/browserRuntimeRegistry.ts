@@ -109,6 +109,11 @@ export class BrowserRuntimeRegistryImpl {
 	// screenshots hang and input hit-testing goes stale — and exempt from
 	// hidden-webview eviction so the guest isn't destroyed mid-session.
 	private agentActivePaneIds = new Set<string>();
+	// The two most recent focus targets. Focus goes back to one of them when
+	// agent input pulls it into a guest: the guest's own focus event may
+	// already have made it the latest.
+	private lastFocused: Element | null = null;
+	private previousFocused: Element | null = null;
 
 	private getListeners(paneId: string): Set<() => void> {
 		let set = this.listenersByPaneId.get(paneId);
@@ -163,6 +168,24 @@ export class BrowserRuntimeRegistryImpl {
 			}
 		});
 
+		this.lastFocused = document.activeElement;
+		document.addEventListener(
+			"focusin",
+			(event) => {
+				if (event.target instanceof Element) this.recordFocus(event.target);
+			},
+			true,
+		);
+
+		this.ipc.browser.onAgentFocus.subscribe(undefined, {
+			onData: ({ paneId }: { paneId: string }) => {
+				const entry = this.entries.get(paneId);
+				if (entry && document.activeElement === entry.webview) {
+					this.handBackFocus(entry);
+				}
+			},
+		});
+
 		this.ipc.browser.onAgentActivePanes.subscribe(undefined, {
 			onData: ({ paneIds }: { paneIds: string[] }) => {
 				this.agentActivePaneIds = new Set(paneIds);
@@ -194,6 +217,47 @@ export class BrowserRuntimeRegistryImpl {
 			style.opacity = "";
 		}
 		entry.overlay.style.visibility = "hidden";
+	}
+
+	/**
+	 * Chromium moves keyboard focus into a guest on every mousedown routed to
+	 * it, before dispatch and whatever its source, so an agent's CDP click
+	 * pulls the user's typing out of the terminal they are in and into the
+	 * page — even a page parked in a background tab. A guest that takes focus
+	 * while parked hands it back here; main reports one an agent's input
+	 * focused while visible (`onAgentFocus`).
+	 */
+	private handleWebviewFocus(entry: RegistryEntry): void {
+		if (entry.visible) {
+			this.recordFocus(entry.webview);
+			return;
+		}
+		this.handBackFocus(entry);
+	}
+
+	private recordFocus(element: Element): void {
+		if (element === this.lastFocused) return;
+		this.previousFocused = this.lastFocused;
+		this.lastFocused = element;
+	}
+
+	private handBackFocus(entry: RegistryEntry): void {
+		const previous =
+			this.lastFocused === entry.webview
+				? this.previousFocused
+				: this.lastFocused;
+		const previousPaneId = previous ? this.getPaneIdForWebview(previous) : null;
+		const canRestore =
+			previous instanceof HTMLElement &&
+			previous !== entry.webview &&
+			previous.isConnected &&
+			(previousPaneId === null ||
+				this.entries.get(previousPaneId)?.visible === true);
+		// Chromium only moves keyboard focus into another webview's guest while
+		// the host page has it (WebContentsImpl::SetFocusedFrame), so leave
+		// this guest first.
+		entry.webview.blur();
+		if (canRestore) previous.focus({ preventScroll: true });
 	}
 
 	private applyPointerPassthrough(passthrough: boolean) {
@@ -477,7 +541,11 @@ export class BrowserRuntimeRegistryImpl {
 			onClose?.();
 		};
 
+		// Electron's own event: keyboard focus moved into the guest.
+		const handleFocus = () => this.handleWebviewFocus(entry);
+
 		webview.addEventListener("dom-ready", handleDomReady);
+		webview.addEventListener("focus", handleFocus);
 		webview.addEventListener("did-start-loading", handleDidStartLoading);
 		webview.addEventListener("did-stop-loading", handleDidStopLoading);
 		webview.addEventListener(
@@ -509,6 +577,7 @@ export class BrowserRuntimeRegistryImpl {
 		entry.detachHandlers = () => {
 			detachViewportZoom();
 			webview.removeEventListener("dom-ready", handleDomReady);
+			webview.removeEventListener("focus", handleFocus);
 			webview.removeEventListener("did-start-loading", handleDidStartLoading);
 			webview.removeEventListener("did-stop-loading", handleDidStopLoading);
 			webview.removeEventListener(

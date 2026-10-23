@@ -56,6 +56,11 @@ interface FakeWebContents {
 	getTitle: () => string;
 	isLoading: () => boolean;
 	capturePage: ReturnType<typeof mock>;
+	executeJavaScript: (code: string) => Promise<void>;
+	pendingMousedowns: Array<() => void>;
+	pendingPageFocus: Array<() => void>;
+	mainFrame: { executeJavaScript: () => Promise<void> };
+	pendingBarriers: Array<() => void>;
 	debugger: {
 		attach: () => void;
 		detach: () => void;
@@ -94,6 +99,20 @@ function makeWc(): { wc: FakeWebContents; id: number } {
 		getTitle: () => "Example",
 		isLoading: () => false,
 		capturePage: mock(async () => PNG_IMAGE),
+		executeJavaScript: (code: string) =>
+			new Promise<void>((resolve) =>
+				(code.includes("__supersetPageFocusHook")
+					? wc.pendingPageFocus
+					: wc.pendingMousedowns
+				).push(resolve),
+			),
+		pendingMousedowns: [],
+		pendingPageFocus: [],
+		mainFrame: {
+			executeJavaScript: () =>
+				new Promise<void>((resolve) => wc.pendingBarriers.push(resolve)),
+		},
+		pendingBarriers: [],
 		debugger: {
 			attach: () => {},
 			detach: () => {},
@@ -489,6 +508,194 @@ describe("CDP session on a crashed guest renderer", () => {
 			metrics,
 			undefined,
 		);
+	});
+});
+
+describe("pane focus forwarding", () => {
+	const flush = () => new Promise((r) => setTimeout(r, 0));
+
+	async function pressMouse(wc: FakeWebContents): Promise<void> {
+		for (const resolve of wc.pendingMousedowns.splice(0)) resolve();
+		await flush();
+	}
+
+	function watchFocus(paneId: string) {
+		const onFocus = mock(() => {});
+		browserManager.on(`pane-focus:${paneId}`, onFocus);
+		return {
+			onFocus,
+			stop: () => browserManager.off(`pane-focus:${paneId}`, onFocus),
+		};
+	}
+
+	async function gainPageFocus(wc: FakeWebContents): Promise<void> {
+		for (const resolve of wc.pendingPageFocus.splice(0)) resolve();
+		await flush();
+	}
+
+	async function passBarriers(wc: FakeWebContents): Promise<void> {
+		for (const resolve of wc.pendingBarriers.splice(0)) resolve();
+		await flush();
+	}
+
+	function sendPress(session: { send: (raw: string) => void }, id = 1) {
+		session.send(
+			JSON.stringify({
+				id,
+				method: "Input.dispatchMouseEvent",
+				params: { type: "mousePressed", x: 10, y: 10, button: "left" },
+			}),
+		);
+	}
+
+	test("a user click in the guest activates the pane", async () => {
+		const wc = register("pane-click");
+		const { onFocus, stop } = watchFocus("pane-click");
+
+		await pressMouse(wc);
+
+		expect(onFocus).toHaveBeenCalledTimes(1);
+		stop();
+	});
+
+	test("a click an agent dispatches over CDP does not activate the pane", async () => {
+		const wc = register("pane-agent-click");
+		const { onFocus, stop } = watchFocus("pane-agent-click");
+		const session = browserManager.attachCdp(
+			"pane-agent-click",
+			"ws-1",
+			() => {},
+			() => {},
+		);
+		let settle = () => {};
+		wc.debugger.sendCommand = mock(
+			() => new Promise<void>((resolve) => (settle = resolve)),
+		);
+
+		sendPress(session);
+		await pressMouse(wc);
+		// The guest's mousedown can arrive just after the CDP reply.
+		settle();
+		await flush();
+		await pressMouse(wc);
+		expect(onFocus).not.toHaveBeenCalled();
+
+		await passBarriers(wc);
+		await pressMouse(wc);
+		expect(onFocus).toHaveBeenCalledTimes(1);
+
+		session.detach();
+		stop();
+	});
+
+	test("reports the guest gaining focus during agent input, and only then", async () => {
+		const wc = register("pane-agent-focus");
+		const reports: unknown[] = [];
+		const onAgentFocus = (event: unknown) => reports.push(event);
+		browserManager.on("agent-focus", onAgentFocus);
+		const session = browserManager.attachCdp(
+			"pane-agent-focus",
+			"ws-1",
+			() => {},
+			() => {},
+		);
+		let settle = () => {};
+		wc.debugger.sendCommand = mock(
+			() => new Promise<void>((resolve) => (settle = resolve)),
+		);
+
+		sendPress(session);
+		await gainPageFocus(wc);
+		settle();
+		await flush();
+		await passBarriers(wc);
+		expect(reports).toEqual([{ paneId: "pane-agent-focus" }]);
+
+		await gainPageFocus(wc);
+		expect(reports).toHaveLength(1);
+
+		browserManager.off("agent-focus", onAgentFocus);
+		session.detach();
+	});
+
+	test("a release from before the pane re-registered is ignored", async () => {
+		const first = register("pane-reregister");
+		const session = browserManager.attachCdp(
+			"pane-reregister",
+			"ws-1",
+			() => {},
+			() => {},
+		);
+		let settleOld = () => {};
+		first.debugger.sendCommand = mock(
+			() => new Promise<void>((resolve) => (settleOld = resolve)),
+		);
+		sendPress(session);
+
+		browserManager.unregister("pane-reregister");
+		const second = register("pane-reregister");
+		const { onFocus, stop } = watchFocus("pane-reregister");
+		const newSession = browserManager.attachCdp(
+			"pane-reregister",
+			"ws-1",
+			() => {},
+			() => {},
+		);
+		second.debugger.sendCommand = mock(() => new Promise<void>(() => {}));
+		sendPress(newSession);
+
+		settleOld();
+		await flush();
+		await passBarriers(first);
+		await pressMouse(second);
+		expect(onFocus).not.toHaveBeenCalled();
+
+		newSession.detach();
+		stop();
+	});
+
+	test("agent input ends when the CDP session detaches", async () => {
+		const wc = register("pane-agent-detach");
+		const { onFocus, stop } = watchFocus("pane-agent-detach");
+		const session = browserManager.attachCdp(
+			"pane-agent-detach",
+			"ws-1",
+			() => {},
+			() => {},
+		);
+		wc.debugger.sendCommand = mock(() => new Promise<void>(() => {}));
+		sendPress(session);
+
+		session.detach();
+		await pressMouse(wc);
+
+		expect(onFocus).toHaveBeenCalledTimes(1);
+		stop();
+	});
+
+	test("other CDP commands do not hide a user click", async () => {
+		const wc = register("pane-agent-eval");
+		const { onFocus, stop } = watchFocus("pane-agent-eval");
+		const session = browserManager.attachCdp(
+			"pane-agent-eval",
+			"ws-1",
+			() => {},
+			() => {},
+		);
+		wc.debugger.sendCommand = mock(() => new Promise<void>(() => {}));
+
+		session.send(
+			JSON.stringify({
+				id: 1,
+				method: "Runtime.evaluate",
+				params: { expression: "1" },
+			}),
+		);
+		await pressMouse(wc);
+
+		expect(onFocus).toHaveBeenCalledTimes(1);
+		session.detach();
+		stop();
 	});
 });
 
