@@ -296,7 +296,7 @@
 		"tailwindcss": "4.2.2",
 		"tsx": "4.21.0",
 		"typescript": "7.0.2",
-		"vite": "7.3.5",
+		"vite": "7.3.7",
 		"vite-tsconfig-paths": "5.1.4"
 	}
 }

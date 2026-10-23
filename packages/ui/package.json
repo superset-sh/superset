@@ -119,7 +119,7 @@
 		"storybook": "10.4.2",
 		"tailwindcss": "4.2.2",
 		"typescript": "7.0.2",
-		"vite": "7.3.5"
+		"vite": "7.3.7"
 	},
 	"peerDependencies": {
 		"react": "19.2.3"
