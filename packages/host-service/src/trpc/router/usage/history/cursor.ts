@@ -22,6 +22,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import Database from "better-sqlite3";
 import { type CursorUsageEvent, cursorEventsToEntries } from "./cursor-events";
+import { readGrokBotAgents } from "./grok-bot";
 import type { UsageLogEntry } from "./parse";
 
 export { type CursorUsageEvent, cursorEventsToEntries } from "./cursor-events";
@@ -37,6 +38,8 @@ const FETCH_TIMEOUT_MS = 15_000;
 // for every render poll. Keyed per cutoff so range switches stay fresh.
 const EVENTS_CACHE_TTL_MS = 5 * 60 * 1000;
 const MAX_LABEL_DB_OPENS = 200;
+// The `x-cursor-client-type` Grok Bot sends; the feed filters on it.
+const GROK_BOT_CLIENT_TYPE = "sand";
 
 export function cursorChatsDir(): string {
 	return join(homedir(), ".cursor", "chats");
@@ -87,6 +90,7 @@ export async function readCursorAccessToken(): Promise<string | null> {
 async function fetchUsageEvents(
 	token: string,
 	cutoffMs: number,
+	clientType?: string,
 ): Promise<CursorUsageEvent[]> {
 	const events: CursorUsageEvent[] = [];
 	const endDate = Date.now();
@@ -105,6 +109,7 @@ async function fetchUsageEvents(
 					endDate: String(endDate),
 					page,
 					pageSize: PAGE_SIZE,
+					...(clientType ? { clientType } : {}),
 				}),
 				signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
 			},
@@ -131,7 +136,28 @@ let cachedEvents: {
 	cutoffMs: number;
 	fetchedAt: number;
 	events: CursorUsageEvent[];
+	grokBotConversationIds: Set<string>;
 } | null = null;
+
+async function fetchGrokBotConversationIds(
+	token: string,
+	cutoffMs: number,
+): Promise<Set<string>> {
+	try {
+		const events = await fetchUsageEvents(
+			token,
+			cutoffMs,
+			GROK_BOT_CLIENT_TYPE,
+		);
+		return new Set(
+			events.flatMap((event) =>
+				event.conversationId ? [event.conversationId] : [],
+			),
+		);
+	} catch {
+		return new Set();
+	}
+}
 
 interface ChatDirIndex {
 	/** conversationId → md5-of-cwd segment. */
@@ -212,19 +238,30 @@ export async function collectCursorEntries(
 	const token = await readCursorAccessToken();
 	if (!token) return;
 
-	let events: CursorUsageEvent[];
 	if (
-		cachedEvents &&
-		cachedEvents.cutoffMs === cutoffMs &&
-		Date.now() - cachedEvents.fetchedAt < EVENTS_CACHE_TTL_MS
+		!cachedEvents ||
+		cachedEvents.cutoffMs !== cutoffMs ||
+		Date.now() - cachedEvents.fetchedAt >= EVENTS_CACHE_TTL_MS
 	) {
-		events = cachedEvents.events;
-	} else {
-		events = await fetchUsageEvents(token, cutoffMs);
-		cachedEvents = { cutoffMs, fetchedAt: Date.now(), events };
+		const [events, grokBotConversationIds] = await Promise.all([
+			fetchUsageEvents(token, cutoffMs),
+			fetchGrokBotConversationIds(token, cutoffMs),
+		]);
+		cachedEvents = {
+			cutoffMs,
+			fetchedAt: Date.now(),
+			events,
+			grokBotConversationIds,
+		};
 	}
+	const { events, grokBotConversationIds } = cachedEvents;
 
-	const entries = cursorEventsToEntries(events, cutoffMs);
+	const grokBotAgents = await readGrokBotAgents();
+	const entries = cursorEventsToEntries(
+		events,
+		cutoffMs,
+		new Set([...grokBotConversationIds, ...grokBotAgents.keys()]),
+	);
 	if (entries.length === 0) return;
 
 	const { hashByConversation, dbByConversation } =
@@ -237,6 +274,14 @@ export async function collectCursorEntries(
 	let labelOpens = 0;
 	const labeled = new Set<string>();
 	for (const entry of entries) {
+		if (entry.agent === "grok-bot") {
+			const name = grokBotAgents.get(entry.sessionId);
+			if (sessionLabels && name && !sessionLabels.has(entry.sessionId)) {
+				sessionLabels.set(entry.sessionId, name);
+			}
+			out.push(entry);
+			continue;
+		}
 		const hash = hashByConversation.get(entry.sessionId);
 		if (hash) {
 			entry.cwd = cwdByHash.get(hash) ?? null;

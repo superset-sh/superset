@@ -18,6 +18,7 @@ export interface CursorUsageEvent {
 export function cursorEventsToEntries(
 	events: CursorUsageEvent[],
 	cutoffMs: number,
+	grokBotConversationIds: ReadonlySet<string> = new Set(),
 ): UsageLogEntry[] {
 	const entries: UsageLogEntry[] = [];
 	for (const event of events) {
@@ -31,7 +32,10 @@ export function cursorEventsToEntries(
 				? cents / 100
 				: undefined;
 		entries.push({
-			agent: "cursor",
+			agent:
+				event.conversationId && grokBotConversationIds.has(event.conversationId)
+					? "grok-bot"
+					: "cursor",
 			model: event.model || "unknown",
 			timestampMs,
 			cwd: null,

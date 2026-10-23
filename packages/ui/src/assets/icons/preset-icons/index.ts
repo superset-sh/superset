@@ -14,6 +14,7 @@ import fxIcon from "./fx.svg";
 import fxWhiteIcon from "./fx-white.svg";
 import geminiIcon from "./gemini.svg";
 import grokIcon from "./grok.svg";
+import grokBotIcon from "./grok-bot.png";
 import grokWhiteIcon from "./grok-white.svg";
 import hermesIcon from "./hermes.svg";
 import hermesWhiteIcon from "./hermes-white.svg";
@@ -53,6 +54,7 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	fx: { light: fxIcon, dark: fxWhiteIcon },
 	gemini: { light: geminiIcon, dark: geminiIcon },
 	grok: { light: grokIcon, dark: grokWhiteIcon },
+	"grok-bot": { light: grokBotIcon, dark: grokBotIcon },
 	hermes: { light: hermesIcon, dark: hermesWhiteIcon },
 	kimi: { light: kimiIcon, dark: kimiWhiteIcon },
 	kiro: { light: kiroIcon, dark: kiroIcon },
@@ -106,6 +108,7 @@ export {
 	fxIcon,
 	fxWhiteIcon,
 	geminiIcon,
+	grokBotIcon,
 	grokIcon,
 	grokWhiteIcon,
 	hermesIcon,

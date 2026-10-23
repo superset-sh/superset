@@ -17,7 +17,8 @@ export type UsageAgent =
 	| "fx"
 	| "muse"
 	| "devin"
-	| "hermes";
+	| "hermes"
+	| "grok-bot";
 
 /** The subset of agents with quota accounts. Claude and Codex logins are
  * also switchable; OpenCode's are the Anthropic/OpenAI subscriptions it is

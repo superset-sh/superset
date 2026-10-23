@@ -54,3 +54,23 @@ describe("cursorEventsToEntries", () => {
 		expect(entries).toHaveLength(0);
 	});
 });
+
+describe("Grok Bot events", () => {
+	const event = {
+		timestamp: "1787948440926",
+		model: "cursor-grok-4.6-high-fast",
+		tokenUsage: { inputTokens: 430, outputTokens: 537 },
+	};
+
+	test("a Grok Bot conversation is grok-bot usage", () => {
+		const entries = cursorEventsToEntries(
+			[
+				{ ...event, conversationId: "bot-1" },
+				{ ...event, conversationId: "chat-1" },
+			],
+			0,
+			new Set(["bot-1"]),
+		);
+		expect(entries.map((entry) => entry.agent)).toEqual(["grok-bot", "cursor"]);
+	});
+});
