@@ -89,13 +89,13 @@ ALTER INDEX "automation_events_swap_resource_idx" RENAME TO "automation_events_r
 ALTER INDEX "automation_events_swap_received_at_idx" RENAME TO "automation_events_received_at_idx";--> statement-breakpoint
 ALTER TABLE "automation_events" RENAME CONSTRAINT "automation_events_swap_dedup_unique" TO "automation_events_dedup_unique";--> statement-breakpoint
 ALTER TABLE "automation_events" RENAME CONSTRAINT "automation_events_swap_organization_id_organizations_id_fk" TO "automation_events_organization_id_organizations_id_fk";--> statement-breakpoint
-ALTER TABLE "automation_events" RENAME CONSTRAINT "automation_events_swap_id_not_null" TO "automation_events_id_not_null";--> statement-breakpoint
-ALTER TABLE "automation_events" RENAME CONSTRAINT "automation_events_swap_organization_id_not_null" TO "automation_events_organization_id_not_null";--> statement-breakpoint
-ALTER TABLE "automation_events" RENAME CONSTRAINT "automation_events_swap_provider_not_null" TO "automation_events_provider_not_null";--> statement-breakpoint
-ALTER TABLE "automation_events" RENAME CONSTRAINT "automation_events_swap_event_type_not_null" TO "automation_events_event_type_not_null";--> statement-breakpoint
-ALTER TABLE "automation_events" RENAME CONSTRAINT "automation_events_swap_external_event_id_not_null" TO "automation_events_external_event_id_not_null";--> statement-breakpoint
-ALTER TABLE "automation_events" RENAME CONSTRAINT "automation_events_swap_title_not_null" TO "automation_events_title_not_null";--> statement-breakpoint
-ALTER TABLE "automation_events" RENAME CONSTRAINT "automation_events_swap_received_at_not_null" TO "automation_events_received_at_not_null";--> statement-breakpoint
+DO $do$ BEGIN IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'automation_events_swap_id_not_null') THEN ALTER TABLE "automation_events" RENAME CONSTRAINT "automation_events_swap_id_not_null" TO "automation_events_id_not_null"; END IF; END $do$;--> statement-breakpoint
+DO $do$ BEGIN IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'automation_events_swap_organization_id_not_null') THEN ALTER TABLE "automation_events" RENAME CONSTRAINT "automation_events_swap_organization_id_not_null" TO "automation_events_organization_id_not_null"; END IF; END $do$;--> statement-breakpoint
+DO $do$ BEGIN IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'automation_events_swap_provider_not_null') THEN ALTER TABLE "automation_events" RENAME CONSTRAINT "automation_events_swap_provider_not_null" TO "automation_events_provider_not_null"; END IF; END $do$;--> statement-breakpoint
+DO $do$ BEGIN IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'automation_events_swap_event_type_not_null') THEN ALTER TABLE "automation_events" RENAME CONSTRAINT "automation_events_swap_event_type_not_null" TO "automation_events_event_type_not_null"; END IF; END $do$;--> statement-breakpoint
+DO $do$ BEGIN IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'automation_events_swap_external_event_id_not_null') THEN ALTER TABLE "automation_events" RENAME CONSTRAINT "automation_events_swap_external_event_id_not_null" TO "automation_events_external_event_id_not_null"; END IF; END $do$;--> statement-breakpoint
+DO $do$ BEGIN IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'automation_events_swap_title_not_null') THEN ALTER TABLE "automation_events" RENAME CONSTRAINT "automation_events_swap_title_not_null" TO "automation_events_title_not_null"; END IF; END $do$;--> statement-breakpoint
+DO $do$ BEGIN IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'automation_events_swap_received_at_not_null') THEN ALTER TABLE "automation_events" RENAME CONSTRAINT "automation_events_swap_received_at_not_null" TO "automation_events_received_at_not_null"; END IF; END $do$;--> statement-breakpoint
 
 -- What ON DELETE SET NULL would have done for the rows that were not carried.
 UPDATE "automation_runs" SET "event_id" = NULL WHERE "event_id" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "automation_events" e WHERE e."id" = "automation_runs"."event_id");--> statement-breakpoint
