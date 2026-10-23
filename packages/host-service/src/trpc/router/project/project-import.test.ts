@@ -1,5 +1,5 @@
 import { Database } from "bun:sqlite";
-import { afterAll, describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it, mock } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -175,6 +175,142 @@ describe("createFromImportLocal idempotency", () => {
 		expect(rows[0]?.name).toBe("Custom Name");
 		expect(rows[0]?.color).toBe("#112233");
 		expect(rows[0]?.icon).toBe("none");
+	});
+});
+
+describe("project setup repository relinking", () => {
+	it("does not persist or broadcast repeated setup with an unchanged explicit remote", async () => {
+		const db = createTestDb();
+		const { api } = createRecordingApiStub();
+		const ctx = createTestContext(db, api);
+		const root = await createTempGitRepo();
+		await createUserSimpleGit(root).addRemote(
+			"origin",
+			"git@github.com:acme/demo.git",
+		);
+		const projectId = randomUUID();
+		const caller = createCallerFactory(projectRouter)(ctx);
+		const input = {
+			projectId,
+			origin: {
+				name: "Custom Name",
+				repoCloneUrl: "https://github.com/acme/demo",
+			},
+			mode: { kind: "import" as const, repoPath: root },
+		};
+		await caller.setup(input);
+		db.update(projects)
+			.set({ updatedAt: 1 })
+			.where(eq(projects.id, projectId))
+			.run();
+		const before = db.select().from(projects).get();
+		const broadcastProjectChanged = mock(() => {});
+		ctx.eventBus = {
+			broadcastProjectChanged,
+		} as unknown as typeof ctx.eventBus;
+
+		expect(await caller.setup(input)).toEqual({ repoPath: root });
+		expect(db.select().from(projects).get()).toEqual(before);
+		expect(broadcastProjectChanged).not.toHaveBeenCalled();
+	});
+
+	it("refreshes an explicitly selected remote at the same path without changing project customizations", async () => {
+		const db = createTestDb();
+		const { api } = createRecordingApiStub();
+		const ctx = createTestContext(db, api);
+		const root = await createTempGitRepo();
+		const git = createUserSimpleGit(root);
+		await git.addRemote("origin", "git@github.com:my-fork/demo.git");
+		await git.addRemote("upstream", "git@github.com:old-org/demo.git");
+		const projectId = randomUUID();
+		const caller = createCallerFactory(projectRouter)(ctx);
+		await caller.setup({
+			projectId,
+			origin: {
+				name: "Custom Name",
+				repoCloneUrl: "https://github.com/old-org/demo",
+			},
+			mode: { kind: "import", repoPath: root },
+		});
+		db.update(projects)
+			.set({ color: "#112233", icon: "none", worktreeBaseDir: "/custom" })
+			.where(eq(projects.id, projectId))
+			.run();
+		const before = db.select().from(projects).get();
+		if (!before) throw new Error("Project was not created");
+		const broadcastProjectChanged = mock(() => {});
+		ctx.eventBus = {
+			broadcastProjectChanged,
+		} as unknown as typeof ctx.eventBus;
+		await git.remote([
+			"set-url",
+			"upstream",
+			"git@github.com:new-org/renamed.git",
+		]);
+
+		const result = await caller.setup({
+			projectId,
+			origin: {
+				name: "Ignored Name",
+				repoCloneUrl: "https://github.com/new-org/renamed",
+			},
+			mode: { kind: "import", repoPath: root },
+		});
+
+		expect(result).toEqual({ repoPath: root });
+		const rows = db.select().from(projects).all();
+		expect(rows).toHaveLength(1);
+		expect(rows[0]).toEqual({
+			...before,
+			repoOwner: "new-org",
+			repoName: "renamed",
+			repoUrl: "https://github.com/new-org/renamed",
+			updatedAt: expect.any(Number),
+		});
+		expect(await caller.get({ projectId })).toMatchObject({
+			name: "Custom Name",
+			repoOwner: "new-org",
+			repoName: "renamed",
+			repoUrl: "https://github.com/new-org/renamed",
+		});
+		expect(broadcastProjectChanged).toHaveBeenCalledTimes(1);
+		expect(broadcastProjectChanged).toHaveBeenCalledWith(
+			expect.objectContaining({
+				projectId,
+				eventType: "updated",
+				project: expect.objectContaining({
+					repoUrl: "https://github.com/new-org/renamed",
+				}),
+			}),
+		);
+	});
+
+	it("keeps a selected upstream remote when setup supplies no repository URL", async () => {
+		const db = createTestDb();
+		const { api } = createRecordingApiStub();
+		const ctx = createTestContext(db, api);
+		const root = await createTempGitRepo();
+		const git = createUserSimpleGit(root);
+		await git.addRemote("origin", "git@github.com:my-fork/demo.git");
+		await git.addRemote("upstream", "git@github.com:acme/demo.git");
+		const projectId = randomUUID();
+		const caller = createCallerFactory(projectRouter)(ctx);
+		await caller.setup({
+			projectId,
+			origin: {
+				name: "Custom Name",
+				repoCloneUrl: "https://github.com/acme/demo",
+			},
+			mode: { kind: "import", repoPath: root },
+		});
+		const before = db.select().from(projects).get();
+
+		await caller.setup({
+			projectId,
+			mode: { kind: "import", repoPath: root },
+		});
+
+		expect(db.select().from(projects).get()).toEqual(before);
 	});
 });
 
