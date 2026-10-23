@@ -5,10 +5,15 @@
 # terminal stacks are supported.
 
 # Codex passes JSON as argv; Claude/Mastra/Droid/Kimi/Grok pipe via stdin.
+# Everything here parses with bash built-ins on purpose: this script runs
+# synchronously on every agent lifecycle event (PostToolUse fires per tool
+# call), so each external program it launches is paid dozens of times per
+# prompt. Process starts are what made prompts hang for seconds and hooks
+# hit their 30 s timeout under load (GH #8245).
 if [ -n "$1" ]; then
   INPUT="$1"
 else
-  INPUT=$(cat)
+  IFS= read -r -d '' INPUT || true
 fi
 
 # Agent hook configs are global, so this can fire in sessions launched
@@ -54,9 +59,12 @@ fi
 # repeats agent_type inside background_tasks), and a multi-line value would
 # break the JSON payload built from it.
 json_field() {
+  local KEY RE
   for KEY in "$@"; do
-    VALUE=$(echo "$INPUT" | grep -oE "\"$KEY\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" | head -n 1 | grep -oE '"[^"]*"$' | tr -d '"')
-    [ -n "$VALUE" ] && { printf '%s' "$VALUE"; return; }
+    RE="\"$KEY\"[[:space:]]*:[[:space:]]*\"([^\"]*)\""
+    if [[ $INPUT =~ $RE ]]; then
+      [ -n "${BASH_REMATCH[1]}" ] && { printf '%s' "${BASH_REMATCH[1]}"; return; }
+    fi
   done
 }
 SUBAGENT_ID=$(json_field agent_id agentId)
@@ -132,8 +140,21 @@ debug_log() {
   printf '%s [notify-hook] %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date)" "$*" >> "${SUPERSET_HOOK_DEBUG_LOG:-/tmp/superset-agent-hooks.log}" 2>/dev/null || true
 }
 
+# Values from json_field cannot hold raw control characters (JSON encodes
+# them), but environment-derived values can: a newline or tab smuggled into
+# something like SUPERSET_TERMINAL_ID or an account profile path would
+# otherwise break the payload this builds. The old sed version had the same
+# gap. Rarer C0 characters are left to the producers; these five cover what
+# shells and config files realistically carry.
 json_escape() {
-  printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+  local V="${1//\\/\\\\}"
+  V="${V//\"/\\\"}"
+  V="${V//$'\n'/\\n}"
+  V="${V//$'\r'/\\r}"
+  V="${V//$'\t'/\\t}"
+  V="${V//$'\b'/\\b}"
+  V="${V//$'\f'/\\f}"
+  printf '%s' "$V"
 }
 
 # Resolve the host-service endpoint at call time. SUPERSET_HOST_AGENT_HOOK_URL
@@ -154,7 +175,11 @@ dispatch_to_host() {
   HOOK_CANDIDATE_URLS="$SUPERSET_HOST_AGENT_HOOK_URL"
   for MANIFEST_FILE in "${SUPERSET_HOME_DIR:-$HOME/.superset}"/host/*/manifest.json; do
     [ -f "$MANIFEST_FILE" ] || continue
-    MANIFEST_ENDPOINT=$(grep -oE '"endpoint"[[:space:]]*:[[:space:]]*"[^"]*"' "$MANIFEST_FILE" | head -1 | grep -oE '"[^"]*"$' | tr -d '"')
+    MANIFEST_CONTENT=""
+    IFS= read -r -d '' MANIFEST_CONTENT < "$MANIFEST_FILE" 2>/dev/null || true
+    MANIFEST_RE='"endpoint"[[:space:]]*:[[:space:]]*"([^"]*)"'
+    [[ $MANIFEST_CONTENT =~ $MANIFEST_RE ]] || continue
+    MANIFEST_ENDPOINT="${BASH_REMATCH[1]}"
     [ -n "$MANIFEST_ENDPOINT" ] || continue
     HOOK_CANDIDATE_URLS="$HOOK_CANDIDATE_URLS $MANIFEST_ENDPOINT/trpc/notifications.hook"
   done
@@ -220,7 +245,9 @@ esac
 case "$EVENT_TYPE" in
   Stop|stop|Interrupt|AfterAgent|agent-turn-complete|task_complete|post_agent|post_agent_turn|StopFailure|stop_failure|Failed|failed|PermissionRequest|Notification|notification|PreToolUse|preToolUse|pre_tool_use|exec_approval_request|apply_patch_approval_request|request_user_input)
     for PREVIEW_KEY in $PREVIEW_KEYS; do
-      PREVIEW_VALUE=$(printf '%s' "$INPUT" | grep -oE "\"$PREVIEW_KEY\"[[:space:]]*:[[:space:]]*\"(\\\\.|[^\"\\\\])*\"" | head -n 1 | sed -E 's/^[^:]*:[[:space:]]*//')
+      PREVIEW_RE="\"$PREVIEW_KEY\"[[:space:]]*:[[:space:]]*(\"(\\\\.|[^\"\\\\])*\")"
+      PREVIEW_VALUE=""
+      [[ $INPUT =~ $PREVIEW_RE ]] && PREVIEW_VALUE="${BASH_REMATCH[1]}"
       if [ -n "$PREVIEW_VALUE" ] && [ "$PREVIEW_VALUE" != '""' ]; then
         PREVIEW_FIELD=",\"preview\":$PREVIEW_VALUE"
         break
