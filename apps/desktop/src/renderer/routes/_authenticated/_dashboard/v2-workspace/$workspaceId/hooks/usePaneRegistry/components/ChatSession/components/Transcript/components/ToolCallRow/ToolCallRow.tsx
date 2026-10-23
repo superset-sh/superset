@@ -66,7 +66,7 @@ export function ToolCallRow({ item }: { item: ToolCall }) {
 					</ShimmerLabel>
 				)}
 				<ShimmerLabel
-					className={cn("min-w-0 truncate font-normal", face)}
+					className={cn("min-w-0 shrink truncate font-normal", face)}
 					duration={TITLE_SWEEP_SECONDS}
 				>
 					{label}
