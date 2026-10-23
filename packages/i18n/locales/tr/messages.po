@@ -264,6 +264,10 @@ msgstr "{0, plural, one {# soru soruldu} other {# soru soruldu}}"
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Yorumlar bu ajana gider} other {Yorumlar bu ajanlara gider}}"
 
+#. placeholder {0}: failed.length
+msgid "{0, plural, one {Could not remove # folder} other {Could not remove # folders}}"
+msgstr "{0, plural, one {# klasör kaldırılamadı} other {# klasör kaldırılamadı}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -317,6 +321,10 @@ msgstr "{0, plural, one {# otomasyon duraklatıldı.} other {# otomasyon durakla
 #. placeholder {0}: cleanup.automations
 msgid "{0, plural, one {Pauses # automation} other {Pauses # automations}}"
 msgstr "{0, plural, one {# otomasyonu duraklatır} other {# otomasyonu duraklatır}}"
+
+#. placeholder {0}: removed.length
+msgid "{0, plural, one {Removed # empty folder} other {Removed # empty folders}}"
+msgstr "{0, plural, one {# boş klasör kaldırıldı} other {# boş klasör kaldırıldı}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -869,6 +877,9 @@ msgstr "{distance} önce"
 msgid "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
 msgstr "{duration, plural, one {# saniye düşündü} other {# saniye düşündü}}"
 
+msgid "{emptyCount, plural, one {Remove # empty folder} other {Remove # empty folders}}"
+msgstr "{emptyCount, plural, one {# boş klasörü kaldır} other {# boş klasörü kaldır}}"
+
 #. js-lingui-explicit-id
 msgid "serverError.page.entryPathHeldByAnotherOrganization"
 msgstr "Bu çalışma alanındaki {entryPath} başka bir organizasyonda zaten sayfa olarak yayımlanmış. Dosyayı taşı ya da o sayfanın kimliğiyle yayımla."
@@ -1169,6 +1180,18 @@ msgstr "{shownCount} gösteriliyor · {0} · {1} token"
 
 msgid "{skipped, plural, one {# skipped} other {# skipped}}"
 msgstr "{skipped, plural, one {# atlandı} other {# atlandı}}"
+
+msgid "{skipped, plural, one {Skipped # folder: a host or the cloud has not answered yet.} other {Skipped # folders: a host or the cloud has not answered yet.}}"
+msgstr "{skipped, plural, one {# klasör atlandı: bir host veya bulut henüz yanıt vermedi.} other {# klasör atlandı: bir host veya bulut henüz yanıt vermedi.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: it changed while it was being removed.} other {Skipped # folders: they changed while they were being removed.}}"
+msgstr "{skipped, plural, one {# klasör atlandı: kaldırılırken değişti.} other {# klasör atlandı: kaldırılırken değişti.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: not every host that keeps its settings is known yet.} other {Skipped # folders: not every host that keeps their settings is known yet.}}"
+msgstr "{skipped, plural, one {# klasör atlandı: ayarlarını tutan tüm host'lar henüz bilinmiyor.} other {# klasör atlandı: ayarlarını tutan tüm host'lar henüz bilinmiyor.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: this window switched organization.} other {Skipped # folders: this window switched organization.}}"
+msgstr "{skipped, plural, one {# klasör atlandı: bu pencere kuruluş değiştirdi.} other {# klasör atlandı: bu pencere kuruluş değiştirdi.}}"
 
 msgid "{starCount} stars and counting"
 msgstr "{starCount} yıldız ve artıyor"
@@ -5152,6 +5175,9 @@ msgstr "Ortam kaydedilemedi"
 
 msgid "Could not remove access"
 msgstr "Erişim kaldırılamadı"
+
+msgid "Could not remove empty folders"
+msgstr "Boş klasörler kaldırılamadı"
 
 msgid "Could not rename the session"
 msgstr "Oturum yeniden adlandırılamadı"
@@ -11160,6 +11186,9 @@ msgstr "Henüz indirme yok"
 msgid "No emoji found"
 msgstr "Emoji bulunamadı"
 
+msgid "No empty folders"
+msgstr "Boş klasör yok"
+
 msgid "No environment for {repositoryFullName}"
 msgstr "{repositoryFullName} için ortam yok"
 
@@ -11195,6 +11224,9 @@ msgstr "Hiçbir dosya kabul edilen türlerle eşleşmiyor."
 
 msgid "No files match your search"
 msgstr "Aramanızla eşleşen dosya yok"
+
+msgid "No folders removed"
+msgstr "Hiçbir klasör kaldırılmadı"
 
 msgid "No fonts found."
 msgstr "Yazı tipi bulunamadı."
@@ -14013,6 +14045,9 @@ msgstr "{repositoryName} kaldır"
 
 msgid "Remove attachment"
 msgstr "Eki kaldır"
+
+msgid "Remove empty folders"
+msgstr "Boş klasörleri kaldır"
 
 msgid "Remove from favorites"
 msgstr "Favorilerden kaldır"

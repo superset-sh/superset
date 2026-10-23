@@ -15,6 +15,7 @@ import type {
 	SidebarProjectHostFilter,
 	SidebarProjectSortMode,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
+import { RemoveEmptyFoldersMenuItem } from "./components/RemoveEmptyFoldersMenuItem";
 
 const SORT_MODES: SidebarProjectSortMode[] = ["manual", "active", "created"];
 const HOST_FILTERS: SidebarProjectHostFilter[] = ["all", "local", "cloud"];
@@ -28,8 +29,9 @@ interface DashboardSidebarProjectsSortMenuProps {
 }
 
 /**
- * Sort-mode picker in the Projects header. Sorts the workspaces inside each
- * project — the project list itself is always the manual drag order. Lives
+ * Sort-mode picker in the Projects header, plus the empty-folder cleanup.
+ * Sorts the workspaces inside each project — the project list itself is
+ * always the manual drag order. Lives
  * inside the header strip, which toggles the section on click, so the trigger
  * and the (portaled, but React-bubbling) menu content both stop propagation.
  */
@@ -152,6 +154,8 @@ export function DashboardSidebarProjectsSortMenu({
 						</DropdownMenuRadioGroup>
 					</>
 				)}
+				<DropdownMenuSeparator />
+				<RemoveEmptyFoldersMenuItem />
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

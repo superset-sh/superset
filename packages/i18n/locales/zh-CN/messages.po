@@ -264,6 +264,10 @@ msgstr "{0, plural, other {提出了 # 个问题}}"
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {评论将发送给此智能体} other {评论将发送给这些智能体}}"
 
+#. placeholder {0}: failed.length
+msgid "{0, plural, one {Could not remove # folder} other {Could not remove # folders}}"
+msgstr "{0, plural, one {无法删除 # 个文件夹} other {无法删除 # 个文件夹}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -317,6 +321,10 @@ msgstr "{0, plural, other {已暂停 # 个自动化。}}"
 #. placeholder {0}: cleanup.automations
 msgid "{0, plural, one {Pauses # automation} other {Pauses # automations}}"
 msgstr "{0, plural, other {暂停 # 个自动化}}"
+
+#. placeholder {0}: removed.length
+msgid "{0, plural, one {Removed # empty folder} other {Removed # empty folders}}"
+msgstr "{0, plural, one {已删除 # 个空文件夹} other {已删除 # 个空文件夹}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -869,6 +877,9 @@ msgstr "{distance}前"
 msgid "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
 msgstr "{duration, plural, one {思考了#秒} other {思考了#秒}}"
 
+msgid "{emptyCount, plural, one {Remove # empty folder} other {Remove # empty folders}}"
+msgstr "{emptyCount, plural, one {删除 # 个空文件夹} other {删除 # 个空文件夹}}"
+
 #. js-lingui-explicit-id
 msgid "serverError.page.entryPathHeldByAnotherOrganization"
 msgstr "该工作区中的 {entryPath} 已在另一个组织中发布为页面。请移动该文件，或使用那个页面的 id 发布。"
@@ -1169,6 +1180,18 @@ msgstr "显示{shownCount}个 · {0} · {1}个token"
 
 msgid "{skipped, plural, one {# skipped} other {# skipped}}"
 msgstr "{skipped, plural, one {#项已跳过} other {#项已跳过}}"
+
+msgid "{skipped, plural, one {Skipped # folder: a host or the cloud has not answered yet.} other {Skipped # folders: a host or the cloud has not answered yet.}}"
+msgstr "{skipped, plural, one {已跳过 # 个文件夹：某台主机或云端尚未响应。} other {已跳过 # 个文件夹：某台主机或云端尚未响应。}}"
+
+msgid "{skipped, plural, one {Skipped # folder: it changed while it was being removed.} other {Skipped # folders: they changed while they were being removed.}}"
+msgstr "{skipped, plural, one {已跳过 # 个文件夹：删除过程中文件夹发生了变化。} other {已跳过 # 个文件夹：删除过程中文件夹发生了变化。}}"
+
+msgid "{skipped, plural, one {Skipped # folder: not every host that keeps its settings is known yet.} other {Skipped # folders: not every host that keeps their settings is known yet.}}"
+msgstr "{skipped, plural, one {已跳过 # 个文件夹：尚未确定保存其设置的所有主机。} other {已跳过 # 个文件夹：尚未确定保存其设置的所有主机。}}"
+
+msgid "{skipped, plural, one {Skipped # folder: this window switched organization.} other {Skipped # folders: this window switched organization.}}"
+msgstr "{skipped, plural, one {已跳过 # 个文件夹：此窗口已切换组织。} other {已跳过 # 个文件夹：此窗口已切换组织。}}"
 
 msgid "{starCount} stars and counting"
 msgstr "{starCount}个星标，还在增长"
@@ -5152,6 +5175,9 @@ msgstr "无法保存环境"
 
 msgid "Could not remove access"
 msgstr "无法移除访问权限"
+
+msgid "Could not remove empty folders"
+msgstr "无法删除空文件夹"
 
 msgid "Could not rename the session"
 msgstr "无法重命名会话"
@@ -11160,6 +11186,9 @@ msgstr "暂无下载"
 msgid "No emoji found"
 msgstr "未找到表情"
 
+msgid "No empty folders"
+msgstr "没有空文件夹"
+
 msgid "No environment for {repositoryFullName}"
 msgstr "{repositoryFullName} 没有环境"
 
@@ -11195,6 +11224,9 @@ msgstr "没有文件符合允许的类型。"
 
 msgid "No files match your search"
 msgstr "没有与搜索匹配的文件"
+
+msgid "No folders removed"
+msgstr "未删除任何文件夹"
 
 msgid "No fonts found."
 msgstr "未找到字体。"
@@ -14013,6 +14045,9 @@ msgstr "移除 {repositoryName}"
 
 msgid "Remove attachment"
 msgstr "移除附件"
+
+msgid "Remove empty folders"
+msgstr "删除空文件夹"
 
 msgid "Remove from favorites"
 msgstr "从收藏中移除"

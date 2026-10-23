@@ -1,4 +1,7 @@
-export type { UseHostWorkspacesResult } from "./useHostWorkspaces";
+export type {
+	HostWorkspacesRead,
+	UseHostWorkspacesResult,
+} from "./useHostWorkspaces";
 export { useHostWorkspacesSource } from "./useHostWorkspaces";
 export type {
 	HostShapedWorkspace,

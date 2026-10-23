@@ -264,6 +264,10 @@ msgstr "{0, plural, one {Задан # вопрос} few {Задано # вопр
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Комментарии отправляются этому агенту} few {Комментарии отправляются этим агентам} many {Комментарии отправляются этим агентам} other {Комментарии отправляются этим агентам}}"
 
+#. placeholder {0}: failed.length
+msgid "{0, plural, one {Could not remove # folder} other {Could not remove # folders}}"
+msgstr "{0, plural, one {Не удалось удалить # папку} few {Не удалось удалить # папки} many {Не удалось удалить # папок} other {Не удалось удалить # папки}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -317,6 +321,10 @@ msgstr "{0, plural, one {Приостановлена # автоматизаци
 #. placeholder {0}: cleanup.automations
 msgid "{0, plural, one {Pauses # automation} other {Pauses # automations}}"
 msgstr "{0, plural, one {Приостанавливает # автоматизацию} few {Приостанавливает # автоматизации} many {Приостанавливает # автоматизаций} other {Приостанавливает # автоматизации}}"
+
+#. placeholder {0}: removed.length
+msgid "{0, plural, one {Removed # empty folder} other {Removed # empty folders}}"
+msgstr "{0, plural, one {Удалена # пустая папка} few {Удалены # пустые папки} many {Удалено # пустых папок} other {Удалено # пустой папки}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -869,6 +877,9 @@ msgstr "{distance} назад"
 msgid "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
 msgstr "{duration, plural, one {Думал # секунду} few {Думал # секунды} many {Думал # секунд} other {Думал # секунды}}"
 
+msgid "{emptyCount, plural, one {Remove # empty folder} other {Remove # empty folders}}"
+msgstr "{emptyCount, plural, one {Удалить # пустую папку} few {Удалить # пустые папки} many {Удалить # пустых папок} other {Удалить # пустой папки}}"
+
 #. js-lingui-explicit-id
 msgid "serverError.page.entryPathHeldByAnotherOrganization"
 msgstr "{entryPath} в этом рабочем пространстве уже опубликован как страница в другой организации. Переместите файл или опубликуйте с идентификатором той страницы."
@@ -1169,6 +1180,18 @@ msgstr "Показано: {shownCount} · {0} · {1} токенов"
 
 msgid "{skipped, plural, one {# skipped} other {# skipped}}"
 msgstr "{skipped, plural, one {# пропущено} few {# пропущено} many {# пропущено} other {# пропущено}}"
+
+msgid "{skipped, plural, one {Skipped # folder: a host or the cloud has not answered yet.} other {Skipped # folders: a host or the cloud has not answered yet.}}"
+msgstr "{skipped, plural, one {Пропущена # папка: хост или облако ещё не ответили.} few {Пропущены # папки: хост или облако ещё не ответили.} many {Пропущено # папок: хост или облако ещё не ответили.} other {Пропущено # папки: хост или облако ещё не ответили.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: it changed while it was being removed.} other {Skipped # folders: they changed while they were being removed.}}"
+msgstr "{skipped, plural, one {Пропущена # папка: она изменилась во время удаления.} few {Пропущены # папки: они изменились во время удаления.} many {Пропущено # папок: они изменились во время удаления.} other {Пропущено # папки: они изменились во время удаления.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: not every host that keeps its settings is known yet.} other {Skipped # folders: not every host that keeps their settings is known yet.}}"
+msgstr "{skipped, plural, one {Пропущена # папка: известны ещё не все хосты, где хранятся её настройки.} few {Пропущены # папки: известны ещё не все хосты, где хранятся их настройки.} many {Пропущено # папок: известны ещё не все хосты, где хранятся их настройки.} other {Пропущено # папки: известны ещё не все хосты, где хранятся их настройки.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: this window switched organization.} other {Skipped # folders: this window switched organization.}}"
+msgstr "{skipped, plural, one {Пропущена # папка: в этом окне сменилась организация.} few {Пропущены # папки: в этом окне сменилась организация.} many {Пропущено # папок: в этом окне сменилась организация.} other {Пропущено # папки: в этом окне сменилась организация.}}"
 
 msgid "{starCount} stars and counting"
 msgstr "{starCount} звёзд и продолжаем"
@@ -5152,6 +5175,9 @@ msgstr "Не удалось сохранить окружение"
 
 msgid "Could not remove access"
 msgstr "Не удалось закрыть доступ"
+
+msgid "Could not remove empty folders"
+msgstr "Не удалось удалить пустые папки"
 
 msgid "Could not rename the session"
 msgstr "Не удалось переименовать сессию"
@@ -11160,6 +11186,9 @@ msgstr "Загрузок пока нет"
 msgid "No emoji found"
 msgstr "Эмодзи не найдены"
 
+msgid "No empty folders"
+msgstr "Нет пустых папок"
+
 msgid "No environment for {repositoryFullName}"
 msgstr "Нет окружения для {repositoryFullName}"
 
@@ -11195,6 +11224,9 @@ msgstr "Ни один файл не подходит по типу."
 
 msgid "No files match your search"
 msgstr "Нет файлов, соответствующих поиску"
+
+msgid "No folders removed"
+msgstr "Ни одна папка не удалена"
 
 msgid "No fonts found."
 msgstr "Шрифты не найдены."
@@ -14013,6 +14045,9 @@ msgstr "Удалить {repositoryName}"
 
 msgid "Remove attachment"
 msgstr "Удалить вложение"
+
+msgid "Remove empty folders"
+msgstr "Удалить пустые папки"
 
 msgid "Remove from favorites"
 msgstr "Удалить из избранного"

@@ -43,6 +43,7 @@ const legacyResult = (
 ): HostProjectRowsResult => ({
 	target,
 	reachable: true,
+	listLive: true,
 	rows: [
 		{
 			id: setting("#ff0000").scope,

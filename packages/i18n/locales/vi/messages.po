@@ -264,6 +264,10 @@ msgstr "{0, plural, other {Đã hỏi # câu hỏi}}"
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Bình luận sẽ được gửi tới agent này} other {Bình luận sẽ được gửi tới các agent này}}"
 
+#. placeholder {0}: failed.length
+msgid "{0, plural, one {Could not remove # folder} other {Could not remove # folders}}"
+msgstr "{0, plural, one {Không thể xóa # thư mục} other {Không thể xóa # thư mục}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -317,6 +321,10 @@ msgstr "{0, plural, other {Đã tạm dừng # tự động hóa.}}"
 #. placeholder {0}: cleanup.automations
 msgid "{0, plural, one {Pauses # automation} other {Pauses # automations}}"
 msgstr "{0, plural, other {Tạm dừng # tự động hóa}}"
+
+#. placeholder {0}: removed.length
+msgid "{0, plural, one {Removed # empty folder} other {Removed # empty folders}}"
+msgstr "{0, plural, one {Đã xóa # thư mục trống} other {Đã xóa # thư mục trống}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -869,6 +877,9 @@ msgstr "{distance} trước"
 msgid "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
 msgstr "{duration, plural, one {Đã suy nghĩ # giây} other {Đã suy nghĩ # giây}}"
 
+msgid "{emptyCount, plural, one {Remove # empty folder} other {Remove # empty folders}}"
+msgstr "{emptyCount, plural, one {Xóa # thư mục trống} other {Xóa # thư mục trống}}"
+
 #. js-lingui-explicit-id
 msgid "serverError.page.entryPathHeldByAnotherOrganization"
 msgstr "{entryPath} trong workspace này đã được xuất bản thành một trang ở tổ chức khác. Hãy di chuyển tệp hoặc xuất bản kèm id của trang đó."
@@ -1169,6 +1180,18 @@ msgstr "Hiện {shownCount} · {0} · {1} token"
 
 msgid "{skipped, plural, one {# skipped} other {# skipped}}"
 msgstr "{skipped, plural, one {# bỏ qua} other {# bỏ qua}}"
+
+msgid "{skipped, plural, one {Skipped # folder: a host or the cloud has not answered yet.} other {Skipped # folders: a host or the cloud has not answered yet.}}"
+msgstr "{skipped, plural, one {Đã bỏ qua # thư mục: host hoặc cloud chưa phản hồi.} other {Đã bỏ qua # thư mục: host hoặc cloud chưa phản hồi.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: it changed while it was being removed.} other {Skipped # folders: they changed while they were being removed.}}"
+msgstr "{skipped, plural, one {Đã bỏ qua # thư mục: thư mục đã thay đổi trong lúc xóa.} other {Đã bỏ qua # thư mục: thư mục đã thay đổi trong lúc xóa.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: not every host that keeps its settings is known yet.} other {Skipped # folders: not every host that keeps their settings is known yet.}}"
+msgstr "{skipped, plural, one {Đã bỏ qua # thư mục: chưa biết hết các host lưu cài đặt của thư mục.} other {Đã bỏ qua # thư mục: chưa biết hết các host lưu cài đặt của thư mục.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: this window switched organization.} other {Skipped # folders: this window switched organization.}}"
+msgstr "{skipped, plural, one {Đã bỏ qua # thư mục: cửa sổ này đã chuyển tổ chức.} other {Đã bỏ qua # thư mục: cửa sổ này đã chuyển tổ chức.}}"
 
 msgid "{starCount} stars and counting"
 msgstr "{starCount} star và còn tăng"
@@ -5152,6 +5175,9 @@ msgstr "Không thể lưu environment"
 
 msgid "Could not remove access"
 msgstr "Không thể gỡ quyền truy cập"
+
+msgid "Could not remove empty folders"
+msgstr "Không thể xóa các thư mục trống"
 
 msgid "Could not rename the session"
 msgstr "Không thể đổi tên phiên"
@@ -11160,6 +11186,9 @@ msgstr "Chưa có lượt tải xuống nào"
 msgid "No emoji found"
 msgstr "Không tìm thấy emoji"
 
+msgid "No empty folders"
+msgstr "Không có thư mục trống"
+
 msgid "No environment for {repositoryFullName}"
 msgstr "Không có môi trường cho {repositoryFullName}"
 
@@ -11195,6 +11224,9 @@ msgstr "Không có tệp nào thuộc loại được chấp nhận."
 
 msgid "No files match your search"
 msgstr "Không có tệp nào khớp với tìm kiếm của bạn"
+
+msgid "No folders removed"
+msgstr "Không có thư mục nào bị xóa"
 
 msgid "No fonts found."
 msgstr "Không tìm thấy font nào."
@@ -14013,6 +14045,9 @@ msgstr "Gỡ {repositoryName}"
 
 msgid "Remove attachment"
 msgstr "Xóa tệp đính kèm"
+
+msgid "Remove empty folders"
+msgstr "Xóa thư mục trống"
 
 msgid "Remove from favorites"
 msgstr "Xóa khỏi mục yêu thích"

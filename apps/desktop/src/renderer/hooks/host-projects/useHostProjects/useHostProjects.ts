@@ -14,7 +14,9 @@ import {
 	type HostProjectItem,
 	type HostProjectRow,
 	type HostProjectRowsResult,
+	isHostProjectsListLive,
 	loadHostProjectsSnapshot,
+	markHostProjectsListRead,
 	mergeHostProjects,
 	normalizeHostProjectRow,
 	removeFromHostProjectsSnapshot,
@@ -123,6 +125,7 @@ export function useHostProjects(): UseHostProjectsResult {
 					>
 				).map(normalizeHostProjectRow);
 				saveHostProjectsSnapshot(target.organizationId, target.machineId, rows);
+				markHostProjectsListRead(queryClient, target);
 				return rows;
 			},
 		})),
@@ -202,9 +205,12 @@ export function useHostProjects(): UseHostProjectsResult {
 					target,
 					rows: live ?? snapshots.get(target.machineId),
 					reachable: live !== undefined && !query?.isError,
+					listLive:
+						query?.isSuccess === true &&
+						isHostProjectsListLive(queryClient, target),
 				};
 			}),
-		[targets, queries, snapshots],
+		[targets, queries, snapshots, queryClient],
 	);
 	const projects = useMemo(
 		() => mergeHostProjects({ hostResults }),

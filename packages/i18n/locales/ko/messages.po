@@ -264,6 +264,10 @@ msgstr "{0, plural, other {질문 #개를 했습니다}}"
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {댓글은 이 에이전트에게 전달됩니다} other {댓글은 이 에이전트들에게 전달됩니다}}"
 
+#. placeholder {0}: failed.length
+msgid "{0, plural, one {Could not remove # folder} other {Could not remove # folders}}"
+msgstr "{0, plural, one {폴더 #개를 제거하지 못했습니다} other {폴더 #개를 제거하지 못했습니다}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -317,6 +321,10 @@ msgstr "{0, plural, other {자동화 #개를 일시중지했습니다.}}"
 #. placeholder {0}: cleanup.automations
 msgid "{0, plural, one {Pauses # automation} other {Pauses # automations}}"
 msgstr "{0, plural, other {자동화 #개를 일시중지합니다}}"
+
+#. placeholder {0}: removed.length
+msgid "{0, plural, one {Removed # empty folder} other {Removed # empty folders}}"
+msgstr "{0, plural, one {빈 폴더 #개를 제거했습니다} other {빈 폴더 #개를 제거했습니다}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -869,6 +877,9 @@ msgstr "{distance} 전"
 msgid "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
 msgstr "{duration, plural, one {#초 동안 생각함} other {#초 동안 생각함}}"
 
+msgid "{emptyCount, plural, one {Remove # empty folder} other {Remove # empty folders}}"
+msgstr "{emptyCount, plural, one {빈 폴더 #개 제거} other {빈 폴더 #개 제거}}"
+
 #. js-lingui-explicit-id
 msgid "serverError.page.entryPathHeldByAnotherOrganization"
 msgstr "이 워크스페이스의 {entryPath}는 다른 조직에서 이미 페이지로 게시되었습니다. 파일을 옮기거나 해당 페이지 ID로 게시하세요."
@@ -1169,6 +1180,18 @@ msgstr "{shownCount}개 표시 · {0} · 토큰 {1}개"
 
 msgid "{skipped, plural, one {# skipped} other {# skipped}}"
 msgstr "{skipped, plural, one {#개 건너뜀} other {#개 건너뜀}}"
+
+msgid "{skipped, plural, one {Skipped # folder: a host or the cloud has not answered yet.} other {Skipped # folders: a host or the cloud has not answered yet.}}"
+msgstr "{skipped, plural, one {폴더 #개를 건너뛰었습니다: 호스트 또는 클라우드가 아직 응답하지 않았습니다.} other {폴더 #개를 건너뛰었습니다: 호스트 또는 클라우드가 아직 응답하지 않았습니다.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: it changed while it was being removed.} other {Skipped # folders: they changed while they were being removed.}}"
+msgstr "{skipped, plural, one {폴더 #개를 건너뛰었습니다: 제거하는 동안 변경되었습니다.} other {폴더 #개를 건너뛰었습니다: 제거하는 동안 변경되었습니다.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: not every host that keeps its settings is known yet.} other {Skipped # folders: not every host that keeps their settings is known yet.}}"
+msgstr "{skipped, plural, one {폴더 #개를 건너뛰었습니다: 설정을 보관하는 호스트를 아직 모두 알 수 없습니다.} other {폴더 #개를 건너뛰었습니다: 설정을 보관하는 호스트를 아직 모두 알 수 없습니다.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: this window switched organization.} other {Skipped # folders: this window switched organization.}}"
+msgstr "{skipped, plural, one {폴더 #개를 건너뛰었습니다: 이 창의 조직이 바뀌었습니다.} other {폴더 #개를 건너뛰었습니다: 이 창의 조직이 바뀌었습니다.}}"
 
 msgid "{starCount} stars and counting"
 msgstr "스타 {starCount}개, 계속 늘어나는 중"
@@ -5152,6 +5175,9 @@ msgstr "환경을 저장할 수 없습니다"
 
 msgid "Could not remove access"
 msgstr "접근 권한을 제거할 수 없습니다"
+
+msgid "Could not remove empty folders"
+msgstr "빈 폴더를 제거하지 못했습니다"
 
 msgid "Could not rename the session"
 msgstr "세션 이름을 변경할 수 없습니다"
@@ -11160,6 +11186,9 @@ msgstr "아직 다운로드가 없습니다"
 msgid "No emoji found"
 msgstr "이모지를 찾을 수 없음"
 
+msgid "No empty folders"
+msgstr "빈 폴더 없음"
+
 msgid "No environment for {repositoryFullName}"
 msgstr "{repositoryFullName}에 대한 환경 없음"
 
@@ -11195,6 +11224,9 @@ msgstr "허용된 형식과 일치하는 파일이 없습니다."
 
 msgid "No files match your search"
 msgstr "검색과 일치하는 파일이 없습니다"
+
+msgid "No folders removed"
+msgstr "제거된 폴더 없음"
 
 msgid "No fonts found."
 msgstr "글꼴을 찾을 수 없습니다."
@@ -14013,6 +14045,9 @@ msgstr "{repositoryName} 제거"
 
 msgid "Remove attachment"
 msgstr "첨부 파일 제거"
+
+msgid "Remove empty folders"
+msgstr "빈 폴더 제거"
 
 msgid "Remove from favorites"
 msgstr "즐겨찾기에서 제거"

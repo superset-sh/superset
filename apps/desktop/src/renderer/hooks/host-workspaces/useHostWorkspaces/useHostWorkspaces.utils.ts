@@ -5,6 +5,7 @@ import type {
 	HostConnectionState,
 	WorkspaceSnapshotPayload,
 } from "@superset/workspace-client";
+import type { QueryClient } from "@tanstack/react-query";
 import { get as idbGet, set as idbSet } from "idb-keyval";
 
 /**
@@ -91,6 +92,50 @@ export function getHostWorkspacesQueryKey(
 		target.organizationId,
 		target.machineId,
 	] as const;
+}
+
+// Cached lists that `workspace.list` itself filled. An event or an optimistic
+// patch can create a list too, holding only the rows it touched.
+const fullListReads = new WeakSet<object>();
+
+function findHostWorkspacesQuery(
+	queryClient: QueryClient,
+	target: Pick<HostWorkspacesQueryTarget, "machineId" | "organizationId">,
+) {
+	return queryClient.getQueryCache().find({
+		queryKey: getHostWorkspacesQueryKey(target),
+		exact: true,
+	});
+}
+
+/** Call from the list fetch, once the host has answered with its full list. */
+export function markHostWorkspacesListRead(
+	queryClient: QueryClient,
+	target: Pick<HostWorkspacesQueryTarget, "machineId" | "organizationId">,
+): void {
+	const query = findHostWorkspacesQuery(queryClient, target);
+	if (query) fullListReads.add(query);
+}
+
+/**
+ * The host's cached list is its full list as of its last answer: the latest
+ * fetch succeeded and some fetch filled it. A success status alone is not
+ * enough, because a `workspace:changed` event can create the list first.
+ */
+export function isHostWorkspacesListLive(
+	queryClient: QueryClient,
+	target: Pick<
+		HostWorkspacesQueryTarget,
+		"machineId" | "organizationId" | "hostUrl"
+	>,
+): boolean {
+	if (target.hostUrl === null) return false;
+	const query = findHostWorkspacesQuery(queryClient, target);
+	return (
+		query !== undefined &&
+		query.state.status === "success" &&
+		fullListReads.has(query)
+	);
 }
 
 /**

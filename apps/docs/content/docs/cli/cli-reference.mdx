@@ -1029,6 +1029,44 @@ more than once. The session must belong to the workspace in the URL. On
 Linux/Windows substitute your platform's URL opener (`xdg-open`, `start`) for
 `open`.
 
+<Command
+	name="superset workspaces folders prune"
+	options={[
+		{ flag: "--project <id>", description: "Only folders in this project." },
+		{ flag: "--dry-run", description: "List the folders without removing them." },
+	]}
+	output={`{
+  dryRun: boolean;
+  removed: Folder[];   // or, with --dry-run, the folders that would go
+  skipped: (Folder & {
+    reason:
+      | "unanswered"
+      | "settingHostsUnknown"
+      | "organizationChanged"
+      | "noLongerEmpty";
+  })[];
+  failed: (Folder & { error: string })[];
+}
+// Folder: { projectId: string | null; projectName: string | null; tag: string; name: string }`}
+>
+Remove sidebar folders that no workspace is tagged into, in the desktop app on
+this machine. A folder is a tag, so it goes away by itself once no workspace
+carries it; what can stay behind is its saved name, color and order. This
+removes those, and changes no workspace. A folder is skipped while a host that
+serves its project, or the cloud workspace list, has not answered the desktop
+app (`unanswered`), or while the desktop app does not yet know every host that
+keeps the folder's settings (`settingHostsUnknown`). If the window switches
+organization during the run, the rest is skipped (`organizationChanged`). A
+folder that gains a workspace or is hidden during the run is skipped before
+any of its settings are removed (`noLongerEmpty`). Run it on the machine that runs the desktop app, with a window open on
+the same organization.
+
+```bash
+superset workspaces folders prune --dry-run
+superset workspaces folders prune --project <projectId>
+```
+</Command>
+
 ---
 
 ### agents

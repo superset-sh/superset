@@ -21,6 +21,7 @@ import { pullRequestsRouter } from "./pull-requests";
 import { sandboxRouter } from "./sandbox";
 import { sessionsRouter } from "./sessions";
 import { settingsRouter } from "./settings";
+import { sidebarRouter } from "./sidebar";
 import { systemRouter } from "./system";
 import { tagFoldersRouter } from "./tag-folders";
 import { terminalRouter } from "./terminal";
@@ -55,6 +56,7 @@ export const appRouter = router({
 	ports: portsRouter,
 	sandbox: sandboxRouter,
 	settings: settingsRouter,
+	sidebar: sidebarRouter,
 	system: systemRouter,
 	terminal: terminalRouter,
 	terminalAgents: terminalAgentsRouter,

@@ -264,6 +264,10 @@ msgstr "{0, plural, one {Položena # otázka} few {Položeny # otázky} many {Po
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Komentáře jdou tomuto agentovi} few {Komentáře jdou těmto agentům} many {Komentáře jdou těmto agentům} other {Komentáře jdou těmto agentům}}"
 
+#. placeholder {0}: failed.length
+msgid "{0, plural, one {Could not remove # folder} other {Could not remove # folders}}"
+msgstr "{0, plural, one {Nepodařilo se odebrat # složku} few {Nepodařilo se odebrat # složky} many {Nepodařilo se odebrat # složky} other {Nepodařilo se odebrat # složek}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -317,6 +321,10 @@ msgstr "{0, plural, one {Pozastavena # automatizace.} few {Pozastaveny # automat
 #. placeholder {0}: cleanup.automations
 msgid "{0, plural, one {Pauses # automation} other {Pauses # automations}}"
 msgstr "{0, plural, one {Pozastaví # automatizaci} few {Pozastaví # automatizace} many {Pozastaví # automatizace} other {Pozastaví # automatizací}}"
+
+#. placeholder {0}: removed.length
+msgid "{0, plural, one {Removed # empty folder} other {Removed # empty folders}}"
+msgstr "{0, plural, one {Odebrána # prázdná složka} few {Odebrány # prázdné složky} many {Odebráno # prázdné složky} other {Odebráno # prázdných složek}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -869,6 +877,9 @@ msgstr "před {distance}"
 msgid "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
 msgstr "{duration, plural, one {Přemýšlel # sekundu} few {Přemýšlel # sekundy} many {Přemýšlel # sekundy} other {Přemýšlel # sekund}}"
 
+msgid "{emptyCount, plural, one {Remove # empty folder} other {Remove # empty folders}}"
+msgstr "{emptyCount, plural, one {Odebrat # prázdnou složku} few {Odebrat # prázdné složky} many {Odebrat # prázdné složky} other {Odebrat # prázdných složek}}"
+
 #. js-lingui-explicit-id
 msgid "serverError.page.entryPathHeldByAnotherOrganization"
 msgstr "{entryPath} v tomto workspace je už publikovaný jako stránka v jiné organizaci. Přesuň soubor nebo publikuj s ID té stránky."
@@ -1169,6 +1180,18 @@ msgstr "zobrazeno {shownCount} · {0} · {1} tokenů"
 
 msgid "{skipped, plural, one {# skipped} other {# skipped}}"
 msgstr "{skipped, plural, one {# přeskočeno} few {# přeskočeno} many {# přeskočeno} other {# přeskočeno}}"
+
+msgid "{skipped, plural, one {Skipped # folder: a host or the cloud has not answered yet.} other {Skipped # folders: a host or the cloud has not answered yet.}}"
+msgstr "{skipped, plural, one {Přeskočena # složka: host nebo cloud zatím neodpověděl.} few {Přeskočeny # složky: host nebo cloud zatím neodpověděl.} many {Přeskočeno # složky: host nebo cloud zatím neodpověděl.} other {Přeskočeno # složek: host nebo cloud zatím neodpověděl.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: it changed while it was being removed.} other {Skipped # folders: they changed while they were being removed.}}"
+msgstr "{skipped, plural, one {Přeskočena # složka: během odebírání se změnila.} few {Přeskočeny # složky: během odebírání se změnily.} many {Přeskočeno # složky: během odebírání se změnily.} other {Přeskočeno # složek: během odebírání se změnily.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: not every host that keeps its settings is known yet.} other {Skipped # folders: not every host that keeps their settings is known yet.}}"
+msgstr "{skipped, plural, one {Přeskočena # složka: zatím nejsou známy všechny hosty, které uchovávají její nastavení.} few {Přeskočeny # složky: zatím nejsou známy všechny hosty, které uchovávají jejich nastavení.} many {Přeskočeno # složky: zatím nejsou známy všechny hosty, které uchovávají jejich nastavení.} other {Přeskočeno # složek: zatím nejsou známy všechny hosty, které uchovávají jejich nastavení.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: this window switched organization.} other {Skipped # folders: this window switched organization.}}"
+msgstr "{skipped, plural, one {Přeskočena # složka: toto okno přepnulo organizaci.} few {Přeskočeny # složky: toto okno přepnulo organizaci.} many {Přeskočeno # složky: toto okno přepnulo organizaci.} other {Přeskočeno # složek: toto okno přepnulo organizaci.}}"
 
 msgid "{starCount} stars and counting"
 msgstr "{starCount} hvězd a přibývá"
@@ -5152,6 +5175,9 @@ msgstr "Prostředí se nepodařilo uložit"
 
 msgid "Could not remove access"
 msgstr "Přístup se nepodařilo odebrat"
+
+msgid "Could not remove empty folders"
+msgstr "Prázdné složky se nepodařilo odebrat"
 
 msgid "Could not rename the session"
 msgstr "Relaci se nepodařilo přejmenovat"
@@ -11160,6 +11186,9 @@ msgstr "Zatím žádná stahování"
 msgid "No emoji found"
 msgstr "Žádné emoji nenalezeno"
 
+msgid "No empty folders"
+msgstr "Žádné prázdné složky"
+
 msgid "No environment for {repositoryFullName}"
 msgstr "Žádné prostředí pro {repositoryFullName}"
 
@@ -11195,6 +11224,9 @@ msgstr "Žádný soubor neodpovídá povoleným typům."
 
 msgid "No files match your search"
 msgstr "Žádné soubory neodpovídají hledání"
+
+msgid "No folders removed"
+msgstr "Žádné složky nebyly odebrány"
 
 msgid "No fonts found."
 msgstr "Nenalezeny žádné fonty."
@@ -14013,6 +14045,9 @@ msgstr "Odebrat {repositoryName}"
 
 msgid "Remove attachment"
 msgstr "Odebrat přílohu"
+
+msgid "Remove empty folders"
+msgstr "Odebrat prázdné složky"
 
 msgid "Remove from favorites"
 msgstr "Odebrat z oblíbených"

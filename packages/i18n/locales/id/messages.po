@@ -264,6 +264,10 @@ msgstr "{0, plural, other {Mengajukan # pertanyaan}}"
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Komentar masuk ke agen ini} other {Komentar masuk ke agen-agen ini}}"
 
+#. placeholder {0}: failed.length
+msgid "{0, plural, one {Could not remove # folder} other {Could not remove # folders}}"
+msgstr "{0, plural, one {Tidak dapat menghapus # folder} other {Tidak dapat menghapus # folder}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -317,6 +321,10 @@ msgstr "{0, plural, other {# otomatisasi dijeda.}}"
 #. placeholder {0}: cleanup.automations
 msgid "{0, plural, one {Pauses # automation} other {Pauses # automations}}"
 msgstr "{0, plural, other {Menjeda # otomatisasi}}"
+
+#. placeholder {0}: removed.length
+msgid "{0, plural, one {Removed # empty folder} other {Removed # empty folders}}"
+msgstr "{0, plural, one {# folder kosong dihapus} other {# folder kosong dihapus}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -869,6 +877,9 @@ msgstr "{distance} lalu"
 msgid "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
 msgstr "{duration, plural, one {Berpikir # detik} other {Berpikir # detik}}"
 
+msgid "{emptyCount, plural, one {Remove # empty folder} other {Remove # empty folders}}"
+msgstr "{emptyCount, plural, one {Hapus # folder kosong} other {Hapus # folder kosong}}"
+
 #. js-lingui-explicit-id
 msgid "serverError.page.entryPathHeldByAnotherOrganization"
 msgstr "{entryPath} di workspace ini sudah diterbitkan sebagai halaman di organisasi lain. Pindahkan berkasnya atau terbitkan dengan id halaman tersebut."
@@ -1169,6 +1180,18 @@ msgstr "{shownCount} ditampilkan · {0} · {1} token"
 
 msgid "{skipped, plural, one {# skipped} other {# skipped}}"
 msgstr "{skipped, plural, one {# dilewati} other {# dilewati}}"
+
+msgid "{skipped, plural, one {Skipped # folder: a host or the cloud has not answered yet.} other {Skipped # folders: a host or the cloud has not answered yet.}}"
+msgstr "{skipped, plural, one {# folder dilewati: host atau cloud belum merespons.} other {# folder dilewati: host atau cloud belum merespons.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: it changed while it was being removed.} other {Skipped # folders: they changed while they were being removed.}}"
+msgstr "{skipped, plural, one {# folder dilewati: berubah saat sedang dihapus.} other {# folder dilewati: berubah saat sedang dihapus.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: not every host that keeps its settings is known yet.} other {Skipped # folders: not every host that keeps their settings is known yet.}}"
+msgstr "{skipped, plural, one {# folder dilewati: belum semua host yang menyimpan pengaturannya diketahui.} other {# folder dilewati: belum semua host yang menyimpan pengaturannya diketahui.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: this window switched organization.} other {Skipped # folders: this window switched organization.}}"
+msgstr "{skipped, plural, one {# folder dilewati: jendela ini berganti organisasi.} other {# folder dilewati: jendela ini berganti organisasi.}}"
 
 msgid "{starCount} stars and counting"
 msgstr "{starCount} star dan terus bertambah"
@@ -5152,6 +5175,9 @@ msgstr "Tidak dapat menyimpan environment"
 
 msgid "Could not remove access"
 msgstr "Tidak bisa menghapus akses"
+
+msgid "Could not remove empty folders"
+msgstr "Tidak dapat menghapus folder kosong"
 
 msgid "Could not rename the session"
 msgstr "Tidak dapat mengganti nama sesi"
@@ -11160,6 +11186,9 @@ msgstr "Belum ada unduhan"
 msgid "No emoji found"
 msgstr "Emoji tidak ditemukan"
 
+msgid "No empty folders"
+msgstr "Tidak ada folder kosong"
+
 msgid "No environment for {repositoryFullName}"
 msgstr "Tidak ada lingkungan untuk {repositoryFullName}"
 
@@ -11195,6 +11224,9 @@ msgstr "Tidak ada file yang cocok dengan tipe yang diterima."
 
 msgid "No files match your search"
 msgstr "Tidak ada file yang cocok dengan pencarian Anda"
+
+msgid "No folders removed"
+msgstr "Tidak ada folder yang dihapus"
 
 msgid "No fonts found."
 msgstr "Font tidak ditemukan."
@@ -14013,6 +14045,9 @@ msgstr "Hapus {repositoryName}"
 
 msgid "Remove attachment"
 msgstr "Hapus lampiran"
+
+msgid "Remove empty folders"
+msgstr "Hapus folder kosong"
 
 msgid "Remove from favorites"
 msgstr "Hapus dari favorit"

@@ -1,5 +1,6 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import type { ProjectSnapshotPayload } from "@superset/workspace-client";
+import type { QueryClient } from "@tanstack/react-query";
 import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 
 /** A project row as served by a host (`project.list`). */
@@ -71,6 +72,8 @@ export interface HostProjectRowsResult {
 	target: HostProjectsQueryTarget;
 	rows: HostProjectRow[] | undefined;
 	reachable: boolean;
+	/** The host answered `project.list` with its full list; see {@link isHostProjectsListLive}. */
+	listLive: boolean;
 }
 
 export interface HostRowForTargets {
@@ -90,6 +93,50 @@ export function getHostProjectsQueryKey(
 		target.organizationId,
 		target.machineId,
 	] as const;
+}
+
+// Cached lists that `project.list` itself filled. A `project:changed` event
+// can create a list too, holding only the project it touched.
+const fullListReads = new WeakSet<object>();
+
+function findHostProjectsQuery(
+	queryClient: QueryClient,
+	target: Pick<HostProjectsQueryTarget, "machineId" | "organizationId">,
+) {
+	return queryClient.getQueryCache().find({
+		queryKey: getHostProjectsQueryKey(target),
+		exact: true,
+	});
+}
+
+/** Call from the list fetch, once the host has answered with its full list. */
+export function markHostProjectsListRead(
+	queryClient: QueryClient,
+	target: Pick<HostProjectsQueryTarget, "machineId" | "organizationId">,
+): void {
+	const query = findHostProjectsQuery(queryClient, target);
+	if (query) fullListReads.add(query);
+}
+
+/**
+ * The host's cached list is its full list as of its last answer: the latest
+ * fetch succeeded and some fetch filled it. A success status alone is not
+ * enough, because a `project:changed` event can create the list first.
+ */
+export function isHostProjectsListLive(
+	queryClient: QueryClient,
+	target: Pick<
+		HostProjectsQueryTarget,
+		"machineId" | "organizationId" | "hostUrl"
+	>,
+): boolean {
+	if (target.hostUrl === null) return false;
+	const query = findHostProjectsQuery(queryClient, target);
+	return (
+		query !== undefined &&
+		query.state.status === "success" &&
+		fullListReads.has(query)
+	);
 }
 
 /** Same target derivation as useHostWorkspaces — one per known host. */

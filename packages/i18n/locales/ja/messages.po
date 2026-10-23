@@ -264,6 +264,10 @@ msgstr "{0, plural, other {# 件の質問をしました}}"
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {コメントはこのエージェントに送られます} other {コメントはこれらのエージェントに送られます}}"
 
+#. placeholder {0}: failed.length
+msgid "{0, plural, one {Could not remove # folder} other {Could not remove # folders}}"
+msgstr "{0, plural, one {#個のフォルダを削除できませんでした} other {#個のフォルダを削除できませんでした}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -317,6 +321,10 @@ msgstr "{0, plural, other {オートメーション # 件を一時停止しま�
 #. placeholder {0}: cleanup.automations
 msgid "{0, plural, one {Pauses # automation} other {Pauses # automations}}"
 msgstr "{0, plural, other {オートメーション # 件を一時停止します}}"
+
+#. placeholder {0}: removed.length
+msgid "{0, plural, one {Removed # empty folder} other {Removed # empty folders}}"
+msgstr "{0, plural, one {#個の空のフォルダを削除しました} other {#個の空のフォルダを削除しました}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -869,6 +877,9 @@ msgstr "{distance}前"
 msgid "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
 msgstr "{duration, plural, one {#秒間思考しました} other {#秒間思考しました}}"
 
+msgid "{emptyCount, plural, one {Remove # empty folder} other {Remove # empty folders}}"
+msgstr "{emptyCount, plural, one {#個の空のフォルダを削除} other {#個の空のフォルダを削除}}"
+
 #. js-lingui-explicit-id
 msgid "serverError.page.entryPathHeldByAnotherOrganization"
 msgstr "このワークスペースの {entryPath} は、別の組織のページとしてすでに公開されています。ファイルを移動するか、そのページの ID を指定して公開してください。"
@@ -1169,6 +1180,18 @@ msgstr "{shownCount}件表示 · {0} · {1}トークン"
 
 msgid "{skipped, plural, one {# skipped} other {# skipped}}"
 msgstr "{skipped, plural, one {#件スキップ} other {#件スキップ}}"
+
+msgid "{skipped, plural, one {Skipped # folder: a host or the cloud has not answered yet.} other {Skipped # folders: a host or the cloud has not answered yet.}}"
+msgstr "{skipped, plural, one {#個のフォルダをスキップしました: ホストまたはクラウドがまだ応答していません。} other {#個のフォルダをスキップしました: ホストまたはクラウドがまだ応答していません。}}"
+
+msgid "{skipped, plural, one {Skipped # folder: it changed while it was being removed.} other {Skipped # folders: they changed while they were being removed.}}"
+msgstr "{skipped, plural, one {#個のフォルダをスキップしました: 削除中に変更されました。} other {#個のフォルダをスキップしました: 削除中に変更されました。}}"
+
+msgid "{skipped, plural, one {Skipped # folder: not every host that keeps its settings is known yet.} other {Skipped # folders: not every host that keeps their settings is known yet.}}"
+msgstr "{skipped, plural, one {#個のフォルダをスキップしました: 設定を保持しているホストがまだすべて判明していません。} other {#個のフォルダをスキップしました: 設定を保持しているホストがまだすべて判明していません。}}"
+
+msgid "{skipped, plural, one {Skipped # folder: this window switched organization.} other {Skipped # folders: this window switched organization.}}"
+msgstr "{skipped, plural, one {#個のフォルダをスキップしました: このウィンドウの組織が切り替わりました。} other {#個のフォルダをスキップしました: このウィンドウの組織が切り替わりました。}}"
 
 msgid "{starCount} stars and counting"
 msgstr "スター{starCount}件、まだ増えています"
@@ -5152,6 +5175,9 @@ msgstr "環境を保存できませんでした"
 
 msgid "Could not remove access"
 msgstr "アクセスを削除できませんでした"
+
+msgid "Could not remove empty folders"
+msgstr "空のフォルダを削除できませんでした"
 
 msgid "Could not rename the session"
 msgstr "セッションの名前を変更できませんでした"
@@ -11160,6 +11186,9 @@ msgstr "ダウンロードはまだありません"
 msgid "No emoji found"
 msgstr "絵文字が見つかりません"
 
+msgid "No empty folders"
+msgstr "空のフォルダはありません"
+
 msgid "No environment for {repositoryFullName}"
 msgstr "{repositoryFullName} の環境はありません"
 
@@ -11195,6 +11224,9 @@ msgstr "対応している形式のファイルがありません。"
 
 msgid "No files match your search"
 msgstr "検索に一致するファイルがありません"
+
+msgid "No folders removed"
+msgstr "削除されたフォルダはありません"
 
 msgid "No fonts found."
 msgstr "フォントが見つかりません。"
@@ -14013,6 +14045,9 @@ msgstr "{repositoryName} を削除"
 
 msgid "Remove attachment"
 msgstr "添付ファイルを削除"
+
+msgid "Remove empty folders"
+msgstr "空のフォルダを削除"
 
 msgid "Remove from favorites"
 msgstr "お気に入りから削除"

@@ -264,6 +264,10 @@ msgstr "{0, plural, one {Fez # pergunta} other {Fez # perguntas}}"
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Os comentários vão para este agente} other {Os comentários vão para estes agentes}}"
 
+#. placeholder {0}: failed.length
+msgid "{0, plural, one {Could not remove # folder} other {Could not remove # folders}}"
+msgstr "{0, plural, one {Não foi possível remover # pasta} other {Não foi possível remover # pastas}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -317,6 +321,10 @@ msgstr "{0, plural, one {# automação pausada.} other {# automações pausadas.
 #. placeholder {0}: cleanup.automations
 msgid "{0, plural, one {Pauses # automation} other {Pauses # automations}}"
 msgstr "{0, plural, one {Pausa # automação} other {Pausa # automações}}"
+
+#. placeholder {0}: removed.length
+msgid "{0, plural, one {Removed # empty folder} other {Removed # empty folders}}"
+msgstr "{0, plural, one {# pasta vazia removida} other {# pastas vazias removidas}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -869,6 +877,9 @@ msgstr "há {distance}"
 msgid "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
 msgstr "{duration, plural, one {Pensou por # segundo} other {Pensou por # segundos}}"
 
+msgid "{emptyCount, plural, one {Remove # empty folder} other {Remove # empty folders}}"
+msgstr "{emptyCount, plural, one {Remover # pasta vazia} other {Remover # pastas vazias}}"
+
 #. js-lingui-explicit-id
 msgid "serverError.page.entryPathHeldByAnotherOrganization"
 msgstr "{entryPath} neste workspace já está publicado como página em outra organização. Mova o arquivo ou publique com o id daquela página."
@@ -1169,6 +1180,18 @@ msgstr "{shownCount} exibidas · {0} · {1} tokens"
 
 msgid "{skipped, plural, one {# skipped} other {# skipped}}"
 msgstr "{skipped, plural, one {# ignorado} other {# ignorados}}"
+
+msgid "{skipped, plural, one {Skipped # folder: a host or the cloud has not answered yet.} other {Skipped # folders: a host or the cloud has not answered yet.}}"
+msgstr "{skipped, plural, one {# pasta ignorada: um host ou a nuvem ainda não respondeu.} other {# pastas ignoradas: um host ou a nuvem ainda não respondeu.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: it changed while it was being removed.} other {Skipped # folders: they changed while they were being removed.}}"
+msgstr "{skipped, plural, one {# pasta ignorada: ela mudou durante a remoção.} other {# pastas ignoradas: elas mudaram durante a remoção.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: not every host that keeps its settings is known yet.} other {Skipped # folders: not every host that keeps their settings is known yet.}}"
+msgstr "{skipped, plural, one {# pasta ignorada: ainda não se conhecem todos os hosts que guardam suas configurações.} other {# pastas ignoradas: ainda não se conhecem todos os hosts que guardam suas configurações.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: this window switched organization.} other {Skipped # folders: this window switched organization.}}"
+msgstr "{skipped, plural, one {# pasta ignorada: esta janela trocou de organização.} other {# pastas ignoradas: esta janela trocou de organização.}}"
 
 msgid "{starCount} stars and counting"
 msgstr "{starCount} estrelas e subindo"
@@ -5152,6 +5175,9 @@ msgstr "Não foi possível salvar o ambiente"
 
 msgid "Could not remove access"
 msgstr "Não foi possível remover o acesso"
+
+msgid "Could not remove empty folders"
+msgstr "Não foi possível remover as pastas vazias"
 
 msgid "Could not rename the session"
 msgstr "Não foi possível renomear a sessão"
@@ -11160,6 +11186,9 @@ msgstr "Nenhum download ainda"
 msgid "No emoji found"
 msgstr "Nenhum emoji encontrado"
 
+msgid "No empty folders"
+msgstr "Nenhuma pasta vazia"
+
 msgid "No environment for {repositoryFullName}"
 msgstr "Nenhum ambiente para {repositoryFullName}"
 
@@ -11195,6 +11224,9 @@ msgstr "Nenhum arquivo é de um tipo aceito."
 
 msgid "No files match your search"
 msgstr "Nenhum arquivo corresponde à sua busca"
+
+msgid "No folders removed"
+msgstr "Nenhuma pasta removida"
 
 msgid "No fonts found."
 msgstr "Nenhuma fonte encontrada."
@@ -14013,6 +14045,9 @@ msgstr "Remover {repositoryName}"
 
 msgid "Remove attachment"
 msgstr "Remover anexo"
+
+msgid "Remove empty folders"
+msgstr "Remover pastas vazias"
 
 msgid "Remove from favorites"
 msgstr "Remover dos favoritos"

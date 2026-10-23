@@ -33,6 +33,10 @@
 			"types": "./src/pane-layout-ops.ts",
 			"default": "./src/pane-layout-ops.ts"
 		},
+		"./sidebar-folders": {
+			"types": "./src/sidebar-folders.ts",
+			"default": "./src/sidebar-folders.ts"
+		},
 		"./usercontent": {
 			"types": "./src/usercontent/index.ts",
 			"default": "./src/usercontent/index.ts"

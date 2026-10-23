@@ -264,6 +264,10 @@ msgstr "{0, plural, one {Asked # question} other {Asked # questions}}"
 msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 msgstr "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
 
+#. placeholder {0}: failed.length
+msgid "{0, plural, one {Could not remove # folder} other {Could not remove # folders}}"
+msgstr "{0, plural, one {Could not remove # folder} other {Could not remove # folders}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -317,6 +321,10 @@ msgstr "{0, plural, one {Paused # automation.} other {Paused # automations.}}"
 #. placeholder {0}: cleanup.automations
 msgid "{0, plural, one {Pauses # automation} other {Pauses # automations}}"
 msgstr "{0, plural, one {Pauses # automation} other {Pauses # automations}}"
+
+#. placeholder {0}: removed.length
+msgid "{0, plural, one {Removed # empty folder} other {Removed # empty folders}}"
+msgstr "{0, plural, one {Removed # empty folder} other {Removed # empty folders}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -869,6 +877,9 @@ msgstr "{distance} ago"
 msgid "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
 msgstr "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
 
+msgid "{emptyCount, plural, one {Remove # empty folder} other {Remove # empty folders}}"
+msgstr "{emptyCount, plural, one {Remove # empty folder} other {Remove # empty folders}}"
+
 #. js-lingui-explicit-id
 msgid "serverError.page.entryPathHeldByAnotherOrganization"
 msgstr "{entryPath} in this workspace is already published as a page in another organization. Move the file, or publish with that page's id."
@@ -1169,6 +1180,18 @@ msgstr "{shownCount} shown · {0} · {1} tokens"
 
 msgid "{skipped, plural, one {# skipped} other {# skipped}}"
 msgstr "{skipped, plural, one {# skipped} other {# skipped}}"
+
+msgid "{skipped, plural, one {Skipped # folder: a host or the cloud has not answered yet.} other {Skipped # folders: a host or the cloud has not answered yet.}}"
+msgstr "{skipped, plural, one {Skipped # folder: a host or the cloud has not answered yet.} other {Skipped # folders: a host or the cloud has not answered yet.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: it changed while it was being removed.} other {Skipped # folders: they changed while they were being removed.}}"
+msgstr "{skipped, plural, one {Skipped # folder: it changed while it was being removed.} other {Skipped # folders: they changed while they were being removed.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: not every host that keeps its settings is known yet.} other {Skipped # folders: not every host that keeps their settings is known yet.}}"
+msgstr "{skipped, plural, one {Skipped # folder: not every host that keeps its settings is known yet.} other {Skipped # folders: not every host that keeps their settings is known yet.}}"
+
+msgid "{skipped, plural, one {Skipped # folder: this window switched organization.} other {Skipped # folders: this window switched organization.}}"
+msgstr "{skipped, plural, one {Skipped # folder: this window switched organization.} other {Skipped # folders: this window switched organization.}}"
 
 msgid "{starCount} stars and counting"
 msgstr "{starCount} stars and counting"
@@ -5152,6 +5175,9 @@ msgstr "Could not record environment"
 
 msgid "Could not remove access"
 msgstr "Could not remove access"
+
+msgid "Could not remove empty folders"
+msgstr "Could not remove empty folders"
 
 msgid "Could not rename the session"
 msgstr "Could not rename the session"
@@ -11160,6 +11186,9 @@ msgstr "No downloads yet"
 msgid "No emoji found"
 msgstr "No emoji found"
 
+msgid "No empty folders"
+msgstr "No empty folders"
+
 msgid "No environment for {repositoryFullName}"
 msgstr "No environment for {repositoryFullName}"
 
@@ -11195,6 +11224,9 @@ msgstr "No files match the accepted types."
 
 msgid "No files match your search"
 msgstr "No files match your search"
+
+msgid "No folders removed"
+msgstr "No folders removed"
 
 msgid "No fonts found."
 msgstr "No fonts found."
@@ -14013,6 +14045,9 @@ msgstr "Remove {repositoryName}"
 
 msgid "Remove attachment"
 msgstr "Remove attachment"
+
+msgid "Remove empty folders"
+msgstr "Remove empty folders"
 
 msgid "Remove from favorites"
 msgstr "Remove from favorites"
