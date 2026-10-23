@@ -6612,6 +6612,9 @@ msgstr "草稿 PR #2841"
 msgid "drafted 3 support replies"
 msgstr "起草了3条支持回复"
 
+msgid "Drag projects to reorder in Manual order"
+msgstr "在手动排序下可拖拽项目重新排列"
+
 msgid "Drag to reorder"
 msgstr "拖动以重新排序"
 
@@ -10693,6 +10696,9 @@ msgstr "神秘机械师"
 msgid "Name"
 msgstr "名称"
 
+msgid "Name A–Z"
+msgstr "名称 (A–Z)"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "名称和一个URL友好的slug。两者稍后都可以更改。"
 
@@ -10704,6 +10710,9 @@ msgstr "域名无法解析"
 
 msgid "Name updated!"
 msgstr "姓名已更新！"
+
+msgid "Name Z–A"
+msgstr "名称 (Z–A)"
 
 msgid "Name, email, or team"
 msgstr "姓名、邮箱或团队"
@@ -13415,6 +13424,9 @@ msgstr "项目所在主机不可达，暂时无法重命名"
 
 msgid "Projects"
 msgstr "项目"
+
+msgid "Projects: {projectOrderLabel}"
+msgstr "项目：{projectOrderLabel}"
 
 msgid "Promoted from a workspace, so its repositories and region are fixed. Promote a workspace again to change them."
 msgstr "由工作区提升而来，因此仓库和区域固定。再次提升一个工作区即可更改。"
@@ -16252,6 +16264,9 @@ msgstr "排序方式"
 
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "按{label}排序，当前为{sortLabel}"
+
+msgid "Sort projects and workspaces"
+msgstr "排序项目和工作区"
 
 msgid "Sort workspaces"
 msgstr "排序工作区"

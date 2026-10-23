@@ -503,6 +503,13 @@ export type SidebarProjectHostFilter = z.infer<
 const persistedSidebarProjectHostFilterSchema =
 	sidebarProjectHostFilterSchema.catch("all");
 
+const sidebarProjectOrderSchema = z.enum(["manual", "nameAsc", "nameDesc"]);
+
+export type SidebarProjectOrder = z.infer<typeof sidebarProjectOrderSchema>;
+
+const persistedSidebarProjectOrderSchema =
+	sidebarProjectOrderSchema.catch("manual");
+
 export const v2UserPreferencesSchema = z.object({
 	id: z.literal("preferences"),
 	fileLinks: linkTierMapSchema.default(DEFAULT_LINK_TIER_MAP),
@@ -525,6 +532,8 @@ export const v2UserPreferencesSchema = z.object({
 	// Which workspaces the Projects list shows: every row, only the ones on
 	// a device, or only cloud sandboxes.
 	sidebarProjectHostFilter: persistedSidebarProjectHostFilterSchema,
+	// Order of the Projects list itself; manual = drag order.
+	sidebarProjectOrder: persistedSidebarProjectOrderSchema,
 	// Built-in (synthetic, app-shipped) presets the user hid from the preset
 	// bar. Synthetic presets have no v2TerminalPresets row, so visibility can't
 	// live on the row's pinnedToBar like user presets. Pruned against
@@ -565,6 +574,7 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	changesViewMode: "folders",
 	sidebarProjectSortMode: "manual",
 	sidebarProjectHostFilter: "all",
+	sidebarProjectOrder: "manual",
 	hiddenBuiltinPresetIds: [],
 	favoritePageIds: [],
 	hiddenTagFolders: {},
@@ -667,6 +677,9 @@ export function healV2UserPreferences(raw: unknown): V2UserPreferencesRow {
 		),
 		sidebarProjectHostFilter: persistedSidebarProjectHostFilterSchema.parse(
 			r.sidebarProjectHostFilter,
+		),
+		sidebarProjectOrder: persistedSidebarProjectOrderSchema.parse(
+			r.sidebarProjectOrder,
 		),
 		// Prune retired/stray built-in ids so the array stays bounded.
 		hiddenBuiltinPresetIds: (Array.isArray(r.hiddenBuiltinPresetIds)

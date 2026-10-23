@@ -6612,6 +6612,9 @@ msgstr "PR nháp #2841"
 msgid "drafted 3 support replies"
 msgstr "đã soạn 3 câu trả lời hỗ trợ"
 
+msgid "Drag projects to reorder in Manual order"
+msgstr "Kéo dự án để sắp xếp lại trong Thứ tự thủ công"
+
 msgid "Drag to reorder"
 msgstr "Kéo để sắp xếp lại"
 
@@ -10693,6 +10696,9 @@ msgstr "Thợ máy bí ẩn"
 msgid "Name"
 msgstr "Tên"
 
+msgid "Name A–Z"
+msgstr "Tên A–Z"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Tên và một slug thân thiện với URL. Cả hai đều đổi được sau."
 
@@ -10704,6 +10710,9 @@ msgstr "Không phân giải được tên"
 
 msgid "Name updated!"
 msgstr "Đã cập nhật tên!"
+
+msgid "Name Z–A"
+msgstr "Tên Z–A"
 
 msgid "Name, email, or team"
 msgstr "Tên, email hoặc nhóm"
@@ -13415,6 +13424,9 @@ msgstr "Không kết nối được host của dự án — hiện không thể 
 
 msgid "Projects"
 msgstr "Dự án"
+
+msgid "Projects: {projectOrderLabel}"
+msgstr "Dự án: {projectOrderLabel}"
 
 msgid "Promoted from a workspace, so its repositories and region are fixed. Promote a workspace again to change them."
 msgstr "Được promote từ một workspace nên repository và khu vực là cố định. Promote lại một workspace để thay đổi."
@@ -16252,6 +16264,9 @@ msgstr "Sắp xếp theo"
 
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "Sắp xếp theo {label}, hiện tại {sortLabel}"
+
+msgid "Sort projects and workspaces"
+msgstr "Sắp xếp dự án và workspace"
 
 msgid "Sort workspaces"
 msgstr "Sắp xếp workspace"

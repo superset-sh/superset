@@ -6612,6 +6612,9 @@ msgstr "Draft-PR #2841"
 msgid "drafted 3 support replies"
 msgstr "3 Support-Antworten entworfen"
 
+msgid "Drag projects to reorder in Manual order"
+msgstr "Projekte ziehen zum Neuordnen in manueller Reihenfolge"
+
 msgid "Drag to reorder"
 msgstr "Zum Umsortieren ziehen"
 
@@ -10693,6 +10696,9 @@ msgstr "Mysteriöser Maschinist"
 msgid "Name"
 msgstr "Name"
 
+msgid "Name A–Z"
+msgstr "Name A–Z"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Name und ein URL-tauglicher Slug. Beides lässt sich später ändern."
 
@@ -10704,6 +10710,9 @@ msgstr "Name nicht aufgelöst"
 
 msgid "Name updated!"
 msgstr "Name aktualisiert!"
+
+msgid "Name Z–A"
+msgstr "Name Z–A"
 
 msgid "Name, email, or team"
 msgstr "Name, E-Mail oder Team"
@@ -13415,6 +13424,9 @@ msgstr "Host des Projekts nicht erreichbar — Umbenennen gerade nicht möglich"
 
 msgid "Projects"
 msgstr "Projekte"
+
+msgid "Projects: {projectOrderLabel}"
+msgstr "Projekte: {projectOrderLabel}"
 
 msgid "Promoted from a workspace, so its repositories and region are fixed. Promote a workspace again to change them."
 msgstr "Aus einem Workspace befördert, daher sind Repositorys und Region fest. Befördere erneut einen Workspace, um sie zu ändern."
@@ -16252,6 +16264,9 @@ msgstr "Sortieren nach"
 
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "Nach {label} sortieren, aktuell {sortLabel}"
+
+msgid "Sort projects and workspaces"
+msgstr "Projekte und Arbeitsbereiche sortieren"
 
 msgid "Sort workspaces"
 msgstr "Arbeitsbereiche sortieren"

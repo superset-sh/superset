@@ -18,6 +18,7 @@ interface DashboardSidebarProjectSectionProps {
 	project: DashboardSidebarProject;
 	isSidebarCollapsed?: boolean;
 	isDraggingProject?: boolean;
+	isDragBlocked?: boolean;
 	workspaceShortcutLabels: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
 	onToggleCollapse: (projectId: string) => void;
@@ -29,6 +30,7 @@ export function DashboardSidebarProjectSection({
 	project,
 	isSidebarCollapsed = false,
 	isDraggingProject = false,
+	isDragBlocked = false,
 	workspaceShortcutLabels,
 	onWorkspaceHover,
 	onToggleCollapse,
@@ -122,6 +124,7 @@ export function DashboardSidebarProjectSection({
 						workspaceShortcutLabels={workspaceShortcutLabels}
 						onWorkspaceHover={onWorkspaceHover}
 						onToggleCollapse={() => onToggleCollapse(project.id)}
+						isDragBlocked={isDragBlocked}
 					/>
 					{importWorktreesDialog}
 					{deleteProjectDialog}
@@ -156,6 +159,7 @@ export function DashboardSidebarProjectSection({
 					onStartRename={isCloudRepo ? undefined : startRename}
 					onToggleCollapse={() => onToggleCollapse(project.id)}
 					onNewWorkspace={handleNewWorkspace}
+					isDragBlocked={isDragBlocked}
 					{...(dragHandleAttributes ?? {})}
 					{...(dragHandleListeners ?? {})}
 				/>

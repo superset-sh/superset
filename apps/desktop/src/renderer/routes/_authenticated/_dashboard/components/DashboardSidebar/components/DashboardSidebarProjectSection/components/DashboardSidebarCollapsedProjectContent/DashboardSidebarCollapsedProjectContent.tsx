@@ -8,6 +8,7 @@ import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { type ComponentPropsWithoutRef, forwardRef, useMemo } from "react";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
+import { getBlockedDragProps } from "../../../../hooks/useBlockedDragNotice";
 import {
 	parseId,
 	useDashboardSidebarDnd,
@@ -26,6 +27,8 @@ interface DashboardSidebarCollapsedProjectContentProps
 	workspaceShortcutLabels: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
 	onToggleCollapse: () => void;
+	/** Marks only the project button, so workspace icon drags stay allowed. */
+	isDragBlocked?: boolean;
 }
 
 export const DashboardSidebarCollapsedProjectContent = forwardRef<
@@ -43,6 +46,7 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 			workspaceShortcutLabels,
 			onWorkspaceHover,
 			onToggleCollapse,
+			isDragBlocked = false,
 			className,
 			...props
 		},
@@ -73,6 +77,7 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 								"flex items-center justify-center size-8 rounded-md",
 								"hover:bg-fill-hover transition-colors",
 							)}
+							{...getBlockedDragProps(isDragBlocked)}
 						>
 							<ProjectThumbnail
 								projectName={projectName}

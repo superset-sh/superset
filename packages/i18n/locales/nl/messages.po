@@ -6612,6 +6612,9 @@ msgstr "Draft-PR #2841"
 msgid "drafted 3 support replies"
 msgstr "3 supportantwoorden opgesteld"
 
+msgid "Drag projects to reorder in Manual order"
+msgstr "Sleep projecten om ze te herordenen in Handmatige volgorde"
+
 msgid "Drag to reorder"
 msgstr "Sleep om te herordenen"
 
@@ -10693,6 +10696,9 @@ msgstr "Mysterieuze Machinist"
 msgid "Name"
 msgstr "Naam"
 
+msgid "Name A–Z"
+msgstr "Naam A–Z"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Een naam en een URL-vriendelijke slug. Beide zijn later te wijzigen."
 
@@ -10704,6 +10710,9 @@ msgstr "Naam niet omgezet"
 
 msgid "Name updated!"
 msgstr "Naam bijgewerkt!"
+
+msgid "Name Z–A"
+msgstr "Naam Z–A"
 
 msgid "Name, email, or team"
 msgstr "Naam, e-mail of team"
@@ -13415,6 +13424,9 @@ msgstr "De host van het project is onbereikbaar — naam kan nu niet worden gewi
 
 msgid "Projects"
 msgstr "Projecten"
+
+msgid "Projects: {projectOrderLabel}"
+msgstr "Projecten: {projectOrderLabel}"
 
 msgid "Promoted from a workspace, so its repositories and region are fixed. Promote a workspace again to change them."
 msgstr "Gepromoveerd vanuit een werkruimte, dus de repository's en regio liggen vast. Promoveer opnieuw een werkruimte om ze te wijzigen."
@@ -16252,6 +16264,9 @@ msgstr "Sorteren op"
 
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "Sorteren op {label}, nu {sortLabel}"
+
+msgid "Sort projects and workspaces"
+msgstr "Projecten en werkruimtes sorteren"
 
 msgid "Sort workspaces"
 msgstr "Werkruimtes sorteren"

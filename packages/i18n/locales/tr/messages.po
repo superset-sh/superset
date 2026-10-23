@@ -6612,6 +6612,9 @@ msgstr "Taslak PR #2841"
 msgid "drafted 3 support replies"
 msgstr "3 destek yanıtı taslağı hazırladı"
 
+msgid "Drag projects to reorder in Manual order"
+msgstr "Manuel sıralamada yeniden düzenlemek için projeleri sürükleyin"
+
 msgid "Drag to reorder"
 msgstr "Sıralamak için sürükleyin"
 
@@ -10693,6 +10696,9 @@ msgstr "Gizemli Makinist"
 msgid "Name"
 msgstr "Ad"
 
+msgid "Name A–Z"
+msgstr "Ad A–Z"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Bir ad ve URL dostu bir slug. İkisi de sonradan değiştirilebilir."
 
@@ -10704,6 +10710,9 @@ msgstr "Ad çözümlenemedi"
 
 msgid "Name updated!"
 msgstr "Ad güncellendi!"
+
+msgid "Name Z–A"
+msgstr "Ad Z–A"
 
 msgid "Name, email, or team"
 msgstr "Ad, e-posta veya ekip"
@@ -13415,6 +13424,9 @@ msgstr "Projenin host'una erişilemiyor — şu anda yeniden adlandırılamaz"
 
 msgid "Projects"
 msgstr "Projeler"
+
+msgid "Projects: {projectOrderLabel}"
+msgstr "Projeler: {projectOrderLabel}"
 
 msgid "Promoted from a workspace, so its repositories and region are fixed. Promote a workspace again to change them."
 msgstr "Bir çalışma alanından yükseltildi, bu yüzden depoları ve bölgesi sabit. Değiştirmek için bir çalışma alanını yeniden yükseltin."
@@ -16252,6 +16264,9 @@ msgstr "Sıralama ölçütü"
 
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "{label} ölçütüne göre sırala, şu anda {sortLabel}"
+
+msgid "Sort projects and workspaces"
+msgstr "Projeleri ve çalışma alanlarını sırala"
 
 msgid "Sort workspaces"
 msgstr "Çalışma alanlarını sırala"

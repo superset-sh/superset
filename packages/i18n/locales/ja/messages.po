@@ -6612,6 +6612,9 @@ msgstr "ドラフトPR #2841"
 msgid "drafted 3 support replies"
 msgstr "サポート返信を3件下書き"
 
+msgid "Drag projects to reorder in Manual order"
+msgstr "手動順ではプロジェクトをドラッグして並べ替え"
+
 msgid "Drag to reorder"
 msgstr "ドラッグして並べ替え"
 
@@ -10693,6 +10696,9 @@ msgstr "謎の機械工"
 msgid "Name"
 msgstr "名前"
 
+msgid "Name A–Z"
+msgstr "名前 (A–Z)"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "名前とURLフレンドリーなスラッグ。どちらも後で変更できます。"
 
@@ -10704,6 +10710,9 @@ msgstr "名前を解決できません"
 
 msgid "Name updated!"
 msgstr "名前を更新しました!"
+
+msgid "Name Z–A"
+msgstr "名前 (Z–A)"
 
 msgid "Name, email, or team"
 msgstr "名前、メール、またはチーム"
@@ -13415,6 +13424,9 @@ msgstr "プロジェクトのホストに到達できません — 今は名前�
 
 msgid "Projects"
 msgstr "プロジェクト"
+
+msgid "Projects: {projectOrderLabel}"
+msgstr "プロジェクト: {projectOrderLabel}"
 
 msgid "Promoted from a workspace, so its repositories and region are fixed. Promote a workspace again to change them."
 msgstr "ワークスペースから昇格したため、リポジトリとリージョンは固定です。変更するには再度ワークスペースを昇格してください。"
@@ -16252,6 +16264,9 @@ msgstr "並び替え"
 
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "{label}で並べ替え、現在{sortLabel}"
+
+msgid "Sort projects and workspaces"
+msgstr "プロジェクトとワークスペースを並べ替え"
 
 msgid "Sort workspaces"
 msgstr "ワークスペースを並べ替え"

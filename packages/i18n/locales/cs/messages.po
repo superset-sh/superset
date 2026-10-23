@@ -6612,6 +6612,9 @@ msgstr "Draft PR #2841"
 msgid "drafted 3 support replies"
 msgstr "připravil 3 odpovědi podpoře"
 
+msgid "Drag projects to reorder in Manual order"
+msgstr "Přetažením projektů změníte pořadí v ručním řazení"
+
 msgid "Drag to reorder"
 msgstr "Přetažením změníte pořadí"
 
@@ -10693,6 +10696,9 @@ msgstr "Záhadný strojník"
 msgid "Name"
 msgstr "Název"
 
+msgid "Name A–Z"
+msgstr "Název A–Z"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Název a slug vhodný do URL. Obojí jde později změnit."
 
@@ -10704,6 +10710,9 @@ msgstr "Název se nepodařilo přeložit"
 
 msgid "Name updated!"
 msgstr "Jméno aktualizováno!"
+
+msgid "Name Z–A"
+msgstr "Název Z–A"
 
 msgid "Name, email, or team"
 msgstr "Jméno, e-mail nebo tým"
@@ -13415,6 +13424,9 @@ msgstr "Host projektu není dostupný — teď nelze přejmenovat"
 
 msgid "Projects"
 msgstr "Projekty"
+
+msgid "Projects: {projectOrderLabel}"
+msgstr "Projekty: {projectOrderLabel}"
 
 msgid "Promoted from a workspace, so its repositories and region are fixed. Promote a workspace again to change them."
 msgstr "Povýšeno z pracovního prostoru, takže repozitáře a region jsou pevné. Pro změnu znovu povyšte pracovní prostor."
@@ -16252,6 +16264,9 @@ msgstr "Řadit podle"
 
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "Seřadit podle {label}, aktuálně {sortLabel}"
+
+msgid "Sort projects and workspaces"
+msgstr "Seřadit projekty a pracovní prostory"
 
 msgid "Sort workspaces"
 msgstr "Seřadit pracovní prostory"

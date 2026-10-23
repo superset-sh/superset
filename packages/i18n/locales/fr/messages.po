@@ -6612,6 +6612,9 @@ msgstr "PR en brouillon #2841"
 msgid "drafted 3 support replies"
 msgstr "3 réponses au support rédigées"
 
+msgid "Drag projects to reorder in Manual order"
+msgstr "Glisser les projets pour les réordonner en ordre manuel"
+
 msgid "Drag to reorder"
 msgstr "Faites glisser pour réorganiser"
 
@@ -10693,6 +10696,9 @@ msgstr "Machiniste mystère"
 msgid "Name"
 msgstr "Nom"
 
+msgid "Name A–Z"
+msgstr "Nom A–Z"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Un nom et un slug compatible avec les URL. Les deux peuvent être modifiés plus tard."
 
@@ -10704,6 +10710,9 @@ msgstr "Nom non résolu"
 
 msgid "Name updated!"
 msgstr "Nom mis à jour !"
+
+msgid "Name Z–A"
+msgstr "Nom Z–A"
 
 msgid "Name, email, or team"
 msgstr "Nom, e-mail ou équipe"
@@ -13415,6 +13424,9 @@ msgstr "L'hôte du projet est injoignable — impossible de renommer pour le mom
 
 msgid "Projects"
 msgstr "Projets"
+
+msgid "Projects: {projectOrderLabel}"
+msgstr "Projets : {projectOrderLabel}"
 
 msgid "Promoted from a workspace, so its repositories and region are fixed. Promote a workspace again to change them."
 msgstr "Cet environnement a été promu depuis un espace de travail ; ses dépôts et sa région sont donc fixes. Promouvez à nouveau un espace de travail pour les changer."
@@ -16252,6 +16264,9 @@ msgstr "Trier par"
 
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "Trier par {label}, actuellement {sortLabel}"
+
+msgid "Sort projects and workspaces"
+msgstr "Trier les projets et les espaces de travail"
 
 msgid "Sort workspaces"
 msgstr "Trier les espaces de travail"

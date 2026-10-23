@@ -6612,6 +6612,9 @@ msgstr "Szkic PR #2841"
 msgid "drafted 3 support replies"
 msgstr "przygotował 3 odpowiedzi wsparcia"
 
+msgid "Drag projects to reorder in Manual order"
+msgstr "Przeciągaj projekty, aby zmienić kolejność w trybie ręcznym"
+
 msgid "Drag to reorder"
 msgstr "Przeciągnij, aby zmienić kolejność"
 
@@ -10693,6 +10696,9 @@ msgstr "Tajemniczy Tokarz"
 msgid "Name"
 msgstr "Nazwa"
 
+msgid "Name A–Z"
+msgstr "Nazwa A–Z"
+
 msgid "Name and a URL-friendly slug. Both can be changed later."
 msgstr "Nazwa i slug przyjazny adresom URL. Oba można później zmienić."
 
@@ -10704,6 +10710,9 @@ msgstr "Nie rozwiązano nazwy"
 
 msgid "Name updated!"
 msgstr "Nazwa zaktualizowana!"
+
+msgid "Name Z–A"
+msgstr "Nazwa Z–A"
 
 msgid "Name, email, or team"
 msgstr "Imię, e-mail lub zespół"
@@ -13415,6 +13424,9 @@ msgstr "Host projektu jest nieosiągalny — nie można teraz zmienić nazwy"
 
 msgid "Projects"
 msgstr "Projekty"
+
+msgid "Projects: {projectOrderLabel}"
+msgstr "Projekty: {projectOrderLabel}"
 
 msgid "Promoted from a workspace, so its repositories and region are fixed. Promote a workspace again to change them."
 msgstr "Utworzone z obszaru roboczego, więc repozytoria i region są stałe. Ponownie promuj obszar roboczy, aby je zmienić."
@@ -16252,6 +16264,9 @@ msgstr "Sortuj według"
 
 msgid "Sort by {label}, currently {sortLabel}"
 msgstr "Sortuj wg {label}, obecnie {sortLabel}"
+
+msgid "Sort projects and workspaces"
+msgstr "Sortuj projekty i obszary robocze"
 
 msgid "Sort workspaces"
 msgstr "Sortuj obszary robocze"

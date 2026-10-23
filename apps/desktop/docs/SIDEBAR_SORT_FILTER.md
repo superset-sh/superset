@@ -1,9 +1,10 @@
 # Sidebar project sort & filter
 
-The dashboard sidebar's Projects section can be sorted three ways and filtered
-by name. Both controls live in the Projects header
-(`components/DashboardSidebarWorkspacesHeader`) and apply only to that section:
-Pinned keeps pin order, Sessions keeps its own order.
+The dashboard sidebar's Projects section can be ordered by project name,
+sorted three ways inside each project, and filtered by name. The controls live
+in the Projects header (`components/DashboardSidebarWorkspacesHeader`) and
+apply only to that section: Pinned keeps pin order, Sessions keeps its own
+order.
 
 This is the third landing of the feature. #5956 shipped it sorting on
 `updatedAt` and was reverted in #5996 (a render crash on string timestamps, and
@@ -20,15 +21,14 @@ Persisted per user as `sidebarProjectSortMode` in `v2UserPreferences`
 | Mode | Project order | Order inside a project |
 | --- | --- | --- |
 | Manual order | drag order (`tabOrder`), untouched | `tabOrder` |
-| Last active | most recently active workspace, newest first | workspaces and folders by activity, newest first |
-| Date created | `project.createdAt`, newest first | workspace / folder `createdAt`, newest first |
+| Last active | unchanged (see Project order) | workspaces and folders by activity, newest first |
+| Date created | unchanged (see Project order) | workspace / folder `createdAt`, newest first |
 
 Rules shared by the non-manual modes (`utils/sortDashboardSidebarProjects`):
 
 - A folder ranks among loose workspaces by its newest member (Last active) or
   its own `createdAt` (Date created); its members are sorted inside it too.
 - The local `main` workspace stays first inside its project.
-- A project with no workspaces ranks by its own `updatedAt`, then `createdAt`.
 - Ties break by name, then id, so the order is stable across renders.
 - Timestamps are coerced NaN-safely. Persisted caches can revive `Date`
   columns as ISO strings; a value that fails to parse sinks to the bottom of
@@ -39,6 +39,23 @@ Rules shared by the non-manual modes (`utils/sortDashboardSidebarProjects`):
 Sorting and filtering are derived views computed in `DashboardSidebar`; the
 data hook and the persisted `tabOrder` are never rewritten, which is what lets
 Manual restore the exact prior drag order.
+
+## Project order
+
+The sort modes above never move projects. A separate preference,
+`sidebarProjectOrder` in `v2UserPreferences`, orders the project list itself:
+`manual` (drag order, the default), `nameAsc` (Name A–Z) or `nameDesc`
+(Name Z–A). An unknown value heals to `manual`. The two preferences are
+independent and appear as two groups in the same menu.
+
+Name order is stable, so it keeps projects usable as landmarks: it changes
+only when a project is added or renamed, never because of activity.
+`utils/orderDashboardSidebarProjects` compares names with an `Intl.Collator`
+built from the active Lingui locale (`sensitivity: "base"`, `numeric: true`),
+so case is ignored and `p2` sorts before `p10`. Ties break by id. It runs
+before the workspace sort and the filter, and like them it is a derived view,
+so switching back to Manual restores the exact drag order. The collapsed icon
+rail and ⌘1–⌘9 follow the same order.
 
 ## The activity signal
 
@@ -122,6 +139,11 @@ ephemeral React state in `DashboardSidebar` (`utils/filterDashboardSidebarProjec
   not churn per keystroke.
 
 ## Drag-and-drop gating
+
+While the project order is a name order, project rows cannot be dragged;
+workspace rows inside them still can when the sort mode is Manual. Dragging a
+blocked project row shows the same "Switch to manual order" toast, and its
+action resets both the sort mode and the project order.
 
 While the sort mode is not Manual or the filter is non-empty, the rendered
 lists are a transformed view; committing a drop would persist that view into

@@ -5,6 +5,7 @@ import { type ComponentPropsWithoutRef, forwardRef } from "react";
 import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
+import { getBlockedDragProps } from "../../../../hooks/useBlockedDragNotice";
 
 interface DashboardSidebarProjectRowProps
 	extends ComponentPropsWithoutRef<"div"> {
@@ -21,6 +22,8 @@ interface DashboardSidebarProjectRowProps
 	onStartRename?: () => void;
 	onToggleCollapse: () => void;
 	onNewWorkspace: () => void;
+	/** Marks only this row, so drags of the rows beneath it stay allowed. */
+	isDragBlocked?: boolean;
 }
 
 export const DashboardSidebarProjectRow = forwardRef<
@@ -41,6 +44,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 			onStartRename,
 			onToggleCollapse,
 			onNewWorkspace,
+			isDragBlocked = false,
 			className,
 			...props
 		},
@@ -70,6 +74,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 					"hover:bg-fill-hover transition-colors",
 					className,
 				)}
+				{...getBlockedDragProps(isDragBlocked)}
 				{...props}
 			>
 				<div className="flex min-w-0 flex-1 items-center gap-2">

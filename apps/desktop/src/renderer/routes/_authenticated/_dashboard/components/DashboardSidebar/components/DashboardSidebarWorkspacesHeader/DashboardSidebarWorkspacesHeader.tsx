@@ -19,6 +19,7 @@ import { useOpenNewWorkspaceForLocalProject } from "renderer/hooks/useOpenNewWor
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import type {
 	SidebarProjectHostFilter,
+	SidebarProjectOrder,
 	SidebarProjectSortMode,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import {
@@ -35,6 +36,8 @@ import { useProjectFilterExpanded } from "./hooks/useProjectFilterExpanded";
 interface DashboardSidebarWorkspacesHeaderProps {
 	sortMode: SidebarProjectSortMode;
 	onSortModeChange: (mode: SidebarProjectSortMode) => void;
+	projectOrder: SidebarProjectOrder;
+	onProjectOrderChange: (order: SidebarProjectOrder) => void;
 	/** Null hides the host filter (cloud rows are not inline). */
 	hostFilter: SidebarProjectHostFilter | null;
 	onHostFilterChange: (filter: SidebarProjectHostFilter) => void;
@@ -45,6 +48,8 @@ interface DashboardSidebarWorkspacesHeaderProps {
 export function DashboardSidebarWorkspacesHeader({
 	sortMode,
 	onSortModeChange,
+	projectOrder,
+	onProjectOrderChange,
 	hostFilter,
 	onHostFilterChange,
 	filterQuery,
@@ -141,6 +146,8 @@ export function DashboardSidebarWorkspacesHeader({
 			<DashboardSidebarProjectsSortMenu
 				sortMode={sortMode}
 				onSortModeChange={onSortModeChange}
+				projectOrder={projectOrder}
+				onProjectOrderChange={onProjectOrderChange}
 				hostFilter={hostFilter}
 				onHostFilterChange={onHostFilterChange}
 			/>
