@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useCallback } from "react";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { refreshUsageQuota } from "./utils/refreshUsageQuota/refreshUsageQuota";
 
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 export type UsageAccount = RouterOutputs["usage"]["quota"][number];
@@ -37,10 +38,14 @@ export function useHostUsageQuota(hostUrl: string | null) {
 
 	const refresh = useCallback(async () => {
 		if (!hostUrl) return;
-		const fresh = await getHostServiceClientByUrl(hostUrl).usage.quota.query({
-			forceRefresh: true,
+		await refreshUsageQuota({
+			queryClient,
+			queryKey,
+			load: () =>
+				getHostServiceClientByUrl(hostUrl).usage.quota.query({
+					forceRefresh: true,
+				}),
 		});
-		queryClient.setQueryData(queryKey, fresh);
 	}, [hostUrl, queryClient, queryKey]);
 
 	return { ...query, refresh };
