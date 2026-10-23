@@ -2,12 +2,73 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { SimpleGit } from "simple-git";
 import type { ChangedFile } from "../types";
 import {
 	countUntrackedFileLines,
 	parseNameStatus,
 	parseNumstat,
+	resolveBaseComparison,
 } from "./git-helpers";
+
+function createRemoteProbeGit(
+	remotes: string[],
+	existingRefs: Set<string>,
+): { git: SimpleGit; getMaxConcurrentProbes: () => number } {
+	let activeProbes = 0;
+	let maxConcurrentProbes = 0;
+	const git = {
+		getRemotes: async () => remotes.map((name) => ({ name })),
+		raw: async (args: string[]) => {
+			if (args[0] === "config") {
+				throw new Error("no configured upstream");
+			}
+			const ref = args[2] ?? "";
+			if (args[0] === "rev-parse" && ref.startsWith("refs/remotes/")) {
+				activeProbes++;
+				maxConcurrentProbes = Math.max(maxConcurrentProbes, activeProbes);
+				try {
+					await Promise.resolve();
+					if (!existingRefs.has(ref)) throw new Error("missing ref");
+					return ref;
+				} finally {
+					activeProbes--;
+				}
+			}
+			throw new Error("unexpected git command");
+		},
+	} as unknown as SimpleGit;
+	return { git, getMaxConcurrentProbes: () => maxConcurrentProbes };
+}
+
+describe("resolveBaseComparison", () => {
+	test("probes remotes in parallel but deterministically prioritizes origin", async () => {
+		const { git, getMaxConcurrentProbes } = createRemoteProbeGit(
+			["upstream", "backup", "origin"],
+			new Set(["refs/remotes/upstream/feature", "refs/remotes/origin/feature"]),
+		);
+
+		expect(await resolveBaseComparison(git, "feature")).toEqual({
+			branchName: "feature",
+			baseRef: "origin/feature",
+			fetchTarget: { remote: "origin", branch: "feature" },
+		});
+		expect(getMaxConcurrentProbes()).toBe(3);
+	});
+
+	test("selects a non-origin remote when origin lacks the branch", async () => {
+		const { git } = createRemoteProbeGit(
+			["origin", "upstream"],
+			new Set(["refs/remotes/upstream/feature"]),
+		);
+
+		expect(await resolveBaseComparison(git, "feature")).toEqual({
+			branchName: "feature",
+			baseRef: "upstream/feature",
+			fetchTarget: { remote: "upstream", branch: "feature" },
+		});
+	});
+});
 
 describe("parseNumstat", () => {
 	test("regular file entry", () => {
