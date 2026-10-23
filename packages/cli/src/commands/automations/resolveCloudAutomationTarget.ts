@@ -26,7 +26,9 @@ export async function resolveCloudAutomationTarget(args: {
 	target: {
 		targetHostId: string;
 		environmentId?: string;
-		cloudWorkspaceId?: string;
+		/** Explicit null clears an existing pin; runs then start from the
+		 * automation's environment. */
+		cloudWorkspaceId?: string | null;
 	};
 	/** Where runs go, for the confirmation line. */
 	placement: string;

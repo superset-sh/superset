@@ -50,3 +50,37 @@ describe("resolveAutomationTarget host preflight", () => {
 		});
 	});
 });
+
+describe("resolveAutomationTarget default host", () => {
+	it("falls back to defaultHostId, not this machine, when --host is omitted", async () => {
+		const target = await resolveAutomationTarget({
+			...BASE,
+			api: apiWithHosts(["host-current"]),
+			defaultHostId: "host-current",
+		});
+		expect(target).toEqual({
+			targetHostId: "host-current",
+			v2ProjectId: null,
+		});
+	});
+
+	it("prefers an explicit --host over defaultHostId", async () => {
+		const target = await resolveAutomationTarget({
+			...BASE,
+			api: apiWithHosts(["host-explicit", "host-current"]),
+			hostId: "host-explicit",
+			defaultHostId: "host-current",
+		});
+		expect(target.targetHostId).toBe("host-explicit");
+	});
+
+	it("reports an unregistered default host without claiming it is this machine", async () => {
+		await expect(
+			resolveAutomationTarget({
+				...BASE,
+				api: apiWithHosts([]),
+				defaultHostId: "host-current",
+			}),
+		).rejects.toThrow(/Host host-current is not registered/);
+	});
+});
