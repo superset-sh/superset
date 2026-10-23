@@ -33,6 +33,7 @@ interface Exchange {
 	header?: HttpResponseHeader;
 	chunks: Uint8Array<ArrayBuffer>[];
 	timer: ReturnType<typeof setTimeout>;
+	dialTimer?: ReturnType<typeof setTimeout>;
 }
 
 interface DialSocket {
@@ -46,9 +47,14 @@ interface DialSocket {
 export class HttpExchanges {
 	private readonly exchanges = new Map<string, Exchange>();
 
+	/**
+	 * `onDialTimeout` runs when the host never dials back. A healthy host
+	 * answers every dial inside DIAL_TIMEOUT_MS, if only with a dial failure.
+	 */
 	begin(
 		ticket: string,
 		request: HttpExchangeRequest,
+		onDialTimeout?: () => void,
 	): Promise<HttpExchangeResult> {
 		return new Promise((resolve) => {
 			this.exchanges.set(ticket, {
@@ -59,6 +65,14 @@ export class HttpExchanges {
 					this.exchanges.delete(ticket);
 					resolve({ ok: false, reason: "timeout" });
 				}, EXCHANGE_TIMEOUT_MS),
+				dialTimer: setTimeout(() => {
+					const exchange = this.exchanges.get(ticket);
+					if (!exchange) return;
+					clearTimers(exchange);
+					this.exchanges.delete(ticket);
+					resolve({ ok: false, reason: "timeout" });
+					onDialTimeout?.();
+				}, DIAL_TIMEOUT_MS),
 			});
 		});
 	}
@@ -71,6 +85,7 @@ export class HttpExchanges {
 	onDialConnect(ticket: string, dial: DialSocket): void {
 		const exchange = this.exchanges.get(ticket);
 		if (!exchange) return;
+		clearTimeout(exchange.dialTimer);
 		dial.send(
 			JSON.stringify({
 				type: "http:request",
@@ -116,7 +131,7 @@ export class HttpExchanges {
 		if (frame.type === "http:response") {
 			exchange.header = frame;
 		} else if (frame.type === "http:end") {
-			clearTimeout(exchange.timer);
+			clearTimers(exchange);
 			this.exchanges.delete(ticket);
 			const size = exchange.chunks.reduce((n, c) => n + c.byteLength, 0);
 			const body = new Uint8Array(size);
@@ -139,16 +154,21 @@ export class HttpExchanges {
 	fail(ticket: string): void {
 		const exchange = this.exchanges.get(ticket);
 		if (!exchange) return;
-		clearTimeout(exchange.timer);
+		clearTimers(exchange);
 		this.exchanges.delete(ticket);
 		exchange.resolve({ ok: false, reason: "dial-failed" });
 	}
 
 	abortAll(): void {
 		for (const [, exchange] of this.exchanges) {
-			clearTimeout(exchange.timer);
+			clearTimers(exchange);
 			exchange.resolve({ ok: false, reason: "timeout" });
 		}
 		this.exchanges.clear();
 	}
+}
+
+function clearTimers(exchange: Exchange): void {
+	clearTimeout(exchange.timer);
+	clearTimeout(exchange.dialTimer);
 }
