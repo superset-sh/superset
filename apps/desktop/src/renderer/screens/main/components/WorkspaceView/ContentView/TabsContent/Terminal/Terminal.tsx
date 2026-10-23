@@ -4,7 +4,10 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { sanitizeTerminalFontFamily } from "renderer/lib/terminal/appearance";
+import {
+	applyTerminalThemeCssVariables,
+	sanitizeTerminalFontFamily,
+} from "renderer/lib/terminal/appearance";
 import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
@@ -399,6 +402,14 @@ export const Terminal = memo(function Terminal({
 		const xterm = xtermRef.current;
 		if (!xterm || !terminalTheme) return;
 		xterm.options.theme = terminalTheme;
+		// The wrapper is owned by the v1 cache; xterm's root element sits inside
+		// it, so variables set here override the ones set at creation.
+		if (xterm.element) {
+			applyTerminalThemeCssVariables(xterm.element, {
+				background: terminalTheme.background,
+				foreground: terminalTheme.foreground,
+			});
+		}
 	}, [terminalTheme]);
 
 	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(

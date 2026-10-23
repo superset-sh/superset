@@ -42,6 +42,33 @@ export function applyTerminalFontFamilyCssVariable(
 	element.style.setProperty(TERMINAL_FONT_FAMILY_CSS_VARIABLE, fontFamily);
 }
 
+export const TERMINAL_BACKGROUND_CSS_VARIABLE =
+	"--superset-terminal-background";
+export const TERMINAL_FOREGROUND_CSS_VARIABLE =
+	"--superset-terminal-foreground";
+
+/**
+ * Exposes the terminal theme's colors to CSS. xterm draws the cells on a
+ * canvas, so the DOM elements it renders itself, such as the IME composition
+ * overlay, otherwise get no theme color. Call this on every theme change, not
+ * only when the font changes.
+ */
+export function applyTerminalThemeCssVariables(
+	element: HTMLElement,
+	colors: { background?: string; foreground?: string },
+): void {
+	// An empty value removes the property, so a theme without a color falls
+	// back to the CSS default instead of keeping a stale one.
+	element.style.setProperty(
+		TERMINAL_BACKGROUND_CSS_VARIABLE,
+		colors.background ?? "",
+	);
+	element.style.setProperty(
+		TERMINAL_FOREGROUND_CSS_VARIABLE,
+		colors.foreground ?? "",
+	);
+}
+
 const GENERIC_FONT_FAMILIES = new Set([
 	"serif",
 	"sans-serif",

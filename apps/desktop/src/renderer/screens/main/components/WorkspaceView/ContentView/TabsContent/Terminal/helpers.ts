@@ -12,7 +12,10 @@ import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
-import { applyTerminalFontFamilyCssVariable } from "renderer/lib/terminal/appearance";
+import {
+	applyTerminalFontFamilyCssVariable,
+	applyTerminalThemeCssVariables,
+} from "renderer/lib/terminal/appearance";
 import { Utf8Base64 } from "renderer/lib/terminal/clipboard-base64";
 import { FocusAwareClipboardProvider } from "renderer/lib/terminal/clipboard-provider";
 import type { DetectedLink } from "renderer/lib/terminal/links";
@@ -134,6 +137,10 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 		wrapper,
 		terminalOptions.fontFamily ?? DEFAULT_TERMINAL_FONT_FAMILY,
 	);
+	applyTerminalThemeCssVariables(wrapper, {
+		background: theme?.background,
+		foreground: theme?.foreground,
+	});
 	xterm.open(wrapper);
 
 	xterm.loadAddon(fitAddon);
