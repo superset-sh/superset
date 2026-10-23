@@ -1,6 +1,7 @@
 import path from "node:path";
 import { SUPPORTED_LOCALES } from "@superset/i18n/locales";
 import { IOS_APP } from "@superset/shared/app-identity";
+import { BRAND } from "@superset/shared/brand";
 import { config } from "dotenv";
 import type { ConfigContext } from "expo/config";
 import { withIosAccentColor } from "./config-plugins/withIosAccentColor";
@@ -67,6 +68,7 @@ export default ({ config }: ConfigContext) => ({
 		...(associatedDomains && { associatedDomains }),
 		usesAppleSignIn: true,
 		infoPlist: {
+			CFBundleDisplayName: BRAND.NAME,
 			"UISupportedInterfaceOrientations~ipad": [
 				"UIInterfaceOrientationPortrait",
 				"UIInterfaceOrientationPortraitUpsideDown",
