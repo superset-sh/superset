@@ -418,7 +418,7 @@
   <li><strong>Follow-ups</strong> arrive without a mention. Mid-turn they're queued; on resume the thread is back-read since last context.</li>
   <li><strong>On a host, delivery reuses page-watch.</strong> Page comments already reach a running agent this way: host-service keeps a watch keyed by workspace, terminal and agent, polls for new items, holds them while the agent is mid-turn, and pastes a prompt into the PTY. A Slack thread gets the same watch, assigned by the API when it spawns the agent instead of by the CLI on publish. If the terminal is gone, the API relaunches the agent in the same workspace with resume and reassigns. Replies flow back the way this page's comments do: the agent calls the CLI, or the API posts on the agent's turn-end event.</li>
   <li><strong>Progress</strong> is a checklist edited in place, streamed. Typing status under the message, no "Thinking..." placeholder.</li>
-  <li><strong>Completion callback:</strong> an agent spawned from Slack reports back into the thread. Today nothing does.</li>
+  <li><strong>Completion callback:</strong> an agent spawned from Slack reports back into the thread. Shipped as a poll (PR D): the API asks the host over the relay, backing off 30s → 5min, until the agent's first turn ends or 24h pass. The host pushes nothing to the API today and a callback would ship with the desktop, so the poll is what works on every installed version. <em>Later:</em> a host→API turn-end event, tagged with the Slack origin at launch, replaces the trigger. The launch record and the completion post stay as they are; only the poll is deleted. Do it when the turn-end event is wanted for something else too (the PR-opened post in Phase 3, or the desktop's own status), and keep the poll for hosts on older versions.</li>
   <li><strong><code>!restart</code></strong> archives the session and starts fresh from the thread.</li>
 </ul>
 
@@ -684,18 +684,18 @@
 
 <h2><span class="num">08</span>Phasing</h2>
 <figure>
-<svg class="diagram" viewBox="0 0 880 210" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, Helvetica, Arial, sans-serif" font-size="12.5">
+<svg class="diagram" viewBox="0 0 880 228" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, Helvetica, Arial, sans-serif" font-size="12.5">
   <g fill="#fff" stroke="#1c1a17">
-    <rect x="20" y="30" width="110" height="130" rx="6"/>
+    <rect x="20" y="30" width="110" height="148" rx="6"/>
   </g>
   <g fill="#fdf3ee" stroke="#b5471f">
-    <rect x="145" y="30" width="200" height="130" rx="6"/>
+    <rect x="145" y="30" width="200" height="148" rx="6"/>
   </g>
   <g fill="#eef6f5" stroke="#0f5e5a">
-    <rect x="360" y="30" width="250" height="130" rx="6"/>
+    <rect x="360" y="30" width="250" height="148" rx="6"/>
   </g>
   <g fill="#fdf3ee" stroke="#b5471f">
-    <rect x="625" y="30" width="235" height="130" rx="6"/>
+    <rect x="625" y="30" width="235" height="148" rx="6"/>
   </g>
   <g font-weight="600">
     <text x="32" y="54">Phase 0</text>
@@ -725,9 +725,10 @@
     <text x="637" y="94">code tasks → workspace + agent</text>
     <text x="637" y="112">checklist, PR posted back</text>
     <text x="637" y="130">!restart, hand-off, pane</text>
+    <text x="637" y="166">host turn-end event replaces poll</text>
     <text x="637" y="148">Notion + Sentry plugins</text>
   </g>
-  <text x="440" y="192" text-anchor="middle" fill="#7d776e" font-size="11.5">then ongoing: transcript evals (acted / stayed quiet / right tool / linked result) and PostHog on decisions and mutes</text>
+  <text x="440" y="210" text-anchor="middle" fill="#7d776e" font-size="11.5">then ongoing: transcript evals (acted / stayed quiet / right tool / linked result) and PostHog on decisions and mutes</text>
 </svg>
 </figure>
 
