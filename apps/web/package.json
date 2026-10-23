@@ -15,7 +15,7 @@
 	"dependencies": {
 		"@lingui/core": "6.8.0",
 		"@lingui/react": "6.8.0",
-		"@sentry/nextjs": "10.68.0",
+		"@sentry/nextjs": "10.75.2",
 		"@superset/auth": "workspace:*",
 		"@superset/cloud-client": "workspace:*",
 		"@superset/db": "workspace:*",
