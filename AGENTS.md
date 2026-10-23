@@ -272,3 +272,17 @@ review.
   // two kernels sharing a name but not a body would otherwise both run
   // whichever was compiled first. Same fix as 3833 on the Metal side.
 ```
+
+## Cursor Cloud specific instructions
+
+Cloud agents boot Linux with Bun 1.4.3 on `/usr/local/bin/bun`. The boot script starts Docker (`sudo service docker start`; the daemon uses `fuse-overlayfs` and legacy iptables), then `docker compose up -d` from the repo root. That stack is Postgres 17, the Neon HTTP proxy on port 4444, Redis, and serverless-redis-http. Copy `.env.local.example` to `.env` when `.env` is missing. The placeholders in that file pass API env validation. No Neon, Stripe, or other third-party credentials are required.
+
+`bun run db:migrate` does not apply this stack. drizzle-kit selects `@neondatabase/serverless` and opens a websocket, and local Postgres does not speak that protocol. Apply `packages/db/drizzle` with a direct Postgres connection (`127.0.0.1:5432`, user `postgres`, password `postgres`, database `main`), in journal order, and record each file in `drizzle.__drizzle_migrations` (sha256 of the file, `created_at` = the journal `when`). Postgres 17 does not name `NOT NULL` constraints. The `RENAME CONSTRAINT` statements in `0122_webhook_events_swap_to_short_retention.sql` and `0125_automation_events_swap_to_short_retention.sql` fail with SQLSTATE `42704`. Roll back to a savepoint and skip only those missing renames. Re-running the apply is safe: skip a migration whose `created_at` is already recorded.
+
+Then `NODE_ENV=development bun run db:seed-dev`. Sign in as `admin@local.test` / `supersetdev` (button label: "Sign in as Local Admin (dev)" on `/sign-in`). A log line about an invalid Resend API key during seed is expected with the fake key.
+
+Web: `http://localhost:3000`. API: `http://localhost:3001`. Start them with `bunx turbo run dev --filter=@superset/api --filter=@superset/web`. `GET http://127.0.0.1:3001/api/health` returns `database: ok` when Postgres is reachable through the proxy. Account settings at `/settings/account` show the signed-in name and email.
+
+The desktop app is the macOS Electron product. `bun install` rebuilds its native modules. Do not launch Electron on this Linux VM. `bun run dev` also starts desktop; use the turbo filter above instead.
+
+Lint, types, and tests: `bun run lint`, `bun run typecheck`, `bun test`. See `DEVELOPMENT.md` for the contributor setup on a machine someone owns.
