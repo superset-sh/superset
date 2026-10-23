@@ -1,9 +1,11 @@
 import { useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import { cn } from "@superset/ui/utils";
 import { lazy, type ReactNode, Suspense } from "react";
+import { cloudTrpcClient } from "renderer/lib/cloud-trpc";
 import { WorkItemDetailState } from "../../../components/WorkItemDetailState";
 import type { PullRequestDetail } from "../../hooks/usePullRequestDetail";
-import { pullRequestReadErrorMessage } from "../../utils/combinePullRequestReadErrors";
+import { needsGithubConnection } from "../../utils/pullRequestClient";
 import type { PullRequestActivityThreads } from "../PullRequestActivity";
 import type { PullRequestCommentTarget } from "../PullRequestConversationComposer";
 import { PullRequestDetailSkeleton } from "../PullRequestDetailSkeleton";
@@ -71,11 +73,22 @@ export function PullRequestDetailContent({
 		<WorkItemDetailState
 			message={
 				detail.error
-					? pullRequestReadErrorMessage(detail.error)
+					? errorMessage(detail.error)
 					: t({ message: "Pull request not found" })
 			}
 			isError={!!detail.error}
 			onRetry={detail.error ? () => void detail.refetch() : undefined}
+			action={
+				needsGithubConnection(detail.error)
+					? {
+							label: t({ message: "Connect GitHub" }),
+							onClick: () =>
+								void cloudTrpcClient.githubUser.connect
+									.mutate()
+									.then(({ url }) => window.open(url, "_blank")),
+						}
+					: undefined
+			}
 		/>
 	);
 	return (

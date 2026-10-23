@@ -7,6 +7,7 @@ import type {
 	PullRequestDetail as PullRequestDetailBase,
 	PullRequestMergeability,
 } from "@superset/shared/pull-request";
+import type { PullRequestDetailRead } from "@superset/shared/pull-request-detail";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
@@ -14,12 +15,15 @@ import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId"
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider/ElectronTRPCProvider";
 import { DASHBOARD_SIDEBAR_PULL_REQUEST_QUERY_KEY_PREFIX } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarData/derivePullRequestQueryTargets";
 import { V2_WORKSPACES_PULL_REQUEST_QUERY_KEY_PREFIX } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces/useAccessibleV2Workspaces";
-import type { PullRequestTarget } from "../../utils/pullRequestClient";
+import {
+	type PullRequestTarget,
+	pullRequestThreadsQueryKey,
+	readPullRequestDetail,
+} from "../../utils/pullRequestClient";
 import {
 	type PullRequestProject,
 	resolvePullRequestTarget,
 } from "../../utils/resolvePullRequestTarget";
-import { fetchPullRequestDetail } from "./utils/fetchPullRequestDetail";
 
 export type { PullRequestMergeability };
 export type PullRequestDetailActor = PullRequestActor;
@@ -27,34 +31,37 @@ export type PullRequestDetailComment = PullRequestConversationComment;
 export type PullRequestDetailCommitAuthor = PullRequestCommitAuthor;
 export type PullRequestDetailCommit = PullRequestCommit;
 
-/** What a full read adds over the detail. Every field is optional: a host
- *  older than the extended `gh pr view` read leaves them out. */
-export type PullRequestDetailExtras = Partial<PullRequestActivity>;
+export type PullRequestDetail = PullRequestDetailBase &
+	PullRequestActivity & {
+		/** What GitHub lets the viewer do, so nothing is offered that would be refused. */
+		capabilities: PullRequestDetailRead["capabilities"];
+	};
 
-export type PullRequestDetail = PullRequestDetailBase & PullRequestDetailExtras;
-
-interface PullRequestDetailKey {
-	projectId: string | null;
-	hostUrl: string | null;
-	prNumber: number | null;
+function pullRequestDetailQueryKey(
+	repoFullName: string | null,
+	prNumber: number | null,
+) {
+	return [
+		"pull-request-detail",
+		repoFullName?.toLowerCase() ?? null,
+		prNumber,
+	] as const;
 }
 
-function pullRequestDetailQueryKey({
-	projectId,
-	hostUrl,
-	prNumber,
-}: PullRequestDetailKey) {
-	return ["pull-request-detail", projectId, hostUrl, prNumber] as const;
-}
-
+/**
+ * One pull request, read as the viewer. A project is resolved only to name
+ * the repository when the link carries none, and for the features that run
+ * on a host (agents, workspaces); the read itself never goes through one.
+ */
 export function usePullRequestDetail({
 	projectId,
-	hostUrl,
 	prNumber,
 	repoFullName,
 	projectQuery,
 	enabled = true,
-}: PullRequestDetailKey & {
+}: {
+	projectId: string | null;
+	prNumber: number | null;
 	repoFullName?: string | null;
 	projectQuery?: {
 		data?: PullRequestProject | null;
@@ -84,27 +91,21 @@ export function usePullRequestDetail({
 		);
 	const query = useQuery<PullRequestDetail>({
 		queryKey: [
-			...pullRequestDetailQueryKey({
-				projectId: target.projectId,
-				hostUrl,
-				prNumber,
-			}),
+			...pullRequestDetailQueryKey(target.repoFullName, prNumber),
 			organizationId,
-			target.repoFullName,
 		],
 		queryFn: () => {
 			if (prNumber === null) throw new Error("Invalid pull request number");
-			return fetchPullRequestDetail({
-				...target,
-				hostUrl,
+			return readPullRequestDetail({
 				organizationId,
+				repoFullName: target.repoFullName,
 				prNumber,
 			});
 		},
 		enabled:
 			enabled &&
 			!isResolvingProject &&
-			(!!target.repoFullName || !!target.projectId) &&
+			!!target.repoFullName &&
 			prNumber !== null,
 		staleTime: 30_000,
 		gcTime: 10 * 60_000,
@@ -120,17 +121,16 @@ export function usePullRequestDetail({
 }
 
 /**
- * Refetch this PR's detail, the PR list, and the sidebar/workspace chips
- * after a state-changing mutation (merge, close, reopen). Resolves when the
- * detail refetch has landed, so a mutation that returns this stays pending
- * until the header shows the new state instead of flashing the old one.
+ * Refetch this PR's detail and threads, the PR list, and the sidebar and
+ * workspace chips after a state-changing mutation. Resolves when the detail
+ * refetch has landed, so a mutation that returns this stays pending until
+ * the header shows the new state instead of flashing the old one.
  */
 export function useInvalidatePullRequestDetail(
 	target: PullRequestTarget | null,
 ) {
 	const queryClient = useQueryClient();
-	const projectId = target?.host?.projectId ?? null;
-	const hostUrl = target?.host?.hostUrl ?? null;
+	const repoFullName = target?.repoFullName ?? null;
 	const prNumber = target?.prNumber ?? null;
 	return useCallback((): Promise<void> => {
 		// Inside a workspace the context client is the workspace's own; the
@@ -145,13 +145,17 @@ export function useInvalidatePullRequestDetail(
 				queryKey: V2_WORKSPACES_PULL_REQUEST_QUERY_KEY_PREFIX,
 			});
 		}
-		// The workspace pane's review threads live on the context client under
-		// tRPC's own key; a thread reply posted here must reach them too.
-		void queryClient.invalidateQueries({
-			queryKey: [["git", "getPullRequestThreads"]],
-		});
+		if (prNumber !== null) {
+			void queryClient.invalidateQueries({
+				queryKey: pullRequestThreadsQueryKey({
+					organizationId: null,
+					repoFullName,
+					prNumber,
+				}),
+			});
+		}
 		return queryClient.invalidateQueries({
-			queryKey: pullRequestDetailQueryKey({ projectId, hostUrl, prNumber }),
+			queryKey: pullRequestDetailQueryKey(repoFullName, prNumber),
 		});
-	}, [queryClient, projectId, hostUrl, prNumber]);
+	}, [queryClient, repoFullName, prNumber]);
 }

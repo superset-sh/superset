@@ -1,325 +1,202 @@
-import { isMissingProcedureError } from "@superset/shared/missing-procedure-error";
+import type { PullRequestDetailRead } from "@superset/shared/pull-request-detail";
 import type { PullRequestDiff } from "@superset/shared/pull-request-diff";
-import type { PullRequestReviewThread } from "@superset/shared/pull-request-threads";
+import type {
+	PullRequestMergeMethod,
+	PullRequestThreads,
+} from "@superset/shared/pull-request-github";
 import { cloudTrpcClient } from "renderer/lib/cloud-trpc";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { PullRequestDetail } from "../../hooks/usePullRequestDetail";
-import { combinePullRequestErrors } from "../combinePullRequestReadErrors";
-import { fromCloudPullRequest } from "../fromCloudPullRequest";
-import { fromHostPullRequestContent } from "../fromHostPullRequestContent";
+import { toPullRequestDetail } from "../toPullRequestDetail";
 
-/** A host with the repository checked out, for `gh` when the cloud cannot act. */
-export interface PullRequestHostTarget {
-	hostUrl: string;
-	projectId: string | null;
-}
+export type { PullRequestMergeMethod, PullRequestThreads };
 
-/**
- * A pull request by its own identity. The cloud reads and writes it as the
- * signed-in person whenever the repository and organization are known; the
- * host is only the fallback, since its `gh` acts as whoever the box is.
- */
+/** A pull request by its own identity; no project or host is involved. */
 export interface PullRequestTarget {
 	organizationId: string | null;
 	repoFullName: string | null;
 	prNumber: number;
-	host: PullRequestHostTarget | null;
 }
-
-export interface PullRequestThreads {
-	reviewThreads: PullRequestReviewThread[];
-	fetchFailed: boolean;
-}
-
-export type PullRequestMergeMethod = "merge" | "squash" | "rebase";
-
-type CloudGateway = typeof cloudTrpcClient.integration.github;
-type HostGateway = ReturnType<typeof getHostServiceClientByUrl>["pullRequests"];
 
 export interface PullRequestGateways {
-	cloud: () => CloudGateway;
-	host: (hostUrl: string) => HostGateway;
+	/** GitHub with the login on this machine, run in the main process. */
+	local: () => typeof electronTrpcClient.viewerGithub;
+	/** GitHub with the person's Superset connection, run by the API. */
+	cloud: () => typeof cloudTrpcClient.integration.github;
 }
 
 const gateways: PullRequestGateways = {
+	local: () => electronTrpcClient.viewerGithub,
 	cloud: () => cloudTrpcClient.integration.github,
-	host: (hostUrl) => getHostServiceClientByUrl(hostUrl).pullRequests,
 };
 
-function trpcErrorCode(error: unknown): string | undefined {
-	const data = (error as { data?: { code?: unknown } } | null | undefined)
-		?.data;
-	return typeof data?.code === "string" ? data.code : undefined;
-}
-
-/**
- * The cloud never reached GitHub: an API without the procedure yet, or a
- * viewer with neither a GitHub connection nor an App installation. Anything
- * GitHub itself answered is final — retrying it through the host would act
- * as someone else.
- */
-export function cloudCannotAct(error: unknown): boolean {
-	return (
-		isMissingProcedureError(error) ||
-		trpcErrorCode(error) === "PRECONDITION_FAILED"
-	);
-}
-
-export function reachesCloud(target: PullRequestTarget): boolean {
-	return Boolean(target.organizationId && target.repoFullName);
-}
-
 export function canActOnPullRequest(target: PullRequestTarget): boolean {
-	return reachesCloud(target) || Boolean(target.host?.projectId);
+	return Boolean(target.repoFullName);
 }
 
 export function pullRequestThreadsQueryKey(target: PullRequestTarget) {
 	return [
 		"pull-request-threads",
-		target.repoFullName?.toLowerCase() ?? target.host?.projectId ?? null,
+		target.repoFullName?.toLowerCase() ?? null,
 		target.prNumber,
 	] as const;
 }
 
-function cloudInput(target: PullRequestTarget) {
-	if (!target.organizationId || !target.repoFullName) {
-		throw new Error("The pull request's repository is unknown");
-	}
-	return {
-		organizationId: target.organizationId,
-		repoFullName: target.repoFullName,
-		number: target.prNumber,
+/** The procedures both sources serve, each with its own identifying input. */
+interface GithubProcedures<I> {
+	getPullRequestDetail: {
+		query: (
+			input: I & { activity?: boolean },
+		) => Promise<PullRequestDetailRead>;
+	};
+	getPullRequestThreads: { query: (input: I) => Promise<PullRequestThreads> };
+	getPullRequestDiff: { query: (input: I) => Promise<PullRequestDiff> };
+	addPullRequestComment: {
+		mutate: (input: I & { body: string }) => Promise<unknown>;
+	};
+	replyToPullRequestThread: {
+		mutate: (
+			input: I & { commentId: number; body: string },
+		) => Promise<unknown>;
+	};
+	setPullRequestThreadResolution: {
+		mutate: (
+			input: I & { threadId: string; resolved: boolean },
+		) => Promise<unknown>;
+	};
+	mergePullRequest: {
+		mutate: (
+			input: I & {
+				mergeMethod: PullRequestMergeMethod;
+				commitMessage?: string;
+			},
+		) => Promise<unknown>;
+	};
+	setPullRequestState: {
+		mutate: (input: I & { state: "open" | "closed" }) => Promise<unknown>;
+	};
+	setPullRequestDraft: {
+		mutate: (input: I & { draft: boolean }) => Promise<unknown>;
 	};
 }
 
-type Attempt<T> = (() => Promise<T>) | null | false | undefined | "";
-
-async function firstAnswer<T>(
-	attempts: Attempt<T>[],
-	none: string,
-): Promise<T> {
-	const errors: unknown[] = [];
-	for (const attempt of attempts) {
-		if (!attempt) continue;
-		try {
-			return await attempt();
-		} catch (error) {
-			errors.push(error);
-		}
-	}
-	if (errors.length === 0) throw new Error(none);
-	throw combinePullRequestErrors(errors);
+function bind<I>(github: GithubProcedures<I>, input: I) {
+	return {
+		detail: () =>
+			github.getPullRequestDetail.query({ ...input, activity: true }),
+		threads: () => github.getPullRequestThreads.query(input),
+		diff: () => github.getPullRequestDiff.query(input),
+		comment: (body: string) =>
+			github.addPullRequestComment.mutate({ ...input, body }),
+		reply: (reply: { commentId: number; body: string }) =>
+			github.replyToPullRequestThread.mutate({ ...input, ...reply }),
+		resolveThread: (thread: { threadId: string; resolved: boolean }) =>
+			github.setPullRequestThreadResolution.mutate({ ...input, ...thread }),
+		merge: (merge: {
+			mergeMethod: PullRequestMergeMethod;
+			commitMessage?: string;
+		}) => github.mergePullRequest.mutate({ ...input, ...merge }),
+		setState: (state: "open" | "closed") =>
+			github.setPullRequestState.mutate({ ...input, state }),
+		setDraft: (draft: boolean) =>
+			github.setPullRequestDraft.mutate({ ...input, draft }),
+	};
 }
 
-export function readPullRequestContent(
+/**
+ * Who acts on GitHub, picked once: the login on this machine when there is
+ * one, the person's Superset connection otherwise. Never the workspace's
+ * host, and no second try under another identity after GitHub refuses.
+ */
+async function githubFor(target: PullRequestTarget, deps: PullRequestGateways) {
+	const { repoFullName, prNumber: number } = target;
+	if (!repoFullName)
+		throw new Error("The pull request's repository is unknown");
+	const local = deps.local();
+	if ((await local.status.query()).available) {
+		return bind(local, { repoFullName, number });
+	}
+	if (!target.organizationId) throw new Error("No organization is active");
+	return bind(deps.cloud(), {
+		organizationId: target.organizationId,
+		repoFullName,
+		number,
+	});
+}
+
+export async function readPullRequestDetail(
 	target: PullRequestTarget,
 	deps: PullRequestGateways = gateways,
 ): Promise<PullRequestDetail> {
-	const { host, prNumber, repoFullName } = target;
-	const projectId = host?.projectId ?? null;
-	return firstAnswer<PullRequestDetail>(
-		[
-			reachesCloud(target) &&
-				(() => {
-					const input = cloudInput(target);
-					return deps
-						.cloud()
-						.getPullRequestDetail.query({ ...input, activity: true })
-						.then((read) => fromCloudPullRequest(read, input.repoFullName));
-				}),
-			host &&
-				projectId &&
-				(() =>
-					deps
-						.host(host.hostUrl)
-						.getContent.query({ projectId, prNumber })
-						.then(fromHostPullRequestContent)),
-			host &&
-				repoFullName &&
-				(() =>
-					deps
-						.host(host.hostUrl)
-						.getContentByRepo.query({ repoFullName, prNumber })
-						.then(fromHostPullRequestContent)),
-		],
-		"No GitHub repository available to fetch the pull request",
-	);
+	const read = await (await githubFor(target, deps)).detail();
+	return toPullRequestDetail(read, target.repoFullName ?? "");
 }
 
-export function readPullRequestThreads(
+export async function readPullRequestThreads(
 	target: PullRequestTarget,
 	deps: PullRequestGateways = gateways,
 ): Promise<PullRequestThreads> {
-	const { host, prNumber } = target;
-	const projectId = host?.projectId ?? null;
-	return firstAnswer<PullRequestThreads>(
-		[
-			reachesCloud(target) &&
-				(() => deps.cloud().getPullRequestThreads.query(cloudInput(target))),
-			host &&
-				projectId &&
-				(() =>
-					deps.host(host.hostUrl).getThreads.query({ projectId, prNumber })),
-		],
-		"No GitHub repository available to fetch review threads",
-	);
+	return (await githubFor(target, deps)).threads();
 }
 
-export function readPullRequestDiff(
+export async function readPullRequestDiff(
 	target: PullRequestTarget,
 	deps: PullRequestGateways = gateways,
 ): Promise<PullRequestDiff> {
-	const { host, prNumber, repoFullName } = target;
-	const projectId = host?.projectId ?? null;
-	return firstAnswer<PullRequestDiff>(
-		[
-			reachesCloud(target) &&
-				(() => deps.cloud().getPullRequestDiff.query(cloudInput(target))),
-			host &&
-				projectId &&
-				(() => deps.host(host.hostUrl).getDiff.query({ projectId, prNumber })),
-			host &&
-				repoFullName &&
-				(() =>
-					deps
-						.host(host.hostUrl)
-						.getDiffByRepo.query({ repoFullName, prNumber })),
-		],
-		"No GitHub repository available to fetch the diff",
-	);
+	return (await githubFor(target, deps)).diff();
 }
 
-async function act(
-	target: PullRequestTarget,
-	deps: PullRequestGateways,
-	cloud: (github: CloudGateway) => Promise<unknown>,
-	host: ((pullRequests: HostGateway) => Promise<unknown>) | null,
-): Promise<void> {
-	const hostUrl = target.host?.hostUrl;
-	const viaHost = host && hostUrl ? () => host(deps.host(hostUrl)) : null;
-	if (reachesCloud(target)) {
-		try {
-			await cloud(deps.cloud());
-			return;
-		} catch (error) {
-			if (!viaHost || !cloudCannotAct(error)) throw error;
-		}
-	}
-	if (!viaHost) throw new Error("No GitHub access for this pull request");
-	await viaHost();
-}
-
-export function addPullRequestComment(
+export async function addPullRequestComment(
 	target: PullRequestTarget,
 	body: string,
 	deps: PullRequestGateways = gateways,
 ): Promise<void> {
-	const { prNumber } = target;
-	const projectId = target.host?.projectId;
-	return act(
-		target,
-		deps,
-		(github) =>
-			github.addPullRequestComment.mutate({ ...cloudInput(target), body }),
-		projectId
-			? (pullRequests) =>
-					pullRequests.addComment.mutate({ projectId, prNumber, body })
-			: null,
-	);
+	await (await githubFor(target, deps)).comment(body);
 }
 
-export function replyToPullRequestThread(
+export async function replyToPullRequestThread(
 	target: PullRequestTarget,
 	reply: { commentId: number; body: string },
 	deps: PullRequestGateways = gateways,
 ): Promise<void> {
-	const { prNumber } = target;
-	const projectId = target.host?.projectId;
-	return act(
-		target,
-		deps,
-		(github) =>
-			github.replyToPullRequestThread.mutate({
-				...cloudInput(target),
-				...reply,
-			}),
-		projectId
-			? (pullRequests) =>
-					pullRequests.replyToThread.mutate({ projectId, prNumber, ...reply })
-			: null,
-	);
+	await (await githubFor(target, deps)).reply(reply);
 }
 
-export function setPullRequestThreadResolution(
+export async function setPullRequestThreadResolution(
 	target: PullRequestTarget,
 	thread: { threadId: string; resolved: boolean },
 	deps: PullRequestGateways = gateways,
 ): Promise<void> {
-	return act(
-		target,
-		deps,
-		(github) =>
-			github.setPullRequestThreadResolution.mutate({
-				...cloudInput(target),
-				...thread,
-			}),
-		(pullRequests) => pullRequests.setThreadResolution.mutate(thread),
-	);
+	await (await githubFor(target, deps)).resolveThread(thread);
 }
 
-export function mergePullRequest(
+export async function mergePullRequest(
 	target: PullRequestTarget,
 	merge: { mergeMethod: PullRequestMergeMethod; commitMessage?: string },
 	deps: PullRequestGateways = gateways,
 ): Promise<void> {
-	const { prNumber } = target;
-	const projectId = target.host?.projectId;
-	return act(
-		target,
-		deps,
-		(github) =>
-			github.mergePullRequest.mutate({ ...cloudInput(target), ...merge }),
-		projectId
-			? (pullRequests) =>
-					pullRequests.mergePR.mutate({ projectId, prNumber, ...merge })
-			: null,
-	);
+	await (await githubFor(target, deps)).merge(merge);
 }
 
-export function setPullRequestState(
+export async function setPullRequestState(
 	target: PullRequestTarget,
 	state: "open" | "closed",
 	deps: PullRequestGateways = gateways,
 ): Promise<void> {
-	const { prNumber } = target;
-	const projectId = target.host?.projectId;
-	return act(
-		target,
-		deps,
-		(github) =>
-			github.setPullRequestState.mutate({ ...cloudInput(target), state }),
-		projectId
-			? (pullRequests) =>
-					pullRequests.setState.mutate({ projectId, prNumber, state })
-			: null,
-	);
+	await (await githubFor(target, deps)).setState(state);
 }
 
-export function setPullRequestDraft(
+export async function setPullRequestDraft(
 	target: PullRequestTarget,
 	draft: boolean,
 	deps: PullRequestGateways = gateways,
 ): Promise<void> {
-	const { prNumber } = target;
-	const projectId = target.host?.projectId;
-	return act(
-		target,
-		deps,
-		(github) =>
-			github.setPullRequestDraft.mutate({ ...cloudInput(target), draft }),
-		projectId
-			? (pullRequests) =>
-					pullRequests.setDraft.mutate({ projectId, prNumber, draft })
-			: null,
-	);
+	await (await githubFor(target, deps)).setDraft(draft);
+}
+
+/** The person has no GitHub login here and no Superset connection; connecting fixes it. */
+export function needsGithubConnection(error: unknown): boolean {
+	const data = (error as { data?: { code?: unknown } } | null | undefined)
+		?.data;
+	return data?.code === "PRECONDITION_FAILED";
 }

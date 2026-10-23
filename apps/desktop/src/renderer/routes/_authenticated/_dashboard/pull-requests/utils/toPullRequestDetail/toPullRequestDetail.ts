@@ -74,8 +74,8 @@ function mergeability(value: string): PullRequestMergeability {
 	return "unknown";
 }
 
-/** The API's detail read, asked for with `activity: true`, in the shape the desktop renders. */
-export function fromCloudPullRequest(
+/** GitHub's detail read, asked for with `activity: true`, in the shape the desktop renders. */
+export function toPullRequestDetail(
 	read: PullRequestDetailRead,
 	repoFullName: string,
 ): PullRequestDetail {
@@ -113,5 +113,6 @@ export function fromCloudPullRequest(
 		comments: activity?.comments ?? [],
 		commits: activity?.commits ?? [],
 		labels: activity?.labels ?? [],
+		capabilities: read.capabilities,
 	};
 }

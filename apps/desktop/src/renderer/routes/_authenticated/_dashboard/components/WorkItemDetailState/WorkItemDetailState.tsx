@@ -8,6 +8,8 @@ interface WorkItemDetailStateProps {
 	isLoading?: boolean;
 	isError?: boolean;
 	onRetry?: () => void;
+	/** What fixes the failure, offered beside "Try again". */
+	action?: { label: string; onClick: () => void };
 }
 
 export function WorkItemDetailState({
@@ -15,6 +17,7 @@ export function WorkItemDetailState({
 	isLoading = false,
 	isError = false,
 	onRetry,
+	action,
 }: WorkItemDetailStateProps) {
 	return (
 		<div
@@ -30,10 +33,19 @@ export function WorkItemDetailState({
 				<LuRefreshCw className="size-4 animate-spin motion-reduce:animate-none" />
 			)}
 			<span className="max-w-prose text-wrap-pretty">{message}</span>
-			{onRetry && (
-				<Button variant="outline" size="sm" onClick={onRetry}>
-					<Trans>Try again</Trans>
-				</Button>
+			{(action || onRetry) && (
+				<div className="flex items-center gap-2">
+					{action && (
+						<Button size="sm" onClick={action.onClick}>
+							{action.label}
+						</Button>
+					)}
+					{onRetry && (
+						<Button variant="outline" size="sm" onClick={onRetry}>
+							<Trans>Try again</Trans>
+						</Button>
+					)}
+				</div>
 			)}
 		</div>
 	);

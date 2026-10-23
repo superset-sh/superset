@@ -51,9 +51,8 @@ export function PullRequestPane({
 			organizationId,
 			repoFullName: data.repoFullName,
 			prNumber: data.number,
-			host: hostUrl ? { hostUrl, projectId: detail.projectId } : null,
 		}),
-		[organizationId, data.repoFullName, data.number, hostUrl, detail.projectId],
+		[organizationId, data.repoFullName, data.number],
 	);
 
 	// Pages and "open in diff" belong to the workspace, so they exist only
@@ -104,12 +103,7 @@ export function PullRequestPane({
 		detail.data?.additions !== undefined && detail.data.deletions !== undefined
 			? { additions: detail.data.additions, deletions: detail.data.deletions }
 			: null;
-	// A host that predates the extended read answers without `mergeability`;
-	// it would answer the writes with "No procedure found".
-	const commentTarget =
-		canActOnPullRequest(target) && detail.data?.mergeability !== undefined
-			? target
-			: null;
+	const commentTarget = canActOnPullRequest(target) ? target : null;
 
 	return (
 		<div className="flex h-full w-full min-h-0 min-w-0 flex-col">
@@ -124,7 +118,9 @@ export function PullRequestPane({
 				<div className="ml-auto flex shrink-0 items-center">
 					<PullRequestActions
 						target={target}
+						projectId={detail.projectId}
 						hostId={workspace.hostId}
+						hostUrl={hostUrl}
 						data={detail.data}
 						isLoading={detail.isLoading}
 						showStartWorkspace={false}

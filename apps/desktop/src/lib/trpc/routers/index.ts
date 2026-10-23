@@ -31,6 +31,7 @@ import { createSettingsRouter } from "./settings";
 import { createSystemRouter } from "./system";
 import { createTerminalRouter } from "./terminal";
 import { createUiStateRouter } from "./ui-state";
+import { createViewerGithubRouter } from "./viewer-github";
 import { createWindowRouter } from "./window";
 import { createWorkspacesRouter } from "./workspaces";
 
@@ -46,6 +47,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		window: createWindowRouter(),
 		projects: createProjectsRouter(getWindow),
 		workspaces: createWorkspacesRouter(),
+		viewerGithub: createViewerGithubRouter(),
 		terminal: createTerminalRouter(),
 		changes: createChangesRouter(),
 		filesystem: createFilesystemRouter(),

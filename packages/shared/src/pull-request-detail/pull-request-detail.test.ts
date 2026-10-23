@@ -141,6 +141,7 @@ describe("readPullRequestDetail", () => {
 			["lint", null],
 		]);
 		expect(detail.capabilities).toEqual({
+			update: true,
 			merge: true,
 			markReady: false,
 			updateBranch: true,

@@ -77,8 +77,10 @@ type PendingAction =
 interface PullRequestActionsProps {
 	/** Null when the route param is malformed. */
 	target: PullRequestTarget | null;
-	/** The host a workspace on this pull request would start on. */
+	/** Where an agent or a new workspace on this pull request would run; GitHub actions never go through it. */
+	projectId: string | null;
 	hostId: string | null;
+	hostUrl: string | null;
 	data: PullRequestDetail | null | undefined;
 	isLoading: boolean;
 	/**
@@ -121,14 +123,14 @@ function IconAction({
  */
 export function PullRequestActions({
 	target,
+	projectId,
 	hostId,
+	hostUrl,
 	data,
 	isLoading,
 	showStartWorkspace = true,
 }: PullRequestActionsProps) {
 	const { t } = useLingui();
-	const projectId = target?.host?.projectId ?? null;
-	const hostUrl = target?.host?.hostUrl ?? null;
 	const prNumber = target?.prNumber ?? null;
 	const mergeMethodLabels: Record<MergeMethod, string> = {
 		squash: t({ message: "Squash and merge" }),
@@ -159,12 +161,7 @@ export function PullRequestActions({
 			: null,
 	);
 	const setDraft = usePullRequestDraftMutation(
-		target ?? {
-			organizationId: null,
-			repoFullName: null,
-			prNumber: 0,
-			host: null,
-		},
+		target ?? { organizationId: null, repoFullName: null, prNumber: 0 },
 	);
 
 	const setState = useMutation({
@@ -276,9 +273,10 @@ export function PullRequestActions({
 	}
 	if (!data) return null;
 
-	const canMerge = data.state === "open" && !data.isDraft;
 	const canAct = target !== null && canActOnPullRequest(target);
-	const canToggleDraft = canAct && data.mergeability !== undefined;
+	const canMerge =
+		data.state === "open" && !data.isDraft && data.capabilities.merge;
+	const canToggleDraft = canAct && data.capabilities.update;
 	const isDraft = data.state === "open" && data.isDraft;
 	const mergeBlocked = data.mergeability === "conflicting";
 	const copyLinkLabel = linkCopied
@@ -520,7 +518,7 @@ export function PullRequestActions({
 						</PullRequestMenuContent>
 					</DropdownMenu>
 				</div>
-			) : data.state === "closed" && canAct ? (
+			) : data.state === "closed" && canAct && data.capabilities.update ? (
 				<Button
 					variant="outline"
 					size="xs"

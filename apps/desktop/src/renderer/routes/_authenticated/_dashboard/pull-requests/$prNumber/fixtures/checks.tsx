@@ -95,7 +95,6 @@ for (const project of [undefined, "unrelated", "removed"]) {
 		expect(read).toHaveBeenLastCalledWith({
 			projectId: project ?? null,
 			repoFullName: "other/repo",
-			hostUrl: "http://host.test",
 			prNumber: 12,
 		});
 		fireEvent.click(view.getByRole("button", { name: "Changes" }));

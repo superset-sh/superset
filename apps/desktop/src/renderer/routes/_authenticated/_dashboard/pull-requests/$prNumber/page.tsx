@@ -43,7 +43,6 @@ function PullRequestDetailPage() {
 
 	const detail = usePullRequestDetail({
 		projectId,
-		hostUrl,
 		prNumber,
 		repoFullName: search.repo,
 	});
@@ -59,14 +58,8 @@ function PullRequestDetailPage() {
 					organizationId,
 					repoFullName: detail.repoFullName,
 					prNumber,
-					host: hostUrl ? { hostUrl, projectId: detail.projectId } : null,
 				};
-	// A host that predates addComment/setDraft answers the content read without
-	// the extended fields; it would answer the writes with "No procedure found".
-	const commentTarget =
-		target && canActOnPullRequest(target) && data?.mergeability !== undefined
-			? target
-			: null;
+	const commentTarget = target && canActOnPullRequest(target) ? target : null;
 
 	// The list pane is always visible in the split view (or reachable via the
 	// list-collapse toggle in the shared layout), so there's no "back"
@@ -89,7 +82,9 @@ function PullRequestDetailPage() {
 					<div className="drag h-full min-w-4 flex-1" />
 					<PullRequestActions
 						target={target}
+						projectId={detail.projectId}
 						hostId={hostId}
+						hostUrl={hostUrl}
 						data={detail.data}
 						isLoading={detail.isLoading}
 					/>

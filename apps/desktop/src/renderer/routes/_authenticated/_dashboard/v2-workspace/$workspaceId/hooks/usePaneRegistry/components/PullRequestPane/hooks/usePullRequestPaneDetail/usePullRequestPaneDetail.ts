@@ -4,7 +4,7 @@ import { usePullRequestDetail } from "renderer/routes/_authenticated/_dashboard/
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 
 export function usePullRequestPaneDetail(ref: PullRequestRef) {
-	const { workspace, hostUrl } = useWorkspace();
+	const { workspace } = useWorkspace();
 	const projectQuery = workspaceTrpc.project.get.useQuery(
 		{ projectId: workspace.projectId ?? "" },
 		{ enabled: !!workspace.projectId },
@@ -12,7 +12,6 @@ export function usePullRequestPaneDetail(ref: PullRequestRef) {
 	return usePullRequestDetail({
 		projectId: workspace.projectId ?? null,
 		projectQuery,
-		hostUrl,
 		repoFullName: ref.repoFullName,
 		prNumber: ref.number,
 	});

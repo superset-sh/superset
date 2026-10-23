@@ -40,6 +40,10 @@
 			"types": "./src/workers/host-worker.ts",
 			"default": "./src/workers/host-worker.ts"
 		},
+		"./git-credentials": {
+			"types": "./src/providers/git/LocalGitCredentialProvider/index.ts",
+			"default": "./src/providers/git/LocalGitCredentialProvider/index.ts"
+		},
 		"./terminal-env": {
 			"types": "./src/terminal/env.ts",
 			"default": "./src/terminal/env.ts"

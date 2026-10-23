@@ -1,4 +1,8 @@
 import { Octokit } from "@octokit/core";
+import {
+	type PullRequestOnGithub,
+	pullRequestOnGithub,
+} from "@superset/shared/pull-request-github";
 import { githubUserTokenFor } from "../../../lib/github-user";
 import { installationOctokit } from "../../../lib/sandbox/clone-token";
 import { userError } from "../../../trpc";
@@ -11,11 +15,23 @@ export interface PullRequestInput {
 	number: number;
 }
 
-export interface ViewerPullRequest {
-	octokit: Octokit;
-	owner: string;
-	repo: string;
-	number: number;
+export type ViewerPullRequest = PullRequestOnGithub & { number: number };
+
+function onGithub(
+	octokit: Octokit,
+	input: PullRequestInput,
+): ViewerPullRequest {
+	const [owner = "", repo = ""] = input.repoFullName.split("/");
+	return {
+		...pullRequestOnGithub(
+			{
+				graphql: (query, variables) => octokit.graphql(query, variables),
+				request: (route, parameters) => octokit.request(route, parameters),
+			},
+			{ owner, repo, number: input.number },
+		),
+		number: input.number,
+	};
 }
 
 /**
@@ -29,16 +45,8 @@ export async function asViewer(
 	access: "read" | "write",
 ): Promise<ViewerPullRequest> {
 	await verifyOrgMembership(userId, input.organizationId);
-	const [owner = "", repo = ""] = input.repoFullName.split("/");
 	const token = await githubUserTokenFor(userId);
-	if (token) {
-		return {
-			octokit: new Octokit({ auth: token }),
-			owner,
-			repo,
-			number: input.number,
-		};
-	}
+	if (token) return onGithub(new Octokit({ auth: token }), input);
 	if (access === "write") {
 		throw userError({
 			code: "PRECONDITION_FAILED",
@@ -50,10 +58,8 @@ export async function asViewer(
 		input.organizationId,
 		input.repoFullName,
 	);
-	return {
-		octokit: await installationOctokit(installation.installationId),
-		owner,
-		repo,
-		number: input.number,
-	};
+	return onGithub(
+		await installationOctokit(installation.installationId),
+		input,
+	);
 }

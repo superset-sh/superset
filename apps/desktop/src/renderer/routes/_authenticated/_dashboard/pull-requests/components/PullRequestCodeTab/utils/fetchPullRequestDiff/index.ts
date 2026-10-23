@@ -1,1 +1,0 @@
-export { fetchPullRequestDiff } from "./fetchPullRequestDiff";

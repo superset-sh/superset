@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, mock, test } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import { cloudPullRequestRead } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/fromCloudPullRequest/fixtures";
 import type { PullRequestProject } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/resolvePullRequestTarget";
+import { cloudPullRequestRead } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/toPullRequestDetail/fixtures";
 
 if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register();
 const { cleanup, renderHook, waitFor } = await import("@testing-library/react");
@@ -14,23 +14,11 @@ let workspaceProjectId: string | null = "sandbox-project";
 let projectQuery: { data?: PullRequestProject | null; isPending: boolean };
 let hostProjects: { projects: PullRequestProject[]; isReady: boolean };
 const workspaceProjectQuery = mock(() => projectQuery);
-const hostContent = {
-	number: 12,
-	url: "https://github.com/owner/repo/pull/12",
-	title: "host title",
-	state: "open",
-	checks: [],
-};
-const getContent = mock(async (_input: unknown) => hostContent);
-const getContentByRepo = mock(async (_input: unknown) => ({
-	...hostContent,
-	title: "repository title",
-}));
-const cannotAct = Object.assign(new Error("Connect GitHub"), {
-	data: { code: "PRECONDITION_FAILED" },
-});
-const getPullRequestDetail = mock(async (_input: unknown): Promise<unknown> => {
-	throw cannotAct;
+const getPullRequestDetail = mock(async (_input: unknown) =>
+	cloudPullRequestRead({ title: "viewer title" }),
+);
+const hostRead = mock(() => {
+	throw new Error("the workspace host must not be asked");
 });
 const root = "renderer/routes/_authenticated/_dashboard";
 mock.module("@superset/workspace-client", () => ({
@@ -51,12 +39,12 @@ mock.module("renderer/hooks/useActiveOrganizationId", () => ({
 	useActiveOrganizationId: () => "org",
 }));
 mock.module("renderer/lib/host-service-client", () => ({
-	getHostServiceClientByUrl: () => ({
-		pullRequests: {
-			getContent: { query: getContent },
-			getContentByRepo: { query: getContentByRepo },
-		},
-	}),
+	getHostServiceClientByUrl: hostRead,
+}));
+mock.module("renderer/lib/trpc-client", () => ({
+	electronTrpcClient: {
+		viewerGithub: { status: { query: async () => ({ available: false }) } },
+	},
 }));
 mock.module("renderer/lib/cloud-trpc", () => ({
 	cloudTrpcClient: {
@@ -80,9 +68,6 @@ mock.module(
 const { usePullRequestPaneDetail } = await import(
 	"../usePullRequestPaneDetail"
 );
-const { usePullRequestDetail } = await import(
-	"renderer/routes/_authenticated/_dashboard/pull-requests/hooks/usePullRequestDetail"
-);
 
 beforeEach(() => {
 	workspaceProjectId = "sandbox-project";
@@ -92,29 +77,24 @@ beforeEach(() => {
 	};
 	hostProjects = { projects: [], isReady: false };
 	workspaceProjectQuery.mockClear();
-	getContent.mockClear();
-	getContentByRepo.mockClear();
 	getPullRequestDetail.mockClear();
 });
 
-function mountDetail(
-	useDetail = () =>
-		usePullRequestPaneDetail({ repoFullName: "owner/repo", number: 12 }),
-) {
+function mountDetail() {
 	const client = new QueryClient({
 		defaultOptions: { queries: { retry: false } },
 	});
-	return renderHook(useDetail, {
-		wrapper: ({ children }) => (
-			<QueryClientProvider client={client}>{children}</QueryClientProvider>
-		),
-	});
+	return renderHook(
+		() => usePullRequestPaneDetail({ repoFullName: "owner/repo", number: 12 }),
+		{
+			wrapper: ({ children }) => (
+				<QueryClientProvider client={client}>{children}</QueryClientProvider>
+			),
+		},
+	);
 }
 
-test("the cloud reads the pull request as the viewer before any host path", async () => {
-	getPullRequestDetail.mockResolvedValueOnce(
-		cloudPullRequestRead({ title: "viewer title" }),
-	);
+test("reads the pull request by identity as the viewer, never through the workspace host", async () => {
 	const view = mountDetail();
 	await waitFor(() =>
 		expect(view.result.current.data?.title).toBe("viewer title"),
@@ -125,105 +105,37 @@ test("the cloud reads the pull request as the viewer before any host path", asyn
 		number: 12,
 		activity: true,
 	});
-	expect(getContent).not.toHaveBeenCalled();
-	expect(getContentByRepo).not.toHaveBeenCalled();
-});
-
-test("a cloud that cannot act yields to the workspace host's project path", async () => {
-	const view = mountDetail();
-	await waitFor(() =>
-		expect(view.result.current.data?.title).toBe("host title"),
-	);
+	expect(hostRead).not.toHaveBeenCalled();
+	// The matching project is kept for agents and workspaces on the host.
 	expect(view.result.current.projectId).toBe("sandbox-project");
-	expect(view.result.current.isResolvingProject).toBe(false);
-	expect(workspaceProjectQuery).toHaveBeenCalledWith(
-		{ projectId: "sandbox-project" },
-		{ enabled: true },
-	);
-	expect(getContent).toHaveBeenCalledWith({
-		projectId: "sandbox-project",
-		prNumber: 12,
-	});
-	expect(getContentByRepo).not.toHaveBeenCalled();
 });
 
-test("waits for the workspace project even if desktop discovery has a match", async () => {
-	hostProjects = {
-		projects: [projectQuery.data as PullRequestProject],
-		isReady: true,
-	};
+test("waits for the workspace project before naming the project", async () => {
 	projectQuery = { isPending: true };
 	const view = mountDetail();
 	expect(view.result.current.isResolvingProject).toBe(true);
-	expect(getContent).not.toHaveBeenCalled();
-	expect(getContentByRepo).not.toHaveBeenCalled();
+	expect(getPullRequestDetail).not.toHaveBeenCalled();
 	projectQuery = {
 		data: { id: "sandbox-project", repoOwner: "other", repoName: "repo" },
 		isPending: false,
 	};
 	view.rerender();
 	await waitFor(() =>
-		expect(view.result.current.data?.title).toBe("repository title"),
+		expect(view.result.current.data?.title).toBe("viewer title"),
 	);
 	expect(view.result.current.projectId).toBeNull();
-	expect(getContent).not.toHaveBeenCalled();
 });
 
-for (const data of [undefined, null]) {
-	test(`a settled ${data === null ? "missing" : "failed"} workspace project uses repository fallback`, async () => {
-		hostProjects = {
-			projects: [projectQuery.data as PullRequestProject],
-			isReady: false,
-		};
-		projectQuery = { data, isPending: false };
-		const view = mountDetail();
-		await waitFor(() =>
-			expect(view.result.current.data?.title).toBe("repository title"),
-		);
-		expect(view.result.current.projectId).toBeNull();
-		expect(view.result.current.isResolvingProject).toBe(false);
-		expect(getContent).not.toHaveBeenCalled();
-	});
-}
-
-test("a workspace without a project does not wait for its disabled project query", async () => {
+test("a workspace without a project still reads the pull request", async () => {
 	workspaceProjectId = null;
 	projectQuery = { isPending: true };
 	const view = mountDetail();
 	await waitFor(() =>
-		expect(view.result.current.data?.title).toBe("repository title"),
+		expect(view.result.current.data?.title).toBe("viewer title"),
 	);
 	expect(view.result.current.projectId).toBeNull();
 	expect(workspaceProjectQuery).toHaveBeenCalledWith(
 		{ projectId: "" },
 		{ enabled: false },
 	);
-});
-
-test("known project-only links preserve legacy reads when metadata is absent", async () => {
-	projectQuery = { data: { id: "sandbox-project" }, isPending: false };
-	const view = mountDetail(() =>
-		usePullRequestDetail({
-			projectId: "sandbox-project",
-			projectQuery,
-			hostUrl: "https://sandbox.test",
-			prNumber: 12,
-		}),
-	);
-	await waitFor(() =>
-		expect(view.result.current.data?.title).toBe("host title"),
-	);
-	expect(view.result.current.projectId).toBe("sandbox-project");
-	expect(view.result.current.repoFullName).toBe("owner/repo");
-	expect(getContentByRepo).not.toHaveBeenCalled();
-});
-
-test("explicit repository links cannot inherit project actions from missing metadata", async () => {
-	projectQuery = { data: { id: "sandbox-project" }, isPending: false };
-	const view = mountDetail();
-	await waitFor(() =>
-		expect(view.result.current.data?.title).toBe("repository title"),
-	);
-	expect(view.result.current.projectId).toBeNull();
-	expect(getContent).not.toHaveBeenCalled();
 });

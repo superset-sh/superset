@@ -104,6 +104,8 @@ export interface PullRequestDetailRead {
 		allowedMergeMethods: string[];
 	};
 	capabilities: {
+		/** The viewer may edit the pull request: draft state, open or closed. */
+		update: boolean;
 		merge: boolean;
 		markReady: boolean;
 		updateBranch: boolean;
@@ -660,6 +662,7 @@ export async function readPullRequestDetail(
 			// Permission only. Whether GitHub would accept the merge right now
 			// is mergeStateStatus's job — gating the button on mergeability
 			// makes it vanish while GitHub is still computing it.
+			update: pr.viewerCanUpdate,
 			merge: pr.viewerCanMergeAsAdmin || pr.viewerCanUpdate,
 			markReady: pr.isDraft && pr.viewerCanUpdate,
 			updateBranch: pr.mergeStateStatus === "BEHIND" && pr.viewerCanUpdate,

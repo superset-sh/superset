@@ -34,6 +34,7 @@ export function cloudPullRequestRead(
 			allowedMergeMethods: ["squash"],
 		},
 		capabilities: {
+			update: true,
 			merge: true,
 			markReady: false,
 			updateBranch: false,

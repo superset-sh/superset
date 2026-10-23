@@ -227,10 +227,12 @@ fails its first content read with a gh auth error. **What we did:** the review
 run wrote a temporary `~/.config/gh/hosts.yml` from the token and deleted it
 afterwards. The durable fix is for `getToolEnvironment()` to carry `GH_TOKEN`
 (and `GITHUB_TOKEN`) through from the host-service process when the shell did
-not provide one. Since 2026-10-22 the PR pane no longer depends on it: it reads
-and writes through the API's `integration.github.*PullRequest*` procedures as
-the signed-in person (`githubUserTokenFor`), and only falls back to the host's
-`gh` when the API cannot act at all.
+not provide one. Since 2026-10-23 the PR pane, the workspace PR badge and mobile
+no longer use a host's GitHub access at all. They act as the person looking:
+the desktop with the GitHub login on that person's own machine (the
+`viewerGithub` router in the main process), and otherwise, or on mobile,
+through the API's `integration.github.*PullRequest*` procedures with their
+Superset connection (`githubUserTokenFor`).
 
 ## Runtime environment
 

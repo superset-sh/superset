@@ -90,7 +90,7 @@ export function PRStatusGroup({
 	paneAreaStyle = false,
 }: PRStatusGroupProps) {
 	const { t } = useLingui();
-	const { workspace, hostUrl } = useWorkspace();
+	const { workspace } = useWorkspace();
 	const organizationId = useActiveOrganizationId();
 	const linkPolicy = usePullRequestLinkPolicy();
 	const isSession = workspace.type === "session";
@@ -105,7 +105,6 @@ export function PRStatusGroup({
 				organizationId,
 				repoFullName: `${pr.repoOwner}/${pr.repoName}`,
 				prNumber: pr.number,
-				host: { hostUrl, projectId: workspace.projectId ?? null },
 			}
 		: null;
 

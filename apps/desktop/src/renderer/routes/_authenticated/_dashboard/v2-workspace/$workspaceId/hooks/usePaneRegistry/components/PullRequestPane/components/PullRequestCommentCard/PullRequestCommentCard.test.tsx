@@ -16,7 +16,6 @@ const target = {
 	organizationId: "org",
 	repoFullName: "example/repo",
 	prNumber: 1,
-	host: null,
 };
 
 function renderCard(

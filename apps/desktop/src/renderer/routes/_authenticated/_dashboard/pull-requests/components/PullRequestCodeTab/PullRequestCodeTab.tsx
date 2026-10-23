@@ -35,16 +35,15 @@ import { DiffViewToolbar } from "renderer/screens/main/components/DiffViewToolba
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates/useWorkspaceCreates";
 import { usePullRequestThreads } from "../../hooks/usePullRequestThreads";
-import { pullRequestReadErrorMessage } from "../../utils/combinePullRequestReadErrors";
 import {
 	type PullRequestTarget,
 	pullRequestThreadsQueryKey,
+	readPullRequestDiff,
 	replyToPullRequestThread,
 	setPullRequestThreadResolution,
 } from "../../utils/pullRequestClient";
 import { PullRequestCommentComposer } from "./components/PullRequestCommentComposer";
 import { PullRequestCommentThread } from "./components/PullRequestCommentThread";
-import { fetchPullRequestDiff } from "./utils/fetchPullRequestDiff";
 import { parsePullRequestPatch } from "./utils/parsePullRequestPatch";
 
 interface PullRequestCodeTabProps {
@@ -298,28 +297,17 @@ export function PullRequestCodeTab({
 			organizationId,
 			repoFullName,
 			prNumber,
-			host: hostUrl ? { hostUrl, projectId } : null,
 		}),
-		[organizationId, repoFullName, prNumber, hostUrl, projectId],
+		[organizationId, repoFullName, prNumber],
 	);
 
 	const { data, isLoading, error, refetch } = useQuery({
 		queryKey: [
 			"pull-request-diff",
-			organizationId,
-			repoFullName,
-			projectId,
-			hostUrl,
+			repoFullName?.toLowerCase() ?? null,
 			prNumber,
 		],
-		queryFn: () =>
-			fetchPullRequestDiff({
-				projectId,
-				hostUrl,
-				prNumber,
-				repoFullName,
-				organizationId,
-			}),
+		queryFn: () => readPullRequestDiff(target),
 		staleTime: 30_000,
 		gcTime: 10 * 60_000,
 	});
@@ -834,7 +822,7 @@ export function PullRequestCodeTab({
 			<div ref={rootRef} className="flex min-h-0 flex-1 flex-col">
 				<div className="flex flex-1 items-center justify-center">
 					<WorkItemDetailState
-						message={pullRequestReadErrorMessage(error)}
+						message={errorMessage(error)}
 						isError
 						onRetry={() => void refetch()}
 					/>

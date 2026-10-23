@@ -177,6 +177,10 @@
 			"types": "./src/pull-request.ts",
 			"default": "./src/pull-request.ts"
 		},
+		"./pull-request-github": {
+			"types": "./src/pull-request-github/index.ts",
+			"default": "./src/pull-request-github/index.ts"
+		},
 		"./pull-request-detail": {
 			"types": "./src/pull-request-detail/index.ts",
 			"default": "./src/pull-request-detail/index.ts"

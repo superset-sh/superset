@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { cloudPullRequestRead } from "./fixtures";
-import { fromCloudPullRequest } from "./fromCloudPullRequest";
+import { toPullRequestDetail } from "./toPullRequestDetail";
 
 test("maps GitHub's vocabulary, keeping the latest run of each check", () => {
 	const read = {
@@ -54,7 +54,7 @@ test("maps GitHub's vocabulary, keeping the latest run of each check", () => {
 			commits: [],
 		},
 	};
-	expect(fromCloudPullRequest(read, "owner/repo")).toMatchObject({
+	expect(toPullRequestDetail(read, "owner/repo")).toMatchObject({
 		repoFullName: "owner/repo",
 		head: { ref: "feat/x", repoFullName: "fork/repo" },
 		author: { login: "satya", avatarUrl: "a" },
