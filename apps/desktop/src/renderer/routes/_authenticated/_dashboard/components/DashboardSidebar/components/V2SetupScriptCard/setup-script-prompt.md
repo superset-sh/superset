@@ -25,8 +25,14 @@ Setup and teardown commands run sequentially in the workspace directory.
 ## Environment variables available to scripts
 
 - `SUPERSET_ROOT_PATH` — path to the root repository
-- `SUPERSET_WORKSPACE_NAME` — current workspace name
+- `SUPERSET_WORKSPACE_ID` — stable ID of the current workspace
 - `SUPERSET_WORKSPACE_PATH` — path to the workspace worktree
+
+`SUPERSET_WORKSPACE_NAME` is not set. Names can change while setup runs, so use
+`SUPERSET_WORKSPACE_ID` for stable identifiers. To read the current name of a
+workspace on this machine, use
+`superset workspaces get "$SUPERSET_WORKSPACE_ID" --local --field name`.
+The ID argument defaults to `$SUPERSET_WORKSPACE_ID` when omitted.
 
 ## Examples
 
