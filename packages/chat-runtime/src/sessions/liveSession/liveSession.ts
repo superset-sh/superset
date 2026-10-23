@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
+	type AgentMessage,
 	type DiscoverSessionsResult,
 	type DurableEvent,
 	type Envelope,
@@ -17,6 +18,15 @@ import type {
 	HarnessStartOptions,
 } from "../../harness";
 import type { ChatJournal } from "../../journal";
+import {
+	type GoalCommand,
+	goalBrief,
+	goalContinuation,
+	MAX_GOAL_CONTINUATIONS,
+	parseGoalCommand,
+	readGoalOutcome,
+	withGoalCommand,
+} from "./utils/goal";
 
 export type LiveSessionOptions = {
 	sessionId: string;
@@ -97,6 +107,7 @@ export class LiveSession {
 	/** Turns a user prompt started, and those of them that have shown anything yet. */
 	private readonly promptedTurns = new Set<string>();
 	private readonly turnsWithOutput = new Set<string>();
+	private lastAgentMessage: { turnId: string; text: string } | null = null;
 
 	constructor(private readonly options: LiveSessionOptions) {
 		this.sessionState = { status: "starting", harness: options.harness };
@@ -204,15 +215,31 @@ export class LiveSession {
 		clientId: string,
 		steerTurnId?: string,
 	): PromptResult {
+		const goalCommand = parseGoalCommand(content);
+		if (goalCommand) return this.runGoalCommand(goalCommand, content, clientId);
+		return this.submit(content, withHiddenWrapped(content), clientId, {
+			steerTurnId,
+			mayAwaitBackground: true,
+		});
+	}
+
+	private submit(
+		content: UserContent[],
+		sent: UserContent[],
+		clientId: string,
+		{
+			steerTurnId,
+			mayAwaitBackground,
+		}: { steerTurnId?: string; mayAwaitBackground: boolean },
+	): PromptResult {
 		const itemId = this.mintId();
 		const seq = ++this.sent;
 		const shown = content.filter(
 			(part) => !(part.type === "text" && part.hidden),
 		);
-		const sent = withHiddenWrapped(content);
 		const wantsSteer =
 			steerTurnId !== undefined ||
-			this.sessionState.awaitingBackground === true;
+			(mayAwaitBackground && this.sessionState.awaitingBackground === true);
 		const running =
 			wantsSteer && this.queue.length === 0
 				? this.steerableTurn(steerTurnId)
@@ -258,6 +285,48 @@ export class LiveSession {
 		this.appendDurable({ type: "item", item, turnId });
 		this.deliver({ item, content: sent, turnId, seq });
 		return { itemId, queued: false };
+	}
+
+	private runGoalCommand(
+		command: GoalCommand,
+		content: UserContent[],
+		clientId: string,
+	): PromptResult {
+		if (command.kind === "set") {
+			this.emitSession({ goal: { text: command.text, continuations: 0 } });
+			const sent = withHiddenWrapped([
+				{ type: "text", text: goalBrief(command.text) },
+				...content.filter((part) => part.type !== "text" || part.hidden),
+			]);
+			return this.submit(content, sent, clientId, {
+				mayAwaitBackground: false,
+			});
+		}
+		const item: UserMessage = {
+			id: this.mintId(),
+			kind: "user_message",
+			clientId,
+			startedAtMs: this.now(),
+			content: content.filter((part) => !(part.type === "text" && part.hidden)),
+		};
+		const turnId = this.mintId();
+		this.appendDurable({ type: "item", item, turnId });
+		const goal = this.sessionState.goal;
+		if (command.kind === "clear" && goal) {
+			this.emitSession({ goal: undefined });
+			this.appendNotice(turnId, `Goal cleared: ${goal.text}`);
+		} else if (goal) {
+			this.appendNotice(
+				turnId,
+				`Goal: ${goal.text} (${goal.continuations} of ${MAX_GOAL_CONTINUATIONS} continuations used)`,
+			);
+		} else {
+			this.appendNotice(
+				turnId,
+				"No goal is set. Type /goal and then a goal to set one.",
+			);
+		}
+		return { itemId: item.id, queued: false };
 	}
 
 	/** Writes finished turns and items from another session's transcript into this one. */
@@ -410,6 +479,12 @@ export class LiveSession {
 				if (event.item.kind !== "user_message") {
 					this.turnsWithOutput.add(event.turnId);
 				}
+				if (event.item.kind === "agent_message" && !event.item.parentItemId) {
+					this.lastAgentMessage = {
+						turnId: event.turnId,
+						text: (event.item as AgentMessage).text,
+					};
+				}
 				this.appendDurable({
 					type: "item",
 					item: event.item,
@@ -428,7 +503,7 @@ export class LiveSession {
 					}
 				} else {
 					this.noteSilentTurn(event.turn);
-					this.deliverNextQueued();
+					if (!this.continueGoal(event.turn)) this.deliverNextQueued();
 				}
 				return;
 			}
@@ -501,6 +576,77 @@ export class LiveSession {
 				completedAtMs: at,
 			},
 			turnId: turn.id,
+		});
+	}
+
+	/** True when it sent the agent another goal turn. */
+	private continueGoal(turn: Turn): boolean {
+		const goal = this.sessionState.goal;
+		if (!goal) return false;
+		if (turn.status === "completed") {
+			const agentText =
+				this.lastAgentMessage?.turnId === turn.id
+					? this.lastAgentMessage.text
+					: "";
+			const outcome = readGoalOutcome(agentText);
+			if (outcome.kind === "complete") {
+				this.endGoal(turn.id, `Goal reached: ${goal.text}`);
+				return false;
+			}
+			if (outcome.kind === "blocked") {
+				this.endGoal(turn.id, `Goal blocked: ${outcome.reason}`);
+				return false;
+			}
+		}
+		if (this.hasPendingWork() || this.pendingSteers.length > 0) return false;
+		if (turn.status !== "completed") {
+			this.endGoal(turn.id, `Stopped working on the goal: ${goal.text}`);
+			return false;
+		}
+		if (goal.continuations >= MAX_GOAL_CONTINUATIONS) {
+			this.endGoal(
+				turn.id,
+				`Stopped working on the goal after ${MAX_GOAL_CONTINUATIONS} continuations: ${goal.text}`,
+			);
+			return false;
+		}
+		this.emitSession({
+			goal: { ...goal, continuations: goal.continuations + 1 },
+		});
+		const content: UserContent[] = [
+			{ type: "text", text: goalContinuation(goal.text) },
+		];
+		const item: UserMessage = {
+			id: this.mintId(),
+			kind: "user_message",
+			clientId: this.mintId(),
+			startedAtMs: this.now(),
+			content,
+		};
+		const turnId = this.mintId();
+		this.appendDurable({ type: "item", item, turnId });
+		this.deliver({ item, content, turnId, seq: ++this.sent });
+		return true;
+	}
+
+	private endGoal(turnId: string, text: string): void {
+		this.emitSession({ goal: undefined });
+		this.appendNotice(turnId, text);
+	}
+
+	private appendNotice(turnId: string, text: string): void {
+		const at = this.now();
+		this.appendDurable({
+			type: "item",
+			item: {
+				id: this.mintId(),
+				kind: "notice",
+				noticeKind: "info",
+				text,
+				startedAtMs: at,
+				completedAtMs: at,
+			},
+			turnId,
 		});
 	}
 
@@ -663,7 +809,13 @@ export class LiveSession {
 	}
 
 	private emitSession(partial: Partial<SessionState>): void {
-		const merged: SessionState = { ...this.sessionState, ...partial };
+		const merged: SessionState = {
+			...this.sessionState,
+			...partial,
+			...(partial.availableCommands
+				? { availableCommands: withGoalCommand(partial.availableCommands) }
+				: {}),
+		};
 		const status = this.hasPendingWork() ? "running" : merged.status;
 		this.sessionState = sessionStateSchema.parse({ ...merged, status });
 		this.appendDurable({ type: "session", session: this.sessionState });

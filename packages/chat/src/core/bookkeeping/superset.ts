@@ -5,7 +5,7 @@ import { humanizeTag, xmlEnvelope } from "./xmlEnvelope";
  * Blocks we inject ourselves, so they arrive whatever the harness is and this
  * reader claims no harness of its own — the registry always consults it.
  */
-const TAGS = new Set(["roster"]);
+const TAGS = new Set(["roster", "goal", "goal-continuation"]);
 
 export const supersetBookkeeping: BookkeepingReader = {
 	harnesses: [],

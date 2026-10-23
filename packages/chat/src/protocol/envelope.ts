@@ -79,6 +79,13 @@ export const sessionStateSchema = z.looseObject({
 	queueControls: z.boolean().optional(),
 	backgroundTasks: z.array(backgroundTaskSchema).optional(),
 	awaitingBackground: z.boolean().optional(),
+	/** Set by `/goal`: the host prompts the agent again after each turn until the goal is reached. */
+	goal: z
+		.looseObject({
+			text: z.string(),
+			continuations: z.number().int().nonnegative(),
+		})
+		.optional(),
 });
 export type SessionState = z.infer<typeof sessionStateSchema>;
 
