@@ -90,7 +90,7 @@ export function DiffPaneHeaderActions({
 			/>
 			{files && <DiffTreeToggleButton {...files} />}
 			<div
-				className="mx-1 h-3.5 w-px shrink-0 bg-muted-foreground/30"
+				className="mx-1 h-3.5 w-px shrink-0 bg-muted-foreground/30 group-last/diff-actions:hidden"
 				aria-hidden="true"
 			/>
 		</div>

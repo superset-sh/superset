@@ -9,6 +9,8 @@ export function PaneHeaderActions<TData>({
 	actions: PaneActionConfig<TData>[];
 	context: RendererContext<TData>;
 }) {
+	if (actions.length === 0) return null;
+
 	return (
 		<div className="flex shrink-0 items-center gap-1">
 			{actions.map((action, _index) => {

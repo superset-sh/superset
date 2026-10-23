@@ -1,7 +1,6 @@
 import { useLingui } from "@lingui/react/macro";
 import {
 	type ContextMenuActionConfig,
-	type PaneActionConfig,
 	type PaneRegistry,
 	type Tab,
 	Workspace,
@@ -30,7 +29,6 @@ const RIGHT_PANE_KEPT_TABS = 2;
 interface RightPaneAreaProps {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	registry: PaneRegistry<PaneViewerData>;
-	paneActions: PaneActionConfig<PaneViewerData>[];
 	contextMenuActions: ContextMenuActionConfig<PaneViewerData>[];
 	onBeforeCloseTab: (tab: Tab<PaneViewerData>) => boolean | Promise<boolean>;
 	onInteractionStateChange?: (state: WorkspaceInteractionState) => void;
@@ -47,7 +45,6 @@ interface RightPaneAreaProps {
 export function RightPaneArea({
 	store,
 	registry,
-	paneActions,
 	contextMenuActions,
 	onBeforeCloseTab,
 	onInteractionStateChange,
@@ -72,7 +69,6 @@ export function RightPaneArea({
 			<Workspace<PaneViewerData>
 				keepAliveTabs={RIGHT_PANE_KEPT_TABS}
 				registry={registry}
-				paneActions={paneActions}
 				contextMenuActions={contextMenuActions}
 				onPaneError={reportRendererError}
 				renderTabIcon={renderBrowserTabIcon}

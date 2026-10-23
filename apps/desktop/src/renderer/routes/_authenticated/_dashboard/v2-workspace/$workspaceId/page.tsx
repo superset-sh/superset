@@ -697,7 +697,6 @@ function V2WorkspaceContent() {
 			key={workspaceId}
 			store={rightStore}
 			registry={paneRegistry}
-			paneActions={defaultPaneActions}
 			contextMenuActions={defaultContextMenuActions}
 			onBeforeCloseTab={onBeforeCloseRightTab}
 			onInteractionStateChange={onWorkspaceInteractionStateChange}

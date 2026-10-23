@@ -380,7 +380,7 @@ export function usePaneRegistry({
 				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => (
 					<DiffPaneHeaderSlot
 						id={diffPaneActionsSlotId(ctx.pane.id)}
-						className="flex shrink-0 items-center"
+						className="group/diff-actions flex shrink-0 items-center"
 					/>
 				),
 				contextMenuActions: (_ctx, defaults) =>
