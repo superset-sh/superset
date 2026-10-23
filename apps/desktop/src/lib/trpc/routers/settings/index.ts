@@ -56,6 +56,7 @@ import {
 	DEFAULT_EXPOSE_HOST_SERVICE_VIA_RELAY,
 	DEFAULT_FILE_AUTO_SAVE,
 	DEFAULT_FILE_OPEN_MODE,
+	DEFAULT_HIDE_EMPTY_SIDEBAR_PROJECTS,
 	DEFAULT_OPEN_LINKS_IN_APP,
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
@@ -1166,6 +1167,29 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { showUsageInSidebar: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getHideEmptySidebarProjects: publicProcedure.query(() => {
+			const row = getSettings();
+			return (
+				row.hideEmptySidebarProjects ?? DEFAULT_HIDE_EMPTY_SIDEBAR_PROJECTS
+			);
+		}),
+
+		setHideEmptySidebarProjects: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				const { id } = getSettings();
+				localDb
+					.insert(settings)
+					.values({ id, hideEmptySidebarProjects: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { hideEmptySidebarProjects: input.enabled },
 					})
 					.run();
 

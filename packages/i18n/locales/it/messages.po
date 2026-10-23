@@ -758,6 +758,9 @@ msgstr "{count, plural, one {# commento, nuove risposte} other {# commenti, nuov
 msgid "{count, plural, one {# comment} other {# comments}}"
 msgstr "{count, plural, one {# commento} other {# commenti}}"
 
+msgid "{count, plural, one {# empty project hidden} other {# empty projects hidden}}"
+msgstr "{count, plural, one {# progetto vuoto nascosto} other {# progetti vuoti nascosti}}"
+
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {# file} other {# file}}"
 
@@ -8527,6 +8530,9 @@ msgstr "Nascondi dettagli"
 msgid "Hide emails"
 msgstr "Nascondi le email"
 
+msgid "Hide empty projects"
+msgstr "Nascondi progetti vuoti"
+
 msgid "Hide file tree"
 msgstr "Nascondi l'albero dei file"
 
@@ -15772,6 +15778,9 @@ msgstr "Mostra un microfono nel campo della chat. Il parlato viene trascritto da
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "Mostra un pulsante Utilizzo nella barra laterale della home, sotto Pull request"
 
+msgid "Show all"
+msgstr "Mostra tutto"
+
 msgid "Show all {count}"
 msgstr "Mostra tutti i {count}"
 
@@ -15813,6 +15822,12 @@ msgstr "Mostra il pannello diff"
 
 msgid "Show emails"
 msgstr "Mostra le email"
+
+msgid "Show empty projects"
+msgstr "Mostra progetti vuoti"
+
+msgid "Show empty projects to rearrange the sidebar"
+msgstr "Mostra i progetti vuoti per riorganizzare la barra laterale"
 
 msgid "Show everyone who opened this page"
 msgstr "Mostra tutti quelli che hanno aperto questa pagina"

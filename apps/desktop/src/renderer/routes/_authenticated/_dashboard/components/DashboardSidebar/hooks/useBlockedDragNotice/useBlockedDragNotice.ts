@@ -1,17 +1,23 @@
 import { useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { useEffect, useRef } from "react";
-import { watchBlockedDragAttempts } from "./watchBlockedDragAttempts";
+import {
+	getBlockedDragTarget,
+	watchBlockedDragAttempts,
+} from "./watchBlockedDragAttempts";
 
 const NOTICE_TOAST_ID = "sidebar-drag-blocked";
 
-type BlockedDragReason = "sort" | "filter";
+type BlockedDragReason = "sort" | "filter" | "emptyProjects";
 
 interface UseBlockedDragNoticeOptions {
-	/** Null while every row can be dragged. A filter outranks a sort. */
+	/** Why workspace and folder rows are inert; null while they can be dragged. */
 	reason: BlockedDragReason | null;
+	/** Why project rows are inert; null while they can be dragged. */
+	projectReason: BlockedDragReason | null;
 	onSwitchToManualOrder: () => void;
 	onClearFilter: () => void;
+	onShowEmptyProjects: () => void;
 }
 
 /**
@@ -20,8 +26,10 @@ interface UseBlockedDragNoticeOptions {
  */
 export function useBlockedDragNotice({
 	reason,
+	projectReason,
 	onSwitchToManualOrder,
 	onClearFilter,
+	onShowEmptyProjects,
 }: UseBlockedDragNoticeOptions): void {
 	const { t } = useLingui();
 	const notices = {
@@ -37,21 +45,31 @@ export function useBlockedDragNotice({
 			actionLabel: t({ message: "Clear filter" }),
 			onAction: onClearFilter,
 		},
+		emptyProjects: {
+			message: t({
+				message: "Show empty projects to rearrange the sidebar",
+			}),
+			actionLabel: t({ message: "Show empty projects" }),
+			onAction: onShowEmptyProjects,
+		},
 	};
 	const latestNotices = useRef(notices);
 	latestNotices.current = notices;
 
 	useEffect(() => {
-		if (reason === null) {
+		if (reason === null && projectReason === null) {
 			toast.dismiss(NOTICE_TOAST_ID);
 			return;
 		}
-		return watchBlockedDragAttempts(document, () => {
-			const notice = latestNotices.current[reason];
+		return watchBlockedDragAttempts(document, (blocked) => {
+			const blockedReason =
+				getBlockedDragTarget(blocked) === "project" ? projectReason : reason;
+			if (blockedReason === null) return;
+			const notice = latestNotices.current[blockedReason];
 			toast(notice.message, {
 				id: NOTICE_TOAST_ID,
 				action: { label: notice.actionLabel, onClick: notice.onAction },
 			});
 		});
-	}, [reason]);
+	}, [reason, projectReason]);
 }

@@ -758,6 +758,9 @@ msgstr "{count, plural, one {# komentar, balasan baru} other {# komentar, balasa
 msgid "{count, plural, one {# comment} other {# comments}}"
 msgstr "{count, plural, one {# komentar} other {# komentar}}"
 
+msgid "{count, plural, one {# empty project hidden} other {# empty projects hidden}}"
+msgstr "{count, plural, one {# proyek kosong disembunyikan} other {# proyek kosong disembunyikan}}"
+
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {# file} other {# file}}"
 
@@ -8527,6 +8530,9 @@ msgstr "Sembunyikan Detail"
 msgid "Hide emails"
 msgstr "Sembunyikan email"
 
+msgid "Hide empty projects"
+msgstr "Sembunyikan proyek kosong"
+
 msgid "Hide file tree"
 msgstr "Sembunyikan pohon file"
 
@@ -15772,6 +15778,9 @@ msgstr "Tampilkan mikrofon di kolom chat. Ucapan ditranskripsi oleh ChatGPT jika
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "Tampilkan tombol Penggunaan di sidebar beranda, di bawah Pull request"
 
+msgid "Show all"
+msgstr "Tampilkan semua"
+
 msgid "Show all {count}"
 msgstr "Tampilkan semua {count}"
 
@@ -15813,6 +15822,12 @@ msgstr "Tampilkan panel diff"
 
 msgid "Show emails"
 msgstr "Tampilkan email"
+
+msgid "Show empty projects"
+msgstr "Tampilkan proyek kosong"
+
+msgid "Show empty projects to rearrange the sidebar"
+msgstr "Tampilkan proyek kosong untuk menyusun ulang sidebar"
 
 msgid "Show everyone who opened this page"
 msgstr "Tampilkan semua yang membuka halaman ini"

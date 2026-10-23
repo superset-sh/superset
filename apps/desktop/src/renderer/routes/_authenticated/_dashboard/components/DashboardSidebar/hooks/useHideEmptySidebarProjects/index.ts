@@ -1,0 +1,1 @@
+export { useHideEmptySidebarProjects } from "./useHideEmptySidebarProjects";

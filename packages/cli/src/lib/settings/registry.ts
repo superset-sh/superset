@@ -125,6 +125,15 @@ export const SETTINGS: SettingDefinition[] = [
 		description: "External editor used to open files and workspaces",
 		defaultValue: null,
 	},
+	// Sidebar
+	{
+		key: "hideEmptySidebarProjects",
+		type: "boolean",
+		section: "sidebar",
+		description:
+			"Hide sidebar projects that have no workspaces (they come back when one opens)",
+		defaultValue: false,
+	},
 	// Git (host-wide; requires the host service to be running)
 	{
 		key: "branchPrefixMode",

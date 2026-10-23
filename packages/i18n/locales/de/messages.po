@@ -758,6 +758,9 @@ msgstr "{count, plural, one {# Kommentar, neue Antworten} other {# Kommentare, n
 msgid "{count, plural, one {# comment} other {# comments}}"
 msgstr "{count, plural, one {# Kommentar} other {# Kommentare}}"
 
+msgid "{count, plural, one {# empty project hidden} other {# empty projects hidden}}"
+msgstr "{count, plural, one {# leeres Projekt ausgeblendet} other {# leere Projekte ausgeblendet}}"
+
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {# Datei} other {# Dateien}}"
 
@@ -8527,6 +8530,9 @@ msgstr "Details ausblenden"
 msgid "Hide emails"
 msgstr "E-Mails ausblenden"
 
+msgid "Hide empty projects"
+msgstr "Leere Projekte ausblenden"
+
 msgid "Hide file tree"
 msgstr "Dateibaum ausblenden"
 
@@ -15772,6 +15778,9 @@ msgstr "Im Chat-Eingabefeld ein Mikrofon anzeigen. Sprache wird von ChatGPT tran
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "Eine Schaltfläche „Nutzung“ in der Seitenleiste der Startansicht unter „Pull Requests“ anzeigen"
 
+msgid "Show all"
+msgstr "Alle anzeigen"
+
 msgid "Show all {count}"
 msgstr "Alle {count} anzeigen"
 
@@ -15813,6 +15822,12 @@ msgstr "Diff-Panel anzeigen"
 
 msgid "Show emails"
 msgstr "E-Mails anzeigen"
+
+msgid "Show empty projects"
+msgstr "Leere Projekte anzeigen"
+
+msgid "Show empty projects to rearrange the sidebar"
+msgstr "Zeige leere Projekte an, um die Seitenleiste neu anzuordnen"
 
 msgid "Show everyone who opened this page"
 msgstr "Alle anzeigen, die diese Seite geöffnet haben"

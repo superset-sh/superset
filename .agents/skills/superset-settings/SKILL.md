@@ -132,6 +132,7 @@ Booleans accept `true/false/on/off/1/0/yes/no`.
 | Section | Keys |
 | --- | --- |
 | behavior | `confirmOnQuit`, `fileOpenMode` (`split-pane\|new-tab`), `showResourceMonitor`, `showUsageInSidebar`, `openLinksInApp`, `defaultEditor` (vscode, cursor, zed, ...) |
+| sidebar | `hideEmptySidebarProjects`: hides projects that have no workspaces; a project comes back as soon as a workspace opens in it |
 | git | `branchPrefixMode` (`none\|github\|author\|custom`), `branchPrefixCustom`, `worktreeBaseDir`; host-wide, written through the local host service, so the app (or `superset start`) must be running |
 | notifications | `selectedRingtoneId` (shamisen, arcade, ping, quick, doowap, woman, african, afrobeat, edm, comeback, shabala), `notificationSoundsMuted`, `notificationVolume` (0-100) |
 | terminal | `terminalLinkBehavior` (`external-editor\|file-viewer`), `terminalParkedRuntimeCap` (2-64), `showPresetsBar`, `useCompactTerminalAddButton`, `autoApplyDefaultPreset`, `waitForSetupBeforeAgent` |

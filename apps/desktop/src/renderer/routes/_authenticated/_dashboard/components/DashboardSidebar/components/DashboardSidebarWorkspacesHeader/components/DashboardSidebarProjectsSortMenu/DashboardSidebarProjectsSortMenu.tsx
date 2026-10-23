@@ -1,6 +1,7 @@
 import { useLingui } from "@lingui/react/macro";
 import {
 	DropdownMenu,
+	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
 	DropdownMenuLabel,
 	DropdownMenuRadioGroup,
@@ -25,11 +26,14 @@ interface DashboardSidebarProjectsSortMenuProps {
 	/** Null hides the host filter (cloud rows are not inline). */
 	hostFilter: SidebarProjectHostFilter | null;
 	onHostFilterChange: (filter: SidebarProjectHostFilter) => void;
+	hideEmptyProjects: boolean;
+	onHideEmptyProjectsChange: (hide: boolean) => void;
 }
 
 /**
  * Sort-mode picker in the Projects header. Sorts the workspaces inside each
- * project — the project list itself is always the manual drag order. Lives
+ * project — the project list itself is always the manual drag order. It also
+ * holds the host filter and the "Hide empty projects" view setting. Lives
  * inside the header strip, which toggles the section on click, so the trigger
  * and the (portaled, but React-bubbling) menu content both stop propagation.
  */
@@ -38,6 +42,8 @@ export function DashboardSidebarProjectsSortMenu({
 	onSortModeChange,
 	hostFilter,
 	onHostFilterChange,
+	hideEmptyProjects,
+	onHideEmptyProjectsChange,
 }: DashboardSidebarProjectsSortMenuProps) {
 	const { t } = useLingui();
 	const labels: Record<SidebarProjectSortMode, string> = {
@@ -81,7 +87,7 @@ export function DashboardSidebarProjectsSortMenu({
 							className={cn(
 								"flex size-6 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-fill-hover hover:text-foreground",
 								// Read as "on" whenever the list is not the plain drag order.
-								sortMode === "manual" && !isHostFiltered
+								sortMode === "manual" && !isHostFiltered && !hideEmptyProjects
 									? "text-muted-foreground"
 									: "text-foreground",
 							)}
@@ -152,6 +158,16 @@ export function DashboardSidebarProjectsSortMenu({
 						</DropdownMenuRadioGroup>
 					</>
 				)}
+				<DropdownMenuSeparator />
+				<DropdownMenuCheckboxItem
+					checked={hideEmptyProjects}
+					onCheckedChange={onHideEmptyProjectsChange}
+					onSelect={(event) => event.preventDefault()}
+				>
+					{t({
+						message: "Hide empty projects",
+					})}
+				</DropdownMenuCheckboxItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

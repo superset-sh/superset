@@ -6,7 +6,9 @@ import {
 	type SelectSettings,
 	settings,
 } from "@superset/local-db/schema";
+import { eq, getTableColumns } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
+import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 import { getLocalDbPath } from "./paths";
 import type { SettingsColumn, SettingValue } from "./registry";
 
@@ -37,25 +39,58 @@ function openLocalDb() {
 	return { sqlite, db: drizzle(sqlite) };
 }
 
-function isMissingTableError(error: unknown): boolean {
-	return error instanceof Error && error.message.includes("no such table");
+const SETTINGS_COLUMNS: Record<string, AnySQLiteColumn> =
+	getTableColumns(settings);
+
+/**
+ * The settings columns this local.db has, by key. A database last migrated
+ * by an older desktop app lacks newer columns, and a query that names one
+ * fails for every setting. Null when there is no settings table yet.
+ */
+function getPresentColumns(
+	sqlite: Database,
+): Record<string, AnySQLiteColumn> | null {
+	const names = new Set(
+		(
+			sqlite.query("PRAGMA table_info(settings)").all() as { name: string }[]
+		).map((column) => column.name),
+	);
+	if (names.size === 0) return null;
+	return Object.fromEntries(
+		Object.entries(SETTINGS_COLUMNS).filter(([, column]) =>
+			names.has(column.name),
+		),
+	);
+}
+
+// first row, no id filter — mirrors the desktop's getSettings() so a legacy
+// row with a non-1 id can't make the CLI and app disagree
+function selectSettingsRow(
+	db: ReturnType<typeof drizzle>,
+	columns: Record<string, AnySQLiteColumn>,
+): SelectSettings | undefined {
+	const row: Record<string, unknown> | undefined = db
+		.select(columns)
+		.from(settings)
+		.get();
+	if (!row) return undefined;
+	const unset: Record<string, unknown> = Object.fromEntries(
+		Object.keys(SETTINGS_COLUMNS).map((key) => [key, null]),
+	);
+	return { ...unset, ...row } as SelectSettings;
 }
 
 /**
  * Read the desktop settings row. Returns undefined when the database or
  * settings row doesn't exist yet (fresh machine) — callers fall back to
- * app defaults.
+ * app defaults. Columns the database predates read as unset.
  */
 export function readSettingsRow(): SelectSettings | undefined {
 	if (!existsSync(getLocalDbPath())) return undefined;
 	const { sqlite, db } = openLocalDb();
 	try {
-		// first row, no id filter — mirrors the desktop's getSettings() so a
-		// legacy row with a non-1 id can't make the CLI and app disagree
-		return db.select().from(settings).get();
-	} catch (error) {
-		if (isMissingTableError(error)) return undefined;
-		throw error;
+		const columns = getPresentColumns(sqlite);
+		return columns ? selectSettingsRow(db, columns) : undefined;
 	} finally {
 		sqlite.close();
 	}
@@ -92,26 +127,32 @@ export function updateSettingsAtomically<Result>(
 	const { sqlite, db } = openLocalDb();
 	try {
 		const transaction = sqlite.transaction(() => {
-			const row = db.select().from(settings).get();
+			const columns = getPresentColumns(sqlite);
+			if (!columns) {
+				throw new CLIError(
+					"The Superset local database has no settings table",
+					"Launch the Superset desktop app once to run its migrations, then retry.",
+				);
+			}
+			const row = selectSettingsRow(db, columns);
 			const { patch, result } = updater(row);
-			db.insert(settings)
-				// Target the row that was read: legacy DBs can hold a non-1 row id
-				// (see readSettingsRow), and upserting id 1 there would split
-				// settings across two rows.
-				.values({ id: row?.id ?? 1, ...patch })
-				.onConflictDoUpdate({ target: settings.id, set: patch })
-				.run();
+			const absent = Object.keys(patch).filter((key) => !(key in columns));
+			if (absent.length > 0) {
+				throw new CLIError(
+					`This Superset local database predates the ${absent.join(", ")} setting`,
+					"Update the Superset desktop app and launch it once to run its migrations, then retry.",
+				);
+			}
+			// Target the row that was read: legacy DBs can hold a non-1 row id
+			// (see selectSettingsRow), and writing id 1 there would split
+			// settings across two rows. The insert names only the id so it
+			// works on a database that predates newer columns.
+			const id = row?.id ?? 1;
+			if (!row) sqlite.query("INSERT INTO settings (id) VALUES (?)").run(id);
+			db.update(settings).set(patch).where(eq(settings.id, id)).run();
 			return result;
 		});
 		return transaction.immediate();
-	} catch (error) {
-		if (isMissingTableError(error)) {
-			throw new CLIError(
-				"The Superset local database has no settings table",
-				"Launch the Superset desktop app once to run its migrations, then retry.",
-			);
-		}
-		throw error;
 	} finally {
 		sqlite.close();
 	}

@@ -758,6 +758,9 @@ msgstr "{count, plural, one {# комментарий, новые ответы} 
 msgid "{count, plural, one {# comment} other {# comments}}"
 msgstr "{count, plural, one {# комментарий} few {# комментария} many {# комментариев} other {# комментария}}"
 
+msgid "{count, plural, one {# empty project hidden} other {# empty projects hidden}}"
+msgstr "{count, plural, one {Скрыт # пустой проект} few {Скрыто # пустых проекта} many {Скрыто # пустых проектов} other {Скрыто # пустого проекта}}"
+
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {# файл} few {# файла} many {# файлов} other {# файла}}"
 
@@ -8527,6 +8530,9 @@ msgstr "Скрыть детали"
 msgid "Hide emails"
 msgstr "Скрыть email"
 
+msgid "Hide empty projects"
+msgstr "Скрывать пустые проекты"
+
 msgid "Hide file tree"
 msgstr "Скрыть дерево файлов"
 
@@ -15772,6 +15778,9 @@ msgstr "Показывать микрофон в поле ввода чата. �
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "Показывать кнопку «Использование» в боковой панели главного экрана под пул-реквестами"
 
+msgid "Show all"
+msgstr "Показать все"
+
 msgid "Show all {count}"
 msgstr "Показать все {count}"
 
@@ -15813,6 +15822,12 @@ msgstr "Показать панель diff"
 
 msgid "Show emails"
 msgstr "Показать email"
+
+msgid "Show empty projects"
+msgstr "Показать пустые проекты"
+
+msgid "Show empty projects to rearrange the sidebar"
+msgstr "Покажите пустые проекты, чтобы изменить расположение в боковой панели"
 
 msgid "Show everyone who opened this page"
 msgstr "Показать всех, кто открывал эту страницу"

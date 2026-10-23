@@ -61,6 +61,32 @@ describe("local settings store", () => {
 		expect(readSettingsRow()?.notificationVolume).toBe(42);
 	});
 
+	test("a database an older app migrated still reads and writes the columns it has", () => {
+		createLocalSettingsDb(home.dir, 1, {
+			omitColumns: ["hide_empty_sidebar_projects"],
+		});
+
+		expect(readSettingsRow()?.confirmOnQuit).toBe(true);
+		expect(readSettingsRow()?.hideEmptySidebarProjects).toBeNull();
+
+		writeSetting("confirmOnQuit", false);
+		expect(readSettingsRow()?.confirmOnQuit).toBe(false);
+
+		expect(() => writeSetting("hideEmptySidebarProjects", true)).toThrow(
+			/predates the hideEmptySidebarProjects setting/,
+		);
+		expect(readSettingsRow()?.confirmOnQuit).toBe(false);
+	});
+
+	test("the first write inserts a row on a database that predates newer columns", () => {
+		createLocalSettingsDb(home.dir, undefined, {
+			omitColumns: ["hide_empty_sidebar_projects"],
+		});
+		writeSetting("notificationVolume", 30);
+		expect(readSettingsRow()?.id).toBe(1);
+		expect(readSettingsRow()?.notificationVolume).toBe(30);
+	});
+
 	test("atomic updates target a legacy row with a non-1 id", () => {
 		createLocalSettingsDb(home.dir, 7);
 		updateSettingsAtomically(() => ({

@@ -758,6 +758,9 @@ msgstr "{count, plural, one {# yorum, yeni yanıtlar} other {# yorum, yeni yanı
 msgid "{count, plural, one {# comment} other {# comments}}"
 msgstr "{count, plural, one {# yorum} other {# yorum}}"
 
+msgid "{count, plural, one {# empty project hidden} other {# empty projects hidden}}"
+msgstr "{count, plural, one {# boş proje gizlendi} other {# boş proje gizlendi}}"
+
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {# dosya} other {# dosya}}"
 
@@ -8527,6 +8530,9 @@ msgstr "Ayrıntıları gizle"
 msgid "Hide emails"
 msgstr "E-postaları gizle"
 
+msgid "Hide empty projects"
+msgstr "Boş projeleri gizle"
+
 msgid "Hide file tree"
 msgstr "Dosya ağacını gizle"
 
@@ -15772,6 +15778,9 @@ msgstr "Sohbet giriş alanında bir mikrofon göster. Codex ChatGPT'de oturum a�
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "Ana sayfa kenar çubuğunda, pull request'lerin altında bir Kullanım düğmesi göster"
 
+msgid "Show all"
+msgstr "Tümünü göster"
+
 msgid "Show all {count}"
 msgstr "Tümünü göster ({count})"
 
@@ -15813,6 +15822,12 @@ msgstr "Fark panelini göster"
 
 msgid "Show emails"
 msgstr "E-postaları göster"
+
+msgid "Show empty projects"
+msgstr "Boş projeleri göster"
+
+msgid "Show empty projects to rearrange the sidebar"
+msgstr "Kenar çubuğunu yeniden düzenlemek için boş projeleri gösterin"
 
 msgid "Show everyone who opened this page"
 msgstr "Bu sayfayı açan herkesi göster"

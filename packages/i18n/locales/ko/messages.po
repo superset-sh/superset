@@ -758,6 +758,9 @@ msgstr "{count, plural, one {댓글 #개, 새 답글 있음} other {댓글 #개,
 msgid "{count, plural, one {# comment} other {# comments}}"
 msgstr "{count, plural, one {댓글 #개} other {댓글 #개}}"
 
+msgid "{count, plural, one {# empty project hidden} other {# empty projects hidden}}"
+msgstr "{count, plural, one {빈 프로젝트 #개 숨김} other {빈 프로젝트 #개 숨김}}"
+
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {파일 #개} other {파일 #개}}"
 
@@ -8527,6 +8530,9 @@ msgstr "상세 정보 숨기기"
 msgid "Hide emails"
 msgstr "이메일 숨기기"
 
+msgid "Hide empty projects"
+msgstr "빈 프로젝트 숨기기"
+
 msgid "Hide file tree"
 msgstr "파일 트리 숨기기"
 
@@ -15772,6 +15778,9 @@ msgstr "채팅 입력창에 마이크를 표시합니다. Codex가 ChatGPT에 �
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "홈 사이드바의 풀 리퀘스트 아래에 사용량 버튼을 표시합니다"
 
+msgid "Show all"
+msgstr "모두 표시"
+
 msgid "Show all {count}"
 msgstr "{count}개 모두 보기"
 
@@ -15813,6 +15822,12 @@ msgstr "차이 패널 표시"
 
 msgid "Show emails"
 msgstr "이메일 표시"
+
+msgid "Show empty projects"
+msgstr "빈 프로젝트 표시"
+
+msgid "Show empty projects to rearrange the sidebar"
+msgstr "사이드바를 다시 정렬하려면 빈 프로젝트를 표시하세요"
 
 msgid "Show everyone who opened this page"
 msgstr "이 페이지를 연 모든 사람 보기"

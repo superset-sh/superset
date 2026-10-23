@@ -33,10 +33,18 @@ export function withTempSupersetHome(prefix: string): { readonly dir: string } {
 	};
 }
 
-/** Create local.db with the real settings columns, like the desktop app would. */
-export function createLocalSettingsDb(homeDir: string, rowId?: number): void {
+/**
+ * Create local.db with the real settings columns, like the desktop app would.
+ * `omitColumns` (SQL names) stands in for a database an older app migrated.
+ */
+export function createLocalSettingsDb(
+	homeDir: string,
+	rowId?: number,
+	{ omitColumns = [] }: { omitColumns?: string[] } = {},
+): void {
 	const { columns } = getTableConfig(settings);
 	const ddl = columns
+		.filter((column) => !omitColumns.includes(column.name))
 		.map(
 			(column) =>
 				`"${column.name}" ${column.getSQLType()}${column.primary ? " PRIMARY KEY" : ""}`,

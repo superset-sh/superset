@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `hide_empty_sidebar_projects` integer;

@@ -758,6 +758,9 @@ msgstr "{count, plural, one {# opmerking, nieuwe reacties} other {# opmerkingen,
 msgid "{count, plural, one {# comment} other {# comments}}"
 msgstr "{count, plural, one {# opmerking} other {# opmerkingen}}"
 
+msgid "{count, plural, one {# empty project hidden} other {# empty projects hidden}}"
+msgstr "{count, plural, one {# leeg project verborgen} other {# lege projecten verborgen}}"
+
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {# bestand} other {# bestanden}}"
 
@@ -8527,6 +8530,9 @@ msgstr "Details verbergen"
 msgid "Hide emails"
 msgstr "E-mails verbergen"
 
+msgid "Hide empty projects"
+msgstr "Lege projecten verbergen"
+
 msgid "Hide file tree"
 msgstr "Bestandsboom verbergen"
 
@@ -15772,6 +15778,9 @@ msgstr "Een microfoon in het chatinvoerveld tonen. Spraak wordt getranscribeerd 
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "Toon een knop Gebruik in de zijbalk van het startscherm, onder Pull requests"
 
+msgid "Show all"
+msgstr "Alles tonen"
+
 msgid "Show all {count}"
 msgstr "Alle {count} tonen"
 
@@ -15813,6 +15822,12 @@ msgstr "Diff-paneel tonen"
 
 msgid "Show emails"
 msgstr "E-mails tonen"
+
+msgid "Show empty projects"
+msgstr "Lege projecten tonen"
+
+msgid "Show empty projects to rearrange the sidebar"
+msgstr "Toon lege projecten om de zijbalk te herschikken"
 
 msgid "Show everyone who opened this page"
 msgstr "Iedereen tonen die deze pagina heeft geopend"

@@ -758,6 +758,9 @@ msgstr "{count, plural, one {# komentarz, nowe odpowiedzi} few {# komentarze, no
 msgid "{count, plural, one {# comment} other {# comments}}"
 msgstr "{count, plural, one {# komentarz} few {# komentarze} many {# komentarzy} other {# komentarza}}"
 
+msgid "{count, plural, one {# empty project hidden} other {# empty projects hidden}}"
+msgstr "{count, plural, one {Ukryto # pusty projekt} few {Ukryto # puste projekty} many {Ukryto # pustych projektów} other {Ukryto # pustego projektu}}"
+
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {# plik} few {# pliki} many {# plików} other {# pliku}}"
 
@@ -8527,6 +8530,9 @@ msgstr "Ukryj szczegóły"
 msgid "Hide emails"
 msgstr "Ukryj adresy e-mail"
 
+msgid "Hide empty projects"
+msgstr "Ukryj puste projekty"
+
 msgid "Hide file tree"
 msgstr "Ukryj drzewo plików"
 
@@ -15772,6 +15778,9 @@ msgstr "Pokaż mikrofon w polu czatu. Mowę transkrybuje ChatGPT, gdy Codex jest
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "Pokazuj przycisk Zużycie na pasku bocznym strony głównej, pod pull requestami"
 
+msgid "Show all"
+msgstr "Pokaż wszystko"
+
 msgid "Show all {count}"
 msgstr "Pokaż wszystkie ({count})"
 
@@ -15813,6 +15822,12 @@ msgstr "Pokaż panel różnic"
 
 msgid "Show emails"
 msgstr "Pokaż adresy e-mail"
+
+msgid "Show empty projects"
+msgstr "Pokaż puste projekty"
+
+msgid "Show empty projects to rearrange the sidebar"
+msgstr "Pokaż puste projekty, aby zmienić układ paska bocznego"
 
 msgid "Show everyone who opened this page"
 msgstr "Pokaż wszystkich, którzy otworzyli tę stronę"

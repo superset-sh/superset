@@ -758,6 +758,9 @@ msgstr "{count, plural, one {#条评论，有新回复} other {#条评论，有�
 msgid "{count, plural, one {# comment} other {# comments}}"
 msgstr "{count, plural, one {#条评论} other {#条评论}}"
 
+msgid "{count, plural, one {# empty project hidden} other {# empty projects hidden}}"
+msgstr "{count, plural, one {已隐藏 # 个空项目} other {已隐藏 # 个空项目}}"
+
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {#个文件} other {#个文件}}"
 
@@ -8527,6 +8530,9 @@ msgstr "隐藏详情"
 msgid "Hide emails"
 msgstr "隐藏邮箱"
 
+msgid "Hide empty projects"
+msgstr "隐藏空项目"
+
 msgid "Hide file tree"
 msgstr "隐藏文件树"
 
@@ -15772,6 +15778,9 @@ msgstr "在聊天输入框中显示麦克风。如果 Codex 已登录 ChatGPT，
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "在主页侧边栏的“拉取请求”下方显示“用量”按钮"
 
+msgid "Show all"
+msgstr "全部显示"
+
 msgid "Show all {count}"
 msgstr "显示全部{count}条"
 
@@ -15813,6 +15822,12 @@ msgstr "显示差异面板"
 
 msgid "Show emails"
 msgstr "显示邮箱"
+
+msgid "Show empty projects"
+msgstr "显示空项目"
+
+msgid "Show empty projects to rearrange the sidebar"
+msgstr "显示空项目即可重新排列侧边栏"
 
 msgid "Show everyone who opened this page"
 msgstr "显示打开过此页面的所有人"

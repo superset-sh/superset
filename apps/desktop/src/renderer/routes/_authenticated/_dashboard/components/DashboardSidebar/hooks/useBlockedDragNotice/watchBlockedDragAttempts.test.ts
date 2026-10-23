@@ -1,18 +1,26 @@
 import { describe, expect, it } from "bun:test";
 import {
 	BLOCKED_DRAG_ATTRIBUTE,
+	getBlockedDragProps,
+	getBlockedDragTarget,
 	watchBlockedDragAttempts,
 } from "./watchBlockedDragAttempts";
 
 function pointer(
 	type: string,
-	init: { x?: number; y?: number; button?: number; blocked?: boolean } = {},
+	init: {
+		x?: number;
+		y?: number;
+		button?: number;
+		blocked?: boolean;
+		blockedElement?: object;
+	} = {},
 ) {
 	const event = new Event(type);
 	const target = {
 		closest: (selector: string) =>
 			init.blocked !== false && selector === `[${BLOCKED_DRAG_ATTRIBUTE}]`
-				? {}
+				? (init.blockedElement ?? {})
 				: null,
 	};
 	Object.defineProperties(event, {
@@ -78,5 +86,34 @@ describe("watchBlockedDragAttempts", () => {
 		root.dispatchEvent(pointer("pointerdown"));
 		root.dispatchEvent(pointer("pointermove", { x: 50 }));
 		expect(attempts()).toBe(0);
+	});
+
+	it("hands over the inert element the press started in", () => {
+		const root = new EventTarget();
+		const reported: unknown[] = [];
+		watchBlockedDragAttempts(root, (blocked) => reported.push(blocked));
+		const blockedElement = { id: "project-header" };
+		root.dispatchEvent(pointer("pointerdown", { blockedElement }));
+		root.dispatchEvent(pointer("pointermove", { x: 50 }));
+		expect(reported).toEqual([blockedElement]);
+	});
+});
+
+describe("blocked drag targets", () => {
+	function elementWith(props: Record<string, unknown>) {
+		return {
+			getAttribute: (name: string) =>
+				name in props ? String(props[name]) : null,
+		} as unknown as Element;
+	}
+
+	it("tells a project row from a workspace or folder row", () => {
+		expect(getBlockedDragProps(false, "project")).toEqual({});
+		expect(
+			getBlockedDragTarget(elementWith(getBlockedDragProps(true, "project"))),
+		).toBe("project");
+		expect(getBlockedDragTarget(elementWith(getBlockedDragProps(true)))).toBe(
+			"row",
+		);
 	});
 });

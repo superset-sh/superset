@@ -2,8 +2,19 @@ import { DRAG_ACTIVATION_DISTANCE_PX } from "../useSidebarDnd/constants";
 
 export const BLOCKED_DRAG_ATTRIBUTE = "data-sidebar-drag-blocked";
 
-export function getBlockedDragProps(isBlocked: boolean) {
-	return isBlocked ? { [BLOCKED_DRAG_ATTRIBUTE]: true } : {};
+export type BlockedDragTarget = "row" | "project";
+
+export function getBlockedDragProps(
+	isBlocked: boolean,
+	target: BlockedDragTarget = "row",
+) {
+	return isBlocked ? { [BLOCKED_DRAG_ATTRIBUTE]: target } : {};
+}
+
+export function getBlockedDragTarget(blocked: Element): BlockedDragTarget {
+	return blocked.getAttribute(BLOCKED_DRAG_ATTRIBUTE) === "project"
+		? "project"
+		: "row";
 }
 
 type PointerLike = Pick<
@@ -19,7 +30,7 @@ type PointerLike = Pick<
  */
 export function watchBlockedDragAttempts(
 	root: Pick<EventTarget, "addEventListener" | "removeEventListener">,
-	onBlockedDrag: () => void,
+	onBlockedDrag: (blocked: Element) => void,
 ): () => void {
 	let stopTracking: (() => void) | null = null;
 
@@ -28,8 +39,10 @@ export function watchBlockedDragAttempts(
 			event as unknown as PointerLike;
 		stopTracking?.();
 		if (button !== 0) return;
-		const element = target as Element | null;
-		if (!element?.closest?.(`[${BLOCKED_DRAG_ATTRIBUTE}]`)) return;
+		const blocked = (target as Element | null)?.closest?.(
+			`[${BLOCKED_DRAG_ATTRIBUTE}]`,
+		);
+		if (!blocked) return;
 
 		const handlePointerMove = (moveEvent: Event) => {
 			const move = moveEvent as unknown as PointerLike;
@@ -39,7 +52,7 @@ export function watchBlockedDragAttempts(
 			);
 			if (distance < DRAG_ACTIVATION_DISTANCE_PX) return;
 			stopTracking?.();
-			onBlockedDrag();
+			onBlockedDrag(blocked);
 		};
 		const handlePointerEnd = () => stopTracking?.();
 

@@ -1,0 +1,1 @@
+export { filterEmptyDashboardSidebarProjects } from "./filterEmptyDashboardSidebarProjects";

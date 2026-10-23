@@ -15,7 +15,9 @@ import {
 	type HostWorkspaceItem,
 	type HostWorkspaceRow,
 	isEventBusReopen,
+	isHostWorkspacesListLive,
 	loadHostWorkspacesSnapshot,
+	markHostWorkspacesListRead,
 	mergeHostWorkspaces,
 	normalizeServedWorkspaceRow,
 	saveHostWorkspacesSnapshot,
@@ -72,6 +74,11 @@ export interface UseHostWorkspacesResult {
 	 * cover only the local host.
 	 */
 	hostsSettled: boolean;
+	/**
+	 * Stronger than isReady: every known host's latest list came from a live
+	 * answer. False while any host failed, is offline, or serves a snapshot.
+	 */
+	allHostsLive: boolean;
 	cache: HostWorkspacesCacheOps;
 }
 
@@ -206,6 +213,7 @@ export function useHostWorkspacesSource(
 					target.machineId,
 					rows,
 				);
+				markHostWorkspacesListRead(queryClient, target);
 				return rows;
 			},
 		})),
@@ -405,6 +413,19 @@ export function useHostWorkspacesSource(
 					query.isSuccess || query.isError || targets[index]?.hostUrl === null,
 			));
 
+	const allHostsLive =
+		knownHostsSettled &&
+		sandboxesReady &&
+		targets.length > 0 &&
+		queries.every((query, index) => {
+			const target = targets[index];
+			return (
+				target !== undefined &&
+				query.isSuccess &&
+				isHostWorkspacesListLive(queryClient, target)
+			);
+		});
+
 	const cache = useMemo<HostWorkspacesCacheOps>(() => {
 		const targetFor = (hostId: string) =>
 			targets.find((target) => target.machineId === hostId);
@@ -457,5 +478,11 @@ export function useHostWorkspacesSource(
 		};
 	}, [targets, queryClient]);
 
-	return { workspaces, isReady, hostsSettled: knownHostsSettled, cache };
+	return {
+		workspaces,
+		isReady,
+		hostsSettled: knownHostsSettled,
+		allHostsLive,
+		cache,
+	};
 }

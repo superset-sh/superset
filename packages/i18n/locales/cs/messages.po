@@ -758,6 +758,9 @@ msgstr "{count, plural, one {# komentář, nové odpovědi} few {# komentáře, 
 msgid "{count, plural, one {# comment} other {# comments}}"
 msgstr "{count, plural, one {# komentář} few {# komentáře} many {# komentáře} other {# komentářů}}"
 
+msgid "{count, plural, one {# empty project hidden} other {# empty projects hidden}}"
+msgstr "{count, plural, one {Skrytý # prázdný projekt} few {Skryté # prázdné projekty} many {Skryto # prázdného projektu} other {Skryto # prázdných projektů}}"
+
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {# soubor} few {# soubory} many {# souboru} other {# souborů}}"
 
@@ -8527,6 +8530,9 @@ msgstr "Skrýt podrobnosti"
 msgid "Hide emails"
 msgstr "Skrýt e-maily"
 
+msgid "Hide empty projects"
+msgstr "Skrýt prázdné projekty"
+
 msgid "Hide file tree"
 msgstr "Skrýt strom souborů"
 
@@ -15772,6 +15778,9 @@ msgstr "Zobrazit v editoru chatu mikrofon. Řeč přepisuje ChatGPT, pokud je k 
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "Zobrazovat tlačítko Využití v postranním panelu domovské obrazovky pod pull requesty"
 
+msgid "Show all"
+msgstr "Zobrazit vše"
+
 msgid "Show all {count}"
 msgstr "Zobrazit všech {count}"
 
@@ -15813,6 +15822,12 @@ msgstr "Zobrazit panel rozdílů"
 
 msgid "Show emails"
 msgstr "Zobrazit e-maily"
+
+msgid "Show empty projects"
+msgstr "Zobrazit prázdné projekty"
+
+msgid "Show empty projects to rearrange the sidebar"
+msgstr "Chcete-li postranní panel přeuspořádat, zobrazte prázdné projekty"
 
 msgid "Show everyone who opened this page"
 msgstr "Zobrazit všechny, kdo otevřeli tuto stránku"

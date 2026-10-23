@@ -46,6 +46,7 @@ import {
 	buildDashboardSidebarSessions,
 	partitionSidebarWorkspacesByPinned,
 } from "./buildDashboardSidebarProjects";
+import { collectUnsettledProjectIds } from "./collectUnsettledProjectIds";
 import {
 	derivePullRequestQueryTargets,
 	getDashboardSidebarPullRequestQueryKey,
@@ -317,8 +318,12 @@ export function useDashboardSidebarData() {
 		[collections],
 	);
 
-	const { workspaces: allHostWorkspaces, cache: hostWorkspacesCache } =
-		useHostWorkspaces();
+	const {
+		workspaces: allHostWorkspaces,
+		cache: hostWorkspacesCache,
+		isReady: hostWorkspacesReady,
+		allHostsLive,
+	} = useHostWorkspaces();
 	// A cloud workspace's rows come from the cloud list, never from its
 	// sandbox's host rows, whatever placement their local-state row carries.
 	const hostWorkspaces = useMemo(
@@ -881,10 +886,62 @@ export function useDashboardSidebarData() {
 	);
 	const pinnedWorkspaces = useJsonStable(decoratedPinnedWorkspaces);
 
+	const isPlacementReady =
+		sidebarProjectRowsReady &&
+		sidebarLocalStateReady &&
+		hostProjectsReady &&
+		hostWorkspacesReady &&
+		machineId !== null &&
+		userId !== null &&
+		cloudRows !== undefined &&
+		(shownCloudRows.length === 0 || cloudRepositoriesReady);
+	const computedUnsettledProjectIds = useMemo(
+		() =>
+			collectUnsettledProjectIds({
+				hostWorkspaces: allHostWorkspaces.map((workspace) => ({
+					id: workspace.id,
+					projectId: workspace.projectId,
+					type: workspace.type,
+					hostId: workspace.hostId,
+					hostReachable: workspace.hostReachable,
+					createdByUserId: workspace.createdByUserId ?? null,
+				})),
+				cloudRows: cloudRowById.values(),
+				knownWorkspaceIds: new Set([
+					...allHostWorkspaces.map((workspace) => workspace.id),
+					...(cloudRows ?? []).map((row) => row.id),
+				]),
+				placements: sidebarLocalStateRows,
+				allHostsLive,
+				placementContext: {
+					machineId,
+					onlineHostIds: new Set(
+						hosts.filter((host) => host.isOnline).map((host) => host.machineId),
+					),
+					currentUserId: userId,
+				},
+			}),
+		[
+			allHostWorkspaces,
+			cloudRowById,
+			cloudRows,
+			sidebarLocalStateRows,
+			allHostsLive,
+			machineId,
+			hosts,
+			userId,
+		],
+	);
+	const unsettledProjectIds = useJsonStable(
+		[...computedUnsettledProjectIds].sort(),
+	);
+
 	return {
 		groups,
 		hiddenProjects: allHiddenProjects,
 		pinnedWorkspaces,
+		isPlacementReady,
+		unsettledProjectIds,
 		sessionWorkspaces,
 		sessionChildren: sessions.children,
 		githubStatus,

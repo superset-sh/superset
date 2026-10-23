@@ -1,8 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import type { WorkspaceSnapshotPayload } from "@superset/workspace-client";
+import { QueryClient } from "@tanstack/react-query";
 import {
 	applyWorkspaceChangedEvent,
+	getHostWorkspacesQueryKey,
 	isEventBusReopen,
+	isHostWorkspacesListLive,
+	markHostWorkspacesListRead,
 	mergeHostWorkspaces,
 	toHostWorkspaceItem,
 } from "./useHostWorkspaces.utils";
@@ -239,5 +243,62 @@ describe("toHostWorkspaceItem", () => {
 			lastActivityAt: null,
 			hostReachable: false,
 		});
+	});
+});
+
+describe("isHostWorkspacesListLive", () => {
+	const target = { ...HOST, hostUrl: "http://127.0.0.1:4100" };
+
+	it("is not live when an event created the list before the first list answer", async () => {
+		const queryClient = new QueryClient();
+		queryClient.setQueryData(
+			getHostWorkspacesQueryKey(target),
+			applyWorkspaceChangedEvent(
+				undefined,
+				{ eventType: "created", workspace: makeSnapshot({ id: "ws-1" }) },
+				HOST,
+				"ws-1",
+				null,
+			),
+		);
+		expect(
+			queryClient.getQueryState(getHostWorkspacesQueryKey(target))?.status,
+		).toBe("success");
+		expect(isHostWorkspacesListLive(queryClient, target)).toBe(false);
+
+		await queryClient.fetchQuery({
+			queryKey: getHostWorkspacesQueryKey(target),
+			queryFn: async () => {
+				markHostWorkspacesListRead(queryClient, target);
+				return [];
+			},
+		});
+		expect(isHostWorkspacesListLive(queryClient, target)).toBe(true);
+	});
+
+	it("is not live after a failed refetch or without a reachable URL", async () => {
+		const queryClient = new QueryClient();
+		const key = getHostWorkspacesQueryKey(target);
+		await queryClient.fetchQuery({
+			queryKey: key,
+			queryFn: async () => {
+				markHostWorkspacesListRead(queryClient, target);
+				return [];
+			},
+		});
+		expect(
+			isHostWorkspacesListLive(queryClient, { ...target, hostUrl: null }),
+		).toBe(false);
+		await queryClient
+			.fetchQuery({
+				queryKey: key,
+				staleTime: 0,
+				retry: false,
+				queryFn: async () => {
+					throw new Error("offline");
+				},
+			})
+			.catch(() => {});
+		expect(isHostWorkspacesListLive(queryClient, target)).toBe(false);
 	});
 });

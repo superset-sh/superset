@@ -40,6 +40,8 @@ interface DashboardSidebarWorkspacesHeaderProps {
 	onHostFilterChange: (filter: SidebarProjectHostFilter) => void;
 	filterQuery: string;
 	onFilterQueryChange: (query: string) => void;
+	hideEmptyProjects: boolean;
+	onHideEmptyProjectsChange: (hide: boolean) => void;
 }
 
 export function DashboardSidebarWorkspacesHeader({
@@ -49,6 +51,8 @@ export function DashboardSidebarWorkspacesHeader({
 	onHostFilterChange,
 	filterQuery,
 	onFilterQueryChange,
+	hideEmptyProjects,
+	onHideEmptyProjectsChange,
 }: DashboardSidebarWorkspacesHeaderProps) {
 	const { t } = useLingui();
 	const isSectionCollapsed = useSidebarSectionsCollapseStore(
@@ -143,6 +147,8 @@ export function DashboardSidebarWorkspacesHeader({
 				onSortModeChange={onSortModeChange}
 				hostFilter={hostFilter}
 				onHostFilterChange={onHostFilterChange}
+				hideEmptyProjects={hideEmptyProjects}
+				onHideEmptyProjectsChange={onHideEmptyProjectsChange}
 			/>
 			<DropdownMenu>
 				<Tooltip delayDuration={700}>
