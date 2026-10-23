@@ -35,7 +35,7 @@
 		"@types/react-dom": "19.2.3",
 		"react": "19.2.3",
 		"react-dom": "19.2.3",
-		"storybook": "10.4.2",
+		"storybook": "10.6.2",
 		"typescript": "7.0.2"
 	},
 	"peerDependencies": {
