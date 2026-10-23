@@ -38,6 +38,11 @@ export const PIERRE_TREE_UNSAFE_CSS = `
 	[data-item-section="decoration"] {
 		flex: 0 1 auto;
 	}
+	[data-item-flattened-subitem$="…/"],
+	[data-item-flattened-subitem]:last-child {
+		flex-shrink: 0;
+		max-width: 100%;
+	}
 	${MIDDLE_TRUNCATE_ZOOM_CSS}
 `;
 
