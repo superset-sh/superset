@@ -15,6 +15,7 @@ interface BrowserOpenRequest {
 	target: "current-tab" | "new-tab";
 	requestId: string;
 	show: boolean;
+	activate: boolean;
 }
 
 /** Opens agent browsers without navigation unless the caller explicitly asks to show them. */

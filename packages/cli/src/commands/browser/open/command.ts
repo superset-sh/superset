@@ -5,6 +5,9 @@ import { resolveBrowserTarget } from "../shared";
 export default command({
 	description: "Open a URL in a workspace browser pane and return its pane id",
 	options: {
+		activate: boolean().desc(
+			"Make the new pane the active one in its workspace, without switching workspaces",
+		),
 		show: boolean().desc(
 			"Show the browser to the user by switching to its workspace",
 		),
@@ -31,6 +34,7 @@ export default command({
 			url: options.url,
 			target,
 			show: options.show ?? false,
+			activate: options.activate ?? false,
 		});
 		return {
 			data: result,

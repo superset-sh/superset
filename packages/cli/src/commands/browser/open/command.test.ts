@@ -8,7 +8,7 @@ const open = mock(async (input: { url: string }) => ({
 }));
 withLocalHostService("org-1", { "browser.open": open as never });
 
-function invoke(show?: boolean, target?: string) {
+function invoke(show?: boolean, target?: string, activate?: boolean) {
 	return command.run({
 		ctx: { config: { organizationId: "org-1" }, bearer: "bearer" } as never,
 		args: {} as never,
@@ -17,6 +17,7 @@ function invoke(show?: boolean, target?: string) {
 			url: "https://example.com",
 			show,
 			target,
+			activate,
 		} as never,
 		signal: new AbortController().signal,
 	});
@@ -31,6 +32,7 @@ describe("browser open", () => {
 				url: "https://example.com",
 				target: target ?? "current-tab",
 				show: false,
+				activate: false,
 			});
 		}
 	});
@@ -41,6 +43,17 @@ describe("browser open", () => {
 			url: "https://example.com",
 			target: "current-tab",
 			show: true,
+			activate: false,
+		});
+	});
+	test("forwards a request to activate the pane in its workspace", async () => {
+		await invoke(undefined, "new-tab", true);
+		expect(open).toHaveBeenLastCalledWith({
+			workspaceId: "agent-workspace",
+			url: "https://example.com",
+			target: "new-tab",
+			show: false,
+			activate: true,
 		});
 	});
 });

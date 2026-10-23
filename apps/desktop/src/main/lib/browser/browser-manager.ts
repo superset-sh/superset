@@ -48,6 +48,7 @@ export interface BrowserOpenRequest {
 	url: string;
 	target: "current-tab" | "new-tab";
 	show: boolean;
+	activate: boolean;
 	requestId: string;
 }
 

@@ -1,7 +1,12 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { createWorkspaceStore, type WorkspaceState } from "@superset/panes";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
+import { registerV2PaneLayoutStore } from "renderer/stores/v2-pane-layout-stores";
+import {
+	applyRememberedV2PaneSelection,
+	clearRememberedV2PaneSelectionsForTest,
+} from "renderer/stores/v2-pane-selection";
 import { openBackgroundBrowser } from "./openBackgroundBrowser";
 
 function fixture() {
@@ -33,6 +38,8 @@ function fixture() {
 	} as unknown as Pick<AppCollections, "v2WorkspaceLocalState">;
 	return { collections, rows, initial };
 }
+
+afterEach(clearRememberedV2PaneSelectionsForTest);
 
 describe("openBackgroundBrowser", () => {
 	for (const target of ["current-tab", "new-tab"] as const) {
@@ -69,5 +76,47 @@ describe("openBackgroundBrowser", () => {
 		const second = openBackgroundBrowser(request);
 		expect(first).not.toBe(second);
 		expect(rows.get("agent")?.paneLayout.tabs).toHaveLength(3);
+	});
+	test("activate makes the new tab active in its workspace only", () => {
+		const { collections, rows, initial } = fixture();
+		const paneId = openBackgroundBrowser({
+			collections,
+			workspaceId: "agent",
+			url: "https://example.com",
+			target: "new-tab",
+			activate: true,
+		});
+		const layout = rows.get("agent")?.paneLayout;
+		if (!layout) throw new Error("Missing layout");
+		const tab = layout.tabs.find((tab) => tab.panes[paneId]);
+		if (!tab) throw new Error("Missing tab");
+		expect(layout.activeTabId).toBe(tab.id);
+		expect(tab.activePaneId).toBe(paneId);
+		expect(applyRememberedV2PaneSelection("agent", layout).activeTabId).toBe(
+			tab.id,
+		);
+		expect(rows.get("user")?.paneLayout).toEqual(initial);
+	});
+	test("activate shows the new tab in a mounted workspace", () => {
+		const { collections, initial } = fixture();
+		const mounted = createWorkspaceStore<PaneViewerData>({
+			initialState: structuredClone(initial),
+		});
+		const unregister = registerV2PaneLayoutStore("agent", mounted);
+		try {
+			const paneId = openBackgroundBrowser({
+				collections,
+				workspaceId: "agent",
+				url: "https://example.com",
+				target: "new-tab",
+				activate: true,
+			});
+			const { tabs, activeTabId } = mounted.getState();
+			expect(tabs.find((tab) => tab.id === activeTabId)?.activePaneId).toBe(
+				paneId,
+			);
+		} finally {
+			unregister();
+		}
 	});
 });
