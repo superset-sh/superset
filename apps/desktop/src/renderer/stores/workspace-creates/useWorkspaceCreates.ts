@@ -7,6 +7,7 @@ import { useCallback } from "react";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
+import { useTerminalAppearance } from "renderer/hooks/useTerminalAppearance";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostEventBus } from "renderer/lib/host-event-bus";
@@ -15,6 +16,7 @@ import {
 	type HostServiceClient,
 } from "renderer/lib/host-service-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
+import { terminalQueryColors } from "renderer/lib/terminal/terminal-query-colors";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type {
@@ -236,6 +238,7 @@ async function createViaEnqueue(
 
 export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 	const hostService = useLocalHostService();
+	const appearance = useTerminalAppearance();
 	const { machineId, activeHostUrl } = hostService;
 	const { data: session } = authClient.useSession();
 	const organizationId = useActiveOrganizationId();
@@ -251,7 +254,10 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 
 	const submit = useCallback(
 		(args: SubmitArgs): SubmitHandle => {
-			const { snapshot } = args;
+			const snapshot = {
+				...args.snapshot,
+				colors: terminalQueryColors(appearance.theme),
+			};
 			const workspaceId = snapshot.id;
 			if (!workspaceId) {
 				throw new Error("workspaces.create requires `id`");
@@ -478,6 +484,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 			hostService,
 			trackWorkspaceTransaction,
 			waitForSetupBeforeAgent,
+			appearance.theme,
 		],
 	);
 

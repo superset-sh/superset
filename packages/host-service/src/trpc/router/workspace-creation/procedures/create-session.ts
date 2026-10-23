@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { basename } from "node:path";
+import { terminalColorsSchema } from "@superset/shared/terminal-colors";
 import { generateFriendlyBranchName } from "@superset/shared/workspace-launch";
 import { workspaceTagsInputSchema } from "@superset/shared/workspace-tags";
 import { TRPCError } from "@trpc/server";
@@ -35,6 +36,7 @@ const createSessionInputSchema = z.object({
 	// Optimistic-UI idempotency key; becomes the row id.
 	id: z.string().uuid().optional(),
 	name: z.string().min(1).optional(),
+	colors: terminalColorsSchema.optional(),
 	agents: z.array(agentLaunchSchema).optional(),
 	command: z.string().min(1).optional(),
 	namingPrompt: z.string().min(1).optional(),
@@ -183,12 +185,13 @@ export const createSession = protectedProcedure
 
 		const terminalsResult: Array<{ terminalId: string; label: string }> = [];
 		const [agentsResult, commandResult] = await Promise.all([
-			dispatchSugarAgents(ctx, row.id, input.agents ?? []),
+			dispatchSugarAgents(ctx, row.id, input.agents ?? [], input.colors),
 			input.command
 				? startCommandTerminal({
 						ctx,
 						workspaceId: row.id,
 						command: input.command,
+						colors: input.colors,
 					})
 				: Promise.resolve(null),
 		]);

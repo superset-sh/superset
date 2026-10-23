@@ -1,3 +1,4 @@
+import type { TerminalColors } from "@superset/shared/terminal-colors";
 import { z } from "zod";
 import type { HostServiceContext } from "../../../../types";
 import { type AgentRunResult, runAgentInWorkspace } from "../../agents";
@@ -26,6 +27,7 @@ export async function dispatchSugarAgents(
 	ctx: HostServiceContext,
 	workspaceId: string,
 	launches: z.infer<typeof agentLaunchSchema>[],
+	colors?: TerminalColors,
 ): Promise<AgentLaunchResult[]> {
 	if (launches.length === 0) return [];
 	return Promise.all(
@@ -33,6 +35,7 @@ export async function dispatchSugarAgents(
 			try {
 				const result = await runAgentInWorkspace(ctx, {
 					workspaceId,
+					colors,
 					agent: entry.agent,
 					prompt: entry.prompt,
 					attachmentIds: entry.attachmentIds,

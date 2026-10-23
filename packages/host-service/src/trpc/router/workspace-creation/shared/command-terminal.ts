@@ -1,3 +1,4 @@
+import type { TerminalColors } from "@superset/shared/terminal-colors";
 import { createTerminalSessionInternal } from "../../../../terminal/terminal";
 import type { HostServiceContext } from "../../../../types";
 import type { TerminalDescriptor } from "./types";
@@ -5,6 +6,7 @@ import type { TerminalDescriptor } from "./types";
 interface StartCommandTerminalArgs {
 	ctx: HostServiceContext;
 	workspaceId: string;
+	colors?: TerminalColors;
 	command: string;
 }
 
@@ -27,6 +29,7 @@ export async function startCommandTerminal(
 		workspaceId: args.workspaceId,
 		db: args.ctx.db,
 		eventBus: args.ctx.eventBus,
+		colors: args.colors,
 		initialCommand: args.command,
 	});
 	if ("error" in result) {

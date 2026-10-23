@@ -1,3 +1,4 @@
+import type { TerminalColors } from "@superset/shared/terminal-colors";
 import { eq } from "drizzle-orm";
 import { projects, workspaces } from "../../../../db/schema";
 import {
@@ -11,6 +12,7 @@ import type { TerminalDescriptor } from "./types";
 interface StartSetupTerminalArgs {
 	ctx: HostServiceContext;
 	workspaceId: string;
+	colors?: TerminalColors;
 	/**
 	 * Appended to the resolved setup command with ` && `, so it runs in the
 	 * setup terminal only after setup succeeds. Ignored when no setup command
@@ -77,6 +79,7 @@ export async function startSetupTerminalIfPresent(
 		workspaceId: args.workspaceId,
 		db: args.ctx.db,
 		eventBus: args.ctx.eventBus,
+		colors: args.colors,
 		initialCommand,
 		...(resolved.cwd && { cwd: resolved.cwd }),
 	});

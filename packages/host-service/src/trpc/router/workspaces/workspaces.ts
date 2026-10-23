@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { terminalColorsSchema } from "@superset/shared/terminal-colors";
 import {
 	deriveWorkspaceBranchFromPrompt,
 	generateFriendlyBranchName,
@@ -129,6 +130,7 @@ const createInputSchema = z
 		baseBranch: z.string().min(1).optional(),
 		taskId: z.string().uuid().optional(),
 		agents: z.array(agentLaunchSchema).optional(),
+		colors: terminalColorsSchema.optional(),
 		// Desktop "Wait for workspace setup before starting agents" setting,
 		// sent per-request. When true and setup commands resolve, a single
 		// terminal sugar agent is chained behind them in the setup terminal
@@ -1342,7 +1344,12 @@ export const workspacesRouter = router({
 			// setup shell nobody asked to look at.
 			const earlyAgentsResult =
 				chainAgent === null && sugarLaunches.length > 0
-					? await dispatchSugarAgents(ctx, workspaceRow.id, sugarLaunches)
+					? await dispatchSugarAgents(
+							ctx,
+							workspaceRow.id,
+							sugarLaunches,
+							input.colors,
+						)
 					: null;
 
 			let chainedAgentResult: AgentLaunchResult | null = null;
@@ -1354,6 +1361,7 @@ export const workspacesRouter = router({
 					await startSetupTerminalIfPresent({
 						ctx,
 						workspaceId: workspaceRow.id,
+						colors: input.colors,
 						...(chainAgent ? { chainCommand: chainAgent.fullCommand } : {}),
 					});
 				if (warning) {
@@ -1381,12 +1389,14 @@ export const workspacesRouter = router({
 						ctx,
 						workspaceRow.id,
 						chainedAgentResult ? [] : sugarLaunches,
+						input.colors,
 					),
 				input.command && !replayedLocalCreate
 					? startCommandTerminal({
 							ctx,
 							workspaceId: workspaceRow.id,
 							command: input.command,
+							colors: input.colors,
 						})
 					: Promise.resolve(null),
 			]);
