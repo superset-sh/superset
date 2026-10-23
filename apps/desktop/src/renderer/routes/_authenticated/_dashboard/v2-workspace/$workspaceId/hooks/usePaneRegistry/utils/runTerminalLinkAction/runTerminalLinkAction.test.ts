@@ -7,6 +7,7 @@ import {
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneViewerData } from "../../../../types";
 import {
+	runChatPullRequestLink,
 	runUrlLinkAction,
 	terminalPullRequestLinkAction,
 } from "./runTerminalLinkAction";
@@ -132,6 +133,50 @@ describe("runUrlLinkAction", () => {
 
 		expect(panesOfKind(store, "pull-request")).toHaveLength(0);
 		expect(panesOfKind(store, "browser")).toHaveLength(1);
+	});
+});
+
+describe("runChatPullRequestLink", () => {
+	const click = { metaKey: false, ctrlKey: false, shiftKey: false };
+
+	it("opens the PR pane for a badge whose URL names a file or a comment", () => {
+		for (const url of [
+			PR_URL,
+			`${PR_URL}/files?diff=split`,
+			`${PR_URL}#discussion_r123`,
+			"https://www.github.com/superset-sh/superset/pull/8412",
+		]) {
+			const store = createWorkspaceStore<PaneViewerData>({
+				initialState: workspaceState(),
+			});
+
+			expect(runChatPullRequestLink({ store }, url, click)).toBe(true);
+
+			expect(panesOfKind(store, "browser")).toHaveLength(0);
+			expect(
+				panesOfKind(store, "pull-request").map((pane) => pane.data),
+			).toEqual([{ repoFullName: "superset-sh/superset", number: 8412 }]);
+		}
+	});
+
+	it("sends a cmd-click to GitHub and leaves other URLs to the link settings", () => {
+		const store = createWorkspaceStore<PaneViewerData>({
+			initialState: workspaceState(),
+		});
+
+		expect(
+			runChatPullRequestLink({ store }, PR_URL, { ...click, metaKey: true }),
+		).toBe(true);
+		expect(panesOfKind(store, "pull-request")).toHaveLength(0);
+		expect(panesOfKind(store, "browser")).toHaveLength(0);
+
+		expect(
+			runChatPullRequestLink(
+				{ store },
+				"https://github.com/superset-sh/superset/issues/1",
+				click,
+			),
+		).toBe(false);
 	});
 });
 

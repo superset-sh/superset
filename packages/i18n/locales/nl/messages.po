@@ -4526,8 +4526,17 @@ msgstr "Verbind externe diensten om gegevens met je organisatie te synchronisere
 msgid "Connect external services to sync data."
 msgstr "Verbind externe diensten om gegevens te synchroniseren."
 
+msgid "Connect GitHub"
+msgstr "GitHub koppelen"
+
 msgid "Connect GitHub in Integrations to add {repositoryFullName}."
 msgstr "Koppel GitHub in Integraties om {repositoryFullName} toe te voegen."
+
+msgid "Connect GitHub in Settings to act on pull requests as yourself"
+msgstr "Koppel GitHub in Instellingen om als jezelf op pull requests te handelen"
+
+msgid "Connect GitHub to continue"
+msgstr "Koppel GitHub om verder te gaan"
 
 msgid "Connect GitHub…"
 msgstr "GitHub koppelen…"
@@ -4562,8 +4571,14 @@ msgstr "Verbind Slack om taken vanuit gesprekken te beheren. Vermeld de bot in e
 msgid "Connect this computer"
 msgstr "Verbind deze computer"
 
+msgid "Connect to act on pull requests as yourself instead of as the workspace."
+msgstr "Koppel om als jezelf op pull requests te handelen in plaats van als de workspace."
+
 msgid "Connect your {pluginLabel} account, then reload this page."
 msgstr "Verbind je {pluginLabel}-account en laad deze pagina daarna opnieuw."
+
+msgid "Connect your GitHub account to load this pull request as you."
+msgstr "Koppel je GitHub-account om deze pull request als jezelf te laden."
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "Koppel je GitHub-repository's en synchroniseer pull requests. Volg CI-status en reviews in je hele team."
@@ -5084,6 +5099,9 @@ msgstr "Kan deze diff niet laden"
 msgid "Could not load this file."
 msgstr "Kan dit bestand niet laden."
 
+msgid "Could not load this pull request."
+msgstr "Kan deze pull request niet laden."
+
 msgid "Could not load your machines"
 msgstr "Kan je machines niet laden"
 
@@ -5116,9 +5134,6 @@ msgstr "Kan geen mobiele simulator bereiken."
 
 msgid "Could not reach the desktop."
 msgstr "Kan het bureaublad niet bereiken."
-
-msgid "Could not reach the host to load this pull request."
-msgstr "Kan de host niet bereiken om deze pull request te laden."
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Kon de host niet bereiken om de update te starten. Controleer of hij online is en probeer het opnieuw."
@@ -13540,6 +13555,12 @@ msgstr "Pull requests"
 msgid "Pull Requests"
 msgstr "Pull requests"
 
+msgid "Pull requests, comments and pushes from Superset are made as you."
+msgstr "Pull requests, reacties en pushes vanuit Superset worden namens jou gedaan."
+
+msgid "Pull requests, comments and pushes from Superset will no longer be made as you."
+msgstr "Pull requests, reacties en pushes vanuit Superset worden niet langer namens jou gedaan."
+
 msgid "Purple"
 msgstr "Paars"
 
@@ -16753,6 +16774,9 @@ msgstr "Superset (YC P26) is de source-available IDE voor het tijdperk van AI-ag
 msgid "Superset {version}"
 msgstr "Superset {version}"
 
+msgid "Superset acts on GitHub as you. Connect your GitHub account to merge, comment on and update pull requests."
+msgstr "Superset handelt op GitHub namens jou. Koppel je GitHub-account om pull requests te mergen, erop te reageren en bij te werken."
+
 msgid "Superset Agent"
 msgstr "Superset Agent"
 
@@ -18028,11 +18052,11 @@ msgstr "Dit profiel is momenteel druk bezet"
 msgid "This project is no longer available on your devices."
 msgstr "Dit project is niet meer beschikbaar op je apparaten."
 
-msgid "This project isn't linked to a GitHub repository."
-msgstr "Dit project is niet gekoppeld aan een GitHub-repository."
-
 msgid "This project's host is offline"
 msgstr "De host van dit project is offline"
+
+msgid "This pull request has no GitHub access to act through."
+msgstr "Er is geen GitHub-toegang om op deze pull request te handelen."
 
 msgid "This pull request has no host to act through"
 msgstr "Deze pull request heeft geen host om via te handelen"
@@ -19926,6 +19950,9 @@ msgstr "Je hebt het autorisatieverzoek van {plugin} geweigerd."
 
 msgid "You don't have access to this host"
 msgstr "Je hebt geen toegang tot deze host"
+
+msgid "You don't have access to this pull request on GitHub, or it no longer exists."
+msgstr "Je hebt op GitHub geen toegang tot deze pull request, of hij bestaat niet meer."
 
 msgid "You don't have access to this terminal."
 msgstr "Je hebt geen toegang tot deze terminal."

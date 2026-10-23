@@ -4526,8 +4526,17 @@ msgstr "Kết nối dịch vụ bên ngoài để đồng bộ dữ liệu với
 msgid "Connect external services to sync data."
 msgstr "Kết nối dịch vụ bên ngoài để đồng bộ dữ liệu."
 
+msgid "Connect GitHub"
+msgstr "Kết nối GitHub"
+
 msgid "Connect GitHub in Integrations to add {repositoryFullName}."
 msgstr "Kết nối GitHub trong Tích hợp để thêm {repositoryFullName}."
+
+msgid "Connect GitHub in Settings to act on pull requests as yourself"
+msgstr "Kết nối GitHub trong Cài đặt để thao tác với pull request dưới tên của bạn"
+
+msgid "Connect GitHub to continue"
+msgstr "Kết nối GitHub để tiếp tục"
 
 msgid "Connect GitHub…"
 msgstr "Kết nối GitHub…"
@@ -4562,8 +4571,14 @@ msgstr "Kết nối Slack để quản lý tác vụ ngay trong hội thoại. N
 msgid "Connect this computer"
 msgstr "Kết nối máy tính này"
 
+msgid "Connect to act on pull requests as yourself instead of as the workspace."
+msgstr "Kết nối để thao tác với pull request dưới tên của bạn thay vì dưới tên workspace."
+
 msgid "Connect your {pluginLabel} account, then reload this page."
 msgstr "Kết nối tài khoản {pluginLabel} của bạn, sau đó tải lại trang này."
+
+msgid "Connect your GitHub account to load this pull request as you."
+msgstr "Kết nối tài khoản GitHub của bạn để tải pull request này dưới tên của bạn."
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "Kết nối các repository GitHub của bạn và đồng bộ pull request. Theo dõi trạng thái CI và review trong cả nhóm."
@@ -5084,6 +5099,9 @@ msgstr "Không thể tải diff này"
 msgid "Could not load this file."
 msgstr "Không thể tải tệp này."
 
+msgid "Could not load this pull request."
+msgstr "Không thể tải pull request này."
+
 msgid "Could not load your machines"
 msgstr "Không thể tải danh sách máy của bạn"
 
@@ -5116,9 +5134,6 @@ msgstr "Không thể kết nối tới trình giả lập di động."
 
 msgid "Could not reach the desktop."
 msgstr "Không thể kết nối tới màn hình nền."
-
-msgid "Could not reach the host to load this pull request."
-msgstr "Không kết nối được tới host để tải pull request này."
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Không thể kết nối tới máy chủ để bắt đầu cập nhật. Hãy kiểm tra máy chủ đang trực tuyến rồi thử lại."
@@ -13540,6 +13555,12 @@ msgstr "Pull request"
 msgid "Pull Requests"
 msgstr "Pull request"
 
+msgid "Pull requests, comments and pushes from Superset are made as you."
+msgstr "Các pull request, bình luận và push từ Superset được thực hiện dưới tên của bạn."
+
+msgid "Pull requests, comments and pushes from Superset will no longer be made as you."
+msgstr "Các pull request, bình luận và push từ Superset sẽ không còn được thực hiện dưới tên của bạn."
+
 msgid "Purple"
 msgstr "Tím"
 
@@ -16753,6 +16774,9 @@ msgstr "Superset (YC P26) là IDE công khai mã nguồn cho kỷ nguyên agent 
 msgid "Superset {version}"
 msgstr "Superset {version}"
 
+msgid "Superset acts on GitHub as you. Connect your GitHub account to merge, comment on and update pull requests."
+msgstr "Superset thao tác trên GitHub dưới tên của bạn. Kết nối tài khoản GitHub để hợp nhất, bình luận và cập nhật pull request."
+
 msgid "Superset Agent"
 msgstr "Superset Agent"
 
@@ -18028,11 +18052,11 @@ msgstr "Hồ sơ này hiện đang quá tải"
 msgid "This project is no longer available on your devices."
 msgstr "Dự án này không còn khả dụng trên các thiết bị của bạn."
 
-msgid "This project isn't linked to a GitHub repository."
-msgstr "Dự án này chưa được liên kết với kho lưu trữ GitHub."
-
 msgid "This project's host is offline"
 msgstr "Host của dự án này đang ngoại tuyến"
+
+msgid "This pull request has no GitHub access to act through."
+msgstr "Không có quyền truy cập GitHub để thao tác với pull request này."
 
 msgid "This pull request has no host to act through"
 msgstr "Pull request này không có máy chủ để thực hiện thao tác"
@@ -19926,6 +19950,9 @@ msgstr "Bạn đã từ chối yêu cầu ủy quyền của {plugin}."
 
 msgid "You don't have access to this host"
 msgstr "Bạn không có quyền truy cập host này"
+
+msgid "You don't have access to this pull request on GitHub, or it no longer exists."
+msgstr "Bạn không có quyền truy cập pull request này trên GitHub, hoặc nó không còn tồn tại."
 
 msgid "You don't have access to this terminal."
 msgstr "Bạn không có quyền truy cập terminal này."

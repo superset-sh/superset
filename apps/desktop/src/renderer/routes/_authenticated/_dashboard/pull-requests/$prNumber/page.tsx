@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { PageHeader } from "renderer/routes/_authenticated/_dashboard/components/PageHeader";
 import { useProjectHost } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectHost";
 import { PullRequestActions } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestActions";
@@ -11,6 +12,10 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestDetailTabs";
 import { PullRequestListToggle } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestListToggle";
 import { usePullRequestDetail } from "renderer/routes/_authenticated/_dashboard/pull-requests/hooks/usePullRequestDetail";
+import {
+	canActOnPullRequest,
+	type PullRequestTarget,
+} from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/pullRequestClient";
 import { parsePositiveIntegerParam } from "renderer/routes/_authenticated/_dashboard/utils/parsePositiveIntegerParam";
 import { Route as PullRequestsLayoutRoute } from "../layout";
 
@@ -27,6 +32,7 @@ function PullRequestDetailPage() {
 	const projectId = search.project ?? null;
 	const { hostId } = useProjectHost(projectId);
 	const hostUrl = useHostUrl(hostId);
+	const organizationId = useActiveOrganizationId();
 	const [tabChoice, setTabChoice] = useState<{
 		prNumber: number | null;
 		tab: PullRequestDetailTab;
@@ -46,12 +52,20 @@ function PullRequestDetailPage() {
 		data?.additions !== undefined && data.deletions !== undefined
 			? { additions: data.additions, deletions: data.deletions }
 			: null;
+	const target: PullRequestTarget | null =
+		prNumber === null
+			? null
+			: {
+					organizationId,
+					repoFullName: detail.repoFullName,
+					prNumber,
+					host: hostUrl ? { hostUrl, projectId: detail.projectId } : null,
+				};
 	// A host that predates addComment/setDraft answers the content read without
 	// the extended fields; it would answer the writes with "No procedure found".
-	const hostSupportsWrites = data?.mergeability !== undefined;
 	const commentTarget =
-		hostSupportsWrites && detail.projectId && hostUrl && prNumber !== null
-			? { projectId: detail.projectId, hostUrl, prNumber }
+		target && canActOnPullRequest(target) && data?.mergeability !== undefined
+			? target
 			: null;
 
 	// The list pane is always visible in the split view (or reachable via the
@@ -74,10 +88,8 @@ function PullRequestDetailPage() {
 					</div>
 					<div className="drag h-full min-w-4 flex-1" />
 					<PullRequestActions
-						projectId={detail.projectId}
+						target={target}
 						hostId={hostId}
-						hostUrl={hostUrl}
-						prNumber={prNumber}
 						data={detail.data}
 						isLoading={detail.isLoading}
 					/>

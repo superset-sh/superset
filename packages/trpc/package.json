@@ -158,6 +158,7 @@
 		"@modelcontextprotocol/sdk": "1.31.0",
 		"@notionhq/client": "5.25.2",
 		"@octokit/app": "16.1.2",
+		"@octokit/core": "7.0.8",
 		"@sentry/core": "10.68.0",
 		"@slack/web-api": "7.15.0",
 		"@superset/auth": "workspace:*",

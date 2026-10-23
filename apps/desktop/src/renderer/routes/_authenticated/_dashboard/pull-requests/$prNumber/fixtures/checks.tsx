@@ -43,9 +43,16 @@ mock.module(`${root}/components/PageHeader`, () => ({
 mock.module(`${root}/pull-requests/components/PullRequestListToggle`, () => ({
 	PullRequestListToggle: () => null,
 }));
+mock.module("renderer/hooks/useActiveOrganizationId", () => ({
+	useActiveOrganizationId: () => "org",
+}));
 mock.module(`${root}/pull-requests/components/PullRequestActions`, () => ({
-	PullRequestActions: ({ projectId }: { projectId: string | null }) => (
-		<div data-testid="header" data-project={projectId ?? ""} />
+	PullRequestActions: ({
+		target,
+	}: {
+		target: { host: { projectId: string | null } | null } | null;
+	}) => (
+		<div data-testid="header" data-project={target?.host?.projectId ?? ""} />
 	),
 }));
 mock.module(

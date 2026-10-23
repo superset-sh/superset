@@ -1,4 +1,12 @@
-import type { RouterOutputs } from "@superset/trpc";
+import type {
+	PullRequestActivity,
+	PullRequestActor,
+	PullRequestCommit,
+	PullRequestCommitAuthor,
+	PullRequestConversationComment,
+	PullRequestDetail as PullRequestDetailBase,
+	PullRequestMergeability,
+} from "@superset/shared/pull-request";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
@@ -6,61 +14,24 @@ import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId"
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider/ElectronTRPCProvider";
 import { DASHBOARD_SIDEBAR_PULL_REQUEST_QUERY_KEY_PREFIX } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarData/derivePullRequestQueryTargets";
 import { V2_WORKSPACES_PULL_REQUEST_QUERY_KEY_PREFIX } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces/useAccessibleV2Workspaces";
+import type { PullRequestTarget } from "../../utils/pullRequestClient";
 import {
 	type PullRequestProject,
 	resolvePullRequestTarget,
 } from "../../utils/resolvePullRequestTarget";
 import { fetchPullRequestDetail } from "./utils/fetchPullRequestDetail";
 
-export type PullRequestMergeability = "mergeable" | "conflicting" | "unknown";
+export type { PullRequestMergeability };
+export type PullRequestDetailActor = PullRequestActor;
+export type PullRequestDetailComment = PullRequestConversationComment;
+export type PullRequestDetailCommitAuthor = PullRequestCommitAuthor;
+export type PullRequestDetailCommit = PullRequestCommit;
 
-export interface PullRequestDetailActor {
-	login: string;
-	name: string | null;
-}
+/** What a full read adds over the detail. Every field is optional: a host
+ *  older than the extended `gh pr view` read leaves them out. */
+export type PullRequestDetailExtras = Partial<PullRequestActivity>;
 
-export interface PullRequestDetailComment {
-	id: string;
-	kind: "comment" | "review";
-	author: PullRequestDetailActor | null;
-	body: string;
-	createdAt: string;
-	reviewState: string | null;
-	url?: string | null;
-}
-
-export interface PullRequestDetailCommitAuthor {
-	/** Null when GitHub maps the commit's email to no account. */
-	login: string | null;
-	name: string | null;
-}
-
-export interface PullRequestDetailCommit {
-	oid: string;
-	messageHeadline: string;
-	committedDate: string;
-	author: PullRequestDetailCommitAuthor | null;
-	url: string;
-}
-
-/** What a host's `gh pr view` adds over the cloud shape. Every field is
- *  optional: the cloud route and hosts older than this read leave them out. */
-export interface PullRequestDetailExtras {
-	additions?: number;
-	deletions?: number;
-	changedFiles?: number;
-	mergeability?: PullRequestMergeability;
-	mergedAt?: string | null;
-	closedAt?: string | null;
-	reviewers?: PullRequestDetailActor[];
-	comments?: PullRequestDetailComment[];
-	commits?: PullRequestDetailCommit[];
-	labels?: { name: string; color: string | null }[];
-}
-
-export type PullRequestDetail =
-	RouterOutputs["integration"]["github"]["getPullRequest"] &
-		PullRequestDetailExtras;
+export type PullRequestDetail = PullRequestDetailBase & PullRequestDetailExtras;
 
 interface PullRequestDetailKey {
 	projectId: string | null;
@@ -154,9 +125,13 @@ export function usePullRequestDetail({
  * detail refetch has landed, so a mutation that returns this stays pending
  * until the header shows the new state instead of flashing the old one.
  */
-export function useInvalidatePullRequestDetail(key: PullRequestDetailKey) {
+export function useInvalidatePullRequestDetail(
+	target: PullRequestTarget | null,
+) {
 	const queryClient = useQueryClient();
-	const { projectId, hostUrl, prNumber } = key;
+	const projectId = target?.host?.projectId ?? null;
+	const hostUrl = target?.host?.hostUrl ?? null;
+	const prNumber = target?.prNumber ?? null;
 	return useCallback((): Promise<void> => {
 		// Inside a workspace the context client is the workspace's own; the
 		// list and chip queries live on the root client and are unreachable

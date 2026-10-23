@@ -3,12 +3,9 @@ import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import { useMutation } from "@tanstack/react-query";
 import { Alert } from "react-native";
-import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
-import { errorCopy } from "@/lib/errors";
-import {
-	getHostServiceClientByUrl,
-	hostServiceUrl,
-} from "@/lib/host-service/client";
+import { useSession } from "@/lib/auth/client";
+import { useGithubRefusalAlert } from "@/lib/github-connection";
+import { apiClient } from "@/lib/trpc/client";
 import type {
 	MergeMethod,
 	PullRequestDetail,
@@ -33,45 +30,41 @@ const METHOD_LABEL: Record<MergeMethod, MessageDescriptor> = {
  * which rule stopped the merge.
  */
 export function useMergePullRequest({
-	workspaceId,
 	owner,
 	repo,
 	pullNumber,
 	onMerged,
 }: {
-	workspaceId: string | null;
 	owner: string | null;
 	repo: string | null;
 	pullNumber: number | null;
 	onMerged: () => void;
 }) {
 	const { i18n, t } = useLingui();
-	const { host } = useWorkspaceHost(workspaceId);
-	const hostUrl =
-		host?.isOnline === true
-			? hostServiceUrl(host.organizationId, host.machineId)
-			: null;
+	const { data: session } = useSession();
+	const organizationId = session?.session?.activeOrganizationId ?? null;
+	const alertRefusal = useGithubRefusalAlert();
 
 	const mutation = useMutation({
 		networkMode: "always" as const,
 		mutationFn: (mergeMethod: MergeMethod) => {
-			if (!hostUrl || !owner || !repo || pullNumber === null) {
-				throw new Error("Host is not resolved");
+			if (!organizationId || !owner || !repo || pullNumber === null) {
+				throw new Error("Pull request is not resolved");
 			}
-			return getHostServiceClientByUrl(hostUrl).github.mergePR.mutate({
-				owner,
-				repo,
-				pullNumber,
+			return apiClient.integration.github.mergePullRequest.mutate({
+				organizationId,
+				repoFullName: `${owner}/${repo}`,
+				number: pullNumber,
 				mergeMethod,
 			});
 		},
 		onSuccess: onMerged,
 		onError: (error: Error) => {
-			Alert.alert(
+			alertRefusal(
 				t({
 					message: "GitHub refused the merge",
 				}),
-				errorCopy(error),
+				error,
 			);
 		},
 	});

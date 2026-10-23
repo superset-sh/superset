@@ -4526,8 +4526,17 @@ msgstr "Hubungkan layanan eksternal untuk menyinkronkan data dengan organisasi A
 msgid "Connect external services to sync data."
 msgstr "Hubungkan layanan eksternal untuk menyinkronkan data."
 
+msgid "Connect GitHub"
+msgstr "Hubungkan GitHub"
+
 msgid "Connect GitHub in Integrations to add {repositoryFullName}."
 msgstr "Hubungkan GitHub di Integrasi untuk menambahkan {repositoryFullName}."
+
+msgid "Connect GitHub in Settings to act on pull requests as yourself"
+msgstr "Hubungkan GitHub di Pengaturan untuk bertindak pada pull request atas nama Anda sendiri"
+
+msgid "Connect GitHub to continue"
+msgstr "Hubungkan GitHub untuk melanjutkan"
 
 msgid "Connect GitHub…"
 msgstr "Hubungkan GitHub…"
@@ -4562,8 +4571,14 @@ msgstr "Hubungkan Slack untuk mengelola tugas dari percakapan. Sebut bot-nya di 
 msgid "Connect this computer"
 msgstr "Hubungkan komputer ini"
 
+msgid "Connect to act on pull requests as yourself instead of as the workspace."
+msgstr "Hubungkan untuk bertindak pada pull request sebagai diri Anda, bukan sebagai workspace."
+
 msgid "Connect your {pluginLabel} account, then reload this page."
 msgstr "Hubungkan akun {pluginLabel} Anda, lalu muat ulang halaman ini."
+
+msgid "Connect your GitHub account to load this pull request as you."
+msgstr "Hubungkan akun GitHub Anda untuk memuat pull request ini sebagai diri Anda."
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "Hubungkan repositori GitHub Anda dan sinkronkan pull request. Lacak status CI dan review di seluruh tim Anda."
@@ -5084,6 +5099,9 @@ msgstr "Tidak bisa memuat diff ini"
 msgid "Could not load this file."
 msgstr "Tidak bisa memuat file ini."
 
+msgid "Could not load this pull request."
+msgstr "Tidak bisa memuat pull request ini."
+
 msgid "Could not load your machines"
 msgstr "Tidak bisa memuat mesin Anda"
 
@@ -5116,9 +5134,6 @@ msgstr "Tidak dapat menjangkau simulator seluler."
 
 msgid "Could not reach the desktop."
 msgstr "Tidak dapat menjangkau desktop."
-
-msgid "Could not reach the host to load this pull request."
-msgstr "Tidak bisa menjangkau host untuk memuat pull request ini."
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Tidak dapat menjangkau host untuk memulai pembaruan. Pastikan host online lalu coba lagi."
@@ -13540,6 +13555,12 @@ msgstr "Pull request"
 msgid "Pull Requests"
 msgstr "Pull Request"
 
+msgid "Pull requests, comments and pushes from Superset are made as you."
+msgstr "Pull request, komentar, dan push dari Superset dibuat atas nama Anda."
+
+msgid "Pull requests, comments and pushes from Superset will no longer be made as you."
+msgstr "Pull request, komentar, dan push dari Superset tidak lagi dibuat atas nama Anda."
+
 msgid "Purple"
 msgstr "Ungu"
 
@@ -16753,6 +16774,9 @@ msgstr "Superset (YC P26) adalah IDE source-available untuk era agen AI, tempat 
 msgid "Superset {version}"
 msgstr "Superset {version}"
 
+msgid "Superset acts on GitHub as you. Connect your GitHub account to merge, comment on and update pull requests."
+msgstr "Superset bertindak di GitHub atas nama Anda. Hubungkan akun GitHub Anda untuk menggabungkan, mengomentari, dan memperbarui pull request."
+
 msgid "Superset Agent"
 msgstr "Superset Agent"
 
@@ -18028,11 +18052,11 @@ msgstr "Profil ini sedang sibuk"
 msgid "This project is no longer available on your devices."
 msgstr "Proyek ini sudah tidak tersedia di perangkat Anda."
 
-msgid "This project isn't linked to a GitHub repository."
-msgstr "Proyek ini tidak tertaut ke repositori GitHub."
-
 msgid "This project's host is offline"
 msgstr "Host proyek ini sedang offline"
+
+msgid "This pull request has no GitHub access to act through."
+msgstr "Pull request ini tidak memiliki akses GitHub untuk bertindak."
 
 msgid "This pull request has no host to act through"
 msgstr "Pull request ini tidak memiliki host untuk bertindak"
@@ -19926,6 +19950,9 @@ msgstr "Anda menolak permintaan otorisasi {plugin}."
 
 msgid "You don't have access to this host"
 msgstr "Anda tidak punya akses ke host ini"
+
+msgid "You don't have access to this pull request on GitHub, or it no longer exists."
+msgstr "Anda tidak memiliki akses ke pull request ini di GitHub, atau pull request ini sudah tidak ada."
 
 msgid "You don't have access to this terminal."
 msgstr "Anda tidak punya akses ke terminal ini."

@@ -26,11 +26,21 @@ mock.module(`${pane}/hooks/usePullRequestPaneDetail`, () => ({
 }));
 mock.module("@superset/workspace-client", () => ({
 	workspaceTrpc: {
-		git: {
-			getPullRequest: { useQuery: () => ({ data: null }) },
-			getPullRequestThreads: { useQuery: () => ({ data: null }) },
-		},
+		git: { getPullRequest: { useQuery: () => ({ data: null }) } },
 	},
+}));
+mock.module(`${root}/pull-requests/hooks/usePullRequestThreads`, () => ({
+	usePullRequestThreads: () => ({
+		data: undefined,
+		isLoading: false,
+		isError: false,
+	}),
+}));
+mock.module("renderer/hooks/useActiveOrganizationId", () => ({
+	useActiveOrganizationId: () => "org",
+}));
+mock.module("renderer/lib/host-service-client", () => ({
+	getHostServiceClientByUrl: () => ({}),
 }));
 mock.module(
 	`${root}/v2-workspace/$workspaceId/hooks/useReviewCommentNavigation`,

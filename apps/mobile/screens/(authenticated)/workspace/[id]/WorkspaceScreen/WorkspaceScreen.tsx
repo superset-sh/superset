@@ -935,9 +935,16 @@ export function WorkspaceScreen() {
 			});
 			return;
 		}
+		const [pullRequest] = pullRequests;
 		router.push({
 			pathname: "/workspace/[id]/pull-request/[pullRequestId]",
-			params: { id, pullRequestId: String(pullRequests[0]?.prNumber ?? "") },
+			params: {
+				id,
+				pullRequestId: String(pullRequest?.prNumber ?? ""),
+				...(pullRequest
+					? { owner: pullRequest.repoOwner, repo: pullRequest.repoName }
+					: {}),
+			},
 		});
 	}, [id, pullRequests, router]);
 

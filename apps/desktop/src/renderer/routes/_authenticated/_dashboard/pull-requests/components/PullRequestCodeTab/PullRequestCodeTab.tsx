@@ -36,7 +36,14 @@ import { DiffFileHeaderName } from "renderer/screens/main/components/DiffFileHea
 import { DiffViewToolbar } from "renderer/screens/main/components/DiffViewToolbar";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates/useWorkspaceCreates";
+import { usePullRequestThreads } from "../../hooks/usePullRequestThreads";
 import { pullRequestReadErrorMessage } from "../../utils/combinePullRequestReadErrors";
+import {
+	type PullRequestTarget,
+	pullRequestThreadsQueryKey,
+	replyToPullRequestThread,
+	setPullRequestThreadResolution,
+} from "../../utils/pullRequestClient";
 import { PullRequestCommentComposer } from "./components/PullRequestCommentComposer";
 import { PullRequestCommentThread } from "./components/PullRequestCommentThread";
 import { fetchPullRequestDiff } from "./utils/fetchPullRequestDiff";
@@ -288,6 +295,15 @@ export function PullRequestCodeTab({
 	const organizationId = useActiveOrganizationId();
 	const repoFullName = pullRequestRefFromUrl(prUrl)?.repoFullName ?? null;
 	const canUseProject = !!projectId && !!hostUrl;
+	const target = useMemo<PullRequestTarget>(
+		() => ({
+			organizationId,
+			repoFullName,
+			prNumber,
+			host: hostUrl ? { hostUrl, projectId } : null,
+		}),
+		[organizationId, repoFullName, prNumber, hostUrl, projectId],
+	);
 
 	const { data, isLoading, error, refetch } = useQuery({
 		queryKey: [
@@ -310,31 +326,9 @@ export function PullRequestCodeTab({
 		gcTime: 10 * 60_000,
 	});
 
-	const threadsQueryKey = [
-		"pull-request-threads",
-		projectId,
-		hostUrl,
-		prNumber,
-	];
-	const { data: threadsData, dataUpdatedAt: threadsUpdatedAt } = useQuery({
-		queryKey: threadsQueryKey,
-		enabled: canUseProject,
-		queryFn: async () => {
-			if (!projectId) return { reviewThreads: [], fetchFailed: false };
-			const client = getHostServiceClientByUrl(hostUrl);
-			return client.pullRequests.getThreads.query({ projectId, prNumber });
-		},
-		staleTime: 30_000,
-		gcTime: 10 * 60_000,
-		// This tab and a workspace DiffPane for the same PR read threads
-		// through two different tRPC clients with two separate caches, so
-		// resolving/replying in one doesn't invalidate the other. DiffPane's
-		// own threads query already self-heals via a 30s refetchInterval
-		// (see useDiffAnnotations) rather than relying on cross-cache
-		// invalidation — matching that here keeps the two surfaces from
-		// drifting for longer than DiffPane already tolerates.
-		refetchInterval: 30_000,
-	});
+	const threadsQueryKey = pullRequestThreadsQueryKey(target);
+	const { data: threadsData, dataUpdatedAt: threadsUpdatedAt } =
+		usePullRequestThreads(target);
 	// getThreads degrades a GraphQL failure to an empty list rather than
 	// throwing (so a comments-fetch failure doesn't block the diff view
 	// itself) — fetchFailed is how it tells that apart from a PR that
@@ -370,10 +364,8 @@ export function PullRequestCodeTab({
 		ReadonlySet<string>
 	>(new Set());
 	const setThreadResolution = useMutation({
-		mutationFn: async (input: { threadId: string; resolved: boolean }) => {
-			const client = getHostServiceClientByUrl(hostUrl);
-			return client.pullRequests.setThreadResolution.mutate(input);
-		},
+		mutationFn: (input: { threadId: string; resolved: boolean }) =>
+			setPullRequestThreadResolution(target, input),
 		onMutate: (input) => {
 			setPendingResolveThreadIds((prev) => new Set(prev).add(input.threadId));
 		},
@@ -402,16 +394,8 @@ export function PullRequestCodeTab({
 		ReadonlySet<number>
 	>(new Set());
 	const replyToThread = useMutation({
-		mutationFn: async (input: { commentId: number; body: string }) => {
-			if (!projectId)
-				throw new Error("No project available to reply to a thread");
-			const client = getHostServiceClientByUrl(hostUrl);
-			return client.pullRequests.replyToThread.mutate({
-				projectId,
-				prNumber,
-				...input,
-			});
-		},
+		mutationFn: (input: { commentId: number; body: string }) =>
+			replyToPullRequestThread(target, input),
 		onMutate: (input) => {
 			setPendingReplyCommentIds((prev) => new Set(prev).add(input.commentId));
 		},

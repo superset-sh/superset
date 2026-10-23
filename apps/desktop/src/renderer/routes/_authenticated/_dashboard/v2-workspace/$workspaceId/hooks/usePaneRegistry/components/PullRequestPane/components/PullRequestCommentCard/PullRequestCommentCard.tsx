@@ -2,6 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
 	LuArrowUpRight,
@@ -15,6 +16,11 @@ import { PullRequestActivityCard } from "renderer/routes/_authenticated/_dashboa
 import { PullRequestMarkdown } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestMarkdown";
 import { usePullRequestActivityLayout } from "renderer/routes/_authenticated/_dashboard/pull-requests/providers/PullRequestActivityLayoutProvider";
 import { usePullRequestActivityReply } from "renderer/routes/_authenticated/_dashboard/pull-requests/providers/PullRequestActivityReplyProvider";
+import {
+	type PullRequestTarget,
+	pullRequestThreadsQueryKey,
+	setPullRequestThreadResolution,
+} from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/pullRequestClient";
 import type { NormalizedComment } from "../../../../../../components/CommentsSection/types";
 import type { DiffFocusSide } from "../../../../../../types";
 import { PullRequestCommentReply } from "./components/PullRequestCommentReply";
@@ -24,7 +30,7 @@ const REPLY_CLASS_NAME =
 	"rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground";
 
 export interface PullRequestCommentCardProps {
-	workspaceId: string;
+	target: PullRequestTarget;
 	comment: NormalizedComment;
 	/** Later comments in the same thread. */
 	replies?: NormalizedComment[];
@@ -38,7 +44,7 @@ export interface PullRequestCommentCardProps {
 
 /** A review thread on the activity rail: file and state in the header, copy and Reply beside them, replies under the body, resolve and open-in-diff in the footer. */
 export function PullRequestCommentCard({
-	workspaceId,
+	target,
 	comment,
 	replies = [],
 	onOpenInDiff,
@@ -55,11 +61,20 @@ export function PullRequestCommentCard({
 		if (foldable) setExpanded(false);
 	}
 	const collapsed = foldable && !expanded;
+	const queryClient = useQueryClient();
 	const utils = workspaceTrpc.useUtils();
-	const resolve = workspaceTrpc.git.setReviewThreadResolution.useMutation({
-		// Returned so the button stays pending until the refetched thread shows the new state.
+	const resolve = useMutation({
+		mutationFn: (thread: { threadId: string; resolved: boolean }) =>
+			setPullRequestThreadResolution(target, thread),
+		// Returned so the button stays pending until the refetched thread shows
+		// the new state; the workspace's diff annotations read the same threads.
 		onSuccess: () =>
-			utils.git.getPullRequestThreads.invalidate({ workspaceId }),
+			Promise.all([
+				queryClient.invalidateQueries({
+					queryKey: pullRequestThreadsQueryKey(target),
+				}),
+				utils.git.getPullRequestThreads.invalidate(),
+			]),
 		onError: () => {
 			toast.error(t({ message: "Couldn't update thread" }));
 		},
@@ -185,7 +200,6 @@ export function PullRequestCommentCard({
 								onClick={() => {
 									if (comment.threadId)
 										resolve.mutate({
-											workspaceId,
 											threadId: comment.threadId,
 											resolved: !comment.isResolved,
 										});

@@ -4526,8 +4526,17 @@ msgstr "Připojte externí služby a synchronizujte data se svou organizací."
 msgid "Connect external services to sync data."
 msgstr "Připojte externí služby a synchronizujte data."
 
+msgid "Connect GitHub"
+msgstr "Připojit GitHub"
+
 msgid "Connect GitHub in Integrations to add {repositoryFullName}."
 msgstr "Připojte GitHub v Integracích a přidejte {repositoryFullName}."
+
+msgid "Connect GitHub in Settings to act on pull requests as yourself"
+msgstr "Připojte GitHub v Nastavení, abyste s pull requesty pracovali sami za sebe"
+
+msgid "Connect GitHub to continue"
+msgstr "Pro pokračování připojte GitHub"
 
 msgid "Connect GitHub…"
 msgstr "Připojit GitHub…"
@@ -4562,8 +4571,14 @@ msgstr "Připojte Slack a spravujte úkoly přímo z konverzací. Zmiňte bota v
 msgid "Connect this computer"
 msgstr "Připojte tento počítač"
 
+msgid "Connect to act on pull requests as yourself instead of as the workspace."
+msgstr "Připojte se, abyste s pull requesty pracovali sami za sebe, ne jako pracovní prostor."
+
 msgid "Connect your {pluginLabel} account, then reload this page."
 msgstr "Připojte svůj účet {pluginLabel} a pak tuto stránku znovu načtěte."
+
+msgid "Connect your GitHub account to load this pull request as you."
+msgstr "Připojte svůj účet GitHub, aby se tento pull request načetl pod vaším jménem."
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "Připojte své GitHub repozitáře a synchronizujte pull requesty. Sledujte stav CI a revize napříč týmem."
@@ -5084,6 +5099,9 @@ msgstr "Tento rozdíl se nepodařilo načíst"
 msgid "Could not load this file."
 msgstr "Tento soubor se nepodařilo načíst."
 
+msgid "Could not load this pull request."
+msgstr "Tento pull request se nepodařilo načíst."
+
 msgid "Could not load your machines"
 msgstr "Nepodařilo se načíst vaše počítače"
 
@@ -5116,9 +5134,6 @@ msgstr "Nepodařilo se připojit k mobilnímu simulátoru."
 
 msgid "Could not reach the desktop."
 msgstr "K ploše se nepodařilo připojit."
-
-msgid "Could not reach the host to load this pull request."
-msgstr "Nepodařilo se spojit s hostem a načíst tento pull request."
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Nepodařilo se spojit s hostitelem a zahájit aktualizaci. Zkontrolujte, že je online, a zkuste to znovu."
@@ -13540,6 +13555,12 @@ msgstr "Pull requesty"
 msgid "Pull Requests"
 msgstr "Pull requesty"
 
+msgid "Pull requests, comments and pushes from Superset are made as you."
+msgstr "Pull requesty, komentáře a pushe ze Supersetu se provádějí pod vaším jménem."
+
+msgid "Pull requests, comments and pushes from Superset will no longer be made as you."
+msgstr "Pull requesty, komentáře a pushe ze Supersetu už nebudou prováděny pod vaším jménem."
+
 msgid "Purple"
 msgstr "Fialová"
 
@@ -16753,6 +16774,9 @@ msgstr "Superset (YC P26) je IDE s dostupným zdrojovým kódem pro éru AI agen
 msgid "Superset {version}"
 msgstr "Superset {version}"
 
+msgid "Superset acts on GitHub as you. Connect your GitHub account to merge, comment on and update pull requests."
+msgstr "Superset jedná na GitHubu za vás. Připojte svůj účet GitHub, abyste mohli slučovat, komentovat a aktualizovat pull requesty."
+
 msgid "Superset Agent"
 msgstr "Superset Agent"
 
@@ -18028,11 +18052,11 @@ msgstr "Tento profil je právě přetížený"
 msgid "This project is no longer available on your devices."
 msgstr "Tento projekt už na vašich zařízeních není dostupný."
 
-msgid "This project isn't linked to a GitHub repository."
-msgstr "Tento projekt není propojen s repozitářem GitHub."
-
 msgid "This project's host is offline"
 msgstr "Host tohoto projektu je offline"
+
+msgid "This pull request has no GitHub access to act through."
+msgstr "K tomuto pull requestu není žádný přístup ke GitHubu, přes který by šlo jednat."
 
 msgid "This pull request has no host to act through"
 msgstr "Tento pull request nemá hostitele, přes kterého by bylo možné jednat"
@@ -19926,6 +19950,9 @@ msgstr "Žádost o autorizaci pro {plugin} jste odmítli."
 
 msgid "You don't have access to this host"
 msgstr "K tomuto hostu nemáte přístup"
+
+msgid "You don't have access to this pull request on GitHub, or it no longer exists."
+msgstr "K tomuto pull requestu nemáte na GitHubu přístup, nebo už neexistuje."
 
 msgid "You don't have access to this terminal."
 msgstr "K tomuto terminálu nemáte přístup."

@@ -16,6 +16,7 @@ import { useReadableInset } from "@/hooks/useReadableInset";
 import { useSignOut } from "@/hooks/useSignOut";
 import { useTheme } from "@/hooks/useTheme";
 import { useSession } from "@/lib/auth/client";
+import { useGithubConnection } from "@/lib/github-connection";
 import { openUrl } from "@/lib/open-url";
 import { billingSettingsUrl } from "@/lib/web-links";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
@@ -47,6 +48,7 @@ export function SettingsScreen() {
 	const { activeOrganization, activeOrganizationId } = useOrganizations();
 	const { signOut, isSigningOut } = useSignOut();
 	const { deleteAccount, isDeleting } = useDeleteAccount();
+	const github = useGithubConnection();
 
 	const user = session?.user;
 	const plan = session?.session.plan;
@@ -122,6 +124,28 @@ export function SettingsScreen() {
 				},
 			],
 		);
+	};
+
+	const handleGithub = () => {
+		if (github.connection) {
+			Alert.alert(
+				t({ message: "Disconnect GitHub?" }),
+				t({
+					message:
+						"Pull requests, comments and pushes from Superset will no longer be made as you.",
+				}),
+				[
+					{ style: "cancel", text: t({ message: "Cancel" }) },
+					{
+						style: "destructive",
+						text: t({ message: "Disconnect" }),
+						onPress: () => github.disconnect.mutate(),
+					},
+				],
+			);
+			return;
+		}
+		github.connect.mutate();
 	};
 
 	// 24pt (px-6) on a phone; a centered column on iPad.
@@ -233,6 +257,44 @@ export function SettingsScreen() {
 					isLast
 				/>
 			</SettingsSection>
+
+			{github.available !== false ? (
+				<SettingsSection label={t({ message: "Connections" })}>
+					<ListRow
+						icon={
+							<Ionicons
+								name="logo-github"
+								size={20}
+								color={theme.mutedForeground}
+							/>
+						}
+						label="GitHub"
+						subtitle={
+							github.connection
+								? t({
+										message:
+											"Pull requests, comments and pushes from Superset are made as you.",
+									})
+								: t({
+										message:
+											"Connect to act on pull requests as yourself instead of as the workspace.",
+									})
+						}
+						trailing={
+							<ListRowValue
+								value={
+									github.isLoading
+										? ""
+										: (github.connection?.login ??
+											t({ message: "Not connected" }))
+								}
+							/>
+						}
+						onPress={github.isLoading ? undefined : handleGithub}
+						isLast
+					/>
+				</SettingsSection>
+			) : null}
 
 			<SettingsSection label={t({ message: "Plan", context: "billing" })}>
 				<ListRow

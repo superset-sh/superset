@@ -1094,6 +1094,7 @@ export const gitRouter = router({
 			return { logs: typeof data === "string" ? data : String(data) };
 		}),
 
+	/** @deprecated Use the API's `integration.github.getPullRequestThreads`, which acts as the viewer. Kept for released clients. */
 	getPullRequestThreads: queryProcedure
 		.meta({ timeoutMs: 30_000 })
 		.input(z.object({ workspaceId: z.string() }))
@@ -1197,6 +1198,7 @@ export const gitRouter = router({
 			return { reviewThreads, conversationComments };
 		}),
 
+	/** @deprecated Use the API's `integration.github.setPullRequestThreadResolution`, which acts as the viewer. Kept for released clients. */
 	setReviewThreadResolution: protectedProcedure
 		.input(
 			z.object({
@@ -1244,6 +1246,8 @@ export const gitRouter = router({
 	 * Replies into a review thread on the workspace's linked PR. Threads onto
 	 * `commentId` — a REST databaseId from getPullRequestThreads — which
 	 * GitHub accepts for any comment already in the thread.
+	 *
+	 * @deprecated Use the API's `integration.github.replyToPullRequestThread`, which acts as the viewer. Kept for released clients.
 	 */
 	replyToReviewThread: protectedProcedure
 		.input(

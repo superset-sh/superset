@@ -3,13 +3,9 @@ import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { useMutation } from "@tanstack/react-query";
 import { useRef } from "react";
-import { Alert } from "react-native";
-import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
-import { errorCopy } from "@/lib/errors";
-import {
-	getHostServiceClientByUrl,
-	hostServiceUrl,
-} from "@/lib/host-service/client";
+import { useSession } from "@/lib/auth/client";
+import { useGithubRefusalAlert } from "@/lib/github-connection";
+import { apiClient } from "@/lib/trpc/client";
 import type { PlainActionId } from "../../utils/pullRequestState";
 
 const REFUSED_TITLE: Record<PlainActionId, MessageDescriptor> = {
@@ -34,46 +30,46 @@ const REFUSED_TITLE: Record<PlainActionId, MessageDescriptor> = {
  * rule refused it.
  */
 export function usePullRequestActions({
-	workspaceId,
 	owner,
 	repo,
 	pullNumber,
 	onDone,
 }: {
-	workspaceId: string | null;
 	owner: string | null;
 	repo: string | null;
 	pullNumber: number | null;
 	onDone: () => void;
 }) {
-	const { host } = useWorkspaceHost(workspaceId);
-	const hostUrl =
-		host?.isOnline === true
-			? hostServiceUrl(host.organizationId, host.machineId)
-			: null;
+	const { data: session } = useSession();
+	const organizationId = session?.session?.activeOrganizationId ?? null;
+	const alertRefusal = useGithubRefusalAlert();
 
 	const mutation = useMutation({
 		networkMode: "always" as const,
 		mutationFn: async (action: PlainActionId) => {
-			if (!hostUrl || !owner || !repo || pullNumber === null) {
-				throw new Error("Host is not resolved");
+			if (!organizationId || !owner || !repo || pullNumber === null) {
+				throw new Error("Pull request is not resolved");
 			}
-			const github = getHostServiceClientByUrl(hostUrl).github;
-			const input = { owner, repo, pullNumber };
+			const github = apiClient.integration.github;
+			const input = {
+				organizationId,
+				repoFullName: `${owner}/${repo}`,
+				number: pullNumber,
+			};
 			switch (action) {
 				case "mark-ready":
-					return github.markPullRequestReady.mutate(input);
+					return github.setPullRequestDraft.mutate({ ...input, draft: false });
 				case "update-branch":
 					return github.updatePullRequestBranch.mutate(input);
 				case "reopen":
-					return github.reopenPullRequest.mutate(input);
+					return github.setPullRequestState.mutate({ ...input, state: "open" });
 				case "dequeue":
 					return github.dequeuePullRequest.mutate(input);
 			}
 		},
 		onSuccess: onDone,
 		onError: (error: Error, action) => {
-			Alert.alert(i18n._(REFUSED_TITLE[action]), errorCopy(error));
+			alertRefusal(i18n._(REFUSED_TITLE[action]), error);
 		},
 	});
 

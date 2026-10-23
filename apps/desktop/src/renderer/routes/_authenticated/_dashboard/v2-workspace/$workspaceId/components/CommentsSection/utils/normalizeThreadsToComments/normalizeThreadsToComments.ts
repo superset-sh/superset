@@ -1,12 +1,19 @@
-import type { AppRouter } from "@superset/host-service";
-import type { inferRouterOutputs } from "@trpc/server";
+import type { PullRequestReviewThread } from "@superset/shared/pull-request-threads";
 import type { NormalizedComment } from "../../types";
 
-type V2ThreadsData =
-	inferRouterOutputs<AppRouter>["git"]["getPullRequestThreads"];
+interface ThreadsData {
+	reviewThreads: PullRequestReviewThread[];
+	conversationComments?: {
+		id: number;
+		user: { login: string; avatarUrl: string };
+		body: string;
+		createdAt: string;
+		htmlUrl: string;
+	}[];
+}
 
 export function normalizeThreadsToComments(
-	data: V2ThreadsData,
+	data: ThreadsData,
 	prUrl?: string,
 ): NormalizedComment[] {
 	const comments: NormalizedComment[] = [];
@@ -35,7 +42,7 @@ export function normalizeThreadsToComments(
 		}
 	}
 
-	for (const c of data.conversationComments) {
+	for (const c of data.conversationComments ?? []) {
 		comments.push({
 			id: String(c.id),
 			authorLogin: c.user.login,

@@ -37,7 +37,6 @@ import {
 import { type ReactNode, useState } from "react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { normalizePRState } from "renderer/screens/main/components/PRIcon";
 import {
 	type LinkedPR,
@@ -54,6 +53,13 @@ import {
 	buildResolveConflictsPrompt,
 } from "../../utils/buildPullRequestRepairPrompts";
 import {
+	canActOnPullRequest,
+	mergePullRequest,
+	type PullRequestMergeMethod,
+	type PullRequestTarget,
+	setPullRequestState,
+} from "../../utils/pullRequestClient";
+import {
 	PullRequestMenuContent,
 	PullRequestMenuItem,
 	PullRequestMenuLabel,
@@ -62,18 +68,17 @@ import {
 } from "../PullRequestMenu";
 import { PullRequestSkeleton as Skeleton } from "../PullRequestSkeleton";
 
-type MergeMethod = "merge" | "squash" | "rebase";
+type MergeMethod = PullRequestMergeMethod;
 
 type PendingAction =
 	| { kind: "close" }
 	| { kind: "merge"; method: MergeMethod; force?: boolean };
 
 interface PullRequestActionsProps {
-	projectId: string | null;
+	/** Null when the route param is malformed. */
+	target: PullRequestTarget | null;
+	/** The host a workspace on this pull request would start on. */
 	hostId: string | null;
-	hostUrl: string | null;
-	/** Parsed PR number; null when the route param is malformed. */
-	prNumber: number | null;
 	data: PullRequestDetail | null | undefined;
 	isLoading: boolean;
 	/**
@@ -115,15 +120,16 @@ function IconAction({
  * confirmation. Identity (title, author, state) lives in PullRequestItemHeader.
  */
 export function PullRequestActions({
-	projectId,
+	target,
 	hostId,
-	hostUrl,
-	prNumber,
 	data,
 	isLoading,
 	showStartWorkspace = true,
 }: PullRequestActionsProps) {
 	const { t } = useLingui();
+	const projectId = target?.host?.projectId ?? null;
+	const hostUrl = target?.host?.hostUrl ?? null;
+	const prNumber = target?.prNumber ?? null;
 	const mergeMethodLabels: Record<MergeMethod, string> = {
 		squash: t({ message: "Squash and merge" }),
 		merge: t({ message: "Merge commit" }),
@@ -146,35 +152,31 @@ export function PullRequestActions({
 	const [mergeComment, setMergeComment] = useState("");
 	const { copyToClipboard: copyLink, copied: linkCopied } =
 		useCopyToClipboard();
-	const invalidatePullRequestQueries = useInvalidatePullRequestDetail({
-		projectId,
-		hostUrl,
-		prNumber,
-	});
+	const invalidatePullRequestQueries = useInvalidatePullRequestDetail(target);
 	const handoff = usePullRequestAgentHandoff(
 		projectId && hostId && hostUrl && prNumber !== null
 			? { projectId, hostId, hostUrl, prNumber }
 			: null,
 	);
-	const setDraft = usePullRequestDraftMutation({
-		projectId: projectId ?? "",
-		hostUrl: hostUrl ?? "",
-		prNumber: prNumber ?? 0,
-	});
+	const setDraft = usePullRequestDraftMutation(
+		target ?? {
+			organizationId: null,
+			repoFullName: null,
+			prNumber: 0,
+			host: null,
+		},
+	);
 
-	const setPullRequestState = useMutation({
+	const setState = useMutation({
 		mutationFn: async (nextState: "open" | "closed") => {
-			if (!hostUrl || !projectId || prNumber === null) {
+			if (!target || !canActOnPullRequest(target)) {
 				throw new Error(
-					t({ message: "This project isn't linked to a GitHub repository." }),
+					t({
+						message: "This pull request has no GitHub access to act through.",
+					}),
 				);
 			}
-			const client = getHostServiceClientByUrl(hostUrl);
-			return client.pullRequests.setState.mutate({
-				projectId,
-				prNumber,
-				state: nextState,
-			});
+			return setPullRequestState(target, nextState);
 		},
 		onSuccess: invalidatePullRequestQueries,
 		onError: (mutationError) => {
@@ -184,26 +186,19 @@ export function PullRequestActions({
 		},
 	});
 
-	const mergePullRequest = useMutation({
-		mutationFn: async ({
-			mergeMethod,
-			commitMessage,
-		}: {
+	const merge = useMutation({
+		mutationFn: async (merge: {
 			mergeMethod: MergeMethod;
 			commitMessage?: string;
 		}) => {
-			if (!hostUrl || !projectId || prNumber === null) {
+			if (!target || !canActOnPullRequest(target)) {
 				throw new Error(
-					t({ message: "This project isn't linked to a GitHub repository." }),
+					t({
+						message: "This pull request has no GitHub access to act through.",
+					}),
 				);
 			}
-			const client = getHostServiceClientByUrl(hostUrl);
-			return client.pullRequests.mergePR.mutate({
-				projectId,
-				prNumber,
-				mergeMethod,
-				commitMessage,
-			});
+			return mergePullRequest(target, merge);
 		},
 		onSuccess: invalidatePullRequestQueries,
 		onError: (mutationError) => {
@@ -214,16 +209,14 @@ export function PullRequestActions({
 	});
 
 	const isActionPending =
-		setPullRequestState.isPending ||
-		mergePullRequest.isPending ||
-		setDraft.isPending;
+		setState.isPending || merge.isPending || setDraft.isPending;
 
 	const handleConfirmAction = () => {
 		if (!pendingAction) return;
 		if (pendingAction.kind === "close") {
-			setPullRequestState.mutate("closed");
+			setState.mutate("closed");
 		} else {
-			mergePullRequest.mutate({
+			merge.mutate({
 				mergeMethod: pendingAction.method,
 				commitMessage: mergeComment.trim() || undefined,
 			});
@@ -284,7 +277,7 @@ export function PullRequestActions({
 	if (!data) return null;
 
 	const canMerge = data.state === "open" && !data.isDraft;
-	const canAct = !!hostUrl && !!projectId && prNumber !== null;
+	const canAct = target !== null && canActOnPullRequest(target);
 	const canToggleDraft = canAct && data.mergeability !== undefined;
 	const isDraft = data.state === "open" && data.isDraft;
 	const mergeBlocked = data.mergeability === "conflicting";
@@ -362,19 +355,19 @@ export function PullRequestActions({
 									)}
 									disabled={isActionPending}
 									aria-disabled={mergeBlocked || undefined}
-									aria-busy={mergePullRequest.isPending}
+									aria-busy={merge.isPending}
 									onClick={() => {
 										if (mergeBlocked) return;
 										setPendingAction({ kind: "merge", method: "squash" });
 									}}
 								>
-									{mergePullRequest.isPending ? (
+									{merge.isPending ? (
 										<LoaderCircle className="size-3.5 animate-spin motion-reduce:animate-none" />
 									) : (
 										<GitMerge strokeWidth={1.75} className="size-3.5" />
 									)}
 									<span className="@max-[23rem]/topbar:sr-only">
-										{mergePullRequest.isPending ? (
+										{merge.isPending ? (
 											<Trans>Merging…</Trans>
 										) : (
 											<Trans>Merge</Trans>
@@ -533,9 +526,9 @@ export function PullRequestActions({
 					size="xs"
 					className="ml-1 h-7 rounded-full px-3"
 					disabled={isActionPending}
-					onClick={() => setPullRequestState.mutate("open")}
+					onClick={() => setState.mutate("open")}
 				>
-					{setPullRequestState.isPending ? (
+					{setState.isPending ? (
 						<Trans>Reopening…</Trans>
 					) : (
 						<Trans>Reopen</Trans>

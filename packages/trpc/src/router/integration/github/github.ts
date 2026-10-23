@@ -19,6 +19,7 @@ import {
 import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
 import { findInstalledRepository } from "./find-installed-repository";
 import { getPullRequestDiff } from "./get-pull-request-diff";
+import { pullRequestProcedures } from "./pull-request-procedures";
 import {
 	type PullRequestDetail,
 	toChecks,
@@ -31,6 +32,7 @@ import { listGithubRepositories } from "./trigger-options";
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
 export const githubRouter = {
+	...pullRequestProcedures,
 	getPullRequestDiff,
 	getInstallation: protectedProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
@@ -338,6 +340,8 @@ export const githubRouter = {
 	 * detail pane that has no host in the loop: the webhook row supplies
 	 * everything but the description, which comes from GitHub with the
 	 * installation's token.
+	 *
+	 * @deprecated Use the API's `integration.github.getPullRequestDetail`, which acts as the viewer. Kept for released clients.
 	 */
 	getPullRequest: protectedProcedure
 		.input(

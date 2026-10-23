@@ -4526,8 +4526,17 @@ msgstr "Connectez des services externes pour synchroniser des données avec votr
 msgid "Connect external services to sync data."
 msgstr "Connectez des services externes pour synchroniser vos données."
 
+msgid "Connect GitHub"
+msgstr "Connecter GitHub"
+
 msgid "Connect GitHub in Integrations to add {repositoryFullName}."
 msgstr "Connectez GitHub dans Intégrations pour ajouter {repositoryFullName}."
+
+msgid "Connect GitHub in Settings to act on pull requests as yourself"
+msgstr "Connectez GitHub dans les Paramètres pour agir sur les pull requests en votre nom"
+
+msgid "Connect GitHub to continue"
+msgstr "Connectez GitHub pour continuer"
 
 msgid "Connect GitHub…"
 msgstr "Connecter GitHub…"
@@ -4562,8 +4571,14 @@ msgstr "Connectez Slack pour gérer les tâches depuis vos conversations. Mentio
 msgid "Connect this computer"
 msgstr "Connecter cet ordinateur"
 
+msgid "Connect to act on pull requests as yourself instead of as the workspace."
+msgstr "Connectez-vous pour agir sur les pull requests en votre nom plutôt qu'au nom du workspace."
+
 msgid "Connect your {pluginLabel} account, then reload this page."
 msgstr "Connectez votre compte {pluginLabel}, puis rechargez cette page."
+
+msgid "Connect your GitHub account to load this pull request as you."
+msgstr "Connectez votre compte GitHub pour charger cette pull request en votre nom."
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "Connectez vos dépôts GitHub et synchronisez les pull requests. Suivez l'état de la CI et les revues au sein de votre équipe."
@@ -5084,6 +5099,9 @@ msgstr "Impossible de charger ce diff"
 msgid "Could not load this file."
 msgstr "Impossible de charger ce fichier."
 
+msgid "Could not load this pull request."
+msgstr "Impossible de charger cette pull request."
+
 msgid "Could not load your machines"
 msgstr "Impossible de charger vos machines"
 
@@ -5116,9 +5134,6 @@ msgstr "Impossible de joindre un simulateur mobile."
 
 msgid "Could not reach the desktop."
 msgstr "Impossible de joindre le bureau."
-
-msgid "Could not reach the host to load this pull request."
-msgstr "Impossible de joindre l'hôte pour charger cette pull request."
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Impossible de joindre l'hôte pour lancer la mise à jour. Vérifiez qu'il est en ligne et réessayez."
@@ -13540,6 +13555,12 @@ msgstr "Pull requests"
 msgid "Pull Requests"
 msgstr "Pull requests"
 
+msgid "Pull requests, comments and pushes from Superset are made as you."
+msgstr "Les pull requests, commentaires et pushes depuis Superset sont faits en votre nom."
+
+msgid "Pull requests, comments and pushes from Superset will no longer be made as you."
+msgstr "Les pull requests, commentaires et pushes depuis Superset ne seront plus faits en votre nom."
+
 msgid "Purple"
 msgstr "Violet"
 
@@ -16753,6 +16774,9 @@ msgstr "Superset (YC P26) est l’IDE au code source disponible de l’ère des 
 msgid "Superset {version}"
 msgstr "Superset {version}"
 
+msgid "Superset acts on GitHub as you. Connect your GitHub account to merge, comment on and update pull requests."
+msgstr "Superset agit sur GitHub en votre nom. Connectez votre compte GitHub pour fusionner, commenter et mettre à jour des pull requests."
+
 msgid "Superset Agent"
 msgstr "Superset Agent"
 
@@ -18028,11 +18052,11 @@ msgstr "Ce profil est très sollicité en ce moment"
 msgid "This project is no longer available on your devices."
 msgstr "Ce projet n'est plus disponible sur vos appareils."
 
-msgid "This project isn't linked to a GitHub repository."
-msgstr "Ce projet n'est lié à aucun dépôt GitHub."
-
 msgid "This project's host is offline"
 msgstr "L'hôte de ce projet est hors ligne"
+
+msgid "This pull request has no GitHub access to act through."
+msgstr "Aucun accès GitHub ne permet d'agir sur cette pull request."
 
 msgid "This pull request has no host to act through"
 msgstr "Cette pull request n'a aucun hôte par lequel agir"
@@ -19926,6 +19950,9 @@ msgstr "Vous avez refusé la demande d'autorisation de {plugin}."
 
 msgid "You don't have access to this host"
 msgstr "Vous n'avez pas accès à cet hôte"
+
+msgid "You don't have access to this pull request on GitHub, or it no longer exists."
+msgstr "Vous n'avez pas accès à cette pull request sur GitHub, ou elle n'existe plus."
 
 msgid "You don't have access to this terminal."
 msgstr "Vous n'avez pas accès à ce terminal."

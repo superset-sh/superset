@@ -4526,8 +4526,17 @@ msgstr "외부 서비스를 연결해 조직과 데이터를 동기화합니다.
 msgid "Connect external services to sync data."
 msgstr "외부 서비스를 연결해 데이터를 동기화합니다."
 
+msgid "Connect GitHub"
+msgstr "GitHub 연결"
+
 msgid "Connect GitHub in Integrations to add {repositoryFullName}."
 msgstr "{repositoryFullName}을(를) 추가하려면 연동에서 GitHub를 연결하세요."
+
+msgid "Connect GitHub in Settings to act on pull requests as yourself"
+msgstr "본인 계정으로 풀 리퀘스트를 처리하려면 설정에서 GitHub를 연결하세요"
+
+msgid "Connect GitHub to continue"
+msgstr "계속하려면 GitHub를 연결하세요"
 
 msgid "Connect GitHub…"
 msgstr "GitHub 연결…"
@@ -4562,8 +4571,14 @@ msgstr "Slack을 연결해 대화에서 바로 작업을 관리하세요. 아무
 msgid "Connect this computer"
 msgstr "이 컴퓨터에 연결"
 
+msgid "Connect to act on pull requests as yourself instead of as the workspace."
+msgstr "연결하면 워크스페이스가 아닌 본인 계정으로 풀 리퀘스트를 처리할 수 있습니다."
+
 msgid "Connect your {pluginLabel} account, then reload this page."
 msgstr "{pluginLabel} 계정을 연결한 다음 이 페이지를 새로 고치세요."
+
+msgid "Connect your GitHub account to load this pull request as you."
+msgstr "이 풀 리퀘스트를 본인 계정으로 불러오려면 GitHub 계정을 연결하세요."
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "GitHub 리포지토리를 연결하고 풀 리퀘스트를 동기화하세요. 팀 전체의 CI 상태와 리뷰를 추적할 수 있습니다."
@@ -5084,6 +5099,9 @@ msgstr "이 차이를 불러올 수 없습니다"
 msgid "Could not load this file."
 msgstr "이 파일을 불러올 수 없습니다."
 
+msgid "Could not load this pull request."
+msgstr "이 풀 리퀘스트를 불러오지 못했습니다."
+
 msgid "Could not load your machines"
 msgstr "머신을 불러오지 못했습니다"
 
@@ -5116,9 +5134,6 @@ msgstr "모바일 시뮬레이터에 연결할 수 없습니다."
 
 msgid "Could not reach the desktop."
 msgstr "데스크톱에 연결할 수 없습니다."
-
-msgid "Could not reach the host to load this pull request."
-msgstr "호스트에 연결할 수 없어 이 풀 리퀘스트를 불러오지 못했습니다."
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "업데이트를 시작하기 위해 호스트에 연결할 수 없습니다. 온라인 상태인지 확인한 후 다시 시도하세요."
@@ -13540,6 +13555,12 @@ msgstr "풀 리퀘스트"
 msgid "Pull Requests"
 msgstr "풀 리퀘스트"
 
+msgid "Pull requests, comments and pushes from Superset are made as you."
+msgstr "Superset에서의 풀 리퀘스트, 댓글, 푸시는 본인 계정으로 처리됩니다."
+
+msgid "Pull requests, comments and pushes from Superset will no longer be made as you."
+msgstr "Superset에서의 풀 리퀘스트, 댓글, 푸시가 더 이상 본인 계정으로 처리되지 않습니다."
+
 msgid "Purple"
 msgstr "보라"
 
@@ -16753,6 +16774,9 @@ msgstr "Superset(YC P26)은 AI 에이전트 시대를 위한 소스 공개형 ID
 msgid "Superset {version}"
 msgstr "Superset {version}"
 
+msgid "Superset acts on GitHub as you. Connect your GitHub account to merge, comment on and update pull requests."
+msgstr "Superset은 본인 계정으로 GitHub에서 작업합니다. 풀 리퀘스트를 병합, 댓글 작성, 업데이트하려면 GitHub 계정을 연결하세요."
+
 msgid "Superset Agent"
 msgstr "Superset 에이전트"
 
@@ -18028,11 +18052,11 @@ msgstr "이 프로필은 지금 이용자가 많습니다"
 msgid "This project is no longer available on your devices."
 msgstr "이 프로젝트는 더 이상 내 기기에서 사용할 수 없습니다."
 
-msgid "This project isn't linked to a GitHub repository."
-msgstr "이 프로젝트는 GitHub 저장소에 연결되어 있지 않습니다."
-
 msgid "This project's host is offline"
 msgstr "이 프로젝트의 호스트가 오프라인입니다"
+
+msgid "This pull request has no GitHub access to act through."
+msgstr "이 풀 리퀘스트를 처리할 GitHub 접근 권한이 없습니다."
 
 msgid "This pull request has no host to act through"
 msgstr "이 풀 리퀘스트에는 작업을 수행할 호스트가 없습니다"
@@ -19926,6 +19950,9 @@ msgstr "{plugin} 인증 요청을 거부했습니다."
 
 msgid "You don't have access to this host"
 msgstr "이 호스트에 접근할 권한이 없습니다"
+
+msgid "You don't have access to this pull request on GitHub, or it no longer exists."
+msgstr "GitHub에서 이 풀 리퀘스트에 접근할 수 없거나, 더 이상 존재하지 않습니다."
 
 msgid "You don't have access to this terminal."
 msgstr "이 터미널에 접근할 권한이 없습니다."

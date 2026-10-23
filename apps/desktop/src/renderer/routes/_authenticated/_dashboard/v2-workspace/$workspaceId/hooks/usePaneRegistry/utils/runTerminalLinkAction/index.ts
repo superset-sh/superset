@@ -1,4 +1,5 @@
 export {
+	runChatPullRequestLink,
 	runFileLinkAction,
 	runFolderLinkAction,
 	runUrlLinkAction,

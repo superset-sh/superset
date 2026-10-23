@@ -1,9 +1,8 @@
+import type { PullRequestDetailRead } from "@superset/shared/pull-request-detail";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
-import {
-	getHostServiceClientByUrl,
-	hostServiceUrl,
-} from "@/lib/host-service/client";
+import { useSession } from "@/lib/auth/client";
+import { apiClient } from "@/lib/trpc/client";
 import type {
 	MergeableState,
 	MergeMethod,
@@ -18,13 +17,23 @@ import type {
 const DETAIL_REFETCH_MS = 20_000;
 
 export function getPullRequestDetailQueryKey(
-	workspaceId: string | null,
+	owner: string | null,
+	repo: string | null,
 	pullNumber: number | null,
 ) {
-	return ["workspace-pull-request", workspaceId, pullNumber] as const;
+	return [
+		"pull-request-detail",
+		owner?.toLowerCase() ?? null,
+		repo?.toLowerCase() ?? null,
+		pullNumber,
+	] as const;
 }
 
-/** Live from the host: the synced rows carry no mergeability, reviewer state or capabilities. */
+/**
+ * Live from GitHub through the API, as the signed-in person: the synced rows
+ * carry no mergeability, reviewer state or capabilities, and a host's `gh`
+ * would answer as whoever the box is.
+ */
 export function useWorkspacePullRequestDetail({
 	workspaceId,
 	owner,
@@ -36,17 +45,19 @@ export function useWorkspacePullRequestDetail({
 	repo: string | null;
 	pullNumber: number | null;
 }) {
-	const { host, isResolving, sandboxWaking, sandboxUnreachable } =
+	const { data: session } = useSession();
+	const organizationId = session?.session?.activeOrganizationId ?? null;
+	// Only a route without its own coordinates still waits on the host's project.
+	const { isResolving, sandboxWaking, sandboxUnreachable } =
 		useWorkspaceHost(workspaceId);
-	const hostUrl =
-		host?.isOnline === true
-			? hostServiceUrl(host.organizationId, host.machineId)
-			: null;
 	const ready =
-		hostUrl !== null && owner !== null && repo !== null && pullNumber !== null;
+		organizationId !== null &&
+		owner !== null &&
+		repo !== null &&
+		pullNumber !== null;
 
 	const query = useQuery({
-		queryKey: getPullRequestDetailQueryKey(workspaceId, pullNumber),
+		queryKey: getPullRequestDetailQueryKey(owner, repo, pullNumber),
 		enabled: ready,
 		refetchInterval: DETAIL_REFETCH_MS,
 		// A sheet mounting a second observer must not trigger a refetch under the card.
@@ -54,46 +65,45 @@ export function useWorkspacePullRequestDetail({
 		retry: 1,
 		networkMode: "always" as const,
 		queryFn: async () => {
-			if (!hostUrl || !owner || !repo || pullNumber === null) {
-				throw new Error("Host is not resolved");
+			if (!organizationId || !owner || !repo || pullNumber === null) {
+				throw new Error("Pull request is not resolved");
 			}
-			const raw = await getHostServiceClientByUrl(
-				hostUrl,
-			).github.getPullRequestDetail.query({ owner, repo, pullNumber });
+			const raw = await apiClient.integration.github.getPullRequestDetail.query(
+				{
+					organizationId,
+					repoFullName: `${owner}/${repo}`,
+					number: pullNumber,
+				},
+			);
 			return toDetail(raw);
 		},
 	});
 
+	const resolvingRepo =
+		(owner === null || repo === null) &&
+		(isResolving || sandboxWaking) &&
+		!sandboxUnreachable;
 	return {
 		detail: query.data ?? null,
-		// An idle query is not an empty one: while the box is still waking the
-		// pull request is unknown, not gone.
+		// An idle query is not an empty one: while the session or the repository
+		// is still unknown the pull request is unknown, not gone.
 		isLoading: ready
 			? query.isPending
-			: (isResolving || sandboxWaking) && !sandboxUnreachable,
+			: organizationId === null || resolvingRepo,
 		isRefetching: query.isRefetching,
 		error: query.error,
 		refetch: query.refetch,
 	};
 }
 
-type RawDetail = Awaited<
-	ReturnType<
-		ReturnType<
-			typeof getHostServiceClientByUrl
-		>["github"]["getPullRequestDetail"]["query"]
-	>
->;
-
 function at(value: string | null): Date | null {
 	return value ? new Date(value) : null;
 }
 
-function toDetail(raw: RawDetail): PullRequestDetail {
+function toDetail(raw: PullRequestDetailRead): PullRequestDetail {
 	return {
 		pullRequest: {
 			...raw.pullRequest,
-			state: raw.pullRequest.state as "open" | "closed" | "merged",
 			mergedAt: at(raw.pullRequest.mergedAt),
 		},
 		checks: raw.checks.map(

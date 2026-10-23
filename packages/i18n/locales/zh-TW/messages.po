@@ -4526,8 +4526,17 @@ msgstr "連線外部服務，與你的組織同步資料。"
 msgid "Connect external services to sync data."
 msgstr "連線外部服務以同步資料。"
 
+msgid "Connect GitHub"
+msgstr "連接 GitHub"
+
 msgid "Connect GitHub in Integrations to add {repositoryFullName}."
 msgstr "在整合中連結 GitHub 以新增 {repositoryFullName}。"
+
+msgid "Connect GitHub in Settings to act on pull requests as yourself"
+msgstr "在設定中連接 GitHub，以你自己的身分處理拉取請求"
+
+msgid "Connect GitHub to continue"
+msgstr "連接 GitHub 以繼續"
 
 msgid "Connect GitHub…"
 msgstr "連結 GitHub…"
@@ -4562,8 +4571,14 @@ msgstr "連線Slack，直接在對話中管理任務。在任意頻道提及機�
 msgid "Connect this computer"
 msgstr "連線至這台電腦"
 
+msgid "Connect to act on pull requests as yourself instead of as the workspace."
+msgstr "連接後，將以你自己的身分而非工作區的身分處理拉取請求。"
+
 msgid "Connect your {pluginLabel} account, then reload this page."
 msgstr "連線你的 {pluginLabel} 帳戶，然後重新載入此頁面。"
+
+msgid "Connect your GitHub account to load this pull request as you."
+msgstr "連接你的 GitHub 帳戶，以你自己的身分載入此拉取請求。"
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "連線你的GitHub儲存庫並同步拉取請求。追蹤整個團隊的CI狀態和程式碼審查。"
@@ -5084,6 +5099,9 @@ msgstr "無法載入這個差異"
 msgid "Could not load this file."
 msgstr "無法載入這個檔案。"
 
+msgid "Could not load this pull request."
+msgstr "無法載入此拉取請求。"
+
 msgid "Could not load your machines"
 msgstr "無法載入你的機器"
 
@@ -5116,9 +5134,6 @@ msgstr "無法連線至行動模擬器。"
 
 msgid "Could not reach the desktop."
 msgstr "無法連線至桌面。"
-
-msgid "Could not reach the host to load this pull request."
-msgstr "無法連線到主機以載入此拉取請求。"
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "無法連線主機以開始更新。請確認主機在線上後重試。"
@@ -13540,6 +13555,12 @@ msgstr "拉取請求"
 msgid "Pull Requests"
 msgstr "拉取請求"
 
+msgid "Pull requests, comments and pushes from Superset are made as you."
+msgstr "來自 Superset 的拉取請求、留言和推送以你的身分進行。"
+
+msgid "Pull requests, comments and pushes from Superset will no longer be made as you."
+msgstr "來自 Superset 的拉取請求、留言和推送將不再以你的身分進行。"
+
 msgid "Purple"
 msgstr "紫色"
 
@@ -16753,6 +16774,9 @@ msgstr "Superset（YC P26）是為 AI agent 時代打造的原始碼公開 IDE�
 msgid "Superset {version}"
 msgstr "Superset {version}"
 
+msgid "Superset acts on GitHub as you. Connect your GitHub account to merge, comment on and update pull requests."
+msgstr "Superset 以你的身分在 GitHub 上操作。連接你的 GitHub 帳戶以合併、留言和更新拉取請求。"
+
 msgid "Superset Agent"
 msgstr "Superset代理程式"
 
@@ -18028,11 +18052,11 @@ msgstr "此個人檔案目前繁忙"
 msgid "This project is no longer available on your devices."
 msgstr "這個專案在你的裝置上已不可用。"
 
-msgid "This project isn't linked to a GitHub repository."
-msgstr "此專案未連結 GitHub 儲存庫。"
-
 msgid "This project's host is offline"
 msgstr "此專案的主機已離線"
+
+msgid "This pull request has no GitHub access to act through."
+msgstr "沒有可用於處理此拉取請求的 GitHub 存取權限。"
 
 msgid "This pull request has no host to act through"
 msgstr "此提取請求沒有可用於操作的主機"
@@ -19926,6 +19950,9 @@ msgstr "你拒絕了 {plugin} 的授權請求。"
 
 msgid "You don't have access to this host"
 msgstr "你沒有此主機的存取權限"
+
+msgid "You don't have access to this pull request on GitHub, or it no longer exists."
+msgstr "你在 GitHub 上沒有此拉取請求的存取權限，或者它已不存在。"
 
 msgid "You don't have access to this terminal."
 msgstr "你沒有此終端的存取權限。"

@@ -4526,8 +4526,17 @@ msgstr "Kuruluşunuzla veri eşitlemek için harici hizmetleri bağlayın."
 msgid "Connect external services to sync data."
 msgstr "Verileri eşitlemek için harici hizmetleri bağlayın."
 
+msgid "Connect GitHub"
+msgstr "GitHub'ı bağla"
+
 msgid "Connect GitHub in Integrations to add {repositoryFullName}."
 msgstr "{repositoryFullName} eklemek için Entegrasyonlar'da GitHub'ı bağlayın."
+
+msgid "Connect GitHub in Settings to act on pull requests as yourself"
+msgstr "Pull request'lerde kendi adınıza işlem yapmak için Ayarlar'dan GitHub'ı bağlayın"
+
+msgid "Connect GitHub to continue"
+msgstr "Devam etmek için GitHub'ı bağlayın"
 
 msgid "Connect GitHub…"
 msgstr "GitHub'ı bağla…"
@@ -4562,8 +4571,14 @@ msgstr "Görevleri konuşmalardan yönetmek için Slack'i bağlayın. Görev olu
 msgid "Connect this computer"
 msgstr "Bu bilgisayarı bağlayın"
 
+msgid "Connect to act on pull requests as yourself instead of as the workspace."
+msgstr "Pull request'lerde çalışma alanı yerine kendi adınıza işlem yapmak için bağlanın."
+
 msgid "Connect your {pluginLabel} account, then reload this page."
 msgstr "{pluginLabel} hesabınızı bağlayın, ardından bu sayfayı yeniden yükleyin."
+
+msgid "Connect your GitHub account to load this pull request as you."
+msgstr "Bu pull request'i kendi adınıza yüklemek için GitHub hesabınızı bağlayın."
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "GitHub depolarınızı bağlayın ve pull request'leri eşitleyin. CI durumunu ve incelemeleri takımınız genelinde izleyin."
@@ -5084,6 +5099,9 @@ msgstr "Bu fark yüklenemedi"
 msgid "Could not load this file."
 msgstr "Bu dosya yüklenemedi."
 
+msgid "Could not load this pull request."
+msgstr "Bu pull request yüklenemedi."
+
 msgid "Could not load your machines"
 msgstr "Makineleriniz yüklenemedi"
 
@@ -5116,9 +5134,6 @@ msgstr "Bir mobil simülatöre ulaşılamadı."
 
 msgid "Could not reach the desktop."
 msgstr "Masaüstüne ulaşılamadı."
-
-msgid "Could not reach the host to load this pull request."
-msgstr "Bu pull request'i yüklemek için host'a erişilemedi."
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Güncellemeyi başlatmak için ana makineye ulaşılamadı. Çevrimiçi olduğundan emin olup tekrar deneyin."
@@ -13540,6 +13555,12 @@ msgstr "Pull request'ler"
 msgid "Pull Requests"
 msgstr "Pull request'ler"
 
+msgid "Pull requests, comments and pushes from Superset are made as you."
+msgstr "Superset'ten yapılan pull request'ler, yorumlar ve push'lar sizin adınıza yapılır."
+
+msgid "Pull requests, comments and pushes from Superset will no longer be made as you."
+msgstr "Superset'ten yapılan pull request'ler, yorumlar ve push'lar artık sizin adınıza yapılmayacak."
+
 msgid "Purple"
 msgstr "Mor"
 
@@ -16753,6 +16774,9 @@ msgstr "Superset (YC P26), mühendislerin Claude Code ve Codex gibi yüzlerce ko
 msgid "Superset {version}"
 msgstr "Superset {version}"
 
+msgid "Superset acts on GitHub as you. Connect your GitHub account to merge, comment on and update pull requests."
+msgstr "Superset, GitHub'da sizin adınıza işlem yapar. Pull request'leri birleştirmek, yorumlamak ve güncellemek için GitHub hesabınızı bağlayın."
+
 msgid "Superset Agent"
 msgstr "Superset Ajanı"
 
@@ -18028,11 +18052,11 @@ msgstr "Bu profil şu anda yoğun"
 msgid "This project is no longer available on your devices."
 msgstr "Bu proje artık cihazlarınızda kullanılamıyor."
 
-msgid "This project isn't linked to a GitHub repository."
-msgstr "Bu proje bir GitHub deposuna bağlı değil."
-
 msgid "This project's host is offline"
 msgstr "Bu projenin host'u çevrimdışı"
+
+msgid "This pull request has no GitHub access to act through."
+msgstr "Bu pull request üzerinde işlem yapmak için GitHub erişimi yok."
 
 msgid "This pull request has no host to act through"
 msgstr "Bu çekme isteğinin üzerinden işlem yapılacak bir ana makinesi yok"
@@ -19926,6 +19950,9 @@ msgstr "{plugin} yetkilendirme isteğini reddettiniz."
 
 msgid "You don't have access to this host"
 msgstr "Bu host'a erişiminiz yok"
+
+msgid "You don't have access to this pull request on GitHub, or it no longer exists."
+msgstr "GitHub'da bu pull request'e erişiminiz yok veya artık mevcut değil."
 
 msgid "You don't have access to this terminal."
 msgstr "Bu terminale erişiminiz yok."

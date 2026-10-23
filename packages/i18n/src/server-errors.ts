@@ -332,6 +332,13 @@ export const serverErrorMessages: Record<
 				message: "Connecting GitHub is not configured on this server",
 			}),
 		),
+	"serverError.githubUser.notConnected": () =>
+		i18n._(
+			msg({
+				message:
+					"Connect GitHub in Settings to act on pull requests as yourself",
+			}),
+		),
 	"serverError.cloudWorkspace.githubRepositoryOutOfReach": () =>
 		i18n._(
 			msg({
@@ -496,6 +503,12 @@ export const serverErrorMessages: Record<
 		i18n._(
 			msg({
 				message: "Not a member of this organization",
+			}),
+		),
+	"serverError.integration.pullRequestNotFound": () =>
+		i18n._(
+			msg({
+				message: "Pull request not found",
 			}),
 		),
 	"serverError.integration.onlyOwnersCanDeleteProjects": () =>

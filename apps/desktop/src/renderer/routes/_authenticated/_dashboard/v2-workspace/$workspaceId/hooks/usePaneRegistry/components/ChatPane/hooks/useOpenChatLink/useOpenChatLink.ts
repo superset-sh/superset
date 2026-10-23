@@ -18,6 +18,7 @@ import type {
 	PaneViewerData,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import {
+	runChatPullRequestLink,
 	runFileLinkAction,
 	runFolderLinkAction,
 	runUrlLinkAction,
@@ -92,6 +93,7 @@ export function useOpenChatLink({
 		(href, event) => {
 			const isPlain = tierFor(event, "2-tier") === "plain";
 			if (WEB_URL.test(href)) {
+				if (runChatPullRequestLink(depsRef.current, href, event)) return true;
 				const action = getUrlAction(event, href) ?? (isPlain ? "pane" : null);
 				if (action === null) showHint(event.clientX, event.clientY);
 				else runUrlLinkAction(depsRef.current, href, action);

@@ -5,7 +5,7 @@ export interface PullRequestRef {
 }
 
 const PULL_REQUEST_URL =
-	/^https:\/\/github\.com\/([^/?#]+\/[^/?#]+)\/pull\/(\d+)(?:[/?#]|$)/;
+	/^https:\/\/(?:www\.)?github\.com\/([^/?#]+\/[^/?#]+)\/pull\/(\d+)(?:[/?#]|$)/;
 
 export function pullRequestRefFromUrl(url: string): PullRequestRef | null {
 	const match = PULL_REQUEST_URL.exec(url);
@@ -14,7 +14,7 @@ export function pullRequestRefFromUrl(url: string): PullRequestRef | null {
 }
 
 const BARE_PULL_REQUEST_URL =
-	/^https:\/\/github\.com\/[^/?#]+\/[^/?#]+\/pull\/\d+\/?(?:\?[^#]*)?$/;
+	/^https:\/\/(?:www\.)?github\.com\/[^/?#]+\/[^/?#]+\/pull\/\d+\/?(?:\?[^#]*)?$/;
 
 export function pullRequestRefFromBareUrl(url: string): PullRequestRef | null {
 	return BARE_PULL_REQUEST_URL.test(url) ? pullRequestRefFromUrl(url) : null;

@@ -17,6 +17,7 @@ function comment(
 		body: `Body ${id}`,
 		createdAt,
 		reviewState: null,
+		url: null,
 		...overrides,
 	};
 }
@@ -94,16 +95,19 @@ describe("the activity timeline", () => {
 					kind: "review",
 					body: "  ",
 					reviewState: "approved",
+					url: null,
 				}),
 				comment("batch", "2026-10-03T10:01:00Z", {
 					kind: "review",
 					body: "",
 					reviewState: "COMMENTED",
+					url: null,
 				}),
 				comment("noted", "2026-10-03T10:02:00Z", {
 					kind: "review",
 					body: "Looks good",
 					reviewState: "APPROVED",
+					url: null,
 				}),
 				comment("blank", "2026-10-03T10:03:00Z", { body: "" }),
 			],

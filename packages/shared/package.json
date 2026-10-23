@@ -177,6 +177,14 @@
 			"types": "./src/pull-request.ts",
 			"default": "./src/pull-request.ts"
 		},
+		"./pull-request-detail": {
+			"types": "./src/pull-request-detail/index.ts",
+			"default": "./src/pull-request-detail/index.ts"
+		},
+		"./pull-request-threads": {
+			"types": "./src/pull-request-threads/index.ts",
+			"default": "./src/pull-request-threads/index.ts"
+		},
 		"./sandbox-gate": {
 			"types": "./src/sandbox-gate.ts",
 			"default": "./src/sandbox-gate.ts"

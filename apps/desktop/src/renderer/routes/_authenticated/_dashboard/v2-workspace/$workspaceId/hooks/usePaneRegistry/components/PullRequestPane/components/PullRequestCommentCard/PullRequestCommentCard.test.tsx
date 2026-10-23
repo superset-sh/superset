@@ -6,9 +6,18 @@ const reactActGlobal = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean };
 const previousActEnvironment = reactActGlobal.IS_REACT_ACT_ENVIRONMENT;
 reactActGlobal.IS_REACT_ACT_ENVIRONMENT = true;
 const { cleanup, fireEvent, render } = await import("@testing-library/react");
-const { QueryClient } = await import("@tanstack/react-query");
+const { QueryClient, QueryClientProvider } = await import(
+	"@tanstack/react-query"
+);
 const { workspaceTrpc } = await import("@superset/workspace-client");
 const { PullRequestCommentCard } = await import("./PullRequestCommentCard");
+
+const target = {
+	organizationId: "org",
+	repoFullName: "example/repo",
+	prNumber: 1,
+	host: null,
+};
 
 function renderCard(
 	props: Pick<
@@ -17,15 +26,18 @@ function renderCard(
 	>,
 	requestReply: ((target: { commentId: number }) => void) | null = null,
 ) {
+	const queryClient = new QueryClient();
 	return render(
-		<workspaceTrpc.Provider
-			client={workspaceTrpc.createClient({ links: [] })}
-			queryClient={new QueryClient()}
-		>
-			<PullRequestActivityReplyProvider value={requestReply}>
-				<PullRequestCommentCard workspaceId="ws" {...props} />
-			</PullRequestActivityReplyProvider>
-		</workspaceTrpc.Provider>,
+		<QueryClientProvider client={queryClient}>
+			<workspaceTrpc.Provider
+				client={workspaceTrpc.createClient({ links: [] })}
+				queryClient={queryClient}
+			>
+				<PullRequestActivityReplyProvider value={requestReply}>
+					<PullRequestCommentCard target={target} {...props} />
+				</PullRequestActivityReplyProvider>
+			</workspaceTrpc.Provider>
+		</QueryClientProvider>,
 	);
 }
 afterEach(cleanup);
@@ -121,9 +133,11 @@ describe("review cards", () => {
 		const client = workspaceTrpc.createClient({ links: [] });
 		const queryClient = new QueryClient();
 		const card = (next: typeof resolved) => (
-			<workspaceTrpc.Provider client={client} queryClient={queryClient}>
-				<PullRequestCommentCard workspaceId="ws" comment={next} />
-			</workspaceTrpc.Provider>
+			<QueryClientProvider client={queryClient}>
+				<workspaceTrpc.Provider client={client} queryClient={queryClient}>
+					<PullRequestCommentCard target={target} comment={next} />
+				</workspaceTrpc.Provider>
+			</QueryClientProvider>
 		);
 		const view = render(card(resolved));
 		fireEvent.click(view.getByRole("button", { name: /Expand/ }));

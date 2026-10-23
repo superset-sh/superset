@@ -5,16 +5,16 @@ import { useMutation } from "@tanstack/react-query";
 import { ArrowUp, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { FaGithub } from "react-icons/fa";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useInvalidatePullRequestDetail } from "../../hooks/usePullRequestDetail";
 import type { PullRequestReplyTarget } from "../../providers/PullRequestActivityReplyProvider";
 import { pullRequestAuthorLabel } from "../../utils/pullRequestAuthorLabel";
+import {
+	addPullRequestComment,
+	type PullRequestTarget,
+	replyToPullRequestThread,
+} from "../../utils/pullRequestClient";
 
-export interface PullRequestCommentTarget {
-	projectId: string;
-	hostUrl: string;
-	prNumber: number;
-}
+export type PullRequestCommentTarget = PullRequestTarget;
 
 interface PullRequestConversationComposerProps {
 	target: PullRequestCommentTarget;
@@ -23,7 +23,7 @@ interface PullRequestConversationComposerProps {
 	onCancelReply?: () => void;
 }
 
-/** The "Leave a comment" card at the end of the Activity section. Posts as the gh user;
+/** The "Leave a comment" card at the end of the Activity section. Posts as the viewer;
  *  Enter sends, Shift+Enter breaks a line (comments accept markdown). With a reply
  *  target it answers that review thread instead. */
 export function PullRequestConversationComposer({
@@ -54,23 +54,13 @@ export function PullRequestConversationComposer({
 		if (replyCommentId !== undefined) fieldRef.current?.focus();
 	}, [replyCommentId]);
 	const post = useMutation({
-		mutationFn: async (text: string) => {
-			const client = getHostServiceClientByUrl(target.hostUrl);
-			if (replyTo) {
-				await client.pullRequests.replyToThread.mutate({
-					projectId: target.projectId,
-					prNumber: target.prNumber,
-					commentId: replyTo.commentId,
-					body: text,
-				});
-				return;
-			}
-			await client.pullRequests.addComment.mutate({
-				projectId: target.projectId,
-				prNumber: target.prNumber,
-				body: text,
-			});
-		},
+		mutationFn: (text: string) =>
+			replyTo
+				? replyToPullRequestThread(target, {
+						commentId: replyTo.commentId,
+						body: text,
+					})
+				: addPullRequestComment(target, text),
 		onSuccess: () => {
 			setBody("");
 			onCancelReply?.();
