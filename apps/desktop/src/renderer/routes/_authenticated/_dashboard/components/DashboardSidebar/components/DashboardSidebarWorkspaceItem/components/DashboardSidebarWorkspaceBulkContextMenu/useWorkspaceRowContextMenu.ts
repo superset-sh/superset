@@ -1,6 +1,6 @@
 import { type MouseEvent, useCallback } from "react";
 import { useDashboardSidebarSelection } from "../../../../providers/DashboardSidebarSelectionProvider";
-import { useWorkspaceBulkMenuScope } from "../WorkspaceBulkMenuScope";
+import { useIsInWorkspaceBulkMenuScope } from "../WorkspaceBulkMenuScope";
 import { resolveWorkspaceRowContextMenu } from "./workspaceRowContextMenu";
 
 /**
@@ -19,11 +19,11 @@ export function useWorkspaceRowContextMenu({
 	isBulkMenu: boolean;
 	onRowContextMenu: (event: MouseEvent<HTMLElement>) => void;
 } {
-	const scope = useWorkspaceBulkMenuScope();
+	const inScope = useIsInWorkspaceBulkMenuScope();
 	const { selectedWorkspaceIds, clearSelection } =
 		useDashboardSidebarSelection();
 	const plan = resolveWorkspaceRowContextMenu({
-		canBulkSelect: canBulkSelect && scope != null,
+		canBulkSelect: canBulkSelect && inScope,
 		isSelected,
 		selectionCount: selectedWorkspaceIds.length,
 	});

@@ -2,7 +2,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useMemo } from "react";
 import { getBlockedDragProps } from "../../../../../../hooks/useBlockedDragNotice";
-import { useDashboardSidebarDnd } from "../../../../../../hooks/useSidebarDnd";
+import { useIsChildDragDisabled } from "../../../../../../hooks/useSidebarDnd";
 import type { DashboardSidebarWorkspace } from "../../../../../../types";
 import { DashboardSidebarWorkspaceItem } from "../../../../../DashboardSidebarWorkspaceItem";
 
@@ -21,7 +21,7 @@ export function SortableCollapsedWorkspaceItem({
 	shortcutLabel,
 	disabled,
 }: SortableCollapsedWorkspaceItemProps) {
-	const { isChildDragDisabled } = useDashboardSidebarDnd();
+	const isChildDragDisabled = useIsChildDragDisabled();
 	const {
 		setNodeRef,
 		attributes,

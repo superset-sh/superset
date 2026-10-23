@@ -1,4 +1,6 @@
 export {
+	type ResolveWorkspaceHostTargetInput,
+	resolveWorkspaceHostTarget,
 	useWorkspaceHostTarget,
 	useWorkspaceHostUrl,
 	type WorkspaceHostTarget,

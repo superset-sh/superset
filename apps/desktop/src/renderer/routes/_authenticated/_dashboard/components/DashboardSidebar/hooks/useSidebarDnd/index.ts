@@ -10,6 +10,7 @@ export {
 	SidebarDndContextProvider,
 	secId,
 	useDashboardSidebarDnd,
+	useIsChildDragDisabled,
 	useSidebarDnd,
 	wsId,
 } from "./useSidebarDnd";

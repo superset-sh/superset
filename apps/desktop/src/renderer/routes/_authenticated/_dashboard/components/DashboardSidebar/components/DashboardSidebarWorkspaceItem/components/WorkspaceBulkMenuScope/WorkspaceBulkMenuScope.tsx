@@ -11,6 +11,13 @@ const WorkspaceBulkMenuScopeContext =
 	createContext<WorkspaceBulkMenuScopeValue | null>(null);
 
 /**
+ * Whether a row sits inside a scope at all. Every row asks this on render,
+ * while the maps change with every project update; keeping the answer in its
+ * own constant context stops all rows re-rendering with those maps.
+ */
+const WorkspaceBulkMenuScopeActiveContext = createContext(false);
+
+/**
  * Scopes the bulk context menu to one project's rows. Rows rendered outside
  * this provider (pinned section, collapsed rail) always get the single menu.
  */
@@ -39,12 +46,18 @@ export function WorkspaceBulkMenuScope({
 		[projectId, workspacesById, groupInfo],
 	);
 	return (
-		<WorkspaceBulkMenuScopeContext.Provider value={value}>
-			{children}
-		</WorkspaceBulkMenuScopeContext.Provider>
+		<WorkspaceBulkMenuScopeActiveContext.Provider value={true}>
+			<WorkspaceBulkMenuScopeContext.Provider value={value}>
+				{children}
+			</WorkspaceBulkMenuScopeContext.Provider>
+		</WorkspaceBulkMenuScopeActiveContext.Provider>
 	);
 }
 
 export function useWorkspaceBulkMenuScope(): WorkspaceBulkMenuScopeValue | null {
 	return useContext(WorkspaceBulkMenuScopeContext);
+}
+
+export function useIsInWorkspaceBulkMenuScope(): boolean {
+	return useContext(WorkspaceBulkMenuScopeActiveContext);
 }

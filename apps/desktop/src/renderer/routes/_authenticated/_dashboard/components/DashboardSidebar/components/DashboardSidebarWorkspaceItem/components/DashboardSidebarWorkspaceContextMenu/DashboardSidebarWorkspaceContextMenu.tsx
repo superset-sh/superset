@@ -33,9 +33,9 @@ import {
 } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { useDashboardSidebarPortKill } from "../../../../hooks/useDashboardSidebarPortKill";
-import { useProjectTagFolderSections } from "../../../../hooks/useProjectTagFolderSections";
 import { useDashboardSidebarHoverActions } from "../../../../providers/DashboardSidebarHoverProvider";
 import { useDashboardSidebarWorkspacePorts } from "../../../../providers/DashboardSidebarPortsProvider";
+import { WorkspaceMoveToGroupItems } from "./components/WorkspaceMoveToGroupItems";
 
 interface DashboardSidebarWorkspaceContextMenuProps {
 	workspaceId: string;
@@ -109,9 +109,6 @@ export function DashboardSidebarWorkspaceContextMenu({
 	const deleteHotkeyText = useHotkeyDisplay("CLOSE_WORKSPACE").text;
 	const showDeleteShortcut =
 		showDeleteHotkey && deleteHotkeyText !== "Unassigned";
-	// The derived union — a tag-only folder with no stored row is a valid
-	// move target.
-	const { sections } = useProjectTagFolderSections(projectId);
 	const canJoinGroup = projectId !== null || isSessionWorkspace;
 	const handleCloseAllPorts = () => {
 		if (isKillingPorts) return;
@@ -204,25 +201,11 @@ export function DashboardSidebarWorkspaceContextMenu({
 								<Trans>Move to group</Trans>
 							</ContextMenuSubTrigger>
 							<ContextMenuSubContent>
-								{sections.map((section) => (
-									<ContextMenuItem
-										key={section.id}
-										onSelect={() => onMoveToSection(section.id)}
-									>
-										{section.color && (
-											<span
-												className="size-2 shrink-0 rounded-full mr-2"
-												style={{ backgroundColor: section.color }}
-											/>
-										)}
-										{section.name}
-									</ContextMenuItem>
-								))}
-								{sections.length > 0 && <ContextMenuSeparator />}
-								<ContextMenuItem onSelect={onCreateSection}>
-									<LuFolderPlus className="size-4 mr-2" />
-									<Trans>Create new group</Trans>
-								</ContextMenuItem>
+								<WorkspaceMoveToGroupItems
+									projectId={projectId}
+									onMoveToSection={onMoveToSection}
+									onCreateSection={onCreateSection}
+								/>
 							</ContextMenuSubContent>
 						</ContextMenuSub>
 						{isInSection && (

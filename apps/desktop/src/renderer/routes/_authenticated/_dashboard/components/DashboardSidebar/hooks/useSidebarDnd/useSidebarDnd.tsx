@@ -26,6 +26,7 @@ import {
 } from "@dnd-kit/sortable";
 import {
 	createContext,
+	type ReactNode,
 	useCallback,
 	useContext,
 	useEffect,
@@ -342,7 +343,32 @@ export interface DashboardSidebarDndValue {
 const DashboardSidebarDndContext =
 	createContext<DashboardSidebarDndValue | null>(null);
 
-export const SidebarDndContextProvider = DashboardSidebarDndContext.Provider;
+const ChildDragDisabledContext = createContext(false);
+
+/**
+ * Provides the DnD value plus its one flag every row reads. A row needs only
+ * `isChildDragDisabled`, but the value's maps are rebuilt on every sidebar
+ * change; a row reading the whole value re-rendered with each of them.
+ */
+export function SidebarDndContextProvider({
+	value,
+	children,
+}: {
+	value: DashboardSidebarDndValue;
+	children: ReactNode;
+}) {
+	return (
+		<DashboardSidebarDndContext.Provider value={value}>
+			<ChildDragDisabledContext.Provider value={value.isChildDragDisabled}>
+				{children}
+			</ChildDragDisabledContext.Provider>
+		</DashboardSidebarDndContext.Provider>
+	);
+}
+
+export function useIsChildDragDisabled(): boolean {
+	return useContext(ChildDragDisabledContext);
+}
 
 export function useDashboardSidebarDnd(): DashboardSidebarDndValue {
 	const value = useContext(DashboardSidebarDndContext);

@@ -3,7 +3,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@superset/ui/utils";
 import { useMemo } from "react";
 import { getBlockedDragProps } from "../../hooks/useBlockedDragNotice";
-import { useDashboardSidebarDnd } from "../../hooks/useSidebarDnd";
+import { useIsChildDragDisabled } from "../../hooks/useSidebarDnd";
 import type { WorkspaceSelectionEvent } from "../../providers/DashboardSidebarSelectionProvider";
 import type {
 	DashboardSidebarWorkspace,
@@ -53,7 +53,7 @@ export function SortableWorkspaceItem({
 	onSelectionClick,
 	pinnedContext,
 }: SortableWorkspaceItemProps) {
-	const { isChildDragDisabled } = useDashboardSidebarDnd();
+	const isChildDragDisabled = useIsChildDragDisabled();
 	const {
 		setNodeRef,
 		attributes,

@@ -251,7 +251,7 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["daemon-update-dismissed-failure-*"],
 	],
 	[
-		"src/renderer/routes/_authenticated/hooks/useDevSeedV2Sidebar/useDevSeedV2Sidebar.ts",
+		"src/renderer/routes/_authenticated/_dashboard/components/DevSeedV2Sidebar/DevSeedV2Sidebar.tsx",
 		["superset:dev:v2-sidebar-seeded"],
 	],
 	["src/renderer/routes/sign-in/page.tsx", ["superset-last-auth-method"]],

@@ -1,18 +1,16 @@
 import { useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
-import { normalizeWorkspaceTags } from "@superset/shared/workspace-tags";
 import { toast } from "@superset/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { getTerminalAgentBindingsQueryKey } from "renderer/hooks/host-service/useTerminalAgentBindings";
-import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
+import { useDashboardSidebarSectionRenameActions } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
 import { DASHBOARD_SIDEBAR_PULL_REQUEST_QUERY_KEY_PREFIX } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarData/derivePullRequestQueryTargets";
 import {
 	useMarkSidebarWorkspaceTerminalsSeen,
@@ -21,9 +19,8 @@ import {
 import { useCloudSidebarStore } from "renderer/routes/_authenticated/_dashboard/stores/cloudSidebarStore";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
-import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { applyFolderTagChange } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
+import { useResolveWorkspaceHostUrl } from "renderer/routes/_authenticated/providers/WorkspaceHostUrlResolverProvider";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-from-sidebar-intent";
 import { useV2NotificationStore } from "renderer/stores/v2-notifications";
@@ -59,32 +56,24 @@ export function useDashboardSidebarWorkspaceItemActions({
 	const { activeHostUrl } = hostService;
 	const { copyToClipboard } = useCopyToClipboard();
 	const { v2Workspaces: workspaceActions } = useOptimisticActions();
-	const { requestSectionRename } = useDashboardSidebarSectionRename();
+	const { requestSectionRename } = useDashboardSidebarSectionRenameActions();
 	const setManualUnread = useV2NotificationStore((s) => s.setManualUnread);
 	const clearManualUnread = useV2NotificationStore((s) => s.clearManualUnread);
 	const markWorkspaceTerminalsSeen =
 		useMarkSidebarWorkspaceTerminalsSeen(workspaceId);
 	const { isUnread } = useSidebarWorkspaceStatus(workspaceId);
-	const workspaceHostUrl = useWorkspaceHostUrl(workspaceId);
+	const resolveWorkspaceHostUrl = useResolveWorkspaceHostUrl();
 	const queryClient = useQueryClient();
-	const { workspaces: hostWorkspaces } = useHostWorkspaces();
-	const sessionGroupTags = new Set(
-		hostWorkspaces.flatMap((workspace) =>
-			workspace.projectId === null
-				? normalizeWorkspaceTags(workspace.tags)
-				: [],
-		),
-	);
-	const currentWorkspaceTags = normalizeWorkspaceTags(
-		hostWorkspaces.find((workspace) => workspace.id === workspaceId)?.tags,
-	);
-
 	const clearWorkspaceAttention = () => {
 		clearManualUnread(workspaceId);
 		markWorkspaceTerminalsSeen();
 	};
-	const { createSection, moveWorkspaceToSection, setWorkspacePinned } =
-		useDashboardSidebarState();
+	const {
+		createSection,
+		moveSessionWorkspaceToFolder,
+		moveWorkspaceToSection,
+		setWorkspacePinned,
+	} = useDashboardSidebarState();
 
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(workspaceName);
@@ -171,13 +160,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 			return;
 		}
 		if (!isSessionWorkspace) return;
-		void workspaceActions.updateWorkspace(workspaceId, {
-			tags: applyFolderTagChange(
-				currentWorkspaceTags,
-				sessionGroupTags,
-				sectionId,
-			),
-		});
+		moveSessionWorkspaceToFolder(workspaceId, sectionId);
 	};
 
 	const resolveWorktreePath = async (): Promise<string | null> => {
@@ -252,6 +235,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 	// next hook event, so this is safe to run on a genuinely busy workspace.
 	const handleClearStatus = async () => {
 		clearWorkspaceAttention();
+		const workspaceHostUrl = resolveWorkspaceHostUrl(workspaceId);
 		if (!workspaceHostUrl) return;
 		try {
 			await getHostServiceClientByUrl(
@@ -270,6 +254,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 
 	const handleRemovePullRequest = async () => {
+		const workspaceHostUrl = resolveWorkspaceHostUrl(workspaceId);
 		if (!workspaceHostUrl) {
 			showHostServiceUnavailableToast(hostService, {
 				action: "removePrLink",

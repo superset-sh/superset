@@ -198,7 +198,7 @@ function useTaskCachePatcher() {
 	);
 }
 
-export function useOptimisticActions() {
+export function useOptimisticActionsSource() {
 	const queryClient = useQueryClient();
 	const { workspaces: hostWorkspaces, cache: hostWorkspacesCache } =
 		useHostWorkspaces();

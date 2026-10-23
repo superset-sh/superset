@@ -65,10 +65,13 @@ import { V2NotificationController } from "./components/V2NotificationController"
 import { WindowTitle } from "./components/WindowTitle";
 import { createPierreWorker } from "./lib/pierreWorker";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
+import { DashboardSidebarStateProvider } from "./providers/DashboardSidebarStateProvider";
 import { HostWorkspacesProvider } from "./providers/HostWorkspacesProvider";
 import { LocalHostServiceProvider } from "./providers/LocalHostServiceProvider";
+import { OptimisticActionsProvider } from "./providers/OptimisticActionsProvider";
 import { SandboxAccessProvider } from "./providers/SandboxAccessProvider";
 import { TagFolderWorkspacesProvider } from "./providers/TagFolderWorkspacesProvider";
+import { WorkspaceHostUrlResolverProvider } from "./providers/WorkspaceHostUrlResolverProvider";
 
 export const Route = createFileRoute("/_authenticated")({
 	component: AuthenticatedLayout,
@@ -316,48 +319,58 @@ function AuthenticatedLayout() {
 					<SandboxAccessProvider>
 						<HostWorkspacesProvider>
 							<TagFolderWorkspacesProvider>
-								<WorkerPoolContextProvider
-									poolOptions={{
-										workerFactory: createPierreWorker,
-										poolSize: 8,
-									}}
-									highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
-								>
-									<DiffThemeSync />
-									<AgentHooks />
-									<FileMenuListener />
-									<V2NotificationController />
-									<DockBadgeController />
-									<StarNagObserver />
-									<LeaderboardAutoPublish />
-									<RealtimeNudges />
-									<DaemonAutoUpdateFailureDialog />
-									<Outlet />
-									<V1ImportModal />
-									{isV2CloudEnabled ? (
-										<>
-											<V1MigrationContinuity />
-											<V2FlipWelcome organizationId={activeOrganizationId} />
-											<V1MigrationStatusCard
-												organizationId={activeOrganizationId}
-											/>
-											<V1TerminalsNotice
-												organizationId={activeOrganizationId}
-											/>
-										</>
-									) : (
-										<V1FlipNotice />
-									)}
-									<V1AutoMigration />
-									<WorkspaceInitEffects />
-									{/* v2 creates from the /new-workspace route; only v1 has a modal. */}
-									{!isV2CloudEnabled && <NewWorkspaceModal />}
-									<InitGitDialog />
-									<GitInitConfirmDialog />
-									<TeardownLogsDialog />
-									<Paywall />
-									<InviteMemberDialog />
-								</WorkerPoolContextProvider>
+								<OptimisticActionsProvider>
+									<DashboardSidebarStateProvider>
+										<WorkspaceHostUrlResolverProvider>
+											<WorkerPoolContextProvider
+												poolOptions={{
+													workerFactory: createPierreWorker,
+													poolSize: 8,
+												}}
+												highlighterOptions={{
+													preferredHighlighter: "shiki-wasm",
+												}}
+											>
+												<DiffThemeSync />
+												<AgentHooks />
+												<FileMenuListener />
+												<V2NotificationController />
+												<DockBadgeController />
+												<StarNagObserver />
+												<LeaderboardAutoPublish />
+												<RealtimeNudges />
+												<DaemonAutoUpdateFailureDialog />
+												<Outlet />
+												<V1ImportModal />
+												{isV2CloudEnabled ? (
+													<>
+														<V1MigrationContinuity />
+														<V2FlipWelcome
+															organizationId={activeOrganizationId}
+														/>
+														<V1MigrationStatusCard
+															organizationId={activeOrganizationId}
+														/>
+														<V1TerminalsNotice
+															organizationId={activeOrganizationId}
+														/>
+													</>
+												) : (
+													<V1FlipNotice />
+												)}
+												<V1AutoMigration />
+												<WorkspaceInitEffects />
+												{/* v2 creates from the /new-workspace route; only v1 has a modal. */}
+												{!isV2CloudEnabled && <NewWorkspaceModal />}
+												<InitGitDialog />
+												<GitInitConfirmDialog />
+												<TeardownLogsDialog />
+												<Paywall />
+												<InviteMemberDialog />
+											</WorkerPoolContextProvider>
+										</WorkspaceHostUrlResolverProvider>
+									</DashboardSidebarStateProvider>
+								</OptimisticActionsProvider>
 							</TagFolderWorkspacesProvider>
 						</HostWorkspacesProvider>
 					</SandboxAccessProvider>

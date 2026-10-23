@@ -3,7 +3,7 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { applyFolderTagChange } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
-import { useDashboardSidebarSectionRename } from "../../components/DashboardSidebarSectionRenameContext";
+import { useDashboardSidebarSectionRenameActions } from "../../components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarSelection } from "../../providers/DashboardSidebarSelectionProvider";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { workspaceIdsForSectionMove } from "../../utils/bulkWorkspaceActions";
@@ -28,7 +28,7 @@ export function useBulkWorkspaceMoveActions({
 	const { createSection, moveWorkspaceToSection } = useDashboardSidebarState();
 	const { v2Workspaces } = useOptimisticActions();
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
-	const { requestSectionRename } = useDashboardSidebarSectionRename();
+	const { requestSectionRename } = useDashboardSidebarSectionRenameActions();
 	const { clearSelection, selectedWorkspaceIds } =
 		useDashboardSidebarSelection();
 	// The derived union — tag-only folders with no stored row are valid

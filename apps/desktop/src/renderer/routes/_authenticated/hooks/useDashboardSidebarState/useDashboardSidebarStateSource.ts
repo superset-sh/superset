@@ -15,7 +15,6 @@ import {
 	extractPaneIds,
 	type PaneLifecycleRow,
 } from "renderer/routes/_authenticated/components/utils/paneLifecycleRows";
-import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
 import {
@@ -25,6 +24,7 @@ import {
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useOptimisticActions } from "renderer/routes/_authenticated/providers/OptimisticActionsProvider";
 import { useTagFolderWorkspaces } from "renderer/routes/_authenticated/providers/TagFolderWorkspacesProvider";
 import {
 	applyFolderTagChange,
@@ -277,7 +277,7 @@ function cleanupWorkspacePaneRuntimes(rows: PaneLifecycleRow[]): void {
 	}
 }
 
-export function useDashboardSidebarState() {
+export function useDashboardSidebarStateSource() {
 	const collections = useCollections();
 	const { workspaces: hostWorkspaces, cache: hostWorkspacesCache } =
 		useHostWorkspaces();
@@ -884,6 +884,32 @@ export function useDashboardSidebarState() {
 		[collections, tagWorkspaces, tagFolderContext, writeFolderTags],
 	);
 
+	/**
+	 * Files a project-less session into a tag folder (or out of every session
+	 * folder when `tag` is null). The folder set is every tag any session
+	 * carries; tags outside it survive.
+	 */
+	const moveSessionWorkspaceToFolder = useCallback(
+		(workspaceId: string, tag: string | null) => {
+			const sessionGroupTags = new Set(
+				tagWorkspaces.flatMap((workspace) =>
+					workspace.projectId === null
+						? normalizeWorkspaceTags(workspace.tags)
+						: [],
+				),
+			);
+			void writeWorkspaceTags(
+				workspaceId,
+				applyFolderTagChange(
+					getWorkspaceTags(tagWorkspaces, workspaceId),
+					sessionGroupTags,
+					tag,
+				),
+			);
+		},
+		[tagWorkspaces, writeWorkspaceTags],
+	);
+
 	const deleteSection = useCallback(
 		(sectionId: string) => {
 			const section = collections.v2SidebarSections.get(sectionId);
@@ -1103,6 +1129,7 @@ export function useDashboardSidebarState() {
 		ensureProjectInSidebar,
 		ensureWorkspaceInSidebar,
 		hideWorkspaceInSidebar,
+		moveSessionWorkspaceToFolder,
 		moveWorkspaceToSection,
 		setSectionWorkspaceOrder,
 		setProjectHidden,

@@ -1,14 +1,18 @@
 import { SortableContext } from "@dnd-kit/sortable";
 import { useLingui } from "@lingui/react/macro";
 import { AnimatePresence, motion } from "framer-motion";
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
+import { useStableList } from "renderer/hooks/useStableList";
 import {
 	dropZoneId,
 	parseId,
 	SESSIONS_CONTAINER,
 	useDashboardSidebarDnd,
 } from "../../../../hooks/useSidebarDnd";
-import { useDashboardSidebarSelection } from "../../../../providers/DashboardSidebarSelectionProvider";
+import {
+	useDashboardSidebarSelection,
+	type WorkspaceSelectionEvent,
+} from "../../../../providers/DashboardSidebarSelectionProvider";
 import type {
 	DashboardSidebarWorkspace,
 	DashboardSidebarWorkspaceIndentation,
@@ -79,12 +83,16 @@ export function DashboardSidebarExpandedProjectContent({
 		workspacesById,
 		sectionsById,
 	} = useDashboardSidebarDnd();
-	const flatItems = useMemo(
-		() =>
-			containerId === SESSIONS_CONTAINER
-				? sessionItems
-				: (projectItems[containerId] ?? []),
-		[projectItems, sessionItems, containerId],
+	// Same ids in the same order keep one array: SortableContext re-renders
+	// every row's `useSortable` when its items identity changes.
+	const flatItems = useStableList(
+		useMemo(
+			() =>
+				containerId === SESSIONS_CONTAINER
+					? sessionItems
+					: (projectItems[containerId] ?? []),
+			[projectItems, sessionItems, containerId],
+		),
 	);
 	const sortingStrategy = getContainerSortingStrategy(containerId);
 	const { isWorkspaceSelected, selectWorkspaceFromEvent } =
@@ -97,19 +105,51 @@ export function DashboardSidebarExpandedProjectContent({
 		flatItems.length === 0 &&
 		activeWorkspaceHome === containerId;
 
-	const selectableWorkspaceIds = useMemo(
-		() =>
-			flatItems.flatMap((id) => {
-				const parsed = parseId(id);
-				if (!parsed || parsed.type !== "workspace") return [];
-				const workspace = workspacesById.get(parsed.realId);
-				if (!workspace || !isBulkSelectable(workspace)) return [];
-				const group = groupInfo.get(parsed.realId);
-				if (group && collapsedSectionIds.has(group.sectionId)) return [];
-				return [parsed.realId];
-			}),
-		[flatItems, workspacesById, groupInfo, collapsedSectionIds],
+	const selectableWorkspaceIds = useStableList(
+		useMemo(
+			() =>
+				flatItems.flatMap((id) => {
+					const parsed = parseId(id);
+					if (!parsed || parsed.type !== "workspace") return [];
+					const workspace = workspacesById.get(parsed.realId);
+					if (!workspace || !isBulkSelectable(workspace)) return [];
+					const group = groupInfo.get(parsed.realId);
+					if (group && collapsedSectionIds.has(group.sectionId)) return [];
+					return [parsed.realId];
+				}),
+			[flatItems, workspacesById, groupInfo, collapsedSectionIds],
+		),
 	);
+	// One handler per row, created once: an inline closure per render would
+	// give every row a new `onSelectionClick` and defeat the row memo.
+	const latestSelection = useRef({
+		containerId,
+		selectableWorkspaceIds,
+		selectWorkspaceFromEvent,
+	});
+	latestSelection.current = {
+		containerId,
+		selectableWorkspaceIds,
+		selectWorkspaceFromEvent,
+	};
+	const selectionHandlers = useRef(
+		new Map<string, (event: WorkspaceSelectionEvent) => boolean>(),
+	);
+	const getSelectionClick = useCallback((workspaceId: string) => {
+		let handler = selectionHandlers.current.get(workspaceId);
+		if (!handler) {
+			handler = (event) => {
+				const latest = latestSelection.current;
+				return latest.selectWorkspaceFromEvent(event, {
+					workspaceId,
+					projectId: latest.containerId,
+					orderedWorkspaceIds: latest.selectableWorkspaceIds,
+				});
+			};
+			selectionHandlers.current.set(workspaceId, handler);
+		}
+		return handler;
+	}, []);
 
 	return (
 		<AnimatePresence initial={false}>
@@ -180,12 +220,7 @@ export function DashboardSidebarExpandedProjectContent({
 											}
 											onSelectionClick={
 												canBulkSelect
-													? (event) =>
-															selectWorkspaceFromEvent(event, {
-																workspaceId: parsed.realId,
-																projectId: containerId,
-																orderedWorkspaceIds: selectableWorkspaceIds,
-															})
+													? getSelectionClick(parsed.realId)
 													: undefined
 											}
 											collapsed={isInCollapsedSection}

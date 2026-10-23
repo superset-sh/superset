@@ -16,6 +16,19 @@ interface DashboardSidebarSectionRenameContextValue {
 const DashboardSidebarSectionRenameContext =
 	createContext<DashboardSidebarSectionRenameContextValue | null>(null);
 
+type DashboardSidebarSectionRenameActions = Pick<
+	DashboardSidebarSectionRenameContextValue,
+	"requestSectionRename" | "clearPendingSectionRename"
+>;
+
+/**
+ * The two callbacks alone. They never change, while the pending id changes
+ * on every group creation; a sidebar row that only requests a rename must not
+ * re-render with it.
+ */
+const DashboardSidebarSectionRenameActionsContext =
+	createContext<DashboardSidebarSectionRenameActions | null>(null);
+
 interface DashboardSidebarSectionRenameProviderProps {
 	children: ReactNode;
 }
@@ -46,10 +59,17 @@ export function DashboardSidebarSectionRenameProvider({
 		[clearPendingSectionRename, pendingRenameSectionId, requestSectionRename],
 	);
 
+	const actions = useMemo(
+		() => ({ clearPendingSectionRename, requestSectionRename }),
+		[clearPendingSectionRename, requestSectionRename],
+	);
+
 	return (
-		<DashboardSidebarSectionRenameContext.Provider value={value}>
-			{children}
-		</DashboardSidebarSectionRenameContext.Provider>
+		<DashboardSidebarSectionRenameActionsContext.Provider value={actions}>
+			<DashboardSidebarSectionRenameContext.Provider value={value}>
+				{children}
+			</DashboardSidebarSectionRenameContext.Provider>
+		</DashboardSidebarSectionRenameActionsContext.Provider>
 	);
 }
 
@@ -61,4 +81,14 @@ export function useDashboardSidebarSectionRename() {
 		);
 	}
 	return context;
+}
+
+export function useDashboardSidebarSectionRenameActions(): DashboardSidebarSectionRenameActions {
+	const actions = useContext(DashboardSidebarSectionRenameActionsContext);
+	if (!actions) {
+		throw new Error(
+			"useDashboardSidebarSectionRenameActions must be used within DashboardSidebarSectionRenameProvider",
+		);
+	}
+	return actions;
 }

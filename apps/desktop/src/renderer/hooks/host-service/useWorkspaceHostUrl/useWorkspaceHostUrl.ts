@@ -24,6 +24,73 @@ export type WorkspaceHostTarget =
 			desktopUrl: string;
 	  };
 
+export interface ResolveWorkspaceHostTargetInput {
+	workspaceId: string | null;
+	workspaces: ReadonlyArray<{
+		id: string;
+		hostId: string;
+		organizationId: string;
+	}>;
+	isReady: boolean;
+	sandboxes: ReadonlyArray<{
+		workspaceId: string;
+		url: string;
+		desktopUrl: string;
+	}>;
+	sandboxesReady: boolean;
+	machineId: string | null | undefined;
+	activeHostUrl: string | null | undefined;
+	relayUrl: string;
+}
+
+/** Pure form of {@link useWorkspaceHostTarget}, for callers that read it on demand. */
+export function resolveWorkspaceHostTarget({
+	workspaceId,
+	workspaces,
+	isReady,
+	sandboxes,
+	sandboxesReady,
+	machineId,
+	activeHostUrl,
+	relayUrl,
+}: ResolveWorkspaceHostTargetInput): WorkspaceHostTarget {
+	if (!workspaceId) return { status: "loading" };
+	const sandbox =
+		sandboxes.find((target) => target.workspaceId === workspaceId) ?? null;
+	if (sandbox) {
+		return {
+			status: "ready",
+			kind: "sandbox",
+			hostId: workspaceId,
+			url: sandbox.url,
+			desktopUrl: sandbox.desktopUrl,
+		};
+	}
+	const match = workspaces.find((w) => w.id === workspaceId) ?? null;
+	if (!match) {
+		return isReady && sandboxesReady
+			? { status: "not-found" }
+			: { status: "loading" };
+	}
+	if (machineId && match.hostId === machineId) {
+		return activeHostUrl
+			? {
+					status: "ready",
+					kind: "local",
+					hostId: match.hostId,
+					url: activeHostUrl,
+				}
+			: { status: "local-starting", hostId: match.hostId };
+	}
+	const routingKey = buildHostRoutingKey(match.organizationId, match.hostId);
+	return {
+		status: "ready",
+		kind: "remote",
+		hostId: match.hostId,
+		url: `${relayUrl}/hosts/${routingKey}`,
+	};
+}
+
 /**
  * Resolves a workspace ID to its owning host-service target: a cloud
  * workspace's sandbox gate address once its sandbox is awake, this machine's
@@ -41,49 +108,29 @@ export function useWorkspaceHostTarget(
 	const sandbox =
 		sandboxes.find((target) => target.workspaceId === workspaceId) ?? null;
 
-	return useMemo(() => {
-		if (!workspaceId) return { status: "loading" };
-		if (sandbox) {
-			return {
-				status: "ready",
-				kind: "sandbox",
-				hostId: workspaceId,
-				url: sandbox.url,
-				desktopUrl: sandbox.desktopUrl,
-			};
-		}
-		if (!match) {
-			return isReady && sandboxesReady
-				? { status: "not-found" }
-				: { status: "loading" };
-		}
-		if (machineId && match.hostId === machineId) {
-			return activeHostUrl
-				? {
-						status: "ready",
-						kind: "local",
-						hostId: match.hostId,
-						url: activeHostUrl,
-					}
-				: { status: "local-starting", hostId: match.hostId };
-		}
-		const routingKey = buildHostRoutingKey(match.organizationId, match.hostId);
-		return {
-			status: "ready",
-			kind: "remote",
-			hostId: match.hostId,
-			url: `${relayUrl}/hosts/${routingKey}`,
-		};
-	}, [
-		workspaceId,
-		sandbox,
-		match,
-		isReady,
-		sandboxesReady,
-		machineId,
-		activeHostUrl,
-		relayUrl,
-	]);
+	return useMemo(
+		() =>
+			resolveWorkspaceHostTarget({
+				workspaceId,
+				workspaces: match ? [match] : [],
+				isReady,
+				sandboxes: sandbox ? [sandbox] : [],
+				sandboxesReady,
+				machineId,
+				activeHostUrl,
+				relayUrl,
+			}),
+		[
+			workspaceId,
+			sandbox,
+			match,
+			isReady,
+			sandboxesReady,
+			machineId,
+			activeHostUrl,
+			relayUrl,
+		],
+	);
 }
 
 /** URL-only form: null for any non-`ready` status. */

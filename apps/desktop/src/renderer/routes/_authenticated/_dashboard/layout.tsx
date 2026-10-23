@@ -7,6 +7,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { CommandPaletteHost } from "renderer/commandPalette";
 import { Redirect } from "renderer/components/Redirect";
+import { env } from "renderer/env.renderer";
 import { useWorkspaceNamingFailedToast } from "renderer/hooks/host-service/useWorkspaceNamingFailedToast";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
@@ -16,10 +17,10 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { DashboardSidebar } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar";
 import { DashboardSidebarPortsProvider } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarPortsProvider";
 import { PortForwardsProvider } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/PortForwardsProvider";
+import { DevSeedV2Sidebar } from "renderer/routes/_authenticated/_dashboard/components/DevSeedV2Sidebar";
 import { WorkspaceSidebarPanel } from "renderer/routes/_authenticated/_dashboard/components/WorkspaceSidebarPanel";
 import { useHistoryNavigationShortcuts } from "renderer/routes/_authenticated/_dashboard/hooks/useHistoryNavigationShortcuts";
 import { useCloudSidebarStore } from "renderer/routes/_authenticated/_dashboard/stores/cloudSidebarStore";
-import { useDevSeedV2Sidebar } from "renderer/routes/_authenticated/hooks/useDevSeedV2Sidebar";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
@@ -59,7 +60,6 @@ function DashboardLayout() {
 	const portsDisplayMode = usePortsDisplayMode();
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
 	const quickCreateWorkspace = useQuickCreateWorkspace();
-	useDevSeedV2Sidebar();
 	useEffect(() => {
 		const stopWorkspaceSidebarSync = syncPersistedStoreAcrossWindows(
 			useWorkspaceSidebarStore,
@@ -229,6 +229,7 @@ function DashboardLayout() {
 			}
 		>
 			<PortForwardsProvider>
+				{env.NODE_ENV === "development" && <DevSeedV2Sidebar />}
 				<RemotePortForwarder />
 				<div className="flex h-full w-full overflow-hidden">
 					<CommandPaletteHost />

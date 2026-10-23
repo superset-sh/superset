@@ -9,7 +9,7 @@ import { parseSidebarFolderKey } from "renderer/routes/_authenticated/utils/work
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
 import { getBlockedDragProps } from "../../hooks/useBlockedDragNotice";
-import { useDashboardSidebarDnd } from "../../hooks/useSidebarDnd";
+import { useIsChildDragDisabled } from "../../hooks/useSidebarDnd";
 import type {
 	DashboardSidebarSection,
 	DashboardSidebarWorkspaceIndentation,
@@ -38,7 +38,7 @@ export function SortableSectionHeader({
 	onRename,
 	onToggleCollapse,
 }: SortableSectionHeaderProps) {
-	const { isChildDragDisabled } = useDashboardSidebarDnd();
+	const isChildDragDisabled = useIsChildDragDisabled();
 	const { setSectionColor } = useDashboardSidebarState();
 	const { clearPendingSectionRename, pendingRenameSectionId } =
 		useDashboardSidebarSectionRename();

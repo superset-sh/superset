@@ -13,7 +13,7 @@ import {
 } from "renderer/hooks/useOpenNewWorkspace";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
+import { useDashboardSidebarSectionRenameActions } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useProjectDeletionHosts } from "renderer/routes/_authenticated/hooks/useProjectDeletionHosts";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
@@ -58,7 +58,7 @@ export function useDashboardSidebarProjectSectionActions({
 		ImportableWorktree[] | null
 	>(null);
 	const [isImportingWorktrees, setIsImportingWorktrees] = useState(false);
-	const { requestSectionRename } = useDashboardSidebarSectionRename();
+	const { requestSectionRename } = useDashboardSidebarSectionRenameActions();
 	const {
 		createSection,
 		deleteSection,

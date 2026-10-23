@@ -8,6 +8,7 @@ import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
+import { useStructuralShare } from "renderer/hooks/useStructuralShare";
 import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useCloudPullRequests } from "renderer/routes/_authenticated/_dashboard/hooks/useCloudPullRequests";
@@ -63,16 +64,6 @@ type PullRequestWorkspaceRow = {
 	pullRequest: SidebarPullRequest;
 };
 
-function haveSameProjects(
-	left: DashboardSidebarProject[],
-	right: DashboardSidebarProject[],
-): boolean {
-	return (
-		left.length === right.length &&
-		left.every((project, index) => project === right[index])
-	);
-}
-
 function getPullRequestRowsFingerprint(
 	rows: PullRequestWorkspaceRow[],
 ): string {
@@ -83,12 +74,6 @@ function getPullRequestRowsFingerprint(
 				leftWorkspaceId.localeCompare(rightWorkspaceId),
 			),
 	);
-}
-
-function getDashboardSidebarProjectFingerprint(
-	project: DashboardSidebarProject,
-): string {
-	return JSON.stringify(project);
 }
 
 function useStablePullRequestsByWorkspaceId(
@@ -116,65 +101,6 @@ function useStablePullRequestsByWorkspaceId(
 		previousRef.current = { fingerprint, map };
 		return map;
 	}, [rows]);
-}
-
-/**
- * Returns the previous reference while the JSON serialization is unchanged.
- * Same purpose as the fingerprinted hooks below: the sidebar builders produce
- * fresh arrays every run, and downstream memoization needs stable identities.
- */
-function useJsonStable<Value>(value: Value): Value {
-	const previousRef = useRef<{ fingerprint: string; value: Value } | null>(
-		null,
-	);
-	return useMemo(() => {
-		const fingerprint = JSON.stringify(value);
-		const previous = previousRef.current;
-		if (previous?.fingerprint === fingerprint) {
-			return previous.value;
-		}
-		previousRef.current = { fingerprint, value };
-		return value;
-	}, [value]);
-}
-
-function useStableDashboardSidebarProjects(
-	projects: DashboardSidebarProject[],
-): DashboardSidebarProject[] {
-	const previousRef = useRef<{
-		projects: DashboardSidebarProject[];
-		byId: Map<
-			string,
-			{ fingerprint: string; project: DashboardSidebarProject }
-		>;
-	} | null>(null);
-
-	return useMemo(() => {
-		const previous = previousRef.current;
-		const nextById = new Map<
-			string,
-			{ fingerprint: string; project: DashboardSidebarProject }
-		>();
-		const nextProjects = projects.map((project) => {
-			const fingerprint = getDashboardSidebarProjectFingerprint(project);
-			const previousProject = previous?.byId.get(project.id);
-			const stableProject =
-				previousProject?.fingerprint === fingerprint
-					? previousProject.project
-					: project;
-
-			nextById.set(project.id, { fingerprint, project: stableProject });
-			return stableProject;
-		});
-
-		if (previous && haveSameProjects(previous.projects, nextProjects)) {
-			previousRef.current = { projects: previous.projects, byId: nextById };
-			return previous.projects;
-		}
-
-		previousRef.current = { projects: nextProjects, byId: nextById };
-		return nextProjects;
-	}, [projects]);
 }
 
 interface UseDashboardSidebarDataOptions {
@@ -773,8 +699,21 @@ export function useDashboardSidebarData({
 		return () => clearTimeout(timer);
 	}, [githubHoldUntil]);
 
+	// Handed to every row as its hover callback, so its identity must not
+	// follow the list it reads: a new function per change would defeat the
+	// memo of every row. It reads the latest list and targets when called.
+	const refreshInputsRef = useRef({
+		pullRequestQueryTargets,
+		visibleSidebarWorkspaces,
+	});
+	refreshInputsRef.current = {
+		pullRequestQueryTargets,
+		visibleSidebarWorkspaces,
+	};
 	const refreshWorkspacePullRequest = useCallback(
 		async (workspaceId: string) => {
+			const { pullRequestQueryTargets, visibleSidebarWorkspaces } =
+				refreshInputsRef.current;
 			const workspace = visibleSidebarWorkspaces.find(
 				(candidate) => candidate.id === workspaceId,
 			);
@@ -795,7 +734,7 @@ export function useDashboardSidebarData({
 				queryKey: getDashboardSidebarPullRequestQueryKey(target),
 			});
 		},
-		[pullRequestQueryTargets, queryClient, visibleSidebarWorkspaces],
+		[queryClient],
 	);
 
 	const pullRequestsByWorkspaceId =
@@ -862,7 +801,7 @@ export function useDashboardSidebarData({
 				: computedGroups,
 		[cloudLayout, computedGroups, cloudRowById, standInProjectIds],
 	);
-	const groups = useStableDashboardSidebarProjects(decoratedGroups);
+	const groups = useStructuralShare(decoratedGroups);
 
 	const hiddenRepoProjects = useMemo<DashboardSidebarHiddenProject[]>(
 		() =>
@@ -898,7 +837,7 @@ export function useDashboardSidebarData({
 			}),
 		[machineId, pullRequestsByWorkspaceId, sessionRows, sidebarSections],
 	);
-	const sessions = useJsonStable(computedSessions);
+	const sessions = useStructuralShare(computedSessions);
 	const sessionWorkspaces = sessions.workspaces;
 
 	const computedPinnedWorkspaces = useMemo<DashboardSidebarPinnedWorkspace[]>(
@@ -918,7 +857,7 @@ export function useDashboardSidebarData({
 				: computedPinnedWorkspaces,
 		[cloudLayout, computedPinnedWorkspaces, cloudRowById],
 	);
-	const pinnedWorkspaces = useJsonStable(decoratedPinnedWorkspaces);
+	const pinnedWorkspaces = useStructuralShare(decoratedPinnedWorkspaces);
 
 	return {
 		groups,
