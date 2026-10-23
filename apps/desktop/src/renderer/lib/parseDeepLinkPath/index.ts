@@ -1,0 +1,1 @@
+export { parseDeepLinkPath } from "./parseDeepLinkPath";

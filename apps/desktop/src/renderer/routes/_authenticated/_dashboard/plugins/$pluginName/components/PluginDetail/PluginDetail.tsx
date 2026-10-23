@@ -7,7 +7,7 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
 	LuArrowLeft,
 	LuArrowUp,
@@ -35,10 +35,12 @@ import { SectionHeader } from "./components/SectionHeader";
 export function PluginDetail({
 	plugin,
 	openConnect = false,
+	connectedCount = 0,
 	onConnected,
 }: {
 	plugin: CatalogPlugin;
 	openConnect?: boolean;
+	connectedCount?: number;
 	onConnected: () => void;
 }) {
 	const { t } = useLingui();
@@ -57,6 +59,10 @@ export function PluginDetail({
 		});
 		openNewWorkspace();
 	}, [openNewWorkspace, plugin.name]);
+
+	useEffect(() => {
+		if (connectedCount > 0) setIsConnectOpen(false);
+	}, [connectedCount]);
 
 	const installOrConnect = () => {
 		if (plugin.connector && plugin.connections.length === 0) {

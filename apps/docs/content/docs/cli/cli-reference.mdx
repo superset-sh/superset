@@ -1781,6 +1781,146 @@ superset pages storage weekly-report --key votes --json
 
 ---
 
+### plugins (alias: `plugin`)
+
+Install and connect plugins on this machine, and author them in a marketplace
+repo. Installing records the plugin on your account and writes its skills and
+MCP servers to Claude, Codex, and pdev.
+
+<Command
+	name="superset plugins list"
+	options={[
+		{ flag: "--available", description: "Include plugins you have not installed." },
+	]}
+>
+List installed plugins, or everything available with `--available`.
+</Command>
+
+<Command
+	name="superset plugins install <plugin>"
+	args={[
+		{ name: "plugin", required: true, description: "Plugin name." },
+	]}
+	options={[
+		{ flag: "--marketplace <name>", description: "Marketplace to install from, when several offer this name." },
+		{ flag: "--method <name>", description: "Auth method to use, when a plugin offers several." },
+		{ flag: "--inputs <json|->", description: "Credential inputs as JSON, or - to read them from stdin." },
+		{ flag: "--no-wait", description: "Print the authorize URL and exit without waiting; run install again once it is authorized." },
+		{ flag: "--update", description: "Replace an existing install with the marketplace's current version and re-sync its skills." },
+	]}
+>
+Connects the plugin's account first if it needs one, then writes its skills
+locally and records the install on your account.
+
+```bash
+superset plugins install google-calendar
+```
+</Command>
+
+<Command
+	name="superset plugins connect <plugin>"
+	args={[
+		{ name: "plugin", required: true, description: "Installed plugin name." },
+	]}
+	options={[
+		{ flag: "--marketplace <name>", description: "Marketplace of the install to connect, when several offer this name." },
+		{ flag: "--method <name>", description: "Auth method to use, when a plugin offers several." },
+		{ flag: "--inputs <json|->", description: "Credential inputs as JSON, or - to read them from stdin." },
+	]}
+>
+Connect an account to an installed plugin.
+</Command>
+
+<Command
+	name="superset plugins enable <plugin>"
+	args={[
+		{ name: "plugin", required: true, description: "Installed plugin name." },
+	]}
+	options={[
+		{ flag: "--marketplace <name>", description: "Marketplace of the install to change, when several offer this name." },
+	]}
+>
+Enable an installed plugin.
+</Command>
+
+<Command
+	name="superset plugins disable <plugin>"
+	args={[
+		{ name: "plugin", required: true, description: "Installed plugin name." },
+	]}
+	options={[
+		{ flag: "--marketplace <name>", description: "Marketplace of the install to change, when several offer this name." },
+	]}
+>
+Disable an installed plugin without dropping it.
+</Command>
+
+<Command
+	name="superset plugins uninstall <plugin>"
+	args={[
+		{ name: "plugin", required: true, description: "Installed plugin name." },
+	]}
+	options={[
+		{ flag: "--marketplace <name>", description: "Marketplace of the install to remove, when several offer this name." },
+	]}
+>
+Uninstall a plugin and drop its skills.
+</Command>
+
+<Command name="superset plugins sync">
+Reconcile installed plugins with the skill directories agents read and the MCP
+entries Claude, Codex, and pdev read, adding, refreshing, and reaping both.
+</Command>
+
+<Command
+	name="superset plugins marketplace <add|list|remove>"
+>
+`add <source> [--name <name>]` adds a marketplace from a GitHub repo or local
+path. `list` shows the marketplaces on your account. `remove <name>` removes
+one.
+</Command>
+
+<Command
+	name="superset plugins create <name>"
+	args={[
+		{ name: "name", required: true, description: "Plugin name." },
+	]}
+	options={[
+		{ flag: "--display-name <text>", description: "Name shown in the UI. Defaults to a name derived from the plugin name." },
+		{ flag: "--description <text>", description: "One-line description." },
+		{ flag: "--category <text>", description: "Category shown in the UI." },
+		{ flag: "--kind <url|none>", description: "Where tools come from: url (remote MCP server) or none (skills only)." },
+		{ flag: "--url <url>", description: "MCP server URL. Required when --kind is url." },
+		{ flag: "--connector <slug>", description: "Slug of the connector this plugin needs a connection to." },
+		{ flag: "--skills", description: "Scaffold a skills/ folder with a starter skill." },
+	]}
+>
+Scaffold a new plugin and add it to the marketplace.
+</Command>
+
+<Command
+	name="superset plugins validate [path]"
+	options={[
+		{ flag: "--strict", description: "Also require every plugin's current version to be released." },
+	]}
+>
+Validate a plugin or a whole marketplace: manifest, release tag, and whether
+the built server matches its source.
+</Command>
+
+<Command
+	name="superset plugins publish <names...>"
+	options={[
+		{ flag: "--bump <major|minor|patch>", description: "Bump the version before publishing." },
+		{ flag: "--force", description: "Overwrite an already-published version." },
+	]}
+>
+Cut a version of a plugin: build, record it in the marketplace and the
+generated bundle, and name the tag to publish it at.
+</Command>
+
+---
+
 ### tasks (alias: `t`)
 
 Tasks are units of work in your organization's task tracker. When the

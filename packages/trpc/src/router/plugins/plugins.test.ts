@@ -243,4 +243,28 @@ describe("plugins.list", () => {
 			holders.map((plugin) => `${plugin.marketplace}/${plugin.name}`),
 		).toEqual(["acme/notes"]);
 	});
+
+	test("a first-party install does not hide the shared connection from its sibling plugin", async () => {
+		installs = [
+			install({
+				id: "install-gmail",
+				pluginName: "gmail",
+				manifest: {
+					name: "gmail",
+					version: "1.0.0",
+					extensions: { superset: { connector: { slug: "google" } } },
+				},
+			}),
+		];
+		live = [connection("conn-google", "google")];
+
+		const plugins = await caller.plugins.list();
+		const calendar = plugins.find(
+			(plugin) => plugin.name === "google-calendar",
+		);
+
+		expect(calendar?.connections.map((held) => held.id)).toEqual([
+			"conn-google",
+		]);
+	});
 });

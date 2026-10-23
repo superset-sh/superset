@@ -356,8 +356,9 @@ export const pluginsRouter = createTRPCRouter({
 			installs.map((row) => `${row.marketplace}/${row.pluginName}`),
 		);
 
-		const claimed = new Set(
+		const claimedByOthers = new Set(
 			installs
+				.filter((row) => row.marketplace !== FIRST_PARTY)
 				.map((row) => installConnector(row))
 				.filter((slug): slug is string => slug !== undefined),
 		);
@@ -372,7 +373,7 @@ export const pluginsRouter = createTRPCRouter({
 					FIRST_PARTY,
 				);
 				const held_ =
-					described.connector && !claimed.has(described.connector)
+					described.connector && !claimedByOthers.has(described.connector)
 						? (held.get(described.connector) ?? [])
 						: [];
 				return {

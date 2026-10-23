@@ -3,7 +3,7 @@ import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { toast } from "@superset/ui/sonner";
 import { createFileRoute } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Redirect } from "renderer/components/Redirect";
 import { env } from "renderer/env.renderer";
 import { usePluginCatalog } from "renderer/hooks/usePluginCatalog";
@@ -81,8 +81,16 @@ function PluginDetailPage() {
 		() => void installAfterConnect(pluginName),
 		[installAfterConnect, pluginName],
 	);
+	const [connectedCount, setConnectedCount] = useState(0);
+	const onConnectOutcome = useCallback(() => {
+		setConnectedCount((count) => count + 1);
+		onConnected();
+	}, [onConnected]);
 
-	useConnectOutcome(plugin?.interface.displayName ?? pluginName, onConnected);
+	useConnectOutcome(
+		plugin?.interface.displayName ?? pluginName,
+		onConnectOutcome,
+	);
 
 	useEffect(() => {
 		if (connect) void navigate({ search: {}, replace: true });
@@ -99,6 +107,7 @@ function PluginDetailPage() {
 		<PluginDetail
 			plugin={plugin}
 			openConnect={connect}
+			connectedCount={connectedCount}
 			onConnected={onConnected}
 		/>
 	);
