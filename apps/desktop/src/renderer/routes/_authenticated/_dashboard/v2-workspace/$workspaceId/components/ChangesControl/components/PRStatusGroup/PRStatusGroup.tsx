@@ -463,7 +463,7 @@ export function PRStatusGroup({
 							<DropdownMenuItem asChild className={menuItemClass}>
 								<a href={pr.url} target="_blank" rel="noopener noreferrer">
 									<LuArrowUpRight className={menuIconClass} />
-									<Trans>View on GitHub</Trans>
+									<Trans>Open in browser</Trans>
 								</a>
 							</DropdownMenuItem>
 						</DropdownMenuContent>

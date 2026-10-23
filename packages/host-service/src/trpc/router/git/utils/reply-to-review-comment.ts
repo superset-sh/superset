@@ -1,5 +1,5 @@
 import type { Octokit } from "@octokit/rest";
-import { actionRejectionError } from "../../github/github";
+import { actionRejectionError } from "../../github/github-gitlab";
 
 export interface ReplyToReviewCommentInput {
 	owner: string;

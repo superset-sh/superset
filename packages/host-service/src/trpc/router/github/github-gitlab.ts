@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../../index";
+import { execGlab } from "../workspace-creation/utils/exec-glab";
 import { createGithubWorkItemLoader } from "./work-item";
 
 const loadWorkItem = createGithubWorkItemLoader();
@@ -352,6 +353,22 @@ export const githubRouter = router({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const gitlab = gitlabProjectUrl(input);
+			if (gitlab) {
+				const method =
+					input.mergeMethod === "merge" ? [] : [`--${input.mergeMethod}`];
+				await execGlab([
+					"mr",
+					"merge",
+					String(input.pullNumber),
+					"-R",
+					gitlab,
+					"--auto-merge=false",
+					"--yes",
+					...method,
+				]);
+				return null;
+			}
 			const octokit = await ctx.github();
 			try {
 				const { data } = await octokit.pulls.merge({
@@ -375,6 +392,18 @@ export const githubRouter = router({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const gitlab = gitlabProjectUrl(input);
+			if (gitlab) {
+				await execGlab([
+					"mr",
+					"update",
+					String(input.pullNumber),
+					"-R",
+					gitlab,
+					"--ready",
+				]);
+				return;
+			}
 			const octokit = await ctx.github();
 			try {
 				const id = await pullRequestNodeId(octokit, input);
@@ -830,4 +859,11 @@ export function actionRejectionError(
 				cause: error,
 			});
 	}
+}
+
+// GitLab owners carry their host (`host/group`); GitHub owners have no slash.
+function gitlabProjectUrl(input: { owner: string; repo: string }) {
+	return input.owner.includes("/")
+		? `https://${input.owner}/${input.repo}`
+		: null;
 }

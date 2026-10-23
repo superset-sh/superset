@@ -14,7 +14,7 @@ export interface ExecGhOptions {
 }
 
 /**
- * Shell to `gh`. Relies on the user's existing `gh auth login` rather than
+ * Shell to `gh`/`glab`. Relies on the user's existing `auth login` rather than
  * the git credential manager, matching V1. Returns parsed JSON when stdout
  * is JSON, else the trimmed string. Throws on non-zero exit so callers can
  * fall back.
@@ -24,9 +24,12 @@ export type ExecGh = (
 	options?: ExecGhOptions,
 ) => Promise<unknown>;
 
-export const execGh: ExecGh = async (args, options) => {
+export async function execCli(
+	bin: "gh" | "glab",
+	...[args, options]: Parameters<ExecGh>
+): Promise<unknown> {
 	const env = await getToolEnvironment();
-	const child = execFileAsync("gh", args, {
+	const child = execFileAsync(bin, args, {
 		encoding: "utf8",
 		timeout: options?.timeout ?? 10_000,
 		// Node's 1MB default dies on large REST payloads (open-PR sweeps of
@@ -44,4 +47,6 @@ export const execGh: ExecGh = async (args, options) => {
 	} catch {
 		return trimmed;
 	}
-};
+}
+
+export const execGh: ExecGh = (...args) => execCli("gh", ...args);

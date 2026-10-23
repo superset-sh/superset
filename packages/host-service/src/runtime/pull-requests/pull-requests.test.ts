@@ -149,6 +149,7 @@ function createManager(
 	db: HostDb,
 	overrides: {
 		execGh?: (args: string[]) => Promise<unknown>;
+		execGlab?: (args: string[]) => Promise<unknown>;
 		github?: () => Promise<never>;
 		git?: unknown;
 		readWorkspaceRefs?: (
@@ -174,6 +175,7 @@ function createManager(
 			((async () => {
 				throw new Error("octokit should not be used");
 			}) as never),
+		execGlab: overrides.execGlab as never,
 		gitWatcher: { onChanged: () => () => {} } as never,
 		readWorkspaceRefs: overrides.readWorkspaceRefs,
 		// Seeded worktree paths are fabricated; default the disk gate open so
@@ -2487,6 +2489,92 @@ describe("PullRequestRuntimeManager GitHub traffic", () => {
 			manager.refreshPullRequestsByWorkspaces(["ws"]),
 		);
 		expect(manager.getGithubStatus()?.reason).toBe("auth");
+		expect(getWorkspace(db, "ws")?.pullRequestId).toBeNull();
+	});
+});
+
+describe("GitLab through glab", () => {
+	function gitlabProject(owner: string, answer: (args: string[]) => unknown) {
+		const db = createRealDb();
+		db.insert(schema.projects)
+			.values({ id: PROJECT_ID, repoPath: "/repo", createdAt: Date.now() })
+			.run();
+		seedWorkspace(db, {
+			id: "ws",
+			branch: "feat",
+			upstreamOwner: owner,
+			upstreamRepo: "app",
+			upstreamBranch: "feat",
+		});
+		const calls: string[][] = [];
+		const manager = createManager(db, {
+			git: async () => ({
+				remote: async () => `git@${owner.replace("/", ":")}/app.git`,
+				raw: async () => "origin/main\n",
+			}),
+			execGlab: async (args) => {
+				calls.push(args);
+				return answer(args);
+			},
+		});
+		return { db, calls, refresh: () => projectRefresher(manager)(PROJECT_ID) };
+	}
+
+	test("links a workspace to its MR with the head pipeline as its check", async () => {
+		const webUrl =
+			"https://gitlab.example.com/group/sub/app/-/merge_requests/7";
+		const glab: Record<string, unknown> = {
+			"config get": "gitlab.example.com",
+			"mr list": [
+				{
+					iid: 7,
+					web_url: webUrl,
+					state: "opened",
+					source_branch: "feat",
+					sha: "sha-1",
+					source_project_id: 1,
+					target_project_id: 1,
+				},
+			],
+			"mr view": {
+				web_url: webUrl,
+				target_project_id: 1,
+				detailed_merge_status: "not_approved",
+				head_pipeline: { id: 9 },
+			},
+			"ci get": { jobs: [{ name: "test", status: "failed" }] },
+		};
+		const { db, calls, refresh } = gitlabProject(
+			"gitlab.example.com/group/sub",
+			(args) => glab[`${args[0]} ${args[1]}`] ?? {},
+		);
+
+		await refresh();
+
+		const pr = getPrById(db, getWorkspace(db, "ws")?.pullRequestId ?? "");
+		expect(pr).toMatchObject({
+			repoProvider: "gitlab",
+			repoOwner: "gitlab.example.com/group/sub",
+			url: webUrl,
+			state: "open",
+			reviewDecision: "pending",
+			checksStatus: "failure",
+		});
+		expect(calls[1]).toContain("https://gitlab.example.com/group/sub/app");
+		expect(db.select().from(schema.projects).get()?.repoProvider).toBeNull();
+	});
+
+	test("asks glab again about an unknown host and looks up no MR", async () => {
+		const { db, calls, refresh } = gitlabProject(
+			"git.example.com/team",
+			() => ({}),
+		);
+
+		await refresh();
+		await refresh();
+
+		const ask = ["config", "get", "api_host", "--host", "git.example.com"];
+		expect(calls).toEqual([ask, ask]);
 		expect(getWorkspace(db, "ws")?.pullRequestId).toBeNull();
 	});
 });

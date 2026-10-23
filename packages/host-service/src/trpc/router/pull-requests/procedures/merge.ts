@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { protectedProcedure } from "../../../index";
-import { actionRejectionError } from "../../github/github";
+import { actionRejectionError } from "../../github/github-gitlab";
 import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
 import { syncPullRequestAfterWrite } from "../shared/sync-after-write";
 

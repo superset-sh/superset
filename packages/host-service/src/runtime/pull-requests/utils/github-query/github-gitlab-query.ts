@@ -1,5 +1,6 @@
 import type { Octokit } from "@octokit/rest";
 import type { ExecGh } from "../../../../trpc/router/workspace-creation/utils/exec-gh";
+import type { ExecGlab } from "../../../../trpc/router/workspace-creation/utils/exec-glab";
 import type {
 	GitHubCheckContextNode,
 	GitHubPullRequestHeadRef,
@@ -77,6 +78,7 @@ export function parseMergedAt(mergedAt: string | null): number | null {
 		: null;
 }
 
+// If you change this, also look at its GitLab twin `normalizeGitLabMergeRequest`.
 function normalizePullRequest(raw: unknown): GitHubPullRequestNode | null {
 	if (!isRecord(raw) || !isRecord(raw.head)) return null;
 	const headRepo = isRecord(raw.head.repo) ? raw.head.repo : null;
@@ -162,6 +164,8 @@ function normalizePullRequestCandidates(
 	);
 }
 
+// If you change this, also look at its GitLab twin: `reviewDecision` in
+// `fetchPullRequestDetailsFromGlab`.
 function mapReviewDecision(
 	rawReviews: unknown,
 	prState: PullRequestState,
@@ -197,6 +201,7 @@ function mapReviewDecision(
 	return prState === "OPEN" ? "REVIEW_REQUIRED" : null;
 }
 
+// If you change this, also look at its GitLab twin `toGitLabJobCheck`.
 function toCheckRunNode(raw: RestCheckRun): GitHubCheckContextNode | null {
 	if (!raw.name) return null;
 
@@ -506,4 +511,125 @@ export async function fetchPullRequestChecks(
 	].filter(
 		(node): node is NonNullable<GitHubCheckContextNode> => node !== null,
 	);
+}
+
+interface GitLabRepository {
+	owner: string;
+	name: string;
+	url: string;
+}
+
+// An MR names its source project by id only, so a fork MR gets no head repo and
+// is never linked: forks are not supported.
+// If you change this, also look at its GitHub twin `normalizePullRequest`.
+function normalizeGitLabMergeRequest(
+	raw: unknown,
+	repository: GitLabRepository,
+): GitHubPullRequestNode | null {
+	if (!isRecord(raw) || typeof raw.sha !== "string") return null;
+	const sameProject = raw.source_project_id === raw.target_project_id;
+	const mergedAt = typeof raw.merged_at === "string" ? raw.merged_at : null;
+	return {
+		number: Number(raw.iid),
+		title: String(raw.title),
+		url: String(raw.web_url),
+		state: normalizePullRequestState(String(raw.state), mergedAt),
+		isDraft: raw.draft === true,
+		headRefName: String(raw.source_branch),
+		headRefOid: raw.sha,
+		isCrossRepository: !sameProject,
+		headRepositoryOwner: sameProject ? { login: repository.owner } : null,
+		headRepository: sameProject ? { name: repository.name } : null,
+		updatedAt: String(raw.updated_at),
+		mergedAt: parseMergedAt(mergedAt),
+	};
+}
+
+export async function fetchPullRequestByHeadFromGlab(
+	execGlab: ExecGlab,
+	repository: GitLabRepository,
+	head: GitHubPullRequestHeadRef,
+): Promise<GitHubPullRequestNode | null> {
+	const raw = await execGlab([
+		"mr",
+		"list",
+		"--all",
+		"-R",
+		repository.url,
+		"-s",
+		head.branch,
+		"-F",
+		"json",
+	]);
+	return (
+		asArray(raw)
+			.map((item) => normalizeGitLabMergeRequest(item, repository))
+			.find((node) => node && !node.isCrossRepository) ?? null
+	);
+}
+
+const GITLAB_JOB_CONCLUSIONS: Record<string, string> = {
+	success: "SUCCESS",
+	failed: "FAILURE",
+	canceled: "CANCELLED",
+	skipped: "SKIPPED",
+	manual: "SKIPPED",
+};
+
+// If you change this, also look at its GitHub twin `toCheckRunNode`.
+function toGitLabJobCheck(job: unknown): GitHubCheckContextNode {
+	if (!isRecord(job)) return null;
+	// A manual job blocks the pipeline unless it may fail; only then is it skipped.
+	const conclusion =
+		job.allow_failure !== true && job.status === "manual"
+			? null
+			: job.allow_failure === true && job.status === "failed"
+				? "NEUTRAL"
+				: (GITLAB_JOB_CONCLUSIONS[String(job.status)] ?? null);
+	return {
+		__typename: "CheckRun",
+		name: String(job.name),
+		conclusion,
+		detailsUrl: job.web_url ? String(job.web_url) : null,
+		status: conclusion ? "COMPLETED" : "IN_PROGRESS",
+		startedAt: null,
+		completedAt: null,
+		checkSuite: null,
+	};
+}
+
+// The jobs of the MR's head pipeline stand in for GitHub's checks.
+export async function fetchPullRequestDetailsFromGlab(
+	execGlab: ExecGlab,
+	repository: GitLabRepository,
+	number: number,
+) {
+	const glabJson = (...args: string[]) =>
+		execGlab([...args, "-R", repository.url, "-F", "json"]);
+	const raw = await glabJson("mr", "view", String(number));
+	const mr = isRecord(raw) ? raw : {};
+	const pipeline = isRecord(mr.head_pipeline) ? mr.head_pipeline : null;
+	const [ci, approvals] = await Promise.all([
+		pipeline ? glabJson("ci", "get", "-p", String(pipeline.id)) : null,
+		execGlab([
+			"api",
+			"--hostname",
+			new URL(String(mr.web_url)).host,
+			`projects/${mr.target_project_id}/merge_requests/${number}/approvals`,
+		]).catch(() => null),
+	]);
+	return {
+		// With no approval rule GitLab says `approved`, so also require an approver.
+		// If you change this, also look at its GitHub twin `mapReviewDecision`.
+		reviewDecision:
+			isRecord(approvals) &&
+			approvals.approved === true &&
+			asArray(approvals.approved_by).length > 0
+				? ("APPROVED" as const)
+				: mr.detailed_merge_status === "not_approved"
+					? ("REVIEW_REQUIRED" as const)
+					: null,
+		checks: isRecord(ci) ? asArray(ci.jobs).map(toGitLabJobCheck) : [],
+		isInMergeQueue: null,
+	};
 }
