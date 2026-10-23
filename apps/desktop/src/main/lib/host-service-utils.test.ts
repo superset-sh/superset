@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { redactCrashTail } from "./host-service-utils";
+import { pollHealthCheck, redactCrashTail } from "./host-service-utils";
 
 /**
  * A tail shaped like the ones host-service crashes actually attach: worktree
@@ -136,5 +136,69 @@ describe("redactCrashTail", () => {
 
 			expect(redacted).toBe("~/x told [redacted] to ~/y");
 		});
+	});
+});
+
+describe("pollHealthCheck process identity", () => {
+	test.each([
+		{
+			name: "accepts the manifest holder",
+			body: JSON.stringify({
+				result: { data: { json: { status: "ok", pid: 4321 } } },
+			}),
+			expected: true,
+		},
+		{
+			name: "rejects another host on the manifest port",
+			body: JSON.stringify({
+				result: { data: { json: { status: "ok", pid: 9876 } } },
+			}),
+			expected: false,
+		},
+		{
+			name: "rejects a response without process identity",
+			body: JSON.stringify({ result: { data: { json: { status: "ok" } } } }),
+			expected: false,
+		},
+		{
+			name: "rejects malformed health JSON",
+			body: "not json",
+			expected: false,
+		},
+	])("$name", async ({ body, expected }) => {
+		const server = Bun.serve({
+			hostname: "127.0.0.1",
+			port: 0,
+			fetch: () =>
+				new Response(body, { headers: { "Content-Type": "application/json" } }),
+		});
+		try {
+			expect(
+				await pollHealthCheck(
+					server.url.origin,
+					"manifest-secret",
+					1000,
+					undefined,
+					4321,
+				),
+			).toBe(expected);
+		} finally {
+			await server.stop(true);
+		}
+	});
+
+	test("keeps reachability-only probes compatible when no pid is supplied", async () => {
+		const server = Bun.serve({
+			hostname: "127.0.0.1",
+			port: 0,
+			fetch: () => new Response("ok"),
+		});
+		try {
+			expect(await pollHealthCheck(server.url.origin, "secret", 1000)).toBe(
+				true,
+			);
+		} finally {
+			await server.stop(true);
+		}
 	});
 });
