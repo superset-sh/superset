@@ -72,7 +72,7 @@
 		"tooling/*"
 	],
 	"overrides": {
-		"@modelcontextprotocol/sdk": "1.31.0",
+		"@modelcontextprotocol/sdk": "1.32.0",
 		"@tiptap/extension-dropcursor": "3.30.5",
 		"@tiptap/extension-floating-menu": "3.30.5",
 		"@tiptap/extension-gapcursor": "3.30.5",
@@ -82,7 +82,7 @@
 		"@types/hast": "3.0.5",
 		"axios": "1.18.1",
 		"happy-dom": "20.11.2",
-		"hono": "4.13.7",
+		"hono": "4.13.11",
 		"kysely": "0.28.17",
 		"mdast-util-to-markdown": "2.1.2",
 		"next": "16.3.8",

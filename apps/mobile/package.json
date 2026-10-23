@@ -147,9 +147,9 @@
 		"@babel/preset-typescript": "7.29.7",
 		"@bacons/apple-targets": "5.0.0",
 		"@lingui/babel-plugin-lingui-macro": "6.8.0",
-		"@storybook/addon-ondevice-actions": "10.4.2",
-		"@storybook/addon-ondevice-controls": "10.4.2",
-		"@storybook/react-native": "10.4.2",
+		"@storybook/addon-ondevice-actions": "10.6.2",
+		"@storybook/addon-ondevice-controls": "10.6.2",
+		"@storybook/react-native": "10.6.2",
 		"@superset/chat-runtime": "workspace:*",
 		"@superset/host-service": "workspace:*",
 		"@trpc/server": "11.16.0",
@@ -161,7 +161,7 @@
 		"@xterm/xterm": "6.1.0-beta.315",
 		"babel-preset-expo": "57.0.13",
 		"expo-mcp": "0.2.4",
-		"storybook": "10.4.2",
+		"storybook": "10.6.2",
 		"typescript": "7.0.2"
 	},
 	"private": true
