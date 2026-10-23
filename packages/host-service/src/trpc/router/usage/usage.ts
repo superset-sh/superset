@@ -6,6 +6,8 @@ import { MAX_BACKFILL_DAYS } from "@superset/trpc/leaderboard-periods";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
+import type { HostServiceContext } from "../../../types";
+import { getHostWorkerPool } from "../../../workers/host-worker-pool";
 import {
 	leaderboardPayloadTask,
 	usageHistoryTask,
@@ -29,6 +31,7 @@ import {
 } from "./default-account";
 import { fetchGrokAccounts } from "./grok-quota";
 import { countAgentPrsByDay } from "./history/agent-prs";
+import { createUsageHistoryCache } from "./history-cache";
 import { fetchOpencodeAccounts } from "./opencode-quota";
 import { removeClaudeProfile, removeCodexHome } from "./profile-remove";
 import {
@@ -78,6 +81,63 @@ function getQuota(forceRefresh: boolean): Promise<UsageAccount[]> {
 		if (cachedQuota === entry) cachedQuota = null;
 	});
 	return promise;
+}
+
+function usageHistoryInput(ctx: HostServiceContext, days: number) {
+	const workspaceRows = ctx.db
+		.select({
+			worktreePath: workspaces.worktreePath,
+			name: workspaces.name,
+			projectId: workspaces.projectId,
+		})
+		.from(workspaces)
+		.all();
+	const projectRows = ctx.db
+		.select({
+			id: projects.id,
+			repoPath: projects.repoPath,
+			name: projects.name,
+		})
+		.from(projects)
+		.all();
+	const projectNameById = new Map(
+		projectRows.map((row) => [row.id, row.name || basename(row.repoPath)]),
+	);
+	const cwdLabels = [
+		...workspaceRows.map((row) => ({
+			prefix: row.worktreePath,
+			label: row.name || basename(row.worktreePath),
+			kind: "workspace" as const,
+			group: row.projectId
+				? (projectNameById.get(row.projectId) ?? null)
+				: null,
+		})),
+		// A repo checkout groups with its own project so the project
+		// rollup includes work done directly in the main checkout.
+		...projectRows.map((row) => {
+			const label = row.name || basename(row.repoPath);
+			return {
+				prefix: row.repoPath,
+				label,
+				kind: "project" as const,
+				group: label,
+			};
+		}),
+	].filter((label) => label.prefix);
+	return { days, cwdLabels };
+}
+
+const usageHistoryCache = createUsageHistoryCache({
+	ttlMs: 5 * 60 * 1000,
+	retryAfterMs: 60 * 1000,
+});
+
+function usageHistoryRunOptions(days: number) {
+	return {
+		dedupeKey: `usage-history:${days}`,
+		strategy: "coalesce" as const,
+		timeoutMs: 110_000,
+	};
 }
 
 export const leaderboardPayloadInput = z.object({
@@ -332,57 +392,26 @@ export const usageRouter = router({
 				// Workspace/project rows from host.db let the worker attribute
 				// transcript cwds to real workspaces instead of guessing from
 				// directory names.
-				prepare: ({ ctx, input }) => {
-					const workspaceRows = ctx.db
-						.select({
-							worktreePath: workspaces.worktreePath,
-							name: workspaces.name,
-							projectId: workspaces.projectId,
-						})
-						.from(workspaces)
-						.all();
-					const projectRows = ctx.db
-						.select({
-							id: projects.id,
-							repoPath: projects.repoPath,
-							name: projects.name,
-						})
-						.from(projects)
-						.all();
-					const projectNameById = new Map(
-						projectRows.map((row) => [
-							row.id,
-							row.name || basename(row.repoPath),
-						]),
-					);
-					const cwdLabels = [
-						...workspaceRows.map((row) => ({
-							prefix: row.worktreePath,
-							label: row.name || basename(row.worktreePath),
-							kind: "workspace" as const,
-							group: row.projectId
-								? (projectNameById.get(row.projectId) ?? null)
-								: null,
-						})),
-						// A repo checkout groups with its own project so the project
-						// rollup includes work done directly in the main checkout.
-						...projectRows.map((row) => {
-							const label = row.name || basename(row.repoPath);
-							return {
-								prefix: row.repoPath,
-								label,
-								kind: "project" as const,
-								group: label,
-							};
-						}),
-					].filter((label) => label.prefix);
-					return { days: input.days, cwdLabels };
-				},
-				options: ({ input }) => ({
-					dedupeKey: `usage-history:${input.days}`,
-					timeoutMs: 110_000,
-				}),
+				prepare: ({ ctx, input }) => usageHistoryInput(ctx, input.days),
+				options: ({ input }) => usageHistoryRunOptions(input.days),
 			}),
+		),
+
+	/**
+	 * Same data as `history`, but answers at once with the last completed
+	 * scan and refreshes in the background. Relayed requests time out before
+	 * a cold `history` scan can finish.
+	 */
+	cachedHistory: queryProcedure
+		.input(z.object({ days: z.number().int().min(1).max(90) }))
+		.query(({ ctx, input }) =>
+			usageHistoryCache.get(input.days, () =>
+				getHostWorkerPool().run(
+					usageHistoryTask,
+					usageHistoryInput(ctx, input.days),
+					usageHistoryRunOptions(input.days),
+				),
+			),
 		),
 
 	leaderboardPayload: queryProcedure
