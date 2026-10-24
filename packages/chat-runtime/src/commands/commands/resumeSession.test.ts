@@ -23,12 +23,12 @@ function runtimeWithStartedAgents(session: Partial<SessionState> = {}) {
 				return new FakeHarness({
 					start: [
 						{
-							kind: "item",
+							type: "item",
 							item: agentMessage("history", "earlier reply"),
 							turnId: "history-turn",
 						},
 						{
-							kind: "session",
+							type: "session",
 							delayMs: 5,
 							session: {
 								status: "idle",
@@ -37,7 +37,7 @@ function runtimeWithStartedAgents(session: Partial<SessionState> = {}) {
 							},
 						},
 					],
-					turns: [[{ kind: "turn", turn: turn("t1") }], []],
+					turns: [[{ type: "turn", turn: turn("t1") }], []],
 				});
 			},
 		],
@@ -127,7 +127,7 @@ describe("resuming chats after a restart", () => {
 					new FakeHarness({
 						start: [
 							{
-								kind: "session",
+								type: "session",
 								delayMs: 5,
 								session:
 									++attempts === 1
@@ -135,7 +135,7 @@ describe("resuming chats after a restart", () => {
 										: { status: "idle", harnessSessionId: "agent-1" },
 							},
 						],
-						turns: [[{ kind: "turn", turn: turn("t1") }]],
+						turns: [[{ type: "turn", turn: turn("t1") }]],
 					}),
 			],
 		]);

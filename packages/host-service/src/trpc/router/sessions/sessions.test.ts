@@ -77,7 +77,7 @@ beforeEach(() => {
 					return new FakeHarness({
 						start: [
 							{
-								kind: "session",
+								type: "session",
 								session: {
 									status: startDead ? "dead" : "idle",
 									harnessSessionId:

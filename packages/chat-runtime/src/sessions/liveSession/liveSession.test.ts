@@ -83,13 +83,13 @@ function sessionStatuses(envelopes: DurableEnvelope[]): string[] {
 const SINGLE_TURN: FakeHarnessScript = {
 	turns: [
 		[
-			{ kind: "turn", turn: turn("t1") },
-			{ kind: "item", item: agentMessage("a1", "done"), turnId: "t1" },
+			{ type: "turn", turn: turn("t1") },
+			{ type: "item", item: agentMessage("a1", "done"), turnId: "t1" },
 			{
-				kind: "turn",
+				type: "turn",
 				turn: turn("t1", { status: "completed", completedAtMs: 2 }),
 			},
-			{ kind: "session", session: { status: "idle" } },
+			{ type: "session", session: { status: "idle" } },
 		],
 	],
 };
@@ -147,20 +147,20 @@ describe("LiveSession", () => {
 	test("says so when a prompted turn ends without showing anything", async () => {
 		const { runtime, sessionId } = startSession({
 			start: [
-				{ kind: "turn", turn: turn("t0") },
+				{ type: "turn", turn: turn("t0") },
 				{
-					kind: "turn",
+					type: "turn",
 					turn: turn("t0", { status: "completed", completedAtMs: 1 }),
 				},
 			],
 			turns: [
 				[
-					{ kind: "turn", turn: turn("t1") },
+					{ type: "turn", turn: turn("t1") },
 					{
-						kind: "turn",
+						type: "turn",
 						turn: turn("t1", { status: "completed", completedAtMs: 2 }),
 					},
-					{ kind: "session", session: { status: "idle" } },
+					{ type: "session", session: { status: "idle" } },
 				],
 			],
 		});
@@ -187,7 +187,7 @@ describe("LiveSession", () => {
 	test("a queued prompt is counted by the time it is published", async () => {
 		const countsAtPublish: number[] = [];
 		const { harnesses } = fakeHarnessRegistry({
-			turns: [[{ kind: "turn", turn: turn("t1") }]],
+			turns: [[{ type: "turn", turn: turn("t1") }]],
 		});
 		const runtime = createTestRuntime({
 			harnesses,
@@ -223,21 +223,21 @@ describe("LiveSession", () => {
 		const { runtime, sessionId } = startSession({
 			turns: [
 				[
-					{ kind: "turn", turn: turn("t1") },
+					{ type: "turn", turn: turn("t1") },
 					{
-						kind: "turn",
+						type: "turn",
 						turn: turn("t1", { status: "completed", completedAtMs: 2 }),
 					},
-					{ kind: "session", session: { status: "idle" } },
+					{ type: "session", session: { status: "idle" } },
 				],
 				[
-					{ kind: "turn", turn: turn("t2") },
-					{ kind: "item", item: agentMessage("a2", "second"), turnId: "t2" },
+					{ type: "turn", turn: turn("t2") },
+					{ type: "item", item: agentMessage("a2", "second"), turnId: "t2" },
 					{
-						kind: "turn",
+						type: "turn",
 						turn: turn("t2", { status: "completed", completedAtMs: 4 }),
 					},
-					{ kind: "session", session: { status: "idle" } },
+					{ type: "session", session: { status: "idle" } },
 				],
 			],
 		});
@@ -271,9 +271,9 @@ describe("LiveSession", () => {
 		const { runtime, sessionId } = startSession({
 			turns: [
 				[
-					{ kind: "turn", turn: turn("t1") },
-					{ kind: "item", item: toolCall("c1"), turnId: "t1" },
-					{ kind: "item", item: approvalRequest("ap1"), turnId: "t1" },
+					{ type: "turn", turn: turn("t1") },
+					{ type: "item", item: toolCall("c1"), turnId: "t1" },
+					{ type: "item", item: approvalRequest("ap1"), turnId: "t1" },
 				],
 			],
 		});
@@ -329,24 +329,24 @@ describe("LiveSession", () => {
 	const GATED_THEN_QUICK: FakeHarnessScript = {
 		turns: [
 			[
-				{ kind: "turn", turn: turn("t1") },
-				{ kind: "item", item: approvalRequest("ap1"), turnId: "t1" },
+				{ type: "turn", turn: turn("t1") },
+				{ type: "item", item: approvalRequest("ap1"), turnId: "t1" },
 			],
 			[
-				{ kind: "turn", turn: turn("t2") },
+				{ type: "turn", turn: turn("t2") },
 				{
-					kind: "turn",
+					type: "turn",
 					turn: turn("t2", { status: "completed", completedAtMs: 4 }),
 				},
-				{ kind: "session", session: { status: "idle" } },
+				{ type: "session", session: { status: "idle" } },
 			],
 			[
-				{ kind: "turn", turn: turn("t3") },
+				{ type: "turn", turn: turn("t3") },
 				{
-					kind: "turn",
+					type: "turn",
 					turn: turn("t3", { status: "completed", completedAtMs: 6 }),
 				},
-				{ kind: "session", session: { status: "idle" } },
+				{ type: "session", session: { status: "idle" } },
 			],
 		],
 	};
@@ -363,15 +363,15 @@ describe("LiveSession", () => {
 	const HELD_THEN_QUICK: FakeHarnessScript = {
 		turns: [
 			[
-				{ kind: "turn", turn: turn("t1") },
-				{ kind: "session", session: { awaitingBackground: true } },
-				{ kind: "item", item: approvalRequest("ap1"), turnId: "t1" },
+				{ type: "turn", turn: turn("t1") },
+				{ type: "session", session: { awaitingBackground: true } },
+				{ type: "item", item: approvalRequest("ap1"), turnId: "t1" },
 				{
-					kind: "turn",
+					type: "turn",
 					turn: turn("t1", { status: "completed", completedAtMs: 2 }),
 				},
 				{
-					kind: "session",
+					type: "session",
 					session: { status: "idle", awaitingBackground: false },
 				},
 			],
@@ -428,10 +428,10 @@ describe("LiveSession", () => {
 		const { runtime, sessionId } = startSession({
 			turns: [
 				[
-					{ kind: "turn", turn: turn("t1") },
-					{ kind: "item", item: approvalRequest("ap1"), turnId: "t1" },
-					{ kind: "session", session: { awaitingBackground: true } },
-					{ kind: "item", item: approvalRequest("ap2"), turnId: "t1" },
+					{ type: "turn", turn: turn("t1") },
+					{ type: "item", item: approvalRequest("ap1"), turnId: "t1" },
+					{ type: "session", session: { awaitingBackground: true } },
+					{ type: "item", item: approvalRequest("ap2"), turnId: "t1" },
 				],
 			],
 			steer: true,
@@ -767,24 +767,24 @@ describe("LiveSession", () => {
 		const { runtime, sessionId } = startSession({
 			turns: [
 				[
-					{ kind: "turn", turn: turn("t1") },
-					{ kind: "item", item: approvalRequest("ap1"), turnId: "t1" },
+					{ type: "turn", turn: turn("t1") },
+					{ type: "item", item: approvalRequest("ap1"), turnId: "t1" },
 					{
-						kind: "turn",
+						type: "turn",
 						turn: turn("t1", { status: "completed", completedAtMs: 2 }),
 					},
 				],
 				[
-					{ kind: "turn", turn: turn("t2"), delayMs: 200 },
-					{ kind: "item", item: approvalRequest("ap2"), turnId: "t2" },
+					{ type: "turn", turn: turn("t2"), delayMs: 200 },
+					{ type: "item", item: approvalRequest("ap2"), turnId: "t2" },
 				],
 				[
-					{ kind: "turn", turn: turn("t3") },
+					{ type: "turn", turn: turn("t3") },
 					{
-						kind: "turn",
+						type: "turn",
 						turn: turn("t3", { status: "completed", completedAtMs: 6 }),
 					},
-					{ kind: "session", session: { status: "idle" } },
+					{ type: "session", session: { status: "idle" } },
 				],
 			],
 		});
@@ -955,13 +955,13 @@ describe("LiveSession", () => {
 		const { runtime, sessionId } = startSession({
 			turns: [
 				[
-					{ kind: "turn", turn: turn("t1") },
+					{ type: "turn", turn: turn("t1") },
 					{
-						kind: "turn",
+						type: "turn",
 						turn: turn("t1", { status: "failed", completedAtMs: 2 }),
 						delayMs: 20,
 					},
-					{ kind: "session", session: { status: "dead" } },
+					{ type: "session", session: { status: "dead" } },
 				],
 				[],
 			],

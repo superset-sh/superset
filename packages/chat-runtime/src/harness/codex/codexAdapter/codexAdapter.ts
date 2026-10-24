@@ -325,7 +325,7 @@ export class CodexAdapter implements HarnessAdapter {
 				(this.itemText.get(delta.itemId) ?? "") + delta.delta,
 			);
 			this.emit({
-				kind: "delta",
+				type: "delta",
 				delta: { type: "text", itemId: delta.itemId, append: delta.delta },
 			});
 			return;
@@ -333,7 +333,7 @@ export class CodexAdapter implements HarnessAdapter {
 		if (method === "item/commandExecution/outputDelta") {
 			const delta = itemDeltaSchema.parse(params);
 			this.emit({
-				kind: "delta",
+				type: "delta",
 				delta: { type: "terminal", itemId: delta.itemId, append: delta.delta },
 			});
 			return;
@@ -648,7 +648,7 @@ export class CodexAdapter implements HarnessAdapter {
 			...(this.usage ? { usage: this.usage } : {}),
 		};
 		this.currentTurn = next;
-		this.emit({ kind: "turn", turn: next });
+		this.emit({ type: "turn", turn: next });
 
 		this.pendingTurnStart = false;
 		if (turn.status !== "running") {
@@ -685,7 +685,7 @@ export class CodexAdapter implements HarnessAdapter {
 	}
 
 	private emitItem(item: Item, turnId: string): void {
-		this.emit({ kind: "item", item, turnId });
+		this.emit({ type: "item", item, turnId });
 	}
 
 	private emitNotice(
@@ -706,7 +706,7 @@ export class CodexAdapter implements HarnessAdapter {
 	}
 
 	private emitSession(session: Partial<SessionState>): void {
-		this.emit({ kind: "session", session });
+		this.emit({ type: "session", session });
 	}
 
 	private emit(event: AdapterEvent): void {

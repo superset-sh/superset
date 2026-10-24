@@ -43,25 +43,25 @@ describe.skip("ClaudeAdapter live", () => {
 
 		let approvals = 0;
 		const events = await drain(iterator, (event) => {
-			if (event.kind === "item" && event.item.kind === "approval_request") {
+			if (event.type === "item" && event.item.kind === "approval_request") {
 				if (event.item.status === "pending") {
 					approvals += 1;
 					adapter.respondToApproval(event.item.id, { type: "accept" });
 				}
 				return false;
 			}
-			return event.kind === "turn" && event.turn.status !== "running";
+			return event.type === "turn" && event.turn.status !== "running";
 		});
 
 		expect(approvals).toBeGreaterThan(0);
 		expect(events.at(-1)).toMatchObject({
-			kind: "turn",
+			type: "turn",
 			turn: { status: "completed" },
 		});
 		expect(
 			events.some(
 				(event) =>
-					event.kind === "item" &&
+					event.type === "item" &&
 					event.item.kind === "tool_call" &&
 					event.item.toolName === "Edit" &&
 					event.item.status === "completed",

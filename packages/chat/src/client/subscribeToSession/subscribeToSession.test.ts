@@ -20,15 +20,15 @@ import { buildStreamUrl, subscribeToSession } from "./subscribeToSession";
 const STREAMING_TURN: FakeHarnessScript = {
 	turns: [
 		[
-			{ kind: "turn", turn: turn("t1") },
-			{ kind: "delta", delta: { type: "text", itemId: "a1", append: "a" } },
-			{ kind: "delta", delta: { type: "text", itemId: "a1", append: "b" } },
-			{ kind: "item", item: agentMessage("a1", "ab"), turnId: "t1" },
+			{ type: "turn", turn: turn("t1") },
+			{ type: "delta", delta: { type: "text", itemId: "a1", append: "a" } },
+			{ type: "delta", delta: { type: "text", itemId: "a1", append: "b" } },
+			{ type: "item", item: agentMessage("a1", "ab"), turnId: "t1" },
 			{
-				kind: "turn",
+				type: "turn",
 				turn: turn("t1", { status: "completed", completedAtMs: 2 }),
 			},
-			{ kind: "session", session: { status: "idle" } },
+			{ type: "session", session: { status: "idle" } },
 		],
 	],
 };

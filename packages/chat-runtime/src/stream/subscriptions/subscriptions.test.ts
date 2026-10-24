@@ -24,16 +24,16 @@ import {
 const STREAMING_TURN: FakeHarnessScript = {
 	turns: [
 		[
-			{ kind: "turn", turn: turn("t1") },
-			{ kind: "delta", delta: { type: "text", itemId: "a1", append: "a" } },
-			{ kind: "delta", delta: { type: "text", itemId: "a1", append: "b" } },
-			{ kind: "delta", delta: { type: "text", itemId: "a1", append: "c" } },
-			{ kind: "item", item: agentMessage("a1", "abc"), turnId: "t1" },
+			{ type: "turn", turn: turn("t1") },
+			{ type: "delta", delta: { type: "text", itemId: "a1", append: "a" } },
+			{ type: "delta", delta: { type: "text", itemId: "a1", append: "b" } },
+			{ type: "delta", delta: { type: "text", itemId: "a1", append: "c" } },
+			{ type: "item", item: agentMessage("a1", "abc"), turnId: "t1" },
 			{
-				kind: "turn",
+				type: "turn",
 				turn: turn("t1", { status: "completed", completedAtMs: 2 }),
 			},
-			{ kind: "session", session: { status: "idle" } },
+			{ type: "session", session: { status: "idle" } },
 		],
 	],
 };
@@ -41,14 +41,14 @@ const STREAMING_TURN: FakeHarnessScript = {
 const SUBAGENT_TURN: FakeHarnessScript = {
 	turns: [
 		[
-			{ kind: "turn", turn: turn("t1") },
+			{ type: "turn", turn: turn("t1") },
 			{
-				kind: "item",
+				type: "item",
 				item: toolCall("subagent:c", { subagent: true, toolName: "subagent" }),
 				turnId: "t1",
 			},
 			{
-				kind: "item",
+				type: "item",
 				item: userMessage("sub:c:u", "task", {
 					parentItemId: "subagent:c",
 					from: "parent",
@@ -56,7 +56,7 @@ const SUBAGENT_TURN: FakeHarnessScript = {
 				turnId: "t1",
 			},
 			{
-				kind: "delta",
+				type: "delta",
 				delta: {
 					type: "text",
 					itemId: "sub:c:a",
@@ -65,7 +65,7 @@ const SUBAGENT_TURN: FakeHarnessScript = {
 				},
 			},
 			{
-				kind: "item",
+				type: "item",
 				item: {
 					...agentMessage("sub:c:a", "child"),
 					parentItemId: "subagent:c",
@@ -73,7 +73,7 @@ const SUBAGENT_TURN: FakeHarnessScript = {
 				turnId: "t1",
 			},
 			{
-				kind: "item",
+				type: "item",
 				item: toolCall("subagent:d", {
 					subagent: true,
 					parentItemId: "subagent:c",
@@ -81,24 +81,24 @@ const SUBAGENT_TURN: FakeHarnessScript = {
 				turnId: "t1",
 			},
 			{
-				kind: "delta",
+				type: "delta",
 				delta: { type: "background", itemId: "subagent:d", append: "ls" },
 			},
 			{
-				kind: "item",
+				type: "item",
 				item: toolCall("sub:d:t", { parentItemId: "subagent:d" }),
 				turnId: "t1",
 			},
-			{ kind: "item", item: toolCall("task-1"), turnId: "t1" },
+			{ type: "item", item: toolCall("task-1"), turnId: "t1" },
 			{
-				kind: "item",
+				type: "item",
 				item: toolCall("task-1:read", { parentItemId: "task-1" }),
 				turnId: "t1",
 			},
-			{ kind: "delta", delta: { type: "text", itemId: "a1", append: "main" } },
-			{ kind: "item", item: agentMessage("a1", "main"), turnId: "t1" },
+			{ type: "delta", delta: { type: "text", itemId: "a1", append: "main" } },
+			{ type: "item", item: agentMessage("a1", "main"), turnId: "t1" },
 			{
-				kind: "item",
+				type: "item",
 				item: approvalRequest("approval:sub:d:t", {
 					parentItemId: "subagent:d",
 					targetItemId: "sub:d:t",

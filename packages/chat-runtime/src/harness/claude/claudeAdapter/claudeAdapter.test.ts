@@ -86,7 +86,7 @@ async function nextTurn(
 	for (let index = 0; index < 20; index += 1) {
 		const next = await iterator.next();
 		if (next.done) throw new Error("stream ended");
-		if (next.value.kind === "turn") return next.value;
+		if (next.value.type === "turn") return next.value;
 	}
 	throw new Error("no turn event");
 }
@@ -113,7 +113,7 @@ describe("ClaudeAdapter", () => {
 		const secondTurn = await nextTurn(harness.iterator);
 		expect(secondTurn).toMatchObject({ turn: { status: "running" } });
 		expect(
-			secondTurn.kind === "turn" && firstTurn.kind === "turn"
+			secondTurn.type === "turn" && firstTurn.type === "turn"
 				? secondTurn.turn.id !== firstTurn.turn.id
 				: false,
 		).toBe(true);
@@ -126,9 +126,9 @@ describe("ClaudeAdapter", () => {
 			for (let index = 0; index < 20; index += 1) {
 				const next = await harness.iterator.next();
 				if (next.done) return;
-				if (next.value.kind === "turn") return;
+				if (next.value.type === "turn") return;
 				if (
-					next.value.kind === "session" &&
+					next.value.type === "session" &&
 					next.value.session.harnessSessionId
 				)
 					reported.push(next.value.session.harnessSessionId);
@@ -181,7 +181,7 @@ describe("ClaudeAdapter permission modes", () => {
 
 		const first = await iterator.next();
 		expect(first.value).toMatchObject({
-			kind: "session",
+			type: "session",
 			session: { modeId: "bypassPermissions" },
 		});
 		await Bun.sleep(0);
@@ -232,7 +232,7 @@ describe("ClaudeAdapter permission modes", () => {
 
 		const first = await iterator.next();
 		expect(first.value).toMatchObject({
-			kind: "session",
+			type: "session",
 			session: { modeId: "acceptEdits" },
 		});
 		await Bun.sleep(0);

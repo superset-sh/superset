@@ -33,21 +33,12 @@ function sleep(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function stripDelay(scripted: ScriptedEvent): AdapterEvent {
-	switch (scripted.kind) {
-		case "item":
-			return { kind: "item", item: scripted.item, turnId: scripted.turnId };
-		case "delta":
-			return { kind: "delta", delta: scripted.delta };
-		case "turn":
-			return { kind: "turn", turn: scripted.turn };
-		case "session":
-			return { kind: "session", session: scripted.session };
-	}
+function stripDelay({ delayMs: _, ...event }: ScriptedEvent): AdapterEvent {
+	return event;
 }
 
 function asPendingApproval(event: AdapterEvent): ApprovalRequest | null {
-	if (event.kind !== "item") return null;
+	if (event.type !== "item") return null;
 	const item = event.item;
 	if (item.kind !== "approval_request") return null;
 	if (!("status" in item) || item.status !== "pending") return null;
@@ -55,7 +46,7 @@ function asPendingApproval(event: AdapterEvent): ApprovalRequest | null {
 }
 
 function asRunningToolCall(event: AdapterEvent): ToolCall | null {
-	if (event.kind !== "item") return null;
+	if (event.type !== "item") return null;
 	const item = event.item;
 	if (item.kind !== "tool_call") return null;
 	if (!("status" in item) || item.status !== "running") return null;
@@ -139,7 +130,7 @@ export class FakeHarness implements HarnessAdapter {
 				status: "stale",
 				completedAtMs: canceledAtMs,
 			};
-			this.emit({ kind: "item", item: stale, turnId: pending.turnId });
+			this.emit({ type: "item", item: stale, turnId: pending.turnId });
 			pending.release();
 		}
 
@@ -150,13 +141,13 @@ export class FakeHarness implements HarnessAdapter {
 				status: "canceled",
 				completedAtMs: canceledAtMs,
 			};
-			this.emit({ kind: "item", item: canceled, turnId: running.turnId });
+			this.emit({ type: "item", item: canceled, turnId: running.turnId });
 		}
 
 		const turn = this.currentTurn;
 		if (turn?.status === "running") {
 			this.emit({
-				kind: "turn",
+				type: "turn",
 				turn: { ...turn, status: "interrupted", completedAtMs: canceledAtMs },
 			});
 		}
@@ -172,12 +163,12 @@ export class FakeHarness implements HarnessAdapter {
 			decision,
 			completedAtMs: Date.now(),
 		};
-		this.emit({ kind: "item", item: answered, turnId: pending.turnId });
+		this.emit({ type: "item", item: answered, turnId: pending.turnId });
 		pending.release();
 	}
 
 	setMode(modeId: string): void {
-		this.emit({ kind: "session", session: { modeId } });
+		this.emit({ type: "session", session: { modeId } });
 	}
 
 	async dispose(): Promise<void> {
@@ -206,7 +197,7 @@ export class FakeHarness implements HarnessAdapter {
 
 			const approval = asPendingApproval(event);
 			if (!approval) continue;
-			const turnId = event.kind === "item" ? event.turnId : "";
+			const turnId = event.type === "item" ? event.turnId : "";
 			await new Promise<void>((release) => {
 				this.pendingApprovals.set(approval.id, {
 					item: approval,
@@ -218,8 +209,8 @@ export class FakeHarness implements HarnessAdapter {
 	}
 
 	private emit(event: AdapterEvent): void {
-		if (event.kind === "turn") this.currentTurn = event.turn;
-		if (event.kind === "item" && event.item.kind === "tool_call") {
+		if (event.type === "turn") this.currentTurn = event.turn;
+		if (event.type === "item" && event.item.kind === "tool_call") {
 			const running = asRunningToolCall(event);
 			if (running) {
 				this.runningToolCalls.set(running.id, {

@@ -26,7 +26,7 @@ function translateFixture(name: ClaudeFixture): AdapterEvent[] {
 }
 
 function items(events: AdapterEvent[]): Item[] {
-	return events.flatMap((event) => (event.kind === "item" ? [event.item] : []));
+	return events.flatMap((event) => (event.type === "item" ? [event.item] : []));
 }
 
 function itemsOfKind(events: AdapterEvent[], kind: string): Item[] {
@@ -43,7 +43,7 @@ describe("ClaudeTranslator", () => {
 	test("text reply yields one running turn, reasoning, agent message, completion", () => {
 		const events = translateFixture("text-reply");
 		const turns = events.flatMap((event) =>
-			event.kind === "turn" ? [event.turn] : [],
+			event.type === "turn" ? [event.turn] : [],
 		);
 
 		expect(turns[0]?.status).toBe("running");
@@ -55,13 +55,13 @@ describe("ClaudeTranslator", () => {
 			text: "hello",
 		});
 		expect(itemsOfKind(events, "reasoning").length).toBeGreaterThan(0);
-		expect(events.some((event) => event.kind === "session")).toBe(true);
+		expect(events.some((event) => event.type === "session")).toBe(true);
 	});
 
 	test("streams text deltas that target the item the snapshot later replaces", () => {
 		const events = translateFixture("text-reply");
 		const deltas = events.flatMap((event) =>
-			event.kind === "delta" ? [event.delta] : [],
+			event.type === "delta" ? [event.delta] : [],
 		);
 		const messageIds = new Set(
 			itemsOfKind(events, "agent_message").map((item) => item.id),
@@ -113,7 +113,7 @@ describe("ClaudeTranslator", () => {
 		const events = translateFixture("edit-declined");
 		const settled = toolCalls(events, "Edit").at(-1) as { status: string };
 		const turns = events.flatMap((event) =>
-			event.kind === "turn" ? [event.turn] : [],
+			event.type === "turn" ? [event.turn] : [],
 		);
 
 		expect(settled.status).toBe("failed");
@@ -176,7 +176,7 @@ describe("ClaudeTranslator", () => {
 		expect(canceled.every((item) => item.status === "canceled")).toBe(true);
 		expect(canceled.some((item) => item.toolName === "Bash")).toBe(true);
 		expect(interrupted.at(-1)).toMatchObject({
-			kind: "turn",
+			type: "turn",
 			turn: { status: "interrupted" },
 		});
 
@@ -201,8 +201,8 @@ describe("ClaudeTranslator", () => {
 		let session: SessionState = { status: "starting", harness: "claude-code" };
 
 		for (const event of events) {
-			if (event.kind === "delta") continue;
-			if (event.kind === "session") {
+			if (event.type === "delta") continue;
+			if (event.type === "session") {
 				session = { ...session, ...event.session };
 				live.push(
 					runtime.journal.appendEnvelope(sessionId, {
@@ -212,7 +212,7 @@ describe("ClaudeTranslator", () => {
 				);
 				continue;
 			}
-			if (event.kind === "turn") {
+			if (event.type === "turn") {
 				live.push(
 					runtime.journal.appendEnvelope(sessionId, {
 						type: "turn",
@@ -245,7 +245,7 @@ describe("ClaudeTranslator", () => {
 		const events = translateFixture("bash-run");
 		const toolIds = new Set(itemsOfKind(events, "tool_call").map((i) => i.id));
 		const inputDeltas = events.flatMap((event) =>
-			event.kind === "delta" && event.delta.type === "tool_input"
+			event.type === "delta" && event.delta.type === "tool_input"
 				? [event.delta]
 				: [],
 		);
@@ -273,7 +273,7 @@ describe("ClaudeTranslator", () => {
 	test("keeps read-cache and creation-cache token counts distinct", () => {
 		const events = translateFixture("text-reply");
 		const usage = events.flatMap((event) =>
-			event.kind === "turn" && event.turn.usage ? [event.turn.usage] : [],
+			event.type === "turn" && event.turn.usage ? [event.turn.usage] : [],
 		);
 		const raw = loadFixture("text-reply").flatMap((message) => {
 			const envelope = message as {
@@ -334,11 +334,11 @@ describe("ClaudeTranslator", () => {
 		});
 
 		expect(events.at(-2)).toMatchObject({
-			kind: "turn",
+			type: "turn",
 			turn: { usage: { costUsd: 0 } },
 		});
 		expect(events.at(-1)).toEqual({
-			kind: "session",
+			type: "session",
 			session: { status: "idle" },
 		});
 	});

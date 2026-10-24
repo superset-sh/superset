@@ -19,13 +19,13 @@ import { createChatCallerFactory, createChatRouter } from "./router";
 const SCRIPT: FakeHarnessScript = {
 	turns: [
 		[
-			{ kind: "turn", turn: turn("t1") },
-			{ kind: "item", item: agentMessage("a1", "done"), turnId: "t1" },
+			{ type: "turn", turn: turn("t1") },
+			{ type: "item", item: agentMessage("a1", "done"), turnId: "t1" },
 			{
-				kind: "turn",
+				type: "turn",
 				turn: turn("t1", { status: "completed", completedAtMs: 2 }),
 			},
-			{ kind: "session", session: { status: "idle" } },
+			{ type: "session", session: { status: "idle" } },
 		],
 	],
 };

@@ -80,7 +80,7 @@ function startAdapter(): Harness {
 
 function notices(events: AdapterEvent[]): Notice[] {
 	return events.flatMap((event) =>
-		event.kind === "item" && event.item.kind === "notice"
+		event.type === "item" && event.item.kind === "notice"
 			? [event.item as Notice]
 			: [],
 	);
@@ -144,7 +144,7 @@ describe("codex adapter resilience", () => {
 		await harness.settle();
 
 		const messages = harness.events.flatMap((event) =>
-			event.kind === "item" && event.item.kind === "agent_message"
+			event.type === "item" && event.item.kind === "agent_message"
 				? [event.item]
 				: [],
 		);
@@ -265,7 +265,7 @@ describe("codex fixtures still map after the guards", () => {
 
 		expect(notices(events)).toEqual([]);
 		const calls = events.flatMap((event) =>
-			event.kind === "item" && event.item.kind === "tool_call"
+			event.type === "item" && event.item.kind === "tool_call"
 				? [event.item]
 				: [],
 		);

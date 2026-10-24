@@ -55,8 +55,8 @@ interface HarnessAdapter {
   setMode(modeId: string): void;
   dispose(): Promise<void>;
 }
-// AdapterEvent = { kind: "item"; item: Item } | { kind: "delta"; delta: Delta }
-//              | { kind: "turn"; turn: Turn } | { kind: "session"; session: Partial<SessionState> }
+// AdapterEvent = { type: "item"; item: Item } | { type: "delta"; delta: Delta }
+//              | { type: "turn"; turn: Turn } | { type: "session"; session: Partial<SessionState> }
 ```
 
 Adapters emit protocol shapes and nothing else — no cursors (journal assigns them), no persistence, no sockets. That is what makes them testable as pure `SDKMessage[] → AdapterEvent[]` functions.

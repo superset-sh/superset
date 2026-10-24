@@ -18,13 +18,13 @@ import {
 const SCRIPT: FakeHarnessScript = {
 	turns: [
 		[
-			{ kind: "turn", turn: turn("t1") },
-			{ kind: "item", item: agentMessage("a1", "done"), turnId: "t1" },
+			{ type: "turn", turn: turn("t1") },
+			{ type: "item", item: agentMessage("a1", "done"), turnId: "t1" },
 			{
-				kind: "turn",
+				type: "turn",
 				turn: turn("t1", { status: "completed", completedAtMs: 2 }),
 			},
-			{ kind: "session", session: { status: "idle" } },
+			{ type: "session", session: { status: "idle" } },
 		],
 	],
 };
@@ -331,21 +331,21 @@ describe("chat commands", () => {
 	test("rewindSession sends the edited message with the earlier conversation hidden in the same prompt", async () => {
 		const later = Date.now() + 60_000;
 		const scriptedTurn = (turnId: string, text: string) => [
-			{ kind: "turn" as const, turn: turn(turnId, { startedAtMs: later }) },
+			{ type: "turn" as const, turn: turn(turnId, { startedAtMs: later }) },
 			{
-				kind: "item" as const,
+				type: "item" as const,
 				item: { ...agentMessage(`${turnId}-reply`, text), startedAtMs: later },
 				turnId,
 			},
 			{
-				kind: "turn" as const,
+				type: "turn" as const,
 				turn: turn(turnId, {
 					status: "completed",
 					startedAtMs: later,
 					completedAtMs: later,
 				}),
 			},
-			{ kind: "session" as const, session: { status: "idle" as const } },
+			{ type: "session" as const, session: { status: "idle" as const } },
 		];
 		const scripts: FakeHarnessScript[] = [
 			{ turns: [scriptedTurn("t1", "one"), scriptedTurn("t2", "two")] },
@@ -427,9 +427,9 @@ describe("chat commands", () => {
 	test("rewindSession resumes an agent that can fork at a message, cut there, without a handoff", async () => {
 		const later = Date.now() + 60_000;
 		const reply = (turnId: string, messageId: string) => [
-			{ kind: "turn" as const, turn: turn(turnId, { startedAtMs: later }) },
+			{ type: "turn" as const, turn: turn(turnId, { startedAtMs: later }) },
 			{
-				kind: "item" as const,
+				type: "item" as const,
 				item: {
 					...agentMessage(`${turnId}-reply`, "done"),
 					startedAtMs: later,
@@ -438,14 +438,14 @@ describe("chat commands", () => {
 				turnId,
 			},
 			{
-				kind: "turn" as const,
+				type: "turn" as const,
 				turn: turn(turnId, {
 					status: "completed",
 					startedAtMs: later,
 					completedAtMs: later,
 				}),
 			},
-			{ kind: "session" as const, session: { status: "idle" as const } },
+			{ type: "session" as const, session: { status: "idle" as const } },
 		];
 		const cuts: (string | undefined)[] = [];
 		const resumes: unknown[] = [];
@@ -570,12 +570,12 @@ describe("chat commands", () => {
 						new CuttingHarness({
 							turns: [
 								[
-									{ kind: "turn", turn: turn("t9") },
+									{ type: "turn", turn: turn("t9") },
 									{
-										kind: "turn",
+										type: "turn",
 										turn: turn("t9", { status: "completed" }),
 									},
-									{ kind: "session", session: { status: "idle" } },
+									{ type: "session", session: { status: "idle" } },
 								],
 							],
 						}),
@@ -625,12 +625,12 @@ describe("chat commands", () => {
 						new CuttingHarness({
 							turns: [
 								[
-									{ kind: "turn", turn: turn("t9") },
+									{ type: "turn", turn: turn("t9") },
 									{
-										kind: "turn",
+										type: "turn",
 										turn: turn("t9", { status: "completed" }),
 									},
-									{ kind: "session", session: { status: "idle" } },
+									{ type: "session", session: { status: "idle" } },
 								],
 							],
 						}),
@@ -686,17 +686,17 @@ describe("chat commands", () => {
 
 	test("rewindSession closes the session it opened when setting it up fails", async () => {
 		const reply = [
-			{ kind: "turn" as const, turn: turn("t1") },
+			{ type: "turn" as const, turn: turn("t1") },
 			{
-				kind: "item" as const,
+				type: "item" as const,
 				item: agentMessage("t1-reply", "hi"),
 				turnId: "t1",
 			},
 			{
-				kind: "turn" as const,
+				type: "turn" as const,
 				turn: turn("t1", { status: "completed" }),
 			},
-			{ kind: "session" as const, session: { status: "idle" as const } },
+			{ type: "session" as const, session: { status: "idle" as const } },
 		];
 		let created = 0;
 		class UnreachableHarness extends FakeHarness {

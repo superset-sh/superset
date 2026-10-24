@@ -25,13 +25,13 @@ function turnScript(
 	itemId: string,
 ): FakeHarnessScript["turns"][number] {
 	return [
-		{ kind: "turn", turn: turn(turnId) },
-		{ kind: "item", item: agentMessage(itemId, "done"), turnId },
+		{ type: "turn", turn: turn(turnId) },
+		{ type: "item", item: agentMessage(itemId, "done"), turnId },
 		{
-			kind: "turn",
+			type: "turn",
 			turn: turn(turnId, { status: "completed", completedAtMs: 2 }),
 		},
-		{ kind: "session", session: { status: "idle" } },
+		{ type: "session", session: { status: "idle" } },
 	];
 }
 
@@ -63,14 +63,14 @@ describe("createSessionClient", () => {
 		const { runtime, transport, server } = startStack({
 			turns: [
 				[
-					{ kind: "turn", turn: turn("t1") },
+					{ type: "turn", turn: turn("t1") },
 					{
-						kind: "item",
+						type: "item",
 						item: toolCall("subagent:c", { subagent: true }),
 						turnId: "t1",
 					},
 					{
-						kind: "item",
+						type: "item",
 						item: {
 							...agentMessage("sub:c:a", "child"),
 							parentItemId: "subagent:c",
@@ -78,10 +78,10 @@ describe("createSessionClient", () => {
 						turnId: "t1",
 					},
 					{
-						kind: "turn",
+						type: "turn",
 						turn: turn("t1", { status: "completed", completedAtMs: 2 }),
 					},
-					{ kind: "session", session: { status: "idle" } },
+					{ type: "session", session: { status: "idle" } },
 				],
 			],
 		});

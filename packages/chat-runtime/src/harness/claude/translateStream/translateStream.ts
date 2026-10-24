@@ -136,7 +136,7 @@ export class ClaudeTranslator {
 
 		if (this.turnId) {
 			events.push({
-				kind: "turn",
+				type: "turn",
 				turn: {
 					id: this.turnId,
 					status: "interrupted",
@@ -157,7 +157,7 @@ export class ClaudeTranslator {
 		if (subtype === "init") {
 			return [
 				{
-					kind: "session",
+					type: "session",
 					session: {
 						harness: HARNESS_ID,
 						status: "running",
@@ -327,20 +327,20 @@ export class ClaudeTranslator {
 		if (deltaType === "text_delta" || deltaType === "thinking_delta") {
 			const append = asString(delta.text) ?? asString(delta.thinking) ?? "";
 			if (!append) return [];
-			return [{ kind: "delta", delta: { type: "text", itemId, append } }];
+			return [{ type: "delta", delta: { type: "text", itemId, append } }];
 		}
 
 		if (deltaType === "input_json_delta") {
 			const append = asString(delta.partial_json) ?? "";
 			if (!append) return [];
-			return [{ kind: "delta", delta: { type: "tool_input", itemId, append } }];
+			return [{ type: "delta", delta: { type: "tool_input", itemId, append } }];
 		}
 
 		return [];
 	}
 
 	private sessionIdle(): AdapterEvent {
-		return { kind: "session", session: { status: "idle" } };
+		return { type: "session", session: { status: "idle" } };
 	}
 
 	private result(envelope: Json): AdapterEvent[] {
@@ -382,7 +382,7 @@ export class ClaudeTranslator {
 		this.turnId = null;
 		this.settledBlocks.clear();
 		this.streamingBlocks.clear();
-		return [{ kind: "turn", turn }, this.sessionIdle()];
+		return [{ type: "turn", turn }, this.sessionIdle()];
 	}
 
 	private currentMessageId = "";
@@ -394,7 +394,7 @@ export class ClaudeTranslator {
 		this.turnStartedAtMs = this.now();
 		return [
 			{
-				kind: "turn",
+				type: "turn",
 				turn: {
 					id: this.turnId,
 					status: "running",
@@ -441,7 +441,7 @@ export class ClaudeTranslator {
 		parentItemId?: string,
 	): AdapterEvent {
 		return {
-			kind: "item",
+			type: "item",
 			item: parentItemId ? { ...item, parentItemId } : item,
 			turnId: this.turnId ?? "unattributed",
 		};

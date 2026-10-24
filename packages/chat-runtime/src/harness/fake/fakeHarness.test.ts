@@ -28,21 +28,21 @@ function drain(
 
 function approvalScript(): FakeHarnessScript {
 	return {
-		start: [{ kind: "session", session: sessionState({ status: "idle" }) }],
+		start: [{ type: "session", session: sessionState({ status: "idle" }) }],
 		turns: [
 			[
-				{ kind: "item", item: userMessage("u1", "hi"), turnId: "t1" },
-				{ kind: "turn", turn: turn("t1") },
-				{ kind: "item", item: toolCall("c1"), turnId: "t1" },
-				{ kind: "item", item: approvalRequest("ap1"), turnId: "t1" },
+				{ type: "item", item: userMessage("u1", "hi"), turnId: "t1" },
+				{ type: "turn", turn: turn("t1") },
+				{ type: "item", item: toolCall("c1"), turnId: "t1" },
+				{ type: "item", item: approvalRequest("ap1"), turnId: "t1" },
 				{
-					kind: "item",
+					type: "item",
 					item: toolCall("c1", { status: "completed" }),
 					turnId: "t1",
 				},
-				{ kind: "item", item: agentMessage("a1", "done"), turnId: "t1" },
+				{ type: "item", item: agentMessage("a1", "done"), turnId: "t1" },
 				{
-					kind: "turn",
+					type: "turn",
 					turn: turn("t1", { status: "completed", completedAtMs: 2 }),
 				},
 			],
@@ -53,12 +53,12 @@ function approvalScript(): FakeHarnessScript {
 describe("FakeHarness", () => {
 	test("yields start events, then a scripted turn per prompt", async () => {
 		const harness = new FakeHarness({
-			start: [{ kind: "session", session: sessionState({ status: "idle" }) }],
+			start: [{ type: "session", session: sessionState({ status: "idle" }) }],
 			turns: [
 				[
-					{ kind: "item", item: userMessage("u1", "hi"), turnId: "t1" },
-					{ kind: "delta", delta: { type: "text", itemId: "a1", append: "d" } },
-					{ kind: "item", item: agentMessage("a1", "done"), turnId: "t1" },
+					{ type: "item", item: userMessage("u1", "hi"), turnId: "t1" },
+					{ type: "delta", delta: { type: "text", itemId: "a1", append: "d" } },
+					{ type: "item", item: agentMessage("a1", "done"), turnId: "t1" },
 				],
 			],
 		});
@@ -67,7 +67,7 @@ describe("FakeHarness", () => {
 		expect(await drain(iterator, 1)).toHaveLength(1);
 		harness.prompt([{ type: "text", text: "hi" }]);
 		const events = await drain(iterator, 3);
-		expect(events.map((event) => event.kind)).toEqual([
+		expect(events.map((event) => event.type)).toEqual([
 			"item",
 			"delta",
 			"item",
@@ -83,18 +83,18 @@ describe("FakeHarness", () => {
 
 		const gated = await drain(iterator, 4);
 		expect(gated.at(-1)).toMatchObject({
-			kind: "item",
+			type: "item",
 			item: { id: "ap1", status: "pending" },
 		});
 
 		harness.respondToApproval("ap1", { type: "accept" });
 		const rest = await drain(iterator, 4);
 		expect(rest[0]).toMatchObject({
-			kind: "item",
+			type: "item",
 			item: { id: "ap1", status: "answered", decision: { type: "accept" } },
 		});
 		expect(rest.at(-1)).toMatchObject({
-			kind: "turn",
+			type: "turn",
 			turn: { id: "t1", status: "completed" },
 		});
 		await harness.dispose();
@@ -104,10 +104,10 @@ describe("FakeHarness", () => {
 		const harness = new FakeHarness({
 			turns: [
 				[
-					{ kind: "turn", turn: turn("t1") },
-					{ kind: "item", item: toolCall("c1"), turnId: "t1" },
+					{ type: "turn", turn: turn("t1") },
+					{ type: "item", item: toolCall("c1"), turnId: "t1" },
 					{
-						kind: "item",
+						type: "item",
 						item: agentMessage("a1", "never"),
 						turnId: "t1",
 						delayMs: 20,
@@ -122,11 +122,11 @@ describe("FakeHarness", () => {
 		harness.cancelTurn();
 		const settled = await drain(iterator, 2);
 		expect(settled[0]).toMatchObject({
-			kind: "item",
+			type: "item",
 			item: { id: "c1", status: "canceled" },
 		});
 		expect(settled[1]).toMatchObject({
-			kind: "turn",
+			type: "turn",
 			turn: { id: "t1", status: "interrupted" },
 		});
 
@@ -143,7 +143,7 @@ describe("FakeHarness", () => {
 
 		harness.cancelTurn();
 		const settled = await drain(iterator, 3);
-		expect(settled.map((event) => event.kind)).toEqual([
+		expect(settled.map((event) => event.type)).toEqual([
 			"item",
 			"item",
 			"turn",

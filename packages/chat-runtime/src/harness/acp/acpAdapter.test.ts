@@ -548,15 +548,15 @@ function startAdapter(
 
 function itemsOf(events: AdapterEvent[]) {
 	return events
-		.filter((e) => e.kind === "item")
-		.map((e) => (e.kind === "item" ? e.item : null))
+		.filter((e) => e.type === "item")
+		.map((e) => (e.type === "item" ? e.item : null))
 		.filter((item) => item !== null);
 }
 
 function sessionsOf(events: AdapterEvent[]) {
 	return events
-		.filter((e) => e.kind === "session")
-		.map((e) => (e.kind === "session" ? e.session : null))
+		.filter((e) => e.type === "session")
+		.map((e) => (e.type === "session" ? e.session : null))
 		.filter((session) => session !== null);
 }
 
@@ -584,14 +584,14 @@ describe("AcpAdapter", () => {
 		adapter.prompt([{ type: "text", text: "hi" }]);
 		await flush();
 
-		const sessions = events.filter((e) => e.kind === "session");
+		const sessions = events.filter((e) => e.type === "session");
 		expect(
-			sessions.map((e) => (e.kind === "session" ? e.session.status : null)),
+			sessions.map((e) => (e.type === "session" ? e.session.status : null)),
 		).toContain("idle");
 
 		const items = events
-			.filter((e) => e.kind === "item")
-			.map((e) => (e.kind === "item" ? e.item : null));
+			.filter((e) => e.type === "item")
+			.map((e) => (e.type === "item" ? e.item : null));
 		// The item is re-emitted with full text when the text stream flushes.
 		const agentMessages = items.filter((i) => i?.kind === "agent_message");
 		const agentMessage = agentMessages[agentMessages.length - 1];
@@ -604,12 +604,12 @@ describe("AcpAdapter", () => {
 			"read",
 		);
 
-		const textDeltas = events.filter((e) => e.kind === "delta");
+		const textDeltas = events.filter((e) => e.type === "delta");
 		expect(textDeltas.length).toBe(2);
 
 		const turns = events
-			.filter((e) => e.kind === "turn")
-			.map((e) => (e.kind === "turn" ? e.turn.status : null));
+			.filter((e) => e.type === "turn")
+			.map((e) => (e.type === "turn" ? e.turn.status : null));
 		expect(turns).toContain("running");
 		expect(turns).toContain("completed");
 
@@ -656,7 +656,7 @@ describe("AcpAdapter", () => {
 		adapter.prompt([{ type: "text", text: "first" }]);
 		await flush();
 		const turns = () =>
-			events.flatMap((e) => (e.kind === "turn" ? [e.turn] : []));
+			events.flatMap((e) => (e.type === "turn" ? [e.turn] : []));
 		const turnId = turns().at(-1)?.id;
 
 		expect(adapter.canSteer()).toBe(true);
@@ -684,7 +684,7 @@ describe("AcpAdapter", () => {
 		await flush();
 
 		const turn = events
-			.flatMap((e) => (e.kind === "turn" ? [e.turn] : []))
+			.flatMap((e) => (e.type === "turn" ? [e.turn] : []))
 			.at(-1);
 		expect(turn?.status).toBe("completed");
 		expect(sessionsOf(events).at(-1)?.status).toBe("idle");
@@ -701,7 +701,7 @@ describe("AcpAdapter", () => {
 		adapter.prompt([{ type: "text", text: "hi" }]);
 		await flush();
 		const lastTurn = () =>
-			events.flatMap((e) => (e.kind === "turn" ? [e.turn] : [])).at(-1);
+			events.flatMap((e) => (e.type === "turn" ? [e.turn] : [])).at(-1);
 
 		agent.notify("sess-1", {
 			sessionUpdate: "state_update",
@@ -738,7 +738,7 @@ describe("AcpAdapter", () => {
 
 		expect(await steered).toBe(true);
 		await flush();
-		const turns = events.flatMap((e) => (e.kind === "turn" ? [e.turn] : []));
+		const turns = events.flatMap((e) => (e.type === "turn" ? [e.turn] : []));
 		expect(new Set(turns.map((turn) => turn.id)).size).toBe(1);
 		expect(turns.at(-1)?.status).toBe("completed");
 		expect(
@@ -756,7 +756,7 @@ describe("AcpAdapter", () => {
 		adapter.prompt([{ type: "text", text: "first" }]);
 		await flush();
 		const turns = () =>
-			events.flatMap((e) => (e.kind === "turn" ? [e.turn] : []));
+			events.flatMap((e) => (e.type === "turn" ? [e.turn] : []));
 		const firstId = turns().at(-1)?.id;
 
 		agent.holdInsertions = true;
@@ -806,7 +806,7 @@ describe("AcpAdapter", () => {
 		expect(await steered).toBe(true);
 		await flush();
 
-		const turns = events.flatMap((e) => (e.kind === "turn" ? [e.turn] : []));
+		const turns = events.flatMap((e) => (e.type === "turn" ? [e.turn] : []));
 		expect(new Set(turns.map((turn) => turn.id)).size).toBe(1);
 		expect(turns.at(-1)?.status).toBe("completed");
 		expect(sessionsOf(events).at(-1)?.status).toBe("idle");
@@ -877,8 +877,8 @@ describe("AcpAdapter", () => {
 		await flush();
 
 		const itemTurnIds = events
-			.filter((e) => e.kind === "item")
-			.map((e) => (e.kind === "item" ? e.turnId : ""));
+			.filter((e) => e.type === "item")
+			.map((e) => (e.type === "item" ? e.turnId : ""));
 		expect(itemTurnIds.length).toBeGreaterThan(0);
 		expect(itemTurnIds.every((id) => id.length > 0)).toBe(true);
 
@@ -996,8 +996,8 @@ describe("AcpAdapter", () => {
 		await flush(40);
 
 		const items = events
-			.filter((e) => e.kind === "item")
-			.map((e) => (e.kind === "item" ? e.item : null));
+			.filter((e) => e.type === "item")
+			.map((e) => (e.type === "item" ? e.item : null));
 
 		// The first one is the report: it used to be dropped entirely.
 		const userMessage = items.find((i) => i?.kind === "user_message");
@@ -1044,9 +1044,9 @@ describe("AcpAdapter", () => {
 				: (i.text ?? "");
 		};
 		const items = events
-			.filter((e) => e.kind === "item")
+			.filter((e) => e.type === "item")
 			.map((e) =>
-				e.kind === "item" ? { turnId: e.turnId, item: e.item } : null,
+				e.type === "item" ? { turnId: e.turnId, item: e.item } : null,
 			)
 			.filter((e) => e !== null);
 
@@ -1077,8 +1077,8 @@ describe("AcpAdapter", () => {
 
 		// Turn starts have to separate too, or the groups sort by turn id.
 		const starts = events
-			.filter((e) => e.kind === "turn")
-			.map((e) => (e.kind === "turn" ? e.turn.startedAtMs : 0));
+			.filter((e) => e.type === "turn")
+			.map((e) => (e.type === "turn" ? e.turn.startedAtMs : 0));
 		expect(starts.length).toBe(2);
 		expect(starts[1]).toBeGreaterThan(starts[0] as number);
 
@@ -1110,17 +1110,17 @@ describe("AcpAdapter", () => {
 			"session/new",
 		]);
 		const statuses = events
-			.filter((e) => e.kind === "session")
-			.map((e) => (e.kind === "session" ? e.session.status : null));
+			.filter((e) => e.type === "session")
+			.map((e) => (e.type === "session" ? e.session.status : null));
 		expect(statuses).toContain("idle");
 		expect(statuses).not.toContain("dead");
 
 		// The caller asked for sess-1 and did not get it; it has to be told which
 		// session the chat actually ended up on, or its stored id stays dead.
 		const bound = events
-			.filter((e) => e.kind === "session")
+			.filter((e) => e.type === "session")
 			.map((e) =>
-				e.kind === "session" ? e.session.harnessSessionId : undefined,
+				e.type === "session" ? e.session.harnessSessionId : undefined,
 			)
 			.filter((id) => id !== undefined)
 			.pop();
@@ -1128,8 +1128,8 @@ describe("AcpAdapter", () => {
 
 		// Quietly: an error the reader cannot act on is worse than a plain note.
 		const notice = events
-			.filter((e) => e.kind === "item")
-			.map((e) => (e.kind === "item" ? e.item : null))
+			.filter((e) => e.type === "item")
+			.map((e) => (e.type === "item" ? e.item : null))
 			.find((i) => i?.kind === "notice");
 		expect(notice && "noticeKind" in notice ? notice.noticeKind : "").toBe(
 			"info",
@@ -1175,8 +1175,8 @@ describe("AcpAdapter", () => {
 
 			// Whatever it settled on, the session still opens and works.
 			const statuses = events
-				.filter((e) => e.kind === "session")
-				.map((e) => (e.kind === "session" ? e.session.status : null));
+				.filter((e) => e.type === "session")
+				.map((e) => (e.type === "session" ? e.session.status : null));
 			expect(statuses).toContain("idle");
 			expect(statuses).not.toContain("dead");
 			await adapter.dispose();
@@ -1275,7 +1275,7 @@ describe("AcpAdapter", () => {
 		await flush(40);
 		expect(replayed.sent.map((f) => f.method)).toContain("session/resume");
 		expect(itemsOf(quietEvents)).toEqual([]);
-		expect(quietEvents.filter((event) => event.kind === "delta")).toEqual([]);
+		expect(quietEvents.filter((event) => event.type === "delta")).toEqual([]);
 		await quiet.dispose();
 	});
 
@@ -1338,8 +1338,8 @@ describe("AcpAdapter", () => {
 		await flush();
 
 		const sessions = events
-			.filter((e) => e.kind === "session")
-			.map((e) => (e.kind === "session" ? e.session : null));
+			.filter((e) => e.type === "session")
+			.map((e) => (e.type === "session" ? e.session : null));
 		const commands = sessions
 			.map((s) => s?.availableCommands)
 			.filter((c) => c !== undefined)
@@ -1388,8 +1388,8 @@ describe("AcpAdapter", () => {
 		await flush();
 
 		const userMessages = events
-			.filter((e) => e.kind === "item")
-			.map((e) => (e.kind === "item" ? e.item : null))
+			.filter((e) => e.type === "item")
+			.map((e) => (e.type === "item" ? e.item : null))
 			.filter((i) => i?.kind === "user_message");
 		expect(userMessages).toEqual([]);
 
@@ -1415,8 +1415,8 @@ describe("AcpAdapter", () => {
 		await flush();
 
 		const approval = events
-			.filter((e) => e.kind === "item")
-			.map((e) => (e.kind === "item" ? e.item : null))
+			.filter((e) => e.type === "item")
+			.map((e) => (e.type === "item" ? e.item : null))
 			.find((i) => i?.kind === "approval_request");
 		expect(approval?.id).toBe("approval:tc-1");
 
@@ -1703,7 +1703,7 @@ describe("AcpAdapter", () => {
 		);
 		expect(approvals.at(-1)).toMatchObject({ status: "stale" });
 		const statuses = events.flatMap((e) =>
-			e.kind === "session" && e.session.status ? [e.session.status] : [],
+			e.type === "session" && e.session.status ? [e.session.status] : [],
 		);
 		expect(statuses.at(-1)).toBe("running");
 
@@ -1866,7 +1866,7 @@ describe("AcpAdapter on protocol v2", () => {
 		adapter.prompt([{ type: "text", text: "hi" }]);
 		await flush();
 		const lastTurn = () =>
-			events.flatMap((e) => (e.kind === "turn" ? [e.turn] : [])).at(-1);
+			events.flatMap((e) => (e.type === "turn" ? [e.turn] : [])).at(-1);
 
 		expect(lastTurn()?.status).toBe("running");
 		expect(sessionsOf(events).at(-1)?.status).toBe("running");
@@ -1907,7 +1907,7 @@ describe("AcpAdapter on protocol v2", () => {
 		});
 		await flush();
 		const turn = events
-			.flatMap((e) => (e.kind === "turn" ? [e.turn] : []))
+			.flatMap((e) => (e.type === "turn" ? [e.turn] : []))
 			.at(-1);
 		expect(turn?.status).toBe("interrupted");
 
@@ -1930,7 +1930,7 @@ describe("AcpAdapter on protocol v2", () => {
 		});
 		await flush();
 		const turn = events
-			.flatMap((e) => (e.kind === "turn" ? [e.turn] : []))
+			.flatMap((e) => (e.type === "turn" ? [e.turn] : []))
 			.at(-1);
 		expect(turn?.status).toBe("failed");
 		expect(turn?.error?.message).toBe("provider overloaded");
@@ -1947,7 +1947,7 @@ describe("AcpAdapter on protocol v2", () => {
 		await flush();
 
 		const turn = events
-			.flatMap((e) => (e.kind === "turn" ? [e.turn] : []))
+			.flatMap((e) => (e.type === "turn" ? [e.turn] : []))
 			.at(-1);
 		expect(turn?.status).toBe("completed");
 
@@ -1967,7 +1967,7 @@ describe("AcpAdapter on protocol v2", () => {
 			stopReason: "end_turn",
 		});
 		await flush();
-		const turnEvents = () => events.filter((e) => e.kind === "turn").length;
+		const turnEvents = () => events.filter((e) => e.type === "turn").length;
 		const before = turnEvents();
 
 		agent.notify("sess-1", { sessionUpdate: "state_update", state: "running" });
@@ -2929,7 +2929,7 @@ describe("AcpAdapter on protocol v2", () => {
 		adapter.prompt([{ type: "text", text: "go" }]);
 		await flush(16);
 		const turns = () =>
-			events.flatMap((event) => (event.kind === "turn" ? [event.turn] : []));
+			events.flatMap((event) => (event.type === "turn" ? [event.turn] : []));
 		expect(turns().pop()?.status).toBe("running");
 
 		adapter.cancelTurn();
@@ -3054,7 +3054,7 @@ describe("AcpAdapter on protocol v2", () => {
 		await flush();
 
 		const lists = events.flatMap((event) =>
-			event.kind === "session" && event.session.backgroundTasks
+			event.type === "session" && event.session.backgroundTasks
 				? [event.session.backgroundTasks.map((task) => task.name)]
 				: [],
 		);
@@ -3093,7 +3093,7 @@ describe("AcpAdapter on protocol v2", () => {
 		await flush();
 
 		const lists = events.flatMap((event) =>
-			event.kind === "session" && event.session.backgroundTasks
+			event.type === "session" && event.session.backgroundTasks
 				? [event.session.backgroundTasks.map((task) => task.name)]
 				: [],
 		);
@@ -3107,7 +3107,7 @@ describe("AcpAdapter on protocol v2", () => {
 		});
 		await flush();
 		const names = events.flatMap((event) =>
-			event.kind === "session" && event.session.backgroundTasks
+			event.type === "session" && event.session.backgroundTasks
 				? event.session.backgroundTasks.map((task) => task.name)
 				: [],
 		);
@@ -3186,7 +3186,7 @@ describe("AcpAdapter on protocol v2", () => {
 		await flush();
 
 		const recorded = events.flatMap((event) =>
-			event.kind === "item" && event.item.kind === "agent_message"
+			event.type === "item" && event.item.kind === "agent_message"
 				? [(event.item as { text: string }).text]
 				: [],
 		);
@@ -3347,7 +3347,7 @@ describe("AcpAdapter on protocol v2", () => {
 			status: "completed",
 		});
 		const lists = events.flatMap((event) =>
-			event.kind === "session" && event.session.backgroundTasks
+			event.type === "session" && event.session.backgroundTasks
 				? [
 						event.session.backgroundTasks.map(
 							(task) => `${task.kind}:${task.name}`,
@@ -3357,7 +3357,7 @@ describe("AcpAdapter on protocol v2", () => {
 		);
 		expect(lists).toEqual([["subagent:Count files"], []]);
 		const steps = events.flatMap((event) =>
-			event.kind === "delta" && event.delta.type === "background"
+			event.type === "delta" && event.delta.type === "background"
 				? [event.delta]
 				: [],
 		);
@@ -3427,7 +3427,7 @@ describe("AcpAdapter on protocol v2", () => {
 		await flush();
 
 		const textDeltas = events.flatMap((event) =>
-			event.kind === "delta" && event.delta.type === "text"
+			event.type === "delta" && event.delta.type === "text"
 				? [event.delta]
 				: [],
 		);
@@ -3626,7 +3626,7 @@ describe("AcpAdapter on protocol v2", () => {
 		await flush();
 
 		const tasks = events.flatMap((event) =>
-			event.kind === "session" && event.session.backgroundTasks
+			event.type === "session" && event.session.backgroundTasks
 				? event.session.backgroundTasks
 				: [],
 		);
@@ -3734,7 +3734,7 @@ describe("AcpAdapter on protocol v2", () => {
 		await flush();
 
 		const titles = events.flatMap((event) =>
-			event.kind === "session" && event.session.title
+			event.type === "session" && event.session.title
 				? [event.session.title]
 				: [],
 		);
@@ -4396,7 +4396,7 @@ describe("AcpAdapter on protocol v2", () => {
 			).toBe("running");
 			expect(
 				events.some(
-					(event) => event.kind === "turn" && event.turn.status !== "running",
+					(event) => event.type === "turn" && event.turn.status !== "running",
 				),
 			).toBe(false);
 			expect(subagentItem(events, "subagent:child-1")?.status).toBe("running");
@@ -4522,7 +4522,7 @@ describe("AcpAdapter on protocol v2", () => {
 				await flush();
 
 				const steps = events.flatMap((event) =>
-					event.kind === "delta" && event.delta.type === "background"
+					event.type === "delta" && event.delta.type === "background"
 						? [event.delta.append]
 						: [],
 				);
@@ -4969,7 +4969,7 @@ describe("AcpAdapter on protocol v2", () => {
 		const { adapter, events } = startAdapter(agent, "sess-1");
 		await flush(40);
 		const replayed = new Set(
-			events.flatMap((e) => (e.kind === "turn" ? [e.turn.id] : [])),
+			events.flatMap((e) => (e.type === "turn" ? [e.turn.id] : [])),
 		);
 
 		adapter.prompt([{ type: "text", text: "continue" }]);
@@ -4977,7 +4977,7 @@ describe("AcpAdapter on protocol v2", () => {
 
 		const starts = (live: boolean) =>
 			events.flatMap((e) =>
-				e.kind === "turn" && replayed.has(e.turn.id) !== live
+				e.type === "turn" && replayed.has(e.turn.id) !== live
 					? [e.turn.startedAtMs]
 					: [],
 			);
@@ -5272,7 +5272,7 @@ describe("AcpAdapter attachments", () => {
 		expect(promptBlocks(agent)).toEqual([]);
 		const told = events.some(
 			(e) =>
-				e.kind === "item" &&
+				e.type === "item" &&
 				"text" in e.item &&
 				/missing\.png/.test(String(e.item.text)),
 		);
@@ -5644,7 +5644,7 @@ describe("AcpAdapter when the agent fails", () => {
 		agent.exit(1);
 		await flush();
 
-		const turns = events.flatMap((e) => (e.kind === "turn" ? [e.turn] : []));
+		const turns = events.flatMap((e) => (e.type === "turn" ? [e.turn] : []));
 		expect(turns.at(-1)?.status).toBe("failed");
 		expect(sessionsOf(events).at(-1)?.status).toBe("dead");
 

@@ -201,7 +201,7 @@ export class ClaudeAdapter implements HarnessAdapter {
 				(startOptions.resume ? undefined : DEFAULT_CLAUDE_MODE),
 		);
 		this.events.push({
-			kind: "session",
+			type: "session",
 			session: { modeId: this.modeId, availableModes: [...CLAUDE_MODES] },
 		});
 		void this.begin(startOptions, translator);
@@ -299,11 +299,11 @@ export class ClaudeAdapter implements HarnessAdapter {
 		const previous = this.modeId;
 		const next = claudeMode(modeId);
 		this.modeId = next;
-		this.events.push({ kind: "session", session: { modeId: next } });
+		this.events.push({ type: "session", session: { modeId: next } });
 		void this.session?.setPermissionMode?.(next).catch(() => {
 			if (this.modeId !== next) return;
 			this.modeId = previous;
-			this.events.push({ kind: "session", session: { modeId: previous } });
+			this.events.push({ type: "session", session: { modeId: previous } });
 		});
 	}
 
@@ -344,7 +344,7 @@ export class ClaudeAdapter implements HarnessAdapter {
 		if (typeof sessionId !== "string" || sessionId === this.sessionId) return;
 		this.sessionId = sessionId;
 		this.events.push({
-			kind: "session",
+			type: "session",
 			session: { harnessSessionId: sessionId },
 		});
 	}
@@ -377,7 +377,7 @@ export class ClaudeAdapter implements HarnessAdapter {
 			...(decision ? { decision } : {}),
 		};
 		this.events.push({
-			kind: "item",
+			type: "item",
 			item,
 			turnId: this.translator?.currentTurnId ?? "unattributed",
 		});

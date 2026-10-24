@@ -69,16 +69,16 @@ async function replay(
 }
 
 function items(events: AdapterEvent[]): Item[] {
-	return events.flatMap((event) => (event.kind === "item" ? [event.item] : []));
+	return events.flatMap((event) => (event.type === "item" ? [event.item] : []));
 }
 
 function turns(events: AdapterEvent[]): Turn[] {
-	return events.flatMap((event) => (event.kind === "turn" ? [event.turn] : []));
+	return events.flatMap((event) => (event.type === "turn" ? [event.turn] : []));
 }
 
 function sessions(events: AdapterEvent[]): Partial<SessionState>[] {
 	return events.flatMap((event) =>
-		event.kind === "session" ? [event.session] : [],
+		event.type === "session" ? [event.session] : [],
 	);
 }
 
@@ -141,9 +141,9 @@ describe("codexAdapter fixtures", () => {
 		expect(settled.text).toBe("hello");
 		expect(settled.completedAtMs).toBeGreaterThan(0);
 
-		expect(events.filter((event) => event.kind === "delta")).toEqual([
+		expect(events.filter((event) => event.type === "delta")).toEqual([
 			{
-				kind: "delta",
+				type: "delta",
 				delta: { type: "text", itemId: settled.id, append: "hello" },
 			},
 		]);
@@ -165,7 +165,7 @@ describe("codexAdapter fixtures", () => {
 		for (const name of ["text", "command", "approval"] as const) {
 			const { events } = await replay(name, {
 				onEvent: (event, adapter) => {
-					if (event.kind !== "item") return;
+					if (event.type !== "item") return;
 					if (event.item.kind !== "approval_request") return;
 					const approval = event.item as ApprovalRequest;
 					if (approval.status !== "pending") return;
@@ -240,7 +240,7 @@ describe("codexAdapter fixtures", () => {
 		const answered: string[] = [];
 		const { events } = await replay("approval", {
 			onEvent: (event, adapter) => {
-				if (event.kind !== "item") return;
+				if (event.type !== "item") return;
 				if (event.item.kind !== "approval_request") return;
 				const approval = event.item as ApprovalRequest;
 				if (approval.status !== "pending") return;
@@ -287,7 +287,7 @@ describe("codexAdapter fixtures", () => {
 		let canceled = false;
 		const { events, player } = await replay("interrupt", {
 			onEvent: (event, adapter) => {
-				if (canceled || event.kind !== "delta") return;
+				if (canceled || event.type !== "delta") return;
 				canceled = true;
 				adapter.cancelTurn();
 			},

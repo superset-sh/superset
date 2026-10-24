@@ -37,13 +37,13 @@ function turnScript(
 	itemId: string,
 ): FakeHarnessScript["turns"][number] {
 	return [
-		{ kind: "turn", turn: turn(turnId) },
-		{ kind: "item", item: agentMessage(itemId, "done"), turnId },
+		{ type: "turn", turn: turn(turnId) },
+		{ type: "item", item: agentMessage(itemId, "done"), turnId },
 		{
-			kind: "turn",
+			type: "turn",
 			turn: turn(turnId, { status: "completed", completedAtMs: 2 }),
 		},
-		{ kind: "session", session: { status: "idle" } },
+		{ type: "session", session: { status: "idle" } },
 	];
 }
 

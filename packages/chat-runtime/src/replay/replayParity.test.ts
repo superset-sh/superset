@@ -23,31 +23,31 @@ import { readSince } from "./replay";
 const SESSION = "session-1";
 
 const SCRIPT: FakeHarnessScript = {
-	start: [{ kind: "session", session: { status: "idle", title: "Fixtures" } }],
+	start: [{ type: "session", session: { status: "idle", title: "Fixtures" } }],
 	turns: [
 		[
-			{ kind: "item", item: userMessage("u1", "run ls"), turnId: "t1" },
-			{ kind: "turn", turn: turn("t1") },
-			{ kind: "item", item: reasoning("r1", "thinking"), turnId: "t1" },
-			{ kind: "delta", delta: { type: "text", itemId: "a1", append: "par" } },
-			{ kind: "item", item: toolCall("c1"), turnId: "t1" },
-			{ kind: "item", item: approvalRequest("ap1"), turnId: "t1" },
+			{ type: "item", item: userMessage("u1", "run ls"), turnId: "t1" },
+			{ type: "turn", turn: turn("t1") },
+			{ type: "item", item: reasoning("r1", "thinking"), turnId: "t1" },
+			{ type: "delta", delta: { type: "text", itemId: "a1", append: "par" } },
+			{ type: "item", item: toolCall("c1"), turnId: "t1" },
+			{ type: "item", item: approvalRequest("ap1"), turnId: "t1" },
 			{
-				kind: "item",
+				type: "item",
 				item: toolCall("c1", {
 					status: "completed",
 					content: [{ type: "terminal", command: "ls", output: "a\nb\n" }],
 				}),
 				turnId: "t1",
 			},
-			{ kind: "delta", delta: { type: "text", itemId: "a1", append: "tial" } },
+			{ type: "delta", delta: { type: "text", itemId: "a1", append: "tial" } },
 			{
-				kind: "item",
+				type: "item",
 				item: agentMessage("a1", "listed two files"),
 				turnId: "t1",
 			},
 			{
-				kind: "turn",
+				type: "turn",
 				turn: turn("t1", { status: "completed", completedAtMs: 5 }),
 			},
 		],
@@ -71,7 +71,7 @@ function toDurableEvent(
 	event: AdapterEvent,
 	session: SessionState,
 ): { event: DurableEvent; session: SessionState } | null {
-	switch (event.kind) {
+	switch (event.type) {
 		case "item":
 			return {
 				event: { type: "item", item: event.item, turnId: event.turnId },

@@ -53,14 +53,14 @@ describe("codex version gate", () => {
 		}
 
 		expect(events.at(-1)).toEqual({
-			kind: "session",
+			type: "session",
 			session: { status: "dead" },
 		});
 		const notice = events.find(
-			(event) => event.kind === "item" && event.item.kind === "notice",
+			(event) => event.type === "item" && event.item.kind === "notice",
 		);
 		expect(notice).toMatchObject({
-			kind: "item",
+			type: "item",
 			item: {
 				kind: "notice",
 				noticeKind: "error",

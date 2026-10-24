@@ -9,10 +9,10 @@ import type {
 } from "@superset/chat/protocol";
 
 export type AdapterEvent =
-	| { kind: "item"; item: Item; turnId: string }
-	| { kind: "delta"; delta: Delta }
-	| { kind: "turn"; turn: Turn }
-	| { kind: "session"; session: Partial<SessionState> };
+	| { type: "item"; item: Item; turnId: string }
+	| { type: "delta"; delta: Delta }
+	| { type: "turn"; turn: Turn }
+	| { type: "session"; session: Partial<SessionState> };
 
 export type HarnessStartOptions = {
 	cwd: string;

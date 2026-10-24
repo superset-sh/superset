@@ -29,7 +29,7 @@ const deadline = setTimeout(() => {
 let prompted = false;
 async function run() {
 	for await (const event of adapter.start({ cwd })) {
-		if (event.kind === "session") {
+		if (event.type === "session") {
 			console.log(`[session] ${JSON.stringify(event.session)}`);
 			if (event.session.status === "idle" && !prompted) {
 				prompted = true;
@@ -38,7 +38,7 @@ async function run() {
 					{ type: "text", text: "Reply with exactly one word: PONG" },
 				]);
 			}
-		} else if (event.kind === "item") {
+		} else if (event.type === "item") {
 			const item = event.item;
 			if (item.kind === "agent_message") console.log(`[agent] ${item.text}`);
 			else if (item.kind === "notice")
@@ -46,7 +46,7 @@ async function run() {
 			else if (item.kind === "tool_call")
 				console.log(`[tool] ${item.title} (${item.status})`);
 			else console.log(`[item:${item.kind}]`);
-		} else if (event.kind === "turn") {
+		} else if (event.type === "turn") {
 			console.log(`[turn] ${event.turn.status}`);
 			if (event.turn.status === "completed" || event.turn.status === "failed") {
 				done = event.turn.status === "completed";

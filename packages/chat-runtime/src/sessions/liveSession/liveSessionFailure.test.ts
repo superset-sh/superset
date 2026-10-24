@@ -64,7 +64,7 @@ function statuses(envelopes: DurableEnvelope[]): string[] {
 describe("live session adapter failures", () => {
 	test("a rejected pump journals the failure instead of going unhandled", async () => {
 		const runningTurn: AdapterEvent = {
-			kind: "turn",
+			type: "turn",
 			turn: { id: "turn-1", status: "running", startedAtMs: 1 },
 		};
 		const { runtime, sessionId } = startSession(

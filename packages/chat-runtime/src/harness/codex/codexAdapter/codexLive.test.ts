@@ -21,7 +21,7 @@ describe.skip("codexAdapter live", () => {
 			for await (const event of adapter.start({ cwd, modeId: "read-only" })) {
 				events.push(event);
 				if (
-					event.kind === "turn" &&
+					event.type === "turn" &&
 					event.turn.status !== "running" &&
 					event.turn.status !== undefined
 				) {
@@ -46,13 +46,13 @@ describe.skip("codexAdapter live", () => {
 		await adapter.dispose();
 
 		const message = events
-			.flatMap((event) => (event.kind === "item" ? [event.item] : []))
+			.flatMap((event) => (event.type === "item" ? [event.item] : []))
 			.filter((item): item is AgentMessage => item.kind === "agent_message")
 			.at(-1);
 		expect(message?.text.toLowerCase()).toContain("hello");
 
 		const turn = events
-			.flatMap((event) => (event.kind === "turn" ? [event.turn] : []))
+			.flatMap((event) => (event.type === "turn" ? [event.turn] : []))
 			.at(-1);
 		expect(turn?.status).toBe("completed");
 	}, 130_000);

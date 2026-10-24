@@ -479,7 +479,7 @@ export class AcpAdapter implements HarnessAdapter {
 			},
 			(taskId, detail) =>
 				this.emit({
-					kind: "delta",
+					type: "delta",
 					delta: { type: "background", itemId: taskId, append: detail },
 				}),
 			options.backgroundDetailIntervalMs,
@@ -2371,7 +2371,7 @@ export class AcpAdapter implements HarnessAdapter {
 			this.steeredCyclePending = false;
 		}
 		this.currentTurn = turn;
-		this.emit({ kind: "turn", turn });
+		this.emit({ type: "turn", turn });
 		this.syncAwaitingBackground();
 	}
 
@@ -2387,7 +2387,7 @@ export class AcpAdapter implements HarnessAdapter {
 	}
 
 	private emitItem(item: Item, turnId: string): void {
-		this.emit({ kind: "item", item, turnId });
+		this.emit({ type: "item", item, turnId });
 	}
 
 	private emitTextDelta(
@@ -2396,7 +2396,7 @@ export class AcpAdapter implements HarnessAdapter {
 		parentItemId?: string,
 	): void {
 		this.emit({
-			kind: "delta",
+			type: "delta",
 			delta: {
 				type: "text",
 				itemId,
@@ -2425,13 +2425,13 @@ export class AcpAdapter implements HarnessAdapter {
 
 	private emitSession(session: Partial<SessionState>): void {
 		if (session.modeId) this.modeId = session.modeId;
-		this.emit({ kind: "session", session });
+		this.emit({ type: "session", session });
 	}
 
 	private emit(event: AdapterEvent): void {
 		if (
 			this.quietReplay &&
-			(event.kind === "item" || event.kind === "turn" || event.kind === "delta")
+			(event.type === "item" || event.type === "turn" || event.type === "delta")
 		)
 			return;
 		this.queue.push(event);

@@ -405,20 +405,16 @@ export class LiveSession {
 	}
 
 	private handle(event: AdapterEvent): void {
-		switch (event.kind) {
+		switch (event.type) {
 			case "item":
 				if (event.item.kind !== "user_message") {
 					this.turnsWithOutput.add(event.turnId);
 				}
-				this.appendDurable({
-					type: "item",
-					item: event.item,
-					turnId: event.turnId,
-				});
+				this.appendDurable(event);
 				return;
 			case "turn": {
 				this.currentTurn = event.turn;
-				this.appendDurable({ type: "turn", turn: event.turn });
+				this.appendDurable(event);
 				if (event.turn.status === "running") {
 					this.attributeAwaitingPrompt(event.turn.id);
 					const steered = this.steerTarget;
