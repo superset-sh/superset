@@ -19,6 +19,9 @@ let queued: Array<{ path: string; body: unknown; delaySeconds?: number }> = [];
 let failingStage: Stage | null = null;
 let meterCalls: string[] = [];
 let meterFailure: Error | null = null;
+let boxRunning = true;
+let archiveHook: sandbox.BoxHookOutcome = { kind: "ran", status: "ok" };
+let onArchiveHook: () => void = () => {};
 
 stub(db.query.cloudWorkspaces, { findFirst: () => Promise.resolve(row) });
 stub(sandbox, {
@@ -29,6 +32,18 @@ stub(sandbox, {
 	deleteSandbox: (id: string) => {
 		sandboxCalls.push(`delete:${id}`);
 		return Promise.resolve();
+	},
+	describeSandbox: () =>
+		Promise.resolve({ hostTarget: "https://box", running: boxRunning }),
+	sandboxHostSecretFor: () => Promise.resolve("secret"),
+	runBoxArchiveHook: () => {
+		sandboxCalls.push("archive-hook");
+		onArchiveHook();
+		return Promise.resolve(archiveHook);
+	},
+	rerunBoxStartHook: () => {
+		sandboxCalls.push("rerun-setup");
+		return Promise.resolve({ kind: "ran", status: "started" });
 	},
 });
 stub(jobs, {
@@ -121,15 +136,54 @@ describe("reapArchivedCloudWorkspace", () => {
 		queued = [];
 		meterCalls = [];
 		meterFailure = null;
+		boxRunning = true;
+		archiveHook = { kind: "ran", status: "ok" };
+		onArchiveHook = () => {};
 	});
 
-	test("the stop stage stops the box and queues its final settle", async () => {
+	test("the stop stage runs the archive hook, stops the box and queues its final settle", async () => {
+		expect(await reapArchivedCloudWorkspace({ ...input, stage: "stop" })).toBe(
+			"stopped",
+		);
+		expect(sandboxCalls).toEqual(["archive-hook", "stop:ws-box"]);
+		expect(meterCalls).toEqual(["queue"]);
+		expect(queued).toEqual([]);
+	});
+
+	test("a failing or unsupported archive hook still stops the box", async () => {
+		archiveHook = { kind: "error", message: "boom" };
+		expect(await reapArchivedCloudWorkspace({ ...input, stage: "stop" })).toBe(
+			"stopped",
+		);
+		archiveHook = { kind: "unsupported" };
+		expect(await reapArchivedCloudWorkspace({ ...input, stage: "stop" })).toBe(
+			"stopped",
+		);
+		expect(sandboxCalls).toEqual([
+			"archive-hook",
+			"stop:ws-box",
+			"archive-hook",
+			"stop:ws-box",
+		]);
+	});
+
+	test("an already stopped box is stopped without the hook", async () => {
+		boxRunning = false;
 		expect(await reapArchivedCloudWorkspace({ ...input, stage: "stop" })).toBe(
 			"stopped",
 		);
 		expect(sandboxCalls).toEqual(["stop:ws-box"]);
-		expect(meterCalls).toEqual(["queue"]);
-		expect(queued).toEqual([]);
+	});
+
+	test("an undo during the hook re-runs setup and leaves the box running", async () => {
+		onArchiveHook = () => {
+			row = { ...(row as Row), status: "ready", deletedAt: null };
+		};
+		expect(await reapArchivedCloudWorkspace({ ...input, stage: "stop" })).toBe(
+			"skipped",
+		);
+		expect(sandboxCalls).toEqual(["archive-hook", "rerun-setup"]);
+		expect(meterCalls).toEqual([]);
 	});
 
 	test("the delete stage settles the box's usage before deleting it", async () => {

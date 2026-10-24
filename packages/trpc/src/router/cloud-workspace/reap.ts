@@ -1,7 +1,14 @@
 import { db } from "@superset/db/client";
 import { cloudWorkspaces } from "@superset/db/schema";
 import { eq } from "drizzle-orm";
-import { deleteSandbox, stopSandbox } from "../../lib/sandbox";
+import {
+	deleteSandbox,
+	describeSandbox,
+	rerunBoxStartHook,
+	runBoxArchiveHook,
+	sandboxHostSecretFor,
+	stopSandbox,
+} from "../../lib/sandbox";
 import { publishCloudWorkspaceJob } from "./jobs";
 import { queueSettleWorkspace, settleWorkspaceNow } from "./meter";
 
@@ -17,18 +24,65 @@ export interface ReapArchivedCloudWorkspaceInput {
 	stage: "stop" | "delete";
 }
 
+type CloudWorkspaceRow = typeof cloudWorkspaces.$inferSelect;
+
+function isStillArchived(
+	row: CloudWorkspaceRow | undefined,
+	input: ReapArchivedCloudWorkspaceInput,
+): row is CloudWorkspaceRow {
+	return (
+		row !== undefined &&
+		row.status === "deleted" &&
+		row.deletedAt?.toISOString() === input.archivedAt &&
+		row.provider === "vercel"
+	);
+}
+
+function findRow(id: string) {
+	return db.query.cloudWorkspaces.findFirst({
+		where: eq(cloudWorkspaces.id, id),
+	});
+}
+
+/**
+ * Runs the repository's cloud `[archive]` on the still-running box, so what
+ * its `setup` created outside the box is released. Best effort: the stop
+ * goes ahead whatever happens. Returns false when the workspace was
+ * unarchived while the hook ran, so the caller must not stop the box.
+ */
+async function runArchiveHook(
+	row: CloudWorkspaceRow,
+	input: ReapArchivedCloudWorkspaceInput,
+): Promise<boolean> {
+	const box = await describeSandbox(row.providerSandboxId).catch(() => null);
+	if (!box?.running) return true;
+	const hostSecret = await sandboxHostSecretFor(row.id);
+	const outcome = await runBoxArchiveHook({
+		hostTarget: box.hostTarget,
+		hostSecret,
+	});
+	if (outcome.kind === "error") {
+		console.error(`[cloud-workspace] ${row.id} archive hook`, outcome.message);
+	} else if (outcome.kind === "ran" && outcome.status !== "skipped") {
+		console.log(`[cloud-workspace] ${row.id} archive hook ${outcome.status}`);
+	}
+	if (isStillArchived(await findRow(row.id), input)) return true;
+	// Undone mid-hook: setup re-creates what the hook released.
+	const rerun = await rerunBoxStartHook({
+		hostTarget: box.hostTarget,
+		hostSecret,
+	});
+	if (rerun.kind === "error") {
+		console.error(`[cloud-workspace] ${row.id} setup re-run`, rerun.message);
+	}
+	return false;
+}
+
 export async function reapArchivedCloudWorkspace(
 	input: ReapArchivedCloudWorkspaceInput,
 ): Promise<"stopped" | "reaped" | "skipped"> {
-	const row = await db.query.cloudWorkspaces.findFirst({
-		where: eq(cloudWorkspaces.id, input.cloudWorkspaceId),
-	});
-	if (
-		!row ||
-		row.status !== "deleted" ||
-		row.deletedAt?.toISOString() !== input.archivedAt ||
-		row.provider !== "vercel"
-	) {
+	const row = await findRow(input.cloudWorkspaceId);
+	if (!isStillArchived(row, input)) {
 		return "skipped";
 	}
 	if (input.stage === "delete") {
@@ -38,6 +92,7 @@ export async function reapArchivedCloudWorkspace(
 		await deleteSandbox(row.providerSandboxId);
 		return "reaped";
 	}
+	if (!(await runArchiveHook(row, input))) return "skipped";
 	await stopSandbox(row.providerSandboxId);
 	await queueSettleWorkspace(row.id);
 	return "stopped";

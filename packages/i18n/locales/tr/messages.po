@@ -4319,9 +4319,6 @@ msgstr "Komut..."
 msgid "Commands"
 msgstr "Komutlar"
 
-msgid "Commands run for workspace setup, teardown, and the Run button."
-msgstr "Çalışma alanı kurulumu, kapatması ve Çalıştır düğmesi için çalıştırılan komutlar."
-
 msgid "Comment"
 msgstr "Yorum yap"
 
@@ -4377,6 +4374,9 @@ msgstr "Commit'ler"
 msgid "Committed"
 msgstr "Commit'lenmiş"
 
+msgid "Committed with the repository and shared with everyone who works on it."
+msgstr "Depoyla birlikte commit edilir ve üzerinde çalışan herkesle paylaşılır."
+
 msgid "Committed, starting soon."
 msgstr "Kararlaştırıldı, yakında başlıyor."
 
@@ -4428,6 +4428,12 @@ msgstr "component-showcase"
 
 msgid "Composable form layout — pairs with @superset/ui/form for react-hook-form"
 msgstr "Birleştirilebilir form düzeni — react-hook-form için @superset/ui/form ile birlikte kullanılır"
+
+msgid "Config file contents"
+msgstr "Yapılandırma dosyasının içeriği"
+
+msgid "config.json must be a JSON object"
+msgstr "config.json bir JSON nesnesi olmalıdır"
 
 msgid "Configure"
 msgstr "Yapılandır"
@@ -4774,6 +4780,9 @@ msgstr "Konuşma"
 
 msgid "Conversation · Message"
 msgstr "Konuşma · Mesaj"
+
+msgid "Convert to config.toml"
+msgstr "config.toml'a dönüştür"
 
 msgid "Convert to draft"
 msgstr "Taslağa dönüştür"
@@ -6635,9 +6644,6 @@ msgstr "{label} içine bırakın"
 
 msgid "Drop to attach"
 msgstr "Eklemek için bırakın"
-
-msgid "Drop to import"
-msgstr "İçe aktarmak için bırakın"
 
 msgid "Drop to pin"
 msgstr "Sabitlemek için bırakın"
@@ -8892,9 +8898,6 @@ msgstr "İçe aktarma başarısız"
 msgid "Import failed: {message}"
 msgstr "İçe aktarma başarısız: {message}"
 
-msgid "Import from file"
-msgstr "Dosyadan içe aktar"
-
 msgid "Import from v1"
 msgstr "v1'den içe aktar"
 
@@ -9784,6 +9787,11 @@ msgstr "Davet edilen kişilerle sınırlansın mı?"
 #. placeholder {0}: metadata.startLine
 msgid "Line {0}"
 msgstr "{0}. satır"
+
+#. placeholder {0}: problem.line
+#. placeholder {1}: problem.message
+msgid "Line {0}: {1}"
+msgstr "Satır {0}: {1}"
 
 msgid "line changed"
 msgstr "satır değişti"
@@ -11922,6 +11930,9 @@ msgstr "Bu host'u yalnızca host sahipleri veya kuruluş sahipleri silebilir"
 msgid "Only images can be attached to a comment"
 msgstr "Bir yoruma yalnızca görsel eklenebilir"
 
+msgid "Only on this machine: gitignored, and applied to every worktree of this repository. Any key set here replaces the shared one."
+msgstr "Yalnızca bu makinede: git tarafından yok sayılır ve bu deponun her worktree'sine uygulanır. Burada ayarlanan her anahtar paylaşılanın yerini alır."
+
 msgid "Only organization owners can modify these settings."
 msgstr "Bu ayarları yalnızca kuruluş sahipleri değiştirebilir."
 
@@ -13361,9 +13372,6 @@ msgstr "Proje içe aktarıldı ve seçildi."
 
 msgid "Project is already at that location"
 msgstr "Proje zaten o konumda"
-
-msgid "Project lifecycle scripts"
-msgstr "Proje yaşam döngüsü betikleri"
 
 msgid "Project name"
 msgstr "Proje adı"
@@ -15709,6 +15717,9 @@ msgstr "Çalışma alanını paylaş"
 msgid "Share."
 msgstr "Paylaşın."
 
+msgid "Shared"
+msgstr "Paylaşılan"
+
 msgid "Shared across sessions using this login."
 msgstr "Bu hesabı kullanan oturumlar arasında paylaşılır."
 
@@ -17267,9 +17278,6 @@ msgstr "Ekip arkadaşları geri bildirimi sayfada kastettikleri yere iğneler."
 msgid "Teams"
 msgstr "Takımlar"
 
-msgid "Teardown"
-msgstr "Kapatma"
-
 msgid "Teardown commands (optional)"
 msgstr "Kapatma komutları (isteğe bağlı)"
 
@@ -17485,6 +17493,9 @@ msgstr "Bulut çalışma alanının başlamış olması gerekiyordu ancak zaman�
 
 msgid "The code expired. Start again."
 msgstr "Kodun süresi doldu. Yeniden başlayın."
+
+msgid "The commands Superset runs to set up, run and archive this project's workspaces, from .superset/config.toml."
+msgstr "Superset'in bu projenin çalışma alanlarını hazırlamak, çalıştırmak ve arşivlemek için çalıştırdığı komutlar (.superset/config.toml)."
 
 msgid "The connection timed out"
 msgstr "Bağlantı zaman aşımına uğradı"
@@ -18039,6 +18050,9 @@ msgstr "Bu proje artık cihazlarınızda kullanılamıyor."
 
 msgid "This project isn't linked to a GitHub repository."
 msgstr "Bu proje bir GitHub deposuna bağlı değil."
+
+msgid "This project still uses the older config.json. It keeps working; convert it to config.toml to use the new sections."
+msgstr "Bu proje hâlâ eski config.json dosyasını kullanıyor. Çalışmaya devam eder; yeni bölümleri kullanmak için config.toml'a dönüştürün."
 
 msgid "This project's host is offline"
 msgstr "Bu projenin host'u çevrimdışı"
@@ -18860,6 +18874,9 @@ msgstr "Güncelleme gerekli"
 msgid "Update Superset on that device. In-app updates require a supported standalone install and a released app version."
 msgstr "Superset’i o cihazda güncelleyin. Uygulama içinden güncelleme için desteklenen bağımsız bir kurulum ve yayımlanmış bir uygulama sürümü gerekir."
 
+msgid "Update Superset on this host to edit its workspace config."
+msgstr "Çalışma alanı yapılandırmasını düzenlemek için bu ana bilgisayardaki Superset'i güncelleyin."
+
 msgid "Update Superset on this machine to attach files"
 msgstr "Dosya eklemek için bu makinede Superset'i güncelleyin"
 
@@ -19677,6 +19694,9 @@ msgstr "Çalışma alanı ajanları"
 
 msgid "Workspace archived"
 msgstr "Çalışma alanı arşivlendi"
+
+msgid "Workspace config"
+msgstr "Çalışma alanı yapılandırması"
 
 msgid "Workspace created"
 msgstr "Çalışma alanı oluşturuldu"

@@ -257,11 +257,11 @@ export function V2ProjectSettingsBody({
 				{targetHostUrl && (
 					<SettingsSection
 						title={t({
-							message: "Project lifecycle scripts",
+							message: "Workspace config",
 						})}
 						description={t({
 							message:
-								"Commands run for workspace setup, teardown, and the Run button.",
+								"The commands Superset runs to set up, run and archive this project's workspaces, from .superset/config.toml.",
 						})}
 					>
 						{scriptsEditor}

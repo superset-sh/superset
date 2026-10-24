@@ -87,6 +87,96 @@ describe("configRouter", () => {
 		});
 	});
 
+	describe("getConfigFiles and writeConfigFile", () => {
+		const supersetDir = () => join(sandbox.repoPath, ".superset");
+
+		it("returns nothing but the paths when no file exists", async () => {
+			const caller = createCaller(sandbox.repoPath);
+			const files = await caller.getConfigFiles({ projectId: PROJECT_ID });
+			expect(files.shared).toBeNull();
+			expect(files.local.content).toBeNull();
+			expect(files.tomlPath).toBe(join(supersetDir(), "config.toml"));
+		});
+
+		it("prefers config.toml over config.json", async () => {
+			const caller = createCaller(sandbox.repoPath);
+			mkdirSync(supersetDir(), { recursive: true });
+			writeFileSync(join(supersetDir(), "config.json"), "{}");
+			expect(
+				(await caller.getConfigFiles({ projectId: PROJECT_ID })).shared?.format,
+			).toBe("json");
+			writeFileSync(join(supersetDir(), "config.toml"), "# hi\n");
+			expect(
+				(await caller.getConfigFiles({ projectId: PROJECT_ID })).shared,
+			).toMatchObject({ format: "toml", content: "# hi\n" });
+		});
+
+		it("writes the exact text, comments included", async () => {
+			const caller = createCaller(sandbox.repoPath);
+			const content =
+				'# setup for this repo\n[setup]\nrun = "bun install" # deps\n';
+			await caller.writeConfigFile({
+				projectId: PROJECT_ID,
+				file: "shared",
+				format: "toml",
+				content,
+			});
+			expect(readFileSync(join(supersetDir(), "config.toml"), "utf-8")).toBe(
+				content,
+			);
+			await caller.writeConfigFile({
+				projectId: PROJECT_ID,
+				file: "local",
+				format: "toml",
+				content: '[setup]\nrun = "direnv allow"\n',
+			});
+			expect(
+				readFileSync(join(supersetDir(), "config.local.toml"), "utf-8"),
+			).toContain("direnv");
+		});
+
+		it("keeps the personal file out of commits through .git/info/exclude", async () => {
+			const caller = createCaller(sandbox.repoPath);
+			mkdirSync(join(sandbox.repoPath, ".git", "info"), { recursive: true });
+			writeFileSync(join(sandbox.repoPath, ".git", "info", "exclude"), "*.log");
+			for (let i = 0; i < 2; i++) {
+				await caller.writeConfigFile({
+					projectId: PROJECT_ID,
+					file: "local",
+					format: "toml",
+					content: "",
+				});
+			}
+			expect(
+				readFileSync(
+					join(sandbox.repoPath, ".git", "info", "exclude"),
+					"utf-8",
+				),
+			).toBe("*.log\n/.superset/config.local.toml\n");
+		});
+
+		it("refuses invalid content and writes nothing", async () => {
+			const caller = createCaller(sandbox.repoPath);
+			await expect(
+				caller.writeConfigFile({
+					projectId: PROJECT_ID,
+					file: "shared",
+					format: "toml",
+					content: "[terminals.dev]\ndefualt = true\n",
+				}),
+			).rejects.toThrow(/defualt/);
+			await expect(
+				caller.writeConfigFile({
+					projectId: PROJECT_ID,
+					file: "shared",
+					format: "json",
+					content: "[1]",
+				}),
+			).rejects.toThrow(/JSON object/);
+			expect(existsSync(join(supersetDir(), "config.toml"))).toBe(false);
+		});
+	});
+
 	describe("updateConfig", () => {
 		it("creates .superset/config.json on first save", async () => {
 			const caller = createCaller(sandbox.repoPath);

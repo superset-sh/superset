@@ -4319,9 +4319,6 @@ msgstr "Příkaz..."
 msgid "Commands"
 msgstr "Příkazy"
 
-msgid "Commands run for workspace setup, teardown, and the Run button."
-msgstr "Příkazy spouštěné při setupu a teardownu pracovního prostoru a tlačítkem Spustit."
-
 msgid "Comment"
 msgstr "Okomentovat"
 
@@ -4377,6 +4374,9 @@ msgstr "Commity"
 msgid "Committed"
 msgstr "Commitnuté"
 
+msgid "Committed with the repository and shared with everyone who works on it."
+msgstr "Uloženo v repozitáři a sdíleno se všemi, kdo na něm pracují."
+
 msgid "Committed, starting soon."
 msgstr "Potvrzeno, brzy začínáme."
 
@@ -4428,6 +4428,12 @@ msgstr "component-showcase"
 
 msgid "Composable form layout — pairs with @superset/ui/form for react-hook-form"
 msgstr "Skládatelné rozvržení formuláře — funguje s @superset/ui/form pro react-hook-form"
+
+msgid "Config file contents"
+msgstr "Obsah konfiguračního souboru"
+
+msgid "config.json must be a JSON object"
+msgstr "config.json musí být objekt JSON"
 
 msgid "Configure"
 msgstr "Nastavit"
@@ -4774,6 +4780,9 @@ msgstr "Konverzace"
 
 msgid "Conversation · Message"
 msgstr "Konverzace · Zpráva"
+
+msgid "Convert to config.toml"
+msgstr "Převést na config.toml"
 
 msgid "Convert to draft"
 msgstr "Převést na koncept"
@@ -6635,9 +6644,6 @@ msgstr "Přetáhněte do {label}"
 
 msgid "Drop to attach"
 msgstr "Přetažením přiložíte"
-
-msgid "Drop to import"
-msgstr "Přetažením naimportujete"
 
 msgid "Drop to pin"
 msgstr "Přetažením připnete"
@@ -8892,9 +8898,6 @@ msgstr "Import selhal"
 msgid "Import failed: {message}"
 msgstr "Import selhal: {message}"
 
-msgid "Import from file"
-msgstr "Importovat ze souboru"
-
 msgid "Import from v1"
 msgstr "Import z v1"
 
@@ -9784,6 +9787,11 @@ msgstr "Omezit na pozvané lidi?"
 #. placeholder {0}: metadata.startLine
 msgid "Line {0}"
 msgstr "Řádek {0}"
+
+#. placeholder {0}: problem.line
+#. placeholder {1}: problem.message
+msgid "Line {0}: {1}"
+msgstr "Řádek {0}: {1}"
 
 msgid "line changed"
 msgstr "řádek změněn"
@@ -11922,6 +11930,9 @@ msgstr "Tohoto hosta mohou smazat jen jeho vlastníci nebo vlastníci organizace
 msgid "Only images can be attached to a comment"
 msgstr "Ke komentáři lze připojit pouze obrázky"
 
+msgid "Only on this machine: gitignored, and applied to every worktree of this repository. Any key set here replaces the shared one."
+msgstr "Jen na tomto počítači: ignorováno gitem a použito pro každý worktree tohoto repozitáře. Každý zde nastavený klíč nahradí sdílený."
+
 msgid "Only organization owners can modify these settings."
 msgstr "Toto nastavení mohou měnit jen vlastníci organizace."
 
@@ -13361,9 +13372,6 @@ msgstr "Projekt importován a vybrán."
 
 msgid "Project is already at that location"
 msgstr "Projekt už na tomto místě je"
-
-msgid "Project lifecycle scripts"
-msgstr "Lifecycle skripty projektu"
 
 msgid "Project name"
 msgstr "Název projektu"
@@ -15709,6 +15717,9 @@ msgstr "Sdílet pracovní prostor"
 msgid "Share."
 msgstr "Sdílejte."
 
+msgid "Shared"
+msgstr "Sdílené"
+
 msgid "Shared across sessions using this login."
 msgstr "Sdíleno mezi relacemi používajícími toto přihlášení."
 
@@ -17267,9 +17278,6 @@ msgstr "Kolegové připnou zpětnou vazbu přesně k té části stránky, ktero
 msgid "Teams"
 msgstr "Týmy"
 
-msgid "Teardown"
-msgstr "Teardown"
-
 msgid "Teardown commands (optional)"
 msgstr "Teardown příkazy (volitelné)"
 
@@ -17485,6 +17493,9 @@ msgstr "Cloudový pracovní prostor se měl spustit, ale neodpověděl včas. Da
 
 msgid "The code expired. Start again."
 msgstr "Platnost kódu vypršela. Začněte znovu."
+
+msgid "The commands Superset runs to set up, run and archive this project's workspaces, from .superset/config.toml."
+msgstr "Příkazy, které Superset spouští při přípravě, spuštění a archivaci pracovních prostorů tohoto projektu, ze souboru .superset/config.toml."
 
 msgid "The connection timed out"
 msgstr "Vypršel časový limit spojení"
@@ -18039,6 +18050,9 @@ msgstr "Tento projekt už na vašich zařízeních není dostupný."
 
 msgid "This project isn't linked to a GitHub repository."
 msgstr "Tento projekt není propojen s repozitářem GitHub."
+
+msgid "This project still uses the older config.json. It keeps working; convert it to config.toml to use the new sections."
+msgstr "Tento projekt stále používá starší config.json. Dál funguje; převeďte ho na config.toml, abyste mohli používat nové sekce."
 
 msgid "This project's host is offline"
 msgstr "Host tohoto projektu je offline"
@@ -18860,6 +18874,9 @@ msgstr "Vyžadována aktualizace"
 msgid "Update Superset on that device. In-app updates require a supported standalone install and a released app version."
 msgstr "Aktualizujte Superset na daném zařízení. Aktualizace z aplikace vyžadují podporovanou samostatnou instalaci a vydanou verzi aplikace."
 
+msgid "Update Superset on this host to edit its workspace config."
+msgstr "Pro úpravu konfigurace pracovního prostoru aktualizujte Superset na tomto hostiteli."
+
 msgid "Update Superset on this machine to attach files"
 msgstr "Aktualizujte na tomto počítači Superset, abyste mohli přikládat soubory"
 
@@ -19677,6 +19694,9 @@ msgstr "Agenti pracovního prostoru"
 
 msgid "Workspace archived"
 msgstr "Pracovní prostor archivován"
+
+msgid "Workspace config"
+msgstr "Konfigurace pracovního prostoru"
 
 msgid "Workspace created"
 msgstr "Pracovní prostor vytvořen"

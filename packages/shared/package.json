@@ -4,6 +4,10 @@
 	"private": true,
 	"type": "module",
 	"exports": {
+		"./project-config": {
+			"types": "./src/project-config/index.ts",
+			"default": "./src/project-config/index.ts"
+		},
 		"./oauth-refresh": {
 			"types": "./src/oauth-refresh.ts",
 			"default": "./src/oauth-refresh.ts"
@@ -469,6 +473,7 @@
 		"jose": "6.2.2",
 		"rrule": "2.8.1",
 		"semver": "7.7.4",
+		"smol-toml": "1.9.1",
 		"zod": "4.6.5"
 	},
 	"devDependencies": {

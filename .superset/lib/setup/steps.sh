@@ -67,6 +67,30 @@ step_install_dependencies() {
   return 0
 }
 
+# RFC 3339 timestamp NEON_BRANCH_LEASE_DAYS from now, empty when no lease is set.
+neon_branch_lease_expiry() {
+  local days="${NEON_BRANCH_LEASE_DAYS:-}"
+  [ -n "$days" ] || return 0
+  date -u -d "+${days} days" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
+    || date -u -v+"${days}"d +%Y-%m-%dT%H:%M:%SZ
+}
+
+# Push a branch's expiry NEON_BRANCH_LEASE_DAYS out. Never call
+# set-expiration without --expires-at: that removes the expiry.
+renew_neon_branch_lease() {
+  local branch_id="$1"
+  local lease_expiry
+  lease_expiry="$(neon_branch_lease_expiry)"
+  [ -n "$lease_expiry" ] || return 0
+  if neonctl branches set-expiration "$branch_id" \
+      --project-id "$NEON_PROJECT_ID" \
+      --expires-at "$lease_expiry" --output json > /dev/null; then
+    echo "  Lease renewed until $lease_expiry"
+  else
+    warn "Could not renew the Neon branch lease (continuing)"
+  fi
+}
+
 step_setup_neon_branch() {
   echo "🗄️  Setting up Neon branch..."
 
@@ -104,16 +128,23 @@ step_setup_neon_branch() {
   # Now safe to parse with jq - use // empty for fallback
   EXISTING_BRANCH=$(echo "$branches_output" | jq -r ".[] | select(.name == \"$WORKSPACE_NAME\") | .id // empty" 2>/dev/null)
 
+  local lease_expiry
+  lease_expiry="$(neon_branch_lease_expiry)"
+
   if [ -n "$EXISTING_BRANCH" ]; then
     echo "  Using existing Neon branch..."
     BRANCH_ID="$EXISTING_BRANCH"
+    renew_neon_branch_lease "$BRANCH_ID"
   else
     echo "  Creating new Neon branch..."
     local neon_output
+    local lease_args=()
+    [ -n "$lease_expiry" ] && lease_args=(--expires-at "$lease_expiry")
     # NO 2>&1 - keep stdout (JSON) and stderr (errors) separate
     if ! neon_output=$(neonctl branches create \
         --project-id "$NEON_PROJECT_ID" \
         --name "$WORKSPACE_NAME" \
+        "${lease_args[@]}" \
         --output json); then
       error "Failed to create Neon branch (check output above)"
       return 1

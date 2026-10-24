@@ -1,6 +1,14 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import type { ResolvedPhase } from "@superset/shared/project-config";
+import { getDefaultTerminal } from "@superset/shared/project-config";
+import {
+	findTomlConfigPath,
+	formatConfigErrors,
+	loadTomlConfig,
+	type TomlConfigLoad,
+} from "./project-config-toml";
 
 const PROJECT_SUPERSET_DIR_NAME = ".superset";
 const CONFIG_FILE_NAME = "config.json";
@@ -287,6 +295,9 @@ export function resolveScript(
 		homeDir?: string;
 	},
 ): ResolvedScript | null {
+	const toml = loadTomlConfig(args);
+	if (toml) return resolveTomlScript({ key, toml, args });
+
 	const config = loadSetupConfig(args);
 	const cwd = config?.cwd;
 	const commands = nonEmptyStrings(config?.[key]);
@@ -305,6 +316,165 @@ export function resolveScript(
 	}
 
 	return null;
+}
+
+/**
+ * v1 keys on a `config.toml`: `setup` runs `install` then `setup`, `teardown`
+ * runs `archive`, `run` is the first default terminal, and `start` (cloud
+ * boot) runs `setup` then the first default terminal.
+ */
+function resolveTomlScript({
+	key,
+	toml,
+	args,
+}: {
+	key: ScriptKey;
+	toml: TomlConfigLoad;
+	args: { repoPath: string; worktreePath?: string };
+}): ResolvedScript | null {
+	if (toml.kind === "invalid") {
+		const lines = formatConfigErrors(toml);
+		console.error(lines.join("\n"));
+		// Archive must never block on a broken file; setup and boot say why.
+		if (key === "teardown" || key === "run") return null;
+		return {
+			kind: "commands",
+			commands: [
+				`printf '%s\\n' ${lines.map(shellSingleQuote).join(" ")} >&2 && false`,
+			],
+		};
+	}
+	const { resolved } = toml;
+	const terminal = getDefaultTerminal(resolved);
+	const parts: ResolvedPhase[] =
+		key === "setup"
+			? [resolved.install, resolved.setup]
+			: key === "teardown"
+				? [resolved.archive]
+				: key === "run"
+					? terminal
+						? [terminal]
+						: []
+					: [resolved.setup, ...(terminal ? [terminal] : [])];
+	const combined = combinePhases({
+		parts,
+		root: args.worktreePath ?? args.repoPath,
+	});
+	// Cloud boot runs each entry on its own. Setup stops at its first failure,
+	// like a local setup; the terminal still starts after it.
+	if (key === "start" && combined?.kind === "commands") {
+		const setupCount = resolved.setup.commands.length;
+		const groups = [
+			combined.commands.slice(0, setupCount),
+			combined.commands.slice(setupCount),
+		].filter((group) => group.length > 0);
+		return { ...combined, commands: groups.map((group) => group.join(" && ")) };
+	}
+	return combined;
+}
+
+/** One cwd for all parts when they agree; otherwise each command enters its own. */
+function combinePhases({
+	parts,
+	root,
+}: {
+	parts: ResolvedPhase[];
+	root: string;
+}): ResolvedScript | null {
+	const active = parts.filter((part) => part.commands.length > 0);
+	if (active.length === 0) return null;
+	const cwds = new Set(active.map((part) => part.cwd));
+	if (cwds.size === 1) {
+		const cwd = active[0]?.cwd;
+		return {
+			kind: "commands",
+			commands: active.flatMap((part) => part.commands),
+			...(cwd && { cwd }),
+		};
+	}
+	return {
+		kind: "commands",
+		commands: active.flatMap((part) => {
+			const dir = shellSingleQuote(resolve(root, part.cwd ?? "."));
+			return part.commands.map((command) => `(cd ${dir} && ${command})`);
+		}),
+	};
+}
+
+/** Whether any config source exists, for the sidebar's "set up scripts" card. */
+export function hasProjectConfig(args: {
+	repoPath: string;
+	projectId: string;
+	homeDir?: string;
+}): boolean {
+	if (findTomlConfigPath(args)) return true;
+	return hasConfiguredScripts(loadSetupConfig(args));
+}
+
+export type LegacyConfigSource =
+	| "config_json"
+	| "config_local_json"
+	| "before_after"
+	| "user_projects_override"
+	| "script_fallback"
+	| "cloud_start";
+
+/**
+ * Which config format a workspace uses and which v1 features it still relies
+ * on, for usage reporting. Never reads command contents into the result.
+ */
+export function describeProjectConfigSources(args: {
+	repoPath: string;
+	projectId: string;
+	worktreePath?: string;
+	homeDir?: string;
+}): { format: "toml" | "json" | "none"; legacySources: LegacyConfigSource[] } {
+	if (findTomlConfigPath(args)) return { format: "toml", legacySources: [] };
+
+	const sources = new Set<LegacyConfigSource>();
+	const roots = args.worktreePath
+		? [args.worktreePath, args.repoPath]
+		: [args.repoPath];
+	const projectJsons = roots
+		.map((root) => readSetupConfigAt(getProjectConfigPath(root)))
+		.filter((config): config is SetupConfig => config !== null);
+	if (projectJsons.length > 0) sources.add("config_json");
+	if (projectJsons.some((config) => config.start?.length)) {
+		sources.add("cloud_start");
+	}
+	for (const root of roots) {
+		const local = readJson<Record<string, unknown>>(getLocalOverlayPath(root));
+		if (!local) continue;
+		sources.add("config_local_json");
+		if (
+			Object.values(local).some(
+				(value) => value && typeof value === "object" && !Array.isArray(value),
+			)
+		) {
+			sources.add("before_after");
+		}
+	}
+	const homeDir = args.homeDir ?? homedir();
+	if (
+		getUserOverridePaths({ ...args, homeDir }).some((path) => existsSync(path))
+	) {
+		sources.add("user_projects_override");
+	}
+	const config = loadSetupConfig(args);
+	for (const key of ["setup", "teardown", "run"] as const) {
+		if (nonEmptyStrings(config?.[key]).length > 0) continue;
+		if (
+			roots.some((root) =>
+				existsSync(join(root, PROJECT_SUPERSET_DIR_NAME, `${key}.sh`)),
+			)
+		) {
+			sources.add("script_fallback");
+		}
+	}
+	return {
+		format: sources.size > 0 ? "json" : "none",
+		legacySources: [...sources],
+	};
 }
 
 /** POSIX single-quote escape: safe for any byte sequence in a path. */

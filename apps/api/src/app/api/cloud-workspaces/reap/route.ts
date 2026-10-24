@@ -3,6 +3,8 @@ import { z } from "zod";
 import { verifyQstashRequest } from "@/lib/verifyQstash";
 
 export const dynamic = "force-dynamic";
+// The stop stage waits for the box's `[archive]` hook (up to a minute and a half).
+export const maxDuration = 300;
 
 const payloadSchema = z
 	.object({

@@ -4,6 +4,7 @@ import {
 	resolveScript,
 	shellSingleQuote,
 } from "../../../../runtime/setup/config";
+import { trackConfigResolved } from "../../../../runtime/setup/track-config-resolved";
 import { createTerminalSessionInternal } from "../../../../terminal/terminal";
 import type { HostServiceContext } from "../../../../types";
 import type { TerminalDescriptor } from "./types";
@@ -59,6 +60,15 @@ export async function startSetupTerminalIfPresent(
 	}
 
 	const resolved = resolveInitialCommand({
+		repoPath: row.repoPath,
+		projectId: row.projectId,
+		worktreePath: row.worktreePath,
+	});
+	trackConfigResolved({
+		api: args.ctx.api,
+		organizationId: args.ctx.organizationId,
+		workspaceId: args.workspaceId,
+		phase: "setup",
 		repoPath: row.repoPath,
 		projectId: row.projectId,
 		worktreePath: row.worktreePath,

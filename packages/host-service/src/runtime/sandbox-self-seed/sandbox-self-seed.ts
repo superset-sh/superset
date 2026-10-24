@@ -173,8 +173,10 @@ function readTail(path: string): string {
  */
 export async function runSandboxStartHook(
 	identity: SandboxIdentity,
+	options: { force?: boolean } = {},
 ): Promise<StartHookOutcome> {
-	if (existsSync(START_HOOK_MARKER))
+	// `force` re-runs setup after an archive hook raced an undo on this boot.
+	if (!options.force && existsSync(START_HOOK_MARKER))
 		return { started: false, reason: "already-started" };
 	const resolved = resolveScript("start", {
 		repoPath: identity.worktreePath,

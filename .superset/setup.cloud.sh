@@ -53,8 +53,33 @@ already_set_up() {
   grep -q "cloud-${SUPERSET_SANDBOX_WORKSPACE_ID}" "$ROOT_DIR/.env"
 }
 
+# Every boot renews the branch's lease, including a boot that sets up nothing.
+# Returns 1 when the branch is gone ([archive] deleted it, or it expired), so
+# setup runs again instead of keeping a .env for a deleted database.
+renew_cloud_branch_lease() {
+  local branches branch_id
+  branches="$(neonctl branches list --project-id "${NEON_PROJECT_ID:-}" --output json)" || {
+    warn "Could not list Neon branches to renew the lease"
+    return 0
+  }
+  branch_id="$(echo "$branches" | jq -r ".[] | select(.name == \"$SUPERSET_WORKSPACE_NAME\") | .id // empty")"
+  if [ -z "$branch_id" ]; then
+    warn "No Neon branch named $SUPERSET_WORKSPACE_NAME; setting up again"
+    return 1
+  fi
+  renew_neon_branch_lease "$branch_id"
+}
+
 cloud_setup_main() {
-  if already_set_up; then
+  # Cloud workspaces share a display name, so the branch is named after the id.
+  # The whole id: the first block alone is 8 hex characters, and two
+  # workspaces that collided would silently share one database.
+  export SUPERSET_WORKSPACE_NAME="cloud-${SUPERSET_SANDBOX_WORKSPACE_ID}"
+  # A cloud workspace's branch expires unless a boot renews it, so a box that
+  # is archived or abandoned releases its branch without running any hook.
+  export NEON_BRANCH_LEASE_DAYS=7
+
+  if already_set_up && renew_cloud_branch_lease; then
     echo "This workspace already has its database and .env"
     return 0
   fi
@@ -75,11 +100,6 @@ cloud_setup_main() {
   # shellcheck source=/dev/null
   . "$env_source/.env"
   set +a
-
-  # Cloud workspaces share a display name, so the branch is named after the id.
-  # The whole id: the first block alone is 8 hex characters, and two
-  # workspaces that collided would silently share one database.
-  export SUPERSET_WORKSPACE_NAME="cloud-${SUPERSET_SANDBOX_WORKSPACE_ID}"
 
   step_install_dependencies || step_failed "Install dependencies"
   step_setup_neon_branch || step_failed "Set up Neon branch"

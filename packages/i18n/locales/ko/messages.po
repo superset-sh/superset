@@ -4319,9 +4319,6 @@ msgstr "명령..."
 msgid "Commands"
 msgstr "명령"
 
-msgid "Commands run for workspace setup, teardown, and the Run button."
-msgstr "워크스페이스 설정, 정리, 실행 버튼에 사용되는 명령입니다."
-
 msgid "Comment"
 msgstr "코멘트"
 
@@ -4377,6 +4374,9 @@ msgstr "커밋"
 msgid "Committed"
 msgstr "커밋됨"
 
+msgid "Committed with the repository and shared with everyone who works on it."
+msgstr "리포지토리에 커밋되어 작업하는 모든 사람과 공유됩니다."
+
 msgid "Committed, starting soon."
 msgstr "확정되었고 곧 시작합니다."
 
@@ -4428,6 +4428,12 @@ msgstr "component-showcase"
 
 msgid "Composable form layout — pairs with @superset/ui/form for react-hook-form"
 msgstr "조합 가능한 폼 레이아웃 — react-hook-form을 쓰려면 @superset/ui/form과 함께 사용하세요"
+
+msgid "Config file contents"
+msgstr "설정 파일 내용"
+
+msgid "config.json must be a JSON object"
+msgstr "config.json은 JSON 객체여야 합니다"
 
 msgid "Configure"
 msgstr "구성"
@@ -4774,6 +4780,9 @@ msgstr "대화"
 
 msgid "Conversation · Message"
 msgstr "대화 · 메시지"
+
+msgid "Convert to config.toml"
+msgstr "config.toml로 변환"
 
 msgid "Convert to draft"
 msgstr "초안으로 전환"
@@ -6635,9 +6644,6 @@ msgstr "{label}에 놓기"
 
 msgid "Drop to attach"
 msgstr "여기에 놓으면 첨부됩니다"
-
-msgid "Drop to import"
-msgstr "놓아서 가져오기"
 
 msgid "Drop to pin"
 msgstr "놓아서 고정"
@@ -8892,9 +8898,6 @@ msgstr "가져오기 실패"
 msgid "Import failed: {message}"
 msgstr "가져오기 실패: {message}"
 
-msgid "Import from file"
-msgstr "파일에서 가져오기"
-
 msgid "Import from v1"
 msgstr "v1에서 가져오기"
 
@@ -9784,6 +9787,11 @@ msgstr "초대된 사람으로 제한할까요?"
 #. placeholder {0}: metadata.startLine
 msgid "Line {0}"
 msgstr "{0}번 줄"
+
+#. placeholder {0}: problem.line
+#. placeholder {1}: problem.message
+msgid "Line {0}: {1}"
+msgstr "{0}번째 줄: {1}"
 
 msgid "line changed"
 msgstr "줄 변경됨"
@@ -11922,6 +11930,9 @@ msgstr "호스트 소유자 또는 조직 소유자만 이 호스트를 삭제�
 msgid "Only images can be attached to a comment"
 msgstr "댓글에는 이미지만 첨부할 수 있습니다"
 
+msgid "Only on this machine: gitignored, and applied to every worktree of this repository. Any key set here replaces the shared one."
+msgstr "이 컴퓨터에서만: git에서 무시되며 이 리포지토리의 모든 worktree에 적용됩니다. 여기에서 설정한 키는 공유된 값을 대체합니다."
+
 msgid "Only organization owners can modify these settings."
 msgstr "조직 소유자만 이 설정을 변경할 수 있습니다."
 
@@ -13361,9 +13372,6 @@ msgstr "프로젝트를 가져와 선택했습니다."
 
 msgid "Project is already at that location"
 msgstr "프로젝트가 이미 그 위치에 있습니다"
-
-msgid "Project lifecycle scripts"
-msgstr "프로젝트 라이프사이클 스크립트"
 
 msgid "Project name"
 msgstr "프로젝트 이름"
@@ -15709,6 +15717,9 @@ msgstr "워크스페이스 공유"
 msgid "Share."
 msgstr "공유."
 
+msgid "Shared"
+msgstr "공유"
+
 msgid "Shared across sessions using this login."
 msgstr "이 로그인을 사용하는 세션 간에 공유됩니다."
 
@@ -17267,9 +17278,6 @@ msgstr "팀원이 가리키는 바로 그 부분에 피드백을 고정합니다
 msgid "Teams"
 msgstr "팀"
 
-msgid "Teardown"
-msgstr "정리"
-
 msgid "Teardown commands (optional)"
 msgstr "정리 명령 (선택 사항)"
 
@@ -17485,6 +17493,9 @@ msgstr "클라우드 워크스페이스가 시작되었어야 하지만 제시�
 
 msgid "The code expired. Start again."
 msgstr "코드가 만료되었습니다. 다시 시작하세요."
+
+msgid "The commands Superset runs to set up, run and archive this project's workspaces, from .superset/config.toml."
+msgstr "Superset이 이 프로젝트의 워크스페이스를 설정, 실행, 보관할 때 실행하는 명령어(.superset/config.toml)."
 
 msgid "The connection timed out"
 msgstr "연결 시간이 초과되었습니다"
@@ -18039,6 +18050,9 @@ msgstr "이 프로젝트는 더 이상 내 기기에서 사용할 수 없습니�
 
 msgid "This project isn't linked to a GitHub repository."
 msgstr "이 프로젝트는 GitHub 저장소에 연결되어 있지 않습니다."
+
+msgid "This project still uses the older config.json. It keeps working; convert it to config.toml to use the new sections."
+msgstr "이 프로젝트는 아직 이전 config.json을 사용합니다. 계속 작동하지만, 새 섹션을 사용하려면 config.toml로 변환하세요."
 
 msgid "This project's host is offline"
 msgstr "이 프로젝트의 호스트가 오프라인입니다"
@@ -18860,6 +18874,9 @@ msgstr "업데이트 필요"
 msgid "Update Superset on that device. In-app updates require a supported standalone install and a released app version."
 msgstr "해당 기기에서 Superset을 업데이트하세요. 앱 내 업데이트에는 지원되는 독립 실행형 설치와 정식으로 출시된 앱 버전이 필요합니다."
 
+msgid "Update Superset on this host to edit its workspace config."
+msgstr "워크스페이스 설정을 편집하려면 이 호스트의 Superset을 업데이트하세요."
+
 msgid "Update Superset on this machine to attach files"
 msgstr "파일을 첨부하려면 이 컴퓨터에서 Superset을 업데이트하세요"
 
@@ -19677,6 +19694,9 @@ msgstr "워크스페이스 에이전트"
 
 msgid "Workspace archived"
 msgstr "워크스페이스를 보관했습니다"
+
+msgid "Workspace config"
+msgstr "워크스페이스 설정"
 
 msgid "Workspace created"
 msgstr "워크스페이스를 만들었습니다"

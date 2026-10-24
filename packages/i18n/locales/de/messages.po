@@ -4319,9 +4319,6 @@ msgstr "Befehl..."
 msgid "Commands"
 msgstr "Befehle"
 
-msgid "Commands run for workspace setup, teardown, and the Run button."
-msgstr "Befehle für Arbeitsbereich-Setup, Teardown und die Schaltfläche „Ausführen“."
-
 msgid "Comment"
 msgstr "Kommentieren"
 
@@ -4377,6 +4374,9 @@ msgstr "Commits"
 msgid "Committed"
 msgstr "Committet"
 
+msgid "Committed with the repository and shared with everyone who works on it."
+msgstr "Wird mit dem Repository committet und mit allen geteilt, die daran arbeiten."
+
 msgid "Committed, starting soon."
 msgstr "Zugesagt, startet bald."
 
@@ -4428,6 +4428,12 @@ msgstr "component-showcase"
 
 msgid "Composable form layout — pairs with @superset/ui/form for react-hook-form"
 msgstr "Kombinierbares Formular-Layout — passt zu @superset/ui/form für react-hook-form"
+
+msgid "Config file contents"
+msgstr "Inhalt der Konfigurationsdatei"
+
+msgid "config.json must be a JSON object"
+msgstr "config.json muss ein JSON-Objekt sein"
 
 msgid "Configure"
 msgstr "Konfigurieren"
@@ -4774,6 +4780,9 @@ msgstr "Unterhaltung"
 
 msgid "Conversation · Message"
 msgstr "Unterhaltung · Nachricht"
+
+msgid "Convert to config.toml"
+msgstr "In config.toml umwandeln"
 
 msgid "Convert to draft"
 msgstr "In Entwurf umwandeln"
@@ -6635,9 +6644,6 @@ msgstr "In {label} ablegen"
 
 msgid "Drop to attach"
 msgstr "Zum Anhängen ablegen"
-
-msgid "Drop to import"
-msgstr "Zum Importieren ablegen"
 
 msgid "Drop to pin"
 msgstr "Zum Anheften ablegen"
@@ -8892,9 +8898,6 @@ msgstr "Import fehlgeschlagen"
 msgid "Import failed: {message}"
 msgstr "Import fehlgeschlagen: {message}"
 
-msgid "Import from file"
-msgstr "Aus Datei importieren"
-
 msgid "Import from v1"
 msgstr "Aus v1 importieren"
 
@@ -9784,6 +9787,11 @@ msgstr "Auf eingeladene Personen beschränken?"
 #. placeholder {0}: metadata.startLine
 msgid "Line {0}"
 msgstr "Zeile {0}"
+
+#. placeholder {0}: problem.line
+#. placeholder {1}: problem.message
+msgid "Line {0}: {1}"
+msgstr "Zeile {0}: {1}"
 
 msgid "line changed"
 msgstr "Zeile geändert"
@@ -11922,6 +11930,9 @@ msgstr "Nur Host-Inhaber oder Organisations-Inhaber können diesen Host löschen
 msgid "Only images can be attached to a comment"
 msgstr "An einen Kommentar können nur Bilder angehängt werden"
 
+msgid "Only on this machine: gitignored, and applied to every worktree of this repository. Any key set here replaces the shared one."
+msgstr "Nur auf diesem Rechner: von Git ignoriert und für jeden Worktree dieses Repositorys verwendet. Jeder hier gesetzte Schlüssel ersetzt den gemeinsamen."
+
 msgid "Only organization owners can modify these settings."
 msgstr "Nur Eigentümer der Organisation können diese Einstellungen ändern."
 
@@ -13361,9 +13372,6 @@ msgstr "Projekt importiert und ausgewählt."
 
 msgid "Project is already at that location"
 msgstr "Das Projekt liegt bereits an diesem Ort"
-
-msgid "Project lifecycle scripts"
-msgstr "Lifecycle-Skripte des Projekts"
 
 msgid "Project name"
 msgstr "Projektname"
@@ -15709,6 +15717,9 @@ msgstr "Arbeitsbereich teilen"
 msgid "Share."
 msgstr "Teilen."
 
+msgid "Shared"
+msgstr "Gemeinsam"
+
 msgid "Shared across sessions using this login."
 msgstr "Wird von allen Sitzungen mit dieser Anmeldung gemeinsam genutzt."
 
@@ -17267,9 +17278,6 @@ msgstr "Teammitglieder heften Feedback genau an die Stelle der Seite, die sie me
 msgid "Teams"
 msgstr "Teams"
 
-msgid "Teardown"
-msgstr "Teardown"
-
 msgid "Teardown commands (optional)"
 msgstr "Teardown-Befehle (optional)"
 
@@ -17485,6 +17493,9 @@ msgstr "Der Cloud-Arbeitsbereich hätte starten sollen, hat aber nicht rechtzeit
 
 msgid "The code expired. Start again."
 msgstr "Der Code ist abgelaufen. Starte erneut."
+
+msgid "The commands Superset runs to set up, run and archive this project's workspaces, from .superset/config.toml."
+msgstr "Die Befehle aus .superset/config.toml, mit denen Superset die Arbeitsbereiche dieses Projekts einrichtet, startet und archiviert."
 
 msgid "The connection timed out"
 msgstr "Zeitüberschreitung bei der Verbindung"
@@ -18039,6 +18050,9 @@ msgstr "Dieses Projekt ist auf deinen Geräten nicht mehr verfügbar."
 
 msgid "This project isn't linked to a GitHub repository."
 msgstr "Dieses Projekt ist mit keinem GitHub-Repository verknüpft."
+
+msgid "This project still uses the older config.json. It keeps working; convert it to config.toml to use the new sections."
+msgstr "Dieses Projekt verwendet noch die ältere config.json. Sie funktioniert weiterhin; wandle sie in config.toml um, um die neuen Abschnitte zu nutzen."
 
 msgid "This project's host is offline"
 msgstr "Der Host dieses Projekts ist offline"
@@ -18860,6 +18874,9 @@ msgstr "Update erforderlich"
 msgid "Update Superset on that device. In-app updates require a supported standalone install and a released app version."
 msgstr "Aktualisiere Superset auf diesem Gerät. Updates aus der App erfordern eine unterstützte eigenständige Installation und eine veröffentlichte App-Version."
 
+msgid "Update Superset on this host to edit its workspace config."
+msgstr "Aktualisiere Superset auf diesem Host, um die Arbeitsbereich-Konfiguration zu bearbeiten."
+
 msgid "Update Superset on this machine to attach files"
 msgstr "Aktualisiere Superset auf diesem Rechner, um Dateien anzuhängen"
 
@@ -19677,6 +19694,9 @@ msgstr "Arbeitsbereich-Agenten"
 
 msgid "Workspace archived"
 msgstr "Arbeitsbereich archiviert"
+
+msgid "Workspace config"
+msgstr "Arbeitsbereich-Konfiguration"
 
 msgid "Workspace created"
 msgstr "Arbeitsbereich erstellt"

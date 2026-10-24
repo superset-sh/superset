@@ -7,6 +7,7 @@ import { pullRequests, workspaces } from "../../../db/schema";
 import { invalidateLabelCache } from "../../../ports/static-ports";
 import { isMissingPath } from "../../../runtime/path-state";
 import { coercePullRequestState } from "../../../runtime/pull-requests/utils/pull-request-mappers";
+import { trackConfigResolved } from "../../../runtime/setup/track-config-resolved";
 import {
 	removeDevAppProfile,
 	runTeardown,
@@ -385,6 +386,18 @@ async function runDestroy(
 				}
 				warnings.push(formatTeardownWarning(teardown));
 			}
+		}
+
+		if (local && project) {
+			trackConfigResolved({
+				api: ctx.api,
+				organizationId: ctx.organizationId,
+				workspaceId: input.workspaceId,
+				phase: "archive",
+				repoPath: project.repoPath,
+				projectId: project.id,
+				worktreePath: local.worktreePath,
+			});
 		}
 
 		const result = await runDestroyPhases(ctx, input, {

@@ -5,6 +5,7 @@ import {
 	sandboxManagedEnvSchema,
 } from "@superset/shared/sandbox-contract";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import {
 	hasManagedEnv,
 	setManagedEnv,
@@ -12,6 +13,7 @@ import {
 import {
 	getStartHookState,
 	readSandboxIdentity,
+	runSandboxArchiveHook,
 	runSandboxStartHook,
 } from "../../../runtime/sandbox-self-seed";
 import { protectedProcedure, router } from "../../index";
@@ -60,6 +62,17 @@ export function readSandboxBootStatus(): {
 	};
 }
 
+function requireSandboxIdentity() {
+	const identity = readSandboxIdentity();
+	if (!identity) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: "This host-service has no sandbox identity",
+		});
+	}
+	return identity;
+}
+
 export const sandboxRouter = router({
 	/**
 	 * Replaces the managed environment. The control plane calls it after
@@ -85,15 +98,22 @@ export const sandboxRouter = router({
 	 * been pushed and the checkout is in, so every boot-time action is
 	 * sequenced from one place and reads in one log.
 	 */
-	runStartHook: protectedProcedure.mutation(async () => {
-		sandboxOnly();
-		const identity = readSandboxIdentity();
-		if (!identity) {
-			throw new TRPCError({
-				code: "PRECONDITION_FAILED",
-				message: "This host-service has no sandbox identity",
+	runStartHook: protectedProcedure
+		.input(z.object({ force: z.boolean().optional() }).optional())
+		.mutation(async ({ input }) => {
+			sandboxOnly();
+			return await runSandboxStartHook(requireSandboxIdentity(), {
+				force: input?.force,
 			});
-		}
-		return await runSandboxStartHook(identity);
+		}),
+
+	/**
+	 * Runs the repository's cloud `[archive]` commands. The control plane
+	 * calls it when an archived workspace's box is about to stop; it never
+	 * throws for a failing script, so the stop always goes ahead.
+	 */
+	runArchiveHook: protectedProcedure.mutation(async () => {
+		sandboxOnly();
+		return await runSandboxArchiveHook(requireSandboxIdentity());
 	}),
 });

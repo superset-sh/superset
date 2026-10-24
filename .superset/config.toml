@@ -1,0 +1,22 @@
+# How Superset sets up, runs and archives this repository's workspaces.
+# Reference: apps/docs/content/docs/setup-teardown-scripts.mdx
+# config.json stays until every sandbox runs a host-service that reads this file.
+
+[setup]
+run = ["./.superset/setup.sh"]
+
+[setup.cloud]
+run = ["./.superset/setup.cloud.sh"]
+
+[terminals.dev]
+run = "bun dev"
+default = true
+
+[terminals.dev.cloud]
+run = "./.superset/dev-stack.cloud.sh"
+
+[archive]
+run = ["./.superset/teardown.sh"]
+
+[archive.cloud]
+run = ["./.superset/archive.cloud.sh"]

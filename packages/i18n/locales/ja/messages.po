@@ -4319,9 +4319,6 @@ msgstr "コマンド..."
 msgid "Commands"
 msgstr "コマンド"
 
-msgid "Commands run for workspace setup, teardown, and the Run button."
-msgstr "ワークスペースのセットアップ、ティアダウン、実行ボタンで実行されるコマンド。"
-
 msgid "Comment"
 msgstr "コメント"
 
@@ -4377,6 +4374,9 @@ msgstr "コミット"
 msgid "Committed"
 msgstr "コミット済み"
 
+msgid "Committed with the repository and shared with everyone who works on it."
+msgstr "リポジトリにコミットされ、作業する全員で共有されます。"
+
 msgid "Committed, starting soon."
 msgstr "着手が決まっており、まもなく開始します。"
 
@@ -4428,6 +4428,12 @@ msgstr "component-showcase"
 
 msgid "Composable form layout — pairs with @superset/ui/form for react-hook-form"
 msgstr "組み合わせ可能なフォームレイアウト — react-hook-form用の@superset/ui/formと合わせて使います"
+
+msgid "Config file contents"
+msgstr "設定ファイルの内容"
+
+msgid "config.json must be a JSON object"
+msgstr "config.json は JSON オブジェクトである必要があります"
 
 msgid "Configure"
 msgstr "設定"
@@ -4774,6 +4780,9 @@ msgstr "会話"
 
 msgid "Conversation · Message"
 msgstr "Conversation · Message"
+
+msgid "Convert to config.toml"
+msgstr "config.toml に変換"
 
 msgid "Convert to draft"
 msgstr "ドラフトに変換"
@@ -6635,9 +6644,6 @@ msgstr "{label}にドロップ"
 
 msgid "Drop to attach"
 msgstr "ドロップして添付"
-
-msgid "Drop to import"
-msgstr "ドロップしてインポート"
 
 msgid "Drop to pin"
 msgstr "ドロップしてピン留め"
@@ -8892,9 +8898,6 @@ msgstr "インポートに失敗しました"
 msgid "Import failed: {message}"
 msgstr "インポートに失敗しました: {message}"
 
-msgid "Import from file"
-msgstr "ファイルからインポート"
-
 msgid "Import from v1"
 msgstr "v1からインポート"
 
@@ -9784,6 +9787,11 @@ msgstr "招待したユーザーのみに制限しますか？"
 #. placeholder {0}: metadata.startLine
 msgid "Line {0}"
 msgstr "{0}行目"
+
+#. placeholder {0}: problem.line
+#. placeholder {1}: problem.message
+msgid "Line {0}: {1}"
+msgstr "{0} 行目: {1}"
 
 msgid "line changed"
 msgstr "行が変更されました"
@@ -11922,6 +11930,9 @@ msgstr "このホストを削除できるのはホストのオーナーまたは
 msgid "Only images can be attached to a comment"
 msgstr "コメントに添付できるのは画像のみです"
 
+msgid "Only on this machine: gitignored, and applied to every worktree of this repository. Any key set here replaces the shared one."
+msgstr "このマシンのみ: git で無視され、このリポジトリのすべてのワークツリーに適用されます。ここで設定したキーは共有の値を置き換えます。"
+
 msgid "Only organization owners can modify these settings."
 msgstr "これらの設定を変更できるのは組織のオーナーのみです。"
 
@@ -13361,9 +13372,6 @@ msgstr "プロジェクトをインポートして選択しました。"
 
 msgid "Project is already at that location"
 msgstr "プロジェクトはすでにその場所にあります"
-
-msgid "Project lifecycle scripts"
-msgstr "プロジェクトのライフサイクルスクリプト"
 
 msgid "Project name"
 msgstr "プロジェクト名"
@@ -15709,6 +15717,9 @@ msgstr "ワークスペースを共有"
 msgid "Share."
 msgstr "共有。"
 
+msgid "Shared"
+msgstr "共有"
+
 msgid "Shared across sessions using this login."
 msgstr "このログインを使用するセッション間で共有されます。"
 
@@ -17267,9 +17278,6 @@ msgstr "チームメイトは、指したい箇所に直接フィードバック
 msgid "Teams"
 msgstr "チーム"
 
-msgid "Teardown"
-msgstr "ティアダウン"
-
 msgid "Teardown commands (optional)"
 msgstr "ティアダウンコマンド(任意)"
 
@@ -17485,6 +17493,9 @@ msgstr "クラウドワークスペースは起動しているはずですが、
 
 msgid "The code expired. Start again."
 msgstr "コードの有効期限が切れました。やり直してください。"
+
+msgid "The commands Superset runs to set up, run and archive this project's workspaces, from .superset/config.toml."
+msgstr "このプロジェクトのワークスペースをセットアップ、実行、アーカイブするときに Superset が実行するコマンド（.superset/config.toml）。"
 
 msgid "The connection timed out"
 msgstr "接続がタイムアウトしました"
@@ -18039,6 +18050,9 @@ msgstr "このプロジェクトはお使いのデバイスでは利用できな
 
 msgid "This project isn't linked to a GitHub repository."
 msgstr "このプロジェクトは GitHub リポジトリにリンクされていません。"
+
+msgid "This project still uses the older config.json. It keeps working; convert it to config.toml to use the new sections."
+msgstr "このプロジェクトはまだ以前の config.json を使っています。引き続き動作しますが、新しいセクションを使うには config.toml に変換してください。"
 
 msgid "This project's host is offline"
 msgstr "このプロジェクトのホストはオフラインです"
@@ -18860,6 +18874,9 @@ msgstr "アップデートが必要です"
 msgid "Update Superset on that device. In-app updates require a supported standalone install and a released app version."
 msgstr "そのデバイスで Superset を更新してください。アプリ内からの更新には、対応するスタンドアロンインストールとリリース済みのアプリバージョンが必要です。"
 
+msgid "Update Superset on this host to edit its workspace config."
+msgstr "ワークスペースの設定を編集するには、このホストの Superset を更新してください。"
+
 msgid "Update Superset on this machine to attach files"
 msgstr "ファイルを添付するには、このマシンでSupersetを更新してください"
 
@@ -19677,6 +19694,9 @@ msgstr "ワークスペースのエージェント"
 
 msgid "Workspace archived"
 msgstr "ワークスペースをアーカイブしました"
+
+msgid "Workspace config"
+msgstr "ワークスペースの設定"
 
 msgid "Workspace created"
 msgstr "ワークスペースを作成しました"

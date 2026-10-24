@@ -11,7 +11,7 @@ import type { HostSelectOption } from "../../../../components/HostSelect";
 import { DeleteProjectSection } from "./components/DeleteProjectSection";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 import { V2ProjectSettingsBody } from "./components/V2ProjectSettingsBody";
-import { V2ScriptsEditor } from "./components/V2ScriptsEditor";
+import { WorkspaceConfigEditor } from "./components/WorkspaceConfigEditor";
 
 interface V2ProjectSettingsProps {
 	projectId: string;
@@ -166,7 +166,10 @@ export function V2ProjectSettings({
 			}
 			scriptsEditor={
 				targetHostUrl ? (
-					<V2ScriptsEditor hostUrl={targetHostUrl} projectId={projectId} />
+					<WorkspaceConfigEditor
+						hostUrl={targetHostUrl}
+						projectId={projectId}
+					/>
 				) : null
 			}
 			dangerZone={

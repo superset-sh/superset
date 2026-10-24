@@ -3,6 +3,7 @@ import {
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
+	readFileSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
@@ -148,6 +149,43 @@ describe("workspace delete teardown integration", () => {
 		expect(result.worktreeRemoved).toBe(true);
 		expect(existsSync(markerPath)).toBe(true);
 		expect(existsSync(scenario.worktreePath)).toBe(false);
+	});
+
+	test("config.toml: [archive] runs before the worktree goes, and the teardown.sh fallback is ignored", async () => {
+		const { scenario, markerPath } = await setup("printf json > {{MARKER}}");
+		writeFileSync(
+			join(scenario.repo.repoPath, ".superset", "config.toml"),
+			`[archive]\nrun = ["test -d ${shellQuote(scenario.worktreePath)} && printf toml > ${shellQuote(markerPath)}"]\n`,
+		);
+
+		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
+			workspaceId: scenario.featureWorkspaceId,
+			force: true,
+		});
+
+		expect(result.success).toBe(true);
+		expect(readFileSync(markerPath, "utf-8")).toBe("toml");
+		expect(existsSync(scenario.worktreePath)).toBe(false);
+	});
+
+	test("config.toml: the personal config.local.toml's [archive] replaces the shared one", async () => {
+		const { scenario, markerPath } = await setup("printf json > {{MARKER}}");
+		const dir = join(scenario.repo.repoPath, ".superset");
+		writeFileSync(
+			join(dir, "config.toml"),
+			`[archive]\nrun = "printf shared > ${shellQuote(markerPath)}"\n`,
+		);
+		writeFileSync(
+			join(dir, "config.local.toml"),
+			`[archive]\nrun = "printf personal > ${shellQuote(markerPath)}"\n`,
+		);
+
+		await scenario.host.trpc.workspaceCleanup.destroy.mutate({
+			workspaceId: scenario.featureWorkspaceId,
+			force: true,
+		});
+
+		expect(readFileSync(markerPath, "utf-8")).toBe("personal");
 	});
 
 	test("workspaceCleanup.destroy with skipTeardown skips the script (teardown-failed retry contract)", async () => {

@@ -9,6 +9,11 @@ export {
 	type SandboxCaller,
 	sandboxCredentialWorkspaceId,
 } from "./api-credential";
+export {
+	type BoxHookOutcome,
+	rerunBoxStartHook,
+	runBoxArchiveHook,
+} from "./box-hooks";
 export { buildSandboxClaim } from "./claim";
 export { deriveSandboxCredentials } from "./credentials";
 export {
