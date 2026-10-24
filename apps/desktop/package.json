@@ -255,7 +255,7 @@
 		"utf-8-validate": "6.0.6",
 		"uuid": "14.0.0",
 		"ws": "8.21.3",
-		"zod": "4.6.5",
+		"zod": "4.6.6",
 		"zustand": "5.0.12"
 	},
 	"devDependencies": {

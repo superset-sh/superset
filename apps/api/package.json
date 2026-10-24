@@ -49,7 +49,7 @@
 		"rrule": "2.8.1",
 		"stripe": "20.4.1",
 		"svix": "2.8.0",
-		"zod": "4.6.5"
+		"zod": "4.6.6"
 	},
 	"devDependencies": {
 		"@lingui/swc-plugin": "6.6.0",

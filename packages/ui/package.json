@@ -100,7 +100,7 @@
 		"uqr": "0.1.2",
 		"use-stick-to-bottom": "1.1.3",
 		"vaul": "1.1.2",
-		"zod": "4.6.5"
+		"zod": "4.6.6"
 	},
 	"devDependencies": {
 		"@lingui/babel-plugin-lingui-macro": "6.8.0",

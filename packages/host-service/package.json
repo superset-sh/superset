@@ -107,7 +107,7 @@
 		"simple-git": "4.0.2",
 		"superjson": "2.2.6",
 		"tree-kill": "1.2.2",
-		"zod": "4.6.5"
+		"zod": "4.6.6"
 	},
 	"devDependencies": {
 		"@superset/host-client": "workspace:*",

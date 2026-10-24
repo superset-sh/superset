@@ -49,7 +49,7 @@
 		"require-in-the-middle": "8.0.1",
 		"server-only": "0.0.1",
 		"superjson": "2.2.6",
-		"zod": "4.6.5"
+		"zod": "4.6.6"
 	},
 	"devDependencies": {
 		"@lingui/swc-plugin": "6.6.0",

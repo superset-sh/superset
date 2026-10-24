@@ -58,7 +58,7 @@
         "rrule": "2.8.1",
         "stripe": "20.4.1",
         "svix": "2.8.0",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@lingui/swc-plugin": "6.6.0",
@@ -287,7 +287,7 @@
         "utf-8-validate": "6.0.6",
         "uuid": "14.0.0",
         "ws": "8.21.3",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
         "zustand": "5.0.12",
       },
       "devDependencies": {
@@ -358,7 +358,7 @@
         "react": "19.2.3",
         "react-dom": "19.2.3",
         "tailwind-merge": "3.5.0",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@lingui/swc-plugin": "6.6.0",
@@ -380,7 +380,7 @@
       "dependencies": {
         "@superset/shared": "workspace:*",
         "jose": "6.2.2",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@cloudflare/workers-types": "5.20260801.1",
@@ -438,7 +438,7 @@
         "stripe-gradient": "1.0.1",
         "superjson": "2.2.6",
         "three": "0.181.2",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@lingui/swc-plugin": "6.6.0",
@@ -583,7 +583,7 @@
         "tailwindcss-animate": "1.0.7",
         "tokenlens": "1.3.1",
         "uniwind": "1.8.0",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
         "zustand": "5.0.12",
       },
       "devDependencies": {
@@ -656,7 +656,7 @@
         "@sentry/cloudflare": "10.68.0",
         "@superset/shared": "workspace:*",
         "hono": "4.13.7",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@cloudflare/workers-types": "5.20260801.1",
@@ -705,7 +705,7 @@
         "require-in-the-middle": "8.0.1",
         "server-only": "0.0.1",
         "superjson": "2.2.6",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@lingui/swc-plugin": "6.6.0",
@@ -756,7 +756,7 @@
         "posthog-node": "5.28.8",
         "resend": "6.18.0",
         "stripe": "20.4.1",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@superset/typescript": "workspace:*",
@@ -770,7 +770,7 @@
       "dependencies": {
         "@superset/shared": "workspace:*",
         "marked": "17.0.6",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@happy-dom/global-registrator": "20.0.2",
@@ -800,7 +800,7 @@
         "@trpc/server": "11.16.0",
         "better-sqlite3": "12.11.1",
         "drizzle-orm": "0.45.2",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@superset/typescript": "workspace:*",
@@ -864,7 +864,7 @@
         "mime-types": "3.0.2",
         "react": "19.2.3",
         "superjson": "2.2.6",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@superset/typescript": "workspace:*",
@@ -919,7 +919,7 @@
         "@t3-oss/env-core": "0.13.11",
         "dotenv": "17.3.1",
         "drizzle-orm": "0.45.2",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@superset/typescript": "workspace:*",
@@ -944,7 +944,7 @@
         "react-dom": "19.2.3",
         "resend": "6.18.0",
         "tailwindcss": "4.2.2",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@react-email/preview-server": "5.0.7",
@@ -1006,7 +1006,7 @@
         "simple-git": "4.0.2",
         "superjson": "2.2.6",
         "tree-kill": "1.2.2",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@superset/host-client": "workspace:*",
@@ -1056,7 +1056,7 @@
         "@superset/shared": "workspace:*",
         "drizzle-orm": "0.45.2",
         "uuid": "14.0.0",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@superset/typescript": "workspace:*",
@@ -1086,7 +1086,7 @@
         "better-auth": "1.6.22",
         "drizzle-orm": "0.45.2",
         "superjson": "2.2.6",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@superset/typescript": "workspace:*",
@@ -1156,7 +1156,7 @@
         "@vercel/sandbox": "3.2.2",
         "aws4fetch": "1.0.20",
         "drizzle-orm": "0.45.2",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@superset/typescript": "workspace:*",
@@ -1186,7 +1186,7 @@
         "jose": "6.2.2",
         "rrule": "2.8.1",
         "semver": "7.7.4",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@superset/typescript": "workspace:*",
@@ -1237,7 +1237,7 @@
         "posthog-node": "5.28.8",
         "resend": "6.18.0",
         "superjson": "2.2.6",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@microsoft/microsoft-graph-types": "2.43.1",
@@ -1314,7 +1314,7 @@
         "uqr": "0.1.2",
         "use-stick-to-bottom": "1.1.3",
         "vaul": "1.1.2",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@lingui/babel-plugin-lingui-macro": "6.8.0",
@@ -6645,7 +6645,7 @@
 
     "yuku-ast": ["yuku-ast@0.6.11", "", { "dependencies": { "@yuku-toolchain/types": "0.6.8" } }, "sha512-ZfXkFYVsDewS45+kv3WiA/qNB73CRfxFDEQwfnRMUAR4AD5zRI7PRqxmI2U3Jz/oG41GneTVW6mxDOQal0lgeA=="],
 
-    "zod": ["zod@4.6.5", "", {}, "sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q=="],
+    "zod": ["zod@4.6.6", "", {}, "sha512-4UmzQUF5fxvfcYHlbjBmejU+w+hbDnWFx4aS8kBx7nPBHcO2SqPbpAG8snbdg+Xse4pRefR98hgjFgIMCI/UhA=="],
 
     "zod-to-json-schema": ["zod-to-json-schema@3.25.2", "", { "peerDependencies": { "zod": "^3.25.28 || ^4" } }, "sha512-O/PgfnpT1xKSDeQYSCfRI5Gy3hPf91mKVDuYLUHZJMiDFptvP41MSnWofm8dnCm0256ZNfZIM7DSzuSMAFnjHA=="],
 
@@ -6656,6 +6656,8 @@
     "zx": ["zx@8.8.5", "", { "bin": { "zx": "build/cli.js" } }, "sha512-SNgDF5L0gfN7FwVOdEFguY3orU5AkfFZm9B5YSHog/UDHv+lvmd82ZAsOenOkQixigwH2+yyH198AwNdKhj+RA=="],
 
     "@agentclientprotocol/claude-agent-acp/diff": ["diff@9.0.0", "", {}, "sha512-svtcdpS8CgJyqAjEQIXdb3OjhFVVYjzGAPO8WGCmRbrml64SPw/jJD4GoE98aR7r25A0XcgrK3F02yw9R/vhQw=="],
+
+    "@agentclientprotocol/claude-agent-acp/zod": ["zod@4.6.5", "", {}, "sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q=="],
 
     "@agentclientprotocol/codex-acp/diff": ["diff@9.0.0", "", {}, "sha512-svtcdpS8CgJyqAjEQIXdb3OjhFVVYjzGAPO8WGCmRbrml64SPw/jJD4GoE98aR7r25A0XcgrK3F02yw9R/vhQw=="],
 

@@ -11,7 +11,7 @@
 	"dependencies": {
 		"@superset/shared": "workspace:*",
 		"jose": "6.2.2",
-		"zod": "4.6.5"
+		"zod": "4.6.6"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "5.20260801.1",

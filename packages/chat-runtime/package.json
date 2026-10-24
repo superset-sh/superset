@@ -26,7 +26,7 @@
 		"@trpc/server": "11.16.0",
 		"better-sqlite3": "12.11.1",
 		"drizzle-orm": "0.45.2",
-		"zod": "4.6.5"
+		"zod": "4.6.6"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",

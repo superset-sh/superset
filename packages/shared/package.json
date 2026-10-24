@@ -469,7 +469,7 @@
 		"jose": "6.2.2",
 		"rrule": "2.8.1",
 		"semver": "7.7.4",
-		"zod": "4.6.5"
+		"zod": "4.6.6"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",

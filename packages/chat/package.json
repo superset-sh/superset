@@ -28,7 +28,7 @@
 	"dependencies": {
 		"@superset/shared": "workspace:*",
 		"marked": "17.0.6",
-		"zod": "4.6.5"
+		"zod": "4.6.6"
 	},
 	"devDependencies": {
 		"@happy-dom/global-registrator": "20.0.2",
