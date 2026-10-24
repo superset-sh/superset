@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 
-const HOST_PROCESS_NAME = "superset-host";
+// CLI installs run `superset-host`; the desktop app runs `host-service.js` under Electron.
+const HOST_PROCESS_NAMES = ["superset-host", "host-service.js"];
 const PS_TIMEOUT_MS = 2_000;
 
 /**
@@ -23,5 +24,5 @@ export async function inspectProcessCommand(
 }
 
 export function looksLikeHostProcess(command: string): boolean {
-	return command.includes(HOST_PROCESS_NAME);
+	return HOST_PROCESS_NAMES.some((name) => command.includes(name));
 }

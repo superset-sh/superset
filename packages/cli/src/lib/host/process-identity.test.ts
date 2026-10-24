@@ -25,6 +25,14 @@ describe("looksLikeHostProcess", () => {
 		expect(looksLikeHostProcess("/opt/superset/bin/superset-host")).toBe(true);
 	});
 
+	test("matches the desktop app's host-service", () => {
+		expect(
+			looksLikeHostProcess(
+				"/Applications/Superset.app/Contents/MacOS/Superset /Applications/Superset.app/Contents/Resources/app.asar/dist/main/host-service.js",
+			),
+		).toBe(true);
+	});
+
 	test("does not match an unrelated command", () => {
 		expect(looksLikeHostProcess("/usr/sbin/some-other-daemon")).toBe(false);
 	});
