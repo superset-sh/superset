@@ -19711,9 +19711,6 @@ msgstr "Werkruimte geopend, maar de terminal kon niet starten."
 msgid "Workspace path is not available"
 msgstr "Pad van werkruimte is niet beschikbaar"
 
-msgid "Workspace path is not available yet"
-msgstr "Het werkruimtepad is nog niet beschikbaar"
-
 msgid "Workspace restored"
 msgstr "Werkruimte hersteld"
 

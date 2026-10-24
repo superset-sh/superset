@@ -19711,9 +19711,6 @@ msgstr "Çalışma alanı açıldı, ancak terminal başlatılamadı."
 msgid "Workspace path is not available"
 msgstr "Çalışma alanı yolu kullanılamıyor"
 
-msgid "Workspace path is not available yet"
-msgstr "Çalışma alanı yolu henüz kullanılamıyor"
-
 msgid "Workspace restored"
 msgstr "Çalışma alanı geri yüklendi"
 

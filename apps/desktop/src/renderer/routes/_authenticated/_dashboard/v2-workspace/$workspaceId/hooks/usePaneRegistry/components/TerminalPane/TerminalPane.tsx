@@ -46,6 +46,7 @@ import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
 import { isWithinWorkspacePath } from "shared/absolute-paths";
 import { useLinkClickHint } from "../../hooks/useLinkClickHint";
+import { useSendAttachments } from "../../hooks/useSendAttachments";
 import {
 	runFileLinkAction,
 	runFolderLinkAction,
@@ -53,10 +54,7 @@ import {
 	type TerminalLinkActionDeps,
 	terminalPullRequestLinkAction,
 } from "../../utils/runTerminalLinkAction";
-import {
-	PasteUploadLimitError,
-	uploadPastedFiles,
-} from "../../utils/uploadPastedFiles";
+import { AttachmentLimitError } from "../../utils/sendAttachmentsToWorkspace";
 import { TerminalAgentAutoResume } from "./components/TerminalAgentAutoResume";
 import { TerminalCopiedIndicator } from "./components/TerminalCopiedIndicator";
 import { TerminalNarrowedBanner } from "./components/TerminalNarrowedBanner";
@@ -408,9 +406,9 @@ export function TerminalPane({
 	// The default paste path forwards Ctrl+V and lets the TUI read the OS
 	// clipboard — which only exists on the machine the PTY runs on. When the
 	// workspace lives on another host (relay-reached machine, cloud sandbox),
-	// ship the clipboard bytes there via filesystem.writeFile and paste the
-	// resulting paths instead. Local workspaces keep the Ctrl+V forward, which
-	// lets TUIs attach the image natively.
+	// send the clipboard files to the workspace and paste the resulting paths
+	// instead. Local workspaces keep the Ctrl+V forward, which lets TUIs
+	// attach the image natively.
 	const { machineId } = useLocalHostService();
 	const hostWorkspaces = useHostWorkspaces();
 	const workspaceHostId = hostWorkspaces.workspaces.find(
@@ -424,28 +422,14 @@ export function TerminalPane({
 		Boolean(machineId) &&
 		workspaceHostId !== machineId;
 
-	const writeFileMutation = workspaceTrpc.filesystem.writeFile.useMutation();
-	const createDirectoryMutation =
-		workspaceTrpc.filesystem.createDirectory.useMutation();
-	const writeFileRef = useRef(writeFileMutation.mutateAsync);
-	writeFileRef.current = writeFileMutation.mutateAsync;
-	const createDirectoryRef = useRef(createDirectoryMutation.mutateAsync);
-	createDirectoryRef.current = createDirectoryMutation.mutateAsync;
+	const sendAttachments = useSendAttachments(workspaceId);
 
 	// Fire-and-forget: ship files to the workspace, then paste the paths.
 	const uploadAndPasteFiles = useCallback(
-		(files: File[], worktree: string) => {
+		(files: File[]) => {
 			void (async () => {
 				try {
-					const paths = await uploadPastedFiles({
-						deps: {
-							createDirectory: (input) => createDirectoryRef.current(input),
-							writeFile: (input) => writeFileRef.current(input),
-						},
-						workspaceId,
-						worktreePath: worktree,
-						files,
-					});
+					const paths = await sendAttachments(files);
 					terminalRuntimeRegistry.paste(
 						terminalId,
 						shellEscapePaths(paths),
@@ -454,7 +438,7 @@ export function TerminalPane({
 				} catch (error) {
 					console.error("[v2 Terminal] remote file upload failed", error);
 					toast.error(
-						error instanceof PasteUploadLimitError
+						error instanceof AttachmentLimitError
 							? error.message
 							: files.length === 1
 								? t({
@@ -467,15 +451,15 @@ export function TerminalPane({
 				}
 			})();
 		},
-		[terminalId, terminalInstanceId, workspaceId, t],
+		[terminalId, terminalInstanceId, sendAttachments, t],
 	);
 
 	useEffect(() => {
-		if (!isRemoteHost || !worktreePath) return;
+		if (!isRemoteHost) return;
 
 		terminalRuntimeRegistry.setImagePasteOverride(
 			terminalId,
-			(files) => uploadAndPasteFiles(files, worktreePath),
+			uploadAndPasteFiles,
 			terminalInstanceId,
 		);
 		return () => {
@@ -485,13 +469,7 @@ export function TerminalPane({
 				terminalInstanceId,
 			);
 		};
-	}, [
-		terminalId,
-		terminalInstanceId,
-		worktreePath,
-		isRemoteHost,
-		uploadAndPasteFiles,
-	]);
+	}, [terminalId, terminalInstanceId, isRemoteHost, uploadAndPasteFiles]);
 
 	useTerminalInterruptClear({
 		terminalId,
@@ -595,7 +573,7 @@ export function TerminalPane({
 		// remote workspace's PTY runs on. When every dropped entry is a plain
 		// file, ship the bytes instead. Folders keep the path flow (their File
 		// entries carry no content), which at least preserves today's behavior.
-		if (isRemoteHost && worktreePath) {
+		if (isRemoteHost) {
 			const items = Array.from(event.dataTransfer.items);
 			const allPlainFiles =
 				items.length > 0 &&
@@ -610,7 +588,7 @@ export function TerminalPane({
 				terminalRuntimeRegistry
 					.getTerminal(terminalId, terminalInstanceId)
 					?.focus();
-				uploadAndPasteFiles(files, worktreePath);
+				uploadAndPasteFiles(files);
 				return;
 			}
 		}

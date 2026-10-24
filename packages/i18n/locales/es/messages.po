@@ -19711,9 +19711,6 @@ msgstr "El espacio de trabajo se abrió, pero el terminal no se pudo iniciar."
 msgid "Workspace path is not available"
 msgstr "La ruta del espacio de trabajo no está disponible"
 
-msgid "Workspace path is not available yet"
-msgstr "La ruta del espacio de trabajo aún no está disponible"
-
 msgid "Workspace restored"
 msgstr "Espacio de trabajo restaurado"
 

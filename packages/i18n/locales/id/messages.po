@@ -19711,9 +19711,6 @@ msgstr "Workspace terbuka, tapi terminal gagal dijalankan."
 msgid "Workspace path is not available"
 msgstr "Path workspace tidak tersedia"
 
-msgid "Workspace path is not available yet"
-msgstr "Jalur ruang kerja belum tersedia"
-
 msgid "Workspace restored"
 msgstr "Workspace dipulihkan"
 

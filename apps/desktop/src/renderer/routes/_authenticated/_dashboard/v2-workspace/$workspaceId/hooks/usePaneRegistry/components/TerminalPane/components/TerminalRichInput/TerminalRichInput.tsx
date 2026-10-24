@@ -21,10 +21,8 @@ import { usePluginMentionOptions } from "renderer/hooks/usePluginMentionOptions"
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { track } from "renderer/lib/analytics";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
-import {
-	PasteUploadLimitError,
-	uploadPastedFiles,
-} from "../../../../utils/uploadPastedFiles";
+import { useSendAttachments } from "../../../../hooks/useSendAttachments";
+import { AttachmentLimitError } from "../../../../utils/sendAttachmentsToWorkspace";
 import { TerminalPaneIcon } from "../TerminalPaneIcon";
 import { prepareTerminalSubmission } from "./prepareTerminalSubmission";
 
@@ -125,13 +123,7 @@ function TerminalRichInputInner({
 		[trpcUtils, workspaceId],
 	);
 
-	const writeFileMutation = workspaceTrpc.filesystem.writeFile.useMutation();
-	const createDirectoryMutation =
-		workspaceTrpc.filesystem.createDirectory.useMutation();
-	const writeFileRef = useRef(writeFileMutation.mutateAsync);
-	writeFileRef.current = writeFileMutation.mutateAsync;
-	const createDirectoryRef = useRef(createDirectoryMutation.mutateAsync);
-	createDirectoryRef.current = createDirectoryMutation.mutateAsync;
+	const sendAttachments = useSendAttachments(workspaceId);
 
 	const handleSubmit = useCallback(
 		async (message: PromptInputMessage) => {
@@ -141,27 +133,15 @@ function TerminalRichInputInner({
 			// async onSubmit), so the user does not lose the draft or the files.
 			let attachmentPaths: string[] = [];
 			if (message.files.length > 0) {
-				if (!cwd) {
-					toast.error(t({ message: "Workspace path is not available yet" }));
-					throw new Error("no worktree path");
-				}
 				try {
-					attachmentPaths = await uploadPastedFiles({
-						deps: {
-							createDirectory: (input) => createDirectoryRef.current(input),
-							writeFile: (input) => writeFileRef.current(input),
-						},
-						workspaceId,
-						worktreePath: cwd,
-						files: await toFiles(message.files),
-					});
+					attachmentPaths = await sendAttachments(await toFiles(message.files));
 				} catch (error) {
 					console.error(
 						"[v2 TerminalRichInput] attachment upload failed",
 						error,
 					);
 					toast.error(
-						error instanceof PasteUploadLimitError
+						error instanceof AttachmentLimitError
 							? error.message
 							: message.files.length === 1
 								? "Failed to attach the file"
@@ -193,8 +173,7 @@ function TerminalRichInputInner({
 			terminalInstanceId,
 			controller,
 			workspaceId,
-			cwd,
-			t,
+			sendAttachments,
 			sendToTerminalAgent,
 		],
 	);

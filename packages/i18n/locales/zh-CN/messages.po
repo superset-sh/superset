@@ -19711,9 +19711,6 @@ msgstr "工作区已打开，但终端启动失败。"
 msgid "Workspace path is not available"
 msgstr "工作区路径不可用"
 
-msgid "Workspace path is not available yet"
-msgstr "工作区路径尚不可用"
-
 msgid "Workspace restored"
 msgstr "工作区已恢复"
 

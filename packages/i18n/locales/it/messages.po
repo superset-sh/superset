@@ -19711,9 +19711,6 @@ msgstr "Workspace aperto, ma il terminale non è partito."
 msgid "Workspace path is not available"
 msgstr "Il percorso del workspace non è disponibile"
 
-msgid "Workspace path is not available yet"
-msgstr "Il percorso dello spazio di lavoro non è ancora disponibile"
-
 msgid "Workspace restored"
 msgstr "Workspace ripristinato"
 

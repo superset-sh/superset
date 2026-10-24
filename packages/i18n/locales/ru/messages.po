@@ -19711,9 +19711,6 @@ msgstr "Рабочая область открыта, но терминал не
 msgid "Workspace path is not available"
 msgstr "Путь к рабочей области недоступен"
 
-msgid "Workspace path is not available yet"
-msgstr "Путь рабочего пространства пока недоступен"
-
 msgid "Workspace restored"
 msgstr "Рабочая область восстановлена"
 

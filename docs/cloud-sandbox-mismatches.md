@@ -322,13 +322,28 @@ forwards Ctrl+V and lets the TUI (Claude Code, Codex) read the image from the
 OS clipboard — of the machine the PTY runs on. A sandbox (or any
 relay-reached host) never holds the user's local screenshot, so the paste
 silently did nothing or surfaced "Failed to paste image". Fixed renderer-side:
-for non-local hosts the desktop ships the clipboard bytes over
-`filesystem.writeFile` into the shared `.superset/attachments/` worktree dir
-(the same convention the agent-launch terminal adapter and the mobile
-composer use — mobile proved the pattern) and pastes the worktree-relative
-path instead (`setImagePasteOverride` in the terminal runtime registry).
-Chosen over a new host endpoint because deployed sandboxes never update
-their baked host-service.
+for non-local hosts the desktop sends the clipboard files the way every
+composer sends attachments — `attachment.createUpload` on the API, a
+presigned PUT to storage, `cloudWorkspace.attachFiles` for a box, then
+`attachments.materializeIntoWorkspace` on the host — and pastes the
+worktree-relative paths instead (`setImagePasteOverride` in the terminal
+runtime registry, `useSendAttachments` in the pane registry).
+
+**The ingress drops an upload the host answers early.** tRPC's streamed batch
+(`httpBatchStreamLink`, `trpc-accept: application/jsonl`) returns its response
+head before it has read the request body. Behind a Vercel sandbox's ingress
+(`sb-*.vercel.run`, which the gate forwards to) that early response ends the
+exchange: the rest of the upload is dropped, the procedure never runs, and the
+client sees a stream that ends after the head line — "value$1 is not iterable"
+in tRPC's consumer. It is a race, not a size limit: a 500 KB body on a home
+uplink loses it about half the time, a 1 MB body on a datacenter link wins
+it. This is why shipping file bytes through `filesystem.writeFile` broke
+(SUPER-2658) and why attachments go through storage instead. host-service now
+buffers every `/trpc/*` body before handing it to tRPC, so no response starts
+before the request is complete; a sandbox provisioned before that bundle still
+has the race for any request with a sizeable body. Reproducing with curl: pass
+`-H "Expect:"` — curl's automatic `Expect: 100-continue` on bodies ≥1 MB
+masks the bug, and browsers never send it.
 
 **A URL launcher succeeds and reaches nobody.** The image ships `xdg-utils`
 (`packages/sandbox/bundle/rootfs/usr/local/share/superset/desktop.Aptfile`)

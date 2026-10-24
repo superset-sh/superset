@@ -19711,9 +19711,6 @@ msgstr "Arbeitsbereich geöffnet, aber das Terminal konnte nicht starten."
 msgid "Workspace path is not available"
 msgstr "Pfad des Arbeitsbereichs ist nicht verfügbar"
 
-msgid "Workspace path is not available yet"
-msgstr "Der Workspace-Pfad ist noch nicht verfügbar"
-
 msgid "Workspace restored"
 msgstr "Arbeitsbereich wiederhergestellt"
 

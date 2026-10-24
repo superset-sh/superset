@@ -506,6 +506,19 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	});
 	registerChatV3Routes({ app, db, mount: chatV3, upgradeWebSocket });
 
+	// tRPC answers a streamed batch before it has read the request body, and
+	// a sandbox's ingress treats that early response as the end of the
+	// exchange and drops the upload still in flight. Hand tRPC a body it
+	// already has, so no response starts before the request is complete.
+	app.use("/trpc/*", async (c, next) => {
+		if (c.req.raw.body !== null && !c.req.raw.bodyUsed) {
+			c.req.raw = new Request(c.req.raw, {
+				body: await c.req.raw.arrayBuffer(),
+			});
+		}
+		await next();
+	});
+
 	app.use(
 		"/trpc/*",
 		trpcServer({

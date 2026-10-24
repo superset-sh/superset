@@ -19711,9 +19711,6 @@ msgstr "워크스페이스를 열었지만 터미널을 시작하지 못했습�
 msgid "Workspace path is not available"
 msgstr "워크스페이스 경로를 사용할 수 없습니다"
 
-msgid "Workspace path is not available yet"
-msgstr "작업 공간 경로를 아직 사용할 수 없습니다"
-
 msgid "Workspace restored"
 msgstr "워크스페이스를 복원했습니다"
 

@@ -19711,9 +19711,6 @@ msgstr "Đã mở workspace, nhưng terminal không khởi động được."
 msgid "Workspace path is not available"
 msgstr "Không có đường dẫn workspace"
 
-msgid "Workspace path is not available yet"
-msgstr "Đường dẫn không gian làm việc chưa sẵn sàng"
-
 msgid "Workspace restored"
 msgstr "Đã khôi phục workspace"
 
