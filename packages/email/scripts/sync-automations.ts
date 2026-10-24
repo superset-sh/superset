@@ -71,8 +71,7 @@ function template(alias: string, variables?: Record<string, unknown>) {
 
 const desired: DesiredAutomation[] = [
 	{
-		// Every signup's welcome email; stopping this stops them all. It has its
-		// own event because `user.signed_up` is withheld from the A/B control arm.
+		// Every signup's welcome email; stopping this stops them all.
 		name: "welcome",
 		steps: [
 			{
