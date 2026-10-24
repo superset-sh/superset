@@ -76,7 +76,7 @@ function setup() {
 	cleanupGitOps.removeWorktree = async ({ worktreePath, force }) => {
 		gitCalls.push(["worktree", "remove", worktreePath, `force=${force}`]);
 		rmSync(worktreePath, { recursive: true, force: true });
-		return { stillRegistered: false };
+		return { stillRegistered: false, removedByApp: false };
 	};
 	const ctx = {
 		db,
