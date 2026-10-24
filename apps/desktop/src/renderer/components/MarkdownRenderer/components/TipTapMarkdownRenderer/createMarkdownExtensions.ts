@@ -37,6 +37,7 @@ import { Markdown } from "tiptap-markdown";
 import { EditableCodeBlockView } from "./components/EditableCodeBlockView";
 import { ReadOnlyCodeBlockView } from "./components/ReadOnlyCodeBlockView";
 import { ReadOnlySafeImageView } from "./components/ReadOnlySafeImageView";
+import { MarkdownBlockMath, MarkdownInlineMath } from "./mathMarkdown";
 import {
 	serializeMarkdownTable,
 	serializeSelectionForClipboard,
@@ -242,6 +243,8 @@ export function createMarkdownExtensions({
 		// markdown-it already restricts data: sources to data:image/*; without
 		// this the image extension drops them and the paragraph renders empty.
 		SafeImage.configure({ allowBase64: true }),
+		MarkdownInlineMath,
+		MarkdownBlockMath,
 		// Individual table nodes (not TableKit) so a GFM markdown serializer can be
 		// attached to the `table` node's `storage.markdown`, replacing
 		// tiptap-markdown's built-in serializer that emits `[table]`. The

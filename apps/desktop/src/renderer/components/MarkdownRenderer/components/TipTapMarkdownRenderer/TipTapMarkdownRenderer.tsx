@@ -1,3 +1,4 @@
+import "katex/dist/katex.min.css";
 import "../../../../styles/hljs-github.css";
 
 import { cn } from "@superset/ui/utils";
