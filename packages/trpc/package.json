@@ -150,7 +150,7 @@
 		"@anthropic-ai/sdk": "0.78.0",
 		"@aws-sdk/client-s3": "3.899.0",
 		"@aws-sdk/s3-request-presigner": "3.899.0",
-		"@azure/msal-node": "5.5.0",
+		"@azure/msal-node": "7.1.0",
 		"@googleapis/calendar": "16.0.0",
 		"@googleapis/gmail": "18.0.0",
 		"@linear/sdk": "68.1.1",
