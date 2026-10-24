@@ -33,6 +33,10 @@ describe("looksLikeHostProcess", () => {
 		).toBe(true);
 	});
 
+	test("does not match a script that only ends in host-service.js", () => {
+		expect(looksLikeHostProcess("node /tmp/not-host-service.js")).toBe(false);
+	});
+
 	test("does not match an unrelated command", () => {
 		expect(looksLikeHostProcess("/usr/sbin/some-other-daemon")).toBe(false);
 	});

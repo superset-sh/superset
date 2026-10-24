@@ -1,7 +1,8 @@
 import { execFile } from "node:child_process";
 
-// CLI installs run `superset-host`; the desktop app runs `host-service.js` under Electron.
-const HOST_PROCESS_NAMES = ["superset-host", "host-service.js"];
+const HOST_PROCESS_NAME = "superset-host";
+// The desktop app runs the same service as `.../host-service.js` under its Electron binary.
+const DESKTOP_HOST_SCRIPT = /(?:^|[\s/])host-service\.js(?=\s|$)/;
 const PS_TIMEOUT_MS = 2_000;
 
 /**
@@ -23,6 +24,12 @@ export async function inspectProcessCommand(
 	});
 }
 
+/**
+ * Whether a `ps` command line belongs to the host service: the CLI's
+ * `superset-host` binary or the desktop app's `host-service.js` script.
+ */
 export function looksLikeHostProcess(command: string): boolean {
-	return HOST_PROCESS_NAMES.some((name) => command.includes(name));
+	return (
+		command.includes(HOST_PROCESS_NAME) || DESKTOP_HOST_SCRIPT.test(command)
+	);
 }
