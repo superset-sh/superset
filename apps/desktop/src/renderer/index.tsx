@@ -31,6 +31,15 @@ pruneExpiredTerminalState();
 // Keys from removed features otherwise live on user profiles forever.
 sweepDeadPersistedKeys();
 
+const markWindowFocus = () =>
+	document.documentElement.toggleAttribute(
+		"data-window-blurred",
+		!document.hasFocus(),
+	);
+window.addEventListener("focus", markWindowFocus);
+window.addEventListener("blur", markWindowFocus);
+markWindowFocus();
+
 const router = createRouter({
 	routeTree,
 	history: persistentHistory,

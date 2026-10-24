@@ -401,3 +401,9 @@
 html[data-pointer-passthrough] iframe {
 	pointer-events: none;
 }
+
+/* A running ping redraws the window on every display frame, and background
+   throttling is off on macOS, so stop it while the window is not focused. */
+html[data-window-blurred] .animate-ping {
+	animation: none;
+}
