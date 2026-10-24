@@ -56,6 +56,10 @@ const SHELL_BOOTSTRAP_KEYS = [
 	"DISPLAY",
 	"XAUTHORITY",
 	"WAYLAND_DISPLAY",
+	// Linux session vars set by systemd-logind, not rc files. They locate the
+	// audio server (/voice) and the session bus (keyring, notify-send).
+	"XDG_RUNTIME_DIR",
+	"DBUS_SESSION_BUS_ADDRESS",
 ];
 
 const COMMON_MACOS_PATHS = [

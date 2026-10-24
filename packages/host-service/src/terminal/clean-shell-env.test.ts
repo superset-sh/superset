@@ -28,6 +28,8 @@ describe("buildMinimalEnv", () => {
 		"DISPLAY",
 		"XAUTHORITY",
 		"WAYLAND_DISPLAY",
+		"XDG_RUNTIME_DIR",
+		"DBUS_SESSION_BUS_ADDRESS",
 	];
 	const original: Record<string, string | undefined> = {};
 
@@ -73,6 +75,14 @@ describe("buildMinimalEnv", () => {
 		process.env.WAYLAND_DISPLAY = "wayland-0";
 		const env = buildMinimalEnv();
 		expect(env.WAYLAND_DISPLAY).toBe("wayland-0");
+	});
+
+	test("propagates XDG_RUNTIME_DIR and DBUS_SESSION_BUS_ADDRESS so audio and keyring sockets resolve", () => {
+		process.env.XDG_RUNTIME_DIR = "/run/user/1000";
+		process.env.DBUS_SESSION_BUS_ADDRESS = "unix:path=/run/user/1000/bus";
+		const env = buildMinimalEnv();
+		expect(env.XDG_RUNTIME_DIR).toBe("/run/user/1000");
+		expect(env.DBUS_SESSION_BUS_ADDRESS).toBe("unix:path=/run/user/1000/bus");
 	});
 });
 
