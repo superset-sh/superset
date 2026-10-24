@@ -10,6 +10,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { useRunAfterMenuClose } from "@superset/ui/hooks/use-run-after-menu-close";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
@@ -115,6 +116,9 @@ export function TerminalSessionDropdown({
 	const killTerminalSession = workspaceTrpc.terminal.killSession.useMutation();
 	const renameTerminalSession = workspaceTrpc.terminal.rename.useMutation();
 	const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null);
+	const { runAfterClose, onCloseAutoFocus } = useRunAfterMenuClose({
+		restoreFocusOnClose: true,
+	});
 	const sessionsInput = useMemo(() => ({ workspaceId }), [workspaceId]);
 	const sessionsQuery = workspaceTrpc.terminal.list.useQuery(sessionsInput, {
 		enabled: shouldQueryTerminalSessionList(isOpen),
@@ -398,7 +402,11 @@ export function TerminalSessionDropdown({
 						)}
 					</button>
 				</DropdownMenuTrigger>
-				<DropdownMenuContent align="start" className="w-96">
+				<DropdownMenuContent
+					align="start"
+					className="w-96"
+					onCloseAutoFocus={onCloseAutoFocus}
+				>
 					<DropdownMenuLabel className="flex items-center gap-2 text-xs">
 						<span className="min-w-0 flex-1 truncate">
 							<Trans>Terminal Sessions</Trans>
@@ -490,10 +498,12 @@ export function TerminalSessionDropdown({
 												event.preventDefault();
 												event.stopPropagation();
 												setIsOpen(false);
-												setRenameTarget({
-													terminalId: session.terminalId,
-													name: session.customTitle ?? "",
-												});
+												runAfterClose(() =>
+													setRenameTarget({
+														terminalId: session.terminalId,
+														name: session.customTitle ?? "",
+													}),
+												);
 											}}
 										>
 											<Pencil className="size-3" />
