@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import type { HarnessFactory } from "@superset/chat-runtime";
 import { createAcpAdapter } from "@superset/chat-runtime";
 import type { HostDb } from "../db";
-import { resolveAttachmentPath } from "../trpc/router/attachments/storage";
+import { handOutAttachment } from "../trpc/router/attachments/storage";
 import { captureSessionAccount } from "../trpc/router/usage/session-account/session-account";
 import { ACP_HARNESSES } from "./acpCatalogue";
 import { resolveAgentCli } from "./agentCli";
@@ -13,7 +13,7 @@ import { storeAgentImage } from "./agentImages";
 import type { ChatAgentBridge } from "./chatAgentBridge";
 
 async function resolveAttachment(attachmentId: string) {
-	const resolved = resolveAttachmentPath(attachmentId);
+	const resolved = handOutAttachment(attachmentId);
 	if (!resolved) return null;
 	return {
 		path: resolved.path,

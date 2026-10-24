@@ -2,13 +2,16 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import { MAX_INLINE_ATTACHMENT_BYTES } from "@superset/shared/attachment-limits";
 import type { HostServiceContext } from "../../../types";
-import { attachmentsRouter } from "./attachments";
-import { MAX_INLINE_ATTACHMENT_BYTES } from "./constants";
+import { attachmentsRouter, importCloudAttachments } from "./attachments";
 import {
 	getAttachmentDir,
 	getAttachmentFilePath,
 	getAttachmentsRoot,
+	handOutAttachmentByFileId,
+	readAttachmentMetadata,
+	writeAttachmentMetadata,
 } from "./storage";
 
 let tempBase: string;
@@ -187,12 +190,63 @@ describe("attachmentsRouter.read", () => {
 		});
 	});
 
+	it("stamps the attachment as used", async () => {
+		const caller = createCaller();
+		const { attachmentId } = await caller.upload({
+			data: { kind: "base64", data: PNG_BASE64 },
+			mediaType: "image/png",
+		});
+		const metadata = readAttachmentMetadata(attachmentId);
+		if (!metadata) throw new Error("upload wrote no metadata");
+		writeAttachmentMetadata({ ...metadata, lastUsedAt: 0 });
+
+		await caller.read({ attachmentId });
+		expect(readAttachmentMetadata(attachmentId)?.lastUsedAt).toBeGreaterThan(0);
+	});
+
 	it("reports a missing attachment as NOT_FOUND", async () => {
 		await expect(
 			createCaller().read({
 				attachmentId: "00000000-0000-4000-8000-000000000000",
 			}),
 		).rejects.toMatchObject({ code: "NOT_FOUND" });
+	});
+});
+
+describe("importCloudAttachments", () => {
+	it("records the fileId a copy came from, so a lookup by fileId finds it", async () => {
+		const server = Bun.serve({
+			port: 0,
+			fetch: () => new Response(Buffer.from(PNG_BASE64, "base64")),
+		});
+		try {
+			const fileId = crypto.randomUUID();
+			const ctx = {
+				api: {
+					attachment: {
+						resolve: {
+							mutate: async () => [
+								{
+									fileId,
+									name: "shot.png",
+									contentType: "image/png",
+									sizeBytes: 68,
+									url: server.url.href,
+								},
+							],
+						},
+					},
+				},
+			};
+
+			const [imported] = await importCloudAttachments(ctx, [fileId]);
+			expect(imported?.fileId).toBe(fileId);
+			expect(handOutAttachmentByFileId(fileId)?.metadata.attachmentId).toBe(
+				imported?.attachmentId,
+			);
+		} finally {
+			server.stop(true);
+		}
 	});
 });
 

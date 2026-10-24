@@ -1,4 +1,5 @@
 import type { ChatRuntime } from "@superset/chat-runtime";
+import type { ChatLaunchAttachment } from "../agents/agents";
 import type {
 	ChatSessionResult,
 	CreateChatSessionInput,
@@ -7,7 +8,7 @@ import type {
 type ChatTarget = {
 	harness: string;
 	label: string;
-	attachments: Array<{ attachmentId: string; name: string; mimeType: string }>;
+	attachments: ChatLaunchAttachment[];
 };
 
 export function createChatSession(

@@ -28,8 +28,11 @@ export const userContentSchema = z.discriminatedUnion("type", [
 	z.looseObject({
 		type: z.literal("attachment"),
 		attachmentId: z.string().min(1),
+		/** The storage object behind a cloud workspace's attachment; set, it is the identity. */
+		fileId: z.string().uuid().optional(),
 		name: z.string(),
 		mimeType: z.string(),
+		sizeBytes: z.number().int().nonnegative().optional(),
 	}),
 ]);
 export type UserContent = z.infer<typeof userContentSchema>;

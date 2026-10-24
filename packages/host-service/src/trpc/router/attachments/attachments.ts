@@ -3,6 +3,10 @@ import { closeSync, mkdirSync, openSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
+	MAX_ATTACHMENTS,
+	MAX_INLINE_ATTACHMENT_BYTES,
+} from "@superset/shared/attachment-limits";
+import {
 	assignAttachmentFileName,
 	attachmentNameWithSuffix,
 	WORKSPACE_ATTACHMENTS_DIR,
@@ -12,13 +16,13 @@ import mimeTypes from "mime-types";
 import { z } from "zod";
 import { protectedProcedure, router } from "../../index";
 import { resolveWorktreePath } from "../git/utils/resolve-worktree";
-import { MAX_INLINE_ATTACHMENT_BYTES } from "./constants";
 import { type CloudAttachment, downloadAttachment } from "./download";
 import {
 	type AttachmentMetadata,
 	deleteAttachment,
+	handOutAttachment,
+	indexAttachmentFileId,
 	prepareAttachmentTarget,
-	resolveAttachmentPath,
 	writeAttachment,
 	writeAttachmentMetadata,
 } from "./storage";
@@ -128,12 +132,14 @@ export const attachmentsRouter = router({
 			});
 		}
 
+		const now = Date.now();
 		const metadata: AttachmentMetadata = {
 			attachmentId: randomUUID(),
 			mediaType,
 			originalFilename: input.originalFilename,
 			sizeBytes: bytes.length,
-			createdAt: Date.now(),
+			createdAt: now,
+			lastUsedAt: now,
 		};
 
 		// Buffer already extends Uint8Array; no need to wrap.
@@ -155,7 +161,11 @@ export const attachmentsRouter = router({
 	 * an attachment can legitimately be.
 	 */
 	importFromCloud: protectedProcedure
-		.input(z.object({ fileIds: z.array(z.string().uuid()).min(1).max(10) }))
+		.input(
+			z.object({
+				fileIds: z.array(z.string().uuid()).min(1).max(MAX_ATTACHMENTS),
+			}),
+		)
 		.mutation(({ ctx, input }) => importCloudAttachments(ctx, input.fileIds)),
 
 	/**
@@ -167,7 +177,7 @@ export const attachmentsRouter = router({
 		.input(
 			z.object({
 				workspaceId: z.string(),
-				fileIds: z.array(z.string().uuid()).min(1).max(10),
+				fileIds: z.array(z.string().uuid()).min(1).max(MAX_ATTACHMENTS),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -201,7 +211,7 @@ export const attachmentsRouter = router({
 	read: protectedProcedure
 		.input(z.object({ attachmentId: z.string().uuid() }))
 		.query(async ({ input }) => {
-			const resolved = resolveAttachmentPath(input.attachmentId);
+			const resolved = handOutAttachment(input.attachmentId);
 			if (!resolved) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
@@ -236,6 +246,8 @@ export const attachmentsRouter = router({
 
 export type AttachmentUploadResult = {
 	attachmentId: string;
+	/** Set when the bytes came from cloud storage: the identity a reader without this host resolves. */
+	fileId?: string;
 	originalFilename?: string;
 	mediaType: string;
 	sizeBytes: number;
@@ -261,17 +273,22 @@ export async function importCloudAttachments(
 	const resolved = await ctx.api.attachment.resolve.mutate({ fileIds });
 	const results: AttachmentUploadResult[] = [];
 	for (const attachment of resolved) {
-		const metadata: AttachmentMetadata = {
+		const now = Date.now();
+		const metadata = {
 			attachmentId: randomUUID(),
+			fileId: attachment.fileId,
 			mediaType: mediaTypeOf(attachment.contentType),
 			originalFilename: attachment.name,
 			sizeBytes: attachment.sizeBytes,
-			createdAt: Date.now(),
-		};
+			createdAt: now,
+			lastUsedAt: now,
+		} satisfies AttachmentMetadata;
 		await downloadAttachment(attachment, prepareAttachmentTarget(metadata));
 		writeAttachmentMetadata(metadata);
+		indexAttachmentFileId(metadata);
 		results.push({
 			attachmentId: metadata.attachmentId,
+			fileId: metadata.fileId,
 			originalFilename: metadata.originalFilename,
 			mediaType: metadata.mediaType,
 			sizeBytes: metadata.sizeBytes,

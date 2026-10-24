@@ -44,7 +44,10 @@ import {
 import { hasHarnessSession } from "../../../terminal-agents/harness-sessions";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
-import { resolveAttachmentPath } from "../attachments/storage";
+import {
+	handOutAttachment,
+	resolveAttachmentPath,
+} from "../attachments/storage";
 import { createChatSession } from "../sessions/create-chat-session";
 import { toTerminalSessionError } from "../terminal/errors";
 import { seedAgentFolderTrust } from "../workspace-creation/shared/seed-agent-trust";
@@ -425,7 +428,7 @@ export function buildTerminalAgentLaunch(
 
 	const resolvedAttachments: Array<{ attachmentId: string; path: string }> = [];
 	for (const attachmentId of input.attachmentIds ?? []) {
-		const resolved = resolveAttachmentPath(attachmentId);
+		const resolved = handOutAttachment(attachmentId);
 		if (!resolved) {
 			throw new TRPCError({
 				code: "NOT_FOUND",
@@ -635,13 +638,25 @@ function bindingRunsConfig(
 	return binding.agentId === launchIdentity(config);
 }
 
+/**
+ * An imported copy keeps its `fileId` next to the host id: the adapters read
+ * `attachmentId` today, and `fileId` is what renders the part without this box.
+ */
+export interface ChatLaunchAttachment {
+	attachmentId: string;
+	fileId?: string;
+	name: string;
+	mimeType: string;
+	sizeBytes: number;
+}
+
 export function chatLaunchTarget(
 	db: HostDb,
 	input: AgentRunInput,
 ): {
 	harness: string;
 	label: string;
-	attachments: Array<{ attachmentId: string; name: string; mimeType: string }>;
+	attachments: ChatLaunchAttachment[];
 } | null {
 	if (
 		input.surface !== "chat" ||
@@ -651,18 +666,16 @@ export function chatLaunchTarget(
 	) {
 		return null;
 	}
-	const attachments: Array<{
-		attachmentId: string;
-		name: string;
-		mimeType: string;
-	}> = [];
+	const attachments: ChatLaunchAttachment[] = [];
 	for (const attachmentId of input.attachmentIds ?? []) {
 		const resolved = resolveAttachmentPath(attachmentId);
 		if (!resolved) return null;
 		attachments.push({
 			attachmentId,
+			...(resolved.metadata.fileId ? { fileId: resolved.metadata.fileId } : {}),
 			name: resolved.metadata.originalFilename ?? attachmentId,
 			mimeType: resolved.metadata.mediaType,
+			sizeBytes: resolved.metadata.sizeBytes,
 		});
 	}
 	const config = resolveHostAgentConfig(db, input.agent);
