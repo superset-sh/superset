@@ -1,0 +1,1 @@
+export { createQueryPersister } from "./createQueryPersister";
